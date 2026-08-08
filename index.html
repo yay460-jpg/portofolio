@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<title>Muh Sanjaya -  • Mine Geologist</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { 
+    -webkit-touch-callout: none; 
+    -webkit-user-select: none; 
+    -khtml-user-select: none;
+    -moz-user-select: none; 
+    -ms-user-select: none; 
+    user-select: none;
+    background: #060b19;
+    color: #f8fafc;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: #060b19; }
+  
+  /* GPU Hardware Acceleration & Smooth Rendering */
+  .glass { 
+    background: rgba(13, 22, 45, 0.85); 
+    border: 1px solid rgba(255,255,255,0.08); 
+    backdrop-filter: blur(14px); 
+    -webkit-backdrop-filter: blur(14px);
+    transform: translateZ(0);
+  }
+  .glass-card { 
+    background: rgba(10, 19, 41, 0.9); 
+    border: 1px solid rgba(255,255,255,0.07); 
+    transform: translateZ(0);
+  }
+
+  /* Fix for Mobile Android GPU Lag: Replace dynamic blur with solid opaque RGBA on touch screens */
+  @media (max-width: 767px) {
+    .glass { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: rgba(13, 22, 45, 0.95) !important; }
+    .glass-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: rgba(10, 19, 41, 0.98) !important; }
+    .mobile-topbar-5 { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: #060b19 !important; }
+    .mobile-bottom-nav-5 { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: #0a1226 !important; }
+  }
+  
+  .nav-active { background: rgba(37,99,235,0.25); color: #60a5fa; border: 1px solid rgba(59,130,246,0.4); }
+  .nav-inactive { color: #94a3b8; border: 1px solid transparent; }
+  .nav-inactive:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .text-gradient { background: linear-gradient(90deg, #60a5fa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  
+  img, canvas, video { 
+    -webkit-user-select: none !important; 
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important; 
+    -webkit-user-drag: none !important;
+    user-drag: none !important;
+    -webkit-touch-callout: none !important;
+  }
+  .allow-select { -webkit-user-select: text !important; user-select: text !important; }
+  .portfolio-secure { position: relative; user-select: none; }
+  
+  /* Toast Notifications */
+  #block-toast {
+    position: fixed; bottom: 68px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: rgba(15,23,42,0.95); border: 1px solid rgba(239,68,68,0.4);
+    color: #f87171; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: 600;
+    z-index: 99999; opacity: 0; transition: all 0.3s ease; pointer-events: none; text-align: center; width: max-content; max-width: 90vw;
+  }
+  #block-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* SIDEBAR BEHAVIOR */
+  #desktop-sidebar { display: none; }
+  @media (min-width: 768px) { #desktop-sidebar { display: flex !important; } }
+
+  /* MOBILE NAVIGATION */
+  .mobile-topbar-5 { 
+    display: flex; position: sticky; top:0; z-index:40; 
+    background: rgba(6,11,25,0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom:1px solid rgba(255,255,255,0.08); 
+    padding: 10px 14px; align-items: center; width: 100%;
+    transform: translateZ(0); will-change: transform;
+  }
+  @media (min-width: 768px) { .mobile-topbar-5 { display: none !important; } }
+
+  .mobile-bottom-nav-5 { 
+    display: flex; position: fixed; bottom:0; left:0; right:0; z-index:50; 
+    background: rgba(10,18,38,0.98); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-top:1px solid rgba(255,255,255,0.08); 
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); 
+    justify-content: space-around; 
+    transform: translateZ(0); will-change: transform;
+  }
+  @media (min-width: 768px) { .mobile-bottom-nav-5 { display: none !important; } }
+
+  .mobile-bottom-nav-5 button { 
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; 
+    padding:4px 2px; border-radius:8px; font-size:9px; color:#7a8aaa; background: transparent; border:none; line-height:1;
+  }
+  .mobile-bottom-nav-5 button.active { color:#60a5fa; background: rgba(59,130,246,0.15); font-weight: bold; }
+  .mobile-bottom-nav-5 i { width:18px; height:18px; }
+
+  @media (max-width: 767px) {
+    main { padding: 14px !important; padding-bottom: 80px !important; width: 100% !important; max-width: 100% !important; overflow-x: hidden; }
+  }
+
+  /* Fix for stray blue marks */
+  .projects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  #tab-projects .glass { position: relative; overflow: hidden; }
+  button:focus { outline: none; }
+
+  /* Responsive Auto-Detect */
+  :root { --screen-label: 'Desktop'; }
+
+  @media (max-width: 320px) {
+    :root { --screen-label: '4\" Mobile'; }
+    main { padding: 10px !important; padding-bottom: 76px !important; }
+    .glass { border-radius: 14px !important; }
+    h2 { font-size: 14px !important; }
+    .grid { gap: 10px !important; }
+  }
+  @media (min-width: 321px) and (max-width: 374px) {
+    :root { --screen-label: '5\" Mobile'; }
+    main { padding: 12px !important; padding-bottom: 78px !important; }
+  }
+  @media (min-width: 375px) and (max-width: 767px) {
+    :root { --screen-label: '6\" Mobile'; }
+    main { padding: 14px !important; padding-bottom: 80px !important; }
+    #desktop-sidebar { display: none !important; }
+    .mobile-topbar-5 { display: flex !important; }
+    .mobile-bottom-nav-5 { display: flex !important; }
+  }
+  @media (min-width: 768px) and (max-width: 1024px) {
+    :root { --screen-label: '10\" Tablet'; }
+    main { padding: 20px !important; margin-left: 260px; max-width: calc(100vw - 260px); }
+    #desktop-sidebar { display: flex !important; width: 260px !important; }
+    .mobile-topbar-5, .mobile-bottom-nav-5 { display: none !important; }
+  }
+  @media (min-width: 1025px) {
+    :root { --screen-label: 'Desktop'; }
+    main { padding: 24px !important; margin-left: 280px; max-width: calc(100vw - 280px); }
+    #desktop-sidebar { display: flex !important; width: 280px !important; }
+    .mobile-topbar-5, .mobile-bottom-nav-5 { display: none !important; }
+  }
+  #screen-detect-badge {
+    position: fixed; top: 8px; right: 8px; z-index: 9999;
+    background: rgba(15,23,42,0.9); border: 1px solid rgba(59,130,246,0.3);
+    color: #60a5fa; font-size: 9px; font-weight: bold;
+    padding: 4px 8px; border-radius: 20px; backdrop-filter: blur(8px);
+    pointer-events: none; opacity: 0.85;
+  }
+</style>
+
+<script>
+(function(){
+  'use strict';
+  const PROTECTED_SELECTORS = ['#cert-modal','#exp-modal','#portfolio-modal','#recruiter-modal','.portfolio-secure'];
+  function isProtected(el){
+    if(!el) return false;
+    if(el.tagName === 'IMG' || el.tagName === 'CANVAS' || el.tagName === 'VIDEO') return true;
+    for(let sel of PROTECTED_SELECTORS){ if(el.closest && el.closest(sel)) return true; }
+    return false;
+  }
+  function showToast(msg){
+    let t = document.getElementById('block-toast');
+    if(!t){ t=document.createElement('div'); t.id='block-toast'; document.body.appendChild(t); }
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  document.addEventListener('contextmenu', function(e){ if(isProtected(e.target)){ e.preventDefault(); e.stopPropagation(); return false; } }, true);
+  document.addEventListener('dragstart', function(e){ if(isProtected(e.target)){ e.preventDefault(); e.stopPropagation(); return false; } }, true);
+  document.addEventListener('mousedown', function(e){ if(e.button===2 && isProtected(e.target)){ e.preventDefault(); e.stopPropagation(); return false; } }, true);
+  document.addEventListener('selectstart', function(e){ if(isProtected(e.target)){ e.preventDefault(); return false; } }, true);
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'F12' || e.keyCode === 123){ e.preventDefault(); showToast('🔒 Protection Active'); return false; }
+    if((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U' || e.keyCode === 85)){ e.preventDefault(); showToast('🔒 View Source Disabled'); return false; }
+    if((e.ctrlKey && e.shiftKey) && (['I','i','J','j','C','c','K','k'].includes(e.key) || [73,74,67,75].includes(e.keyCode))){ e.preventDefault(); showToast('🔒 DevTools Disabled'); return false; }
+  }, true);
+})();
+</script>
+</head>
+
+<body class="min-h-screen md:flex" oncontextmenu="return false;" onselectstart="return false;" ondragstart="return false;">
+<div id="block-toast"></div>
+
+<!-- Desktop Sidebar -->
+<aside id="desktop-sidebar" class="w-72 glass p-5 flex-col justify-between sticky top-0 h-screen overflow-y-auto flex-shrink-0">
+  <div>
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/30"><i data-lucide="pickaxe" class="w-5 h-5 text-white"></i></div>
+        <div><div class="font-extrabold text-sm tracking-tight">MINE GEOLOGIST</div></div>
+      </div>
+      <button id="translate-btn" onclick="toggleTranslate()" class="w-9 h-9 bg-slate-800 hover:bg-blue-600/30 border border-slate-700 hover:border-blue-500/50 rounded-xl flex items-center justify-center text-[11px] font-bold transition-colors">ID</button>
+    </div>
+
+    <!-- User Card Sidebar -->
+    <div class="glass rounded-2xl p-3.5 mb-4 text-center">
+      <div class="relative w-20 h-20 mx-auto mb-3 rounded-2xl overflow-hidden border-2 border-blue-500 bg-slate-800 shadow-md">
+        <img src="https://live.staticflickr.com/65535/55443645175_be77705167_b.jpg" class="w-full h-full object-cover" style="object-position:50% 18%; transform:scale(1.6); transform-origin:50% 20%;">
+      </div>
+      <div class="font-bold allow-select text-white">Muh. Sanjaya Agung</div>
+      <div class="text-xs text-blue-400 font-semibold allow-select" data-en="Supervisor Mine Geologist" data-id="Supervisor Geologi Tambang">Supervisor Mine Geologist</div>
+      <div class="text-[11px] text-slate-400 mt-1 allow-select" data-en="Nickel Laterite Specialist • 3.5+ yrs" data-id="Spesialis Nikel Laterit • 3.5+ thn">Nickel Laterite Specialist • 3.5+ yrs</div>
+      
+      <div class="mt-3 flex justify-center items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 py-1 px-2.5 rounded-full">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-[10px] text-emerald-400 font-bold tracking-wider" data-en="AVAILABLE FOR HIRE" data-id="TERSEDIA UNTUK DIREKRUT">AVAILABLE FOR HIRE</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-1.5 mt-4 pt-3.5 border-t border-slate-700/50">
+        <div class="bg-slate-900/50 p-1.5 rounded-lg border border-slate-800"><div class="font-bold text-xs allow-select text-white">3.5+</div><div class="text-[9.5px] text-slate-400" data-en="Years" data-id="Tahun">Years</div></div>
+        <div class="bg-slate-900/50 p-1.5 rounded-lg border border-slate-800"><div class="font-bold text-xs text-emerald-400 allow-select">1.9%</div><div class="text-[9.5px] text-slate-400">Avg Ni</div></div>
+        <div class="bg-slate-900/50 p-1.5 rounded-lg border border-slate-800"><div class="font-bold text-xs text-blue-400 allow-select">&lt;5%</div><div class="text-[9.5px] text-slate-400">Dilution</div></div>
+      </div>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="space-y-1 text-[12.5px]">
+      <button onclick="switchTab('about')" id="btn-about" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg nav-active"><i data-lucide="user" class="w-4 h-4"></i> <span data-en="About Me" data-id="Tentang Saya">About Me</span></button>
+      <button onclick="switchTab('experience')" id="btn-experience" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg nav-inactive"><i data-lucide="briefcase" class="w-4 h-4"></i> <span data-en="Experience" data-id="Pengalaman">Experience</span></button>
+      <button onclick="switchTab('skills')" id="btn-skills" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg nav-inactive"><i data-lucide="cpu" class="w-4 h-4"></i> <span data-en="Skills & Tools" data-id="Keahlian & Tools">Skills & Tools</span></button>
+      <button onclick="switchTab('projects')" id="btn-projects" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg nav-inactive"><i data-lucide="folder-kanban" class="w-4 h-4"></i> <span data-en="Projects" data-id="Proyek">Projects</span></button>
+      <button onclick="switchTab('contact')" id="btn-contact" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg nav-inactive"><i data-lucide="mail" class="w-4 h-4"></i> <span data-en="Contact" data-id="Kontak">Contact</span></button>
+    </nav>
+
+    <div class="mt-5"><button onclick="openRecruiterModal()" class="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-bold text-white shadow-lg shadow-blue-600/25 transition-all"><i data-lucide="hand" class="w-4 h-4"></i> Hi Recruiters.</button></div>
+  </div>
+
+  <div class="pt-4 border-t border-slate-700/40 space-y-3">
+    <div class="flex gap-2">
+      <a href="https://linkedin.com/in/muh-sanjaya" target="_blank" class="flex-1 h-9 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl flex items-center justify-center text-white hover:text-blue-400 transition-colors"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg></a>
+      <a href="mailto:muh_sanjaya@ymail.com" class="flex-1 h-9 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl flex items-center justify-center text-white transition-colors"><i data-lucide="mail" class="w-4 h-4"></i></a>
+      <a href="https://wa.me/6281354771445" target="_blank" class="flex-1 h-9 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 rounded-xl flex items-center justify-center text-emerald-400 transition-colors"><i data-lucide="message-circle" class="w-4 h-4"></i></a>
+    </div>
+    <div class="text-[10px] text-slate-500 text-center">© 2026 Muh Sanjaya Agung • v5.4 Two Columns Uniform</div>
+  </div>
+</aside>
+
+<!-- Topbar Mobile -->
+<div class="mobile-topbar-5">
+  <div class="flex items-center gap-2">
+    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"><i data-lucide="pickaxe" class="w-4 h-4 text-white"></i></div>
+    <div><div class="font-bold text-xs leading-none">MINE GEOLOGIST</div><div class="text-[9px] text-slate-400">Muh. Sanjaya Agung</div></div>
+  </div>
+  <div class="ml-auto flex items-center gap-2">
+    <button onclick="openRecruiterModal()" class="px-3 py-1 bg-blue-600 rounded-full text-[10px] font-bold text-white shadow-md">CV</button>
+    <button id="translate-btn-mobile" onclick="toggleTranslate()" class="w-7 h-7 bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold">ID</button>
+  </div>
+</div>
+
+<!-- Main Content Area -->
+<main class="flex-1 p-4 md:p-6 overflow-y-auto max-w-6xl mx-auto w-full">
+
+  <!-- TAB: ABOUT -->
+  <section id="tab-about" class="space-y-5">
+    <div>
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10.5px] font-bold mb-3">
+        <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></span> 
+        <span data-en="Open to Work • Ready to Relocate" data-id="Terbuka untuk Kerja • Siap Relokasi">Open to Work • Ready to Relocate</span>
+      </div>
+      <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight leading-tight allow-select">
+        <span data-en="I optimize nickel pits for" data-id="Saya mengoptimalkan pit nikel untuk">I optimize nickel pits for</span><br>
+        <span class="text-gradient" data-en="maximum ore, minimum dilution." data-id="hasil maksimal, dilusi minimal.">maximum ore, minimum dilution.</span>
+      </h1>
+      <p class="mt-3 text-slate-300 text-xs md:text-sm leading-relaxed max-w-3xl allow-select">
+        <span data-en="Supervisor Mine Geologist with" data-id="Supervisor Mine Geologist dengan">Supervisor Mine Geologist with</span> 
+        <b class="text-white">3.5+ years</b> 
+        <span data-en="in nickel laterite (Owner & Contractor). Based in Makassar, experienced in Halmahera, Morowali, Kabaena. I build" data-id="di nikel laterit (Owner & Kontraktor). Berbasis di Makassar, berpengalaman di Halmahera, Morowali, Kabaena. Saya membangun">in nickel laterite (Owner & Contractor). Based in Makassar, experienced in Halmahera, Morowali, Kabaena. I build</span> 
+        <b class="text-white">block models, grade control systems, and ore distribution maps</b> 
+        <span data-en="that hit RKEF specs" data-id="yang mencapai spesifikasi RKEF">that hit RKEF specs</span> 
+        <b class="text-white">Ni 1.8-2.2% & SM 1.6-2.2</b> consistently.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="glass rounded-xl p-4"><div class="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mb-2.5"><i data-lucide="map" class="w-4 h-4 text-blue-400"></i></div><div class="font-bold text-xs text-white" data-en="Laterite Expertise" data-id="Keahlian Laterit">Laterite Expertise</div><div class="text-[11px] text-slate-400 mt-1 leading-relaxed">Overburden → Limonite → Transition → Saprolite → Bedrock interpretation, selective mining in rocky saprolite.</div></div>
+      <div class="glass rounded-xl p-4"><div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-2.5"><i data-lucide="bar-chart-3" class="w-4 h-4 text-emerald-400"></i></div><div class="font-bold text-xs text-white" data-en="Data-Driven" data-id="Berbasis Data">Data-Driven</div><div class="text-[11px] text-slate-400 mt-1 leading-relaxed">Wall sampling, floor sampling, test pit, QAQC (Std/Blank/Dup), weighted average.</div></div>
+      <div class="glass rounded-xl p-4"><div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mb-2.5"><i data-lucide="users" class="w-4 h-4 text-amber-400"></i></div><div class="font-bold text-xs text-white" data-en="Team Leadership" data-id="Kepemimpinan Tim">Team Leadership</div><div class="text-[11px] text-slate-400 mt-1 leading-relaxed">Recruited, trained & supervised field team of 8 pit geologists & samplers. SOP & safety compliance.</div></div>
+    </div>
+
+    <div class="glass rounded-xl p-4">
+      <h3 class="font-bold mb-3 text-sm flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-400"></i> Quick Stats</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800"><div class="text-xl font-extrabold text-white">4,250+</div><div class="text-[10px] text-slate-400 mt-1">WMT/shift managed</div></div>
+        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800"><div class="text-xl font-extrabold text-blue-400">1.71</div><div class="text-[10px] text-slate-400 mt-1">Avg SM Achieved</div></div>
+        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800"><div class="text-xl font-extrabold text-emerald-400">98%</div><div class="text-[10px] text-slate-400 mt-1">Sampling Compliance</div></div>
+        <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800"><div class="text-xl font-extrabold text-amber-400">3 Pits</div><div class="text-[10px] text-slate-400 mt-1">Halmahera, Morowali, Kabaena</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: EXPERIENCE -->
+  <section id="tab-experience" class="space-y-4 hidden">
+    <div class="flex justify-between items-center">
+      <h2 class="text-base md:text-lg font-bold tracking-tight text-white">Work Experience Timeline</h2>
+      <span class="text-[10px] text-slate-400">3.5+ Years Field & Pit Experience</span>
+    </div>
+    <div class="space-y-4 relative">
+      <div class="absolute left-0 top-2 bottom-2 w-px border-l border-dashed border-slate-700/50"></div>
+      
+      <div class="relative pl-7">
+        <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-blue-500 border-4 border-[#060b19] shadow-md shadow-blue-500/30"></div>
+        <div class="glass rounded-xl p-4">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+            <div><h3 class="font-bold text-xs md:text-sm text-white">Spv. Mine Geologist — PT Argo Trans Abadi</h3><p class="text-[11px] text-slate-400">Waisumo, Halmahera • Mining Contractor</p></div>
+            <div class="flex flex-wrap items-center gap-2"><span class="text-[9.5px] px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">May 2024 – Jan 2026 • Latest</span><button onclick="openExpModal('https://live.staticflickr.com/65535/55443236572_0e0b6e3bdd_b.jpg','PT Argo Trans Abadi - Waisumo, Halmahera')" class="text-[10px] px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 hover:border-blue-500 text-slate-300 hover:text-white flex items-center gap-1.5"><i data-lucide="eye" class="w-3 h-3"></i> Click to View</button></div>
+          </div>
+          <ul class="mt-3 text-[11px] text-slate-300 space-y-1.5 list-disc pl-5 leading-relaxed">
+            <li>Created weekly mine geology plans with block model, drill hole sections, laterite zone interpretation.</li>
+            <li>Generated ore distribution maps (wall, floor, test pit) to guide selective ore getting — dilution 8% → 3%.</li>
+            <li>Calculated reserves per fleet, mine-out reports for waste dump & reclamation, led team of 8 & 1 database geoengginer.</li>
+            <li>Coordinated with Mine Ops (fleet match, front access) & Mine Plan (sequence scheduling).</li>
+            <li>Implemented daily block model grade updates reducing boundary misclassification by 14%.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="relative pl-7">
+        <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-emerald-500 border-4 border-[#060b19] shadow-md shadow-emerald-500/30"></div>
+        <div class="glass rounded-xl p-4">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+            <div><h3 class="font-bold text-xs md:text-sm text-white">Sr. Grade Control — PT Timur Perkasa Mineralindo</h3><p class="text-[11px] text-slate-400">Genba, North Morowali, Central Sulawesi . Mining Contractor</p></div>
+            <div class="flex flex-wrap items-center gap-2"><span class="text-[9.5px] px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">May 2023 – Dec 2023</span><button onclick="openExpModal('https://live.staticflickr.com/65535/55444595920_946f764aaa_b.jpg','PT Timur Perkasa Mineralindo - Genba, Morowali')" class="text-[10px] px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 hover:border-emerald-500 text-slate-300 hover:text-white flex items-center gap-1.5"><i data-lucide="eye" class="w-3 h-3"></i> Click to View</button></div>
+          </div>
+          <ul class="mt-3 text-[11px] text-slate-300 space-y-1.5 list-disc pl-5 leading-relaxed">
+            <li>Ensured selective ore getting as per mining sequence, achieving Ni target for direct barge.</li>
+            <li>Controlled heavy equipment efficiency, daily reconciliation reports with QAQC.</li>
+            <li>Led pit mapping, face channel sampling, and grade estimation protocols for RKEF nickel ore feed.</li>
+            <li>Reduced dilution rate below 5% through strict boundary marking and real-time supervisor monitoring.</li>
+            <li>Managed QA/QC procedures (Standards, Blanks, Duplicates) for laboratory analytical validation.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="relative pl-7">
+        <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-amber-500 border-4 border-[#060b19]"></div>
+        <div class="glass rounded-xl p-4">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+            <div><h3 class="font-bold text-xs md:text-sm text-white">Grade Control — PT Tonia Mitra Sejahtera</h3><p class="text-[11px] text-slate-400">Kabaena Island, Southeast Sulawesi, Indonesia . Mining Owner</p></div>
+            <div class="flex flex-wrap items-center gap-2"><span class="text-[9.5px] px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">Feb 2020 – Aug 2021</span><button onclick="openExpModal('https://live.staticflickr.com/65535/55444369514_fb1bfcce72_b.jpg','PT Tonia Mitra Sejahtera - Kabaena Island')" class="text-[10px] px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700 hover:border-amber-500 text-slate-300 hover:text-white flex items-center gap-1.5"><i data-lucide="eye" class="w-3 h-3"></i> Click to View</button></div>
+          </div>
+          <ul class="mt-3 text-[11px] text-slate-300 space-y-1.5 list-disc pl-5 leading-relaxed">
+            <li>Geological interpretation PIT to ETO/EFO, pit & barge sampling, daily reconciliation.</li>
+            <li>Coordinated with Stockpile QC for barge balance (grade, tonnage, texture, SM).</li>
+            <li>Executed core logging, test pit mapping, and sample preparation procedures according to JORC/KCMI guidelines.</li>
+            <li>Assisted in generating daily GIS thematic maps and GPS pit progress surveys.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: SKILLS & TOOLS -->
+  <section id="tab-skills" class="space-y-5 hidden">
+    <div class="flex justify-between items-center">
+      <h2 class="text-base md:text-lg font-extrabold tracking-tight allow-select text-white">Skills & Competencies</h2>
+    </div>
+    
+    <div class="grid md:grid-cols-2 gap-3.5">
+      <div class="glass rounded-2xl p-4">
+        <h3 class="font-bold text-xs mb-3.5 flex items-center gap-2 allow-select text-white"><i data-lucide="cpu" class="w-4 h-4 text-blue-400"></i> Software Proficiency</h3>
+        <div class="space-y-3.5 text-[11px]">
+          <div>
+            <div class="flex justify-between mb-1.5 font-medium"><span class="text-slate-200">Surpac (Block Modeling)</span><span class="text-blue-400 font-bold">90%</span></div>
+            <div class="h-2 bg-slate-800/90 rounded-full overflow-hidden p-0.5 border border-slate-700/50"><div class="h-full bg-blue-500 rounded-full" style="width:90%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-1.5 font-medium"><span class="text-slate-200">ArcGIS / Global Mapper</span><span class="text-blue-400 font-bold">85%</span></div>
+            <div class="h-2 bg-slate-800/90 rounded-full overflow-hidden p-0.5 border border-slate-700/50"><div class="h-full bg-blue-500 rounded-full" style="width:85%"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-1.5 font-medium"><span class="text-slate-200">AutoCAD / Advanced Excel</span><span class="text-blue-400 font-bold">88%</span></div>
+            <div class="h-2 bg-slate-800/90 rounded-full overflow-hidden p-0.5 border border-slate-700/50"><div class="h-full bg-blue-500 rounded-full" style="width:88%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-4">
+        <h3 class="font-bold text-xs mb-3.5 flex items-center gap-2 allow-select text-white"><i data-lucide="layers" class="w-4 h-4 text-emerald-400"></i> Geology Competencies</h3>
+        <div class="flex flex-wrap gap-2 text-[10.5px]">
+          <span class="px-3 py-1.5 rounded-lg bg-blue-600/20 border border-blue-500/40 text-blue-300 font-medium shadow-sm">Mine Plan</span>
+          <span class="px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-medium shadow-sm">SM Control 1.6–2.2</span>
+          <span class="px-3 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300">Reconciliation</span>
+          <span class="px-3 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300">Selective Mining</span>
+          <span class="px-3 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300">QAQC Protocol</span>
+          <span class="px-3 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300">KCMI/JORC</span>
+          <span class="px-3 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300">Face Mapping</span>
+          <span class="px-3 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300">Core Logging</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CERTIFICATIONS -->
+    <div class="glass rounded-2xl p-4 md:p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold text-sm flex items-center gap-2 allow-select text-white">
+          <i data-lucide="award" class="w-4 h-4 text-amber-400"></i> Key Certifications
+        </h3>
+        <span class="text-[10px] text-slate-300 bg-slate-800/90 px-3 py-1 rounded-full border border-slate-700/60 font-semibold">8 Certificates • Click to View</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div onclick="openCertModal('pop')" class="group flex items-center justify-between p-3.5 rounded-xl bg-[#0a1329]/90 border border-emerald-500/40 hover:border-emerald-400 hover:bg-[#0e1b3a] transition-all duration-200 cursor-pointer shadow-sm">
+          <div class="pr-2">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs text-white group-hover:text-emerald-300 transition-colors">POP ESDM</span>
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Verified</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1">Pengawas Operasional Pertama</div>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+            <i data-lucide="eye" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+        </div>
+
+        <div onclick="openCertModal('surpac')" class="group flex items-center justify-between p-3.5 rounded-xl bg-[#0a1329]/90 border border-blue-500/40 hover:border-blue-400 hover:bg-[#0e1b3a] transition-all duration-200 cursor-pointer shadow-sm">
+          <div class="pr-2">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs text-white group-hover:text-blue-300 transition-colors">Surpac Adv</span>
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">Surpac Certified</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1">Block Modeling • Nikel</div>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/20 transition-colors">
+            <i data-lucide="eye" class="w-4 h-4 text-blue-400"></i>
+          </div>
+        </div>
+
+        <div onclick="openCertModal('iso')" class="group flex items-center justify-between p-3.5 rounded-xl bg-[#0a1329]/90 border border-cyan-500/40 hover:border-cyan-400 hover:bg-[#0e1b3a] transition-all duration-200 cursor-pointer shadow-sm">
+          <div class="pr-2">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs text-white group-hover:text-cyan-300 transition-colors">ISO 17025</span>
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">Lab Certified</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1">Lab Management System</div>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-cyan-500/20 transition-colors">
+            <i data-lucide="eye" class="w-4 h-4 text-cyan-400"></i>
+          </div>
+        </div>
+
+        <div onclick="openCertModal('k3')" class="group flex items-center justify-between p-3.5 rounded-xl bg-[#0a1329]/90 border border-rose-500/40 hover:border-rose-400 hover:bg-[#0e1b3a] transition-all duration-200 cursor-pointer shadow-sm">
+          <div class="pr-2">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs text-white group-hover:text-rose-300 transition-colors">K3 Tambang</span>
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">K3 Certified</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1">Safety & Health Supervisor</div>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-rose-500/20 transition-colors">
+            <i data-lucide="eye" class="w-4 h-4 text-rose-400"></i>
+          </div>
+        </div>
+
+        <div onclick="openCertModal('xrd')" class="group flex items-center justify-between p-3.5 rounded-xl bg-[#0a1329]/90 border border-amber-500/40 hover:border-amber-400 hover:bg-[#0e1b3a] transition-all duration-200 cursor-pointer shadow-sm">
+          <div class="pr-2">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs text-white group-hover:text-amber-300 transition-colors">XRD & SEM</span>
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">Certified</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1">Mineral Analysis Workshop</div>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-500/20 transition-colors">
+            <i data-lucide="eye" class="w-4 h-4 text-amber-400"></i>
+          </div>
+        </div>
+
+        <div onclick="openCertModal('d3')" class="group flex items-center justify-between p-3.5 rounded-xl bg-[#0a1329]/90 border border-indigo-500/40 hover:border-indigo-400 hover:bg-[#0e1b3a] transition-all duration-200 cursor-pointer shadow-sm">
+          <div class="pr-2">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs text-white group-hover:text-indigo-300 transition-colors">D3 Mining Eng</span>
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">Graduated</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1">UNP Padang</div>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 transition-colors">
+            <i data-lucide="eye" class="w-4 h-4 text-indigo-400"></i>
+          </div>
+        </div>
+
+        <div onclick="openCertModal('gis')" class="group flex items-center justify-between p-3.5 rounded-xl bg-[#0a1329]/90 border border-teal-500/40 hover:border-teal-400 hover:bg-[#0e1b3a] transition-all duration-200 cursor-pointer shadow-sm">
+          <div class="pr-2">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs text-white group-hover:text-teal-300 transition-colors">GIS Specialist</span>
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded bg-teal-500/20 text-teal-400 border border-teal-500/30">GIS Certified</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1">ArcGIS • Open Pit Analysis</div>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-teal-500/20 transition-colors">
+            <i data-lucide="eye" class="w-4 h-4 text-teal-400"></i>
+          </div>
+        </div>
+
+        <div onclick="openCertModal('structural')" class="group flex items-center justify-between p-3.5 rounded-xl bg-[#0a1329]/90 border border-orange-500/40 hover:border-orange-400 hover:bg-[#0e1b3a] transition-all duration-200 cursor-pointer shadow-sm">
+          <div class="pr-2">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-xs text-white group-hover:text-orange-300 transition-colors">Structural Geology</span>
+              <span class="text-[9px] font-semibold px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">Structural Certified</span>
+            </div>
+            <div class="text-[10px] text-slate-400 mt-1">Exploration & Mining</div>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0 group-hover:bg-orange-500/20 transition-colors">
+            <i data-lucide="eye" class="w-4 h-4 text-orange-400"></i>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: PROJECTS -->
+  <section id="tab-projects" class="space-y-4 hidden">
+    <h2 class="text-base font-bold tracking-tight allow-select text-white">Projects & Field Documentation</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-stretch">
+      <div onclick="openPortfolioModal()" class="glass rounded-xl overflow-hidden group border border-slate-700 hover:border-blue-500/60 cursor-pointer p-4 space-y-2.5 transition-all h-full flex flex-col">
+        <div class="flex items-center justify-between">
+          <div class="font-bold text-xs text-white flex items-center gap-2"><span class="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0"><i data-lucide="camera" class="w-3.5 h-3.5 text-blue-400"></i></span> Field Documentation Album</div>
+          <span class="text-[9px] px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold">Photo</span>
+        </div>
+        <p class="text-[10.5px] text-slate-400 leading-relaxed flex-1">100+ high-res photos of face mapping, pit sampling, drill logging across Halmahera, Morowali, and Kabaena.</p>
+      </div>
+
+      <div class="glass rounded-xl p-4 space-y-2.5 border border-amber-500/20 hover:border-amber-500/40 transition-all h-full flex flex-col">
+        <div class="flex items-center justify-between">
+          <div class="font-bold text-xs text-white flex items-center gap-2"><span class="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center flex-shrink-0"><i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-amber-400"></i></span> Administrative Technical Dashboard</div>
+          <span class="text-[9px] px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold">System</span>
+        </div>
+        <p class="text-[10.5px] text-slate-400 leading-relaxed flex-1">Mine Geologist, Mine Plan reporting system - Recovery, Reconciliation, Short-Long Term, KPI Member, Etc</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: CONTACT -->
+  <section id="tab-contact" class="space-y-4 hidden">
+    <h2 class="text-base font-bold tracking-tight allow-select text-white">Get In Touch</h2>
+    <div class="glass rounded-2xl p-6 text-center max-w-xl mx-auto space-y-4">
+      <div class="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center mx-auto text-blue-400"><i data-lucide="mail" class="w-6 h-6"></i></div>
+      <div>
+        <h3 class="text-base font-bold text-white allow-select">Let's Optimize Your Pit</h3>
+        <p class="text-xs text-slate-400 mt-1 max-w-md mx-auto allow-select">Available for Supervisor Mine Geologist / Mine Planning roles. Open for site assignment and relocation.</p>
+      </div>
+      <div class="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
+        <a href="mailto:muh_sanjaya@ymail.com" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"><i data-lucide="mail" class="w-4 h-4"></i> Send Email Direct</a>
+        <a href="https://wa.me/6281354771445" target="_blank" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"><i data-lucide="message-circle" class="w-4 h-4"></i> WhatsApp Chat</a>
+      </div>
+      <div class="pt-3 border-t border-slate-800/50 flex justify-center">
+        <button onclick="openHistoryModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-[11px] font-bold text-slate-300 hover:text-white flex items-center gap-2"><i data-lucide="info" class="w-3.5 h-3.5"></i> Developer Info & Version History - View All</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Bottom Nav Mobile -->
+<div class="mobile-bottom-nav-5" id="mobile-bottom-nav-5">
+  <button onclick="switchTab('about')" id="m5-btn-about" class="active"><i data-lucide="user"></i><span>About</span></button>
+  <button onclick="switchTab('experience')" id="m5-btn-experience"><i data-lucide="briefcase"></i><span>Exp</span></button>
+  <button onclick="switchTab('skills')" id="m5-btn-skills"><i data-lucide="cpu"></i><span>Skills</span></button>
+  <button onclick="switchTab('projects')" id="m5-btn-projects"><i data-lucide="folder-kanban"></i><span>Proj</span></button>
+  <button onclick="switchTab('contact')" id="m5-btn-contact"><i data-lucide="mail"></i><span>Cont</span></button>
+</div>
+
+<!-- MODALS -->
+<!-- Recruiter Modal -->
+<div id="recruiter-modal" style="display:none;" class="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3">
+  <div class="recruiter-modal-box w-full max-w-lg bg-[#0f172a] border border-slate-700 rounded-xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div class="flex items-center justify-between p-3 border-b border-slate-700 bg-slate-900">
+      <div class="font-bold text-xs text-white">Curriculum Vitae • Muh. Sanjaya Agung</div>
+      <button onclick="closeRecruiterModal()" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="flex-1 bg-black overflow-hidden"><iframe src="https://drive.google.com/file/d/1VhEzRFN4rcDILVVgKGbam-sIr5mKi8XV/preview" width="100%" style="width:100%; height:55vh; border:0;"></iframe></div>
+    <div class="p-3 bg-slate-900 border-t border-slate-700 flex justify-between items-center">
+      <a href="https://drive.google.com/uc?export=download&id=1VhEzRFN4rcDILVVgKGbam-sIr5mKi8XV" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-bold text-white">Download PDF</a>
+      <button onclick="closeRecruiterModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Portfolio Modal -->
+<div id="portfolio-modal" style="display:none;" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] hidden items-center justify-center p-2 md:p-4" oncontextmenu="return false;">
+  <div class="glass w-full max-w-5xl rounded-2xl overflow-hidden max-h-[92vh] flex flex-col border border-slate-700 shadow-2xl">
+    <div class="p-4 md:p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+      <div><h3 class="font-bold text-sm md:text-base text-white">Field Documentation Portfolio</h3><p class="text-[11px] text-slate-400">Halmahera, Morowali, Kabaena • 54 photos • Protected View • v4.11 Final</p></div>
+      <button onclick="closePortfolioModal()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="p-4 md:p-5 overflow-y-auto">
+      <div class="flex flex-col md:flex-row gap-5">
+        <div class="md:w-64 flex-shrink-0">
+          <div class="space-y-2.5">
+            <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Select Project</div>
+            <button onclick="switchFinalAlbum(0)" id="f-tab-0" class="w-full text-left px-4 py-3 rounded-xl text-xs font-bold bg-blue-600 text-white flex items-center gap-2.5 border border-blue-500 shadow-md"><span class="w-2.5 h-2.5 bg-white rounded-full flex-shrink-0"></span><span class="flex-1 truncate">PT Argo Trans Abadi</span><span class="text-[11px] bg-white/20 px-2 py-0.5 rounded-full ml-auto">10</span></button>
+            <button onclick="switchFinalAlbum(1)" id="f-tab-1" class="w-full text-left px-4 py-3 rounded-xl text-xs font-bold bg-slate-800 border border-slate-700 text-slate-400 flex items-center gap-2.5 hover:bg-slate-700/50 hover:text-slate-200"><span class="w-2.5 h-2.5 bg-emerald-400 rounded-full flex-shrink-0"></span><span class="flex-1 truncate">PT Timur Perkasa Mineralindo</span><span class="text-[11px] bg-slate-700 px-2 py-0.5 rounded-full ml-auto">7</span></button>
+            <button onclick="switchFinalAlbum(2)" id="f-tab-2" class="w-full text-left px-4 py-3 rounded-xl text-xs font-bold bg-slate-800 border border-slate-700 text-slate-400 flex items-center gap-2.5 hover:bg-slate-700/50 hover:text-slate-200"><span class="w-2.5 h-2.5 bg-amber-400 rounded-full flex-shrink-0"></span><span class="flex-1 truncate">PT Tri Daya Jaya #3</span><span class="text-[11px] bg-slate-700 px-2 py-0.5 rounded-full ml-auto">7</span></button>
+            <button onclick="switchFinalAlbum(3)" id="f-tab-3" class="w-full text-left px-4 py-3 rounded-xl text-xs font-bold bg-slate-800 border border-slate-700 text-slate-400 flex items-center gap-2.5 hover:bg-slate-700/50 hover:text-slate-200"><span class="w-2.5 h-2.5 bg-blue-400 rounded-full flex-shrink-0"></span><span class="flex-1 truncate">PT Tonia Mitra Sejahtera</span><span class="text-[11px] bg-slate-700 px-2 py-0.5 rounded-full ml-auto">30</span></button>
+          </div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div id="final-albums" class="space-y-4">
+            <div id="f-album-0" class="f-final space-y-3"><div class="rounded-xl overflow-hidden border border-slate-700 bg-black portfolio-secure"><div class="p-3 bg-slate-900 flex justify-between items-center"><span class="text-xs font-bold text-white">PT Argo Trans Abadi – 10 photos • Halmahera</span><span class="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i> Protected</span></div><div class="relative w-full h-[460px] bg-black overflow-hidden"><iframe src="https://www.flickr.com/photos/y2_3d_kids/albums/72177720327516460/player/" sandbox="allow-scripts allow-same-origin" width="100%" height="460" frameborder="0" class="bg-black w-full h-full" style="border:0;" loading="lazy"></iframe><div class="portfolio-overlay" style="position:absolute;top:0;left:10%;right:10%;bottom:0;z-index:20;background:transparent;cursor:default;" oncontextmenu="return false;" onmousedown="return false;" onselectstart="return false;"></div></div></div></div>
+            <div id="f-album-1" class="f-final hidden space-y-3"><div class="rounded-xl overflow-hidden border border-slate-700 bg-black portfolio-secure"><div class="p-3 bg-slate-900 flex justify-between items-center"><span class="text-xs font-bold text-white">PT Timur Perkasa Mineralindo – Morowali</span><span class="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i> Protected</span></div><div class="relative w-full h-[460px] bg-black overflow-hidden"><iframe src="https://www.flickr.com/photos/y2_3d_kids/albums/72177720313897031/player/" sandbox="allow-scripts allow-same-origin" width="100%" height="460" frameborder="0" class="bg-black w-full h-full" style="border:0;" loading="lazy"></iframe><div class="portfolio-overlay" style="position:absolute;top:0;left:10%;right:10%;bottom:0;z-index:20;background:transparent;cursor:default;" oncontextmenu="return false;" onmousedown="return false;" onselectstart="return false;"></div></div></div></div>
+            <div id="f-album-2" class="f-final hidden space-y-3"><div class="rounded-xl overflow-hidden border border-slate-700 bg-black portfolio-secure"><div class="p-3 bg-slate-900 flex justify-between items-center"><span class="text-xs font-bold text-white">PT Tri Daya Jaya #3 – 7 photos</span><span class="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i> Protected</span></div><div class="relative w-full h-[460px] bg-black overflow-hidden"><iframe src="https://www.flickr.com/photos/y2_3d_kids/albums/72157704386361435/player/" sandbox="allow-scripts allow-same-origin" width="100%" height="460" frameborder="0" class="bg-black w-full h-full" style="border:0;" loading="lazy"></iframe><div class="portfolio-overlay" style="position:absolute;top:0;left:10%;right:10%;bottom:0;z-index:20;background:transparent;cursor:default;" oncontextmenu="return false;" onmousedown="return false;" onselectstart="return false;"></div></div></div></div>
+            <div id="f-album-3" class="f-final hidden space-y-3"><div class="rounded-xl overflow-hidden border border-slate-700 bg-black portfolio-secure"><div class="p-3 bg-slate-900 flex justify-between items-center"><span class="text-xs font-bold text-white">PT Tonia Mitra Sejahtera – 30 photos • Kabaena</span><span class="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i> Protected</span></div><div class="relative w-full h-[460px] bg-black overflow-hidden"><iframe src="https://www.flickr.com/photos/y2_3d_kids/albums/72157718300788622/player/" sandbox="allow-scripts allow-same-origin" width="100%" height="460" frameborder="0" class="bg-black w-full h-full" style="border:0;" loading="lazy"></iframe><div class="portfolio-overlay" style="position:absolute;top:0;left:10%;right:10%;bottom:0;z-index:20;background:transparent;cursor:default;" oncontextmenu="return false;" onmousedown="return false;" onselectstart="return false;"></div></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Experience Detail Modal -->
+<div id="exp-modal" style="display:none;" class="fixed inset-0 z-[10002] bg-black/80 backdrop-blur-md hidden items-center justify-center p-3">
+  <div class="w-full max-w-2xl bg-[#0f172a] border border-slate-700 rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[90vh]">
+    <div class="p-3.5 border-b border-slate-700 bg-slate-900 flex justify-between items-center">
+      <div id="exp-title" class="font-bold text-xs text-white">Experience Documentation</div>
+      <button onclick="closeExpModal()" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="p-2 bg-black flex items-center justify-center flex-1 overflow-auto">
+      <img id="exp-img" src="" class="rounded-lg max-h-[70vh] w-auto object-contain">
+    </div>
+    <div class="p-3 bg-slate-900 border-t border-slate-700 flex justify-between items-center">
+      <span class="text-[10px] text-slate-400">🔒 Protected View • Field Documentation</span>
+      <button onclick="closeExpModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs text-slate-300">Close</button>
+    </div>
+  </div>
+</div>
+<script>
+function openExpModal(imgUrl, title){
+  var img = document.getElementById('exp-img');
+  var t = document.getElementById('exp-title');
+  if(img) img.src = imgUrl;
+  if(t) t.textContent = title || 'Experience Documentation';
+  var m = document.getElementById('exp-modal');
+  if(m){ m.style.display='flex'; m.classList.remove('hidden'); m.classList.add('flex'); }
+  document.body.style.overflow='hidden';
+  if(window.lucide) lucide.createIcons();
+}
+function closeExpModal(){
+  var m=document.getElementById('exp-modal');
+  if(m){ m.style.display='none'; m.classList.add('hidden'); m.classList.remove('flex'); }
+  document.body.style.overflow='';
+}
+</script>
+
+<!-- History & Developer Info Modal -->
+<div id="history-modal" style="display:none;" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[10002] hidden items-center justify-center p-3">
+  <div class="w-full max-w-2xl bg-[#0f172a] border border-slate-700 rounded-2xl overflow-hidden flex flex-col shadow-2xl max-h-[90vh]">
+    <div class="p-4 border-b border-slate-700 bg-slate-900 flex justify-between items-center">
+      <div><h3 class="font-bold text-sm text-white flex items-center gap-2"><i data-lucide="code-2" class="w-4 h-4 text-blue-400"></i> Developer Info & Version History</h3><p class="text-[11px] text-slate-400 mt-0.5">Complete system information - All inside View All</p></div>
+      <button onclick="closeHistoryModal()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-300"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="p-5 overflow-y-auto space-y-6">
+      <div class="glass rounded-xl p-4 space-y-3">
+        <div class="flex items-center gap-2 text-xs font-bold text-white"><i data-lucide="user" class="w-4 h-4 text-blue-400"></i> Developer Info</div>
+        <div class="space-y-2.5 text-[11px]">
+          <div class="flex justify-between py-1.5 border-b border-slate-800/50"><span class="text-slate-400">Developer</span><span class="text-white font-medium">Muh. Sanjaya Agung - Supervisor Mine Geologist</span></div>
+          <div class="flex justify-between py-1.5 border-b border-slate-800/50"><span class="text-slate-400">UI/UX Support</span><span class="text-white">Techfoods Lab • Geobank</span></div>
+          <div class="flex justify-between py-1.5 border-b border-slate-800/50"><span class="text-slate-400">Built With</span><span class="text-white">Tailwind CSS • Lucide • Flickr API • Surpac • ArcGIS</span></div>
+          <div class="flex justify-between py-1.5 border-b border-slate-800/50"><span class="text-slate-400">Location</span><span class="text-white">BTP Blok I, Makassar • Ready to relocate</span></div>
+          <div class="flex justify-between py-1.5 border-b border-slate-800/50"><span class="text-slate-400">Last Update</span><span class="text-emerald-400 font-bold">14 Aug 2026 - Responsive v5.1</span></div>
+          <div class="flex justify-between py-1.5"><span class="text-slate-400">Version</span><span class="px-2.5 py-1 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-400 text-[10px] font-bold">v5.1 • Responsive Auto Full Restored</span></div>
+        </div>
+      </div>
+      <div class="glass rounded-xl p-4 space-y-3">
+        <div class="flex items-center gap-2 text-xs font-bold text-white"><i data-lucide="git-branch" class="w-4 h-4 text-emerald-400"></i> Version History - All Inside View All</div>
+        <div class="space-y-3 text-[11px] max-h-[320px] overflow-y-auto pr-1">
+          <div class="flex gap-3 p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20"><div class="text-[10px] px-2 py-1 rounded-full bg-blue-500 text-white font-bold h-fit">v5.1</div><div><div class="font-bold text-white">v5.1 - Responsive Auto Full Restored (Crosscheck Fixed)</div><div class="text-slate-400 mt-1">Restored all missing after v5.0 merge: Projects tab (Field Documentation + Admin Dashboard), Skills full, About Quick Stats, etc. Auto-detect 4/5/6/10/Desktop.</div></div></div>
+          <div class="flex gap-3 p-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50"><div class="text-[10px] px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 font-bold h-fit">v5.0</div><div><div class="font-bold text-white">v5.0 - Responsive Auto-Detect Attempt</div><div class="text-slate-400 mt-1">First attempt responsive but lost Projects tab.</div></div></div>
+          <div class="flex gap-3 p-2.5 rounded-lg bg-slate-800/30 border border-slate-700/30"><div class="text-[10px] px-2 py-1 rounded-full bg-slate-700 text-slate-300 font-bold h-fit">v4.13</div><div><div class="font-bold text-white">v4.13 - Moved Halmahera to Argo</div><div class="text-slate-400 mt-1">Removed Halmahera card blue mark, moved bullet to Argo.</div></div></div>
+          <div class="flex gap-3 p-2.5 rounded-lg bg-slate-800/30 border border-slate-700/30"><div class="text-[10px] px-2 py-1 rounded-full bg-slate-700 text-slate-300 font-bold h-fit">v4.12</div><div><div class="font-bold text-white">v4.12 - Contact View All Inside</div><div class="text-slate-400 mt-1">Moved Developer Info + Version History into popup.</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="p-3 border-t border-slate-700 bg-slate-900 flex justify-end">
+      <button onclick="closeHistoryModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300">Close</button>
+    </div>
+  </div>
+</div>
+<script>
+function openHistoryModal(){ var m=document.getElementById('history-modal'); if(m){ m.style.display='flex'; m.classList.remove('hidden'); m.classList.add('flex'); document.body.style.overflow='hidden'; if(window.lucide) lucide.createIcons(); } }
+function closeHistoryModal(){ var m=document.getElementById('history-modal'); if(m){ m.style.display='none'; m.classList.add('hidden'); m.classList.remove('flex'); document.body.style.overflow=''; } }
+</script>
+
+<!-- CERTIFICATE VIEW MODAL -->
+<div id="cert-modal" style="display:none;" class="fixed inset-0 z-[10001] bg-black/80 backdrop-blur-md hidden items-center justify-center p-3">
+  <div class="w-full max-w-md bg-[#0f172a] border border-slate-700 rounded-2xl overflow-hidden flex flex-col shadow-2xl">
+    <div class="p-3.5 border-b border-slate-700 bg-slate-900 flex justify-between items-center">
+      <div id="cert-title" class="font-bold text-xs text-white">Certificate View</div>
+      <button onclick="closeCertModal()" class="w-7 h-7 bg-slate-800 hover:bg-slate-700 rounded-lg flex items-center justify-center text-slate-300"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="p-2 bg-black flex items-center justify-center min-h-[220px]">
+      <img id="cert-img" src="" class="rounded-lg max-h-[50vh] object-contain">
+    </div>
+    <div class="p-3.5 bg-[#0f172a] border-t border-slate-700/80">
+      <p id="cert-desc" class="text-[11px] text-slate-300 leading-relaxed"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+const certData = {
+  pop: { title: 'POP ESDM - Pengawas Operasional Pertama', img: 'https://live.staticflickr.com/65535/53324452183_047744e49d_c.jpg', desc: 'Sertifikasi kompetensi pengawas operasional utama bidang pertambangan mineral dan batubara ESDM.' },
+  surpac: { title: 'Surpac Advanced Modeling', img: 'https://live.staticflickr.com/65535/55443700030_29d225f82d_z.jpg', desc: 'Short Course Mineral Geological Modeling & Resources Estimation Nikel.' },
+  iso: { title: 'ISO 17025:2017 - Lab Management', img: 'https://live.staticflickr.com/1976/30935599427_3421ee7c86_z.jpg', desc: 'Understanding & Implementing ISO 17025:2017 Laboratory Management System.' },
+  k3: { title: 'K3 Tambang - Safety & Health', img: 'https://live.staticflickr.com/65535/53324550505_ab6b82c799_b.jpg', desc: 'Sertifikasi Keselamatan & Kesehatan Kerja (K3) Lingkungan Pertambangan.' },
+  xrd: { title: 'XRD & SEM Mineral Analysis', img: 'https://live.staticflickr.com/1901/30935597357_630e5f9a17_z.jpg', desc: 'Workshop X-Ray Diffraction (XRD) & Scanning Electron Microscope (SEM) Tingkat Dasar.' },
+  d3: { title: 'D3 Mining Engineering - UNP Padang', img: 'https://live.staticflickr.com/4812/46035262342_90c7a12249_k.jpg', desc: 'Ijazah Kelulusan D3 Teknik Pertambangan Universitas Negeri Padang.' },
+  gis: { title: 'GIS Specialist - ArcGIS Open Pit', img: 'https://live.staticflickr.com/65535/55443473299_6abbacb5c3_b.jpg', desc: 'Aplikasi Geostatistik & GIS untuk Analisis Geoteknik Tambang Open Pit.' },
+  structural: { title: 'Structural Geology for Mining', img: 'https://live.staticflickr.com/65535/55049841380_cdf0163dcf_b.jpg', desc: 'Sertifikasi Structural Geology for Exploration and Mining.' }
+};
+
+function openCertModal(k){ 
+  const d=certData[k]; 
+  if(!d) return; 
+  document.getElementById('cert-title').textContent=d.title; 
+  document.getElementById('cert-img').src=d.img; 
+  document.getElementById('cert-desc').textContent=d.desc; 
+  const m=document.getElementById('cert-modal'); 
+  m.style.display='flex'; 
+  m.classList.remove('hidden'); 
+  document.body.style.overflow='hidden'; 
+  if(window.lucide) lucide.createIcons(); 
+}
+
+function closeCertModal(){ 
+  const m=document.getElementById('cert-modal'); 
+  m.style.display='none'; 
+  m.classList.add('hidden'); 
+  document.body.style.overflow=''; 
+}
+
+function switchTab(name){
+  ['about','experience','skills','projects','contact'].forEach(t=>{
+    const tab=document.getElementById('tab-'+t), btn=document.getElementById('btn-'+t), mBtn=document.getElementById('m5-btn-'+t);
+    if(tab) tab.classList.add('hidden');
+    if(btn) btn.className='w-full flex items-center gap-2.5 px-3 py-2 rounded-lg nav-inactive';
+    if(mBtn) mBtn.classList.remove('active');
+  });
+  
+  const targetTab = document.getElementById('tab-'+name);
+  const targetBtn = document.getElementById('btn-'+name);
+  const targetMBtn = document.getElementById('m5-btn-'+name);
+  
+  if(targetTab) targetTab.classList.remove('hidden');
+  if(targetBtn) targetBtn.className='w-full flex items-center gap-2.5 px-3 py-2 rounded-lg nav-active';
+  if(targetMBtn) targetMBtn.classList.add('active');
+  
+  window.scrollTo({top:0, behavior:'smooth'});
+  if(window.lucide) lucide.createIcons();
+}
+
+function switchFinalAlbum(i){
+  document.querySelectorAll('.f-final').forEach(el=>el.classList.add('hidden'));
+  document.getElementById('f-album-'+i).classList.remove('hidden');
+  document.querySelectorAll('[id^=f-tab-]').forEach((b,idx)=>{
+    if(idx===i){ b.className='w-full text-left px-4 py-3 rounded-xl text-xs font-bold bg-blue-600 text-white flex items-center gap-2.5 border border-blue-500 shadow-md'; } else { b.className='w-full text-left px-4 py-3 rounded-xl text-xs font-bold bg-slate-800 border border-slate-700 text-slate-400 flex items-center gap-2.5 hover:bg-slate-700/50 hover:text-slate-200'; }
+  });
+}
+
+function openRecruiterModal(){ var m=document.getElementById('recruiter-modal'); m.style.display='flex'; m.classList.remove('hidden'); document.body.style.overflow='hidden'; if(window.lucide) lucide.createIcons(); }
+function closeRecruiterModal(){ var m=document.getElementById('recruiter-modal'); m.style.display='none'; m.classList.add('hidden'); document.body.style.overflow=''; }
+function openPortfolioModal(){ closeRecruiterModal(); var m=document.getElementById('portfolio-modal'); m.style.display='flex'; m.classList.remove('hidden'); document.body.style.overflow='hidden'; if(window.lucide) lucide.createIcons(); }
+function closePortfolioModal(){ var m=document.getElementById('portfolio-modal'); m.style.display='none'; m.classList.add('hidden'); document.body.style.overflow=''; }
+
+document.addEventListener('click', function(e){ 
+  ['recruiter-modal','portfolio-modal','cert-modal','history-modal','exp-modal'].forEach(id=>{
+    var m = document.getElementById(id);
+    if(e.target===m) {
+      m.style.display='none';
+      document.body.style.overflow='';
+    }
+  });
+});
+
+let currentLang = 'en';
+function toggleTranslate(){
+  currentLang = currentLang === 'en' ? 'id' : 'en';
+  const btns = [document.getElementById('translate-btn'), document.getElementById('translate-btn-mobile')];
+  btns.forEach(b=>{ if(b) b.textContent = currentLang === 'en' ? 'ID' : 'EN'; });
+  document.querySelectorAll('[data-en]').forEach(el=>{
+    const txt = el.getAttribute('data-'+currentLang);
+    if(txt) el.textContent = txt;
+  });
+}
+
+lucide.createIcons();
+</script>
+
+<script>
+(function(){
+  function detectScreen(){
+    const w = window.innerWidth;
+    let label = 'Desktop', cls='screen-desktop';
+    if(w <= 320){ label='4\" Mobile (320px)'; cls='screen-4inch'; }
+    else if(w <= 374){ label='5\" Mobile (360px)'; cls='screen-5inch'; }
+    else if(w <= 767){ label='6\" Mobile ('+w+'px)'; cls='screen-6inch'; }
+    else if(w <= 1024){ label='10\" Tablet ('+w+'px)'; cls='screen-10inch'; }
+    else { label='Desktop ('+w+'px)'; cls='screen-desktop'; }
+    document.body.classList.remove('screen-4inch','screen-5inch','screen-6inch','screen-10inch','screen-desktop');
+    document.body.classList.add(cls);
+    let badge=document.getElementById('screen-detect-badge');
+    if(!badge){ badge=document.createElement('div'); badge.id='screen-detect-badge'; document.body.appendChild(badge); }
+    badge.textContent='📱 '+label+' • Auto Responsive Full';
+    if(w<1025){ setTimeout(()=>{ if(badge) badge.style.opacity='0'; }, 4000); }
+  }
+  window.addEventListener('resize', detectScreen);
+  window.addEventListener('orientationchange', ()=>setTimeout(detectScreen,300));
+  document.addEventListener('DOMContentLoaded', detectScreen);
+  setTimeout(detectScreen,500);
+})();
+</script>
+
+</body>
+</html>
