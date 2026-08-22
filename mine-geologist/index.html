@@ -2420,19 +2420,39 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <div class="mt-4 pt-3 border-t border-slate-800">
     <div class="flex items-start justify-between gap-3 flex-wrap">
      <div>
-      <h4 class="font-bold text-slate-200 text-xs">Retention &amp; Archive</h4>
-      <p class="text-[10px] text-slate-400 mt-0.5">Sessions non-ACTIVE dihapus setelah 7 hari. SecurityAuditLog dan AuditTrail dipindahkan ke sheet archive setelah 90 hari.</p>
+      <h4 class="font-bold text-slate-200 text-xs" data-i18n="retention_title">Retention &amp; Archive</h4>
+      <p class="text-[10px] text-slate-400 mt-0.5" data-i18n="retention_desc">Sessions non-ACTIVE dihapus setelah 7 hari. SecurityAuditLog dan AuditTrail dipindahkan ke sheet archive setelah 90 hari.</p>
      </div>
-     <label class="inline-flex items-center gap-2 text-[10px] font-semibold text-slate-300 cursor-pointer"><input id="retention-enabled" type="checkbox" class="accent-emerald-500"> Aktifkan terjadwal</label>
+     <label class="inline-flex items-center gap-2 text-[10px] font-semibold text-slate-300 cursor-pointer"><input id="retention-enabled" type="checkbox" class="accent-emerald-500"> <span data-i18n="retention_enable_label">Aktifkan terjadwal</span></label>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
-     <label class="block text-[10px] text-slate-400">Sessions (hari)<input id="retention-sessions-days" type="number" min="1" value="7" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
-     <label class="block text-[10px] text-slate-400">SecurityAuditLog (hari)<input id="retention-security-days" type="number" min="1" value="90" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
-     <label class="block text-[10px] text-slate-400">AuditTrail (hari)<input id="retention-audit-days" type="number" min="1" value="90" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
-     <label class="block text-[10px] text-slate-400">ChatLog (opsional)<span class="flex items-center gap-2 mt-1"><input id="retention-chat-enabled" type="checkbox" class="accent-amber-500"><input id="retention-chat-days" type="number" min="1" value="90" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></span></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_sessions_label">Sessions (hari)</span><input id="retention-sessions-days" type="number" min="1" value="7" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_security_label">SecurityAuditLog (hari)</span><input id="retention-security-days" type="number" min="1" value="90" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_audit_label">AuditTrail (hari)</span><input id="retention-audit-days" type="number" min="1" value="90" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_chatlog_label">ChatLog (opsional)</span><span class="flex items-center gap-2 mt-1"><input id="retention-chat-enabled" type="checkbox" class="accent-amber-500"><input id="retention-chat-days" type="number" min="1" value="90" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></span></label>
     </div>
-    <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveRetentionPolicy()" class="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold">Simpan Kebijakan</button><button onclick="runRetentionArchiveNow()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold">Jalankan Sekarang</button></div>
+    <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveRetentionPolicy()" class="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold"><span data-i18n="retention_btn_save">Simpan Kebijakan</span></button><button onclick="runRetentionArchiveNow()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold"><span data-i18n="retention_btn_run">Jalankan Sekarang</span></button></div>
     <div id="retention-policy-status" class="text-[10px] text-slate-500 font-medium mt-2">ChatLog default OFF. Reset Total tidak pernah menyentuh data keamanan atau archive.</div>
+   </div>
+
+   <!-- BARU (Pending item #1 spesifikasi performa, DIPUTUSKAN 22 Agu): cache validateSession_()
+        + kill-switch. Lihat komentar validateSessionCached_() di Code.gs utk desain lengkap --
+        SENGAJA beda dari validateSessionOptimized_ pihak lain yang sudah DITOLAK (itu skip
+        total re-validasi keamanan). Cache ini TETAP full re-validasi tiap cache-miss, cuma
+        menyimpan hasilnya sebentar (TTL pendek) utk request beruntun dari token yang sama. -->
+   <div class="mt-4 pt-3 border-t border-slate-800">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+     <div>
+      <h4 class="font-bold text-slate-200 text-xs" data-i18n="session_cache_title">Session Cache</h4>
+      <p class="text-[10px] text-slate-400 mt-0.5" data-i18n="session_cache_desc">Cache hasil validasi sesi selama beberapa detik supaya request beruntun (polling tab) tidak scan ulang Sessions/Users/Credential tiap kali. Tetap full re-validasi keamanan tiap cache-miss -- default OFF.</p>
+     </div>
+     <label class="inline-flex items-center gap-2 text-[10px] font-semibold text-slate-300 cursor-pointer"><input id="session-cache-enabled" type="checkbox" class="accent-cyan-500"> <span data-i18n="session_cache_enable_label">Aktifkan cache</span></label>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+     <label class="block text-[10px] text-slate-400"><span data-i18n="session_cache_ttl_label">TTL Cache (detik, 5-60)</span><input id="session-cache-ttl" type="number" min="5" max="60" value="20" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+    </div>
+    <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveSessionCachePolicy()" class="px-3 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-bold"><span data-i18n="session_cache_btn_save">Simpan Kebijakan</span></button></div>
+    <div id="session-cache-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
    </div>
   </div>
 
@@ -2474,6 +2494,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
     </h3>
     <p class="text-[11px] text-rose-200/80 font-medium">Kosongkan data operasional lama sambil mempertahankan struktur, konfigurasi, dan akun login.</p>
     <p class="text-[10px] text-slate-400 mt-1">Users, Credential, Roles, Permissions, RolePermissions, dan SecurityConfig tidak pernah tersedia sebagai target reset.</p>
+    <p class="text-[10px] text-slate-400 mt-1">Sessions, SecurityAuditLog, dan AuditTrail juga tidak pernah ikut ter-reset -- ketiganya dikelola terpisah lewat kebijakan Retention &amp; Archive di panel Cleanup Data (Developer) di atas, bukan lewat Reset Total ini.</p>
    </div>
    <div id="reset-project-status" class="text-[10px] text-slate-400 font-medium"></div>
   </div>
@@ -2482,6 +2503,10 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <div class="flex items-center justify-between gap-3 flex-wrap mb-2">
     <div class="text-[10px] font-bold uppercase tracking-wide text-slate-300">Data Operasional</div>
     <div class="text-[9px] text-slate-500">Default: TIDAK tercentang — pilih manual.</div>
+   </div>
+   <div id="reset-project-guard-hint" class="hidden mb-2 text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+    <i data-lucide="lock" class="w-3 h-3 shrink-0"></i>
+    <span>Retention &amp; Archive aktif -- 14 checkbox operasional (kecuali ChatLog) dikunci tercentang semua supaya Reset Total selalu full-wipe konsisten. Matikan toggle Retention di panel Cleanup Data kalau butuh reset parsial.</span>
    </div>
    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
     <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="BlockModel"> <span>BlockModel</span></label>
@@ -4713,6 +4738,20 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   leaderboard_col_accuracy: "Accuracy",
   sublot_radar_title: "Chemical Fingerprint",
   sublot_radar_desc: "Persentase Aktual terhadap Plan per unsur -- lingkaran putus-putus adalah acuan 100% (sama persis Plan).",
+  retention_title: "Retention & Archive",
+  retention_desc: "Sessions non-ACTIVE dihapus setelah 7 hari. SecurityAuditLog dan AuditTrail dipindahkan ke sheet archive setelah 90 hari.",
+  retention_enable_label: "Aktifkan terjadwal",
+  retention_sessions_label: "Sessions (hari)",
+  retention_security_label: "SecurityAuditLog (hari)",
+  retention_audit_label: "AuditTrail (hari)",
+  retention_chatlog_label: "ChatLog (opsional)",
+  retention_btn_save: "Simpan Kebijakan",
+  retention_btn_run: "Jalankan Sekarang",
+  session_cache_title: "Session Cache",
+  session_cache_desc: "Cache hasil validasi sesi selama beberapa detik supaya request beruntun (polling tab) tidak scan ulang Sessions/Users/Credential tiap kali. Tetap full re-validasi keamanan tiap cache-miss -- default OFF.",
+  session_cache_enable_label: "Aktifkan cache",
+  session_cache_ttl_label: "TTL Cache (detik, 5-60)",
+  session_cache_btn_save: "Simpan Kebijakan",
   lang_theme_settings_title: "Bahasa, Tema & Regional",
   lang_theme_settings_desc: "Atur bahasa, tampilan, timezone, dan format tanggal/waktu aplikasi.",
   regional_time_title: "Regional & Time",
@@ -5278,6 +5317,20 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   leaderboard_col_accuracy: "Accuracy",
   sublot_radar_title: "Chemical Fingerprint",
   sublot_radar_desc: "Actual as a percentage of Plan per element -- the dashed circle is the 100% reference (exact match with Plan).",
+  retention_title: "Retention & Archive",
+  retention_desc: "Non-ACTIVE Sessions are deleted after 7 days. SecurityAuditLog and AuditTrail are moved to the archive sheet after 90 days.",
+  retention_enable_label: "Enable scheduled run",
+  retention_sessions_label: "Sessions (days)",
+  retention_security_label: "SecurityAuditLog (days)",
+  retention_audit_label: "AuditTrail (days)",
+  retention_chatlog_label: "ChatLog (optional)",
+  retention_btn_save: "Save Policy",
+  retention_btn_run: "Run Now",
+  session_cache_title: "Session Cache",
+  session_cache_desc: "Caches session validation results for a few seconds so back-to-back requests (tab polling) don't re-scan Sessions/Users/Credential every time. Still fully re-validates security on every cache miss -- default OFF.",
+  session_cache_enable_label: "Enable cache",
+  session_cache_ttl_label: "Cache TTL (seconds, 5-60)",
+  session_cache_btn_save: "Save Policy",
   lang_theme_settings_title: "Language, Theme & Regional",
   lang_theme_settings_desc: "Set the language, appearance, timezone, and application date/time format.",
   regional_time_title: "Regional & Time",
@@ -6411,6 +6464,7 @@ window.addEventListener('afterprint', function() {
    if (unlocked && devCleanupPanel.dataset.retentionLoaded !== '1') {
     devCleanupPanel.dataset.retentionLoaded = '1';
     loadRetentionPolicy();
+    loadSessionCachePolicy();
    }
    if (!unlocked) devCleanupPanel.dataset.retentionLoaded = '';
   }
@@ -12318,6 +12372,36 @@ function applyRetentionPolicyToControls(policy) {
  check('retention-enabled',policy.enabled); set('retention-sessions-days',policy.sessionsDays||7);
  set('retention-security-days',policy.securityAuditDays||90); set('retention-audit-days',policy.auditTrailDays||90);
  check('retention-chat-enabled',policy.chatLogEnabled); set('retention-chat-days',policy.chatLogDays||90);
+ applyResetProjectRetentionGuard();
+}
+
+// BARU (Pending item #2 dari pihak A, DIPUTUSKAN user 22 Agu -- Opsi A): saat Retention &
+// Archive aktif (toggle #retention-enabled tercentang), 14 checkbox operasional Reset Total
+// DIKUNCI TERCENTANG (dipaksa ikut semua, tidak bisa di-uncheck) -- supaya Reset Total selalu
+// full-wipe konsisten, tidak ada sheet yang kelewat kecentang saat pindah proyek sungguhan.
+// ChatLog SENGAJA DIKECUALIKAN dari guard ini -- dia sudah punya mekanisme retensi terpisah
+// sendiri (opt-in toggle #retention-chat-enabled + hari), jadi tetap bebas dipilih Developer
+// sesuai kebutuhan (mis. mau dipertahankan lintas proyek atau tidak). Member (#reset-project-
+// member) juga TIDAK disentuh guard ini -- sudah punya opsi khusus sendiri (preserve baris
+// Developer), di luar cakupan "14 checkbox operasional" yang dimaksud spesifikasi ini.
+// Guard ini MURNI pencegahan human-error di frontend -- Reset Total & Retention/Archive
+// TIDAK PERNAH tabrakan secara teknis (beda sheet, dan LockService.getDocumentLock() di
+// backend sudah otomatis mengantre kalau kebetulan jalan bersamaan).
+function applyResetProjectRetentionGuard() {
+ const retentionToggle = document.getElementById('retention-enabled');
+ const guardActive = !!(retentionToggle && retentionToggle.checked);
+ document.querySelectorAll('.reset-project-target').forEach(function(el) {
+  if (el.value === 'ChatLog') return; // dikecualikan -- retensi ChatLog sudah opt-in terpisah
+  if (guardActive) {
+   el.checked = true;
+   el.disabled = true;
+  } else {
+   el.disabled = false;
+  }
+ });
+ const hint = document.getElementById('reset-project-guard-hint');
+ if (hint) hint.classList.toggle('hidden', !guardActive);
+ updateResetProjectButton();
 }
 function retentionPolicyPayload() {
  const value=id=>{const el=document.getElementById(id);return el?el.value:'';};
@@ -12327,18 +12411,40 @@ function retentionPolicyPayload() {
 async function loadRetentionPolicy() {
  if(!isDeveloperUnlocked()) return;
  try { const result=await postDeveloperAdmin('getRetentionPolicy',{}); applyRetentionPolicyToControls(result.policy); }
- catch(e) { const status=document.getElementById('retention-policy-status'); if(status)status.textContent='Kebijakan belum dapat dimuat: '+e.message; }
+ catch(e) { const status=document.getElementById('retention-policy-status'); if(status)status.textContent=(currentLang === 'en' ? 'Policy could not be loaded: ' : 'Kebijakan belum dapat dimuat: ')+e.message; }
 }
 async function saveRetentionPolicy() {
  if(!isDeveloperUnlocked()) return;
- try { const result=await postDeveloperAdmin('saveRetentionPolicy',retentionPolicyPayload()); applyRetentionPolicyToControls(result.policy); const status=document.getElementById('retention-policy-status'); if(status)status.textContent='Kebijakan tersimpan. ChatLog tetap OFF kecuali dicentang secara eksplisit.'; }
- catch(e) { showNoticeModal('Simpan Kebijakan Gagal',e.message); }
+ try { const result=await postDeveloperAdmin('saveRetentionPolicy',retentionPolicyPayload()); applyRetentionPolicyToControls(result.policy); const status=document.getElementById('retention-policy-status'); if(status)status.textContent=currentLang === 'en' ? 'Policy saved. ChatLog stays OFF unless explicitly checked.' : 'Kebijakan tersimpan. ChatLog tetap OFF kecuali dicentang secara eksplisit.'; }
+ catch(e) { showNoticeModal(currentLang === 'en' ? 'Save Policy Failed' : 'Simpan Kebijakan Gagal',e.message); }
 }
 async function runRetentionArchiveNow() {
  if(!isDeveloperUnlocked()) return;
- if(!(await showConfirmModal('Jalankan Retention & Archive','Proses akan menghapus Sessions non-ACTIVE yang sudah melewati retensi dan memindahkan log audit lama ke sheet archive. Lanjutkan?'))) return;
- try { const result=await postDeveloperAdmin('runRetentionArchiveNow',{}); const status=document.getElementById('retention-policy-status'); if(result.status==='disabled'){if(status)status.textContent='Retention masih OFF; tidak ada data diproses.';return;} const summary=(result.results||[]).map(x=>x.sheet+': '+(x.archived!==undefined?'archive '+x.archived:'hapus '+(x.deleted||0))).join(' | '); if(status)status.textContent='Selesai — '+summary; }
- catch(e) { showNoticeModal('Retention & Archive Gagal',e.message); }
+ if(!(await showConfirmModal(currentLang === 'en' ? 'Run Retention & Archive' : 'Jalankan Retention & Archive', currentLang === 'en' ? 'This will delete non-ACTIVE Sessions that are past their retention period and move old audit logs to the archive sheet. Continue?' : 'Proses akan menghapus Sessions non-ACTIVE yang sudah melewati retensi dan memindahkan log audit lama ke sheet archive. Lanjutkan?'))) return;
+ try { const result=await postDeveloperAdmin('runRetentionArchiveNow',{}); const status=document.getElementById('retention-policy-status'); if(result.status==='disabled'){if(status)status.textContent=currentLang === 'en' ? 'Retention is still OFF; no data was processed.' : 'Retention masih OFF; tidak ada data diproses.';return;} const summary=(result.results||[]).map(x=>x.sheet+': '+(x.archived!==undefined?(currentLang === 'en' ? 'archived ' : 'archive ')+x.archived:(currentLang === 'en' ? 'deleted ' : 'hapus ')+(x.deleted||0))).join(' | '); if(status)status.textContent=(currentLang === 'en' ? 'Done — ' : 'Selesai — ')+summary; }
+ catch(e) { showNoticeModal(currentLang === 'en' ? 'Retention & Archive Failed' : 'Retention & Archive Gagal',e.message); }
+}
+
+// BARU (Pending item #1 spesifikasi performa, DIPUTUSKAN 22 Agu): panel toggle Session Cache
+// -- pola LOAD/SAVE identik dgn Retention & Archive di atas, cuma target endpoint beda.
+function applySessionCachePolicyToControls(policy) {
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.value=String(value);};
+ const check=(id,value)=>{const el=document.getElementById(id);if(el)el.checked=!!value;};
+ if(!policy) return;
+ check('session-cache-enabled',policy.enabled); set('session-cache-ttl',policy.ttlSeconds||20);
+}
+async function loadSessionCachePolicy() {
+ if(!isDeveloperUnlocked()) return;
+ try { const result=await postDeveloperAdmin('getSessionCachePolicy',{}); applySessionCachePolicyToControls(result.policy); }
+ catch(e) { const status=document.getElementById('session-cache-status'); if(status)status.textContent=(currentLang === 'en' ? 'Policy could not be loaded: ' : 'Kebijakan belum dapat dimuat: ')+e.message; }
+}
+async function saveSessionCachePolicy() {
+ if(!isDeveloperUnlocked()) return;
+ const value=id=>{const el=document.getElementById(id);return el?el.value:'';};
+ const checked=id=>{const el=document.getElementById(id);return !!(el&&el.checked);};
+ const payload={session_cache_enabled:checked('session-cache-enabled')?'TRUE':'FALSE',session_cache_ttl_seconds:value('session-cache-ttl')};
+ try { const result=await postDeveloperAdmin('saveSessionCachePolicy',payload); applySessionCachePolicyToControls(result.policy); const status=document.getElementById('session-cache-status'); if(status)status.textContent=currentLang === 'en' ? 'Policy saved.' : 'Kebijakan tersimpan.'; }
+ catch(e) { showNoticeModal(currentLang === 'en' ? 'Save Policy Failed' : 'Simpan Kebijakan Gagal',e.message); }
 }
 
 async function resetProjectData() {
@@ -12382,6 +12488,10 @@ function initResetProjectControls() {
   document.querySelectorAll('.reset-project-target').forEach(function(el){el.addEventListener('change',updateResetProjectButton);});
   const member=document.getElementById('reset-project-member');
   if(member) member.addEventListener('change',updateResetProjectButton);
+  // Guard Reset Total x Retention (lihat komentar applyResetProjectRetentionGuard()) --
+  // reaksi LIVE begitu toggle diklik, sebelum sempat disimpan ke backend lewat Save Policy.
+  const retentionToggle=document.getElementById('retention-enabled');
+  if(retentionToggle) retentionToggle.addEventListener('change',applyResetProjectRetentionGuard);
   updateResetProjectButton();
   loadRetentionPolicy();
 }
