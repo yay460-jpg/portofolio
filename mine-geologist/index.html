@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
-<title>Nama_Perusahaan</title>
+<title>PT.Geobank Minerals</title>
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -327,7 +327,7 @@
   color: #0f172a !important;
  }
  header::before {
-  content: "Mine Geologist — LAPORAN OPERASIONAL TAMBANG";
+  content: "PT.GEOBANK MINERALS — LAPORAN OPERASIONAL TAMBANG";
   display: block;
   font-size: 10pt;
   font-weight: bold;
@@ -552,7 +552,7 @@ input[type="password"]::-ms-clear {
   <div class="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-600/20"><i data-lucide="pickaxe" class="w-5 h-5"></i></div>
   <div>
   <h1 class="font-bold text-sm text-title tracking-tight">MINE GEOLOGIST</h1>
-  <p class="text-[11px] text-slate-400 font-medium">Geologist Minerals</p>
+  <p class="text-[11px] text-slate-400 font-medium">PT.Geobank Minerals</p>
   </div>
  </div>
 
@@ -1178,7 +1178,10 @@ input[type="password"]::-ms-clear {
   <div class="flex items-center gap-2">
    <i data-lucide="search-check" class="w-4.5 h-4.5 text-blue-500"></i>
    <div>
-   <h3 class="font-bold text-title text-sm" data-i18n="rca_title">RCA Log -- Root Cause &amp; Rekomendasi</h3>
+   <div class="flex items-center gap-1.5 flex-wrap">
+    <h3 class="font-bold text-title text-sm" data-i18n="rca_title">RCA Log -- Root Cause &amp; Rekomendasi</h3>
+    <span id="rca-overdue-badge" class="hidden px-1.5 py-0.5 rounded-md bg-rose-500/25 text-rose-300 border border-rose-500/40 text-[10px] font-bold whitespace-nowrap"></span>
+   </div>
    <p class="text-[11px] text-slate-400 font-medium" data-i18n="rca_subtitle">Penjelasan akar masalah &amp; tindakan untuk penyimpangan rekonsiliasi per Blok</p>
    </div>
   </div>
@@ -1954,6 +1957,29 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
  </div>
  </div>
 
+ <!-- BARU (Sidequest #5): Radar Chart Chemical Fingerprint Sublot -- bandingkan Plan vs
+      Aktual utk 5 unsur (Ni/Fe/Co/MgO/SiO2) dalam satu grafik radar, ditampilkan sebagai
+      "% Aktual dari Plan" per unsur (bukan nilai mentah) karena skala 5 unsur ini jauh
+      berbeda (Ni ~1-2%, SiO2 bisa ~40-60%) -- kalau dipaksa 1 skala linear, unsur kecil
+      spt Ni/Co jadi tidak kelihatan sama sekali. Dataset kedua "Target 100%" jadi acuan
+      lingkaran sempurna; makin jauh bentuk Aktual dari lingkaran itu, makin besar deviasi
+      di unsur tsb. Murni turunan dari globalBargeSublotData yang sudah di-fetch --
+      TIDAK ADA data/endpoint baru. -->
+ <div id="sublot-radar-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden items-center justify-center p-4">
+ <div class="glass-card modal-mobile w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-700 max-h-[90vh] flex flex-col">
+  <div class="flex justify-between items-center pb-3.5 border-b border-slate-700/60 mb-4 shrink-0">
+  <h3 class="font-bold text-title text-sm tracking-tight flex items-center gap-2">
+   <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
+   <span data-i18n="sublot_radar_title">Chemical Fingerprint</span>
+   <span id="sublot-radar-subtitle" class="text-slate-500 font-normal"></span>
+  </h3>
+  <button onclick="closeSublotRadarModal()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer"><i data-lucide="x" class="w-4.5 h-4.5"></i></button>
+  </div>
+  <p class="text-[11px] text-slate-400 font-medium mb-3" data-i18n="sublot_radar_desc">Persentase Aktual terhadap Plan per unsur -- lingkaran putus-putus adalah acuan 100% (sama persis Plan).</p>
+  <div class="flex-1 min-h-[260px]"><canvas id="sublot-radar-canvas"></canvas></div>
+ </div>
+ </div>
+
  <!-- MODAL FORM: SUBLOT AKTUAL -->
  <div id="form-barge-sublot-popup-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden items-center justify-center p-4">
  <div class="glass-card modal-mobile w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-slate-700 max-h-[90vh] flex flex-col">
@@ -2129,6 +2155,21 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <span class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span>
    <span data-i18n="loading_members">Mengambil data member dari Google Sheets...</span>
   </div>
+  </div>
+ </div>
+
+ <!-- BARU (Sidequest #4): Leaderboard Geologist -- murni turunan dari globalMemberData yang
+      sudah ada (field Accuracy), tidak ada data baru/endpoint baru. Diurutkan di frontend
+      lewat renderLeaderboard(). -->
+ <div class="glass-card p-6 rounded-2xl mt-5">
+  <div class="mb-4">
+  <h3 class="font-bold text-title flex items-center gap-2 text-sm md:text-base tracking-tight">
+   <i data-lucide="trophy" class="w-4.5 h-4.5 text-amber-400"></i> <span data-i18n="leaderboard_title">Leaderboard Geologist</span>
+  </h3>
+  <p class="text-slate-400 text-xs mt-1 font-medium" data-i18n="leaderboard_desc">Peringkat berdasarkan Current Accuracy -- otomatis dihitung dari data KPI Member yang sama di atas.</p>
+  </div>
+  <div id="leaderboard-list" class="space-y-1.5">
+  <p class="text-[11px] text-slate-500 font-medium" data-i18n="loading_members">Mengambil data member dari Google Sheets...</p>
   </div>
  </div>
  </section>
@@ -4205,6 +4246,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  let globalBargeSublotData = [];
  let globalRcaLogData = []; // RCA Log rekonsiliasi -- di-fetch bareng data Block Model saat tab Rekonsiliasi dibuka
  let globalPitActualData = []; // Pit Actual (Ritase x TF weighbridge) -- dipakai hitung F1/F2/F3/F4
+ let ewsAlertNotified = false; // BARU (Sidequest #3): flag transisi utk Suara & Haptik EWS -- lihat triggerEwsAlert()
  let currentOpenBargeShipment = null; // No Shipment yang sedang dibuka di detail modal
  let globalIssueRawData = [];
  let globalValidasiData = [];
@@ -4665,6 +4707,12 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   kpimember_desc: "Klik pada salah satu kartu karyawan untuk melihat detail lengkap absensi, kinerja, dan standar penilaian.",
   btn_form_member: "Form Member",
   loading_members: "Mengambil data member dari Google Sheets...",
+  leaderboard_title: "Leaderboard Geologist",
+  leaderboard_desc: "Peringkat berdasarkan Current Accuracy -- otomatis dihitung dari data KPI Member yang sama di atas.",
+  leaderboard_empty: "Belum ada member dengan Accuracy dalam format angka untuk diperingkat.",
+  leaderboard_col_accuracy: "Accuracy",
+  sublot_radar_title: "Chemical Fingerprint",
+  sublot_radar_desc: "Persentase Aktual terhadap Plan per unsur -- lingkaran putus-putus adalah acuan 100% (sama persis Plan).",
   lang_theme_settings_title: "Bahasa, Tema & Regional",
   lang_theme_settings_desc: "Atur bahasa, tampilan, timezone, dan format tanggal/waktu aplikasi.",
   regional_time_title: "Regional & Time",
@@ -5224,6 +5272,12 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   kpimember_desc: "Click on a member card to view full attendance, performance, and grading detail.",
   btn_form_member: "Member Form",
   loading_members: "Fetching member data from Google Sheets...",
+  leaderboard_title: "Geologist Leaderboard",
+  leaderboard_desc: "Ranked by Current Accuracy -- automatically calculated from the same KPI Member data above.",
+  leaderboard_empty: "No members with a numeric Accuracy value to rank yet.",
+  leaderboard_col_accuracy: "Accuracy",
+  sublot_radar_title: "Chemical Fingerprint",
+  sublot_radar_desc: "Actual as a percentage of Plan per element -- the dashed circle is the 100% reference (exact match with Plan).",
   lang_theme_settings_title: "Language, Theme & Regional",
   lang_theme_settings_desc: "Set the language, appearance, timezone, and application date/time format.",
   regional_time_title: "Regional & Time",
@@ -7509,7 +7563,7 @@ async function provisionExistingCredential(index, userId) {
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-neutral-300">HAL 3/3 - JSA MINE GEOLOGIST</span>
-        <span class="border border-white px-1.5 py-0.5 font-bold">JSA-MINEGEO-2026-REV02 · GEOLOGIST MINERALS</span>
+        <span class="border border-white px-1.5 py-0.5 font-bold">JSA-MINEGEO-2026-REV02 · PT GEOBANK MINERALS</span>
       </div>
     </div>
 
@@ -8748,9 +8802,12 @@ async function provisionExistingCredential(index, userId) {
   tableEl.innerHTML = `<p class="text-[11px] text-slate-500 font-medium">${currentLang === 'en' ? 'No sublot data yet.' : 'Belum ada data Sublot.'}</p>`;
   return;
  }
- const rowsHtml = rows.map(r => `
+ const rowsHtml = rows.map(r => {
+  const safeSublot = String(r.no_sublot || '').replace(/'/g, "\\'");
+  const safeShipment = String(r.no_shipment || '').replace(/'/g, "\\'");
+  return `
   <tr>
-  <td class="p-2 font-semibold text-title">${r.no_sublot}</td>
+  <td class="p-2 font-semibold text-title">${r.no_sublot} <button type="button" onclick="openSublotRadarModal('${safeSublot}', '${safeShipment}')" title="${currentLang === 'en' ? 'Chemical Fingerprint' : 'Chemical Fingerprint'}" class="ml-1 inline-flex items-center justify-center w-4.5 h-4.5 rounded bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 transition-all cursor-pointer align-middle"><i data-lucide="activity" class="w-2.5 h-2.5"></i></button></td>
   <td class="p-2 text-right">${(r.tonase_plan || 0).toLocaleString()}</td>
   <td class="p-2 text-center text-slate-300">${(r.ni_plan || 0).toFixed(2)}%</td>
   <td class="p-2 text-right">${(r.tonase_aktual || 0).toLocaleString()}</td>
@@ -8758,7 +8815,8 @@ async function provisionExistingCredential(index, userId) {
   <td class="p-2 text-center ${Math.abs(r.disc_ni || 0) > 0.1 ? 'text-amber-400' : 'text-slate-300'}">${(r.disc_ni || 0).toFixed(3)}</td>
   <td class="p-2 text-center ${Math.abs(r.disc_sio2_mgo || 0) > 0.2 ? 'text-amber-400' : 'text-slate-300'}">${(r.disc_sio2_mgo || 0).toFixed(3)}</td>
   </tr>
- `).join('');
+ `;
+ }).join('');
  tableEl.innerHTML = `<table class="w-full text-[11px]">
   <thead><tr class="text-slate-500 border-b border-slate-700/50 text-left">
   <th class="p-2">Sublot</th>
@@ -8771,6 +8829,97 @@ async function provisionExistingCredential(index, userId) {
   </tr></thead>
   <tbody class="divide-y divide-slate-800/50">${rowsHtml}</tbody>
  </table>`;
+ lucide.createIcons();
+ }
+
+ // BARU (Sidequest #5): Radar Chart Chemical Fingerprint -- lihat komentar di HTML modal
+ // #sublot-radar-modal utk alasan desain "% Aktual dari Plan" (bukan nilai mentah).
+ // Chart di-destroy & dibuat ulang tiap modal dibuka (bukan pola persistent-chart spt chart
+ // lain di dashboard ini) karena chart ini genuinely on-demand per baris Sublot yang diklik,
+ // beda konteks tiap kali -- destroy-recreate adalah cara Chart.js resmi menghindari error
+ // "Canvas is already in use" kalau canvas yang sama dipakai ulang.
+ let sublotRadarChartInstance = null;
+ function openSublotRadarModal(noSublot, noShipment) {
+ const r = (globalBargeSublotData || []).find(x => x.no_sublot === noSublot && x.no_shipment === noShipment);
+ if (!r) return;
+
+ const elements = [
+  { key: 'ni', label: 'Ni' },
+  { key: 'fe', label: 'Fe' },
+  { key: 'co', label: 'Co' },
+  { key: 'mgo', label: 'MgO' },
+  { key: 'sio2', label: 'SiO2' }
+ ];
+ const labels = elements.map(e => e.label);
+ // Plan = 0 dianggap tidak punya acuan deviasi utk unsur itu -- default ratio 100 (netral)
+ // supaya bentuk radar tidak "jebol" ke titik 0 hanya krn Plan-nya kebetulan kosong.
+ const ratios = elements.map(e => {
+  const planVal = parseFloat(r[e.key + '_plan']) || 0;
+  const aktualVal = parseFloat(r[e.key + '_aktual']) || 0;
+  return planVal > 0 ? (aktualVal / planVal * 100) : 100;
+ });
+ const maxRatio = Math.max(100, ...ratios);
+ const suggestedMax = Math.ceil((maxRatio + 10) / 10) * 10;
+
+ document.getElementById('sublot-radar-subtitle').innerText = `-- ${r.no_sublot} (${r.no_shipment})`;
+
+ const modal = document.getElementById('sublot-radar-modal');
+ showModalAnimated(modal);
+ lucide.createIcons();
+
+ if (sublotRadarChartInstance) sublotRadarChartInstance.destroy();
+ const ctx = document.getElementById('sublot-radar-canvas').getContext('2d');
+ sublotRadarChartInstance = new Chart(ctx, {
+  type: 'radar',
+  data: {
+  labels: labels,
+  datasets: [
+   {
+   label: currentLang === 'en' ? 'Target (100%)' : 'Target (100%)',
+   data: elements.map(() => 100),
+   borderColor: 'rgba(148, 163, 184, 0.6)',
+   backgroundColor: 'transparent',
+   borderDash: [4, 4],
+   borderWidth: 1.5,
+   pointRadius: 0
+   },
+   {
+   label: currentLang === 'en' ? 'Actual (% of Plan)' : 'Aktual (% Plan)',
+   data: ratios,
+   borderColor: 'rgb(34, 211, 238)',
+   backgroundColor: 'rgba(34, 211, 238, 0.2)',
+   borderWidth: 2,
+   pointBackgroundColor: 'rgb(34, 211, 238)',
+   pointRadius: 3
+   }
+  ]
+  },
+  options: {
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+   r: {
+   suggestedMin: 0,
+   suggestedMax: suggestedMax,
+   ticks: { color: 'rgba(148, 163, 184, 0.7)', backdropColor: 'transparent', font: { size: 9 } },
+   grid: { color: 'rgba(100, 116, 139, 0.25)' },
+   angleLines: { color: 'rgba(100, 116, 139, 0.25)' },
+   pointLabels: { color: 'rgba(226, 232, 240, 0.9)', font: { size: 11, weight: 'bold' } }
+   }
+  },
+  plugins: {
+   legend: { position: 'bottom', labels: { color: 'rgba(226, 232, 240, 0.85)', font: { size: 10 }, boxWidth: 12 } },
+   tooltip: {
+   callbacks: {
+    label: (ctxItem) => `${ctxItem.dataset.label}: ${ctxItem.formattedValue}%`
+   }
+   }
+  }
+  }
+ });
+ }
+ function closeSublotRadarModal() {
+ hideModalAnimated(document.getElementById('sublot-radar-modal'));
  }
 
  // ---- Form: Shipment Baru ----
@@ -9208,9 +9357,39 @@ async function provisionExistingCredential(index, userId) {
   return s;
  }
 
+ // BARU (Sidequest #2): Indikator SLA overdue RCA -- "SLA" di sini = Target (tanggal
+ // deadline yang dipilih Maker saat submit form RCA, input type="date" di rca-target).
+ // Overdue = RCA belum Closed DAN tanggal Target sudah lewat hari ini. Sengaja TIDAK pakai
+ // ambang hari tetap (mis. >7 hari sejak dibuat) -- proyek ini sudah punya field Target
+ // eksplisit per RCA, jadi lebih akurat memakai deadline yang memang dipilih user sendiri
+ // ketimbang menebak ambang generik. RCA tanpa Target sama sekali tidak ditandai overdue
+ // (tidak ada dasar SLA utk RCA itu).
+ function isRcaOverdue(r) {
+ if (!r || !r.target) return false;
+ const statusLower = String(r.status || 'Open').toLowerCase();
+ if (statusLower === 'closed') return false;
+ const targetDate = parseDiggingDate(r.target);
+ if (!targetDate) return false;
+ const today = new Date();
+ today.setHours(0, 0, 0, 0);
+ targetDate.setHours(0, 0, 0, 0);
+ return today.getTime() > targetDate.getTime();
+ }
+
  function renderRcaLogList() {
  const listEl = document.getElementById('rca-log-list');
  if (!listEl) return;
+
+ const overdueBadgeEl = document.getElementById('rca-overdue-badge');
+ if (overdueBadgeEl) {
+  const overdueCount = (globalRcaLogData || []).filter(isRcaOverdue).length;
+  if (overdueCount > 0) {
+   overdueBadgeEl.innerText = overdueCount + ' ' + (currentLang === 'en' ? 'OVERDUE' : 'TERLAMBAT');
+   overdueBadgeEl.classList.remove('hidden');
+  } else {
+   overdueBadgeEl.classList.add('hidden');
+  }
+ }
 
  if (globalRcaLogData.length === 0) {
   listEl.innerHTML = `<p class="text-[11px] text-slate-500 font-medium">${currentLang === 'en' ? 'No RCA entries yet.' : 'Belum ada entri RCA.'}</p>`;
@@ -9221,7 +9400,12 @@ async function provisionExistingCredential(index, userId) {
  const sorted = [...globalRcaLogData].sort((a, b) => {
   const pa = statusPriority[(a.status || '').toLowerCase()] ?? 3;
   const pb = statusPriority[(b.status || '').toLowerCase()] ?? 3;
-  return pa - pb;
+  if (pa !== pb) return pa - pb;
+  // Dalam status yang sama, RCA yang sudah overdue ditampilkan lebih dulu -- supaya
+  // yang paling butuh perhatian tidak tenggelam di tengah daftar Open/Progress lain.
+  const oa = isRcaOverdue(a) ? 0 : 1;
+  const ob = isRcaOverdue(b) ? 0 : 1;
+  return oa - ob;
  });
 
  const statusColors = {
@@ -9234,6 +9418,7 @@ async function provisionExistingCredential(index, userId) {
   const statusLower = String(r.status || 'Open').toLowerCase();
   const statusClass = statusColors[statusLower] || 'bg-slate-700/40 text-slate-400 border-slate-600/40';
   const isClosed = statusLower === 'closed';
+  const overdue = isRcaOverdue(r);
   const createdDate = formatRcaDateTimePart(r.created_date, 'date');
   const createdTime = formatRcaDateTimePart(r.created_time, 'time');
   const closedDate = formatRcaDateTimePart(r.closed_date, 'date');
@@ -9243,29 +9428,103 @@ async function provisionExistingCredential(index, userId) {
   const closedInfo = isClosed && (r.closed_by || closedDate || closedTime)
    ? `<span class="text-emerald-400/80">Checker: ${r.closed_by || '-'}${closedDate ? ' · ' + closedDate : ''}${closedTime ? ' ' + closedTime : ''}</span>` : '';
   const safeId = String(r.rca_id || '').replace(/'/g, "\\'");
+  const overdueBadge = overdue
+   ? `<span class="px-1.5 py-0.5 rounded-md bg-rose-500/25 text-rose-300 border border-rose-500/40 text-[10px] font-bold whitespace-nowrap animate-pulse">${currentLang === 'en' ? 'OVERDUE' : 'TERLAMBAT'}</span>` : '';
   const closeButton = (!isClosed && canCloseRca())
    ? `<button type="button" onclick="closeRcaLog('${safeId}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold transition-all cursor-pointer"><i data-lucide="check-circle-2" class="w-3 h-3"></i>${currentLang === 'en' ? 'Close RCA' : 'Tutup RCA'}</button>` : '';
-  return `<div class="bg-slate-900/40 border border-slate-700/60 rounded-xl p-3">
+  return `<div class="bg-slate-900/40 border ${overdue ? 'border-rose-500/50' : 'border-slate-700/60'} rounded-xl p-3">
    <div class="flex items-start justify-between gap-2 mb-1.5 flex-wrap">
    <div class="flex items-center gap-2 flex-wrap">
     <span class="font-bold text-title text-xs">${r.blok}${r.pit ? ' / ' + r.pit : ''}</span>
     <span class="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-400 text-[10px] font-semibold border border-blue-500/25">${r.tahap || '-'}</span>
     <span class="text-[10px] text-slate-600">${r.rca_id || ''}</span>
    </div>
-   <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold border ${statusClass} whitespace-nowrap">${r.status ? ((currentLang === 'en' || statusLower !== 'open') ? r.status : 'Terbuka') : (currentLang === 'en' ? 'Open' : 'Terbuka')}</span>
+   <div class="flex items-center gap-1.5 flex-wrap justify-end">
+    ${overdueBadge}
+    <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold border ${statusClass} whitespace-nowrap">${r.status ? ((currentLang === 'en' || statusLower !== 'open') ? r.status : 'Terbuka') : (currentLang === 'en' ? 'Open' : 'Terbuka')}</span>
+   </div>
    </div>
    <p class="text-[11px] text-slate-300 font-medium mb-1">${r.deskripsi_isu || '-'}</p>
    ${r.root_cause ? `<p class="text-[11px] text-slate-500"><span class="font-semibold text-slate-400">${currentLang === 'en' ? 'Root Cause:' : 'Akar Masalah:'}</span> ${r.root_cause}</p>` : ''}
    ${r.tindakan ? `<p class="text-[11px] text-slate-500"><span class="font-semibold text-slate-400">${currentLang === 'en' ? 'Action' : 'Tindakan'}:</span> ${r.tindakan}</p>` : ''}
    <div class="flex items-center gap-3 mt-1.5 text-[10px] text-slate-500 font-medium flex-wrap">
     ${r.pic ? `<span>PIC: ${r.pic}</span>` : ''}
-    ${r.target ? `<span>Target: ${r.target}</span>` : ''}
+    ${r.target ? `<span class="${overdue ? 'text-rose-400 font-bold' : ''}">Target: ${r.target}</span>` : ''}
     ${createdInfo}${closedInfo}
    </div>
-   ${closeButton ? `<div class="flex justify-end mt-2 pt-2 border-t border-slate-800/70">${closeButton}</div>` : ''}
+   <div class="flex justify-end items-center gap-2 mt-2 pt-2 border-t border-slate-800/70">
+    <button type="button" onclick="copyRcaToClipboard(this, '${safeId}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 border border-slate-600/40 text-[10px] font-bold transition-all cursor-pointer"><i data-lucide="clipboard-copy" class="w-3 h-3"></i>${currentLang === 'en' ? 'Copy' : 'Salin'}</button>
+    ${closeButton}
+   </div>
   </div>`;
  }).join('');
  lucide.createIcons();
+ }
+
+ // BARU (Sidequest #1): Copy to Clipboard RCA -- salin ringkasan 1 entri RCA sebagai teks
+ // rapi ke clipboard, supaya bisa langsung ditempel ke WA/email/laporan tanpa perlu screenshot
+ // atau ketik ulang manual. Murni baca dari globalRcaLogData yang sudah ada di frontend --
+ // tidak ada endpoint baru, tidak menyentuh backend sama sekali.
+ async function copyRcaToClipboard(btnEl, rcaId) {
+ const r = (globalRcaLogData || []).find(x => String(x.rca_id) === String(rcaId));
+ if (!r) return;
+
+ const en = currentLang === 'en';
+ const statusLower = String(r.status || 'Open').toLowerCase();
+ const createdDate = formatRcaDateTimePart(r.created_date, 'date');
+ const createdTime = formatRcaDateTimePart(r.created_time, 'time');
+ const closedDate = formatRcaDateTimePart(r.closed_date, 'date');
+ const closedTime = formatRcaDateTimePart(r.closed_time, 'time');
+
+ const lines = [];
+ lines.push(`RCA ${r.rca_id || ''}`);
+ lines.push(`${en ? 'Block/Pit' : 'Blok/Pit'}: ${r.blok || '-'}${r.pit ? ' / ' + r.pit : ''}`);
+ lines.push(`${en ? 'Affected Stage' : 'Tahap Bermasalah'}: ${r.tahap || '-'}`);
+ lines.push(`Status: ${r.status || (en ? 'Open' : 'Terbuka')}`);
+ lines.push(`${en ? 'Issue Description' : 'Deskripsi Isu'}: ${r.deskripsi_isu || '-'}`);
+ if (r.root_cause) lines.push(`${en ? 'Root Cause' : 'Akar Masalah'}: ${r.root_cause}`);
+ if (r.tindakan) lines.push(`${en ? 'Action' : 'Tindakan'}: ${r.tindakan}`);
+ if (r.pic) lines.push(`PIC: ${r.pic}`);
+ if (r.target) lines.push(`Target: ${r.target}`);
+ if (r.created_by || createdDate || createdTime) {
+  lines.push(`Maker: ${r.created_by || '-'}${createdDate ? ' · ' + createdDate : ''}${createdTime ? ' ' + createdTime : ''}`);
+ }
+ if (statusLower === 'closed' && (r.closed_by || closedDate || closedTime)) {
+  lines.push(`Checker: ${r.closed_by || '-'}${closedDate ? ' · ' + closedDate : ''}${closedTime ? ' ' + closedTime : ''}`);
+ }
+ const text = lines.join('\n');
+
+ try {
+  if (navigator.clipboard && window.isSecureContext) {
+   await navigator.clipboard.writeText(text);
+  } else {
+   // Fallback untuk konteks non-secure (http biasa) atau browser lama yang tidak
+   // punya Clipboard API -- textarea sementara + execCommand('copy').
+   const ta = document.createElement('textarea');
+   ta.value = text;
+   ta.style.position = 'fixed';
+   ta.style.opacity = '0';
+   document.body.appendChild(ta);
+   ta.focus();
+   ta.select();
+   document.execCommand('copy');
+   document.body.removeChild(ta);
+  }
+  if (btnEl) {
+   const original = btnEl.innerHTML;
+   btnEl.disabled = true;
+   btnEl.innerHTML = `<i data-lucide="check" class="w-3 h-3"></i>${en ? 'Copied' : 'Tersalin'}`;
+   lucide.createIcons();
+   setTimeout(() => {
+    btnEl.innerHTML = original;
+    btnEl.disabled = false;
+    lucide.createIcons();
+   }, 1500);
+  }
+ } catch (err) {
+  console.error('Copy RCA failed:', err);
+  showNoticeModal(en ? 'Copy Failed' : 'Gagal Menyalin', en ? 'Could not copy to clipboard.' : 'Tidak dapat menyalin ke clipboard.');
+ }
  }
 
  // ============================================================
@@ -9665,7 +9924,7 @@ async function provisionExistingCredential(index, userId) {
  <div style="font-family:Arial,sans-serif;color:#0f172a;">
   <div style="border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:16px;">
   <p style="font-size:10px;color:#64748b;margin:0 0 2px;letter-spacing:1px;">LAPORAN REKONSILIASI PROFESIONAL</p>
-  <h2 style="font-size:18px;font-weight:700;margin:0;">Geologist Minerals -- Rekonsiliasi Produksi & Cadangan</h2>
+  <h2 style="font-size:18px;font-weight:700;margin:0;">PT. Geobank Minerals -- Rekonsiliasi Produksi & Cadangan</h2>
   <p style="font-size:10px;color:#64748b;margin:4px 0 0;">Dokumen ini dihasilkan otomatis oleh Dashboard Mine Geologist, dicetak ${genDate}. Data live dari Google Sheets (globalBlockModelData, globalRcaLogData).</p>
   </div>
 
@@ -11694,6 +11953,7 @@ async function postCentralAuthenticated(source, options) {
   } else {
   container.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400 text-xs font-medium">${translations[currentLang].member_empty}</div>`;
   }
+  renderLeaderboard();
  } catch (error) {
   console.error('Error fetching member data:', error);
   const isTimeout = error.name === 'AbortError';
@@ -11705,6 +11965,71 @@ async function postCentralAuthenticated(source, options) {
    </button>
   </div>`;
  }
+ }
+
+ // BARU (Sidequest #4): Leaderboard Geologist -- ranking murni turunan dari globalMemberData
+ // (field Accuracy) yang sudah di-fetch bareng loadMembersFromSheet() di atas. TIDAK ada
+ // endpoint/data baru, TIDAK mengubah sheet Member sama sekali -- cuma diurutkan & ditampilkan
+ // ulang di frontend. Accuracy sengaja dipilih sbg basis ranking (bukan Target/Inspeksi) karena
+ // field ini paling merepresentasikan akurasi kerja individu, sementara Target format bervariasi
+ // per member (ada yg "98%", ada yg "3 Hari / Segera" -- tidak konsisten numerik).
+ // Accuracy adalah free-text field (placeholder cth. "96.5%") -- diparse defensif dgn regex,
+ // member yang nilainya tidak mengandung angka sama sekali DIKELUARKAN dari ranking (bukan
+ // ditaruh di posisi terakhir dgn nilai 0, supaya tidak menyesatkan seolah performanya buruk).
+ function parseAccuracyValue_(raw) {
+ if (raw === null || raw === undefined) return null;
+ const s = String(raw).trim();
+ if (!s || s === '-') return null;
+ const m = s.match(/-?\d+(?:[.,]\d+)?/);
+ if (!m) return null;
+ const n = parseFloat(m[0].replace(',', '.'));
+ return isNaN(n) ? null : n;
+ }
+
+ function renderLeaderboard() {
+ const listEl = document.getElementById('leaderboard-list');
+ if (!listEl) return;
+
+ const ranked = (globalMemberData || [])
+  .map(item => {
+  const member = {};
+  Object.keys(item).forEach(k => member[k.trim().toLowerCase()] = item[k]);
+  return {
+   nama: member['nama'] || member['name'] || (currentLang === 'en' ? 'No Name' : 'Tanpa Nama'),
+   jabatan: member['jabatan'] || member['role'] || '-',
+   target: member['target'] || '-',
+   inspeksi: member['inspeksi'] || '-',
+   accuracyRaw: member['accuracy'] || '-',
+   accuracyNum: parseAccuracyValue_(member['accuracy'])
+  };
+  })
+  .filter(m => m.accuracyNum !== null)
+  .sort((a, b) => b.accuracyNum - a.accuracyNum);
+
+ if (ranked.length === 0) {
+  listEl.innerHTML = `<p class="text-[11px] text-slate-500 font-medium">${translations[currentLang].leaderboard_empty}</p>`;
+  return;
+ }
+
+ const medalByRank = { 1: '🥇', 2: '🥈', 3: '🥉' };
+ listEl.innerHTML = ranked.map((m, idx) => {
+  const rank = idx + 1;
+  const medal = medalByRank[rank] || '';
+  const rankBadgeClass = rank <= 3
+   ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+   : 'bg-slate-800/60 text-slate-400 border-slate-700/60';
+  return `<div class="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-slate-900/40 border border-slate-700/50 text-xs">
+   <div class="flex items-center gap-3 min-w-0">
+   <span class="flex items-center justify-center w-7 h-7 rounded-lg border font-bold text-[11px] shrink-0 ${rankBadgeClass}">${medal || rank}</span>
+   <div class="min-w-0">
+    <p class="font-semibold text-title truncate">${m.nama}</p>
+    <p class="text-[10px] text-slate-500 font-medium truncate">${m.jabatan}${m.target !== '-' ? ' · ' + (currentLang === 'en' ? 'Target' : 'Target') + ': ' + m.target : ''}${m.inspeksi !== '-' ? ' · ' + m.inspeksi : ''}</p>
+   </div>
+   </div>
+   <span class="font-bold text-blue-400 shrink-0">${m.accuracyRaw}</span>
+  </div>`;
+ }).join('');
+ lucide.createIcons();
  }
 
  function openMemberModal(index) {
@@ -12892,6 +13217,72 @@ async function cleanupGeneralSheet(sheetName) {
  }
  }
 
+ // Unlock AudioContext saat user pertama kali interaksi APAPUN dgn halaman (klik/tap/keydown) --
+ // syarat browser modern (Chrome/Safari) supaya AudioContext bisa benar-benar bunyi. Tanpa ini,
+ // AudioContext yang dibuat TANPA didahului gesture user akan tetap berstatus "suspended" dan
+ // TIDAK akan pernah mengeluarkan suara -- ini kebijakan browser (autoplay policy) demi keamanan
+ // user, BUKAN bug kode & tidak bisa dilewati sepenuhnya dari sisi kode manapun. Context dibuat
+ // SEKALI saja saat interaksi pertama & dipakai ulang oleh triggerEwsAlert() seterusnya.
+ let ewsAudioCtx = null;
+ function unlockEwsAudioContext() {
+ if (ewsAudioCtx) return;
+ try {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (AudioCtx) {
+   ewsAudioCtx = new AudioCtx();
+   if (ewsAudioCtx.state === 'suspended') ewsAudioCtx.resume().catch(() => {});
+  }
+ } catch (err) { /* diam-diam dilewati -- fallback ke pembuatan context langsung di triggerEwsAlert() */ }
+ }
+ ['click', 'touchstart', 'keydown'].forEach(evt => {
+ document.addEventListener(evt, unlockEwsAudioContext, { once: true, passive: true });
+ });
+
+ // BARU (Sidequest #3): Suara & Haptik EWS -- notifikasi audio+getar SEKALI SAJA saat
+ // banner EWS Dilusi/Ore Loss (F2 OUT OF TOL, satu-satunya sistem EWS di dashboard ini)
+ // PERTAMA KALI muncul (transisi dari 0 ke >0 Blok/Pit OUT OF TOL). TIDAK berulang tiap
+ // render/polling selama banner masih tampil, dan TIDAK berulang tiap ada tambahan Blok
+ // baru selama banner sudah tampil (dikonfirmasi user 22 Agu: "sekali saja saat pertama
+ // kali muncul"). Flag ewsAlertNotified direset ke false hanya kalau semua Blok kembali
+ // ke status aman (banner hilang total), supaya lain kali EWS ini muncul lagi, notifikasi
+ // jalan lagi dari awal. Web Audio API dipakai (bukan file suara eksternal) supaya tetap
+ // jalan offline di PWA (Windows/Android). Vibration API di-skip diam-diam kalau
+ // browser/OS tidak mendukung (mis. iOS Safari tidak pernah dukung Vibration API) --
+ // tidak ada error yang muncul ke user, fitur suara tetap jalan normal.
+ function triggerEwsAlert() {
+ try {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (AudioCtx) {
+   if (!ewsAudioCtx) ewsAudioCtx = new AudioCtx(); // fallback kalau belum sempat di-unlock
+   const ctx = ewsAudioCtx;
+   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+   const playBeep = (startTime, freq) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.25, startTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.28);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + 0.3);
+   };
+   const now = ctx.currentTime;
+   playBeep(now, 880);
+   playBeep(now + 0.35, 880);
+  }
+ } catch (err) {
+  console.error('EWS audio alert gagal:', err);
+ }
+ try {
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+ } catch (err) {
+  // Diam-diam dilewati -- Vibration API memang tidak didukung di semua browser/OS.
+ }
+ }
+
  function computeReconciliationMatrix() {
  const tbody = document.getElementById('matrix-f1f2-body');
  if (!tbody) return; // elemen belum ada di DOM (belum sempat render awal), aman diabaikan
@@ -13022,9 +13413,14 @@ async function cleanupGeneralSheet(sheetName) {
      : `EWS: ${ewsF2OutOfTolCount} Blok/Pit deviasi F2 (Pit Actual/GC) melebihi toleransi ${EWS_F2_TOLERANSI_OUTOFTOL}% -- disarankan cek lapangan.`
    }`;
    if (typeof lucide !== 'undefined') lucide.createIcons();
+   if (!ewsAlertNotified) {
+    triggerEwsAlert();
+    ewsAlertNotified = true;
+   }
   } else {
    ewsBanner.classList.add('hidden');
    ewsBanner.innerHTML = '';
+   ewsAlertNotified = false; // Reset -- supaya lain kali EWS muncul lagi, notif jalan lagi dari awal.
   }
  }
  }
