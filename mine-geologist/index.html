@@ -6946,7 +6946,17 @@ async function rotateStoredSession(storagePrefix, tokenKey, expiresKey, sessionK
     if (result.expires_at) localStorage.setItem(expiresKey, result.expires_at);
     if (storagePrefix === 'member') renderMemberSessionAvatar();
     if (storagePrefix === 'developer') updateDeveloperAccessUI();
-    window[rotationStateKey] = Date.now();
+    // BUGFIX (22 Agu): baris lama "window[rotationStateKey] = Date.now();" menulis ke
+    // properti window BARU yang tidak nyambung ke variabel `let lastMemberTokenRotationAt`/
+    // `let lastDeveloperTokenRotationAt` di atas (deklarasi `let` di scope script TIDAK
+    // otomatis jadi properti window, beda dgn `var`) -- akibatnya penanda "kapan terakhir
+    // dirotasi" TIDAK PERNAH ter-update, gerbang 15 menit jadi selalu lolos begitu tab
+    // kembali fokus (visibilitychange), menyebabkan rotasi berulang tiap 30-90 detik
+    // alih-alih tiap 15 menit sekali. Perbaikan: tulis LANGSUNG ke variabel lexical yang
+    // sesuai (bukan lewat window[...] bracket) supaya benar-benar terbaca oleh
+    // rotateActiveSecurityTokens() di atas.
+    if (rotationStateKey === 'lastMemberTokenRotationAt') lastMemberTokenRotationAt = Date.now();
+    else if (rotationStateKey === 'lastDeveloperTokenRotationAt') lastDeveloperTokenRotationAt = Date.now();
     return true;
   } catch (error) {
     // Network failure bukan alasan untuk menghapus session; request berikutnya tetap memakai token terakhir.
