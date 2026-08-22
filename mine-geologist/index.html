@@ -1426,9 +1426,14 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
   <div class="flex items-center gap-3">
    <span id="validasi-count" class="text-[11px] text-slate-400 font-semibold whitespace-nowrap"></span>
-  <button onclick="toggleValidasiChart()" title="Tampilkan/Sembunyikan Grafik" data-i18n-title="tooltip_toggle_chart" class="flex items-center justify-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-all cursor-pointer">
-   <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-  </button>
+  <div class="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700/80 rounded-xl p-1 shadow-sm">
+   <button id="btn-validasi-view-chart" onclick="switchValidasiView('chart')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+   <i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i> <span data-i18n="validasi_view_chart">Grafik</span>
+   </button>
+   <button id="btn-validasi-view-tp" onclick="switchValidasiView('tp')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+   <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> <span data-i18n="validasi_view_tp">TP</span>
+   </button>
+  </div>
   <button onclick="openFormValidasiPopup()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all cursor-pointer whitespace-nowrap">
    <i data-lucide="plus" class="w-3.5 h-3.5"></i> <span data-i18n="btn_add_validasi">Input Data</span>
   </button>
@@ -1443,6 +1448,17 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   <div class="h-72">
   <canvas id="validasiChart"></canvas>
   </div>
+ </div>
+
+ <!-- BARU: Kartu ringkasan per TP -- view kedua di tab-switcher Validasi, muncul di
+      atas tabel utama. Isi datanya PAKAI ULANG globalValidasiData yang sudah dikelompokkan
+      per ID_TP (rata-rata semua kedalaman), sama sumber dgn tabel di bawah -- supaya
+      konsisten 100%, tidak ada logika pengelompokan/klasifikasi grade terpisah. -->
+ <div id="validasi-tp-cards" class="glass-card rounded-2xl p-5 hidden">
+  <h3 class="font-bold text-title text-sm mb-3 flex items-center gap-2">
+  <i data-lucide="layout-grid" class="w-4 h-4 text-blue-400"></i> <span data-i18n="validasi_tp_cards_title">Hasil Validasi per Test Pit</span>
+  </h3>
+  <div id="validasi-tp-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
  </div>
 
  <div class="glass-card rounded-2xl p-5">
@@ -4419,6 +4435,9 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   validasi_th_grade: "Class Grade",
   validasi_th_status: "Status",
   validasi_chart_title: "Rata-rata Ni % per Area",
+  validasi_view_chart: "Grafik",
+  validasi_view_tp: "TP",
+  validasi_tp_cards_title: "Hasil Validasi per Test Pit",
   validasi_avg_note: "Nilai parameter di tabel ini adalah rata-rata dari semua kedalaman (1-5 meter) yang sudah diukur. Klik baris untuk lihat rincian per kedalaman.",
   validasi_th_koordinat: "Timur / Utara",
   validasi_th_warna: "Warna",
@@ -4620,7 +4639,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   tooltip_reset_filter: "Reset Filter Tanggal & Pit",
   tooltip_periodic_report: "Laporan Berkala",
   tooltip_professional_report: "Laporan Rekonsiliasi Profesional",
-  tooltip_toggle_chart: "Tampilkan/Sembunyikan Grafik",
+
   tooltip_cog: "Atur COG",
   tooltip_flag: "Atur Flag",
   tooltip_bucket: "Atur Bucket",
@@ -5016,6 +5035,9 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   validasi_th_grade: "Class Grade",
   validasi_th_status: "Status",
   validasi_chart_title: "Average Ni % per Area",
+  validasi_view_chart: "Chart",
+  validasi_view_tp: "TP",
+  validasi_tp_cards_title: "Test Pit Validation Results",
   validasi_avg_note: "Values in this table are the average of all measured depths (1-5 meters). Click a row to see the per-depth breakdown.",
   validasi_th_koordinat: "East / North",
   validasi_th_warna: "Color",
@@ -5216,7 +5238,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   tooltip_reset_filter: "Reset Date & Pit Filter",
   tooltip_periodic_report: "Periodic Report",
   tooltip_professional_report: "Professional Reconciliation Report",
-  tooltip_toggle_chart: "Show/Hide Chart",
+
   tooltip_cog: "Configure COG",
   tooltip_flag: "Configure Flag",
   tooltip_bucket: "Configure Bucket",
@@ -11959,7 +11981,7 @@ async function postCentralAuthenticated(source, options) {
   type: 'bar',
   data: {
   labels: [],
-  datasets: [{ label: 'Ni % rata-rata', data: [], backgroundColor: '#10b981', borderRadius: 6, barPercentage: 0.55 }]
+  datasets: [{ label: 'Ni % rata-rata', data: [], backgroundColor: '#10b981', borderRadius: 6, barPercentage: 0.55, maxBarThickness: 64 }]
   },
   options: {
   responsive: true,
@@ -13863,8 +13885,73 @@ async function cleanupGeneralSheet(sheetName) {
  }
  }
 
- function toggleValidasiChart() {
- document.getElementById('validasi-chart-card').classList.toggle('hidden');
+ // BARU: tab-switcher Grafik <-> TP (pola persis switchTrendView di Visual & Trend) --
+ // eksklusif, cuma 1 view aktif dalam satu waktu. Default: Grafik aktif, TP tersembunyi.
+ function switchValidasiView(view) {
+ const chartCard = document.getElementById('validasi-chart-card');
+ const tpCards = document.getElementById('validasi-tp-cards');
+ const btnChart = document.getElementById('btn-validasi-view-chart');
+ const btnTp = document.getElementById('btn-validasi-view-tp');
+ const activeCls = ['bg-blue-600', 'text-white', 'shadow-sm', 'font-semibold'];
+ const inactiveCls = ['text-slate-300', 'font-medium'];
+ if (view === 'tp') {
+  chartCard.classList.add('hidden');
+  tpCards.classList.remove('hidden');
+  btnTp.classList.add(...activeCls); btnTp.classList.remove(...inactiveCls);
+  btnChart.classList.remove(...activeCls); btnChart.classList.add(...inactiveCls);
+  renderValidasiTpCards();
+ } else {
+  tpCards.classList.add('hidden');
+  chartCard.classList.remove('hidden');
+  btnChart.classList.add(...activeCls); btnChart.classList.remove(...inactiveCls);
+  btnTp.classList.remove(...activeCls); btnTp.classList.add(...inactiveCls);
+ }
+ }
+
+ // BARU: render kartu ringkasan per TP -- PAKAI ULANG globalValidasiData (sudah
+ // dikelompokkan per ID_TP + rata-rata kedalaman) dan helper klasifikasi grade yang SAMA
+ // dengan tabel utama (classifyMaterial/getGradeTextClass/renderClassGradeBadge/
+ // getValidasiNiStatus) -- supaya hasil klasifikasi 100% konsisten, tidak dihitung ulang
+ // dengan logika terpisah yang berisiko ketinggalan sinkron di kemudian hari.
+ function renderValidasiTpCards() {
+ const grid = document.getElementById('validasi-tp-cards-grid');
+ if (!grid) return;
+ const search = (document.getElementById('validasi-search').value || '').toLowerCase();
+ const filtered = globalValidasiData.filter(g => {
+  if (!search) return true;
+  return g.idTp.toLowerCase().includes(search) || g.blok.toLowerCase().includes(search) || g.bench.toLowerCase().includes(search) || g.depths.some(d => d.laterit.toLowerCase().includes(search));
+ });
+
+ if (filtered.length === 0) {
+  grid.innerHTML = `<p class="text-center p-6 text-slate-500 font-medium col-span-full">${currentLang === 'en' ? 'No data found.' : 'Tidak ada data yang ditemukan.'}</p>`;
+  return;
+ }
+
+ grid.innerHTML = filtered.map((g) => {
+  const idx = globalValidasiData.indexOf(g);
+  const niStatus = getValidasiNiStatus(g.avg.ni);
+  const classifyValidasi = classifyMaterial(g.avg.ni, 'Auto', g.avg.sm);
+  return `
+  <div onclick="openValidasiDetailModal(${idx})" class="bg-slate-900/40 border border-slate-700/60 rounded-xl p-3.5 hover:border-blue-500/50 transition-all cursor-pointer">
+   <div class="flex items-start justify-between gap-2 mb-2">
+   <div>
+    <p class="font-bold text-title text-sm">${g.idTp}</p>
+    <p class="text-[11px] text-slate-400 font-medium">${g.blok} &middot; <span data-i18n="digging_detail_bench">Bench</span> ${g.bench}</p>
+   </div>
+   ${renderClassGradeBadge(classifyValidasi.classGrade)}
+   </div>
+   <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] mb-2">
+   <div><span class="text-slate-500" data-i18n="validasi_th_area">Area</span>: <span class="text-slate-300 font-medium">${g.area || '-'}</span></div>
+   <div><span class="text-slate-500" data-i18n="validasi_th_meter">Kedalaman</span>: <span class="text-slate-300 font-medium">${g.depths.length}/5 m</span></div>
+   </div>
+   <div class="flex items-center justify-between pt-2 border-t border-slate-800/70">
+   <span class="text-[10px] text-slate-500">${g.tanggal}</span>
+   <span class="px-2 py-0.5 rounded-md text-[11px] border font-semibold ${niStatus.cls}">${niStatus.label}</span>
+   </div>
+  </div>
+  `;
+ }).join('');
+ lucide.createIcons();
  }
 
  function renderValidasiTable() {
@@ -13937,6 +14024,11 @@ async function cleanupGeneralSheet(sheetName) {
   });
   validasiChart.update();
  }
+
+ // Kartu TP ikut di-refresh kalau viewnya sedang aktif (bukan hidden) -- supaya tetap
+ // sinkron dgn search/data baru tanpa perlu klik ulang tombol TP.
+ const tpCardsEl = document.getElementById('validasi-tp-cards');
+ if (tpCardsEl && !tpCardsEl.classList.contains('hidden')) renderValidasiTpCards();
 
  lucide.createIcons();
  }
