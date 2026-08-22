@@ -592,8 +592,8 @@ input[type="password"]::-ms-clear {
  </div>
 
  <div class="pt-4 border-t border-slate-700/40">
- <div class="flex items-center gap-3 p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/40 shadow-inner">
-  <img src="https://lh3.googleusercontent.com/d/1h2lEVH0hOEy7mteIgpH3ycDYdVi8RtqN=w100" alt="Yaya Avatar" class="w-9 h-9 rounded-full object-cover border-2 border-blue-500 shadow-sm bg-slate-700" onerror="this.src='https://ui-avatars.com/api/?name=Yaya&background=2563eb&color=fff'">
+ <div id="sidebar-dev-identity-card" class="hidden items-center gap-3 p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/40 shadow-inner">
+  <img id="sidebar-dev-avatar-img" src="https://lh3.googleusercontent.com/d/1h2lEVH0hOEy7mteIgpH3ycDYdVi8RtqN=w100" alt="Yaya Avatar" class="w-9 h-9 rounded-full object-cover border-2 border-blue-500 shadow-sm bg-slate-700" onerror="handleSidebarAvatarError(this)">
   <div>
   <div class="text-[11px] font-bold text-title tracking-tight">Dev By Yaya</div>
   <div class="text-[10px] text-slate-400 font-medium">Head Mine Geologist</div>
@@ -6437,6 +6437,24 @@ window.addEventListener('afterprint', function() {
  return !!localStorage.getItem('mine_dev_token');
  }
 
+ // BARU (22 Agu): fallback avatar sidebar bertingkat -- Google Drive (utama) gagal ->
+ // foto lokal GitHub (avatar-yaya.png, di folder yang sama dgn index.html) -> avatar
+ // generik ui-avatars.com sbg jaring pengaman terakhir. Pakai fungsi terpisah + penanda
+ // tahap (data-fallback-stage) -- BUKAN onerror inline berantai -- supaya kalau SEMUA
+ // sumber gagal sekaligus (kasus sangat jarang), tidak terjadi infinite loop request.
+ function handleSidebarAvatarError(imgEl) {
+ const stage = imgEl.dataset.fallbackStage || '0';
+ if (stage === '0') {
+  imgEl.dataset.fallbackStage = '1';
+  imgEl.src = './avatar-yaya.png';
+ } else if (stage === '1') {
+  imgEl.dataset.fallbackStage = '2';
+  imgEl.src = 'https://ui-avatars.com/api/?name=Yaya&background=2563eb&color=fff';
+ }
+ // stage 2: sudah di fallback terakhir -- kalau ini juga gagal, dibiarkan (kasus
+ // ekstrem: foto lokal belum ke-upload DAN API ui-avatars.com sedang down bersamaan).
+ }
+
  // Kontrol akses fitur Dome -- sengaja 2 fungsi terpisah (assign vs lihat riwayat), bukan 1
  // pengecekan yang dipakai berulang -- supaya kalau nanti mau diubah (misal riwayat dibuka
  // untuk semua member tapi assign tetap dikunci developer), cukup ubah DI SINI SAJA, tidak
@@ -6495,7 +6513,23 @@ window.addEventListener('afterprint', function() {
  const btnIssueDeleteAll = document.getElementById('btn-issue-delete-all');
  const devCleanupPanel = document.getElementById('dev-cleanup-panel');
  const panelResetProject = document.getElementById('panel-reset-project');
+ const sidebarDevIdentityCard = document.getElementById('sidebar-dev-identity-card');
  const unlocked = isDeveloperUnlocked();
+
+ // BARU (22 Agu): kartu identitas Developer di sidebar bawah -- muncul HANYA saat
+ // Developer Access ter-unlock (PIN benar), hilang total saat locked/logout. Pakai
+ // pola add/remove 'flex' eksplisit (bukan cuma toggle 'hidden') -- konsisten dgn
+ // showModalAnimated/hideModalAnimated di file ini, krn elemen ini butuh display:flex
+ // (items-center) begitu ditampilkan, bukan display default div.
+ if (sidebarDevIdentityCard) {
+  if (unlocked) {
+   sidebarDevIdentityCard.classList.remove('hidden');
+   sidebarDevIdentityCard.classList.add('flex');
+  } else {
+   sidebarDevIdentityCard.classList.add('hidden');
+   sidebarDevIdentityCard.classList.remove('flex');
+  }
+ }
 
  if (panelResetProject) {
   panelResetProject.classList.toggle('hidden', !unlocked);
