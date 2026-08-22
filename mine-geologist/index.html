@@ -2814,6 +2814,26 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <p class="text-amber-300 font-semibold" data-i18n="guide_step10_p6">Catatan: ini adalah Security & Policy baseline v90.2.15. Hardening lanjutan seperti rate-limit/brute-force protection, rotasi token terjadwal, dan review permission berkala dapat ditambahkan sebagai tahap penguatan berikutnya tanpa mengubah alur kerja utama.</p>
    </div>
   </div>
+
+  <!-- BARU (22 Agu): Step 11 -- Deploy & Update PWA. Warna cyan (beda dari amber Step 10)
+  supaya kelihatan ini kategori checklist operasional deploy, bukan kebijakan security. -->
+  <div class="border border-cyan-600/40 rounded-xl overflow-hidden">
+   <button onclick="toggleGuideStep(11)" class="w-full flex items-center justify-between gap-2 p-3 bg-cyan-900/10 hover:bg-cyan-900/20 transition-all cursor-pointer text-left">
+   <div class="flex items-center gap-2.5">
+    <span class="w-6 h-6 rounded-full bg-cyan-600 text-white text-xs font-bold flex items-center justify-center shrink-0">11</span>
+    <span class="font-bold text-title text-xs" data-i18n="guide_step11_title">Deploy &amp; Update PWA -- Checklist Tiap Rilis</span>
+   </div>
+   <i id="guide-chevron-11" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform shrink-0"></i>
+   </button>
+   <div id="guide-content-11" class="hidden p-3 pt-0 text-[11px] text-slate-300 leading-relaxed space-y-2">
+   <p data-i18n="guide_step11_p1">BARU: dashboard ini sekarang punya Service Worker (file <code class="text-cyan-300">sw.js</code>, taruh di folder yang SAMA PERSIS dengan index.html) yang memunculkan toast "Versi baru tersedia" ke semua user begitu file di-update di GitHub -- ini yang sebelumnya TIDAK PERNAH ada di proyek ini.</p>
+   <p class="text-cyan-300 font-semibold" data-i18n="guide_step11_p2">WAJIB dilakukan SETIAP kali deploy versi baru (jangan sampai lupa, ini bukan otomatis):</p>
+   <p data-i18n="guide_step11_p3">1. Update nomor versi di baris <code class="text-cyan-300">const APP_VERSION</code> pada index.html (dashboard.html) seperti biasa.</p>
+   <p data-i18n="guide_step11_p4">2. Buka file <code class="text-cyan-300">sw.js</code>, ganti baris <code class="text-cyan-300">const CACHE_NAME = 'mine-geologist-vX.X.X';</code> supaya angkanya SAMA PERSIS dengan APP_VERSION yang baru. Kalau baris ini TIDAK diubah, browser akan menganggap sw.js "tidak berubah" (dibandingkan byte-per-byte) dan toast update TIDAK AKAN PERNAH muncul, walau index.html-nya sendiri sudah beda total.</p>
+   <p data-i18n="guide_step11_p5">3. Upload ULANG kedua file (index.html dan sw.js) ke folder yang sama di GitHub Pages. Tunggu sekitar 1 menit -- toast "Versi baru tersedia" akan muncul otomatis di pojok kanan bawah untuk semua user yang sedang membuka dashboard (desktop maupun Android), tanpa perlu reload paksa (user pilih sendiri kapan klik "Muat Ulang").</p>
+   <p data-i18n="guide_step11_p6">Catatan: Service Worker ini sengaja HANYA menyimpan cache untuk file statis (HTML shell, manifest, ikon) -- data live (dashboard, chat, RCA, dsb dari Google Sheets) TIDAK PERNAH ikut di-cache, selalu diambil segar dari server setiap saat.</p>
+   </div>
+  </div>
  </div>
  </div>
 </div>
@@ -4525,6 +4545,13 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  guide_step10_p4: "Policy data: sheet DATA boleh dikosongkan hanya saat reset yang memang direncanakan; sheet CONFIG/MASTER dan formula inti BlockModel tidak boleh dihapus sembarangan. Perubahan penting harus tetap dapat ditelusuri melalui log/session dan riwayat update.",
  guide_step10_p5: "Policy operasional: gunakan hak akses minimum yang diperlukan, selalu Logout setelah selesai, jangan meninggalkan session aktif di komputer bersama, dan lakukan review user/role/permission secara berkala. Jika ada anomali akses atau perubahan data yang tidak dikenal, hentikan penggunaan dan periksa log Security/Audit sebelum melakukan perubahan lebih lanjut.",
  guide_step10_p6: "Catatan: ini adalah Security & Policy baseline v90.2.15. Hardening lanjutan seperti rate-limit/brute-force protection, rotasi token terjadwal, dan review permission berkala dapat ditambahkan sebagai tahap penguatan berikutnya tanpa mengubah alur kerja utama.",
+ guide_step11_title: "Deploy & Update PWA -- Checklist Tiap Rilis",
+ guide_step11_p1: "BARU: dashboard ini sekarang punya Service Worker (file sw.js, taruh di folder yang SAMA PERSIS dengan index.html) yang memunculkan toast \"Versi baru tersedia\" ke semua user begitu file di-update di GitHub -- ini yang sebelumnya TIDAK PERNAH ada di proyek ini.",
+ guide_step11_p2: "WAJIB dilakukan SETIAP kali deploy versi baru (jangan sampai lupa, ini bukan otomatis):",
+ guide_step11_p3: "1. Update nomor versi di baris const APP_VERSION pada index.html (dashboard.html) seperti biasa.",
+ guide_step11_p4: "2. Buka file sw.js, ganti baris const CACHE_NAME = 'mine-geologist-vX.X.X'; supaya angkanya SAMA PERSIS dengan APP_VERSION yang baru. Kalau baris ini TIDAK diubah, browser akan menganggap sw.js \"tidak berubah\" (dibandingkan byte-per-byte) dan toast update TIDAK AKAN PERNAH muncul, walau index.html-nya sendiri sudah beda total.",
+ guide_step11_p5: "3. Upload ULANG kedua file (index.html dan sw.js) ke folder yang sama di GitHub Pages. Tunggu sekitar 1 menit -- toast \"Versi baru tersedia\" akan muncul otomatis di pojok kanan bawah untuk semua user yang sedang membuka dashboard (desktop maupun Android), tanpa perlu reload paksa (user pilih sendiri kapan klik \"Muat Ulang\").",
+ guide_step11_p6: "Catatan: Service Worker ini sengaja HANYA menyimpan cache untuk file statis (HTML shell, manifest, ikon) -- data live (dashboard, chat, RCA, dsb dari Google Sheets) TIDAK PERNAH ikut di-cache, selalu diambil segar dari server setiap saat.",
   blockmodel_title: "Block Model vs Actual",
   blockmodel_th_blok: "Blok",
   blockmodel_th_ni: "Ni % (Est -> Akt)",
@@ -4752,6 +4779,10 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   session_cache_enable_label: "Aktifkan cache",
   session_cache_ttl_label: "TTL Cache (detik, 5-60)",
   session_cache_btn_save: "Simpan Kebijakan",
+  pwa_update_title: "Versi baru tersedia",
+  pwa_update_desc: "Muat ulang untuk memakai versi terbaru dashboard ini.",
+  pwa_update_btn_reload: "Muat Ulang",
+  pwa_update_btn_dismiss: "Nanti Saja",
   lang_theme_settings_title: "Bahasa, Tema & Regional",
   lang_theme_settings_desc: "Atur bahasa, tampilan, timezone, dan format tanggal/waktu aplikasi.",
   regional_time_title: "Regional & Time",
@@ -5104,6 +5135,13 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  guide_step10_p4: "Data policy: DATA sheets may only be cleared during an intentional reset; CONFIG/MASTER sheets and core BlockModel formulas must not be deleted casually. Important changes should remain traceable through session/security logs and the update history.",
  guide_step10_p5: "Operational policy: use the minimum access required, always Log Out when finished, do not leave an active session on a shared computer, and review users/roles/permissions periodically. If an access anomaly or unknown data change is found, stop and review Security/Audit logs before making further changes.",
  guide_step10_p6: "Note: this is the Security & Policy baseline v90.2.15. Further hardening such as rate-limit/brute-force protection, scheduled token rotation, and periodic permission review can be added as a future strengthening stage without changing the main workflow.",
+ guide_step11_title: "Deploy & PWA Update -- Checklist for Every Release",
+ guide_step11_p1: "NEW: this dashboard now has a Service Worker (sw.js file, place it in the SAME EXACT folder as index.html) that shows a \"New version available\" toast to every user as soon as the files are updated on GitHub -- this never existed in this project before.",
+ guide_step11_p2: "MUST be done EVERY time you deploy a new version (don't forget, this is not automatic):",
+ guide_step11_p3: "1. Update the version number in the const APP_VERSION line in index.html (dashboard.html) as usual.",
+ guide_step11_p4: "2. Open the sw.js file and change the const CACHE_NAME = 'mine-geologist-vX.X.X'; line so the number EXACTLY matches the new APP_VERSION. If this line is NOT changed, the browser will consider sw.js \"unchanged\" (compared byte-for-byte) and the update toast will NEVER appear, even though index.html itself is completely different.",
+ guide_step11_p5: "3. Re-upload BOTH files (index.html and sw.js) to the same folder on GitHub Pages. Wait about 1 minute -- the \"New version available\" toast will automatically appear in the bottom-right corner for every user with the dashboard open (desktop or Android), without forcing a reload (the user chooses when to click \"Reload\").",
+ guide_step11_p6: "Note: this Service Worker deliberately caches ONLY static files (HTML shell, manifest, icons) -- live data (dashboard, chat, RCA, etc. from Google Sheets) is NEVER cached, and is always fetched fresh from the server every time.",
   blockmodel_title: "Block Model vs Actual",
   blockmodel_th_blok: "Block",
   blockmodel_th_ni: "Ni % (Est -> Act)",
@@ -5331,6 +5369,10 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   session_cache_enable_label: "Enable cache",
   session_cache_ttl_label: "Cache TTL (seconds, 5-60)",
   session_cache_btn_save: "Save Policy",
+  pwa_update_title: "New version available",
+  pwa_update_desc: "Reload to use the latest version of this dashboard.",
+  pwa_update_btn_reload: "Reload",
+  pwa_update_btn_dismiss: "Later",
   lang_theme_settings_title: "Language, Theme & Regional",
   lang_theme_settings_desc: "Set the language, appearance, timezone, and application date/time format.",
   regional_time_title: "Regional & Time",
@@ -14866,6 +14908,26 @@ window.addEventListener('DOMContentLoaded', async () => {
 <div id="print-periodic-report-container" class="hidden"></div>
 <!-- BARU: LAPORAN CETAK REKONSILIASI PROFESIONAL -->
 <div id="print-professional-report-container" class="hidden"></div>
+
+<!-- BARU (dibuat 22 Agu, PWA update notification -- Service Worker belum pernah ada
+     sebelumnya di proyek ini): toast diam-diam di pojok bawah, TIDAK menghalangi layar
+     kerja. Muncul HANYA kalau ada versi baru terdeteksi -- klik "Muat Ulang" bersifat
+     eksplisit dari user, TIDAK PERNAH reload otomatis/paksa supaya tidak memutus tim
+     yang sedang mengisi form. -->
+<div id="pwa-update-toast" class="hidden fixed bottom-4 right-4 z-[90] max-w-xs rounded-xl border border-blue-500/40 bg-slate-900/95 backdrop-blur-md shadow-2xl p-3.5">
+ <div class="flex items-start gap-2.5">
+  <div class="p-1.5 rounded-lg bg-blue-600/20 text-blue-400 shrink-0"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i></div>
+  <div class="min-w-0 flex-1">
+   <p class="text-title text-xs font-bold" data-i18n="pwa_update_title">Versi baru tersedia</p>
+   <p class="text-slate-400 text-[10px] font-medium mt-0.5" data-i18n="pwa_update_desc">Muat ulang untuk memakai versi terbaru dashboard ini.</p>
+   <div class="flex gap-2 mt-2.5">
+    <button onclick="applyPwaUpdate()" class="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold transition-all cursor-pointer"><span data-i18n="pwa_update_btn_reload">Muat Ulang</span></button>
+    <button onclick="dismissPwaUpdateToast()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold transition-all cursor-pointer"><span data-i18n="pwa_update_btn_dismiss">Nanti Saja</span></button>
+   </div>
+  </div>
+ </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function(){
  try{ initResetProjectControls(); }catch(e){}
@@ -14878,7 +14940,64 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   updateDeveloperAccessUI();
  }catch(e){ console.warn('Developer Console init skipped:',e); }
+ try{ initPwaUpdateWatcher(); }catch(e){ console.warn('PWA update watcher skipped:',e); }
 });
+
+// BARU (22 Agu): Registrasi Service Worker + deteksi update PWA. Bungkus try-catch
+// menyeluruh + cek dukungan browser -- kalau serviceWorker tidak didukung (mis. HTTP
+// biasa bukan HTTPS, atau browser lama), dashboard TETAP jalan normal seperti sekarang,
+// cuma fitur notifikasi update ini yang tidak aktif.
+let pwaWaitingWorker = null;
+function initPwaUpdateWatcher() {
+ if (!('serviceWorker' in navigator)) return;
+ navigator.serviceWorker.register('./sw.js').then(function(registration) {
+  // Kasus A: SW baru ketemu SAAT halaman ini masih terbuka (paling umum -- tim buka
+  // app, lalu kita deploy versi baru, lalu browser cek ulang beberapa saat kemudian).
+  registration.addEventListener('updatefound', function() {
+   const newWorker = registration.installing;
+   if (!newWorker) return;
+   newWorker.addEventListener('statechange', function() {
+    // 'installed' + navigator.serviceWorker.controller SUDAH ada (bukan install
+    // pertama kali) = ini benar-benar UPDATE, bukan instalasi awal PWA.
+    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+     pwaWaitingWorker = newWorker;
+     showPwaUpdateToast();
+    }
+   });
+  });
+  // Kasus B: tab ini baru dibuka SETELAH versi baru sempat ter-install di background
+  // sebelumnya (mis. tab lain sempat dibuka duluan) -- SW baru sudah "waiting", tinggal ditawarkan.
+  if (registration.waiting && navigator.serviceWorker.controller) {
+   pwaWaitingWorker = registration.waiting;
+   showPwaUpdateToast();
+  }
+  // Poll aktif tiap 60 detik -- supaya notifikasi muncul dalam ~1 menit setelah deploy,
+  // tidak menunggu siklus cek otomatis browser (yang bisa sampai ~24 jam).
+  setInterval(function(){ registration.update().catch(function(){}); }, 60000);
+ }).catch(function(err) { console.warn('SW registration gagal:', err); });
+
+ // Begitu SW baru benar-benar ambil alih (setelah skipWaiting dari applyPwaUpdate()),
+ // reload SEKALI otomatis -- ini bagian dari alur yang sudah dikonfirmasi user via klik,
+ // bukan reload paksa tanpa sepengetahuan user.
+ let reloading = false;
+ navigator.serviceWorker.addEventListener('controllerchange', function() {
+  if (reloading) return;
+  reloading = true;
+  window.location.reload();
+ });
+}
+function showPwaUpdateToast() {
+ const toast = document.getElementById('pwa-update-toast');
+ if (toast) { toast.classList.remove('hidden'); lucide.createIcons(); }
+}
+function dismissPwaUpdateToast() {
+ const toast = document.getElementById('pwa-update-toast');
+ if (toast) toast.classList.add('hidden');
+}
+function applyPwaUpdate() {
+ if (pwaWaitingWorker) pwaWaitingWorker.postMessage({ type: 'SKIP_WAITING' });
+ dismissPwaUpdateToast();
+}
 </script>
 </body>
 </html>
