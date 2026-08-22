@@ -2454,6 +2454,26 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
     <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveSessionCachePolicy()" class="px-3 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-bold"><span data-i18n="session_cache_btn_save">Simpan Kebijakan</span></button></div>
     <div id="session-cache-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
    </div>
+
+   <!-- BARU (Security hardening -- rate limit perluasan, DIPUTUSKAN 22 Agu): panel toggle
+        API Abuse Guard -- pola LOAD/SAVE identik dgn Session Cache di atas, target endpoint
+        beda. Melindungi request pasca-login (token valid) dari penyalahgunaan berulang,
+        melengkapi rate-limit login yang sudah ada. -->
+   <div class="mt-4 pt-3 border-t border-slate-800">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+     <div>
+      <h4 class="font-bold text-slate-200 text-xs" data-i18n="api_abuse_guard_title">API Abuse Guard</h4>
+      <p class="text-[10px] text-slate-400 mt-0.5" data-i18n="api_abuse_guard_desc">Batasi jumlah request per sesi dalam rentang waktu tertentu -- melindungi token yang sudah login dari penyalahgunaan berulang (mis. token bocor dipakai spam request). Rate-limit login tetap berjalan terpisah. Default OFF.</p>
+     </div>
+     <label class="inline-flex items-center gap-2 text-[10px] font-semibold text-slate-300 cursor-pointer"><input id="api-abuse-guard-enabled" type="checkbox" class="accent-amber-500"> <span data-i18n="api_abuse_guard_enable_label">Aktifkan guard</span></label>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+     <label class="block text-[10px] text-slate-400"><span data-i18n="api_abuse_guard_max_label">Maks Request (10-1000)</span><input id="api-abuse-guard-max" type="number" min="10" max="1000" value="90" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="api_abuse_guard_window_label">Jendela Waktu (detik, 10-300)</span><input id="api-abuse-guard-window" type="number" min="10" max="300" value="60" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+    </div>
+    <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveApiAbuseGuardPolicy()" class="px-3 py-2 rounded-xl bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold"><span data-i18n="api_abuse_guard_btn_save">Simpan Kebijakan</span></button></div>
+    <div id="api-abuse-guard-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
+   </div>
   </div>
 
  <!-- v90.2.100: PANEL PADATKAN BARIS KOSONG -- Developer-only, preview lalu eksekusi. -->
@@ -4779,6 +4799,12 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   session_cache_enable_label: "Aktifkan cache",
   session_cache_ttl_label: "TTL Cache (detik, 5-60)",
   session_cache_btn_save: "Simpan Kebijakan",
+  api_abuse_guard_title: "API Abuse Guard",
+  api_abuse_guard_desc: "Batasi jumlah request per sesi dalam rentang waktu tertentu -- melindungi token yang sudah login dari penyalahgunaan berulang (mis. token bocor dipakai spam request). Rate-limit login tetap berjalan terpisah. Default OFF.",
+  api_abuse_guard_enable_label: "Aktifkan guard",
+  api_abuse_guard_max_label: "Maks Request (10-1000)",
+  api_abuse_guard_window_label: "Jendela Waktu (detik, 10-300)",
+  api_abuse_guard_btn_save: "Simpan Kebijakan",
   pwa_update_title: "Versi baru tersedia",
   pwa_update_desc: "Muat ulang untuk memakai versi terbaru dashboard ini.",
   pwa_update_btn_reload: "Muat Ulang",
@@ -5369,6 +5395,12 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   session_cache_enable_label: "Enable cache",
   session_cache_ttl_label: "Cache TTL (seconds, 5-60)",
   session_cache_btn_save: "Save Policy",
+  api_abuse_guard_title: "API Abuse Guard",
+  api_abuse_guard_desc: "Limits requests per session within a time window -- protects logged-in tokens from repeated abuse (e.g. a leaked token used to spam requests). Login rate-limit still runs separately. Default OFF.",
+  api_abuse_guard_enable_label: "Enable guard",
+  api_abuse_guard_max_label: "Max requests (10-1000)",
+  api_abuse_guard_window_label: "Time window (seconds, 10-300)",
+  api_abuse_guard_btn_save: "Save Policy",
   pwa_update_title: "New version available",
   pwa_update_desc: "Reload to use the latest version of this dashboard.",
   pwa_update_btn_reload: "Reload",
@@ -6541,6 +6573,7 @@ window.addEventListener('afterprint', function() {
     devCleanupPanel.dataset.retentionLoaded = '1';
     loadRetentionPolicy();
     loadSessionCachePolicy();
+    loadApiAbuseGuardPolicy();
    }
    if (!unlocked) devCleanupPanel.dataset.retentionLoaded = '';
   }
@@ -12530,6 +12563,28 @@ async function saveSessionCachePolicy() {
  const checked=id=>{const el=document.getElementById(id);return !!(el&&el.checked);};
  const payload={session_cache_enabled:checked('session-cache-enabled')?'TRUE':'FALSE',session_cache_ttl_seconds:value('session-cache-ttl')};
  try { const result=await postDeveloperAdmin('saveSessionCachePolicy',payload); applySessionCachePolicyToControls(result.policy); const status=document.getElementById('session-cache-status'); if(status)status.textContent=currentLang === 'en' ? 'Policy saved.' : 'Kebijakan tersimpan.'; }
+ catch(e) { showNoticeModal(currentLang === 'en' ? 'Save Policy Failed' : 'Simpan Kebijakan Gagal',e.message); }
+}
+
+// BARU (Security hardening -- rate limit perluasan, DIPUTUSKAN 22 Agu): panel toggle API
+// Abuse Guard -- pola LOAD/SAVE identik dgn Session Cache di atas, cuma target endpoint beda.
+function applyApiAbuseGuardPolicyToControls(policy) {
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.value=String(value);};
+ const check=(id,value)=>{const el=document.getElementById(id);if(el)el.checked=!!value;};
+ if(!policy) return;
+ check('api-abuse-guard-enabled',policy.enabled); set('api-abuse-guard-max',policy.maxRequests||90); set('api-abuse-guard-window',policy.windowSec||60);
+}
+async function loadApiAbuseGuardPolicy() {
+ if(!isDeveloperUnlocked()) return;
+ try { const result=await postDeveloperAdmin('getApiAbuseGuardPolicy',{}); applyApiAbuseGuardPolicyToControls(result.policy); }
+ catch(e) { const status=document.getElementById('api-abuse-guard-status'); if(status)status.textContent=(currentLang === 'en' ? 'Policy could not be loaded: ' : 'Kebijakan belum dapat dimuat: ')+e.message; }
+}
+async function saveApiAbuseGuardPolicy() {
+ if(!isDeveloperUnlocked()) return;
+ const value=id=>{const el=document.getElementById(id);return el?el.value:'';};
+ const checked=id=>{const el=document.getElementById(id);return !!(el&&el.checked);};
+ const payload={api_abuse_guard_enabled:checked('api-abuse-guard-enabled')?'TRUE':'FALSE',api_abuse_max_requests:value('api-abuse-guard-max'),api_abuse_window_sec:value('api-abuse-guard-window')};
+ try { const result=await postDeveloperAdmin('saveApiAbuseGuardPolicy',payload); applyApiAbuseGuardPolicyToControls(result.policy); const status=document.getElementById('api-abuse-guard-status'); if(status)status.textContent=currentLang === 'en' ? 'Policy saved.' : 'Kebijakan tersimpan.'; }
  catch(e) { showNoticeModal(currentLang === 'en' ? 'Save Policy Failed' : 'Simpan Kebijakan Gagal',e.message); }
 }
 
