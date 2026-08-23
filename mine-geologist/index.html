@@ -1026,7 +1026,7 @@ input[type="password"]::-ms-clear {
    </button>
    <div id="rekon-filter-panel" class="hidden sm:flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-1.5 absolute sm:static right-0 top-full mt-2 sm:mt-0 z-20 bg-slate-900 sm:bg-transparent border sm:border-0 border-slate-700 rounded-xl p-3 sm:p-0 shadow-xl sm:shadow-none w-60 sm:w-auto">
     <select id="rekon-pit-filter" onchange="renderReconciliation()" class="custom-select w-full sm:w-auto bg-slate-800/60 border border-slate-700/80 rounded-xl px-3 py-0.5 text-title text-xs font-medium focus:outline-none focus:border-blue-500" title="Filter berdasarkan Pit" data-i18n-title="tooltip_filter_pit">
-     <option value="" data-i18n="filter_all_pit">Semua Pit</option>
+     <option value="" data-i18n="filter_all_pit">Pit</option>
     </select>
     <div class="relative w-9 h-9 rounded-full overflow-hidden shrink-0">
     <input type="date" id="rekon-date-start" min="2020-01-01" max="2035-12-31" onkeydown="return false;" onpaste="return false;" onchange="renderReconciliation(); this.title = this.value ? ((currentLang === 'en' ? 'Start Date: ' : 'Tanggal Mulai: ') + this.value) : translations[currentLang].tooltip_filter_start;" class="w-9 h-9 bg-slate-800/60 border border-slate-700/80 rounded-full focus:outline-none focus:border-blue-500 cursor-pointer" title="Filter Tanggal Mulai" data-i18n-title="tooltip_filter_start">
@@ -2113,7 +2113,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
  <div class="glass-card p-6 rounded-2xl">
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
   <h3 class="font-bold text-title flex items-center gap-2 text-sm tracking-tight">
-   <i data-lucide="list-checks" class="w-4 h-4 text-blue-500"></i> <span data-i18n="issue_title">Daftar Issue & Rekomendasi Action Operasional Tambang</span>
+   <i data-lucide="list-checks" class="w-4 h-4 text-blue-500"></i> <span data-i18n="issue_title">Daftar Issue & Rekomendasi Action Operasional</span>
   </h3>
   <div class="flex items-center gap-2.5 flex-wrap no-print">
    <div class="pit-filter-box flex items-center gap-1.5 h-9 bg-slate-800/60 border border-slate-700/80 rounded-xl px-3 shadow-sm">
@@ -2126,8 +2126,8 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    </select>
    </div>
 
-   <button id="btn-issue-delete-all" onclick="deleteAllIssues()" class="hidden items-center gap-1.5 h-9 px-3.5 rounded-xl bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 text-xs font-semibold transition-all cursor-pointer">
-   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> <span>Hapus Semua</span>
+   <button id="btn-issue-delete-all" onclick="deleteAllIssues()" title="Hapus Semua" data-i18n-title="btn_delete_all_issue" class="hidden items-center justify-center w-9 h-9 rounded-full bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 transition-all cursor-pointer">
+   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
    </button>
    <button onclick="openFormIssuePopup()" class="flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
    <i data-lucide="plus" class="w-3.5 h-3.5"></i> <span data-i18n="btn_add_issue">Issue Baru</span>
@@ -4482,7 +4482,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   validasi_th_struktur: "Struktur",
   validasi_th_average: "Rata-rata (1-5m)",
   digging_detail_bench: "Bench",
-  filter_all_pit: "Semua Pit",
+  filter_all_pit: "Pit",
   rekon_date_to: "s/d",
   rekon_total_produksi: "Total Produksi",
   rekon_total_terkirim: "Total Ter-assign",
@@ -4817,12 +4817,13 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   issue_box_1: "Open Issue",
   issue_box_2: "In Progress",
   issue_box_3: "Resolved",
-  issue_title: "Daftar Issue & Rekomendasi Action Operasional Tambang",
+  issue_title: "Daftar Issue & Rekomendasi Action Operasional",
   issue_filter_all: "Semua Status",
   issue_filter_open: "Open",
   issue_filter_progress: "In Progress",
   issue_filter_close: "Close / Resolved",
   btn_add_issue: "Issue Baru",
+  btn_delete_all_issue: "Hapus Semua",
   issue_th_date: "Tanggal & Waktu",
   issue_th_reporter: "Pelapor",
   issue_loc: "Lokasi",
@@ -5438,6 +5439,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   issue_filter_progress: "In Progress",
   issue_filter_close: "Close / Resolved",
   btn_add_issue: "New Issue",
+  btn_delete_all_issue: "Delete All",
   issue_th_date: "Date & Time",
   issue_th_reporter: "Reporter",
   issue_loc: "Location",
@@ -5855,7 +5857,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   wrapPending.classList.remove('hidden');
 
   titleText.innerText = currentLang === 'en' ? 'Rows Without an Assigned Destination' : 'Baris Belum Ter-assign Tujuan';
-  activeDesc.innerText = currentLang === 'en' ? 'Rows with an empty Destination. Sorted by longest waiting time, click to update via the Destination & Shipping ID popup.' : 'Baris yang tujuan kosong. Diurutkan yang paling lama menunggu, klik untuk update popup Tujuan & ID Pengapalan.';
+  activeDesc.innerText = currentLang === 'en' ? 'Rows with an empty Destination. Sorted by longest waiting time, click to update via the Destination & Shipping ID popup.' : 'Baris tujuan kosong. Diurutkan yang lama menunggu, klik update popup Tujuan & ID Pengapalan.';
   activeIcon.setAttribute('data-lucide', 'alert-circle');
  } else if (viewType === 'blockmodel') {
   btnBlockmodel.className = activeClass('bg-rose-600');
