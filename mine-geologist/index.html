@@ -1450,15 +1450,34 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
  </div>
 
- <!-- BARU: Kartu ringkasan per TP -- view kedua di tab-switcher Validasi, muncul di
-      atas tabel utama. Isi datanya PAKAI ULANG globalValidasiData yang sudah dikelompokkan
-      per ID_TP (rata-rata semua kedalaman), sama sumber dgn tabel di bawah -- supaya
-      konsisten 100%, tidak ada logika pengelompokan/klasifikasi grade terpisah. -->
- <div id="validasi-tp-cards" class="glass-card rounded-2xl p-5 hidden">
-  <h3 class="font-bold text-title text-sm mb-3 flex items-center gap-2">
-  <i data-lucide="layout-grid" class="w-4 h-4 text-blue-400"></i> <span data-i18n="validasi_tp_cards_title">Hasil Validasi per Test Pit</span>
-  </h3>
-  <div id="validasi-tp-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+ <!-- FIX (23 Agu, dikoreksi user): dikembalikan jadi tabel asli (bukan kartu) -- toggle
+      Grafik/TP tetap sama, cuma konten view "TP" sekarang tabel data lengkap seperti semula,
+      bukan kartu ringkasan. -->
+ <div id="validasi-table-card" class="glass-card rounded-2xl p-5 hidden">
+  <div class="overflow-x-auto">
+  <table class="w-full text-left text-xs whitespace-nowrap">
+   <thead class="uppercase text-slate-400 font-semibold border-b border-slate-700/80">
+   <tr>
+    <th class="p-3" data-i18n="th_date">Tanggal</th>
+    <th class="p-3" data-i18n="validasi_th_idtp">ID TP</th>
+    <th class="p-3" data-i18n="th_block">Blok</th>
+    <th class="p-3" data-i18n="digging_detail_bench">Bench</th>
+    <th class="p-3" data-i18n="validasi_th_area">Area</th>
+    <th class="p-3" data-i18n="digging_detail_reporter">Pelapor</th>
+    <th class="p-3 text-center" data-i18n="validasi_th_meter">Kedalaman</th>
+    <th class="p-3 text-center" data-i18n="th_ni">Ni %</th>
+    <th class="p-3 text-center" data-i18n="th_fe">Fe %</th>
+    <th class="p-3 text-center" data-i18n="th_co">Co %</th>
+    <th class="p-3 text-center" data-i18n="th_mgo">MgO %</th>
+    <th class="p-3 text-center" data-i18n="th_sio2">SiO2 %</th>
+    <th class="p-3 text-center" data-i18n="th_sm">SM %</th>
+    <th class="p-3 text-center" data-i18n="validasi_th_grade">Class Grade</th>
+    <th class="p-3 text-center" data-i18n="validasi_th_status">Status</th>
+   </tr>
+   </thead>
+   <tbody id="validasi-table-body" class="divide-y divide-slate-800/40 font-medium"></tbody>
+  </table>
+  </div>
   <p class="text-[11px] text-slate-500 font-medium mt-3" data-i18n="validasi_avg_note">Nilai parameter di tabel ini adalah rata-rata dari semua kedalaman (1-5 meter) yang sudah diukur. Klik baris untuk lihat rincian per kedalaman.</p>
  </div>
  </section>
@@ -4410,7 +4429,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   validasi_chart_title: "Rata-rata Ni % per Area",
   validasi_view_chart: "Grafik",
   validasi_view_tp: "TP",
-  validasi_tp_cards_title: "Hasil Validasi per Test Pit",
+
   validasi_avg_note: "Nilai parameter di tabel ini adalah rata-rata dari semua kedalaman (1-5 meter) yang sudah diukur. Klik baris untuk lihat rincian per kedalaman.",
   validasi_th_koordinat: "Timur / Utara",
   validasi_th_warna: "Warna",
@@ -5010,7 +5029,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   validasi_chart_title: "Average Ni % per Area",
   validasi_view_chart: "Chart",
   validasi_view_tp: "TP",
-  validasi_tp_cards_title: "Test Pit Validation Results",
+
   validasi_avg_note: "Values in this table are the average of all measured depths (1-5 meters). Click a row to see the per-depth breakdown.",
   validasi_th_koordinat: "East / North",
   validasi_th_warna: "Color",
@@ -12833,27 +12852,13 @@ async function cleanupGeneralSheet(sheetName) {
   renderBlockModelTable();
  } catch (err) {
   console.error('Gagal memuat data validasi:', err);
-  // FIX (23 Agu): tabel lama (validasi-table-body) sudah dihapus (redundan dgn view
-  // Grafik/TP baru) -- pesan error fetch SEKARANG ditampilkan di dalam kartu TP (dipaksa
-  // tampil, bukan Grafik, supaya user PASTI lihat pesannya) alih-alih diam-diam hilang
-  // krn elemen tujuan lama sudah tidak ada.
+  // FIX (23 Agu): dikembalikan ke tabel asli -- pesan error fetch ditulis ke tbody
+  // seperti semula, TIDAK lagi diarahkan ke kartu (kartu sudah dihapus, dikoreksi user).
   const isTimeout = err.name === 'AbortError';
-  const grid = document.getElementById('validasi-tp-cards-grid');
-  const chartCard = document.getElementById('validasi-chart-card');
-  const tpCards = document.getElementById('validasi-tp-cards');
-  if (grid) {
+  const tbody = document.getElementById('validasi-table-body');
+  if (tbody) {
   const msg = isTimeout ? (currentLang === 'en' ? 'Server did not respond within 20s (timeout).' : 'Server tidak merespons dalam 20 detik (timeout).') : (currentLang === 'en' ? 'Failed to load validation data from Google Sheets.' : 'Gagal memuat data validasi dari Google Sheets.');
-  grid.innerHTML = `<div class="col-span-full text-center p-6 text-rose-400 text-xs space-y-2 font-medium"><p>${msg}</p><button onclick="fetchValidasiData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all">${currentLang === 'en' ? 'Retry' : 'Coba Lagi (Retry)'}</button></div>`;
-  if (chartCard) chartCard.classList.add('hidden');
-  if (tpCards) tpCards.classList.remove('hidden');
-  const btnChart = document.getElementById('btn-validasi-view-chart');
-  const btnTp = document.getElementById('btn-validasi-view-tp');
-  const activeCls = ['bg-blue-600', 'text-white', 'shadow-sm', 'font-semibold'];
-  const inactiveCls = ['text-slate-300', 'font-medium'];
-  if (btnTp && btnChart) {
-   btnTp.classList.add(...activeCls); btnTp.classList.remove(...inactiveCls);
-   btnChart.classList.remove(...activeCls); btnChart.classList.add(...inactiveCls);
-  }
+  tbody.innerHTML = `<tr><td colspan="15" class="text-center p-6 text-rose-400 text-xs space-y-2 font-medium"><p>${msg}</p><button onclick="fetchValidasiData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all">${currentLang === 'en' ? 'Retry' : 'Coba Lagi (Retry)'}</button></td></tr>`;
   }
  }
  }
@@ -13876,79 +13881,33 @@ async function cleanupGeneralSheet(sheetName) {
 
  // BARU: tab-switcher Grafik <-> TP (pola persis switchTrendView di Visual & Trend) --
  // eksklusif, cuma 1 view aktif dalam satu waktu. Default: Grafik aktif, TP tersembunyi.
+ // FIX (23 Agu, dikoreksi user): view "TP" sekarang menampilkan TABEL asli (bukan kartu) --
+ // toggle tetap sama polanya (pola persis switchTrendView di Visual & Trend), cuma target
+ // elemen dikembalikan ke tabel.
  function switchValidasiView(view) {
  const chartCard = document.getElementById('validasi-chart-card');
- const tpCards = document.getElementById('validasi-tp-cards');
+ const tableCard = document.getElementById('validasi-table-card');
  const btnChart = document.getElementById('btn-validasi-view-chart');
  const btnTp = document.getElementById('btn-validasi-view-tp');
  const activeCls = ['bg-blue-600', 'text-white', 'shadow-sm', 'font-semibold'];
  const inactiveCls = ['text-slate-300', 'font-medium'];
  if (view === 'tp') {
   chartCard.classList.add('hidden');
-  tpCards.classList.remove('hidden');
+  tableCard.classList.remove('hidden');
   btnTp.classList.add(...activeCls); btnTp.classList.remove(...inactiveCls);
   btnChart.classList.remove(...activeCls); btnChart.classList.add(...inactiveCls);
-  renderValidasiTpCards();
  } else {
-  tpCards.classList.add('hidden');
+  tableCard.classList.add('hidden');
   chartCard.classList.remove('hidden');
   btnChart.classList.add(...activeCls); btnChart.classList.remove(...inactiveCls);
   btnTp.classList.remove(...activeCls); btnTp.classList.add(...inactiveCls);
  }
  }
 
- // BARU: render kartu ringkasan per TP -- PAKAI ULANG globalValidasiData (sudah
- // dikelompokkan per ID_TP + rata-rata kedalaman) dan helper klasifikasi grade yang SAMA
- // dengan tabel utama (classifyMaterial/getGradeTextClass/renderClassGradeBadge/
- // getValidasiNiStatus) -- supaya hasil klasifikasi 100% konsisten, tidak dihitung ulang
- // dengan logika terpisah yang berisiko ketinggalan sinkron di kemudian hari.
- function renderValidasiTpCards() {
- const grid = document.getElementById('validasi-tp-cards-grid');
- if (!grid) return;
- const search = (document.getElementById('validasi-search').value || '').toLowerCase();
- const filtered = globalValidasiData.filter(g => {
-  if (!search) return true;
-  return g.idTp.toLowerCase().includes(search) || g.blok.toLowerCase().includes(search) || g.bench.toLowerCase().includes(search) || g.depths.some(d => d.laterit.toLowerCase().includes(search));
- });
-
- if (filtered.length === 0) {
-  grid.innerHTML = `<p class="text-center p-6 text-slate-500 font-medium col-span-full">${currentLang === 'en' ? 'No data found.' : 'Tidak ada data yang ditemukan.'}</p>`;
-  return;
- }
-
- grid.innerHTML = filtered.map((g) => {
-  const idx = globalValidasiData.indexOf(g);
-  const niStatus = getValidasiNiStatus(g.avg.ni);
-  const classifyValidasi = classifyMaterial(g.avg.ni, 'Auto', g.avg.sm);
-  return `
-  <div onclick="openValidasiDetailModal(${idx})" class="bg-slate-900/40 border border-slate-700/60 rounded-xl p-3.5 hover:border-blue-500/50 transition-all cursor-pointer">
-   <div class="flex items-start justify-between gap-2 mb-2">
-   <div>
-    <p class="font-bold text-title text-sm">${g.idTp}</p>
-    <p class="text-[11px] text-slate-400 font-medium">${g.blok} &middot; <span data-i18n="digging_detail_bench">Bench</span> ${g.bench}</p>
-   </div>
-   ${renderClassGradeBadge(classifyValidasi.classGrade)}
-   </div>
-   <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] mb-2">
-   <div><span class="text-slate-500" data-i18n="validasi_th_area">Area</span>: <span class="text-slate-300 font-medium">${g.area || '-'}</span></div>
-   <div><span class="text-slate-500" data-i18n="validasi_th_meter">Kedalaman</span>: <span class="text-slate-300 font-medium">${g.depths.length}/5 m</span></div>
-   </div>
-   <div class="flex items-center justify-between pt-2 border-t border-slate-800/70">
-   <span class="text-[10px] text-slate-500">${g.tanggal}</span>
-   <span class="px-2 py-0.5 rounded-md text-[11px] border font-semibold ${niStatus.cls}">${niStatus.label}</span>
-   </div>
-  </div>
-  `;
- }).join('');
- lucide.createIcons();
- }
-
- // CATATAN: fungsi ini SENGAJA dipertahankan namanya (dipanggil dari search oninput +
- // 2 titik lain) walau tabel HTML lama sudah dihapus (redundan dgn view Grafik/TP baru,
- // dikonfirmasi user 23 Agu) -- sekarang isinya cuma filter search + update label count +
- // update chart + update kartu TP. Detail per baris (dulu klik baris tabel) sekarang HANYA
- // lewat klik kartu TP -> openValidasiDetailModal(), fungsinya tetap sama persis.
+ // CATATAN (23 Agu): tabel dikembalikan seperti semula (bukan kartu) -- render langsung
+ // ke <tbody>, sama seperti sebelum sempat diubah ke kartu.
  function renderValidasiTable() {
+ const tbody = document.getElementById('validasi-table-body');
  const countLabel = document.getElementById('validasi-count');
  const search = (document.getElementById('validasi-search').value || '').toLowerCase();
 
@@ -13958,6 +13917,42 @@ async function cleanupGeneralSheet(sheetName) {
  });
 
  countLabel.innerText = filtered.length + (currentLang === 'en' ? ' test pits' : ' titik TP');
+
+ if (filtered.length === 0) {
+  tbody.innerHTML = `<tr><td colspan="15" class="text-center p-6 text-slate-500 font-medium">${currentLang === 'en' ? 'No data found.' : 'Tidak ada data yang ditemukan.'}</td></tr>`;
+ } else {
+  const fmt = v => v === null || v === undefined ? '-' : v.toFixed(2);
+  tbody.innerHTML = filtered.map((g) => {
+  const idx = globalValidasiData.indexOf(g);
+  const niStatus = getValidasiNiStatus(g.avg.ni);
+  // Class Grade (Waste/LG/MG/HG/VHG) dihitung dari rata-rata Ni% + Auto Detect (pakai
+  // SM% rata-rata yang sudah ada) -- sama fungsi classifyMaterial() dengan Tabel Digging,
+  // supaya klasifikasi grade konsisten di seluruh dashboard.
+  const classifyValidasi = classifyMaterial(g.avg.ni, 'Auto', g.avg.sm);
+  const niColorClassValidasi = getGradeTextClass(classifyValidasi.classGrade);
+  return `
+  <tr class="hover:bg-slate-800/30 transition-colors cursor-pointer" onclick="openValidasiDetailModal(${idx})">
+   <td class="p-3 text-slate-300">${g.tanggal}</td>
+   <td class="p-3 font-semibold text-title">${g.idTp}</td>
+   <td class="p-3 font-medium text-title">${g.blok}</td>
+   <td class="p-3 text-slate-300">${g.bench}</td>
+   <td class="p-3 text-slate-300">${g.area}</td>
+   <td class="p-3 text-slate-300">${g.pelapor}</td>
+   <td class="p-3 text-center text-slate-400">${g.depths.length}/5 m</td>
+   <td class="p-3 text-center ${niColorClassValidasi} font-bold">${fmt(g.avg.ni)}</td>
+   <td class="p-3 text-center text-slate-300">${fmt(g.avg.fe)}</td>
+   <td class="p-3 text-center text-slate-300">${fmt(g.avg.co)}</td>
+   <td class="p-3 text-center text-slate-300">${fmt(g.avg.mgo)}</td>
+   <td class="p-3 text-center text-slate-300">${fmt(g.avg.sio2)}</td>
+   <td class="p-3 text-center text-slate-300">${fmt(g.avg.sm)}</td>
+   <td class="p-3 text-center">${renderClassGradeBadge(classifyValidasi.classGrade)}</td>
+   <td class="p-3 text-center">
+   <span class="px-2 py-0.5 rounded-md text-[11px] border font-semibold ${niStatus.cls}">${niStatus.label}</span>
+   </td>
+  </tr>
+  `;
+  }).join('');
+ }
 
  if (validasiChart) {
   const byArea = {};
@@ -13974,11 +13969,6 @@ async function cleanupGeneralSheet(sheetName) {
   });
   validasiChart.update();
  }
-
- // Kartu TP ikut di-refresh kalau viewnya sedang aktif (bukan hidden) -- supaya tetap
- // sinkron dgn search/data baru tanpa perlu klik ulang tombol TP.
- const tpCardsEl = document.getElementById('validasi-tp-cards');
- if (tpCardsEl && !tpCardsEl.classList.contains('hidden')) renderValidasiTpCards();
 
  lucide.createIcons();
  }
