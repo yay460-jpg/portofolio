@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
-<title>PT.Geobank Minerals</title>
+<title>Geobank Minerals</title>
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
@@ -552,7 +552,7 @@ input[type="password"]::-ms-clear {
   <div class="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-600/20"><i data-lucide="pickaxe" class="w-5 h-5"></i></div>
   <div>
   <h1 class="font-bold text-sm text-title tracking-tight">MINE GEOLOGIST</h1>
-  <p class="text-[11px] text-slate-400 font-medium">PT.Geobank Minerals</p>
+  <p class="text-[11px] text-slate-400 font-medium">Geobank Minerals</p>
   </div>
  </div>
 
@@ -1441,7 +1441,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
  </div>
 
- <div id="validasi-chart-card" class="glass-card rounded-2xl p-5 hidden">
+ <div id="validasi-chart-card" class="glass-card rounded-2xl p-5">
   <h3 class="font-bold text-title text-sm mb-3 flex items-center gap-2">
   <i data-lucide="bar-chart-3" class="w-4 h-4 text-blue-400"></i> <span data-i18n="validasi_chart_title">Rata-rata Ni % per Area</span>
   </h3>
@@ -1459,33 +1459,6 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   <i data-lucide="layout-grid" class="w-4 h-4 text-blue-400"></i> <span data-i18n="validasi_tp_cards_title">Hasil Validasi per Test Pit</span>
   </h3>
   <div id="validasi-tp-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
- </div>
-
- <div class="glass-card rounded-2xl p-5">
-  <div class="overflow-x-auto">
-  <table class="w-full text-left text-xs whitespace-nowrap">
-   <thead class="uppercase text-slate-400 font-semibold border-b border-slate-700/80">
-   <tr>
-    <th class="p-3" data-i18n="th_date">Tanggal</th>
-    <th class="p-3" data-i18n="validasi_th_idtp">ID TP</th>
-    <th class="p-3" data-i18n="th_block">Blok</th>
-    <th class="p-3" data-i18n="digging_detail_bench">Bench</th>
-    <th class="p-3" data-i18n="validasi_th_area">Area</th>
-    <th class="p-3" data-i18n="digging_detail_reporter">Pelapor</th>
-    <th class="p-3 text-center" data-i18n="validasi_th_meter">Kedalaman</th>
-    <th class="p-3 text-center" data-i18n="th_ni">Ni %</th>
-    <th class="p-3 text-center" data-i18n="th_fe">Fe %</th>
-    <th class="p-3 text-center" data-i18n="th_co">Co %</th>
-    <th class="p-3 text-center" data-i18n="th_mgo">MgO %</th>
-    <th class="p-3 text-center" data-i18n="th_sio2">SiO2 %</th>
-    <th class="p-3 text-center" data-i18n="th_sm">SM %</th>
-    <th class="p-3 text-center" data-i18n="validasi_th_grade">Class Grade</th>
-    <th class="p-3 text-center" data-i18n="validasi_th_status">Status</th>
-   </tr>
-   </thead>
-   <tbody id="validasi-table-body" class="divide-y divide-slate-800/40 font-medium"></tbody>
-  </table>
-  </div>
   <p class="text-[11px] text-slate-500 font-medium mt-3" data-i18n="validasi_avg_note">Nilai parameter di tabel ini adalah rata-rata dari semua kedalaman (1-5 meter) yang sudah diukur. Klik baris untuk lihat rincian per kedalaman.</p>
  </div>
  </section>
@@ -10119,7 +10092,7 @@ async function provisionExistingCredential(index, userId) {
  <div style="font-family:Arial,sans-serif;color:#0f172a;">
   <div style="border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:16px;">
   <p style="font-size:10px;color:#64748b;margin:0 0 2px;letter-spacing:1px;">LAPORAN REKONSILIASI PROFESIONAL</p>
-  <h2 style="font-size:18px;font-weight:700;margin:0;">PT. Geobank Minerals -- Rekonsiliasi Produksi & Cadangan</h2>
+  <h2 style="font-size:18px;font-weight:700;margin:0;">Geobank Minerals -- Rekonsiliasi Produksi & Cadangan</h2>
   <p style="font-size:10px;color:#64748b;margin:4px 0 0;">Dokumen ini dihasilkan otomatis oleh Dashboard Mine Geologist, dicetak ${genDate}. Data live dari Google Sheets (globalBlockModelData, globalRcaLogData).</p>
   </div>
 
@@ -12842,7 +12815,6 @@ async function cleanupGeneralSheet(sheetName) {
  }
 
  async function fetchValidasiData() {
- const tbody = document.getElementById('validasi-table-body');
  try {
   const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=validasi&t=' + new Date().getTime());
   const result = await response.json();
@@ -12861,10 +12833,27 @@ async function cleanupGeneralSheet(sheetName) {
   renderBlockModelTable();
  } catch (err) {
   console.error('Gagal memuat data validasi:', err);
+  // FIX (23 Agu): tabel lama (validasi-table-body) sudah dihapus (redundan dgn view
+  // Grafik/TP baru) -- pesan error fetch SEKARANG ditampilkan di dalam kartu TP (dipaksa
+  // tampil, bukan Grafik, supaya user PASTI lihat pesannya) alih-alih diam-diam hilang
+  // krn elemen tujuan lama sudah tidak ada.
   const isTimeout = err.name === 'AbortError';
-  if (tbody) {
+  const grid = document.getElementById('validasi-tp-cards-grid');
+  const chartCard = document.getElementById('validasi-chart-card');
+  const tpCards = document.getElementById('validasi-tp-cards');
+  if (grid) {
   const msg = isTimeout ? (currentLang === 'en' ? 'Server did not respond within 20s (timeout).' : 'Server tidak merespons dalam 20 detik (timeout).') : (currentLang === 'en' ? 'Failed to load validation data from Google Sheets.' : 'Gagal memuat data validasi dari Google Sheets.');
-  tbody.innerHTML = `<tr><td colspan="15" class="text-center p-6 text-rose-400 text-xs space-y-2 font-medium"><p>${msg}</p><button onclick="fetchValidasiData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all">${currentLang === 'en' ? 'Retry' : 'Coba Lagi (Retry)'}</button></td></tr>`;
+  grid.innerHTML = `<div class="col-span-full text-center p-6 text-rose-400 text-xs space-y-2 font-medium"><p>${msg}</p><button onclick="fetchValidasiData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all">${currentLang === 'en' ? 'Retry' : 'Coba Lagi (Retry)'}</button></div>`;
+  if (chartCard) chartCard.classList.add('hidden');
+  if (tpCards) tpCards.classList.remove('hidden');
+  const btnChart = document.getElementById('btn-validasi-view-chart');
+  const btnTp = document.getElementById('btn-validasi-view-tp');
+  const activeCls = ['bg-blue-600', 'text-white', 'shadow-sm', 'font-semibold'];
+  const inactiveCls = ['text-slate-300', 'font-medium'];
+  if (btnTp && btnChart) {
+   btnTp.classList.add(...activeCls); btnTp.classList.remove(...inactiveCls);
+   btnChart.classList.remove(...activeCls); btnChart.classList.add(...inactiveCls);
+  }
   }
  }
  }
@@ -13954,8 +13943,12 @@ async function cleanupGeneralSheet(sheetName) {
  lucide.createIcons();
  }
 
+ // CATATAN: fungsi ini SENGAJA dipertahankan namanya (dipanggil dari search oninput +
+ // 2 titik lain) walau tabel HTML lama sudah dihapus (redundan dgn view Grafik/TP baru,
+ // dikonfirmasi user 23 Agu) -- sekarang isinya cuma filter search + update label count +
+ // update chart + update kartu TP. Detail per baris (dulu klik baris tabel) sekarang HANYA
+ // lewat klik kartu TP -> openValidasiDetailModal(), fungsinya tetap sama persis.
  function renderValidasiTable() {
- const tbody = document.getElementById('validasi-table-body');
  const countLabel = document.getElementById('validasi-count');
  const search = (document.getElementById('validasi-search').value || '').toLowerCase();
 
@@ -13965,49 +13958,6 @@ async function cleanupGeneralSheet(sheetName) {
  });
 
  countLabel.innerText = filtered.length + (currentLang === 'en' ? ' test pits' : ' titik TP');
-
- if (filtered.length === 0) {
-  tbody.innerHTML = `<tr><td colspan="15" class="text-center p-6 text-slate-500 font-medium">${currentLang === 'en' ? 'No data found.' : 'Tidak ada data yang ditemukan.'}</td></tr>`;
-  return;
- }
-
- const fmt = v => v === null || v === undefined ? '-' : v.toFixed(2);
-
- tbody.innerHTML = filtered.map((g) => {
-  const idx = globalValidasiData.indexOf(g);
-  const niStatus = getValidasiNiStatus(g.avg.ni);
-  // BARU: Class Grade (Waste/LG/MG/HG/VHG) dihitung dari rata-rata Ni% + Auto Detect
-  // (pakai SM% rata-rata yang sudah ada) -- sama fungsi classifyMaterial() dengan Tabel
-  // Digging, supaya klasifikasi grade konsisten di seluruh dashboard, bukan dihitung ulang
-  // dengan aturan berbeda. Auto dipakai di sini karena Validasi tidak punya field Tipe_Ore
-  // sendiri (yang ada cuma "Laterit" per-kedalaman: Topsoil/Limonit/Transisi/Saprolit/Bedrock,
-  // bukan Sapro/Limo langsung), jadi SM% rata-rata paling representatif buat tebak Tipe Ore.
-   const classifyValidasi = classifyMaterial(g.avg.ni, 'Auto', g.avg.sm);
-  // Warna Ni% ikut classGrade lewat preset terpusat (getGradeTextClass), konsisten
-  // dengan Tabel Digging & bisa diatur user di Settings > Parameter COG.
-  const niColorClassValidasi = getGradeTextClass(classifyValidasi.classGrade);
-  return `
-  <tr class="hover:bg-slate-800/30 transition-colors cursor-pointer" onclick="openValidasiDetailModal(${idx})">
-   <td class="p-3 text-slate-300">${g.tanggal}</td>
-   <td class="p-3 font-semibold text-title">${g.idTp}</td>
-   <td class="p-3 font-medium text-title">${g.blok}</td>
-   <td class="p-3 text-slate-300">${g.bench}</td>
-   <td class="p-3 text-slate-300">${g.area}</td>
-   <td class="p-3 text-slate-300">${g.pelapor}</td>
-   <td class="p-3 text-center text-slate-400">${g.depths.length}/5 m</td>
-   <td class="p-3 text-center ${niColorClassValidasi} font-bold">${fmt(g.avg.ni)}</td>
-   <td class="p-3 text-center text-slate-300">${fmt(g.avg.fe)}</td>
-   <td class="p-3 text-center text-slate-300">${fmt(g.avg.co)}</td>
-   <td class="p-3 text-center text-slate-300">${fmt(g.avg.mgo)}</td>
-   <td class="p-3 text-center text-slate-300">${fmt(g.avg.sio2)}</td>
-   <td class="p-3 text-center text-slate-300">${fmt(g.avg.sm)}</td>
-   <td class="p-3 text-center">${renderClassGradeBadge(classifyValidasi.classGrade)}</td>
-   <td class="p-3 text-center">
-   <span class="px-2 py-0.5 rounded-md text-[11px] border font-semibold ${niStatus.cls}">${niStatus.label}</span>
-   </td>
-  </tr>
-  `;
- }).join('');
 
  if (validasiChart) {
   const byArea = {};
