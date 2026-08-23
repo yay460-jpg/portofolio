@@ -4352,7 +4352,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  let globalBlockModelData = [];
  let globalChatData = [];
  let chatLastSeenCount = 0;
- const CHAT_POLL_INTERVAL = 6000; // 6 detik, lebih cepat dari data lain supaya terasa "live"
+ const CHAT_POLL_INTERVAL = 15000; // feed chat terbaru; polling hanya saat tab terlihat
  let pendingExportType = '';
  let rcaExportRequestId = 0;
  let rcaExportLoading = false;
@@ -7356,7 +7356,7 @@ async function logoutMemberSession(event) {
  }
 
  // Nomor versi dashboard -- dinaikkan setiap ada revisi baru dari Claude.
- const APP_VERSION = 'v90.2.100';
+ const APP_VERSION = 'v90.2.107';
 
  function openDeveloperProfileModal() {
  const modal = document.getElementById('developer-profile-modal');
@@ -11716,17 +11716,26 @@ async function postCentralAuthenticated(source, options) {
  document.getElementById('tab-' + tabName).classList.remove('hidden');
  document.getElementById('btn-' + tabName).className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-active";
 
- if (tabName === 'rekonsiliasi') {
-  renderReconciliation();
-  fetchBlockModelData();
+  if (tabName === 'rekonsiliasi') {
+   renderReconciliation();
+   fetchBlockModelData();
+   fetchValidasiData();
   fetchRcaLogData();
   fetchPitActualData();
   fetchBargeShipmentData(); // dipakai juga utk hitung F3/F4 (Total Plant/Tonase Aktual)
  }
 
- if (tabName === 'trend') {
-  fetchBlockModelData();
- }
+  if (tabName === 'trend') {
+   fetchBlockModelData();
+  }
+
+  if (tabName === 'validasi') {
+   fetchValidasiData();
+  }
+
+  if (tabName === 'kpimember') {
+   fetchJsaLogData();
+  }
 
  if (tabName === 'chat') {
   fetchChatData().then(() => { chatLastSeenCount = globalChatData.length; updateChatUnreadBadge(); });
@@ -12756,12 +12765,16 @@ async function cleanupGeneralSheet(sheetName) {
 
  async function fetchChatData() {
  try {
-  const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=chat&t=' + new Date().getTime());
+  const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=chat&limit=100&t=' + new Date().getTime());
   const result = await response.json();
   if (result.status !== 'success') return;
 
   const wasAtBottom = isChatScrolledToBottom();
-  const hadNewMessages = result.data.length > globalChatData.length;
+  // Saat feed dibatasi 100 pesan, panjang array dapat tetap sama walau ada
+  // pesan baru. Nomor baris sheet adalah indikator baru yang stabil.
+  const previousLastRow = globalChatData.length ? Number(globalChatData[globalChatData.length - 1]._row || 0) : 0;
+  const nextLastRow = result.data && result.data.length ? Number(result.data[result.data.length - 1]._row || 0) : 0;
+  const hadNewMessages = nextLastRow > previousLastRow;
 
   globalChatData = result.data;
   renderChatMessages();
@@ -15086,36 +15099,31 @@ window.addEventListener('DOMContentLoaded', async () => {
  // default" sekecil mungkin. Re-render otomatis tetap terjadi di akhir fetchCOGConfig() kalau
  // memang datang belakangan dari fetchDataFromGoogleSheets().
  setTimeout(() => fetchCOGConfig(), 0);
- // 4 fetch di bawah ini semua menembak Apps Script Web App yang SAMA (GOOGLE_SCRIPT_READ_URL).
- // Kalau ditembak bersamaan, Google sering mengantrekan eksekusinya sehingga malah lebih lambat
- // daripada dijeda sedikit satu-satu. Jeda 250ms per panggilan supaya tidak menumpuk di server.
- setTimeout(() => loadMembersFromSheet(), 0);
- setTimeout(() => fetchIssueData(), 250);
- setTimeout(() => fetchValidasiData(), 500);
- setTimeout(() => fetchBlockModelData(), 750);
- setTimeout(() => fetchChatData(), 1000);
- setTimeout(() => fetchJsaLogData(), 1250);
+  // Initial load hanya memuat data yang langsung dipakai Ringkasan. Data Validasi,
+  // JSA, dan Chat dimuat saat tab terkait dibuka sehingga tidak ada enam request
+  // Apps Script yang saling berebut pada cold start.
+  setTimeout(() => loadMembersFromSheet(), 0);
+  setTimeout(() => fetchIssueData(), 250);
+  setTimeout(() => fetchBlockModelData(), 500);
  // Regional & Time READ is public and must load independently of Developer authorization.
  await loadRegionalTimeSettings();
  await refreshSecuritySession();
  renderMemberSessionAvatar();
  await refreshMemberSecuritySession();
  document.getElementById('app-version-label').innerText = APP_VERSION;
- setInterval(() => {
-  fetchDataFromGoogleSheets();
- }, 30000);
+  setInterval(() => {
+   fetchDataFromGoogleSheets();
+  }, 60000);
  setInterval(() => {
   refreshMemberSecuritySession();
  }, MEMBER_SESSION_CHECK_INTERVAL_MS);
  setInterval(() => {
   rotateActiveSecurityTokens();
  }, 60 * 1000);
- // Chat Tim di-poll tiap 6 detik, tapi HANYA kalau tab Chat Tim sedang aktif dibuka --
- // sebelumnya polling ini jalan terus-menerus di background walau user di tab lain,
- // ikut membebani Apps Script yang sama dipakai fetch lainnya.
- setInterval(() => {
-  if (currentActiveTab === 'chat') { fetchChatData(); }
- }, CHAT_POLL_INTERVAL);
+  // Chat hanya dipoll saat tab Chat aktif dan browser terlihat.
+  setInterval(() => {
+   if (currentActiveTab === 'chat' && !document.hidden) { fetchChatData(); }
+  }, CHAT_POLL_INTERVAL);
  });
 </script>
 <!-- LAPORAN CETAK (dipakai khusus saat Export PDF, tersembunyi di layar biasa) -->
