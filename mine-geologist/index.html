@@ -794,6 +794,12 @@ input[type="password"]::-ms-clear {
   <div class="h-64 flex justify-center">
    <canvas id="materialChart"></canvas>
   </div>
+  <!-- FIX (23 Agu): legend Chart.js bawaan ternyata TIDAK konsisten menerapkan warna
+       terang di tema Dark (sebagian item terang, sebagian tetap redup -- padahal cuma 1
+       nilai warna seragam yang di-set). Diganti legend HTML manual di sini -- kontrol
+       penuh, dijamin konsisten, tidak bergantung perilaku internal Chart.js yang
+       ternyata tidak bisa diandalkan utk kasus ini. Diisi lewat renderMaterialLegend(). -->
+  <div id="material-chart-legend" class="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-3 text-xs"></div>
   </div>
 
   <div class="glass-card p-6 rounded-2xl">
@@ -11806,13 +11812,44 @@ async function postCentralAuthenticated(source, options) {
   checkDark.classList.remove('hidden');
   updateChartTheme('#94a3b8');
  }
+ // Legend HTML manual materialChart TIDAK ikut lewat updateChartTheme (itu jalur
+ // Chart.js) -- re-render manual di sini pakai data TERAKHIR yang sudah ada di chart,
+ // supaya warnanya ikut ganti pas user pindah tema tanpa mereset ke nol.
+ if (materialChart) renderMaterialLegend(materialChart.data.datasets[0].data);
+ }
+
+ // FIX (23 Agu): legend HTML manual utk materialChart -- gantikan legend Chart.js bawaan
+ // yang warnanya tidak konsisten di tema Dark. Warna teks dipilih manual berdasarkan
+ // tema aktif (body.theme-white), BUKAN lewat Chart.js sama sekali -- kontrol penuh,
+ // dijamin sama persis di semua item, tidak ada lagi ambiguitas.
+ function renderMaterialLegend(values) {
+ const el = document.getElementById('material-chart-legend');
+ if (!el) return;
+ const labels = ['Saprolit', 'Limonit', 'Low Grade', 'Waste'];
+ const colors = ['#059669', '#0ea5e9', '#f59e0b', '#475569'];
+ const isWhite = document.body.classList.contains('theme-white');
+ const textColor = isWhite ? '#334155' : '#e2e8f0';
+ const total = values.reduce(function(a, b) { return a + (Number(b) || 0); }, 0);
+ el.innerHTML = labels.map(function(label, i) {
+  const value = Number(values[i]) || 0;
+  const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+  return `<span style="display:inline-flex;align-items:center;gap:6px;color:${textColor};font-weight:500;">
+   <span style="width:10px;height:10px;border-radius:9999px;background:${colors[i]};display:inline-block;flex-shrink:0;"></span>
+   ${label} ${pct}%
+  </span>`;
+ }).join('');
  }
 
  function updateChartTheme(textColor) {
  const charts = [materialChart, gradeChart, trendTonaseChart, trendNiChart, smChart, rekonChart, blockModelChart, validasiChart, trendMonthlyChart];
  charts.forEach(c => {
   if (c) {
-  if (c.options.plugins.legend && c.options.plugins.legend.labels) c.options.plugins.legend.labels.color = textColor;
+  // materialChart TIDAK punya legend Chart.js lagi (legend HTML manual, lihat
+  // renderMaterialLegend) -- baris ini otomatis dilewati utknya (c.options.plugins.legend.labels
+  // tidak ada), harmless, cuma berlaku ke chart lain yang masih pakai legend Chart.js bawaan.
+  if (c.options.plugins.legend && c.options.plugins.legend.labels) {
+   c.options.plugins.legend.labels.color = textColor;
+  }
   if (c.options.scales) {
    if (c.options.scales.x) c.options.scales.x.ticks.color = textColor;
    if (c.options.scales.y) c.options.scales.y.ticks.color = textColor;
@@ -11838,29 +11875,17 @@ async function postCentralAuthenticated(source, options) {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-   legend: {
-   position: 'bottom',
-   labels: {
-    color: '#e2e8f0', usePointStyle: true, pointStyle: 'circle', padding: 12, font: { size: 11 },
-    // BARU (23 Agu): persentase per material dipindah ke sini (dari kartu TOTAL ORE) --
-    // dihitung ulang tiap chart.update() dari data TERKINI, supaya selalu akurat mengikuti
-    // data live, bukan angka statis yang bisa ketinggalan sinkron.
-    generateLabels: function(chart) {
-    const dsData = chart.data.datasets[0].data;
-    const bg = chart.data.datasets[0].backgroundColor;
-    const total = dsData.reduce(function(a, b) { return a + (Number(b) || 0); }, 0);
-    return chart.data.labels.map(function(label, i) {
-     const value = Number(dsData[i]) || 0;
-     const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
-     return { text: label + ' ' + pct + '%', fillStyle: bg[i], strokeStyle: bg[i], pointStyle: 'circle', hidden: false, index: i };
-    });
-    }
-   }
-   }
+   // FIX (23 Agu): legend Chart.js bawaan dimatikan total -- diganti legend HTML manual
+   // (#material-chart-legend, diisi via renderMaterialLegend()) krn warna teks legend
+   // bawaan Chart.js terbukti tidak konsisten di tema Dark (sebagian item terang,
+   // sebagian redup, walau cuma 1 nilai warna seragam yg di-set -- perilaku internal
+   // Chart.js yg tidak bisa diandalkan utk kasus ini).
+   legend: { display: false }
   },
   cutout: '68%'
   }
  });
+ renderMaterialLegend([0, 0, 0, 0]);
 
  const ctx2 = document.getElementById('gradeChart').getContext('2d');
  gradeChart = new Chart(ctx2, {
@@ -15034,6 +15059,7 @@ async function cleanupGeneralSheet(sheetName) {
  if (materialChart) {
   materialChart.data.datasets[0].data = [saprolitTon, limonitTon, lgTon, wasteTonase];
   materialChart.update();
+  renderMaterialLegend([saprolitTon, limonitTon, lgTon, wasteTonase]);
  }
 
  if (gradeChart) {
