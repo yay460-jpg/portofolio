@@ -373,6 +373,27 @@
  @media (min-width: 2560px){ main { max-width: 1800px; } html { font-size: 16px; } }
  @media (min-width: 3840px){ main { max-width: 2200px; } html { font-size: 18px; } }
 
+ /* Laptop: judul/deskripsi menjadi footer, tetap di dalam kartu grafik. (Diambil dari
+    kiriman pihak lain v90.2.111, sudah diverifikasi terisolasi -- cuma CSS layout,
+    0 perubahan logika JS.) */
+ @media (max-width: 1440px){
+  .trend-chart-card { display: flex; flex-direction: column; }
+  .trend-chart-card .trend-chart-header { display: contents !important; }
+  .trend-chart-card .trend-toggle-box { order: 1; width: 100%; max-width: 100%; margin-bottom: 1.5rem; }
+  .trend-chart-card > [id^="wrapper-trend-"] { order: 2; }
+  .trend-chart-card .trend-heading { order: 3; width: 100%; margin-top: 1.5rem; display: flex; align-items: baseline; gap: 0.65rem; min-width: 0; }
+  .trend-chart-card .trend-heading #trend-active-title { flex: 0 0 auto; white-space: nowrap; }
+  .trend-chart-card .trend-heading #trend-active-desc { margin-top: 0 !important; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .rekon-view-card { display: flex; flex-direction: column; }
+  .rekon-view-card .rekon-view-header { display: contents !important; }
+  .rekon-view-card .trend-toggle-box { order: 1; width: 100%; max-width: 100%; margin-bottom: 1rem; }
+  .rekon-view-card > [id^="wrapper-rekon-"] { order: 2; }
+  .rekon-view-card .rekon-view-heading { order: 3; width: 100%; margin-top: 1rem; display: flex; align-items: baseline; gap: 0.65rem; min-width: 0; }
+  .rekon-view-card .rekon-view-heading #rekon-active-title { flex: 0 0 auto; white-space: nowrap; }
+  .rekon-view-card .rekon-view-heading #rekon-active-desc { margin-top: 0 !important; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+ }
+
  /* Tablet & Mobile Sidebar */
  @media (max-width: 768px){
   #main-sidebar { width: 84vw !important; max-width: 300px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
@@ -386,7 +407,7 @@
  #main-sidebar { transition: width 0.25s ease, transform 0.3s ease-in-out; }
  #main-sidebar.sidebar-collapsed { width: 5rem !important; }
  #main-sidebar.sidebar-collapsed .sidebar-label { display: none !important; }
- #main-sidebar.sidebar-collapsed .sidebar-header-row { flex-direction: column; align-items: center; gap: 0.5rem; }
+ #main-sidebar.sidebar-collapsed .sidebar-header-row { justify-content: center; }
  #main-sidebar.sidebar-collapsed nav button { justify-content: center; }
  #main-sidebar.sidebar-collapsed #sidebar-dev-identity-card { justify-content: center; }
 
@@ -559,17 +580,14 @@ input[type="password"]::-ms-clear {
 <!-- Sidebar Navigation -->
 <aside id="main-sidebar" class="w-56 glass-card border-r border-slate-800/80 p-5 flex flex-col justify-between fixed inset-y-0 left-0 z-50 -translate-x-full transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:flex">
  <div>
- <div class="sidebar-header-row flex items-center justify-between gap-3 mb-8">
-  <div class="flex items-center gap-3 min-w-0">
-  <div class="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-600/20 shrink-0"><i data-lucide="pickaxe" class="w-5 h-5"></i></div>
-  <div class="sidebar-label min-w-0">
-  <h1 class="font-bold text-sm text-title tracking-tight truncate">MINE GEOLOGIST</h1>
-  <p class="text-[11px] text-slate-400 font-medium truncate">Geobank Minerals</p>
-  </div>
-  </div>
-  <button id="btn-sidebar-collapse" onclick="toggleSidebarCollapse()" title="Ciutkan/Lebarkan Sidebar" data-i18n-title="tooltip_sidebar_collapse" class="hidden md:flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 text-slate-400 hover:text-white transition-all cursor-pointer shrink-0">
-  <i id="sidebar-collapse-icon" data-lucide="chevrons-left" class="w-3.5 h-3.5"></i>
+ <div class="sidebar-header-row flex items-center gap-3 mb-8">
+  <button type="button" id="btn-sidebar-collapse" onclick="toggleSidebarCollapse()" title="Klik untuk ciutkan/lebarkan sidebar" data-i18n-title="tooltip_sidebar_collapse" class="p-2.5 bg-blue-600 hover:bg-blue-500 hover:scale-105 rounded-xl text-white shadow-lg shadow-blue-600/20 shrink-0 transition-all cursor-pointer">
+  <i data-lucide="pickaxe" class="w-5 h-5"></i>
   </button>
+  <div class="sidebar-label">
+  <h1 class="font-bold text-sm text-title tracking-tight">MINE GEOLOGIST</h1>
+  <p class="text-[11px] text-slate-400 font-medium">Geobank Minerals</p>
+  </div>
  </div>
 
  <nav class="space-y-1.5 text-xs">
@@ -821,9 +839,9 @@ input[type="password"]::-ms-clear {
   </div>
  </div>
 
- <div class="glass-card p-4 sm:p-6 rounded-2xl relative overflow-hidden chart-wrap">
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-  <div>
+ <div class="trend-chart-card glass-card p-4 sm:p-6 rounded-2xl relative overflow-hidden chart-wrap">
+  <div class="trend-chart-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+  <div class="trend-heading">
    <h3 id="trend-active-title" class="font-bold text-title flex items-center gap-2 text-sm tracking-tight">
    <i id="trend-active-icon" data-lucide="trending-up" class="w-4 h-4 text-blue-400"></i>
    <span id="trend-title-text" data-i18n="trend_1_title">Tren Tonase Digging (Harian)</span>
@@ -1037,9 +1055,9 @@ input[type="password"]::-ms-clear {
   </div>
  </div>
 
- <div class="glass-card rounded-2xl p-5">
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
-  <div>
+ <div class="rekon-view-card glass-card rounded-2xl p-5">
+  <div class="rekon-view-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
+  <div class="rekon-view-heading">
    <h3 id="rekon-active-title" class="font-bold text-title flex items-center gap-2 text-sm tracking-tight">
    <i id="rekon-active-icon" data-lucide="layers" class="w-4 h-4 text-blue-400"></i>
    <span id="rekon-title-text">Breakdown per Pit & Tujuan</span>
@@ -4351,7 +4369,14 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  let globalCOGConfig = null;
  let globalBlockModelData = [];
  let globalChatData = [];
- let chatLastSeenCount = 0;
+ // FIX (23 Agu, ditemukan saat terapkan pagination chat limit=100 dari kiriman pihak
+ // lain -- BUG JUGA ADA di kiriman mereka, belum ditangani): SEBELUMNYA chatLastSeenCount
+ // dibandingkan lewat globalChatData.length -- begitu total chat lebih dari 100 pesan,
+ // panjang array SELALU mentok 100 (efek pagination baru), jadi badge notifikasi
+ // "pesan belum dibaca" bisa salah hitung (bisa-bisa selalu nunjuk 0 walau ada pesan
+ // baru). Diganti lacak _row (nomor baris sheet asli, monoton naik, TIDAK kepotong
+ // pagination) -- pola yang sama persis dgn fix hadNewMessages di fetchChatData().
+ let chatLastSeenRow = 0;
  const CHAT_POLL_INTERVAL = 15000; // feed chat terbaru; polling hanya saat tab terlihat
  let pendingExportType = '';
  let rcaExportRequestId = 0;
@@ -5671,7 +5696,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   if (typeof renderMonthlyTrend === 'function') renderMonthlyTrend();
 
   titleText.innerText = currentLang === 'en' ? 'Month-over-Month Trend' : 'Tren Bulan ke Bulan';
-  activeDesc.innerText = currentLang === 'en' ? 'Automatic comparison of tonnage & average Ni% between this month and the previous month, plus the last 6 months trend.' : 'Perbandingan otomatis tonase & rata-rata Ni% antara bulan ini dengan bulan lalu, plus tren 6 bulan terakhir.';
+  activeDesc.innerText = currentLang === 'en' ? 'Automatic comparison of tonnage & average Ni% between this month and the previous month, plus the last 6 months trend.' : 'Perbandingan otomatis tonase & rata-rata Ni%, plus tren 6 bulan terakhir.';
   activeIcon.setAttribute('data-lucide', 'calendar-range');
  }
  lucide.createIcons();
@@ -7356,7 +7381,7 @@ async function logoutMemberSession(event) {
  }
 
  // Nomor versi dashboard -- dinaikkan setiap ada revisi baru dari Claude.
- const APP_VERSION = 'v90.2.107';
+ const APP_VERSION = 'v90.2.100';
 
  function openDeveloperProfileModal() {
  const modal = document.getElementById('developer-profile-modal');
@@ -11641,19 +11666,17 @@ async function postCentralAuthenticated(source, options) {
  overlay.classList.add('hidden');
  }
 
- // BARU (23 Agu): Sidebar Collapse -- ciutkan sidebar desktop jadi ikon saja (semua
+ // BARU (23 Agu, disederhanakan sesuai masukan user -- logo pickaxe sendiri jadi tombol
+ // toggle, bukan tombol chevron terpisah): ciutkan sidebar desktop jadi ikon saja (semua
  // navigasi TETAP berfungsi penuh, cuma teks labelnya yang disembunyikan lewat CSS
- // ".sidebar-label"). State disimpan di localStorage per browser/device (murni
- // preferensi tampilan, bukan data sensitif) -- persisten lintas reload/sesi.
+ // ".sidebar-label"). Ikon pickaxe TIDAK ditukar-tukar (tetap identitas brand) -- cukup
+ // hover tooltip yang kasih tahu fungsinya. State disimpan di localStorage per
+ // browser/device (murni preferensi tampilan, bukan data sensitif) -- persisten lintas
+ // reload/sesi.
  function toggleSidebarCollapse() {
  const sidebar = document.getElementById('main-sidebar');
  if (!sidebar) return;
  const isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
- const icon = document.getElementById('sidebar-collapse-icon');
- if (icon) {
-  icon.setAttribute('data-lucide', isCollapsed ? 'chevrons-right' : 'chevrons-left');
-  lucide.createIcons();
- }
  try { localStorage.setItem('mine_sidebar_collapsed', isCollapsed ? '1' : '0'); } catch (e) { /* localStorage tidak tersedia -- state tetap jalan di sesi ini, cuma tidak persisten */ }
  }
  function initSidebarCollapseState() {
@@ -11662,8 +11685,6 @@ async function postCentralAuthenticated(source, options) {
   if (saved === '1') {
   const sidebar = document.getElementById('main-sidebar');
   if (sidebar) sidebar.classList.add('sidebar-collapsed');
-  const icon = document.getElementById('sidebar-collapse-icon');
-  if (icon) icon.setAttribute('data-lucide', 'chevrons-right');
   }
  } catch (e) { /* localStorage tidak tersedia -- default tetap expanded, aman */ }
  }
@@ -11716,29 +11737,29 @@ async function postCentralAuthenticated(source, options) {
  document.getElementById('tab-' + tabName).classList.remove('hidden');
  document.getElementById('btn-' + tabName).className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-active";
 
-  if (tabName === 'rekonsiliasi') {
-   renderReconciliation();
-   fetchBlockModelData();
-   fetchValidasiData();
+ if (tabName === 'rekonsiliasi') {
+  renderReconciliation();
+  fetchBlockModelData();
+  fetchValidasiData();
   fetchRcaLogData();
   fetchPitActualData();
   fetchBargeShipmentData(); // dipakai juga utk hitung F3/F4 (Total Plant/Tonase Aktual)
  }
 
-  if (tabName === 'trend') {
-   fetchBlockModelData();
-  }
+ if (tabName === 'trend') {
+  fetchBlockModelData();
+ }
 
-  if (tabName === 'validasi') {
-   fetchValidasiData();
-  }
+ if (tabName === 'validasi') {
+  fetchValidasiData();
+ }
 
-  if (tabName === 'kpimember') {
-   fetchJsaLogData();
-  }
+ if (tabName === 'kpimember') {
+  fetchJsaLogData();
+ }
 
  if (tabName === 'chat') {
-  fetchChatData().then(() => { chatLastSeenCount = globalChatData.length; updateChatUnreadBadge(); });
+  fetchChatData().then(() => { chatLastSeenRow = globalChatData.length ? Number(globalChatData[globalChatData.length - 1]._row || 0) : 0; updateChatUnreadBadge(); });
   scrollChatToBottom();
  }
 
@@ -12390,7 +12411,7 @@ async function postCentralAuthenticated(source, options) {
  const badge = document.getElementById('chat-unread-badge');
  const activeTab = document.querySelector('aside nav button.nav-item-active');
  const isChatOpen = activeTab && activeTab.id === 'btn-chat';
- const unreadCount = globalChatData.length - chatLastSeenCount;
+ const unreadCount = globalChatData.filter(function(m) { return Number(m._row || 0) > chatLastSeenRow; }).length;
 
  if (!isChatOpen && unreadCount > 0) {
   badge.innerText = unreadCount > 9 ? '9+' : unreadCount;
@@ -15099,31 +15120,31 @@ window.addEventListener('DOMContentLoaded', async () => {
  // default" sekecil mungkin. Re-render otomatis tetap terjadi di akhir fetchCOGConfig() kalau
  // memang datang belakangan dari fetchDataFromGoogleSheets().
  setTimeout(() => fetchCOGConfig(), 0);
-  // Initial load hanya memuat data yang langsung dipakai Ringkasan. Data Validasi,
-  // JSA, dan Chat dimuat saat tab terkait dibuka sehingga tidak ada enam request
-  // Apps Script yang saling berebut pada cold start.
-  setTimeout(() => loadMembersFromSheet(), 0);
-  setTimeout(() => fetchIssueData(), 250);
-  setTimeout(() => fetchBlockModelData(), 500);
+ // Initial load hanya memuat data yang langsung dipakai Ringkasan. Data Validasi,
+ // JSA, dan Chat dimuat saat tab terkait dibuka sehingga tidak ada enam request
+ // Apps Script yang saling berebut pada cold start.
+ setTimeout(() => loadMembersFromSheet(), 0);
+ setTimeout(() => fetchIssueData(), 250);
+ setTimeout(() => fetchBlockModelData(), 500);
  // Regional & Time READ is public and must load independently of Developer authorization.
  await loadRegionalTimeSettings();
  await refreshSecuritySession();
  renderMemberSessionAvatar();
  await refreshMemberSecuritySession();
  document.getElementById('app-version-label').innerText = APP_VERSION;
-  setInterval(() => {
-   fetchDataFromGoogleSheets();
-  }, 60000);
+ setInterval(() => {
+  fetchDataFromGoogleSheets();
+ }, 60000);
  setInterval(() => {
   refreshMemberSecuritySession();
  }, MEMBER_SESSION_CHECK_INTERVAL_MS);
  setInterval(() => {
   rotateActiveSecurityTokens();
  }, 60 * 1000);
-  // Chat hanya dipoll saat tab Chat aktif dan browser terlihat.
-  setInterval(() => {
-   if (currentActiveTab === 'chat' && !document.hidden) { fetchChatData(); }
-  }, CHAT_POLL_INTERVAL);
+ // Chat hanya dipoll saat tab Chat aktif dan browser terlihat.
+ setInterval(() => {
+  if (currentActiveTab === 'chat' && !document.hidden) { fetchChatData(); }
+ }, CHAT_POLL_INTERVAL);
  });
 </script>
 <!-- LAPORAN CETAK (dipakai khusus saat Export PDF, tersembunyi di layar biasa) -->
