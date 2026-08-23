@@ -10,7 +10,7 @@
  * Chrome/Edge akan menganggap TIDAK ADA update sama sekali, walau index.html-nya
  * sendiri sudah berubah total. Sinkronkan CACHE_NAME = APP_VERSION setiap rilis.
  * ============================================================ */
-const CACHE_NAME = 'mine-geologist-v90_2_106';
+const CACHE_NAME = 'mine-geologist-v90_2_100';
 
 // Precache HANYA app shell yang statis (HTML shell, manifest, ikon). SENGAJA TIDAK
 // mencakup panggilan ke Google Apps Script (doGet/doPost) -- itu SEMUA data produksi
