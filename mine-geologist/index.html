@@ -2449,19 +2449,19 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
     <i data-lucide="trash-2" class="w-4.5 h-4.5"></i>
    </div>
    <div>
-    <h3 class="font-bold text-title text-sm tracking-tight">Cleanup Data (Developer)</h3>
-    <p class="text-slate-400 text-xs font-medium">Bersihkan sheet log tertentu -- sesi Developer yang sedang aktif selalu dipertahankan.</p>
+    <h3 class="font-bold text-title text-sm tracking-tight" data-i18n="dev_cleanup_panel_title">Cleanup Data (Developer)</h3>
+    <p class="text-slate-400 text-xs font-medium" data-i18n="dev_cleanup_panel_desc">Bersihkan sheet log tertentu -- sesi Developer yang sedang aktif selalu dipertahankan.</p>
    </div>
   </div>
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
    <button onclick="cleanupGeneralSheet('Sessions')" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all text-left">
-    Bersihkan Sessions
+    <span data-i18n="dev_cleanup_btn_sessions">Bersihkan Sessions</span>
    </button>
    <button onclick="cleanupGeneralSheet('SecurityAuditLog')" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all text-left">
-    Bersihkan SecurityAuditLog
+    <span data-i18n="dev_cleanup_btn_security">Bersihkan SecurityAuditLog</span>
    </button>
    <button onclick="cleanupGeneralSheet('AuditTrail')" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all text-left">
-    Bersihkan AuditTrail
+    <span data-i18n="dev_cleanup_btn_audit">Bersihkan AuditTrail</span>
    </button>
    </div>
    <div id="general-cleanup-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
@@ -2480,7 +2480,8 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
      <label class="block text-[10px] text-slate-400"><span data-i18n="retention_chatlog_label">ChatLog (opsional)</span><span class="flex items-center gap-2 mt-1"><input id="retention-chat-enabled" type="checkbox" class="accent-amber-500"><input id="retention-chat-days" type="number" min="1" value="90" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></span></label>
     </div>
     <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveRetentionPolicy()" class="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold"><span data-i18n="retention_btn_save">Simpan Kebijakan</span></button><button onclick="runRetentionArchiveNow()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold"><span data-i18n="retention_btn_run">Jalankan Sekarang</span></button></div>
-    <div id="retention-policy-status" class="text-[10px] text-slate-500 font-medium mt-2">ChatLog default OFF. Reset Total tidak pernah menyentuh data keamanan atau archive.</div>
+    <div id="retention-policy-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
+   <div class="text-[10px] text-slate-500 font-medium mt-1" data-i18n="retention_footer_note">ChatLog default OFF. Reset Total tidak pernah menyentuh data keamanan atau archive.</div>
    </div>
 
    <!-- BARU (Pending item #1 spesifikasi performa, DIPUTUSKAN 22 Agu): cache validateSession_()
@@ -2636,6 +2637,11 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </button>
  </div>
 
+ <div class="mb-3 shrink-0 p-2.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 flex items-center gap-2 text-[10px] text-indigo-200">
+  <i data-lucide="link" class="w-3.5 h-3.5 shrink-0 text-indigo-400"></i>
+  <span><span data-i18n="guide_pwa_url_label">URL aplikasi (produksi/PWA):</span> <span class="font-mono select-all text-indigo-300">https://yay460-jpg.github.io/portofolio/mine-geologist/</span></span>
+ </div>
+
  <div class="flex-1 overflow-y-auto pr-1 space-y-2 text-xs">
   <!-- BARU (v89.16.24): Langkah 0 -- Panduan Reset Data, ditaruh sebelum Langkah 1 -->
   <div class="border border-amber-600/40 rounded-xl overflow-hidden">
@@ -2690,6 +2696,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <div>
     <p class="font-bold text-amber-400 text-[11px] mb-1.5" data-i18n="guide_step0_pertimbangan_title">⚠️ Perlu dipikirkan dulu, tergantung maksud "reset"</p>
     <p data-i18n="guide_step0_pertimbangan_desc">Sheet Member (data KPI staf/karyawan) biasanya TETAP dipertahankan kalau yang direset cuma data tambang -- hapus hanya kalau memang mau ganti tim juga. Kalau memang ikut direset lewat fitur "Reset Total Pindah Proyek" (Settings, Developer-only), baris akun Developer otomatis dipertahankan, cuma anggota tim lain yang dikosongkan. Penting: sheet Users/Credential (identitas login) TIDAK PERNAH ikut ter-reset apapun pilihannya -- jadi setelah Reset Total, seluruh anggota tim TETAP BISA LOGIN normal pakai PIN yang sama, cuma data KPI di tab "KPI Member" akan tampil kosong sampai diisi ulang manual. Ini bukan bug.</p>
+   <p class="mt-2" data-i18n="guide_step0_retention_desc">Sheet Sessions, SecurityAuditLog, dan AuditTrail JUGA TIDAK PERNAH ikut ter-reset lewat Reset Total apapun pilihannya -- ketiganya dikelola terpisah lewat kebijakan Retention &amp; Archive di panel Cleanup Data (Developer). Kalau toggle "Aktifkan terjadwal" di Retention &amp; Archive sedang menyala, 14 checkbox sheet data operasional di bawah (semua kecuali ChatLog) otomatis terkunci tercentang semua supaya Reset Total selalu full-wipe konsisten -- matikan dulu toggle itu kalau Anda butuh reset sebagian saja.</p>
    </div>
 
    <div>
@@ -4530,6 +4537,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   guide_title: "Panduan Rekonsiliasi (Developer)",
   guide_open_btn: "Lihat Panduan",
   guide_subtitle: "Urutan input dari hulu ke hilir -- pengingat kalau lupa cara pakai dashboard ini.",
+  guide_pwa_url_label: "URL aplikasi (produksi/PWA):",
   guide_step0_title: "Reset Data -- Sheet Mana Boleh Dikosongkan?",
   guide_step0_intro: "Kalau mau mulai dari nol (proyek/site baru, atau bersih-bersih data lama), tidak semua sheet boleh diperlakukan sama. Sebagian sheet cuma catatan histori lapangan (aman dikosongkan), sebagian lagi acuan/aturan yang dipakai sistem untuk menghitung (JANGAN dikosongkan, cuma boleh DIEDIT nilainya kalau perlu).",
   guide_step0_data_title: "✅ Sheet DATA -- aman dikosongkan (hapus baris data, HEADER tetap dibiarkan)",
@@ -4541,6 +4549,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   guide_step0_config_list: "COGConfig (batas Waste/LG/MG/HG/VHG per Tipe Ore -- dikosongkan = Tabel Digging & KPI grade error/fallback default), DomeConfig (daftar Dome aktif -- dikosongkan = tidak ada Dome yang bisa dipilih saat Assign Tujuan), Changelog (riwayat rilis versi -- tidak terkait data tambang sama sekali).",
   guide_step0_pertimbangan_title: "⚠️ Perlu dipikirkan dulu, tergantung maksud \"reset\"",
   guide_step0_pertimbangan_desc: "Sheet Member (data KPI staf/karyawan) biasanya TETAP dipertahankan kalau yang direset cuma data tambang -- hapus hanya kalau memang mau ganti tim juga. Kalau memang ikut direset lewat fitur \"Reset Total Pindah Proyek\" (Settings, Developer-only), baris akun Developer otomatis dipertahankan, cuma anggota tim lain yang dikosongkan. Penting: sheet Users/Credential (identitas login) TIDAK PERNAH ikut ter-reset apapun pilihannya -- jadi setelah Reset Total, seluruh anggota tim TETAP BISA LOGIN normal pakai PIN yang sama, cuma data KPI di tab \"KPI Member\" akan tampil kosong sampai diisi ulang manual. Ini bukan bug.",
+  guide_step0_retention_desc: "Sheet Sessions, SecurityAuditLog, dan AuditTrail JUGA TIDAK PERNAH ikut ter-reset lewat Reset Total apapun pilihannya -- ketiganya dikelola terpisah lewat kebijakan Retention & Archive di panel Cleanup Data (Developer). Kalau toggle \"Aktifkan terjadwal\" di Retention & Archive sedang menyala, 14 checkbox sheet data operasional di bawah (semua kecuali ChatLog) otomatis terkunci tercentang semua supaya Reset Total selalu full-wipe konsisten -- matikan dulu toggle itu kalau Anda butuh reset sebagian saja.",
   guide_step0_urutan_title: "Urutan kalau benar-benar reset total",
   guide_step0_urutan_1: "1. Kosongkan sheet DATA (baris data saja, header tetap).",
   guide_step0_urutan_2: "2. Jangan sentuh COGConfig, DomeConfig, Changelog.",
@@ -4931,6 +4940,12 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   dev_console_credential_desc: "Buat Credential untuk User aktif yang belum memilikinya.",
   dev_console_manage: "Kelola",
   dev_console_cleanup: "Cleanup Data",
+  dev_cleanup_panel_title: "Cleanup Data (Developer)",
+  dev_cleanup_panel_desc: "Bersihkan sheet log tertentu -- sesi Developer yang sedang aktif selalu dipertahankan.",
+  dev_cleanup_btn_sessions: "Bersihkan Sessions",
+  dev_cleanup_btn_security: "Bersihkan SecurityAuditLog",
+  dev_cleanup_btn_audit: "Bersihkan AuditTrail",
+  retention_footer_note: "ChatLog default OFF. Reset Total tidak pernah menyentuh data keamanan atau archive.",
   dev_console_reset: "Reset Total — Pindah Proyek",
   dev_console_guide: "Panduan Rekonsiliasi",
   dev_console_parameters: "Parameter Global",
@@ -5148,6 +5163,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   guide_title: "Reconciliation Guide (Developer)",
   guide_open_btn: "View Guide",
   guide_subtitle: "Input order from upstream to downstream -- a reminder in case you forget how to use this dashboard.",
+  guide_pwa_url_label: "App URL (production/PWA):",
   guide_step0_title: "Data Reset -- Which Sheets Can Be Cleared?",
   guide_step0_intro: "If starting from scratch (new project/site, or cleaning up old data), not all sheets should be treated the same. Some sheets are just field history logs (safe to clear), others are reference/rules the system uses for calculations (do NOT clear, only EDIT the values if needed).",
   guide_step0_data_title: "✅ DATA sheets -- safe to clear (delete data rows, keep the HEADER)",
@@ -5159,6 +5175,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   guide_step0_config_list: "COGConfig (Waste/LG/MG/HG/VHG thresholds per Ore Type -- clearing it breaks Digging Table & KPI grade calculations / falls back to defaults), DomeConfig (list of active Domes -- clearing it means no Dome can be selected when assigning a destination), Changelog (version release history -- unrelated to mining data at all).",
   guide_step0_pertimbangan_title: "⚠️ Needs thought first, depending on what \"reset\" means",
   guide_step0_pertimbangan_desc: "The Member sheet (staff/employee KPI data) is usually kept if only mining data is being reset -- delete it only if the team is also changing. If it is included via the \"Full Project-Move Reset\" feature (Settings, Developer-only), Developer account rows are automatically preserved -- only other team members' rows are cleared. Important: the Users/Credential sheets (login identity) are NEVER reset regardless of your selection -- so after a Full Reset, every team member can STILL LOG IN normally with the same PIN, only the \"Member KPI\" tab will show empty until re-filled manually. This is not a bug.",
+  guide_step0_retention_desc: "The Sessions, SecurityAuditLog, and AuditTrail sheets are ALSO NEVER touched by Full Reset regardless of your selection -- all three are managed separately through the Retention & Archive policy in the Cleanup Data (Developer) panel. When the \"Enable scheduled run\" toggle in Retention & Archive is on, the 14 operational data checkboxes below (all except ChatLog) are automatically locked checked so Full Reset always stays a consistent full wipe -- turn that toggle off first if you need a partial reset instead.",
   guide_step0_urutan_title: "Order to follow for a full reset",
   guide_step0_urutan_1: "1. Clear the DATA sheets (data rows only, keep the header).",
   guide_step0_urutan_2: "2. Do not touch COGConfig, DomeConfig, Changelog.",
@@ -5549,6 +5566,12 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   dev_console_credential_desc: "Create Credentials for active Users who do not have one yet.",
   dev_console_manage: "Manage",
   dev_console_cleanup: "Cleanup Data",
+  dev_cleanup_panel_title: "Cleanup Data (Developer)",
+  dev_cleanup_panel_desc: "Clear specific log sheets -- the Developer's own active session is always preserved.",
+  dev_cleanup_btn_sessions: "Clear Sessions",
+  dev_cleanup_btn_security: "Clear SecurityAuditLog",
+  dev_cleanup_btn_audit: "Clear AuditTrail",
+  retention_footer_note: "ChatLog defaults to OFF. Full Reset never touches security or archive data.",
   dev_console_reset: "Reset Total — Project Move",
   dev_console_guide: "Reconciliation Guide",
   dev_console_parameters: "Global Parameters",
