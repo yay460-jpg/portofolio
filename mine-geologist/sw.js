@@ -1,16 +1,22 @@
 /* ============================================================
  * MINE GEOLOGIST -- SERVICE WORKER (PWA update notification)
- * BARU (dibuat 22 Agu, belum pernah ada sebelumnya di proyek ini -- dikonfirmasi
- * user & pihak A sama-sama belum pernah membuatnya).
  *
- * WAJIB DIBACA SEBELUM DEPLOY VERSI BARU:
- * CACHE_NAME di bawah ini HARUS ikut diubah setiap kali APP_VERSION di index.html
- * (dashboard.html) di-bump. Browser mendeteksi "ada versi baru" dengan membandingkan
- * BYTE file sw.js ini terhadap yang sudah ter-install -- kalau isinya persis sama,
- * Chrome/Edge akan menganggap TIDAK ADA update sama sekali, walau index.html-nya
- * sendiri sudah berubah total. Sinkronkan CACHE_NAME = APP_VERSION setiap rilis.
+ * FIX (23 Agu): CACHE_NAME DIPISAH TOTAL dari APP_VERSION -- sebelumnya keduanya
+ * disamakan (v90.2.100), tapi APP_VERSION SENGAJA ditahan tidak di-bump (kebijakan
+ * user: "kumpulkan bump-nya, tunggu arahan"). Akibatnya CACHE_NAME juga ikut BEKU
+ * sepanjang sesi ini, walau index.html sudah berubah PULUHAN kali (sidebar collapse,
+ * fix avatar, legend chart, dsb) -- PWA yang sudah ter-install TIDAK PERNAH
+ * mendeteksi update apapun sepanjang sesi ini, user harus uninstall-reinstall manual
+ * tiap kali mau lihat perubahan terbaru.
+ *
+ * SKEMA BARU: CACHE_NAME pakai penanda build TERPISAH (tanggal+urutan), BUKAN
+ * APP_VERSION. Claude WAJIB naikkan nilai ini setiap kali mengirim index.html/sw.js
+ * baru ke user -- terlepas dari kapan user memutuskan bump APP_VERSION resmi sendiri.
+ * Browser mendeteksi "ada versi baru" dengan membandingkan BYTE file sw.js ini
+ * terhadap yang sudah ter-install -- kalau isinya persis sama, Chrome/Edge/PWA app
+ * akan menganggap TIDAK ADA update, walau index.html-nya sendiri sudah berubah total.
  * ============================================================ */
-const CACHE_NAME = 'mine-geologist-v90_2_100';
+const CACHE_NAME = 'mine-geologist-build-20260823a';
 
 // Precache HANYA app shell yang statis (HTML shell, manifest, ikon). SENGAJA TIDAK
 // mencakup panggilan ke Google Apps Script (doGet/doPost) -- itu SEMUA data produksi
