@@ -12406,12 +12406,24 @@ async function postDeveloperAdmin(action, params) {
   payload.set('devToken', devToken);
   showAppLoading(translations[currentLang].dev_operation_loading_title, translations[currentLang].dev_operation_loading_message);
   try {
-   const response = await fetch(GOOGLE_SCRIPT_READ_URL, { method:'POST', body:payload });
+   // FIX (23 Agu): SEBELUMNYA pakai fetch() polos tanpa batas waktu sama sekali -- kalau
+   // request macet (jaringan, cold-start Apps Script, dsb), loading bisa "menggantung"
+   // tanpa pesan error apapun ke user (dilaporkan user: klik Preview di Padatkan Baris
+   // Kosong, loading tidak pernah selesai). Sekarang pakai fetchWithTimeout yang sama
+   // dipakai jalur login/dashboard/chat lain di file ini (20 detik), supaya SEMUA aksi
+   // Developer Console (bukan cuma fitur ini) dapat pesan error jelas kalau macet,
+   // bukan loading tanpa akhir.
+   const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL, { method:'POST', body:payload });
    const result = await response.json();
    if (!result || result.status !== 'success' && result.success !== true || result.ok === false) {
     throw new Error((result && result.message) || (currentLang === 'en' ? 'Developer operation failed.' : 'Operasi Developer gagal.'));
    }
    return result;
+  } catch (err) {
+   if (err && err.name === 'AbortError') {
+    throw new Error(currentLang === 'en' ? 'Server did not respond within 20 seconds (timeout).' : 'Server tidak merespons dalam 20 detik (timeout).');
+   }
+   throw err;
   } finally {
    hideAppLoading();
   }
