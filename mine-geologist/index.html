@@ -379,6 +379,17 @@
   #mobile-sidebar-overlay { backdrop-filter: blur(4px); }
  }
 
+ /* BARU (23 Agu): Sidebar Collapse (desktop only) -- ciutkan ke ikon saja, semua
+    fungsi navigasi tetap utuh, cuma teks labelnya yang disembunyikan. Class tunggal
+    di-toggle via JS, sisanya cascade CSS -- lebih gampang dirawat drpd toggle
+    banyak class Tailwind satu-satu tiap elemen. */
+ #main-sidebar { transition: width 0.25s ease, transform 0.3s ease-in-out; }
+ #main-sidebar.sidebar-collapsed { width: 5rem !important; }
+ #main-sidebar.sidebar-collapsed .sidebar-label { display: none !important; }
+ #main-sidebar.sidebar-collapsed .sidebar-header-row { flex-direction: column; align-items: center; gap: 0.5rem; }
+ #main-sidebar.sidebar-collapsed nav button { justify-content: center; }
+ #main-sidebar.sidebar-collapsed #sidebar-dev-identity-card { justify-content: center; }
+
  /* 320px - 375px iPhone SE 4 inch specific */
  @media (max-width: 375px){
   .glass-card { padding: 0.875rem !important; border-radius: 14px !important; }
@@ -548,55 +559,60 @@ input[type="password"]::-ms-clear {
 <!-- Sidebar Navigation -->
 <aside id="main-sidebar" class="w-56 glass-card border-r border-slate-800/80 p-5 flex flex-col justify-between fixed inset-y-0 left-0 z-50 -translate-x-full transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:flex">
  <div>
- <div class="flex items-center gap-3 mb-8">
-  <div class="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-600/20"><i data-lucide="pickaxe" class="w-5 h-5"></i></div>
-  <div>
-  <h1 class="font-bold text-sm text-title tracking-tight">MINE GEOLOGIST</h1>
-  <p class="text-[11px] text-slate-400 font-medium">Geobank Minerals</p>
+ <div class="sidebar-header-row flex items-center justify-between gap-3 mb-8">
+  <div class="flex items-center gap-3 min-w-0">
+  <div class="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-600/20 shrink-0"><i data-lucide="pickaxe" class="w-5 h-5"></i></div>
+  <div class="sidebar-label min-w-0">
+  <h1 class="font-bold text-sm text-title tracking-tight truncate">MINE GEOLOGIST</h1>
+  <p class="text-[11px] text-slate-400 font-medium truncate">Geobank Minerals</p>
   </div>
+  </div>
+  <button id="btn-sidebar-collapse" onclick="toggleSidebarCollapse()" title="Ciutkan/Lebarkan Sidebar" data-i18n-title="tooltip_sidebar_collapse" class="hidden md:flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800/60 hover:bg-slate-700 border border-slate-700/60 text-slate-400 hover:text-white transition-all cursor-pointer shrink-0">
+  <i id="sidebar-collapse-icon" data-lucide="chevrons-left" class="w-3.5 h-3.5"></i>
+  </button>
  </div>
 
  <nav class="space-y-1.5 text-xs">
-  <button id="btn-ringkasan" onclick="switchTab('ringkasan')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-active">
-  <i data-lucide="layout-dashboard" class="w-4 h-4"></i> <span data-i18n="nav_ringkasan">Ringkasan</span>
+  <button id="btn-ringkasan" onclick="switchTab('ringkasan')" title="Ringkasan" data-i18n-title="nav_ringkasan" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-active">
+  <i data-lucide="layout-dashboard" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_ringkasan">Ringkasan</span>
   </button>
-  <button id="btn-trend" onclick="switchTab('trend')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="trending-up" class="w-4 h-4"></i> <span data-i18n="nav_trend">Visual & Trend</span>
+  <button id="btn-trend" onclick="switchTab('trend')" title="Visual & Trend" data-i18n-title="nav_trend" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="trending-up" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_trend">Visual & Trend</span>
   </button>
-  <button id="btn-tabel" onclick="switchTab('tabel')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="table" class="w-4 h-4"></i> <span data-i18n="nav_tabel">Tabel Digging</span>
+  <button id="btn-tabel" onclick="switchTab('tabel')" title="Tabel Digging" data-i18n-title="nav_tabel" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="table" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_tabel">Tabel Digging</span>
   </button>
-  <button id="btn-rekonsiliasi" onclick="switchTab('rekonsiliasi')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="git-compare-arrows" class="w-4 h-4"></i> <span data-i18n="nav_rekonsiliasi">Rekonsiliasi</span>
+  <button id="btn-rekonsiliasi" onclick="switchTab('rekonsiliasi')" title="Rekonsiliasi" data-i18n-title="nav_rekonsiliasi" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="git-compare-arrows" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_rekonsiliasi">Rekonsiliasi</span>
   </button>
-  <button id="btn-validasi" onclick="switchTab('validasi')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="flask-conical" class="w-4 h-4"></i> <span data-i18n="nav_validasi">Validasi</span>
+  <button id="btn-validasi" onclick="switchTab('validasi')" title="Validasi" data-i18n-title="nav_validasi" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="flask-conical" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_validasi">Validasi</span>
   </button>
-  <button id="btn-barging" onclick="switchTab('barging')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="ship" class="w-4 h-4"></i> <span data-i18n="nav_barging">Barging</span>
+  <button id="btn-barging" onclick="switchTab('barging')" title="Barging" data-i18n-title="nav_barging" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="ship" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_barging">Barging</span>
   </button>
-  <button id="btn-issue" onclick="switchTab('issue')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="alert-triangle" class="w-4 h-4"></i> <span data-i18n="nav_issue">Issue & Action</span>
+  <button id="btn-issue" onclick="switchTab('issue')" title="Issue & Action" data-i18n-title="nav_issue" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_issue">Issue & Action</span>
   </button>
-  <button id="btn-kpimember" onclick="switchTab('kpimember')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="users" class="w-4 h-4"></i> <span data-i18n="nav_kpimember">KPI Member</span>
+  <button id="btn-kpimember" onclick="switchTab('kpimember')" title="KPI Member" data-i18n-title="nav_kpimember" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="users" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_kpimember">KPI Member</span>
   </button>
-  <button id="btn-chat" onclick="switchTab('chat')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="message-circle" class="w-4 h-4"></i> <span data-i18n="nav_chat">Chat Tim</span>
+  <button id="btn-chat" onclick="switchTab('chat')" title="Chat Tim" data-i18n-title="nav_chat" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="message-circle" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_chat">Chat Tim</span>
   <span id="chat-unread-badge" class="hidden ml-auto bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none"></span>
   </button>
-  <button id="btn-settings" onclick="switchTab('settings')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="settings" class="w-4 h-4"></i> <span data-i18n="nav_settings">Settings</span>
+  <button id="btn-settings" onclick="switchTab('settings')" title="Settings" data-i18n-title="nav_settings" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="settings" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_settings">Settings</span>
   </button>
  </nav>
  </div>
 
  <div class="pt-4 border-t border-slate-700/40">
  <div id="sidebar-dev-identity-card" class="hidden items-center gap-3 p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/40 shadow-inner">
-  <img id="sidebar-dev-avatar-img" src="https://lh3.googleusercontent.com/d/1h2lEVH0hOEy7mteIgpH3ycDYdVi8RtqN=w100" alt="Yaya Avatar" class="w-9 h-9 rounded-full object-cover border-2 border-blue-500 shadow-sm bg-slate-700" onerror="handleSidebarAvatarError(this)">
-  <div>
-  <div class="text-[11px] font-bold text-title tracking-tight">Dev By Yaya</div>
-  <div class="text-[10px] text-slate-400 font-medium">Head Mine Geologist</div>
+  <img id="sidebar-dev-avatar-img" src="https://lh3.googleusercontent.com/d/1h2lEVH0hOEy7mteIgpH3ycDYdVi8RtqN=w100" alt="Yaya Avatar" class="w-9 h-9 rounded-full object-cover border-2 border-blue-500 shadow-sm bg-slate-700 shrink-0" onerror="handleSidebarAvatarError(this)">
+  <div class="sidebar-label min-w-0">
+  <div class="text-[11px] font-bold text-title tracking-tight truncate">Dev By Yaya</div>
+  <div class="text-[10px] text-slate-400 font-medium truncate">Head Mine Geologist</div>
   </div>
  </div>
  </div>
@@ -4258,6 +4274,11 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
 </div>
 
 <script>
+ // BARU (23 Agu): inisialisasi state Sidebar Collapse SEBELUM lucide.createIcons()
+ // pertama kali jalan -- supaya ikon toggle & lebar sidebar sudah benar sejak render
+ // pertama, tidak ada "kedipan" salah sesaat. Fungsi didefinisikan di bawah (hoisting
+ // function declaration aman dalam 1 blok script yang sama).
+ initSidebarCollapseState();
  lucide.createIcons();
 
  const ORIGINAL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR_V7N6lGzP-YFgzLsc-yDhE2J5tgrCiwRfKJX48X3RQL6oxzwe87Jo2AchJP-x4zc-FXuo5R1GGYT5/pub?gid=1273255101&single=true&output=csv';
@@ -4621,6 +4642,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   sync_connecting: "Menghubungkan...",
   session_idle_warning: "Sesi akan berakhir dalam sekitar {minutes} menit karena tidak ada aktivitas.",
   tooltip_refresh_data: "Refresh data manual dari Google Sheets",
+  tooltip_sidebar_collapse: "Ciutkan/Lebarkan Sidebar",
   tooltip_print_view: "Cetak tampilan halaman ini (khusus Developer)",
   tooltip_export_report: "Ekspor Laporan",
   tooltip_active_member: "Member aktif",
@@ -5235,6 +5257,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   sync_connecting: "Connecting...",
   session_idle_warning: "Session will end in about {minutes} minutes due to inactivity.",
   tooltip_refresh_data: "Manually refresh data from Google Sheets",
+  tooltip_sidebar_collapse: "Collapse/Expand Sidebar",
   tooltip_print_view: "Print this page view (Developer only)",
   tooltip_export_report: "Export Report",
   tooltip_active_member: "Active member",
@@ -11616,6 +11639,33 @@ async function postCentralAuthenticated(source, options) {
  const overlay = document.getElementById('mobile-sidebar-overlay');
  sidebar.classList.add('-translate-x-full');
  overlay.classList.add('hidden');
+ }
+
+ // BARU (23 Agu): Sidebar Collapse -- ciutkan sidebar desktop jadi ikon saja (semua
+ // navigasi TETAP berfungsi penuh, cuma teks labelnya yang disembunyikan lewat CSS
+ // ".sidebar-label"). State disimpan di localStorage per browser/device (murni
+ // preferensi tampilan, bukan data sensitif) -- persisten lintas reload/sesi.
+ function toggleSidebarCollapse() {
+ const sidebar = document.getElementById('main-sidebar');
+ if (!sidebar) return;
+ const isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
+ const icon = document.getElementById('sidebar-collapse-icon');
+ if (icon) {
+  icon.setAttribute('data-lucide', isCollapsed ? 'chevrons-right' : 'chevrons-left');
+  lucide.createIcons();
+ }
+ try { localStorage.setItem('mine_sidebar_collapsed', isCollapsed ? '1' : '0'); } catch (e) { /* localStorage tidak tersedia -- state tetap jalan di sesi ini, cuma tidak persisten */ }
+ }
+ function initSidebarCollapseState() {
+ try {
+  const saved = localStorage.getItem('mine_sidebar_collapsed');
+  if (saved === '1') {
+  const sidebar = document.getElementById('main-sidebar');
+  if (sidebar) sidebar.classList.add('sidebar-collapsed');
+  const icon = document.getElementById('sidebar-collapse-icon');
+  if (icon) icon.setAttribute('data-lucide', 'chevrons-right');
+  }
+ } catch (e) { /* localStorage tidak tersedia -- default tetap expanded, aman */ }
  }
 
  // Helper animasi buka/tutup modal (fade + scale) -- dipakai bersama oleh semua modal
