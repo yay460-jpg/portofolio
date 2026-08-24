@@ -2549,7 +2549,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    </div>
   </div>
 
- <!-- v90.2.100: PANEL PADATKAN BARIS KOSONG -- Developer-only, preview lalu eksekusi. -->
+ <!-- v90.2.101: PANEL PADATKAN BARIS KOSONG -- Developer-only, preview lalu eksekusi. -->
  <div id="dev-compact-panel" class="hidden glass-card p-3.5 rounded-2xl border border-slate-700">
   <div class="flex items-start gap-3 mb-3">
    <div class="p-2.5 bg-indigo-600/15 border border-indigo-500/30 rounded-xl text-indigo-400 shrink-0">
@@ -6886,7 +6886,10 @@ window.addEventListener('afterprint', function() {
   setLoginButtonLoading('dev-login-submit','dev-login-spinner',true);
   try {
    const payload=new URLSearchParams({action:'verifyDevPin',login_id:login_id,email:email,pin:pin,client_info:navigator.userAgent.slice(0,180)});
-   const response=await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL,{method:'POST',body:payload},20000);
+   // Developer login: jangan diputus oleh AbortController/20s timeout.
+   // SecurityAuditLog dapat mencatat LOGIN SUCCESS walau client sebelumnya timeout.
+   // Biarkan POST login selesai agar response sukses dapat diproses dan session disimpan.
+   const response=await fetch(GOOGLE_SCRIPT_READ_URL,{method:'POST',body:payload});
    const result=await response.json();
    if(result.success&&result.token){
     localStorage.setItem('mine_dev_token',result.token);
@@ -6907,7 +6910,8 @@ window.addEventListener('afterprint', function() {
    }
   } catch(error) {
    console.error('Error login:',error);
-   errorMsg.textContent=currentLang==='en'?'Could not reach server. Try again.':'Tidak bisa menghubungi server. Coba lagi.';
+   const msg=(error && error.message) ? error.message : '';
+   errorMsg.textContent=msg || (currentLang==='en'?'Developer login failed. Try again.':'Login Developer gagal. Coba lagi.');
    errorMsg.classList.remove('hidden');
   } finally {
    input.disabled=false;
