@@ -2940,8 +2940,8 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <div id="guide-content-11" class="hidden p-3 pt-0 text-[11px] text-slate-300 leading-relaxed space-y-2">
    <p data-i18n="guide_step11_p1">BARU: dashboard ini sekarang punya Service Worker (file <code class="text-cyan-300">sw.js</code>, taruh di folder yang SAMA PERSIS dengan index.html) yang memunculkan toast "Versi baru tersedia" ke semua user begitu file di-update di GitHub -- ini yang sebelumnya TIDAK PERNAH ada di proyek ini.</p>
    <p class="text-cyan-300 font-semibold" data-i18n="guide_step11_p2">WAJIB dilakukan SETIAP kali deploy versi baru (jangan sampai lupa, ini bukan otomatis):</p>
-   <p data-i18n="guide_step11_p3">1. Update nomor versi di baris <code class="text-cyan-300">const APP_VERSION</code> pada index.html (dashboard.html) seperti biasa.</p>
-   <p data-i18n="guide_step11_p4">2. Buka file <code class="text-cyan-300">sw.js</code>, ganti baris <code class="text-cyan-300">const CACHE_NAME = 'mine-geologist-vX.X.X';</code> supaya angkanya SAMA PERSIS dengan APP_VERSION yang baru. Kalau baris ini TIDAK diubah, browser akan menganggap sw.js "tidak berubah" (dibandingkan byte-per-byte) dan toast update TIDAK AKAN PERNAH muncul, walau index.html-nya sendiri sudah beda total.</p>
+   <p data-i18n="guide_step11_p3">1. Update nomor versi di baris <code class="text-cyan-300">const APP_VERSION</code> pada index.html (dashboard.html) seperti biasa. BUILD SW tidak perlu sama dengan APP_VERSION.</p>
+   <p data-i18n="guide_step11_p4">2. Setiap kali index.html berubah, naikkan BUILD di sw.js (tanggal + urutan). CACHE_NAME sengaja TERPISAH dari APP_VERSION. Jika sw.js tidak berubah byte-per-byte, browser tidak akan mendeteksi Service Worker baru dan toast update tidak muncul.</p>
    <p data-i18n="guide_step11_p5">3. Upload ULANG kedua file (index.html dan sw.js) ke folder yang sama di GitHub Pages. Tunggu sekitar 1 menit -- toast "Versi baru tersedia" akan muncul otomatis di pojok kanan bawah untuk semua user yang sedang membuka dashboard (desktop maupun Android), tanpa perlu reload paksa (user pilih sendiri kapan klik "Muat Ulang").</p>
    <p data-i18n="guide_step11_p6">Catatan: Service Worker ini sengaja HANYA menyimpan cache untuk file statis (HTML shell, manifest, ikon) -- data live (dashboard, chat, RCA, dsb dari Google Sheets) TIDAK PERNAH ikut di-cache, selalu diambil segar dari server setiap saat.</p>
    </div>
@@ -5312,7 +5312,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  guide_step11_title: "Deploy & PWA Update -- Checklist for Every Release",
  guide_step11_p1: "NEW: this dashboard now has a Service Worker (sw.js file, place it in the SAME EXACT folder as index.html) that shows a \"New version available\" toast to every user as soon as the files are updated on GitHub -- this never existed in this project before.",
  guide_step11_p2: "MUST be done EVERY time you deploy a new version (don't forget, this is not automatic):",
- guide_step11_p3: "1. Update the version number in the const APP_VERSION line in index.html (dashboard.html) as usual.",
+ guide_step11_p3: "1. Update the version number in the const APP_VERSION line in index.html (dashboard.html) as usual. The SW BUILD does not need to match APP_VERSION.",
  guide_step11_p4: "2. Open the sw.js file and change the const CACHE_NAME = 'mine-geologist-vX.X.X'; line so the number EXACTLY matches the new APP_VERSION. If this line is NOT changed, the browser will consider sw.js \"unchanged\" (compared byte-for-byte) and the update toast will NEVER appear, even though index.html itself is completely different.",
  guide_step11_p5: "3. Re-upload BOTH files (index.html and sw.js) to the same folder on GitHub Pages. Wait about 1 minute -- the \"New version available\" toast will automatically appear in the bottom-right corner for every user with the dashboard open (desktop or Android), without forcing a reload (the user chooses when to click \"Reload\").",
  guide_step11_p6: "Note: this Service Worker deliberately caches ONLY static files (HTML shell, manifest, icons) -- live data (dashboard, chat, RCA, etc. from Google Sheets) is NEVER cached, and is always fetched fresh from the server every time.",
@@ -7090,19 +7090,29 @@ window.addEventListener('afterprint', function() {
 
  async function loadActiveMemberSessions() {
   const devToken = (localStorage.getItem('mine_dev_token') || '').trim();
-  if (!devToken) { renderMemberSessionAvatar(); return false; }
+  if (!devToken) {
+    activeMemberSessions = [];
+    renderMemberSessionAvatar([]);
+    return false;
+   }
   const requestSeq = ++activeMemberIndicatorRequestSeq;
   try {
    const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: new URLSearchParams({ action: 'getActiveMemberSessions', sessionToken: devToken }) }, 15000);
    const result = await response.json();
    if (requestSeq !== activeMemberIndicatorRequestSeq) return false;
-   if (!result || !result.success) { console.warn('Active Member indicator skipped:', result && result.message ? result.message : result); renderMemberSessionAvatar(); return false; }
+   if (!result || !result.success) {
+    console.warn('Active Member indicator skipped:', result && result.message ? result.message : result);
+    activeMemberSessions = [];
+    renderMemberSessionAvatar([]);
+    return false;
+   }
    renderMemberSessionAvatar(result.sessions || []);
    return true;
   } catch (error) {
    if (requestSeq !== activeMemberIndicatorRequestSeq) return false;
    console.warn('Active Member indicator request failed:', error);
-   renderMemberSessionAvatar();
+   activeMemberSessions = [];
+   renderMemberSessionAvatar([]);
    return false;
   }
  }
@@ -7525,7 +7535,7 @@ async function logoutMemberSession(event) {
  }
 
  // Nomor versi dashboard -- dinaikkan setiap ada revisi baru dari Claude.
- const APP_VERSION = 'v90.2.102';
+ const APP_VERSION = 'v90.2.103';
 
  function openDeveloperProfileModal() {
  const modal = document.getElementById('developer-profile-modal');
