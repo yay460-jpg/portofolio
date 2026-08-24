@@ -559,6 +559,19 @@ input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none;
 }
+
+  /* FINAL RELEASE: Active Member indicator. Compact horizontal stack; safe for many sessions. */
+  #member-session-avatar-list { max-width: min(42vw, 360px); overflow-x: auto; scrollbar-width: none; }
+  #member-session-avatar-list::-webkit-scrollbar { display: none; }
+  .active-member-avatar { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 9999px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; border: 2px solid rgba(52, 211, 153, .72); background: #0f172a; color: #fff; font-size: 10px; font-weight: 800; line-height: 1; box-shadow: 0 2px 8px rgba(16,185,129,.10); transition: transform .15s ease; }
+  .active-member-avatar.local { cursor: pointer; }
+  .active-member-avatar.local:hover { transform: scale(1.06); }
+  .active-member-avatar.remote { cursor: default; border-color: rgba(52, 211, 153, .45); }
+  .active-member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  @media (max-width: 640px) {
+    #member-session-avatar-list { max-width: 55vw; }
+    .active-member-avatar { width: 32px; height: 32px; flex-basis: 32px; }
+  }
 </style>
 </head>
 <body class="min-h-screen flex flex-col md:flex-row theme-dark font-sans transition-colors duration-300" oncontextmenu="return false;">
@@ -687,16 +700,14 @@ input[type="password"]::-ms-clear {
    </div>
   </div>
 
-  <!-- MEMBER SESSION AVATAR: hanya tampil bila Member sedang login -->
+  <!-- ACTIVE MEMBER INDICATOR: daftar session Member aktif lintas device. -->
   <div id="member-session-avatar-wrap" class="relative hidden shrink-0">
-   <button type="button" id="member-session-avatar" onclick="toggleMemberSessionMenu(event)" class="hidden items-center justify-center w-9 h-9 rounded-full overflow-hidden border-2 border-emerald-400/80 bg-slate-800 shadow-sm shadow-emerald-500/10 cursor-pointer hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-emerald-400/40" title="Member aktif" data-i18n-title="tooltip_active_member" aria-label="Member aktif" data-i18n-aria-label="tooltip_active_member">
-    <img id="member-session-avatar-img" src="" alt="Member Avatar" class="hidden w-full h-full object-cover">
-    <span id="member-session-avatar-initials" class="hidden text-[10px] font-extrabold tracking-tight text-white leading-none"></span>
-   </button>
-   <div id="member-session-menu" class="hidden absolute right-0 top-11 z-[80] w-44 rounded-xl border border-slate-700 bg-slate-900/95 backdrop-blur-md shadow-2xl p-1.5">
+   <div id="member-session-avatar-list" class="flex items-center gap-1.5"></div>
+   <span id="member-session-count" class="hidden ml-0.5 min-w-[20px] h-5 px-1.5 items-center justify-center rounded-full bg-emerald-500/15 border border-emerald-400/40 text-[10px] font-extrabold text-emerald-300 leading-none">0</span>
+   <div id="member-session-menu" class="hidden absolute right-0 top-11 z-[80] w-48 rounded-xl border border-slate-700 bg-slate-900/95 backdrop-blur-md shadow-2xl p-1.5">
     <div class="px-2.5 py-2 border-b border-slate-700/70 mb-1.5">
      <div id="member-session-menu-name" class="text-[11px] font-bold text-white truncate">Member</div>
-     <div id="member-session-menu-login" class="text-[10px] text-slate-400 truncate">Login_ID</div>
+     <div id="member-session-menu-login" class="text-[10px] text-slate-400 truncate">Session lokal</div>
     </div>
     <button type="button" onclick="logoutMemberSession(event)" class="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold text-rose-300 hover:bg-rose-500/10 hover:text-rose-200 transition-all cursor-pointer">
      <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
@@ -6985,61 +6996,115 @@ window.addEventListener('afterprint', function() {
  // Sumber identitas tetap localStorage yang sudah diisi oleh verifyMemberPin.
  // Jika endpoint suatu saat mengirim avatar_url/photo_url, foto otomatis dipakai;
  // jika belum ada foto, tampilkan inisial nama/Login_ID (contoh: ME).
- function renderMemberSessionAvatar() {
+ let activeMemberSessions = [];
+ let activeMemberIndicatorRequestSeq = 0;
+
+ function memberInitials(name, loginId) {
+  const sourceName = (name || loginId || 'Member').trim();
+  const words = sourceName.replace(/[_-]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return sourceName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'ME';
+ }
+
+ function renderMemberSessionAvatar(sessionsOverride) {
   const wrap = document.getElementById('member-session-avatar-wrap');
-  const box = document.getElementById('member-session-avatar');
-  const img = document.getElementById('member-session-avatar-img');
-  const initials = document.getElementById('member-session-avatar-initials');
+  const list = document.getElementById('member-session-avatar-list');
+  const count = document.getElementById('member-session-count');
   const menu = document.getElementById('member-session-menu');
   const menuName = document.getElementById('member-session-menu-name');
   const menuLogin = document.getElementById('member-session-menu-login');
-  if (!wrap || !box || !img || !initials) return;
+  if (!wrap || !list || !count) return;
 
-  const token = (localStorage.getItem('mine_member_token') || '').trim();
-  const loginId = (localStorage.getItem('mine_member_login_id') || '').trim();
-  const userName = (localStorage.getItem('mine_member_user_name') || '').trim();
-  const avatarUrl = (localStorage.getItem('mine_member_avatar_url') || '').trim();
+  const localToken = (localStorage.getItem('mine_member_token') || '').trim();
+  const localSessionId = (localStorage.getItem('mine_member_session_id') || '').trim();
+  const localLoginId = (localStorage.getItem('mine_member_login_id') || '').trim();
+  const localUserName = (localStorage.getItem('mine_member_user_name') || '').trim();
+  const localAvatarUrl = (localStorage.getItem('mine_member_avatar_url') || '').trim();
 
-  if (!token || !loginId) {
+  if (Array.isArray(sessionsOverride)) activeMemberSessions = sessionsOverride.slice();
+  let sessions = Array.isArray(activeMemberSessions) ? activeMemberSessions.slice() : [];
+
+  if (localToken && localSessionId && !sessions.some(x => String(x.session_id || '').trim() === localSessionId)) {
+   sessions.unshift({ session_id: localSessionId, user_id: localStorage.getItem('mine_member_user_id') || '', login_id: localLoginId, user_name: localUserName || localLoginId, role_id: localStorage.getItem('mine_member_role_id') || 'MEMBER', avatar_url: localAvatarUrl, local: true });
+  }
+
+  sessions = sessions.map(function(item) {
+   const sid = String(item.session_id || '').trim();
+   const isLocal = !!localToken && !!localSessionId && sid === localSessionId;
+   return Object.assign({}, item, { local: isLocal || !!item.local, avatar_url: isLocal ? localAvatarUrl : (item.avatar_url || '') });
+  });
+
+  const seen = new Set();
+  sessions = sessions.filter(function(item) {
+   const sid = String(item.session_id || '').trim();
+   if (!sid || seen.has(sid)) return false;
+   seen.add(sid);
+   return true;
+  });
+  activeMemberSessions = sessions;
+
+  list.innerHTML = '';
+  if (!sessions.length) {
    wrap.classList.add('hidden');
-   box.classList.add('hidden');
-   box.classList.remove('flex');
+   count.classList.add('hidden');
+   count.classList.remove('flex');
    if (menu) menu.classList.add('hidden');
-   img.src = '';
-   img.classList.add('hidden');
-   initials.classList.add('hidden');
-   initials.textContent = '';
    return;
   }
 
-  const sourceName = userName || loginId;
-  const words = sourceName.replace(/[_-]+/g, ' ').trim().split(/\s+/).filter(Boolean);
-  let initialsText = '';
-  if (words.length >= 2) {
-   initialsText = (words[0][0] + words[1][0]).toUpperCase();
-  } else {
-   initialsText = sourceName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase();
-  }
-  initials.textContent = initialsText || 'ME';
-  box.title = (currentLang === 'en' ? 'Active member: ' : 'Member aktif: ') + sourceName;
-  if (menuName) menuName.textContent = sourceName;
-  if (menuLogin) menuLogin.textContent = loginId;
   wrap.classList.remove('hidden');
-  box.classList.remove('hidden');
-  box.classList.add('flex');
+  count.textContent = String(sessions.length);
+  count.classList.remove('hidden');
+  count.classList.add('flex');
 
-  img.classList.add('hidden');
-  initials.classList.remove('hidden');
-  img.onload = function () {
-   img.classList.remove('hidden');
-   initials.classList.add('hidden');
-  };
-  img.onerror = function () {
-   img.classList.add('hidden');
-   initials.classList.remove('hidden');
-  };
-  if (avatarUrl) img.src = avatarUrl;
+  sessions.forEach(function(session) {
+   const name = String(session.user_name || session.login_id || session.user_id || 'Member').trim();
+   const loginId = String(session.login_id || session.user_id || '').trim();
+   const avatarUrl = String(session.avatar_url || '').trim();
+   const btn = document.createElement('button');
+   btn.type = 'button';
+   btn.className = 'active-member-avatar ' + (session.local ? 'local' : 'remote');
+   btn.title = (currentLang === 'en' ? 'Active member: ' : 'Member aktif: ') + name + (loginId ? ' (' + loginId + ')' : '');
+   btn.setAttribute('aria-label', btn.title);
+   if (session.local) {
+    btn.onclick = function(event) {
+     event.stopPropagation();
+     if (menuName) menuName.textContent = name;
+     if (menuLogin) menuLogin.textContent = loginId || 'Session lokal';
+     toggleMemberSessionMenu(event);
+    };
+   }
+   if (avatarUrl) {
+    const img = document.createElement('img');
+    img.src = avatarUrl;
+    img.alt = name;
+    img.onerror = function() { this.replaceWith(document.createTextNode(memberInitials(name, loginId))); };
+    btn.appendChild(img);
+   } else {
+    btn.textContent = memberInitials(name, loginId);
+   }
+   list.appendChild(btn);
+  });
   if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+ }
+
+ async function loadActiveMemberSessions() {
+  const devToken = (localStorage.getItem('mine_dev_token') || '').trim();
+  if (!devToken) { renderMemberSessionAvatar(); return false; }
+  const requestSeq = ++activeMemberIndicatorRequestSeq;
+  try {
+   const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: new URLSearchParams({ action: 'getActiveMemberSessions', sessionToken: devToken }) }, 15000);
+   const result = await response.json();
+   if (requestSeq !== activeMemberIndicatorRequestSeq) return false;
+   if (!result || !result.success) { console.warn('Active Member indicator skipped:', result && result.message ? result.message : result); renderMemberSessionAvatar(); return false; }
+   renderMemberSessionAvatar(result.sessions || []);
+   return true;
+  } catch (error) {
+   if (requestSeq !== activeMemberIndicatorRequestSeq) return false;
+   console.warn('Active Member indicator request failed:', error);
+   renderMemberSessionAvatar();
+   return false;
+  }
  }
 
 // SECURITY 90V STEP 12B / v90.2.64: ACTIVE-SESSION TOKEN ROTATION
@@ -7306,7 +7371,9 @@ async function logoutMemberSession(event) {
    'mine_member_must_change_pin'
   ].forEach(key => localStorage.removeItem(key));
 
+  activeMemberSessions = [];
   renderMemberSessionAvatar();
+  await loadActiveMemberSessions();
   // v90.2.104: sama seperti login, refresh tombol role-gated setelah logout supaya
   // tombol yang tadinya muncul (mis. Update Tujuan utk Supervisor) ikut disembunyikan.
   updateDeveloperAccessUI();
@@ -7426,7 +7493,9 @@ async function logoutMemberSession(event) {
    localStorage.setItem('mine_member_avatar_url', result.avatar_url || result.photo_url || result.avatar || '');
    localStorage.setItem('mine_member_must_change_pin', result.must_change_pin ? '1' : '0');
 
+   activeMemberSessions = [];
    renderMemberSessionAvatar();
+   loadActiveMemberSessions().catch(function(err) { console.warn('Refresh Active Member indicator setelah login ditunda/gagal:', err); });
    // v90.2.104: refresh tombol role-gated (Catat RCA, Update Tujuan, dst) segera setelah
    // login Member/Supervisor -- sebelumnya baru muncul setelah reload halaman karena
    // updateDeveloperAccessUI() tidak pernah dipanggil di sini.
@@ -7456,7 +7525,7 @@ async function logoutMemberSession(event) {
  }
 
  // Nomor versi dashboard -- dinaikkan setiap ada revisi baru dari Claude.
- const APP_VERSION = 'v90.2.100';
+ const APP_VERSION = 'v90.2.102';
 
  function openDeveloperProfileModal() {
  const modal = document.getElementById('developer-profile-modal');
@@ -15328,6 +15397,7 @@ window.addEventListener('DOMContentLoaded', async () => {
  await refreshSecuritySession();
  renderMemberSessionAvatar();
  await refreshMemberSecuritySession();
+ await loadActiveMemberSessions();
  // DIBUAT DEFENSIF (Split 3 Dashboard, 23 Agu): elemen ini hidup di dalam tab-settings,
  // yang tidak ada di dashboard Member/Supervisor -- guard null di sini, jalur unconditional
  // di DOMContentLoaded ini kalau tidak dijaga akan throw dan menghentikan SEMUA inisialisasi
@@ -15339,6 +15409,11 @@ window.addEventListener('DOMContentLoaded', async () => {
  }, 60000);
  setInterval(() => {
   refreshMemberSecuritySession();
+ }, MEMBER_SESSION_CHECK_INTERVAL_MS);
+ // FINAL RELEASE: sinkronkan jumlah active Member session lintas device.
+ // Read-only; tidak membuat, mengubah, merotasi, atau menghapus session Member.
+ setInterval(() => {
+  loadActiveMemberSessions();
  }, MEMBER_SESSION_CHECK_INTERVAL_MS);
  setInterval(() => {
   rotateActiveSecurityTokens();
