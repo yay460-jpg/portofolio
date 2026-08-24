@@ -646,7 +646,7 @@ input[type="password"]::-ms-clear {
    </div>
   </div>
 
-  <!-- ACTIVE USER INDICATOR: Master Developer melihat session aktif MEMBER + SUPERVISOR. -->
+  <!-- ACTIVE MEMBER INDICATOR: daftar session Member aktif lintas device. -->
   <div id="member-session-avatar-wrap" class="relative hidden shrink-0">
    <div id="member-session-avatar-list" class="flex items-center gap-1.5"></div>
    <span id="member-session-count" class="hidden ml-0.5 min-w-[20px] h-5 px-1.5 items-center justify-center rounded-full bg-emerald-500/15 border border-emerald-400/40 text-[10px] font-extrabold text-emerald-300 leading-none">0</span>
@@ -2383,7 +2383,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   <div id="general-cleanup-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
  </div>
 
- <!-- v90.2.105: PANEL PADATKAN BARIS KOSONG -- Developer-only, preview lalu eksekusi. -->
+ <!-- v90.2.100: PANEL PADATKAN BARIS KOSONG -- Developer-only, preview lalu eksekusi. -->
  <div id="dev-compact-panel" class="hidden glass-card p-3.5 rounded-2xl border border-slate-700">
   <div class="flex items-start gap-3 mb-3">
    <div class="p-2.5 bg-indigo-600/15 border border-indigo-500/30 rounded-xl text-indigo-400 shrink-0">
@@ -6566,7 +6566,7 @@ window.addEventListener('afterprint', function() {
   status.classList.remove('hidden');
  }
 
- // ACTIVE USER SESSION AVATAR -- Master Developer: active Member + Supervisor sessions.
+ // MEMBER SESSION AVATAR -- read-only indicator of active Member sessions.
  let activeMemberSessions = [];
  let activeMemberIndicatorRequestSeq = 0;
 
@@ -6586,22 +6586,21 @@ window.addEventListener('afterprint', function() {
   const menuLogin = document.getElementById('member-session-menu-login');
   if (!wrap || !list || !count) return;
 
-  // Server-authoritative: Master Developer indicator must reflect only the
-  // active MEMBER + SUPERVISOR sessions returned by getActiveMemberSessions.
-  // Do not inject the browser's local Member token/session here.
+  // MASTER DEVELOPER: indikator hanya memakai daftar dari server.
+  // Jangan menambahkan session Member lokal browser Developer.
+  // Satu user dihitung satu kali walaupun memiliki beberapa session/device aktif.
   if (Array.isArray(sessionsOverride)) activeMemberSessions = sessionsOverride.slice();
   let sessions = Array.isArray(activeMemberSessions) ? activeMemberSessions.slice() : [];
 
+  const seenUsers = new Set();
+  sessions = sessions.filter(function(item) {
+   const uid = String(item.user_id || '').trim();
+   if (!uid || seenUsers.has(uid)) return false;
+   seenUsers.add(uid);
+   return true;
+  });
   sessions = sessions.map(function(item) {
    return Object.assign({}, item, { local: false, avatar_url: item.avatar_url || '' });
-  });
-
-  const seen = new Set();
-  sessions = sessions.filter(function(item) {
-   const sid = String(item.session_id || '').trim();
-   if (!sid || seen.has(sid)) return false;
-   seen.add(sid);
-   return true;
   });
   activeMemberSessions = sessions;
 
@@ -6626,7 +6625,7 @@ window.addEventListener('afterprint', function() {
    const btn = document.createElement('button');
    btn.type = 'button';
    btn.className = 'active-member-avatar ' + (session.local ? 'local' : 'remote');
-   btn.title = (currentLang === 'en' ? 'Active user: ' : 'User aktif: ') + name + (loginId ? ' (' + loginId + ')' : '');
+   btn.title = (currentLang === 'en' ? 'Active member: ' : 'Member aktif: ') + name + (loginId ? ' (' + loginId + ')' : '');
    btn.setAttribute('aria-label', btn.title);
    if (session.local) {
     btn.onclick = function(event) {
@@ -7076,7 +7075,7 @@ async function logoutMemberSession(event) {
  }
 
  // Nomor versi dashboard -- dinaikkan setiap ada revisi baru dari Claude.
- const APP_VERSION = 'v90.2.105';
+ const APP_VERSION = 'v90.2.100';
 
  function openDeveloperProfileModal() {
  const modal = document.getElementById('developer-profile-modal');
