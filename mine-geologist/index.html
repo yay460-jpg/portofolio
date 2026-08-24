@@ -3055,7 +3055,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   <h3 class="font-bold text-title text-base">Yaya</h3>
   <p class="text-slate-400 text-xs font-medium mb-1" data-i18n="dev_profile_role">Head Mine Geologist / Developer</p>
   <p class="text-slate-500 text-[11px] font-medium mb-5" data-i18n="dev_profile_desc">Merancang &amp; mengembangkan dashboard operasional tambang ini.</p>
-  <a href="https://yay460-jpg.github.io/portfolio.html" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all cursor-pointer w-full">
+  <a target="_blank" rel="noopener" class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all cursor-pointer w-full">
   <i data-lucide="external-link" class="w-3.5 h-3.5"></i> <span data-i18n="dev_profile_view_full">Lihat Selengkapnya</span>
   </a>
  </div>
@@ -6489,9 +6489,16 @@ window.addEventListener('afterprint', function() {
   setLoginButtonLoading('dev-login-submit','dev-login-spinner',true);
   try {
    const payload=new URLSearchParams({action:'verifyDevPin',login_id:login_id,email:email,pin:pin,client_info:navigator.userAgent.slice(0,180)});
-   const response=await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL,{method:'POST',body:payload},20000);
+   // v90.2.105 FIX: Developer login harus diberi waktu lebih panjang karena
+   // Apps Script + Spreadsheet dapat cold-start / write session + audit.
+   // Jangan mengubah LOGIN yang sudah terbukti SUCCESS di SecurityAuditLog.
+   const response=await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL,{method:'POST',body:payload},60000);
+   if(!response.ok) throw new Error('HTTP '+response.status);
    const result=await response.json();
    if(result.success&&result.token){
+    // Simpan session SEBELUM menyentuh UI. Jika rendering UI bermasalah,
+    // login server tetap dianggap berhasil dan tidak boleh dilaporkan
+    // sebagai "tidak bisa menghubungi server".
     localStorage.setItem('mine_dev_token',result.token);
     localStorage.setItem('mine_dev_session_id',result.session_id||'');
     localStorage.setItem('mine_dev_expires_at',result.expires_at||'');
@@ -6500,8 +6507,16 @@ window.addEventListener('afterprint', function() {
     localStorage.setItem('mine_user_name',result.user_name||'');
     input.value='';
     errorMsg.classList.add('hidden');
-    updateDeveloperAccessUI();
-    openDeveloperConsoleModal();
+
+    try {
+     updateDeveloperAccessUI();
+     openDeveloperConsoleModal();
+    } catch(uiError) {
+     // Login sudah SUCCESS; jangan menimpa hasil server dengan pesan network.
+     console.error('Developer login SUCCESS, tetapi rendering UI gagal:',uiError);
+     updateDeveloperAccessUI();
+    }
+
     // Refresh Member grid tetap berjalan di belakang; jangan menahan pembukaan console.
     loadMembersFromSheet().catch(function(err){ console.warn('Refresh Member grid setelah Developer login ditunda/gagal:',err); });
    } else {
@@ -6509,8 +6524,8 @@ window.addEventListener('afterprint', function() {
     errorMsg.classList.remove('hidden');
    }
   } catch(error) {
-   console.error('Error login:',error);
-   errorMsg.textContent=currentLang==='en'?'Could not reach server. Try again.':'Tidak bisa menghubungi server. Coba lagi.';
+   console.error('Developer login request error:',error);
+   errorMsg.textContent=currentLang==='en'?'Developer login request failed. Try again.':'Permintaan login Developer gagal. Coba lagi.';
    errorMsg.classList.remove('hidden');
   } finally {
    input.disabled=false;
