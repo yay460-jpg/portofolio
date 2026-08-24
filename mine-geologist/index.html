@@ -6489,16 +6489,9 @@ window.addEventListener('afterprint', function() {
   setLoginButtonLoading('dev-login-submit','dev-login-spinner',true);
   try {
    const payload=new URLSearchParams({action:'verifyDevPin',login_id:login_id,email:email,pin:pin,client_info:navigator.userAgent.slice(0,180)});
-   // v90.2.105 FIX: Developer login harus diberi waktu lebih panjang karena
-   // Apps Script + Spreadsheet dapat cold-start / write session + audit.
-   // Jangan mengubah LOGIN yang sudah terbukti SUCCESS di SecurityAuditLog.
-   const response=await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL,{method:'POST',body:payload},60000);
-   if(!response.ok) throw new Error('HTTP '+response.status);
+   const response=await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL,{method:'POST',body:payload},20000);
    const result=await response.json();
    if(result.success&&result.token){
-    // Simpan session SEBELUM menyentuh UI. Jika rendering UI bermasalah,
-    // login server tetap dianggap berhasil dan tidak boleh dilaporkan
-    // sebagai "tidak bisa menghubungi server".
     localStorage.setItem('mine_dev_token',result.token);
     localStorage.setItem('mine_dev_session_id',result.session_id||'');
     localStorage.setItem('mine_dev_expires_at',result.expires_at||'');
@@ -6507,16 +6500,8 @@ window.addEventListener('afterprint', function() {
     localStorage.setItem('mine_user_name',result.user_name||'');
     input.value='';
     errorMsg.classList.add('hidden');
-
-    try {
-     updateDeveloperAccessUI();
-     openDeveloperConsoleModal();
-    } catch(uiError) {
-     // Login sudah SUCCESS; jangan menimpa hasil server dengan pesan network.
-     console.error('Developer login SUCCESS, tetapi rendering UI gagal:',uiError);
-     updateDeveloperAccessUI();
-    }
-
+    updateDeveloperAccessUI();
+    openDeveloperConsoleModal();
     // Refresh Member grid tetap berjalan di belakang; jangan menahan pembukaan console.
     loadMembersFromSheet().catch(function(err){ console.warn('Refresh Member grid setelah Developer login ditunda/gagal:',err); });
    } else {
@@ -6524,8 +6509,8 @@ window.addEventListener('afterprint', function() {
     errorMsg.classList.remove('hidden');
    }
   } catch(error) {
-   console.error('Developer login request error:',error);
-   errorMsg.textContent=currentLang==='en'?'Developer login request failed. Try again.':'Permintaan login Developer gagal. Coba lagi.';
+   console.error('Error login:',error);
+   errorMsg.textContent=currentLang==='en'?'Could not reach server. Try again.':'Tidak bisa menghubungi server. Coba lagi.';
    errorMsg.classList.remove('hidden');
   } finally {
    input.disabled=false;
