@@ -3,7 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
-<title>PT.Geobank Minerals</title>
+<title>Geobank Minerals</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
@@ -24,7 +29,7 @@
  ::-webkit-scrollbar-thumb:hover { background-color: rgba(100, 116, 139, 0.8); }
  * { scrollbar-width: thin; scrollbar-color: rgba(100, 116, 139, 0.5) transparent; }
 
- /* APP LOADING OVERLAY -- dipakai untuk login dan operasi yang membutuhkan autentikasi. */
+ /* APP LOADING OVERLAY -- dipakai untuk operasi autentikasi non-login; login memakai spinner di tombol. */
  #app-loading-overlay {
    position: fixed; inset: 0; z-index: 120; display: none; align-items: center; justify-content: center;
    background: rgba(2, 6, 23, 0.72); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
@@ -38,6 +43,9 @@
  body.theme-white #app-loading-card { background: rgba(255,255,255,.98); border-color: #cbd5e1; }
  #app-loading-spinner { width: 34px; height: 34px; border: 3px solid rgba(96,165,250,.25); border-top-color: #60a5fa; border-radius: 9999px; animation: appLoadingSpin .8s linear infinite; margin: 0 auto 12px; }
  @keyframes appLoadingSpin { to { transform: rotate(360deg); } }
+ .login-btn-spinner { width: 15px; height: 15px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 9999px; animation: appLoadingSpin .7s linear infinite; display: inline-block; flex: 0 0 auto; }
+ /* Login spinner: hidden state must always win over the base inline display. */
+ .login-btn-spinner.hidden { display: none !important; }
  #app-loading-title { font-size: 13px; font-weight: 700; color: #f8fafc; }
  #app-loading-message { margin-top: 4px; font-size: 11px; color: #94a3b8; font-weight: 500; }
  body.theme-white #app-loading-title { color: #0f172a; }
@@ -365,11 +373,43 @@
  @media (min-width: 2560px){ main { max-width: 1800px; } html { font-size: 16px; } }
  @media (min-width: 3840px){ main { max-width: 2200px; } html { font-size: 18px; } }
 
+ /* Laptop: judul/deskripsi menjadi footer, tetap di dalam kartu grafik. (Diambil dari
+    kiriman pihak lain v90.2.111, sudah diverifikasi terisolasi -- cuma CSS layout,
+    0 perubahan logika JS.) */
+ @media (max-width: 1440px){
+  .trend-chart-card { display: flex; flex-direction: column; }
+  .trend-chart-card .trend-chart-header { display: contents !important; }
+  .trend-chart-card .trend-toggle-box { order: 1; width: 100%; max-width: 100%; margin-bottom: 1.5rem; }
+  .trend-chart-card > [id^="wrapper-trend-"] { order: 2; }
+  .trend-chart-card .trend-heading { order: 3; width: 100%; margin-top: 1.5rem; display: flex; align-items: baseline; gap: 0.65rem; min-width: 0; }
+  .trend-chart-card .trend-heading #trend-active-title { flex: 0 0 auto; white-space: nowrap; }
+  .trend-chart-card .trend-heading #trend-active-desc { margin-top: 0 !important; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .rekon-view-card { display: flex; flex-direction: column; }
+  .rekon-view-card .rekon-view-header { display: contents !important; }
+  .rekon-view-card .trend-toggle-box { order: 1; width: 100%; max-width: 100%; margin-bottom: 1rem; }
+  .rekon-view-card > [id^="wrapper-rekon-"] { order: 2; }
+  .rekon-view-card .rekon-view-heading { order: 3; width: 100%; margin-top: 1rem; display: flex; align-items: baseline; gap: 0.65rem; min-width: 0; }
+  .rekon-view-card .rekon-view-heading #rekon-active-title { flex: 0 0 auto; white-space: nowrap; }
+  .rekon-view-card .rekon-view-heading #rekon-active-desc { margin-top: 0 !important; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+ }
+
  /* Tablet & Mobile Sidebar */
  @media (max-width: 768px){
   #main-sidebar { width: 84vw !important; max-width: 300px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
   #mobile-sidebar-overlay { backdrop-filter: blur(4px); }
  }
+
+ /* BARU (23 Agu): Sidebar Collapse (desktop only) -- ciutkan ke ikon saja, semua
+    fungsi navigasi tetap utuh, cuma teks labelnya yang disembunyikan. Class tunggal
+    di-toggle via JS, sisanya cascade CSS -- lebih gampang dirawat drpd toggle
+    banyak class Tailwind satu-satu tiap elemen. */
+ #main-sidebar { transition: width 0.25s ease, transform 0.3s ease-in-out; }
+ #main-sidebar.sidebar-collapsed { width: 5rem !important; }
+ #main-sidebar.sidebar-collapsed .sidebar-label { display: none !important; }
+ #main-sidebar.sidebar-collapsed .sidebar-header-row { justify-content: center; }
+ #main-sidebar.sidebar-collapsed nav button { justify-content: center; }
+ #main-sidebar.sidebar-collapsed #sidebar-dev-identity-card { justify-content: center; padding: 0; background: transparent; border: none; box-shadow: none; }
 
  /* 320px - 375px iPhone SE 4 inch specific */
  @media (max-width: 375px){
@@ -540,55 +580,65 @@ input[type="password"]::-ms-clear {
 <!-- Sidebar Navigation -->
 <aside id="main-sidebar" class="w-56 glass-card border-r border-slate-800/80 p-5 flex flex-col justify-between fixed inset-y-0 left-0 z-50 -translate-x-full transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:flex">
  <div>
- <div class="flex items-center gap-3 mb-8">
-  <div class="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-600/20"><i data-lucide="pickaxe" class="w-5 h-5"></i></div>
-  <div>
+ <div class="sidebar-header-row flex items-center gap-3 mb-8">
+  <button type="button" id="btn-sidebar-collapse" onclick="toggleSidebarCollapse()" title="Klik untuk ciutkan/lebarkan sidebar" data-i18n-title="tooltip_sidebar_collapse" class="p-2.5 bg-blue-600 hover:bg-blue-500 hover:scale-105 rounded-xl text-white shadow-lg shadow-blue-600/20 shrink-0 transition-all cursor-pointer">
+  <i data-lucide="pickaxe" class="w-5 h-5"></i>
+  </button>
+  <div class="sidebar-label">
   <h1 class="font-bold text-sm text-title tracking-tight">MINE GEOLOGIST</h1>
-  <p class="text-[11px] text-slate-400 font-medium">PT.Geobank Minerals</p>
+  <p class="text-[11px] text-slate-400 font-medium">Geobank Minerals</p>
   </div>
  </div>
 
  <nav class="space-y-1.5 text-xs">
-  <button id="btn-ringkasan" onclick="switchTab('ringkasan')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-active">
-  <i data-lucide="layout-dashboard" class="w-4 h-4"></i> <span data-i18n="nav_ringkasan">Ringkasan</span>
+  <button id="btn-ringkasan" onclick="switchTab('ringkasan')" title="Ringkasan" data-i18n-title="nav_ringkasan" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-active">
+  <i data-lucide="layout-dashboard" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_ringkasan">Ringkasan</span>
   </button>
-  <button id="btn-trend" onclick="switchTab('trend')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="trending-up" class="w-4 h-4"></i> <span data-i18n="nav_trend">Visual & Trend</span>
+  <!-- ROLE:SUPERVISOR,DEVELOPER -->
+  <button id="btn-trend" onclick="switchTab('trend')" title="Visual & Trend" data-i18n-title="nav_trend" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="trending-up" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_trend">Visual & Trend</span>
   </button>
-  <button id="btn-tabel" onclick="switchTab('tabel')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="table" class="w-4 h-4"></i> <span data-i18n="nav_tabel">Tabel Digging</span>
+  <!-- /ROLE -->
+  <button id="btn-tabel" onclick="switchTab('tabel')" title="Tabel Digging" data-i18n-title="nav_tabel" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="table" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_tabel">Tabel Digging</span>
   </button>
-  <button id="btn-rekonsiliasi" onclick="switchTab('rekonsiliasi')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="git-compare-arrows" class="w-4 h-4"></i> <span data-i18n="nav_rekonsiliasi">Rekonsiliasi</span>
+  <!-- ROLE:SUPERVISOR,DEVELOPER -->
+  <button id="btn-rekonsiliasi" onclick="switchTab('rekonsiliasi')" title="Rekonsiliasi" data-i18n-title="nav_rekonsiliasi" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="git-compare-arrows" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_rekonsiliasi">Rekonsiliasi</span>
   </button>
-  <button id="btn-validasi" onclick="switchTab('validasi')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="flask-conical" class="w-4 h-4"></i> <span data-i18n="nav_validasi">Validasi</span>
+  <!-- /ROLE -->
+  <button id="btn-validasi" onclick="switchTab('validasi')" title="Validasi" data-i18n-title="nav_validasi" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="flask-conical" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_validasi">Validasi</span>
   </button>
-  <button id="btn-barging" onclick="switchTab('barging')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="ship" class="w-4 h-4"></i> <span data-i18n="nav_barging">Barging</span>
+  <!-- ROLE:SUPERVISOR,DEVELOPER -->
+  <button id="btn-barging" onclick="switchTab('barging')" title="Barging" data-i18n-title="nav_barging" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="ship" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_barging">Barging</span>
   </button>
-  <button id="btn-issue" onclick="switchTab('issue')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="alert-triangle" class="w-4 h-4"></i> <span data-i18n="nav_issue">Issue & Action</span>
+  <!-- /ROLE -->
+  <button id="btn-issue" onclick="switchTab('issue')" title="Issue & Action" data-i18n-title="nav_issue" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_issue">Issue & Action</span>
   </button>
-  <button id="btn-kpimember" onclick="switchTab('kpimember')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="users" class="w-4 h-4"></i> <span data-i18n="nav_kpimember">KPI Member</span>
+  <button id="btn-kpimember" onclick="switchTab('kpimember')" title="KPI Member" data-i18n-title="nav_kpimember" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="users" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_kpimember">KPI Member</span>
   </button>
-  <button id="btn-chat" onclick="switchTab('chat')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="message-circle" class="w-4 h-4"></i> <span data-i18n="nav_chat">Chat Tim</span>
+  <button id="btn-chat" onclick="switchTab('chat')" title="Chat Tim" data-i18n-title="nav_chat" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="message-circle" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_chat">Chat Tim</span>
   <span id="chat-unread-badge" class="hidden ml-auto bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none"></span>
   </button>
-  <button id="btn-settings" onclick="switchTab('settings')" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
-  <i data-lucide="settings" class="w-4 h-4"></i> <span data-i18n="nav_settings">Settings</span>
+  <!-- ROLE:DEVELOPER -->
+  <button id="btn-settings" onclick="switchTab('settings')" title="Settings" data-i18n-title="nav_settings" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="settings" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_settings">Settings</span>
   </button>
+  <!-- /ROLE -->
  </nav>
  </div>
 
  <div class="pt-4 border-t border-slate-700/40">
- <div class="flex items-center gap-3 p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/40 shadow-inner">
-  <img src="https://lh3.googleusercontent.com/d/1h2lEVH0hOEy7mteIgpH3ycDYdVi8RtqN=w100" alt="Yaya Avatar" class="w-9 h-9 rounded-full object-cover border-2 border-blue-500 shadow-sm bg-slate-700" onerror="this.src='https://ui-avatars.com/api/?name=Yaya&background=2563eb&color=fff'">
-  <div>
-  <div class="text-[11px] font-bold text-title tracking-tight">Dev By Yaya</div>
-  <div class="text-[10px] text-slate-400 font-medium">Head Mine Geologist</div>
+ <div id="sidebar-dev-identity-card" class="hidden items-center gap-3 p-2.5 bg-slate-800/40 rounded-xl border border-slate-700/40 shadow-inner">
+  <img id="sidebar-dev-avatar-img" src="https://lh3.googleusercontent.com/d/1h2lEVH0hOEy7mteIgpH3ycDYdVi8RtqN=w100" alt="Yaya Avatar" class="w-9 h-9 rounded-full object-cover border-2 border-blue-500 shadow-sm bg-slate-700 shrink-0" onerror="handleSidebarAvatarError(this)">
+  <div class="sidebar-label min-w-0">
+  <div class="text-[11px] font-bold text-title tracking-tight truncate">Dev By Yaya</div>
+  <div class="text-[10px] text-slate-400 font-medium truncate">Head Mine Geologist</div>
   </div>
  </div>
  </div>
@@ -610,6 +660,12 @@ input[type="password"]::-ms-clear {
    <option value="" data-i18n="all_pit">Semua Pit</option>
    </select>
   </div>
+
+  <!-- ROLE:MEMBER,SUPERVISOR -->
+  <button id="btn-header-theme-toggle" onclick="toggleHeaderTheme()" class="flex items-center justify-center w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-slate-200 shadow-sm transition-all cursor-pointer" title="Ganti tema Dark/White" data-i18n-title="tooltip_toggle_theme">
+   <i id="header-theme-toggle-icon" data-lucide="sun" class="w-3.5 h-3.5 text-amber-400"></i>
+  </button>
+  <!-- /ROLE -->
 
   <button id="btn-manual-refresh" onclick="manualRefreshData()" class="flex items-center justify-center w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-slate-200 shadow-sm transition-all cursor-pointer" title="Refresh data manual dari Google Sheets" data-i18n-title="tooltip_refresh_data">
    <i id="refresh-icon" data-lucide="rotate-cw" class="w-3.5 h-3.5 text-emerald-400"></i>
@@ -663,9 +719,9 @@ input[type="password"]::-ms-clear {
 
  <!-- RINGKASAN -->
  <section id="tab-ringkasan" class="space-y-6">
- <div id="kpi-summary-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-  <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
-  <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="kpi_1">TOTAL TONASE DIGGING</span>
+ <div id="kpi-summary-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
+  <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between h-full">
+  <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="kpi_1">TOTAL DIGGING</span>
   <div id="kpi-total-tonase" class="text-xl xl:text-2xl font-semibold text-title mt-1 flex items-baseline tracking-tight">
    0 <span class="text-xs font-semibold text-slate-400 ml-1.5" data-i18n="unit_ton">Ton</span>
   </div>
@@ -674,27 +730,27 @@ input[type="password"]::-ms-clear {
   </p>
   </div>
 
-  <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+  <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between h-full">
   <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="kpi_2">TOTAL ORE</span>
   <div id="kpi-ore-tonase" class="text-xl xl:text-2xl font-semibold text-blue-500 mt-1 flex items-baseline tracking-tight">
    0 <span class="text-xs font-semibold text-slate-400 ml-1.5" data-i18n="unit_ton">Ton</span>
   </div>
-  <p id="kpi-ore-sub" class="text-[11px] text-slate-400 mt-1 font-medium">Saprolit 0.0% | Limonit 0.0% | LG 0.0%</p>
+  <p id="kpi-ore-sub" class="text-[11px] text-slate-400 mt-1 font-medium" data-i18n="kpi_ore_sub">Saprolit, Limonit &amp; LG</p>
   </div>
 
-  <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+  <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between h-full">
   <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="kpi_3">RATA-RATA KADAR NI</span>
   <div id="kpi-rata-ni" class="text-xl xl:text-2xl font-semibold text-emerald-500 mt-1 tracking-tight">0%</div>
   <p class="text-[11px] text-emerald-500 mt-1 font-medium" data-i18n="kpi_3_sub">Target Minimum: 1.30% (Aman)</p>
   </div>
 
-  <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+  <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between h-full">
   <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="kpi_3b">RATA-RATA NI % (TANPA WASTE)</span>
   <div id="kpi-rata-ni-ore" class="text-xl xl:text-2xl font-semibold text-teal-400 mt-1 tracking-tight">0%</div>
   <p class="text-[11px] text-slate-400 mt-1 font-medium" data-i18n="kpi_3b_sub">Hanya Saprolit, Limonit & LG</p>
   </div>
 
-  <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+  <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between h-full">
   <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider" data-i18n="kpi_4">STRIP RATIO (SR)</span>
   <div id="kpi-sr" class="text-xl xl:text-2xl font-semibold text-amber-500 mt-1 tracking-tight">0.00</div>
   <p id="kpi-waste" class="text-[11px] text-slate-400 mt-1 font-medium">Total Waste: 0 Ton</p>
@@ -752,6 +808,12 @@ input[type="password"]::-ms-clear {
   <div class="h-64 flex justify-center">
    <canvas id="materialChart"></canvas>
   </div>
+  <!-- FIX (23 Agu): legend Chart.js bawaan ternyata TIDAK konsisten menerapkan warna
+       terang di tema Dark (sebagian item terang, sebagian tetap redup -- padahal cuma 1
+       nilai warna seragam yang di-set). Diganti legend HTML manual di sini -- kontrol
+       penuh, dijamin konsisten, tidak bergantung perilaku internal Chart.js yang
+       ternyata tidak bisa diandalkan utk kasus ini. Diisi lewat renderMaterialLegend(). -->
+  <div id="material-chart-legend" class="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-3 text-xs"></div>
   </div>
 
   <div class="glass-card p-6 rounded-2xl">
@@ -766,7 +828,8 @@ input[type="password"]::-ms-clear {
  </section>
 
  <!-- VISUAL & TREND -->
- <section id="tab-trend" class="space-y-6 hidden">
+ <!-- ROLE:SUPERVISOR,DEVELOPER -->
+<section id="tab-trend" class="space-y-6 hidden">
  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5 force-1col">
   <div class="glass-card p-4.5 rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500">
   <div class="p-2.5 bg-blue-500/20 text-blue-400 rounded-xl border border-blue-500/30">
@@ -797,9 +860,9 @@ input[type="password"]::-ms-clear {
   </div>
  </div>
 
- <div class="glass-card p-4 sm:p-6 rounded-2xl relative overflow-hidden chart-wrap">
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-  <div>
+ <div class="trend-chart-card glass-card p-4 sm:p-6 rounded-2xl relative overflow-hidden chart-wrap">
+  <div class="trend-chart-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+  <div class="trend-heading">
    <h3 id="trend-active-title" class="font-bold text-title flex items-center gap-2 text-sm tracking-tight">
    <i id="trend-active-icon" data-lucide="trending-up" class="w-4 h-4 text-blue-400"></i>
    <span id="trend-title-text" data-i18n="trend_1_title">Tren Tonase Digging (Harian)</span>
@@ -878,6 +941,8 @@ input[type="password"]::-ms-clear {
   </div>
  </div>
  </section>
+<!-- /ROLE -->
+
 
  <!-- TABEL DIGGING -->
  <section id="tab-tabel" class="space-y-5 hidden">
@@ -946,21 +1011,22 @@ input[type="password"]::-ms-clear {
  </section>
 
  <!-- REKONSILIASI -->
- <section id="tab-rekonsiliasi" class="space-y-5 hidden">
+ <!-- ROLE:SUPERVISOR,DEVELOPER -->
+<section id="tab-rekonsiliasi" class="space-y-5 hidden">
  <div class="glass-card rounded-2xl p-2">
   <div class="flex flex-wrap items-center gap-2">
    <div class="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 rounded-xl pl-2 pr-3 py-1">
    <div class="p-1 bg-blue-500/20 text-blue-400 rounded-lg"><i data-lucide="package" class="w-3.5 h-3.5"></i></div>
    <div class="leading-tight">
     <div id="rekon-total-produksi" class="text-xs font-bold text-title">0 Ton</div>
-    <div class="text-[9px] text-slate-400 font-medium whitespace-nowrap" data-i18n="rekon_total_produksi">Total Produksi</div>
+    <div class="text-[9px] text-slate-400 font-medium whitespace-nowrap" data-i18n="rekon_total_produksi">Produksi</div>
    </div>
    </div>
    <div class="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl pl-2 pr-3 py-1">
    <div class="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg"><i data-lucide="ship" class="w-3.5 h-3.5"></i></div>
    <div class="leading-tight">
     <div id="rekon-total-terkirim" class="text-xs font-bold text-title">0 Ton</div>
-    <div class="text-[9px] text-slate-400 font-medium whitespace-nowrap" data-i18n="rekon_total_terkirim">Total Ter-assign</div>
+    <div class="text-[9px] text-slate-400 font-medium whitespace-nowrap" data-i18n="rekon_total_terkirim">Ter-assign</div>
    </div>
    </div>
    <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 rounded-xl pl-2 pr-3 py-1">
@@ -983,8 +1049,8 @@ input[type="password"]::-ms-clear {
     <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
    </button>
    <div id="rekon-filter-panel" class="hidden sm:flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-1.5 absolute sm:static right-0 top-full mt-2 sm:mt-0 z-20 bg-slate-900 sm:bg-transparent border sm:border-0 border-slate-700 rounded-xl p-3 sm:p-0 shadow-xl sm:shadow-none w-60 sm:w-auto">
-    <select id="rekon-pit-filter" onchange="renderReconciliation()" class="custom-select w-full sm:w-auto bg-slate-800/60 border border-slate-700/80 rounded-xl px-3 py-0.5 text-title text-xs font-medium focus:outline-none focus:border-blue-500" title="Filter berdasarkan Pit" data-i18n-title="tooltip_filter_pit">
-     <option value="" data-i18n="filter_all_pit">Semua Pit</option>
+    <select id="rekon-pit-filter" onchange="renderReconciliation()" class="custom-select w-full sm:w-auto bg-slate-800/60 border border-slate-700/80 rounded-full px-3 py-0.5 text-title text-xs font-medium focus:outline-none focus:border-blue-500" title="Filter berdasarkan Pit" data-i18n-title="tooltip_filter_pit">
+     <option value="" data-i18n="filter_all_pit">Pit</option>
     </select>
     <div class="relative w-9 h-9 rounded-full overflow-hidden shrink-0">
     <input type="date" id="rekon-date-start" min="2020-01-01" max="2035-12-31" onkeydown="return false;" onpaste="return false;" onchange="renderReconciliation(); this.title = this.value ? ((currentLang === 'en' ? 'Start Date: ' : 'Tanggal Mulai: ') + this.value) : translations[currentLang].tooltip_filter_start;" class="w-9 h-9 bg-slate-800/60 border border-slate-700/80 rounded-full focus:outline-none focus:border-blue-500 cursor-pointer" title="Filter Tanggal Mulai" data-i18n-title="tooltip_filter_start">
@@ -1013,9 +1079,9 @@ input[type="password"]::-ms-clear {
   </div>
  </div>
 
- <div class="glass-card rounded-2xl p-5">
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
-  <div>
+ <div class="rekon-view-card glass-card rounded-2xl p-5">
+  <div class="rekon-view-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
+  <div class="rekon-view-heading">
    <h3 id="rekon-active-title" class="font-bold text-title flex items-center gap-2 text-sm tracking-tight">
    <i id="rekon-active-icon" data-lucide="layers" class="w-4 h-4 text-blue-400"></i>
    <span id="rekon-title-text">Breakdown per Pit & Tujuan</span>
@@ -1170,7 +1236,10 @@ input[type="password"]::-ms-clear {
   <div class="flex items-center gap-2">
    <i data-lucide="search-check" class="w-4.5 h-4.5 text-blue-500"></i>
    <div>
-   <h3 class="font-bold text-title text-sm" data-i18n="rca_title">RCA Log -- Root Cause &amp; Rekomendasi</h3>
+   <div class="flex items-center gap-1.5 flex-wrap">
+    <h3 class="font-bold text-title text-sm" data-i18n="rca_title">RCA Log -- Root Cause &amp; Rekomendasi</h3>
+    <span id="rca-overdue-badge" class="hidden px-1.5 py-0.5 rounded-md bg-rose-500/25 text-rose-300 border border-rose-500/40 text-[10px] font-bold whitespace-nowrap"></span>
+   </div>
    <p class="text-[11px] text-slate-400 font-medium" data-i18n="rca_subtitle">Penjelasan akar masalah &amp; tindakan untuk penyimpangan rekonsiliasi per Blok</p>
    </div>
   </div>
@@ -1186,6 +1255,8 @@ input[type="password"]::-ms-clear {
  </div>
 
  </section>
+<!-- /ROLE -->
+
 
  <!-- MODAL FORM: PIT ACTUAL -->
  <div id="form-pitactual-popup-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden items-center justify-center p-4">
@@ -1415,9 +1486,14 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
   <div class="flex items-center gap-3">
    <span id="validasi-count" class="text-[11px] text-slate-400 font-semibold whitespace-nowrap"></span>
-  <button onclick="toggleValidasiChart()" title="Tampilkan/Sembunyikan Grafik" data-i18n-title="tooltip_toggle_chart" class="flex items-center justify-center p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-all cursor-pointer">
-   <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
-  </button>
+  <div class="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700/80 rounded-xl p-1 shadow-sm">
+   <button id="btn-validasi-view-chart" onclick="switchValidasiView('chart')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+   <i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i> <span data-i18n="validasi_view_chart">Grafik</span>
+   </button>
+   <button id="btn-validasi-view-tp" onclick="switchValidasiView('tp')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+   <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i> <span data-i18n="validasi_view_tp">TP</span>
+   </button>
+  </div>
   <button onclick="openFormValidasiPopup()" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all cursor-pointer whitespace-nowrap">
    <i data-lucide="plus" class="w-3.5 h-3.5"></i> <span data-i18n="btn_add_validasi">Input Data</span>
   </button>
@@ -1425,7 +1501,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
  </div>
 
- <div id="validasi-chart-card" class="glass-card rounded-2xl p-5 hidden">
+ <div id="validasi-chart-card" class="glass-card rounded-2xl p-5">
   <h3 class="font-bold text-title text-sm mb-3 flex items-center gap-2">
   <i data-lucide="bar-chart-3" class="w-4 h-4 text-blue-400"></i> <span data-i18n="validasi_chart_title">Rata-rata Ni % per Area</span>
   </h3>
@@ -1434,7 +1510,10 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
  </div>
 
- <div class="glass-card rounded-2xl p-5">
+ <!-- FIX (23 Agu, dikoreksi user): dikembalikan jadi tabel asli (bukan kartu) -- toggle
+      Grafik/TP tetap sama, cuma konten view "TP" sekarang tabel data lengkap seperti semula,
+      bukan kartu ringkasan. -->
+ <div id="validasi-table-card" class="glass-card rounded-2xl p-5 hidden">
   <div class="overflow-x-auto">
   <table class="w-full text-left text-xs whitespace-nowrap">
    <thead class="uppercase text-slate-400 font-semibold border-b border-slate-700/80">
@@ -1677,7 +1756,8 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
  </div>
 
  <!-- BARGING (Fase 2) -->
- <section id="tab-barging" class="space-y-5 hidden">
+ <!-- ROLE:SUPERVISOR,DEVELOPER -->
+<section id="tab-barging" class="space-y-5 hidden">
  <div class="glass-card p-4.5 rounded-2xl">
   <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
   <div class="flex items-center gap-2">
@@ -1693,6 +1773,8 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
  </div>
  </section>
+<!-- /ROLE -->
+
 
  <!-- MODAL DETAIL SHIPMENT -->
  <div id="barge-detail-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden items-center justify-center p-4">
@@ -1946,6 +2028,29 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
  </div>
  </div>
 
+ <!-- BARU (Sidequest #5): Radar Chart Chemical Fingerprint Sublot -- bandingkan Plan vs
+      Aktual utk 5 unsur (Ni/Fe/Co/MgO/SiO2) dalam satu grafik radar, ditampilkan sebagai
+      "% Aktual dari Plan" per unsur (bukan nilai mentah) karena skala 5 unsur ini jauh
+      berbeda (Ni ~1-2%, SiO2 bisa ~40-60%) -- kalau dipaksa 1 skala linear, unsur kecil
+      spt Ni/Co jadi tidak kelihatan sama sekali. Dataset kedua "Target 100%" jadi acuan
+      lingkaran sempurna; makin jauh bentuk Aktual dari lingkaran itu, makin besar deviasi
+      di unsur tsb. Murni turunan dari globalBargeSublotData yang sudah di-fetch --
+      TIDAK ADA data/endpoint baru. -->
+ <div id="sublot-radar-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden items-center justify-center p-4">
+ <div class="glass-card modal-mobile w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-700 max-h-[90vh] flex flex-col">
+  <div class="flex justify-between items-center pb-3.5 border-b border-slate-700/60 mb-4 shrink-0">
+  <h3 class="font-bold text-title text-sm tracking-tight flex items-center gap-2">
+   <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
+   <span data-i18n="sublot_radar_title">Chemical Fingerprint</span>
+   <span id="sublot-radar-subtitle" class="text-slate-500 font-normal"></span>
+  </h3>
+  <button onclick="closeSublotRadarModal()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer"><i data-lucide="x" class="w-4.5 h-4.5"></i></button>
+  </div>
+  <p class="text-[11px] text-slate-400 font-medium mb-3" data-i18n="sublot_radar_desc">Persentase Aktual terhadap Plan per unsur -- lingkaran putus-putus adalah acuan 100% (sama persis Plan).</p>
+  <div class="flex-1 min-h-[260px]"><canvas id="sublot-radar-canvas"></canvas></div>
+ </div>
+ </div>
+
  <!-- MODAL FORM: SUBLOT AKTUAL -->
  <div id="form-barge-sublot-popup-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden items-center justify-center p-4">
  <div class="glass-card modal-mobile w-full max-w-lg rounded-2xl p-6 shadow-2xl border border-slate-700 max-h-[90vh] flex flex-col">
@@ -2037,7 +2142,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
  <div class="glass-card p-6 rounded-2xl">
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
   <h3 class="font-bold text-title flex items-center gap-2 text-sm tracking-tight">
-   <i data-lucide="list-checks" class="w-4 h-4 text-blue-500"></i> <span data-i18n="issue_title">Daftar Issue & Rekomendasi Action Operasional Tambang</span>
+   <i data-lucide="list-checks" class="w-4 h-4 text-blue-500"></i> <span data-i18n="issue_title">Daftar Issue & Rekomendasi Action Operasional</span>
   </h3>
   <div class="flex items-center gap-2.5 flex-wrap no-print">
    <div class="pit-filter-box flex items-center gap-1.5 h-9 bg-slate-800/60 border border-slate-700/80 rounded-xl px-3 shadow-sm">
@@ -2050,8 +2155,8 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    </select>
    </div>
 
-   <button id="btn-issue-delete-all" onclick="deleteAllIssues()" class="hidden items-center gap-1.5 h-9 px-3.5 rounded-xl bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 text-xs font-semibold transition-all cursor-pointer">
-   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> <span>Hapus Semua</span>
+   <button id="btn-issue-delete-all" onclick="deleteAllIssues()" title="Hapus Semua" data-i18n-title="btn_delete_all_issue" class="hidden items-center justify-center w-9 h-9 rounded-full bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 transition-all cursor-pointer">
+   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
    </button>
    <button onclick="openFormIssuePopup()" class="flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md shadow-emerald-600/20 transition-all cursor-pointer">
    <i data-lucide="plus" class="w-3.5 h-3.5"></i> <span data-i18n="btn_add_issue">Issue Baru</span>
@@ -2123,6 +2228,21 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
   </div>
  </div>
+
+ <!-- BARU (Sidequest #4): Leaderboard Geologist -- murni turunan dari globalMemberData yang
+      sudah ada (field Accuracy), tidak ada data baru/endpoint baru. Diurutkan di frontend
+      lewat renderLeaderboard(). -->
+ <div class="glass-card p-6 rounded-2xl mt-5">
+  <div class="mb-4">
+  <h3 class="font-bold text-title flex items-center gap-2 text-sm md:text-base tracking-tight">
+   <i data-lucide="trophy" class="w-4.5 h-4.5 text-amber-400"></i> <span data-i18n="leaderboard_title">Leaderboard Geologist</span>
+  </h3>
+  <p class="text-slate-400 text-xs mt-1 font-medium" data-i18n="leaderboard_desc">Peringkat berdasarkan Current Accuracy -- otomatis dihitung dari data KPI Member yang sama di atas.</p>
+  </div>
+  <div id="leaderboard-list" class="space-y-1.5">
+  <p class="text-[11px] text-slate-500 font-medium" data-i18n="loading_members">Mengambil data member dari Google Sheets...</p>
+  </div>
+ </div>
  </section>
 
  <!-- CHAT TIM -->
@@ -2137,8 +2257,8 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <p class="text-slate-400 text-[11px] font-medium" data-i18n="chat_subtitle">Pesan tersimpan otomatis ke Google Sheets (sheet ChatLog).</p>
   </div>
   <div class="flex items-center gap-2">
-   <button id="btn-chat-delete-all" onclick="deleteAllChatMessages()" class="hidden items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 text-[10px] font-bold transition-all" title="Hapus semua Chat">
-    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus Semua
+   <button id="btn-chat-delete-all" onclick="deleteAllChatMessages()" class="hidden items-center justify-center w-9 h-9 rounded-full bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 transition-all" title="Hapus semua Chat">
+    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
    </button>
    <label class="text-[11px] text-slate-400 font-medium whitespace-nowrap" data-i18n="chat_identity_label">Kirim sebagai:</label>
    <select id="chat-sender-select" onchange="onChatSenderChange()" class="custom-select bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-title focus:outline-none focus:border-blue-500 font-medium">
@@ -2168,7 +2288,8 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
  </section>
 
  <!-- SETTINGS -->
- <section id="tab-settings" class="space-y-3 hidden">
+ <!-- ROLE:DEVELOPER -->
+<section id="tab-settings" class="space-y-3 hidden">
  <!-- v90.2.99 UI refinement: Language, Theme & Regional digabung menjadi satu card.
       Logic tombol bahasa/tema dan modal Regional & Time tetap dipertahankan. -->
  <div id="panel-language-theme-regional" class="glass-card p-3.5 rounded-2xl border-l-4 border-l-violet-500">
@@ -2326,8 +2447,9 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <i data-lucide="eye" class="w-3.5 h-3.5 pointer-events-none"></i>
   </button>
   </div>
-  <button onclick="unlockDeveloperAccess()" aria-label="Buka Akses Developer" data-i18n-aria-label="tooltip_developer_access" title="Buka Akses Developer" data-i18n-title="tooltip_developer_access" class="w-9 h-9 rounded-full bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-600/20 transition-all cursor-pointer shrink-0">
-   <i data-lucide="lock" class="w-4 h-4"></i>
+  <button id="dev-login-submit" type="button" onclick="unlockDeveloperAccess()" aria-label="Buka Akses Developer" data-i18n-aria-label="tooltip_developer_access" title="Buka Akses Developer" data-i18n-title="tooltip_developer_access" class="w-9 h-9 rounded-full bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-600/20 transition-all cursor-pointer shrink-0">
+   <i id="dev-login-lock-icon" data-lucide="lock" class="w-4 h-4"></i>
+   <span id="dev-login-spinner" class="login-btn-spinner hidden" aria-hidden="true"></span>
   </button>
   </div>
 
@@ -2351,23 +2473,81 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
     <i data-lucide="trash-2" class="w-4.5 h-4.5"></i>
    </div>
    <div>
-    <h3 class="font-bold text-title text-sm tracking-tight">Cleanup Data (Developer)</h3>
-    <p class="text-slate-400 text-xs font-medium">Bersihkan sheet log tertentu -- sesi Developer yang sedang aktif selalu dipertahankan.</p>
+    <h3 class="font-bold text-title text-sm tracking-tight" data-i18n="dev_cleanup_panel_title">Cleanup Data (Developer)</h3>
+    <p class="text-slate-400 text-xs font-medium" data-i18n="dev_cleanup_panel_desc">Bersihkan sheet log tertentu -- sesi Developer yang sedang aktif selalu dipertahankan.</p>
    </div>
   </div>
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
    <button onclick="cleanupGeneralSheet('Sessions')" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all text-left">
-    Bersihkan Sessions
+    <span data-i18n="dev_cleanup_btn_sessions">Bersihkan Sessions</span>
    </button>
    <button onclick="cleanupGeneralSheet('SecurityAuditLog')" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all text-left">
-    Bersihkan SecurityAuditLog
+    <span data-i18n="dev_cleanup_btn_security">Bersihkan SecurityAuditLog</span>
    </button>
    <button onclick="cleanupGeneralSheet('AuditTrail')" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all text-left">
-    Bersihkan AuditTrail
+    <span data-i18n="dev_cleanup_btn_audit">Bersihkan AuditTrail</span>
    </button>
+   </div>
+   <div id="general-cleanup-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
+   <div class="mt-4 pt-3 border-t border-slate-800">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+     <div>
+      <h4 class="font-bold text-slate-200 text-xs" data-i18n="retention_title">Retention &amp; Archive</h4>
+      <p class="text-[10px] text-slate-400 mt-0.5" data-i18n="retention_desc">Sessions non-ACTIVE dihapus setelah 7 hari. SecurityAuditLog dan AuditTrail dipindahkan ke sheet archive setelah 90 hari.</p>
+     </div>
+     <label class="inline-flex items-center gap-2 text-[10px] font-semibold text-slate-300 cursor-pointer"><input id="retention-enabled" type="checkbox" class="accent-emerald-500"> <span data-i18n="retention_enable_label">Aktifkan terjadwal</span></label>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_sessions_label">Sessions (hari)</span><input id="retention-sessions-days" type="number" min="1" value="7" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_security_label">SecurityAuditLog (hari)</span><input id="retention-security-days" type="number" min="1" value="90" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_audit_label">AuditTrail (hari)</span><input id="retention-audit-days" type="number" min="1" value="90" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_chatlog_label">ChatLog (opsional)</span><span class="flex items-center gap-2 mt-1"><input id="retention-chat-enabled" type="checkbox" class="accent-amber-500"><input id="retention-chat-days" type="number" min="1" value="90" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></span></label>
+    </div>
+    <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveRetentionPolicy()" class="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold"><span data-i18n="retention_btn_save">Simpan Kebijakan</span></button><button onclick="runRetentionArchiveNow()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold"><span data-i18n="retention_btn_run">Jalankan Sekarang</span></button></div>
+    <div id="retention-policy-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
+   <div class="text-[10px] text-slate-500 font-medium mt-1" data-i18n="retention_footer_note">ChatLog default OFF. Reset Total tidak pernah menyentuh data keamanan atau archive.</div>
+   </div>
+
+   <!-- BARU (Pending item #1 spesifikasi performa, DIPUTUSKAN 22 Agu): cache validateSession_()
+        + kill-switch. Lihat komentar validateSessionCached_() di Code.gs utk desain lengkap --
+        SENGAJA beda dari validateSessionOptimized_ pihak lain yang sudah DITOLAK (itu skip
+        total re-validasi keamanan). Cache ini TETAP full re-validasi tiap cache-miss, cuma
+        menyimpan hasilnya sebentar (TTL pendek) utk request beruntun dari token yang sama. -->
+   <div class="mt-4 pt-3 border-t border-slate-800">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+     <div>
+      <h4 class="font-bold text-slate-200 text-xs" data-i18n="session_cache_title">Session Cache</h4>
+      <p class="text-[10px] text-slate-400 mt-0.5" data-i18n="session_cache_desc">Cache hasil validasi sesi selama beberapa detik supaya request beruntun (polling tab) tidak scan ulang Sessions/Users/Credential tiap kali. Tetap full re-validasi keamanan tiap cache-miss -- default OFF.</p>
+     </div>
+     <label class="inline-flex items-center gap-2 text-[10px] font-semibold text-slate-300 cursor-pointer"><input id="session-cache-enabled" type="checkbox" class="accent-cyan-500"> <span data-i18n="session_cache_enable_label">Aktifkan cache</span></label>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+     <label class="block text-[10px] text-slate-400"><span data-i18n="session_cache_ttl_label">TTL Cache (detik, 5-60)</span><input id="session-cache-ttl" type="number" min="5" max="60" value="20" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+    </div>
+    <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveSessionCachePolicy()" class="px-3 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-bold"><span data-i18n="session_cache_btn_save">Simpan Kebijakan</span></button></div>
+    <div id="session-cache-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
+   </div>
+
+   <!-- BARU (Security hardening -- rate limit perluasan, DIPUTUSKAN 22 Agu): panel toggle
+        API Abuse Guard -- pola LOAD/SAVE identik dgn Session Cache di atas, target endpoint
+        beda. Melindungi request pasca-login (token valid) dari penyalahgunaan berulang,
+        melengkapi rate-limit login yang sudah ada. -->
+   <div class="mt-4 pt-3 border-t border-slate-800">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+     <div>
+      <h4 class="font-bold text-slate-200 text-xs" data-i18n="api_abuse_guard_title">API Abuse Guard</h4>
+      <p class="text-[10px] text-slate-400 mt-0.5" data-i18n="api_abuse_guard_desc">Batasi jumlah request per sesi dalam rentang waktu tertentu -- melindungi token yang sudah login dari penyalahgunaan berulang (mis. token bocor dipakai spam request). Rate-limit login tetap berjalan terpisah. Default OFF.</p>
+     </div>
+     <label class="inline-flex items-center gap-2 text-[10px] font-semibold text-slate-300 cursor-pointer"><input id="api-abuse-guard-enabled" type="checkbox" class="accent-amber-500"> <span data-i18n="api_abuse_guard_enable_label">Aktifkan guard</span></label>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+     <label class="block text-[10px] text-slate-400"><span data-i18n="api_abuse_guard_max_label">Maks Request (10-1000)</span><input id="api-abuse-guard-max" type="number" min="10" max="1000" value="90" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="api_abuse_guard_window_label">Jendela Waktu (detik, 10-300)</span><input id="api-abuse-guard-window" type="number" min="10" max="300" value="60" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+    </div>
+    <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveApiAbuseGuardPolicy()" class="px-3 py-2 rounded-xl bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold"><span data-i18n="api_abuse_guard_btn_save">Simpan Kebijakan</span></button></div>
+    <div id="api-abuse-guard-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
+   </div>
   </div>
-  <div id="general-cleanup-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
- </div>
 
  <!-- v90.2.100: PANEL PADATKAN BARIS KOSONG -- Developer-only, preview lalu eksekusi. -->
  <div id="dev-compact-panel" class="hidden glass-card p-3.5 rounded-2xl border border-slate-700">
@@ -2407,6 +2587,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
     </h3>
     <p class="text-[11px] text-rose-200/80 font-medium">Kosongkan data operasional lama sambil mempertahankan struktur, konfigurasi, dan akun login.</p>
     <p class="text-[10px] text-slate-400 mt-1">Users, Credential, Roles, Permissions, RolePermissions, dan SecurityConfig tidak pernah tersedia sebagai target reset.</p>
+    <p class="text-[10px] text-slate-400 mt-1">Sessions, SecurityAuditLog, dan AuditTrail juga tidak pernah ikut ter-reset -- ketiganya dikelola terpisah lewat kebijakan Retention &amp; Archive di panel Cleanup Data (Developer) di atas, bukan lewat Reset Total ini.</p>
    </div>
    <div id="reset-project-status" class="text-[10px] text-slate-400 font-medium"></div>
   </div>
@@ -2415,6 +2596,10 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <div class="flex items-center justify-between gap-3 flex-wrap mb-2">
     <div class="text-[10px] font-bold uppercase tracking-wide text-slate-300">Data Operasional</div>
     <div class="text-[9px] text-slate-500">Default: TIDAK tercentang — pilih manual.</div>
+   </div>
+   <div id="reset-project-guard-hint" class="hidden mb-2 text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+    <i data-lucide="lock" class="w-3 h-3 shrink-0"></i>
+    <span>Retention &amp; Archive aktif -- 14 checkbox operasional (kecuali ChatLog) dikunci tercentang semua supaya Reset Total selalu full-wipe konsisten. Matikan toggle Retention di panel Cleanup Data kalau butuh reset parsial.</span>
    </div>
    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
     <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="BlockModel"> <span>BlockModel</span></label>
@@ -2456,10 +2641,12 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
 
  <!-- Riwayat Update digabung ke card Data Feed agar Settings lebih ringkas. -->
  </section>
+<!-- /ROLE -->
+
 </main>
 
 <!-- MODAL PANDUAN REKONSILIASI -->
-<div id="guide-rekonsiliasi-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden items-center justify-center p-4">
+<div id="guide-rekonsiliasi-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] hidden items-center justify-center p-4">
  <div class="glass-card modal-mobile w-full max-w-lg rounded-2xl p-6 flex flex-col max-h-[85vh] shadow-2xl border border-slate-700">
  <div class="flex justify-between items-center pb-3.5 border-b border-slate-700/60 mb-4 shrink-0">
   <div class="flex items-center gap-3">
@@ -2474,6 +2661,11 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   <button onclick="closeGuideModal()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer">
   <i data-lucide="x" class="w-4.5 h-4.5"></i>
   </button>
+ </div>
+
+ <div class="mb-3 shrink-0 p-2.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 flex items-center gap-2 text-[10px] text-indigo-200">
+  <i data-lucide="link" class="w-3.5 h-3.5 shrink-0 text-indigo-400"></i>
+  <span><span data-i18n="guide_pwa_url_label">URL aplikasi (produksi/PWA):</span> <span class="font-mono select-all text-indigo-300">https://yay460-jpg.github.io/portofolio/mine-geologist/</span></span>
  </div>
 
  <div class="flex-1 overflow-y-auto pr-1 space-y-2 text-xs">
@@ -2529,7 +2721,8 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
 
    <div>
     <p class="font-bold text-amber-400 text-[11px] mb-1.5" data-i18n="guide_step0_pertimbangan_title">⚠️ Perlu dipikirkan dulu, tergantung maksud "reset"</p>
-    <p data-i18n="guide_step0_pertimbangan_desc">Sheet Member (data KPI staf/karyawan) biasanya TETAP dipertahankan kalau yang direset cuma data tambang -- hapus hanya kalau memang mau ganti tim juga. Kalau memang ikut direset lewat fitur "Reset Total Pindah Proyek" (Settings, Developer-only), baris akun Developer otomatis dipertahankan, cuma anggota tim lain yang dikosongkan.</p>
+    <p data-i18n="guide_step0_pertimbangan_desc">Sheet Member (data KPI staf/karyawan) biasanya TETAP dipertahankan kalau yang direset cuma data tambang -- hapus hanya kalau memang mau ganti tim juga. Kalau memang ikut direset lewat fitur "Reset Total Pindah Proyek" (Settings, Developer-only), baris akun Developer otomatis dipertahankan, cuma anggota tim lain yang dikosongkan. Penting: sheet Users/Credential (identitas login) TIDAK PERNAH ikut ter-reset apapun pilihannya -- jadi setelah Reset Total, seluruh anggota tim TETAP BISA LOGIN normal pakai PIN yang sama, cuma data KPI di tab "KPI Member" akan tampil kosong sampai diisi ulang manual. Ini bukan bug.</p>
+   <p class="mt-2" data-i18n="guide_step0_retention_desc">Sheet Sessions, SecurityAuditLog, dan AuditTrail JUGA TIDAK PERNAH ikut ter-reset lewat Reset Total apapun pilihannya -- ketiganya dikelola terpisah lewat kebijakan Retention &amp; Archive di panel Cleanup Data (Developer). Kalau toggle "Aktifkan terjadwal" di Retention &amp; Archive sedang menyala, 14 checkbox sheet data operasional di bawah (semua kecuali ChatLog) otomatis terkunci tercentang semua supaya Reset Total selalu full-wipe konsisten -- matikan dulu toggle itu kalau Anda butuh reset sebagian saja.</p>
    </div>
 
    <div>
@@ -2722,12 +2915,32 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <p class="text-amber-300 font-semibold" data-i18n="guide_step10_p6">Catatan: ini adalah Security & Policy baseline v90.2.15. Hardening lanjutan seperti rate-limit/brute-force protection, rotasi token terjadwal, dan review permission berkala dapat ditambahkan sebagai tahap penguatan berikutnya tanpa mengubah alur kerja utama.</p>
    </div>
   </div>
+
+  <!-- BARU (22 Agu): Step 11 -- Deploy & Update PWA. Warna cyan (beda dari amber Step 10)
+  supaya kelihatan ini kategori checklist operasional deploy, bukan kebijakan security. -->
+  <div class="border border-cyan-600/40 rounded-xl overflow-hidden">
+   <button onclick="toggleGuideStep(11)" class="w-full flex items-center justify-between gap-2 p-3 bg-cyan-900/10 hover:bg-cyan-900/20 transition-all cursor-pointer text-left">
+   <div class="flex items-center gap-2.5">
+    <span class="w-6 h-6 rounded-full bg-cyan-600 text-white text-xs font-bold flex items-center justify-center shrink-0">11</span>
+    <span class="font-bold text-title text-xs" data-i18n="guide_step11_title">Deploy &amp; Update PWA -- Checklist Tiap Rilis</span>
+   </div>
+   <i id="guide-chevron-11" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform shrink-0"></i>
+   </button>
+   <div id="guide-content-11" class="hidden p-3 pt-0 text-[11px] text-slate-300 leading-relaxed space-y-2">
+   <p data-i18n="guide_step11_p1">BARU: dashboard ini sekarang punya Service Worker (file <code class="text-cyan-300">sw.js</code>, taruh di folder yang SAMA PERSIS dengan index.html) yang memunculkan toast "Versi baru tersedia" ke semua user begitu file di-update di GitHub -- ini yang sebelumnya TIDAK PERNAH ada di proyek ini.</p>
+   <p class="text-cyan-300 font-semibold" data-i18n="guide_step11_p2">WAJIB dilakukan SETIAP kali deploy versi baru (jangan sampai lupa, ini bukan otomatis):</p>
+   <p data-i18n="guide_step11_p3">1. Update nomor versi di baris <code class="text-cyan-300">const APP_VERSION</code> pada index.html (dashboard.html) seperti biasa.</p>
+   <p data-i18n="guide_step11_p4">2. Buka file <code class="text-cyan-300">sw.js</code>, ganti baris <code class="text-cyan-300">const CACHE_NAME = 'mine-geologist-vX.X.X';</code> supaya angkanya SAMA PERSIS dengan APP_VERSION yang baru. Kalau baris ini TIDAK diubah, browser akan menganggap sw.js "tidak berubah" (dibandingkan byte-per-byte) dan toast update TIDAK AKAN PERNAH muncul, walau index.html-nya sendiri sudah beda total.</p>
+   <p data-i18n="guide_step11_p5">3. Upload ULANG kedua file (index.html dan sw.js) ke folder yang sama di GitHub Pages. Tunggu sekitar 1 menit -- toast "Versi baru tersedia" akan muncul otomatis di pojok kanan bawah untuk semua user yang sedang membuka dashboard (desktop maupun Android), tanpa perlu reload paksa (user pilih sendiri kapan klik "Muat Ulang").</p>
+   <p data-i18n="guide_step11_p6">Catatan: Service Worker ini sengaja HANYA menyimpan cache untuk file statis (HTML shell, manifest, ikon) -- data live (dashboard, chat, RCA, dsb dari Google Sheets) TIDAK PERNAH ikut di-cache, selalu diambil segar dari server setiap saat.</p>
+   </div>
+  </div>
  </div>
  </div>
 </div>
 
 <!-- BARU (v89.16.24): MODAL FORM COGCONFIG (Developer Only) -->
-<div id="cogconfig-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] hidden items-center justify-center p-4">
+<div id="cogconfig-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] hidden items-center justify-center p-4">
  <div class="glass-card modal-mobile w-full max-w-md rounded-2xl p-6 flex flex-col max-h-[85vh] shadow-2xl border border-slate-700">
  <div class="flex justify-between items-center pb-3.5 border-b border-slate-700/60 mb-4 shrink-0">
   <div class="flex items-center gap-3">
@@ -3041,15 +3254,23 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   <h3 class="font-bold text-title text-base">Yaya</h3>
   <p class="text-slate-400 text-xs font-medium mb-1" data-i18n="dev_profile_role">Head Mine Geologist / Developer</p>
   <p class="text-slate-500 text-[11px] font-medium mb-5" data-i18n="dev_profile_desc">Merancang &amp; mengembangkan dashboard operasional tambang ini.</p>
-  <a target="_blank" rel="noopener" class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all cursor-pointer w-full">
+  <a href="https://yay460-jpg.github.io/portofolio/" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all cursor-pointer w-full">
   <i data-lucide="external-link" class="w-3.5 h-3.5"></i> <span data-i18n="dev_profile_view_full">Lihat Selengkapnya</span>
   </a>
+  <!-- BARU (23 Agu): info app -- tempat kita kontrol sendiri, isinya cuma nama app +
+       "Geobank Minerals" TANPA domain apapun (dikonfirmasi user pilih Opsi 1, biar tidak
+       ada info salah/menyesatkan seperti kalau pakai domain custom yang belum benar-benar
+       ada). Panel "App info" bawaan browser TETAP tampilkan domain asli apa adanya --
+       ini murni info TAMBAHAN, bukan pengganti panel bawaan itu. -->
+  <div class="mt-4 pt-4 border-t border-slate-700/60 flex items-center justify-center gap-2 text-slate-500 text-[11px] font-medium">
+   <i data-lucide="pickaxe" class="w-3 h-3"></i> <span data-i18n="dev_profile_app_info">Mine Geologist · Geobank Minerals</span>
+  </div>
  </div>
  </div>
 </div>
 
 <!-- MODAL DEVELOPER: PROVISION CREDENTIAL UNTUK USERS YANG BELUM MEMILIKI CREDENTIAL -->
-<div id="credential-manager-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden items-center justify-center p-4">
+<div id="credential-manager-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] hidden items-center justify-center p-4">
  <div class="glass-card modal-mobile w-full max-w-5xl rounded-2xl p-5 sm:p-6 max-h-[88vh] overflow-y-auto shadow-2xl border border-slate-700">
   <div class="flex items-start justify-between gap-4 mb-4">
    <div>
@@ -3496,8 +3717,9 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
    <p id="member-login-status" class="hidden text-xs font-medium leading-relaxed"></p>
    <div class="flex justify-end gap-2 pt-2 border-t border-slate-700/60">
     <button type="button" onclick="closeMemberLoginModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all cursor-pointer">Batal</button>
-    <button id="member-login-submit" type="submit" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all cursor-pointer">
-     <span>Masuk</span>
+    <button id="member-login-submit" type="submit" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/20 transition-all cursor-pointer inline-flex items-center justify-center gap-2 min-w-[86px]">
+     <span id="member-login-submit-label">Masuk</span>
+     <span id="member-login-spinner" class="login-btn-spinner hidden" aria-hidden="true"></span>
     </button>
    </div>
   </form>
@@ -4117,6 +4339,11 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
 </div>
 
 <script>
+ // BARU (23 Agu): inisialisasi state Sidebar Collapse SEBELUM lucide.createIcons()
+ // pertama kali jalan -- supaya ikon toggle & lebar sidebar sudah benar sejak render
+ // pertama, tidak ada "kedipan" salah sesaat. Fungsi didefinisikan di bawah (hoisting
+ // function declaration aman dalam 1 blok script yang sama).
+ initSidebarCollapseState();
  lucide.createIcons();
 
  const ORIGINAL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR_V7N6lGzP-YFgzLsc-yDhE2J5tgrCiwRfKJX48X3RQL6oxzwe87Jo2AchJP-x4zc-FXuo5R1GGYT5/pub?gid=1273255101&single=true&output=csv';
@@ -4178,6 +4405,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  let globalBargeSublotData = [];
  let globalRcaLogData = []; // RCA Log rekonsiliasi -- di-fetch bareng data Block Model saat tab Rekonsiliasi dibuka
  let globalPitActualData = []; // Pit Actual (Ritase x TF weighbridge) -- dipakai hitung F1/F2/F3/F4
+ let ewsAlertNotified = false; // BARU (Sidequest #3): flag transisi utk Suara & Haptik EWS -- lihat triggerEwsAlert()
  let currentOpenBargeShipment = null; // No Shipment yang sedang dibuka di detail modal
  let globalIssueRawData = [];
  let globalValidasiData = [];
@@ -4188,8 +4416,15 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  let globalCOGConfig = null;
  let globalBlockModelData = [];
  let globalChatData = [];
- let chatLastSeenCount = 0;
- const CHAT_POLL_INTERVAL = 6000; // 6 detik, lebih cepat dari data lain supaya terasa "live"
+ // FIX (23 Agu, ditemukan saat terapkan pagination chat limit=100 dari kiriman pihak
+ // lain -- BUG JUGA ADA di kiriman mereka, belum ditangani): SEBELUMNYA chatLastSeenCount
+ // dibandingkan lewat globalChatData.length -- begitu total chat lebih dari 100 pesan,
+ // panjang array SELALU mentok 100 (efek pagination baru), jadi badge notifikasi
+ // "pesan belum dibaca" bisa salah hitung (bisa-bisa selalu nunjuk 0 walau ada pesan
+ // baru). Diganti lacak _row (nomor baris sheet asli, monoton naik, TIDAK kepotong
+ // pagination) -- pola yang sama persis dgn fix hadNewMessages di fetchChatData().
+ let chatLastSeenRow = 0;
+ const CHAT_POLL_INTERVAL = 15000; // feed chat terbaru; polling hanya saat tab terlihat
  let pendingExportType = '';
  let rcaExportRequestId = 0;
  let rcaExportLoading = false;
@@ -4285,16 +4520,19 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   validasi_th_grade: "Class Grade",
   validasi_th_status: "Status",
   validasi_chart_title: "Rata-rata Ni % per Area",
+  validasi_view_chart: "Grafik",
+  validasi_view_tp: "TP",
+
   validasi_avg_note: "Nilai parameter di tabel ini adalah rata-rata dari semua kedalaman (1-5 meter) yang sudah diukur. Klik baris untuk lihat rincian per kedalaman.",
   validasi_th_koordinat: "Timur / Utara",
   validasi_th_warna: "Warna",
   validasi_th_struktur: "Struktur",
   validasi_th_average: "Rata-rata (1-5m)",
   digging_detail_bench: "Bench",
-  filter_all_pit: "Semua Pit",
+  filter_all_pit: "Pit",
   rekon_date_to: "s/d",
-  rekon_total_produksi: "Total Produksi",
-  rekon_total_terkirim: "Total Ter-assign",
+  rekon_total_produksi: "Produksi",
+  rekon_total_terkirim: "Ter-assign",
   periodic_report_title: "Laporan Berkala",
   periodic_report_subtitle: "Rangkuman rekonsiliasi siap kirim ke GM, pilih periode lalu Generate.",
   periodic_report_date_start: "Dari Tanggal",
@@ -4325,6 +4563,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   guide_title: "Panduan Rekonsiliasi (Developer)",
   guide_open_btn: "Lihat Panduan",
   guide_subtitle: "Urutan input dari hulu ke hilir -- pengingat kalau lupa cara pakai dashboard ini.",
+  guide_pwa_url_label: "URL aplikasi (produksi/PWA):",
   guide_step0_title: "Reset Data -- Sheet Mana Boleh Dikosongkan?",
   guide_step0_intro: "Kalau mau mulai dari nol (proyek/site baru, atau bersih-bersih data lama), tidak semua sheet boleh diperlakukan sama. Sebagian sheet cuma catatan histori lapangan (aman dikosongkan), sebagian lagi acuan/aturan yang dipakai sistem untuk menghitung (JANGAN dikosongkan, cuma boleh DIEDIT nilainya kalau perlu).",
   guide_step0_data_title: "✅ Sheet DATA -- aman dikosongkan (hapus baris data, HEADER tetap dibiarkan)",
@@ -4335,7 +4574,8 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   guide_step0_config_title: "🔒 Sheet CONFIG/MASTER -- JANGAN dikosongkan, hanya EDIT nilainya kalau perlu",
   guide_step0_config_list: "COGConfig (batas Waste/LG/MG/HG/VHG per Tipe Ore -- dikosongkan = Tabel Digging & KPI grade error/fallback default), DomeConfig (daftar Dome aktif -- dikosongkan = tidak ada Dome yang bisa dipilih saat Assign Tujuan), Changelog (riwayat rilis versi -- tidak terkait data tambang sama sekali).",
   guide_step0_pertimbangan_title: "⚠️ Perlu dipikirkan dulu, tergantung maksud \"reset\"",
-  guide_step0_pertimbangan_desc: "Sheet Member (data KPI staf/karyawan) biasanya TETAP dipertahankan kalau yang direset cuma data tambang -- hapus hanya kalau memang mau ganti tim juga. Kalau memang ikut direset lewat fitur \"Reset Total Pindah Proyek\" (Settings, Developer-only), baris akun Developer otomatis dipertahankan, cuma anggota tim lain yang dikosongkan.",
+  guide_step0_pertimbangan_desc: "Sheet Member (data KPI staf/karyawan) biasanya TETAP dipertahankan kalau yang direset cuma data tambang -- hapus hanya kalau memang mau ganti tim juga. Kalau memang ikut direset lewat fitur \"Reset Total Pindah Proyek\" (Settings, Developer-only), baris akun Developer otomatis dipertahankan, cuma anggota tim lain yang dikosongkan. Penting: sheet Users/Credential (identitas login) TIDAK PERNAH ikut ter-reset apapun pilihannya -- jadi setelah Reset Total, seluruh anggota tim TETAP BISA LOGIN normal pakai PIN yang sama, cuma data KPI di tab \"KPI Member\" akan tampil kosong sampai diisi ulang manual. Ini bukan bug.",
+  guide_step0_retention_desc: "Sheet Sessions, SecurityAuditLog, dan AuditTrail JUGA TIDAK PERNAH ikut ter-reset lewat Reset Total apapun pilihannya -- ketiganya dikelola terpisah lewat kebijakan Retention & Archive di panel Cleanup Data (Developer). Kalau toggle \"Aktifkan terjadwal\" di Retention & Archive sedang menyala, 14 checkbox sheet data operasional di bawah (semua kecuali ChatLog) otomatis terkunci tercentang semua supaya Reset Total selalu full-wipe konsisten -- matikan dulu toggle itu kalau Anda butuh reset sebagian saja.",
   guide_step0_urutan_title: "Urutan kalau benar-benar reset total",
   guide_step0_urutan_1: "1. Kosongkan sheet DATA (baris data saja, header tetap).",
   guide_step0_urutan_2: "2. Jangan sentuh COGConfig, DomeConfig, Changelog.",
@@ -4431,6 +4671,13 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  guide_step10_p4: "Policy data: sheet DATA boleh dikosongkan hanya saat reset yang memang direncanakan; sheet CONFIG/MASTER dan formula inti BlockModel tidak boleh dihapus sembarangan. Perubahan penting harus tetap dapat ditelusuri melalui log/session dan riwayat update.",
  guide_step10_p5: "Policy operasional: gunakan hak akses minimum yang diperlukan, selalu Logout setelah selesai, jangan meninggalkan session aktif di komputer bersama, dan lakukan review user/role/permission secara berkala. Jika ada anomali akses atau perubahan data yang tidak dikenal, hentikan penggunaan dan periksa log Security/Audit sebelum melakukan perubahan lebih lanjut.",
  guide_step10_p6: "Catatan: ini adalah Security & Policy baseline v90.2.15. Hardening lanjutan seperti rate-limit/brute-force protection, rotasi token terjadwal, dan review permission berkala dapat ditambahkan sebagai tahap penguatan berikutnya tanpa mengubah alur kerja utama.",
+ guide_step11_title: "Deploy & Update PWA -- Checklist Tiap Rilis",
+ guide_step11_p1: "BARU: dashboard ini sekarang punya Service Worker (file sw.js, taruh di folder yang SAMA PERSIS dengan index.html) yang memunculkan toast \"Versi baru tersedia\" ke semua user begitu file di-update di GitHub -- ini yang sebelumnya TIDAK PERNAH ada di proyek ini.",
+ guide_step11_p2: "WAJIB dilakukan SETIAP kali deploy versi baru (jangan sampai lupa, ini bukan otomatis):",
+ guide_step11_p3: "1. Update nomor versi di baris const APP_VERSION pada index.html (dashboard.html) seperti biasa.",
+ guide_step11_p4: "2. Buka file sw.js, ganti baris const CACHE_NAME = 'mine-geologist-vX.X.X'; supaya angkanya SAMA PERSIS dengan APP_VERSION yang baru. Kalau baris ini TIDAK diubah, browser akan menganggap sw.js \"tidak berubah\" (dibandingkan byte-per-byte) dan toast update TIDAK AKAN PERNAH muncul, walau index.html-nya sendiri sudah beda total.",
+ guide_step11_p5: "3. Upload ULANG kedua file (index.html dan sw.js) ke folder yang sama di GitHub Pages. Tunggu sekitar 1 menit -- toast \"Versi baru tersedia\" akan muncul otomatis di pojok kanan bawah untuk semua user yang sedang membuka dashboard (desktop maupun Android), tanpa perlu reload paksa (user pilih sendiri kapan klik \"Muat Ulang\").",
+ guide_step11_p6: "Catatan: Service Worker ini sengaja HANYA menyimpan cache untuk file statis (HTML shell, manifest, ikon) -- data live (dashboard, chat, RCA, dsb dari Google Sheets) TIDAK PERNAH ikut di-cache, selalu diambil segar dari server setiap saat.",
   blockmodel_title: "Block Model vs Actual",
   blockmodel_th_blok: "Blok",
   blockmodel_th_ni: "Ni % (Est -> Akt)",
@@ -4469,6 +4716,8 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   sync_connecting: "Menghubungkan...",
   session_idle_warning: "Sesi akan berakhir dalam sekitar {minutes} menit karena tidak ada aktivitas.",
   tooltip_refresh_data: "Refresh data manual dari Google Sheets",
+  tooltip_toggle_theme: "Ganti tema Dark/White",
+  tooltip_sidebar_collapse: "Ciutkan/Lebarkan Sidebar",
   tooltip_print_view: "Cetak tampilan halaman ini (khusus Developer)",
   tooltip_export_report: "Ekspor Laporan",
   tooltip_active_member: "Member aktif",
@@ -4479,7 +4728,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   tooltip_reset_filter: "Reset Filter Tanggal & Pit",
   tooltip_periodic_report: "Laporan Berkala",
   tooltip_professional_report: "Laporan Rekonsiliasi Profesional",
-  tooltip_toggle_chart: "Tampilkan/Sembunyikan Grafik",
+
   tooltip_cog: "Atur COG",
   tooltip_flag: "Atur Flag",
   tooltip_bucket: "Atur Bucket",
@@ -4495,14 +4744,15 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   member_empty: "Belum ada data member pada Google Sheets. Silakan isi form terlebih dahulu.",
   member_load_error: "Gagal memuat data member dari Google Sheets.",
   retry: "Coba Lagi (Retry)",
-  kpi_1: "TOTAL TONASE DIGGING",
+  kpi_1: "TOTAL DIGGING",
   kpi_1_sub: "Target Harian Tercapai",
   unit_ton: "Ton",
   kpi_2: "TOTAL ORE",
-  kpi_3: "RATA-RATA KADAR NI",
-  kpi_3_sub: "Target Minimum: 1.30% (Aman)",
-  kpi_3b: "RATA-RATA NI % (TANPA WASTE)",
+  kpi_3: "RATA-RATA NI %",
+  kpi_3_sub: "Target Min: 1.30% Aman",
+  kpi_3b: "RATA-RATA NI %",
   kpi_3b_sub: "Hanya Saprolit, Limonit & LG",
+  kpi_ore_sub: "Saprolit, Limonit & LG",
   kpi_4: "STRIP RATIO (SR)",
   chart_1_title: "Distribusi Material Per Blok",
  summary_bm_estimasi: "Total Estimasi Block Model",
@@ -4618,12 +4868,13 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   issue_box_1: "Open Issue",
   issue_box_2: "In Progress",
   issue_box_3: "Resolved",
-  issue_title: "Daftar Issue & Rekomendasi Action Operasional Tambang",
+  issue_title: "Daftar Issue & Rekomendasi Action Operasional",
   issue_filter_all: "Semua Status",
   issue_filter_open: "Open",
   issue_filter_progress: "In Progress",
   issue_filter_close: "Close / Resolved",
   btn_add_issue: "Issue Baru",
+  btn_delete_all_issue: "Hapus Semua",
   issue_th_date: "Tanggal & Waktu",
   issue_th_reporter: "Pelapor",
   issue_loc: "Lokasi",
@@ -4638,6 +4889,51 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   kpimember_desc: "Klik pada salah satu kartu karyawan untuk melihat detail lengkap absensi, kinerja, dan standar penilaian.",
   btn_form_member: "Form Member",
   loading_members: "Mengambil data member dari Google Sheets...",
+  leaderboard_title: "Leaderboard Geologist",
+  leaderboard_desc: "Peringkat berdasarkan Current Accuracy -- otomatis dihitung dari data KPI Member yang sama di atas.",
+  leaderboard_empty: "Belum ada member dengan Accuracy dalam format angka untuk diperingkat.",
+  leaderboard_col_accuracy: "Accuracy",
+  sublot_radar_title: "Chemical Fingerprint",
+  sublot_radar_desc: "Persentase Aktual terhadap Plan per unsur -- lingkaran putus-putus adalah acuan 100% (sama persis Plan).",
+  retention_title: "Retention & Archive",
+  retention_desc: "Sessions non-ACTIVE dihapus setelah 7 hari. SecurityAuditLog dan AuditTrail dipindahkan ke sheet archive setelah 90 hari.",
+  retention_enable_label: "Aktifkan terjadwal",
+  retention_sessions_label: "Sessions (hari)",
+  retention_security_label: "SecurityAuditLog (hari)",
+  retention_audit_label: "AuditTrail (hari)",
+  retention_chatlog_label: "ChatLog (opsional)",
+  retention_btn_save: "Simpan Kebijakan",
+  retention_btn_run: "Jalankan Sekarang",
+  session_cache_title: "Session Cache",
+  session_cache_desc: "Cache hasil validasi sesi selama beberapa detik supaya request beruntun (polling tab) tidak scan ulang Sessions/Users/Credential tiap kali. Tetap full re-validasi keamanan tiap cache-miss -- default OFF.",
+  session_cache_enable_label: "Aktifkan cache",
+  session_cache_ttl_label: "TTL Cache (detik, 5-60)",
+  session_cache_btn_save: "Simpan Kebijakan",
+  api_abuse_guard_title: "API Abuse Guard",
+  api_abuse_guard_desc: "Batasi jumlah request per sesi dalam rentang waktu tertentu -- melindungi token yang sudah login dari penyalahgunaan berulang (mis. token bocor dipakai spam request). Rate-limit login tetap berjalan terpisah. Default OFF.",
+  api_abuse_guard_enable_label: "Aktifkan guard",
+  api_abuse_guard_max_label: "Maks Request (10-1000)",
+  api_abuse_guard_window_label: "Jendela Waktu (detik, 10-300)",
+  api_abuse_guard_btn_save: "Simpan Kebijakan",
+  compact_card_title: "Padatkan Baris Kosong (Developer)",
+  compact_card_desc: "Hanya memadatkan baris yang benar-benar kosong. Header dan baris yang masih berisi data tidak disentuh.",
+  compact_sheet_label: "Sheet Target",
+  compact_preview_btn: "Preview",
+  compact_execute_btn: "Padatkan Sekarang",
+  compact_status_idle: "Pilih sheet lalu jalankan Preview. Tidak ada perubahan data pada tahap ini.",
+  compact_status_loading: "Memindai baris kosong...",
+  compact_status_none: "Sheet {sheet}: tidak ada baris kosong ditemukan dari {rows} baris data.",
+  compact_status_ready: "Ditemukan {count} baris kosong di sheet {sheet} (dari {rows} baris data): {list}",
+  compact_status_preview_required: "Jalankan Preview dulu sebelum memadatkan.",
+  compact_status_executing: "Memadatkan baris kosong...",
+  compact_status_success: "Sheet {sheet} berhasil dipadatkan. Sebelum: {before} baris, dihapus: {removed} baris kosong, sesudah: {after} baris.",
+  compact_error_prefix: "Gagal:",
+  compact_confirm_title: "Padatkan Baris Kosong",
+  compact_confirm_message: "Akan menghapus {count} baris kosong di sheet {sheet}. Baris yang masih berisi data TIDAK akan disentuh. Lanjutkan?",
+  pwa_update_title: "Versi baru tersedia",
+  pwa_update_desc: "Muat ulang untuk memakai versi terbaru dashboard ini.",
+  pwa_update_btn_reload: "Muat Ulang",
+  pwa_update_btn_dismiss: "Nanti Saja",
   lang_theme_settings_title: "Bahasa, Tema & Regional",
   lang_theme_settings_desc: "Atur bahasa, tampilan, timezone, dan format tanggal/waktu aplikasi.",
   regional_time_title: "Regional & Time",
@@ -4671,6 +4967,12 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   dev_console_credential_desc: "Buat Credential untuk User aktif yang belum memilikinya.",
   dev_console_manage: "Kelola",
   dev_console_cleanup: "Cleanup Data",
+  dev_cleanup_panel_title: "Cleanup Data (Developer)",
+  dev_cleanup_panel_desc: "Bersihkan sheet log tertentu -- sesi Developer yang sedang aktif selalu dipertahankan.",
+  dev_cleanup_btn_sessions: "Bersihkan Sessions",
+  dev_cleanup_btn_security: "Bersihkan SecurityAuditLog",
+  dev_cleanup_btn_audit: "Bersihkan AuditTrail",
+  retention_footer_note: "ChatLog default OFF. Reset Total tidak pernah menyentuh data keamanan atau archive.",
   dev_console_reset: "Reset Total — Pindah Proyek",
   dev_console_guide: "Panduan Rekonsiliasi",
   dev_console_parameters: "Parameter Global",
@@ -4702,6 +5004,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   dev_profile_role: "Head Mine Geologist / Developer",
   dev_profile_desc: "Merancang & mengembangkan dashboard operasional tambang ini.",
   dev_profile_view_full: "Lihat Selengkapnya",
+  dev_profile_app_info: "Mine Geologist · Geobank Minerals",
   preview_modal_title: "Pratinjau Ekspor Laporan",
   preview_modal_subtitle: "Periksa ringkasan data sebelum file diunduh.",
   preview_format: "Format File",
@@ -4845,6 +5148,9 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   validasi_th_grade: "Class Grade",
   validasi_th_status: "Status",
   validasi_chart_title: "Average Ni % per Area",
+  validasi_view_chart: "Chart",
+  validasi_view_tp: "TP",
+
   validasi_avg_note: "Values in this table are the average of all measured depths (1-5 meters). Click a row to see the per-depth breakdown.",
   validasi_th_koordinat: "East / North",
   validasi_th_warna: "Color",
@@ -4884,6 +5190,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   guide_title: "Reconciliation Guide (Developer)",
   guide_open_btn: "View Guide",
   guide_subtitle: "Input order from upstream to downstream -- a reminder in case you forget how to use this dashboard.",
+  guide_pwa_url_label: "App URL (production/PWA):",
   guide_step0_title: "Data Reset -- Which Sheets Can Be Cleared?",
   guide_step0_intro: "If starting from scratch (new project/site, or cleaning up old data), not all sheets should be treated the same. Some sheets are just field history logs (safe to clear), others are reference/rules the system uses for calculations (do NOT clear, only EDIT the values if needed).",
   guide_step0_data_title: "✅ DATA sheets -- safe to clear (delete data rows, keep the HEADER)",
@@ -4894,7 +5201,8 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   guide_step0_config_title: "🔒 CONFIG/MASTER sheets -- do NOT clear, only EDIT the values if needed",
   guide_step0_config_list: "COGConfig (Waste/LG/MG/HG/VHG thresholds per Ore Type -- clearing it breaks Digging Table & KPI grade calculations / falls back to defaults), DomeConfig (list of active Domes -- clearing it means no Dome can be selected when assigning a destination), Changelog (version release history -- unrelated to mining data at all).",
   guide_step0_pertimbangan_title: "⚠️ Needs thought first, depending on what \"reset\" means",
-  guide_step0_pertimbangan_desc: "The Member sheet (staff/employee KPI data) is usually kept if only mining data is being reset -- delete it only if the team is also changing. If it is included via the \"Full Project-Move Reset\" feature (Settings, Developer-only), Developer account rows are automatically preserved -- only other team members' rows are cleared.",
+  guide_step0_pertimbangan_desc: "The Member sheet (staff/employee KPI data) is usually kept if only mining data is being reset -- delete it only if the team is also changing. If it is included via the \"Full Project-Move Reset\" feature (Settings, Developer-only), Developer account rows are automatically preserved -- only other team members' rows are cleared. Important: the Users/Credential sheets (login identity) are NEVER reset regardless of your selection -- so after a Full Reset, every team member can STILL LOG IN normally with the same PIN, only the \"Member KPI\" tab will show empty until re-filled manually. This is not a bug.",
+  guide_step0_retention_desc: "The Sessions, SecurityAuditLog, and AuditTrail sheets are ALSO NEVER touched by Full Reset regardless of your selection -- all three are managed separately through the Retention & Archive policy in the Cleanup Data (Developer) panel. When the \"Enable scheduled run\" toggle in Retention & Archive is on, the 14 operational data checkboxes below (all except ChatLog) are automatically locked checked so Full Reset always stays a consistent full wipe -- turn that toggle off first if you need a partial reset instead.",
   guide_step0_urutan_title: "Order to follow for a full reset",
   guide_step0_urutan_1: "1. Clear the DATA sheets (data rows only, keep the header).",
   guide_step0_urutan_2: "2. Do not touch COGConfig, DomeConfig, Changelog.",
@@ -4990,6 +5298,13 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  guide_step10_p4: "Data policy: DATA sheets may only be cleared during an intentional reset; CONFIG/MASTER sheets and core BlockModel formulas must not be deleted casually. Important changes should remain traceable through session/security logs and the update history.",
  guide_step10_p5: "Operational policy: use the minimum access required, always Log Out when finished, do not leave an active session on a shared computer, and review users/roles/permissions periodically. If an access anomaly or unknown data change is found, stop and review Security/Audit logs before making further changes.",
  guide_step10_p6: "Note: this is the Security & Policy baseline v90.2.15. Further hardening such as rate-limit/brute-force protection, scheduled token rotation, and periodic permission review can be added as a future strengthening stage without changing the main workflow.",
+ guide_step11_title: "Deploy & PWA Update -- Checklist for Every Release",
+ guide_step11_p1: "NEW: this dashboard now has a Service Worker (sw.js file, place it in the SAME EXACT folder as index.html) that shows a \"New version available\" toast to every user as soon as the files are updated on GitHub -- this never existed in this project before.",
+ guide_step11_p2: "MUST be done EVERY time you deploy a new version (don't forget, this is not automatic):",
+ guide_step11_p3: "1. Update the version number in the const APP_VERSION line in index.html (dashboard.html) as usual.",
+ guide_step11_p4: "2. Open the sw.js file and change the const CACHE_NAME = 'mine-geologist-vX.X.X'; line so the number EXACTLY matches the new APP_VERSION. If this line is NOT changed, the browser will consider sw.js \"unchanged\" (compared byte-for-byte) and the update toast will NEVER appear, even though index.html itself is completely different.",
+ guide_step11_p5: "3. Re-upload BOTH files (index.html and sw.js) to the same folder on GitHub Pages. Wait about 1 minute -- the \"New version available\" toast will automatically appear in the bottom-right corner for every user with the dashboard open (desktop or Android), without forcing a reload (the user chooses when to click \"Reload\").",
+ guide_step11_p6: "Note: this Service Worker deliberately caches ONLY static files (HTML shell, manifest, icons) -- live data (dashboard, chat, RCA, etc. from Google Sheets) is NEVER cached, and is always fetched fresh from the server every time.",
   blockmodel_title: "Block Model vs Actual",
   blockmodel_th_blok: "Block",
   blockmodel_th_ni: "Ni % (Est -> Act)",
@@ -5028,6 +5343,8 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   sync_connecting: "Connecting...",
   session_idle_warning: "Session will end in about {minutes} minutes due to inactivity.",
   tooltip_refresh_data: "Manually refresh data from Google Sheets",
+  tooltip_toggle_theme: "Toggle Dark/White theme",
+  tooltip_sidebar_collapse: "Collapse/Expand Sidebar",
   tooltip_print_view: "Print this page view (Developer only)",
   tooltip_export_report: "Export Report",
   tooltip_active_member: "Active member",
@@ -5038,7 +5355,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   tooltip_reset_filter: "Reset Date & Pit Filter",
   tooltip_periodic_report: "Periodic Report",
   tooltip_professional_report: "Professional Reconciliation Report",
-  tooltip_toggle_chart: "Show/Hide Chart",
+
   tooltip_cog: "Configure COG",
   tooltip_flag: "Configure Flag",
   tooltip_bucket: "Configure Bucket",
@@ -5062,6 +5379,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   kpi_3_sub: "Minimum Target: 1.30% (Safe)",
   kpi_3b: "AVERAGE NI % (EXCLUDING WASTE)",
   kpi_3b_sub: "Saprolite, Limonite & LG only",
+  kpi_ore_sub: "Saprolite, Limonite & LG",
   kpi_4: "STRIP RATIO (SR)",
   chart_1_title: "Material Distribution Per Block",
  summary_bm_estimasi: "Total Block Model Estimate",
@@ -5183,6 +5501,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   issue_filter_progress: "In Progress",
   issue_filter_close: "Close / Resolved",
   btn_add_issue: "New Issue",
+  btn_delete_all_issue: "Delete All",
   issue_th_date: "Date & Time",
   issue_th_reporter: "Reporter",
   issue_loc: "Location",
@@ -5197,6 +5516,51 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   kpimember_desc: "Click on a member card to view full attendance, performance, and grading detail.",
   btn_form_member: "Member Form",
   loading_members: "Fetching member data from Google Sheets...",
+  leaderboard_title: "Geologist Leaderboard",
+  leaderboard_desc: "Ranked by Current Accuracy -- automatically calculated from the same KPI Member data above.",
+  leaderboard_empty: "No members with a numeric Accuracy value to rank yet.",
+  leaderboard_col_accuracy: "Accuracy",
+  sublot_radar_title: "Chemical Fingerprint",
+  sublot_radar_desc: "Actual as a percentage of Plan per element -- the dashed circle is the 100% reference (exact match with Plan).",
+  retention_title: "Retention & Archive",
+  retention_desc: "Non-ACTIVE Sessions are deleted after 7 days. SecurityAuditLog and AuditTrail are moved to the archive sheet after 90 days.",
+  retention_enable_label: "Enable scheduled run",
+  retention_sessions_label: "Sessions (days)",
+  retention_security_label: "SecurityAuditLog (days)",
+  retention_audit_label: "AuditTrail (days)",
+  retention_chatlog_label: "ChatLog (optional)",
+  retention_btn_save: "Save Policy",
+  retention_btn_run: "Run Now",
+  session_cache_title: "Session Cache",
+  session_cache_desc: "Caches session validation results for a few seconds so back-to-back requests (tab polling) don't re-scan Sessions/Users/Credential every time. Still fully re-validates security on every cache miss -- default OFF.",
+  session_cache_enable_label: "Enable cache",
+  session_cache_ttl_label: "Cache TTL (seconds, 5-60)",
+  session_cache_btn_save: "Save Policy",
+  api_abuse_guard_title: "API Abuse Guard",
+  api_abuse_guard_desc: "Limits requests per session within a time window -- protects logged-in tokens from repeated abuse (e.g. a leaked token used to spam requests). Login rate-limit still runs separately. Default OFF.",
+  api_abuse_guard_enable_label: "Enable guard",
+  api_abuse_guard_max_label: "Max requests (10-1000)",
+  api_abuse_guard_window_label: "Time window (seconds, 10-300)",
+  api_abuse_guard_btn_save: "Save Policy",
+  compact_card_title: "Compact Blank Rows (Developer)",
+  compact_card_desc: "Only compacts rows that are completely empty. Headers and rows still containing data are left untouched.",
+  compact_sheet_label: "Target Sheet",
+  compact_preview_btn: "Preview",
+  compact_execute_btn: "Compact Now",
+  compact_status_idle: "Select a sheet then run Preview. No data is changed at this stage.",
+  compact_status_loading: "Scanning for blank rows...",
+  compact_status_none: "Sheet {sheet}: no blank rows found out of {rows} data rows.",
+  compact_status_ready: "Found {count} blank rows in sheet {sheet} (out of {rows} data rows): {list}",
+  compact_status_preview_required: "Run Preview first before compacting.",
+  compact_status_executing: "Compacting blank rows...",
+  compact_status_success: "Sheet {sheet} compacted successfully. Before: {before} rows, removed: {removed} blank rows, after: {after} rows.",
+  compact_error_prefix: "Failed:",
+  compact_confirm_title: "Compact Blank Rows",
+  compact_confirm_message: "This will delete {count} blank rows in sheet {sheet}. Rows still containing data will NOT be touched. Continue?",
+  pwa_update_title: "New version available",
+  pwa_update_desc: "Reload to use the latest version of this dashboard.",
+  pwa_update_btn_reload: "Reload",
+  pwa_update_btn_dismiss: "Later",
   lang_theme_settings_title: "Language, Theme & Regional",
   lang_theme_settings_desc: "Set the language, appearance, timezone, and application date/time format.",
   regional_time_title: "Regional & Time",
@@ -5230,6 +5594,12 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   dev_console_credential_desc: "Create Credentials for active Users who do not have one yet.",
   dev_console_manage: "Manage",
   dev_console_cleanup: "Cleanup Data",
+  dev_cleanup_panel_title: "Cleanup Data (Developer)",
+  dev_cleanup_panel_desc: "Clear specific log sheets -- the Developer's own active session is always preserved.",
+  dev_cleanup_btn_sessions: "Clear Sessions",
+  dev_cleanup_btn_security: "Clear SecurityAuditLog",
+  dev_cleanup_btn_audit: "Clear AuditTrail",
+  retention_footer_note: "ChatLog defaults to OFF. Full Reset never touches security or archive data.",
   dev_console_reset: "Reset Total — Project Move",
   dev_console_guide: "Reconciliation Guide",
   dev_console_parameters: "Global Parameters",
@@ -5261,6 +5631,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   dev_profile_role: "Head Mine Geologist / Developer",
   dev_profile_desc: "Designed & developed this mining operations dashboard.",
   dev_profile_view_full: "View More",
+  dev_profile_app_info: "Mine Geologist · Geobank Minerals",
   preview_modal_title: "Report Export Preview",
   preview_modal_subtitle: "Check data summary before downloading file.",
   preview_format: "File Format",
@@ -5396,7 +5767,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   if (typeof renderMonthlyTrend === 'function') renderMonthlyTrend();
 
   titleText.innerText = currentLang === 'en' ? 'Month-over-Month Trend' : 'Tren Bulan ke Bulan';
-  activeDesc.innerText = currentLang === 'en' ? 'Automatic comparison of tonnage & average Ni% between this month and the previous month, plus the last 6 months trend.' : 'Perbandingan otomatis tonase & rata-rata Ni% antara bulan ini dengan bulan lalu, plus tren 6 bulan terakhir.';
+  activeDesc.innerText = currentLang === 'en' ? 'Automatic comparison of tonnage & average Ni% between this month and the previous month, plus the last 6 months trend.' : 'Perbandingan otomatis tonase & rata-rata Ni%, plus tren 6 bulan terakhir.';
   activeIcon.setAttribute('data-lucide', 'calendar-range');
  }
  lucide.createIcons();
@@ -5555,7 +5926,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   wrapPending.classList.remove('hidden');
 
   titleText.innerText = currentLang === 'en' ? 'Rows Without an Assigned Destination' : 'Baris Belum Ter-assign Tujuan';
-  activeDesc.innerText = currentLang === 'en' ? 'Rows with an empty Destination. Sorted by longest waiting time, click to update via the Destination & Shipping ID popup.' : 'Baris yang tujuan kosong. Diurutkan yang paling lama menunggu, klik untuk update popup Tujuan & ID Pengapalan.';
+  activeDesc.innerText = currentLang === 'en' ? 'Rows with an empty Destination. Sorted by longest waiting time, click to update via the Destination & Shipping ID popup.' : 'Baris tujuan kosong. Diurutkan yang lama menunggu, klik update popup Tujuan & ID Pengapalan.';
   activeIcon.setAttribute('data-lucide', 'alert-circle');
  } else if (viewType === 'blockmodel') {
   btnBlockmodel.className = activeClass('bg-rose-600');
@@ -6261,12 +6632,35 @@ window.addEventListener('afterprint', function() {
  return !!localStorage.getItem('mine_dev_token');
  }
 
+ // BARU (22 Agu): fallback avatar sidebar bertingkat -- Google Drive (utama) gagal ->
+ // foto lokal GitHub (avatar-yaya.png, di folder yang sama dgn index.html) -> avatar
+ // generik ui-avatars.com sbg jaring pengaman terakhir. Pakai fungsi terpisah + penanda
+ // tahap (data-fallback-stage) -- BUKAN onerror inline berantai -- supaya kalau SEMUA
+ // sumber gagal sekaligus (kasus sangat jarang), tidak terjadi infinite loop request.
+ function handleSidebarAvatarError(imgEl) {
+ const stage = imgEl.dataset.fallbackStage || '0';
+ if (stage === '0') {
+  imgEl.dataset.fallbackStage = '1';
+  imgEl.src = './avatar-yaya.png';
+ } else if (stage === '1') {
+  imgEl.dataset.fallbackStage = '2';
+  imgEl.src = 'https://ui-avatars.com/api/?name=Yaya&background=2563eb&color=fff';
+ }
+ // stage 2: sudah di fallback terakhir -- kalau ini juga gagal, dibiarkan (kasus
+ // ekstrem: foto lokal belum ke-upload DAN API ui-avatars.com sedang down bersamaan).
+ }
+
  // Kontrol akses fitur Dome -- sengaja 2 fungsi terpisah (assign vs lihat riwayat), bukan 1
  // pengecekan yang dipakai berulang -- supaya kalau nanti mau diubah (misal riwayat dibuka
  // untuk semua member tapi assign tetap dikunci developer), cukup ubah DI SINI SAJA, tidak
  // perlu bongkar ulang semua tempat yang memakainya. Saat ini keduanya sama: developer-only.
+ // v90.2.104: Update Tujuan EFO/ETO/Disposal -- dibuka utk Developer+Supervisor,
+ // sama pola dengan canCreateRca(). Matching permission granular server-side
+ // 'digging.destination.update' (updatediggingids sudah dikeluarkan dari daftar
+ // isDeveloperProtectedAction_ di backend). Server-side tetap otoritas akhir.
  function canAssignDome() {
- return isDeveloperUnlocked();
+ const role = String(getCurrentExportRole() || '').trim().toUpperCase();
+ return role === 'DEVELOPER' || role === 'SUPERVISOR';
  }
  function canViewDomeHistory() {
  return isDeveloperUnlocked();
@@ -6314,15 +6708,38 @@ window.addEventListener('afterprint', function() {
  const btnIssueDeleteAll = document.getElementById('btn-issue-delete-all');
  const devCleanupPanel = document.getElementById('dev-cleanup-panel');
  const panelResetProject = document.getElementById('panel-reset-project');
+ const sidebarDevIdentityCard = document.getElementById('sidebar-dev-identity-card');
  const unlocked = isDeveloperUnlocked();
+
+ // BARU (22 Agu): kartu identitas Developer di sidebar bawah -- muncul HANYA saat
+ // Developer Access ter-unlock (PIN benar), hilang total saat locked/logout. Pakai
+ // pola add/remove 'flex' eksplisit (bukan cuma toggle 'hidden') -- konsisten dgn
+ // showModalAnimated/hideModalAnimated di file ini, krn elemen ini butuh display:flex
+ // (items-center) begitu ditampilkan, bukan display default div.
+ if (sidebarDevIdentityCard) {
+  if (unlocked) {
+   sidebarDevIdentityCard.classList.remove('hidden');
+   sidebarDevIdentityCard.classList.add('flex');
+  } else {
+   sidebarDevIdentityCard.classList.add('hidden');
+   sidebarDevIdentityCard.classList.remove('flex');
+  }
+ }
 
  if (panelResetProject) {
   panelResetProject.classList.toggle('hidden', !unlocked);
  }
 
  if (devCleanupPanel) {
-  devCleanupPanel.classList.toggle('hidden', !unlocked);
- }
+   devCleanupPanel.classList.toggle('hidden', !unlocked);
+   if (unlocked && devCleanupPanel.dataset.retentionLoaded !== '1') {
+    devCleanupPanel.dataset.retentionLoaded = '1';
+    loadRetentionPolicy();
+    loadSessionCachePolicy();
+    loadApiAbuseGuardPolicy();
+   }
+   if (!unlocked) devCleanupPanel.dataset.retentionLoaded = '';
+  }
 
  if (btnChatDeleteAll) {
   btnChatDeleteAll.classList.toggle('hidden', !unlocked);
@@ -6430,6 +6847,31 @@ window.addEventListener('afterprint', function() {
   hideModalAnimated(modal);
  }
 
+ function setLoginButtonLoading(buttonId, spinnerId, loading, labelId, loadingLabel) {
+  const button = document.getElementById(buttonId);
+  const spinner = document.getElementById(spinnerId);
+  const label = labelId ? document.getElementById(labelId) : null;
+  if (!button) return;
+  button.disabled = !!loading;
+  button.classList.toggle('opacity-60', !!loading);
+  button.classList.toggle('cursor-wait', !!loading);
+  if (spinner) spinner.classList.toggle('hidden', !loading);
+  // Developer uses a circular lock button: hide the lock icon while the spinner is active
+  // so the two glyphs never overlap. Member keeps its text label + spinner behavior.
+  if (buttonId === 'dev-login-submit') {
+   const lockIcon = document.getElementById('dev-login-lock-icon');
+   if (lockIcon) lockIcon.classList.toggle('hidden', !!loading);
+  }
+  if (label && loadingLabel) {
+   if (loading) {
+    if (!label.dataset.idleText) label.dataset.idleText = label.textContent;
+    label.textContent = loadingLabel;
+   } else if (label.dataset.idleText) {
+    label.textContent = label.dataset.idleText;
+   }
+  }
+ }
+
  async function unlockDeveloperAccess() {
   const loginInput=document.getElementById('dev-login-id-input');
   const emailInput=document.getElementById('dev-email-input');
@@ -6441,10 +6883,10 @@ window.addEventListener('afterprint', function() {
   input.disabled=true;
   if (loginInput) loginInput.disabled=true;
   if (emailInput) emailInput.disabled=true;
-  showAppLoading(translations[currentLang].dev_loading_title, translations[currentLang].dev_loading_message);
+  setLoginButtonLoading('dev-login-submit','dev-login-spinner',true);
   try {
    const payload=new URLSearchParams({action:'verifyDevPin',login_id:login_id,email:email,pin:pin,client_info:navigator.userAgent.slice(0,180)});
-   const response=await fetch(GOOGLE_SCRIPT_READ_URL,{method:'POST',body:payload});
+   const response=await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL,{method:'POST',body:payload},20000);
    const result=await response.json();
    if(result.success&&result.token){
     localStorage.setItem('mine_dev_token',result.token);
@@ -6456,28 +6898,40 @@ window.addEventListener('afterprint', function() {
     input.value='';
     errorMsg.classList.add('hidden');
     updateDeveloperAccessUI();
-    hideAppLoading();
     openDeveloperConsoleModal();
     // Refresh Member grid tetap berjalan di belakang; jangan menahan pembukaan console.
     loadMembersFromSheet().catch(function(err){ console.warn('Refresh Member grid setelah Developer login ditunda/gagal:',err); });
    } else {
     errorMsg.textContent=result.message||(currentLang==='en'?'Developer login failed.':'Login Developer gagal.');
     errorMsg.classList.remove('hidden');
-    hideAppLoading();
    }
   } catch(error) {
    console.error('Error login:',error);
    errorMsg.textContent=currentLang==='en'?'Could not reach server. Try again.':'Tidak bisa menghubungi server. Coba lagi.';
    errorMsg.classList.remove('hidden');
-   hideAppLoading();
   } finally {
    input.disabled=false;
    if (loginInput) loginInput.disabled=false;
    if (emailInput) emailInput.disabled=false;
+   setLoginButtonLoading('dev-login-submit','dev-login-spinner',false);
   }
  }
 
- async function refreshSecuritySession(){const token=localStorage.getItem('mine_dev_token');if(!token){updateDeveloperAccessUI();return;}try{const response=await fetch(GOOGLE_SCRIPT_READ_URL,{method:'POST',body:new URLSearchParams({action:'validateSession',sessionToken:token})});const result=await response.json();if(!result.success){localStorage.removeItem('mine_dev_token');localStorage.removeItem('mine_dev_session_id');localStorage.removeItem('mine_dev_expires_at');localStorage.removeItem('mine_user_id');localStorage.removeItem('mine_role_id');localStorage.removeItem('mine_user_name');}}catch(e){console.warn('Session validation skipped:',e);}updateDeveloperAccessUI();}
+  // Developer uses the same serialized-client-session discipline as Member.
+  // The token equality guard also protects two tabs: a stale response may not
+  // clear a token that another request has already rotated successfully.
+  let developerSessionOperationChain = Promise.resolve();
+  function queueDeveloperSessionOperation(task) {
+   const run = developerSessionOperationChain.then(task, task);
+   developerSessionOperationChain = run.catch(function(){});
+   return run;
+  }
+  function clearDeveloperSessionStorageIfCurrent(token) {
+   if (token && (localStorage.getItem('mine_dev_token') || '').trim() !== token) return false;
+   ['mine_dev_token','mine_dev_session_id','mine_dev_expires_at','mine_user_id','mine_role_id','mine_user_name'].forEach(function(key){localStorage.removeItem(key);});
+   return true;
+  }
+  async function refreshSecuritySession(){return queueDeveloperSessionOperation(async function(){const token=(localStorage.getItem('mine_dev_token')||'').trim();if(!token){updateDeveloperAccessUI();return false;}try{const response=await fetch(GOOGLE_SCRIPT_READ_URL,{method:'POST',body:new URLSearchParams({action:'validateSession',sessionToken:token})});const result=await response.json();if(!result.success)clearDeveloperSessionStorageIfCurrent(token);updateDeveloperAccessUI();return !!result.success;}catch(e){console.warn('Session validation skipped:',e);updateDeveloperAccessUI();return false;}});}
 
  async function lockDeveloperAccess(){
   closeDeveloperConsoleModal();
@@ -6673,7 +7127,11 @@ async function rotateStoredSession(storagePrefix, tokenKey, expiresKey, sessionK
     if (!result.success || !result.token) {
       const msg = String(result && result.message || '').toLowerCase();
       if (msg.includes('tidak valid') || msg.includes('tidak aktif') || msg.includes('expired') || msg.includes('kedaluwarsa') || msg.includes('session tidak ditemukan')) {
-        [tokenKey, expiresKey, sessionKey].forEach(function(key) { localStorage.removeItem(key); });
+        // A failed request may carry a stale token while another tab/request
+        // has already rotated and stored a newer one. Never clear that token.
+        if ((localStorage.getItem(tokenKey) || '').trim() === token) {
+          [tokenKey, expiresKey, sessionKey].forEach(function(key) { localStorage.removeItem(key); });
+        }
         if (storagePrefix === 'member') renderMemberSessionAvatar();
         if (storagePrefix === 'developer') updateDeveloperAccessUI();
       }
@@ -6684,7 +7142,17 @@ async function rotateStoredSession(storagePrefix, tokenKey, expiresKey, sessionK
     if (result.expires_at) localStorage.setItem(expiresKey, result.expires_at);
     if (storagePrefix === 'member') renderMemberSessionAvatar();
     if (storagePrefix === 'developer') updateDeveloperAccessUI();
-    window[rotationStateKey] = Date.now();
+    // BUGFIX (22 Agu): baris lama "window[rotationStateKey] = Date.now();" menulis ke
+    // properti window BARU yang tidak nyambung ke variabel `let lastMemberTokenRotationAt`/
+    // `let lastDeveloperTokenRotationAt` di atas (deklarasi `let` di scope script TIDAK
+    // otomatis jadi properti window, beda dgn `var`) -- akibatnya penanda "kapan terakhir
+    // dirotasi" TIDAK PERNAH ter-update, gerbang 15 menit jadi selalu lolos begitu tab
+    // kembali fokus (visibilitychange), menyebabkan rotasi berulang tiap 30-90 detik
+    // alih-alih tiap 15 menit sekali. Perbaikan: tulis LANGSUNG ke variabel lexical yang
+    // sesuai (bukan lewat window[...] bracket) supaya benar-benar terbaca oleh
+    // rotateActiveSecurityTokens() di atas.
+    if (rotationStateKey === 'lastMemberTokenRotationAt') lastMemberTokenRotationAt = Date.now();
+    else if (rotationStateKey === 'lastDeveloperTokenRotationAt') lastDeveloperTokenRotationAt = Date.now();
     return true;
   } catch (error) {
     // Network failure bukan alasan untuk menghapus session; request berikutnya tetap memakai token terakhir.
@@ -6706,7 +7174,11 @@ async function rotateActiveSecurityTokens() {
     });
   }
   if (localStorage.getItem('mine_dev_token') && now - lastDeveloperTokenRotationAt >= TOKEN_ROTATION_INTERVAL_MS) {
-    await rotateStoredSession('developer', 'mine_dev_token', 'mine_dev_expires_at', 'mine_dev_session_id', 'lastDeveloperTokenRotationAt');
+    await queueDeveloperSessionOperation(async function() {
+      if (localStorage.getItem('mine_dev_token')) {
+        await rotateStoredSession('developer', 'mine_dev_token', 'mine_dev_expires_at', 'mine_dev_session_id', 'lastDeveloperTokenRotationAt');
+      }
+    });
   }
 }
 
@@ -6831,6 +7303,9 @@ async function logoutMemberSession(event) {
   ].forEach(key => localStorage.removeItem(key));
 
   renderMemberSessionAvatar();
+  // v90.2.104: sama seperti login, refresh tombol role-gated setelah logout supaya
+  // tombol yang tadinya muncul (mis. Update Tujuan utk Supervisor) ikut disembunyikan.
+  updateDeveloperAccessUI();
   await loadMembersFromSheet();
 }
 
@@ -6908,7 +7383,7 @@ async function logoutMemberSession(event) {
 
   memberLoginInFlight = true;
   if (submitBtn) { submitBtn.disabled = true; submitBtn.classList.add('opacity-60', 'cursor-wait'); }
-  showAppLoading(translations[currentLang].member_loading_title, translations[currentLang].member_loading_message);
+  setLoginButtonLoading('member-login-submit','member-login-spinner',true,'member-login-submit-label',currentLang === 'en' ? 'Checking...' : 'Memeriksa...');
   setMemberLoginStatus(currentLang === 'en' ? 'Checking member account...' : 'Memeriksa akun member...', true);
 
   try {
@@ -6919,7 +7394,7 @@ async function logoutMemberSession(event) {
     pin: pin,
     client_info: navigator.userAgent.slice(0, 180)
    });
-   const response = await fetch(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload });
+   const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload }, 20000);
    const result = await response.json();
 
    if (!result.success || !result.token) {
@@ -6948,6 +7423,10 @@ async function logoutMemberSession(event) {
    localStorage.setItem('mine_member_must_change_pin', result.must_change_pin ? '1' : '0');
 
    renderMemberSessionAvatar();
+   // v90.2.104: refresh tombol role-gated (Catat RCA, Update Tujuan, dst) segera setelah
+   // login Member/Supervisor -- sebelumnya baru muncul setelah reload halaman karena
+   // updateDeveloperAccessUI() tidak pernah dipanggil di sini.
+   updateDeveloperAccessUI();
    setMemberLoginStatus((currentLang === 'en' ? 'Logged in as ' : 'Login berhasil sebagai ') + (result.user_name || result.login_id || login_id) + '.', true);
    // v90.2.63: jangan menahan penyelesaian login menunggu pembacaan ulang seluruh
    // daftar Member. Session sudah tersimpan dan UI utama dapat langsung dipakai;
@@ -6959,7 +7438,7 @@ async function logoutMemberSession(event) {
    console.error('Error login member:', error);
    setMemberLoginStatus(currentLang === 'en' ? 'Could not reach server. Try again.' : 'Tidak bisa menghubungi server. Coba lagi.', false);
   } finally {
-   hideAppLoading();
+   setLoginButtonLoading('member-login-submit','member-login-spinner',false,'member-login-submit-label');
    memberLoginInFlight = false;
    // Jangan menghidupkan kembali tombol bila countdown server/local masih aktif.
    // Sebelumnya finally selalu meng-enable tombol, sehingga saat rate-limit/lockout
@@ -8060,7 +8539,7 @@ async function provisionExistingCredential(index, userId) {
  if (!canAssignDome()) {
   showNoticeModal(
   currentLang === 'en' ? 'Locked' : 'Terkunci',
-  currentLang === 'en' ? 'Unlock "Developer Access" in the Settings menu with the Developer PIN first to update Destination & Dome assignment.' : 'Buka "Akses Developer" di menu Settings dengan PIN Developer terlebih dahulu untuk mengubah Tujuan & assign Dome.'
+  currentLang === 'en' ? 'Log in as Developer or Supervisor first to update Destination & Dome assignment.' : 'Login sebagai Developer atau Supervisor terlebih dahulu untuk mengubah Tujuan & assign Dome.'
   );
   return;
  }
@@ -8496,6 +8975,11 @@ async function provisionExistingCredential(index, userId) {
 
  function renderBargeShipmentList() {
  const listEl = document.getElementById('barge-shipment-list');
+ // DIBUAT DEFENSIF (Split 3 Dashboard, 23 Agu): elemen ini hidup di tab-barging, tidak
+ // ada di dashboard Member. Fungsi ini dipanggil dari blok i18n dynamic-refresh bersama
+ // beberapa render lain (Chat, RCA Log, dst) -- kalau throw di sini tanpa guard, SEMUA
+ // render sesudahnya di blok yang sama ikut batal setiap kali Member ganti bahasa.
+ if (!listEl) return;
  if (globalBargeShipmentData.length === 0) {
   listEl.innerHTML = `<p class="text-[11px] text-slate-500 font-medium">${currentLang === 'en' ? 'No shipments yet.' : 'Belum ada shipment.'}</p>`;
   return;
@@ -8659,9 +9143,12 @@ async function provisionExistingCredential(index, userId) {
   tableEl.innerHTML = `<p class="text-[11px] text-slate-500 font-medium">${currentLang === 'en' ? 'No sublot data yet.' : 'Belum ada data Sublot.'}</p>`;
   return;
  }
- const rowsHtml = rows.map(r => `
+ const rowsHtml = rows.map(r => {
+  const safeSublot = String(r.no_sublot || '').replace(/'/g, "\\'");
+  const safeShipment = String(r.no_shipment || '').replace(/'/g, "\\'");
+  return `
   <tr>
-  <td class="p-2 font-semibold text-title">${r.no_sublot}</td>
+  <td class="p-2 font-semibold text-title">${r.no_sublot} <button type="button" onclick="openSublotRadarModal('${safeSublot}', '${safeShipment}')" title="${currentLang === 'en' ? 'Chemical Fingerprint' : 'Chemical Fingerprint'}" class="ml-1 inline-flex items-center justify-center w-4.5 h-4.5 rounded bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 transition-all cursor-pointer align-middle"><i data-lucide="activity" class="w-2.5 h-2.5"></i></button></td>
   <td class="p-2 text-right">${(r.tonase_plan || 0).toLocaleString()}</td>
   <td class="p-2 text-center text-slate-300">${(r.ni_plan || 0).toFixed(2)}%</td>
   <td class="p-2 text-right">${(r.tonase_aktual || 0).toLocaleString()}</td>
@@ -8669,7 +9156,8 @@ async function provisionExistingCredential(index, userId) {
   <td class="p-2 text-center ${Math.abs(r.disc_ni || 0) > 0.1 ? 'text-amber-400' : 'text-slate-300'}">${(r.disc_ni || 0).toFixed(3)}</td>
   <td class="p-2 text-center ${Math.abs(r.disc_sio2_mgo || 0) > 0.2 ? 'text-amber-400' : 'text-slate-300'}">${(r.disc_sio2_mgo || 0).toFixed(3)}</td>
   </tr>
- `).join('');
+ `;
+ }).join('');
  tableEl.innerHTML = `<table class="w-full text-[11px]">
   <thead><tr class="text-slate-500 border-b border-slate-700/50 text-left">
   <th class="p-2">Sublot</th>
@@ -8682,6 +9170,97 @@ async function provisionExistingCredential(index, userId) {
   </tr></thead>
   <tbody class="divide-y divide-slate-800/50">${rowsHtml}</tbody>
  </table>`;
+ lucide.createIcons();
+ }
+
+ // BARU (Sidequest #5): Radar Chart Chemical Fingerprint -- lihat komentar di HTML modal
+ // #sublot-radar-modal utk alasan desain "% Aktual dari Plan" (bukan nilai mentah).
+ // Chart di-destroy & dibuat ulang tiap modal dibuka (bukan pola persistent-chart spt chart
+ // lain di dashboard ini) karena chart ini genuinely on-demand per baris Sublot yang diklik,
+ // beda konteks tiap kali -- destroy-recreate adalah cara Chart.js resmi menghindari error
+ // "Canvas is already in use" kalau canvas yang sama dipakai ulang.
+ let sublotRadarChartInstance = null;
+ function openSublotRadarModal(noSublot, noShipment) {
+ const r = (globalBargeSublotData || []).find(x => x.no_sublot === noSublot && x.no_shipment === noShipment);
+ if (!r) return;
+
+ const elements = [
+  { key: 'ni', label: 'Ni' },
+  { key: 'fe', label: 'Fe' },
+  { key: 'co', label: 'Co' },
+  { key: 'mgo', label: 'MgO' },
+  { key: 'sio2', label: 'SiO2' }
+ ];
+ const labels = elements.map(e => e.label);
+ // Plan = 0 dianggap tidak punya acuan deviasi utk unsur itu -- default ratio 100 (netral)
+ // supaya bentuk radar tidak "jebol" ke titik 0 hanya krn Plan-nya kebetulan kosong.
+ const ratios = elements.map(e => {
+  const planVal = parseFloat(r[e.key + '_plan']) || 0;
+  const aktualVal = parseFloat(r[e.key + '_aktual']) || 0;
+  return planVal > 0 ? (aktualVal / planVal * 100) : 100;
+ });
+ const maxRatio = Math.max(100, ...ratios);
+ const suggestedMax = Math.ceil((maxRatio + 10) / 10) * 10;
+
+ document.getElementById('sublot-radar-subtitle').innerText = `-- ${r.no_sublot} (${r.no_shipment})`;
+
+ const modal = document.getElementById('sublot-radar-modal');
+ showModalAnimated(modal);
+ lucide.createIcons();
+
+ if (sublotRadarChartInstance) sublotRadarChartInstance.destroy();
+ const ctx = document.getElementById('sublot-radar-canvas').getContext('2d');
+ sublotRadarChartInstance = new Chart(ctx, {
+  type: 'radar',
+  data: {
+  labels: labels,
+  datasets: [
+   {
+   label: currentLang === 'en' ? 'Target (100%)' : 'Target (100%)',
+   data: elements.map(() => 100),
+   borderColor: 'rgba(148, 163, 184, 0.6)',
+   backgroundColor: 'transparent',
+   borderDash: [4, 4],
+   borderWidth: 1.5,
+   pointRadius: 0
+   },
+   {
+   label: currentLang === 'en' ? 'Actual (% of Plan)' : 'Aktual (% Plan)',
+   data: ratios,
+   borderColor: 'rgb(34, 211, 238)',
+   backgroundColor: 'rgba(34, 211, 238, 0.2)',
+   borderWidth: 2,
+   pointBackgroundColor: 'rgb(34, 211, 238)',
+   pointRadius: 3
+   }
+  ]
+  },
+  options: {
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+   r: {
+   suggestedMin: 0,
+   suggestedMax: suggestedMax,
+   ticks: { color: 'rgba(148, 163, 184, 0.7)', backdropColor: 'transparent', font: { size: 9 } },
+   grid: { color: 'rgba(100, 116, 139, 0.25)' },
+   angleLines: { color: 'rgba(100, 116, 139, 0.25)' },
+   pointLabels: { color: 'rgba(226, 232, 240, 0.9)', font: { size: 11, weight: 'bold' } }
+   }
+  },
+  plugins: {
+   legend: { position: 'bottom', labels: { color: 'rgba(226, 232, 240, 0.85)', font: { size: 10 }, boxWidth: 12 } },
+   tooltip: {
+   callbacks: {
+    label: (ctxItem) => `${ctxItem.dataset.label}: ${ctxItem.formattedValue}%`
+   }
+   }
+  }
+  }
+ });
+ }
+ function closeSublotRadarModal() {
+ hideModalAnimated(document.getElementById('sublot-radar-modal'));
  }
 
  // ---- Form: Shipment Baru ----
@@ -9119,9 +9698,39 @@ async function provisionExistingCredential(index, userId) {
   return s;
  }
 
+ // BARU (Sidequest #2): Indikator SLA overdue RCA -- "SLA" di sini = Target (tanggal
+ // deadline yang dipilih Maker saat submit form RCA, input type="date" di rca-target).
+ // Overdue = RCA belum Closed DAN tanggal Target sudah lewat hari ini. Sengaja TIDAK pakai
+ // ambang hari tetap (mis. >7 hari sejak dibuat) -- proyek ini sudah punya field Target
+ // eksplisit per RCA, jadi lebih akurat memakai deadline yang memang dipilih user sendiri
+ // ketimbang menebak ambang generik. RCA tanpa Target sama sekali tidak ditandai overdue
+ // (tidak ada dasar SLA utk RCA itu).
+ function isRcaOverdue(r) {
+ if (!r || !r.target) return false;
+ const statusLower = String(r.status || 'Open').toLowerCase();
+ if (statusLower === 'closed') return false;
+ const targetDate = parseDiggingDate(r.target);
+ if (!targetDate) return false;
+ const today = new Date();
+ today.setHours(0, 0, 0, 0);
+ targetDate.setHours(0, 0, 0, 0);
+ return today.getTime() > targetDate.getTime();
+ }
+
  function renderRcaLogList() {
  const listEl = document.getElementById('rca-log-list');
  if (!listEl) return;
+
+ const overdueBadgeEl = document.getElementById('rca-overdue-badge');
+ if (overdueBadgeEl) {
+  const overdueCount = (globalRcaLogData || []).filter(isRcaOverdue).length;
+  if (overdueCount > 0) {
+   overdueBadgeEl.innerText = overdueCount + ' ' + (currentLang === 'en' ? 'OVERDUE' : 'TERLAMBAT');
+   overdueBadgeEl.classList.remove('hidden');
+  } else {
+   overdueBadgeEl.classList.add('hidden');
+  }
+ }
 
  if (globalRcaLogData.length === 0) {
   listEl.innerHTML = `<p class="text-[11px] text-slate-500 font-medium">${currentLang === 'en' ? 'No RCA entries yet.' : 'Belum ada entri RCA.'}</p>`;
@@ -9132,7 +9741,12 @@ async function provisionExistingCredential(index, userId) {
  const sorted = [...globalRcaLogData].sort((a, b) => {
   const pa = statusPriority[(a.status || '').toLowerCase()] ?? 3;
   const pb = statusPriority[(b.status || '').toLowerCase()] ?? 3;
-  return pa - pb;
+  if (pa !== pb) return pa - pb;
+  // Dalam status yang sama, RCA yang sudah overdue ditampilkan lebih dulu -- supaya
+  // yang paling butuh perhatian tidak tenggelam di tengah daftar Open/Progress lain.
+  const oa = isRcaOverdue(a) ? 0 : 1;
+  const ob = isRcaOverdue(b) ? 0 : 1;
+  return oa - ob;
  });
 
  const statusColors = {
@@ -9145,6 +9759,7 @@ async function provisionExistingCredential(index, userId) {
   const statusLower = String(r.status || 'Open').toLowerCase();
   const statusClass = statusColors[statusLower] || 'bg-slate-700/40 text-slate-400 border-slate-600/40';
   const isClosed = statusLower === 'closed';
+  const overdue = isRcaOverdue(r);
   const createdDate = formatRcaDateTimePart(r.created_date, 'date');
   const createdTime = formatRcaDateTimePart(r.created_time, 'time');
   const closedDate = formatRcaDateTimePart(r.closed_date, 'date');
@@ -9154,29 +9769,103 @@ async function provisionExistingCredential(index, userId) {
   const closedInfo = isClosed && (r.closed_by || closedDate || closedTime)
    ? `<span class="text-emerald-400/80">Checker: ${r.closed_by || '-'}${closedDate ? ' · ' + closedDate : ''}${closedTime ? ' ' + closedTime : ''}</span>` : '';
   const safeId = String(r.rca_id || '').replace(/'/g, "\\'");
+  const overdueBadge = overdue
+   ? `<span class="px-1.5 py-0.5 rounded-md bg-rose-500/25 text-rose-300 border border-rose-500/40 text-[10px] font-bold whitespace-nowrap animate-pulse">${currentLang === 'en' ? 'OVERDUE' : 'TERLAMBAT'}</span>` : '';
   const closeButton = (!isClosed && canCloseRca())
    ? `<button type="button" onclick="closeRcaLog('${safeId}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold transition-all cursor-pointer"><i data-lucide="check-circle-2" class="w-3 h-3"></i>${currentLang === 'en' ? 'Close RCA' : 'Tutup RCA'}</button>` : '';
-  return `<div class="bg-slate-900/40 border border-slate-700/60 rounded-xl p-3">
+  return `<div class="bg-slate-900/40 border ${overdue ? 'border-rose-500/50' : 'border-slate-700/60'} rounded-xl p-3">
    <div class="flex items-start justify-between gap-2 mb-1.5 flex-wrap">
    <div class="flex items-center gap-2 flex-wrap">
     <span class="font-bold text-title text-xs">${r.blok}${r.pit ? ' / ' + r.pit : ''}</span>
     <span class="px-1.5 py-0.5 rounded-md bg-blue-500/15 text-blue-400 text-[10px] font-semibold border border-blue-500/25">${r.tahap || '-'}</span>
     <span class="text-[10px] text-slate-600">${r.rca_id || ''}</span>
    </div>
-   <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold border ${statusClass} whitespace-nowrap">${r.status ? ((currentLang === 'en' || statusLower !== 'open') ? r.status : 'Terbuka') : (currentLang === 'en' ? 'Open' : 'Terbuka')}</span>
+   <div class="flex items-center gap-1.5 flex-wrap justify-end">
+    ${overdueBadge}
+    <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold border ${statusClass} whitespace-nowrap">${r.status ? ((currentLang === 'en' || statusLower !== 'open') ? r.status : 'Terbuka') : (currentLang === 'en' ? 'Open' : 'Terbuka')}</span>
+   </div>
    </div>
    <p class="text-[11px] text-slate-300 font-medium mb-1">${r.deskripsi_isu || '-'}</p>
    ${r.root_cause ? `<p class="text-[11px] text-slate-500"><span class="font-semibold text-slate-400">${currentLang === 'en' ? 'Root Cause:' : 'Akar Masalah:'}</span> ${r.root_cause}</p>` : ''}
    ${r.tindakan ? `<p class="text-[11px] text-slate-500"><span class="font-semibold text-slate-400">${currentLang === 'en' ? 'Action' : 'Tindakan'}:</span> ${r.tindakan}</p>` : ''}
    <div class="flex items-center gap-3 mt-1.5 text-[10px] text-slate-500 font-medium flex-wrap">
     ${r.pic ? `<span>PIC: ${r.pic}</span>` : ''}
-    ${r.target ? `<span>Target: ${r.target}</span>` : ''}
+    ${r.target ? `<span class="${overdue ? 'text-rose-400 font-bold' : ''}">Target: ${r.target}</span>` : ''}
     ${createdInfo}${closedInfo}
    </div>
-   ${closeButton ? `<div class="flex justify-end mt-2 pt-2 border-t border-slate-800/70">${closeButton}</div>` : ''}
+   <div class="flex justify-end items-center gap-2 mt-2 pt-2 border-t border-slate-800/70">
+    <button type="button" onclick="copyRcaToClipboard(this, '${safeId}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 border border-slate-600/40 text-[10px] font-bold transition-all cursor-pointer"><i data-lucide="clipboard-copy" class="w-3 h-3"></i>${currentLang === 'en' ? 'Copy' : 'Salin'}</button>
+    ${closeButton}
+   </div>
   </div>`;
  }).join('');
  lucide.createIcons();
+ }
+
+ // BARU (Sidequest #1): Copy to Clipboard RCA -- salin ringkasan 1 entri RCA sebagai teks
+ // rapi ke clipboard, supaya bisa langsung ditempel ke WA/email/laporan tanpa perlu screenshot
+ // atau ketik ulang manual. Murni baca dari globalRcaLogData yang sudah ada di frontend --
+ // tidak ada endpoint baru, tidak menyentuh backend sama sekali.
+ async function copyRcaToClipboard(btnEl, rcaId) {
+ const r = (globalRcaLogData || []).find(x => String(x.rca_id) === String(rcaId));
+ if (!r) return;
+
+ const en = currentLang === 'en';
+ const statusLower = String(r.status || 'Open').toLowerCase();
+ const createdDate = formatRcaDateTimePart(r.created_date, 'date');
+ const createdTime = formatRcaDateTimePart(r.created_time, 'time');
+ const closedDate = formatRcaDateTimePart(r.closed_date, 'date');
+ const closedTime = formatRcaDateTimePart(r.closed_time, 'time');
+
+ const lines = [];
+ lines.push(`RCA ${r.rca_id || ''}`);
+ lines.push(`${en ? 'Block/Pit' : 'Blok/Pit'}: ${r.blok || '-'}${r.pit ? ' / ' + r.pit : ''}`);
+ lines.push(`${en ? 'Affected Stage' : 'Tahap Bermasalah'}: ${r.tahap || '-'}`);
+ lines.push(`Status: ${r.status || (en ? 'Open' : 'Terbuka')}`);
+ lines.push(`${en ? 'Issue Description' : 'Deskripsi Isu'}: ${r.deskripsi_isu || '-'}`);
+ if (r.root_cause) lines.push(`${en ? 'Root Cause' : 'Akar Masalah'}: ${r.root_cause}`);
+ if (r.tindakan) lines.push(`${en ? 'Action' : 'Tindakan'}: ${r.tindakan}`);
+ if (r.pic) lines.push(`PIC: ${r.pic}`);
+ if (r.target) lines.push(`Target: ${r.target}`);
+ if (r.created_by || createdDate || createdTime) {
+  lines.push(`Maker: ${r.created_by || '-'}${createdDate ? ' · ' + createdDate : ''}${createdTime ? ' ' + createdTime : ''}`);
+ }
+ if (statusLower === 'closed' && (r.closed_by || closedDate || closedTime)) {
+  lines.push(`Checker: ${r.closed_by || '-'}${closedDate ? ' · ' + closedDate : ''}${closedTime ? ' ' + closedTime : ''}`);
+ }
+ const text = lines.join('\n');
+
+ try {
+  if (navigator.clipboard && window.isSecureContext) {
+   await navigator.clipboard.writeText(text);
+  } else {
+   // Fallback untuk konteks non-secure (http biasa) atau browser lama yang tidak
+   // punya Clipboard API -- textarea sementara + execCommand('copy').
+   const ta = document.createElement('textarea');
+   ta.value = text;
+   ta.style.position = 'fixed';
+   ta.style.opacity = '0';
+   document.body.appendChild(ta);
+   ta.focus();
+   ta.select();
+   document.execCommand('copy');
+   document.body.removeChild(ta);
+  }
+  if (btnEl) {
+   const original = btnEl.innerHTML;
+   btnEl.disabled = true;
+   btnEl.innerHTML = `<i data-lucide="check" class="w-3 h-3"></i>${en ? 'Copied' : 'Tersalin'}`;
+   lucide.createIcons();
+   setTimeout(() => {
+    btnEl.innerHTML = original;
+    btnEl.disabled = false;
+    lucide.createIcons();
+   }, 1500);
+  }
+ } catch (err) {
+  console.error('Copy RCA failed:', err);
+  showNoticeModal(en ? 'Copy Failed' : 'Gagal Menyalin', en ? 'Could not copy to clipboard.' : 'Tidak dapat menyalin ke clipboard.');
+ }
  }
 
  // ============================================================
@@ -9576,7 +10265,7 @@ async function provisionExistingCredential(index, userId) {
  <div style="font-family:Arial,sans-serif;color:#0f172a;">
   <div style="border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:16px;">
   <p style="font-size:10px;color:#64748b;margin:0 0 2px;letter-spacing:1px;">LAPORAN REKONSILIASI PROFESIONAL</p>
-  <h2 style="font-size:18px;font-weight:700;margin:0;">PT. Geobank Minerals -- Rekonsiliasi Produksi & Cadangan</h2>
+  <h2 style="font-size:18px;font-weight:700;margin:0;">Geobank Minerals -- Rekonsiliasi Produksi & Cadangan</h2>
   <p style="font-size:10px;color:#64748b;margin:4px 0 0;">Dokumen ini dihasilkan otomatis oleh Dashboard Mine Geologist, dicetak ${genDate}. Data live dari Google Sheets (globalBlockModelData, globalRcaLogData).</p>
   </div>
 
@@ -10892,6 +11581,11 @@ async function postCentralAuthenticated(source, options) {
  const checkId = document.getElementById('check-lang-id');
  const checkEn = document.getElementById('check-lang-en');
 
+ // DIBUAT DEFENSIF (Split 3 Dashboard, 23 Agu): keempat elemen ini hidup di dalam
+ // tab-settings, yang tidak ada di dashboard Member/Supervisor. setLanguage() dipanggil
+ // PALING PERTAMA di DOMContentLoaded utama -- tanpa guard, SELURUH aplikasi gagal start
+ // di kedua dashboard turunan. Guard di sini TIDAK mengubah perilaku Developer sama sekali.
+ if (cardId && cardEn && checkId && checkEn) {
  if (lang === 'en') {
   cardEn.classList.add('border-blue-500');
   cardEn.classList.remove('border-slate-700');
@@ -10908,6 +11602,7 @@ async function postCentralAuthenticated(source, options) {
   checkId.classList.remove('hidden');
   checkId.classList.add('text-blue-500');
   checkEn.classList.add('hidden');
+ }
  }
 
  document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -11021,7 +11716,7 @@ async function postCentralAuthenticated(source, options) {
   'ringkasan': currentLang === 'en' ? "Today's mining production & grade performance summary" : 'Ringkasan performa produksi & kadar tambang hari ini',
   'trend': currentLang === 'en' ? 'Historical Tonnage & Mineral Grade Fluctuation Charts' : 'Grafik Historis Fluktuasi Tonase & Kadar Mineral',
   'tabel': currentLang === 'en' ? 'Full detail of daily production & assay data, per row' : 'Rincian lengkap data produksi & assay harian per baris',
-  'rekonsiliasi': currentLang === 'en' ? 'Match production tonnage, shipment destinations, and geological model reserve estimates' : 'Mencocokkan tonase produksi, tujuan pengapalan, dan estimasi cadangan model geologi',
+  'rekonsiliasi': currentLang === 'en' ? 'Match production tonnage, shipment destinations, and geological model reserve estimates' : 'Sinkron data produksi, tujuan kapal, dan estimasi model geologi',
   'validasi': currentLang === 'en' ? 'Assay results per depth (1-5m) for each test pit' : 'Hasil assay per kedalaman (1-5m) tiap titik test pit',
   'barging': currentLang === 'en' ? 'Barge loading progress per shipment, from Dome to vessel' : 'Progress pemuatan tongkang per shipment, dari Dome sampai kapal',
   'issue': currentLang === 'en' ? 'Field Evaluation & Corrective Actions' : 'Evaluasi Lapangan & Tindakan Perbaikan',
@@ -11051,6 +11746,29 @@ async function postCentralAuthenticated(source, options) {
  const overlay = document.getElementById('mobile-sidebar-overlay');
  sidebar.classList.add('-translate-x-full');
  overlay.classList.add('hidden');
+ }
+
+ // BARU (23 Agu, disederhanakan sesuai masukan user -- logo pickaxe sendiri jadi tombol
+ // toggle, bukan tombol chevron terpisah): ciutkan sidebar desktop jadi ikon saja (semua
+ // navigasi TETAP berfungsi penuh, cuma teks labelnya yang disembunyikan lewat CSS
+ // ".sidebar-label"). Ikon pickaxe TIDAK ditukar-tukar (tetap identitas brand) -- cukup
+ // hover tooltip yang kasih tahu fungsinya. State disimpan di localStorage per
+ // browser/device (murni preferensi tampilan, bukan data sensitif) -- persisten lintas
+ // reload/sesi.
+ function toggleSidebarCollapse() {
+ const sidebar = document.getElementById('main-sidebar');
+ if (!sidebar) return;
+ const isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
+ try { localStorage.setItem('mine_sidebar_collapsed', isCollapsed ? '1' : '0'); } catch (e) { /* localStorage tidak tersedia -- state tetap jalan di sesi ini, cuma tidak persisten */ }
+ }
+ function initSidebarCollapseState() {
+ try {
+  const saved = localStorage.getItem('mine_sidebar_collapsed');
+  if (saved === '1') {
+  const sidebar = document.getElementById('main-sidebar');
+  if (sidebar) sidebar.classList.add('sidebar-collapsed');
+  }
+ } catch (e) { /* localStorage tidak tersedia -- default tetap expanded, aman */ }
  }
 
  // Helper animasi buka/tutup modal (fade + scale) -- dipakai bersama oleh semua modal
@@ -11093,17 +11811,26 @@ async function postCentralAuthenticated(source, options) {
  if (window.innerWidth < 768) { closeMobileSidebar(); }
  currentActiveTab = tabName;
  const tabs = ['ringkasan', 'trend', 'tabel', 'rekonsiliasi', 'validasi', 'barging', 'issue', 'kpimember', 'chat', 'settings'];
+ // DIBUAT DEFENSIF (Split 3 Dashboard, 23 Agu): dashboard turunan (Member/Supervisor) tidak
+ // punya semua 10 tab -- guard null WAJIB di sini, atau loop berhenti total di elemen
+ // pertama yang tidak ada (TypeError pada .classList null), bikin SEMUA tab lain ikut tidak
+ // bisa dibuka. Fix ini identik di ketiga file, tidak mengubah perilaku Developer sama sekali.
  tabs.forEach(t => {
-  document.getElementById('tab-' + t).classList.add('hidden');
-  document.getElementById('btn-' + t).className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive";
+  const tabEl = document.getElementById('tab-' + t);
+  const btnEl = document.getElementById('btn-' + t);
+  if (tabEl) tabEl.classList.add('hidden');
+  if (btnEl) btnEl.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive";
  });
 
- document.getElementById('tab-' + tabName).classList.remove('hidden');
- document.getElementById('btn-' + tabName).className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-active";
+ const targetTabEl = document.getElementById('tab-' + tabName);
+ const targetBtnEl = document.getElementById('btn-' + tabName);
+ if (targetTabEl) targetTabEl.classList.remove('hidden');
+ if (targetBtnEl) targetBtnEl.className = "w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-active";
 
  if (tabName === 'rekonsiliasi') {
   renderReconciliation();
   fetchBlockModelData();
+  fetchValidasiData();
   fetchRcaLogData();
   fetchPitActualData();
   fetchBargeShipmentData(); // dipakai juga utk hitung F3/F4 (Total Plant/Tonase Aktual)
@@ -11113,8 +11840,16 @@ async function postCentralAuthenticated(source, options) {
   fetchBlockModelData();
  }
 
+ if (tabName === 'validasi') {
+  fetchValidasiData();
+ }
+
+ if (tabName === 'kpimember') {
+  fetchJsaLogData();
+ }
+
  if (tabName === 'chat') {
-  fetchChatData().then(() => { chatLastSeenCount = globalChatData.length; updateChatUnreadBadge(); });
+  fetchChatData().then(() => { chatLastSeenRow = globalChatData.length ? Number(globalChatData[globalChatData.length - 1]._row || 0) : 0; updateChatUnreadBadge(); });
   scrollChatToBottom();
  }
 
@@ -11135,6 +11870,12 @@ async function postCentralAuthenticated(source, options) {
  const checkDark = document.getElementById('check-dark');
  const checkWhite = document.getElementById('check-white');
 
+ // DIBUAT DEFENSIF (Split 3 Dashboard, 23 Agu): sama pola dgn setLanguage() -- keempat
+ // elemen ini hidup di tab-settings, tidak ada di Member/Supervisor. Saat ini setTheme()
+ // cuma dipanggil dari tombol yg juga ikut terpotong (jadi technically dead code utk
+ // kedua dashboard itu), tapi guard tetap dipasang supaya aman kalau nanti toggle
+ // bahasa/tema dipindah ke header (rencana yg belum dieksekusi).
+ if (darkCard && whiteCard && checkDark && checkWhite) {
  if (theme === 'white') {
   body.classList.remove('theme-dark');
   body.classList.add('theme-white');
@@ -11157,13 +11898,73 @@ async function postCentralAuthenticated(source, options) {
   checkDark.classList.remove('hidden');
   updateChartTheme('#94a3b8');
  }
+ } else {
+ // Elemen toggle tidak ada (Member/Supervisor) -- tetap terapkan class tema ke body
+ // dan re-theme chart, cuma lewati bagian UI kartu/centang yang memang tidak ada.
+ if (theme === 'white') {
+  body.classList.remove('theme-dark');
+  body.classList.add('theme-white');
+  updateChartTheme('#475569');
+ } else {
+  body.classList.remove('theme-white');
+  body.classList.add('theme-dark');
+  updateChartTheme('#94a3b8');
+ }
+ }
+ // Legend HTML manual materialChart TIDAK ikut lewat updateChartTheme (itu jalur
+ // Chart.js) -- re-render manual di sini pakai data TERAKHIR yang sudah ada di chart,
+ // supaya warnanya ikut ganti pas user pindah tema tanpa mereset ke nol.
+ if (materialChart) renderMaterialLegend(materialChart.data.datasets[0].data);
+ }
+
+ // BARU (Split 3 Dashboard, 23 Agu): toggle tema ringkas utk header -- dipakai Member &
+ // Supervisor (Settings mereka sudah dihapus, jadi tidak ada lagi kartu Dark/White di
+ // sana). Developer TETAP pakai toggle asli di Settings (tidak diganti), tombol header ini
+ // cuma dirender utk Member/Supervisor lewat marker ROLE -- fungsi ini aman dipanggil dari
+ // dashboard manapun karena setTheme() sendiri sudah defensif thdp elemen yg tidak ada.
+ function toggleHeaderTheme() {
+ const goingWhite = !document.body.classList.contains('theme-white');
+ const newTheme = goingWhite ? 'white' : 'dark';
+ setTheme(newTheme);
+ const icon = document.getElementById('header-theme-toggle-icon');
+ if (icon) {
+  icon.setAttribute('data-lucide', newTheme === 'white' ? 'moon' : 'sun');
+  if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+ }
+ }
+
+ // FIX (23 Agu): legend HTML manual utk materialChart -- gantikan legend Chart.js bawaan
+ // yang warnanya tidak konsisten di tema Dark. Warna teks dipilih manual berdasarkan
+ // tema aktif (body.theme-white), BUKAN lewat Chart.js sama sekali -- kontrol penuh,
+ // dijamin sama persis di semua item, tidak ada lagi ambiguitas.
+ function renderMaterialLegend(values) {
+ const el = document.getElementById('material-chart-legend');
+ if (!el) return;
+ const labels = ['Saprolit', 'Limonit', 'Low Grade', 'Waste'];
+ const colors = ['#059669', '#0ea5e9', '#f59e0b', '#475569'];
+ const isWhite = document.body.classList.contains('theme-white');
+ const textColor = isWhite ? '#334155' : '#e2e8f0';
+ const total = values.reduce(function(a, b) { return a + (Number(b) || 0); }, 0);
+ el.innerHTML = labels.map(function(label, i) {
+  const value = Number(values[i]) || 0;
+  const pct = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+  return `<span style="display:inline-flex;align-items:center;gap:6px;color:${textColor};font-weight:500;">
+   <span style="width:10px;height:10px;border-radius:9999px;background:${colors[i]};display:inline-block;flex-shrink:0;"></span>
+   ${label} ${pct}%
+  </span>`;
+ }).join('');
  }
 
  function updateChartTheme(textColor) {
  const charts = [materialChart, gradeChart, trendTonaseChart, trendNiChart, smChart, rekonChart, blockModelChart, validasiChart, trendMonthlyChart];
  charts.forEach(c => {
   if (c) {
-  if (c.options.plugins.legend && c.options.plugins.legend.labels) c.options.plugins.legend.labels.color = textColor;
+  // materialChart TIDAK punya legend Chart.js lagi (legend HTML manual, lihat
+  // renderMaterialLegend) -- baris ini otomatis dilewati utknya (c.options.plugins.legend.labels
+  // tidak ada), harmless, cuma berlaku ke chart lain yang masih pakai legend Chart.js bawaan.
+  if (c.options.plugins.legend && c.options.plugins.legend.labels) {
+   c.options.plugins.legend.labels.color = textColor;
+  }
   if (c.options.scales) {
    if (c.options.scales.x) c.options.scales.x.ticks.color = textColor;
    if (c.options.scales.y) c.options.scales.y.ticks.color = textColor;
@@ -11189,14 +11990,17 @@ async function postCentralAuthenticated(source, options) {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-   legend: {
-   position: 'bottom',
-   labels: { color: '#94a3b8', usePointStyle: true, pointStyle: 'circle', padding: 12, font: { size: 11 } }
-   }
+   // FIX (23 Agu): legend Chart.js bawaan dimatikan total -- diganti legend HTML manual
+   // (#material-chart-legend, diisi via renderMaterialLegend()) krn warna teks legend
+   // bawaan Chart.js terbukti tidak konsisten di tema Dark (sebagian item terang,
+   // sebagian redup, walau cuma 1 nilai warna seragam yg di-set -- perilaku internal
+   // Chart.js yg tidak bisa diandalkan utk kasus ini).
+   legend: { display: false }
   },
   cutout: '68%'
   }
  });
+ renderMaterialLegend([0, 0, 0, 0]);
 
  const ctx2 = document.getElementById('gradeChart').getContext('2d');
  gradeChart = new Chart(ctx2, {
@@ -11264,7 +12068,16 @@ async function postCentralAuthenticated(source, options) {
   }
  });
 
- const ctx3 = document.getElementById('trendTonaseChart').getContext('2d');
+ // DIBUAT DEFENSIF (Split 3 Dashboard, 23 Agu): 6 canvas di bawah ini (trendTonaseChart,
+ // trendNiChart, trendMonthlyChart, smChart, rekonChart, blockModelChart) hidup di tab-trend
+ // dan tab-rekonsiliasi -- TIDAK ADA di dashboard Member. initCharts() dipanggil paling awal
+ // di DOMContentLoaded, jadi kalau tidak dijaga, baris pertama yang crash akan menghentikan
+ // SELURUH inisialisasi aplikasi utk Member. Semua titik PEMAKAIAN chart ini di file lain
+ // SUDAH dijaga if(chartVar) -- variabel global yang sengaja dibiarkan undefined di sini
+ // otomatis aman dipakai di titik-titik itu.
+ const elTrendTonase = document.getElementById('trendTonaseChart');
+ if (elTrendTonase) {
+ const ctx3 = elTrendTonase.getContext('2d');
  trendTonaseChart = new Chart(ctx3, {
   type: 'line',
   data: {
@@ -11294,8 +12107,11 @@ async function postCentralAuthenticated(source, options) {
   plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } }
   }
  });
+ }
 
- const ctx4 = document.getElementById('trendNiChart').getContext('2d');
+ const elTrendNi = document.getElementById('trendNiChart');
+ if (elTrendNi) {
+ const ctx4 = elTrendNi.getContext('2d');
  trendNiChart = new Chart(ctx4, {
   type: 'line',
   data: {
@@ -11336,10 +12152,13 @@ async function postCentralAuthenticated(source, options) {
   plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } }
   }
  });
+ }
 
  // BARU: trendMonthlyChart -- bar chart Tonase per bulan (dual-axis line untuk Ni%),
  // 6 bulan terakhir yang punya data. Dipakai view toggle "Bulan ke Bulan" (Visual & Trend).
- const ctx4b = document.getElementById('trendMonthlyChart').getContext('2d');
+ const elTrendMonthly = document.getElementById('trendMonthlyChart');
+ if (elTrendMonthly) {
+ const ctx4b = elTrendMonthly.getContext('2d');
  trendMonthlyChart = new Chart(ctx4b, {
   data: {
   labels: [],
@@ -11381,8 +12200,11 @@ async function postCentralAuthenticated(source, options) {
   plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } }
   }
  });
+ }
 
- const ctx5 = document.getElementById('smChart').getContext('2d');
+ const elSm = document.getElementById('smChart');
+ if (elSm) {
+ const ctx5 = elSm.getContext('2d');
  smChart = new Chart(ctx5, {
   type: 'bar',
   data: {
@@ -11406,8 +12228,11 @@ async function postCentralAuthenticated(source, options) {
   plugins: { legend: { display: false } }
   }
  });
+ }
 
- const ctx6 = document.getElementById('rekonChart').getContext('2d');
+ const elRekon = document.getElementById('rekonChart');
+ if (elRekon) {
+ const ctx6 = elRekon.getContext('2d');
  rekonChart = new Chart(ctx6, {
   type: 'bar',
   data: {
@@ -11432,13 +12257,14 @@ async function postCentralAuthenticated(source, options) {
   }
   }
  });
+ }
 
  const ctx7 = document.getElementById('validasiChart').getContext('2d');
  validasiChart = new Chart(ctx7, {
   type: 'bar',
   data: {
   labels: [],
-  datasets: [{ label: 'Ni % rata-rata', data: [], backgroundColor: '#10b981', borderRadius: 6, barPercentage: 0.55 }]
+  datasets: [{ label: 'Ni % rata-rata', data: [], backgroundColor: '#10b981', borderRadius: 6, barPercentage: 0.55, maxBarThickness: 64 }]
   },
   options: {
   responsive: true,
@@ -11451,7 +12277,9 @@ async function postCentralAuthenticated(source, options) {
   }
  });
 
- const ctx8 = document.getElementById('blockModelChart').getContext('2d');
+ const elBlockModel = document.getElementById('blockModelChart');
+ if (elBlockModel) {
+ const ctx8 = elBlockModel.getContext('2d');
  blockModelChart = new Chart(ctx8, {
   type: 'bar',
   data: {
@@ -11477,6 +12305,7 @@ async function postCentralAuthenticated(source, options) {
   }
   }
  });
+ }
  }
 
  // BARU: SUM Tonase per Blok+Pit dari Produksi_GC (globalRawData) -- untuk series GC di
@@ -11605,6 +12434,7 @@ async function postCentralAuthenticated(source, options) {
   } else {
   container.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400 text-xs font-medium">${translations[currentLang].member_empty}</div>`;
   }
+  renderLeaderboard();
  } catch (error) {
   console.error('Error fetching member data:', error);
   const isTimeout = error.name === 'AbortError';
@@ -11616,6 +12446,71 @@ async function postCentralAuthenticated(source, options) {
    </button>
   </div>`;
  }
+ }
+
+ // BARU (Sidequest #4): Leaderboard Geologist -- ranking murni turunan dari globalMemberData
+ // (field Accuracy) yang sudah di-fetch bareng loadMembersFromSheet() di atas. TIDAK ada
+ // endpoint/data baru, TIDAK mengubah sheet Member sama sekali -- cuma diurutkan & ditampilkan
+ // ulang di frontend. Accuracy sengaja dipilih sbg basis ranking (bukan Target/Inspeksi) karena
+ // field ini paling merepresentasikan akurasi kerja individu, sementara Target format bervariasi
+ // per member (ada yg "98%", ada yg "3 Hari / Segera" -- tidak konsisten numerik).
+ // Accuracy adalah free-text field (placeholder cth. "96.5%") -- diparse defensif dgn regex,
+ // member yang nilainya tidak mengandung angka sama sekali DIKELUARKAN dari ranking (bukan
+ // ditaruh di posisi terakhir dgn nilai 0, supaya tidak menyesatkan seolah performanya buruk).
+ function parseAccuracyValue_(raw) {
+ if (raw === null || raw === undefined) return null;
+ const s = String(raw).trim();
+ if (!s || s === '-') return null;
+ const m = s.match(/-?\d+(?:[.,]\d+)?/);
+ if (!m) return null;
+ const n = parseFloat(m[0].replace(',', '.'));
+ return isNaN(n) ? null : n;
+ }
+
+ function renderLeaderboard() {
+ const listEl = document.getElementById('leaderboard-list');
+ if (!listEl) return;
+
+ const ranked = (globalMemberData || [])
+  .map(item => {
+  const member = {};
+  Object.keys(item).forEach(k => member[k.trim().toLowerCase()] = item[k]);
+  return {
+   nama: member['nama'] || member['name'] || (currentLang === 'en' ? 'No Name' : 'Tanpa Nama'),
+   jabatan: member['jabatan'] || member['role'] || '-',
+   target: member['target'] || '-',
+   inspeksi: member['inspeksi'] || '-',
+   accuracyRaw: member['accuracy'] || '-',
+   accuracyNum: parseAccuracyValue_(member['accuracy'])
+  };
+  })
+  .filter(m => m.accuracyNum !== null)
+  .sort((a, b) => b.accuracyNum - a.accuracyNum);
+
+ if (ranked.length === 0) {
+  listEl.innerHTML = `<p class="text-[11px] text-slate-500 font-medium">${translations[currentLang].leaderboard_empty}</p>`;
+  return;
+ }
+
+ const medalByRank = { 1: '🥇', 2: '🥈', 3: '🥉' };
+ listEl.innerHTML = ranked.map((m, idx) => {
+  const rank = idx + 1;
+  const medal = medalByRank[rank] || '';
+  const rankBadgeClass = rank <= 3
+   ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+   : 'bg-slate-800/60 text-slate-400 border-slate-700/60';
+  return `<div class="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-slate-900/40 border border-slate-700/50 text-xs">
+   <div class="flex items-center gap-3 min-w-0">
+   <span class="flex items-center justify-center w-7 h-7 rounded-lg border font-bold text-[11px] shrink-0 ${rankBadgeClass}">${medal || rank}</span>
+   <div class="min-w-0">
+    <p class="font-semibold text-title truncate">${m.nama}</p>
+    <p class="text-[10px] text-slate-500 font-medium truncate">${m.jabatan}${m.target !== '-' ? ' · ' + (currentLang === 'en' ? 'Target' : 'Target') + ': ' + m.target : ''}${m.inspeksi !== '-' ? ' · ' + m.inspeksi : ''}</p>
+   </div>
+   </div>
+   <span class="font-bold text-blue-400 shrink-0">${m.accuracyRaw}</span>
+  </div>`;
+ }).join('');
+ lucide.createIcons();
  }
 
  function openMemberModal(index) {
@@ -11700,7 +12595,7 @@ async function postCentralAuthenticated(source, options) {
  const badge = document.getElementById('chat-unread-badge');
  const activeTab = document.querySelector('aside nav button.nav-item-active');
  const isChatOpen = activeTab && activeTab.id === 'btn-chat';
- const unreadCount = globalChatData.length - chatLastSeenCount;
+ const unreadCount = globalChatData.filter(function(m) { return Number(m._row || 0) > chatLastSeenRow; }).length;
 
  if (!isChatOpen && unreadCount > 0) {
   badge.innerText = unreadCount > 9 ? '9+' : unreadCount;
@@ -11805,12 +12700,24 @@ async function postDeveloperAdmin(action, params) {
   payload.set('devToken', devToken);
   showAppLoading(translations[currentLang].dev_operation_loading_title, translations[currentLang].dev_operation_loading_message);
   try {
-   const response = await fetch(GOOGLE_SCRIPT_READ_URL, { method:'POST', body:payload });
+   // FIX (23 Agu): SEBELUMNYA pakai fetch() polos tanpa batas waktu sama sekali -- kalau
+   // request macet (jaringan, cold-start Apps Script, dsb), loading bisa "menggantung"
+   // tanpa pesan error apapun ke user (dilaporkan user: klik Preview di Padatkan Baris
+   // Kosong, loading tidak pernah selesai). Sekarang pakai fetchWithTimeout yang sama
+   // dipakai jalur login/dashboard/chat lain di file ini (20 detik), supaya SEMUA aksi
+   // Developer Console (bukan cuma fitur ini) dapat pesan error jelas kalau macet,
+   // bukan loading tanpa akhir.
+   const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL, { method:'POST', body:payload });
    const result = await response.json();
    if (!result || result.status !== 'success' && result.success !== true || result.ok === false) {
     throw new Error((result && result.message) || (currentLang === 'en' ? 'Developer operation failed.' : 'Operasi Developer gagal.'));
    }
    return result;
+  } catch (err) {
+   if (err && err.name === 'AbortError') {
+    throw new Error(currentLang === 'en' ? 'Server did not respond within 20 seconds (timeout).' : 'Server tidak merespons dalam 20 detik (timeout).');
+   }
+   throw err;
   } finally {
    hideAppLoading();
   }
@@ -11897,6 +12804,110 @@ function updateResetProjectButton() {
   btn.classList.toggle('cursor-pointer',ok);
 }
 
+function applyRetentionPolicyToControls(policy) {
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.value=String(value);};
+ const check=(id,value)=>{const el=document.getElementById(id);if(el)el.checked=!!value;};
+ if(!policy) return;
+ check('retention-enabled',policy.enabled); set('retention-sessions-days',policy.sessionsDays||7);
+ set('retention-security-days',policy.securityAuditDays||90); set('retention-audit-days',policy.auditTrailDays||90);
+ check('retention-chat-enabled',policy.chatLogEnabled); set('retention-chat-days',policy.chatLogDays||90);
+ applyResetProjectRetentionGuard();
+}
+
+// BARU (Pending item #2 dari pihak A, DIPUTUSKAN user 22 Agu -- Opsi A): saat Retention &
+// Archive aktif (toggle #retention-enabled tercentang), 14 checkbox operasional Reset Total
+// DIKUNCI TERCENTANG (dipaksa ikut semua, tidak bisa di-uncheck) -- supaya Reset Total selalu
+// full-wipe konsisten, tidak ada sheet yang kelewat kecentang saat pindah proyek sungguhan.
+// ChatLog SENGAJA DIKECUALIKAN dari guard ini -- dia sudah punya mekanisme retensi terpisah
+// sendiri (opt-in toggle #retention-chat-enabled + hari), jadi tetap bebas dipilih Developer
+// sesuai kebutuhan (mis. mau dipertahankan lintas proyek atau tidak). Member (#reset-project-
+// member) juga TIDAK disentuh guard ini -- sudah punya opsi khusus sendiri (preserve baris
+// Developer), di luar cakupan "14 checkbox operasional" yang dimaksud spesifikasi ini.
+// Guard ini MURNI pencegahan human-error di frontend -- Reset Total & Retention/Archive
+// TIDAK PERNAH tabrakan secara teknis (beda sheet, dan LockService.getDocumentLock() di
+// backend sudah otomatis mengantre kalau kebetulan jalan bersamaan).
+function applyResetProjectRetentionGuard() {
+ const retentionToggle = document.getElementById('retention-enabled');
+ const guardActive = !!(retentionToggle && retentionToggle.checked);
+ document.querySelectorAll('.reset-project-target').forEach(function(el) {
+  if (el.value === 'ChatLog') return; // dikecualikan -- retensi ChatLog sudah opt-in terpisah
+  if (guardActive) {
+   el.checked = true;
+   el.disabled = true;
+  } else {
+   el.disabled = false;
+  }
+ });
+ const hint = document.getElementById('reset-project-guard-hint');
+ if (hint) hint.classList.toggle('hidden', !guardActive);
+ updateResetProjectButton();
+}
+function retentionPolicyPayload() {
+ const value=id=>{const el=document.getElementById(id);return el?el.value:'';};
+ const checked=id=>{const el=document.getElementById(id);return !!(el&&el.checked);};
+ return {retention_enabled:checked('retention-enabled')?'TRUE':'FALSE',sessions_retention_days:value('retention-sessions-days'),security_audit_retention_days:value('retention-security-days'),audit_trail_retention_days:value('retention-audit-days'),chatlog_retention_enabled:checked('retention-chat-enabled')?'TRUE':'FALSE',chatlog_retention_days:value('retention-chat-days')};
+}
+async function loadRetentionPolicy() {
+ if(!isDeveloperUnlocked()) return;
+ try { const result=await postDeveloperAdmin('getRetentionPolicy',{}); applyRetentionPolicyToControls(result.policy); }
+ catch(e) { const status=document.getElementById('retention-policy-status'); if(status)status.textContent=(currentLang === 'en' ? 'Policy could not be loaded: ' : 'Kebijakan belum dapat dimuat: ')+e.message; }
+}
+async function saveRetentionPolicy() {
+ if(!isDeveloperUnlocked()) return;
+ try { const result=await postDeveloperAdmin('saveRetentionPolicy',retentionPolicyPayload()); applyRetentionPolicyToControls(result.policy); const status=document.getElementById('retention-policy-status'); if(status)status.textContent=currentLang === 'en' ? 'Policy saved. ChatLog stays OFF unless explicitly checked.' : 'Kebijakan tersimpan. ChatLog tetap OFF kecuali dicentang secara eksplisit.'; }
+ catch(e) { showNoticeModal(currentLang === 'en' ? 'Save Policy Failed' : 'Simpan Kebijakan Gagal',e.message); }
+}
+async function runRetentionArchiveNow() {
+ if(!isDeveloperUnlocked()) return;
+ if(!(await showConfirmModal(currentLang === 'en' ? 'Run Retention & Archive' : 'Jalankan Retention & Archive', currentLang === 'en' ? 'This will delete non-ACTIVE Sessions that are past their retention period and move old audit logs to the archive sheet. Continue?' : 'Proses akan menghapus Sessions non-ACTIVE yang sudah melewati retensi dan memindahkan log audit lama ke sheet archive. Lanjutkan?'))) return;
+ try { const result=await postDeveloperAdmin('runRetentionArchiveNow',{}); const status=document.getElementById('retention-policy-status'); if(result.status==='disabled'){if(status)status.textContent=currentLang === 'en' ? 'Retention is still OFF; no data was processed.' : 'Retention masih OFF; tidak ada data diproses.';return;} const summary=(result.results||[]).map(x=>x.sheet+': '+(x.archived!==undefined?(currentLang === 'en' ? 'archived ' : 'archive ')+x.archived:(currentLang === 'en' ? 'deleted ' : 'hapus ')+(x.deleted||0))).join(' | '); if(status)status.textContent=(currentLang === 'en' ? 'Done — ' : 'Selesai — ')+summary; }
+ catch(e) { showNoticeModal(currentLang === 'en' ? 'Retention & Archive Failed' : 'Retention & Archive Gagal',e.message); }
+}
+
+// BARU (Pending item #1 spesifikasi performa, DIPUTUSKAN 22 Agu): panel toggle Session Cache
+// -- pola LOAD/SAVE identik dgn Retention & Archive di atas, cuma target endpoint beda.
+function applySessionCachePolicyToControls(policy) {
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.value=String(value);};
+ const check=(id,value)=>{const el=document.getElementById(id);if(el)el.checked=!!value;};
+ if(!policy) return;
+ check('session-cache-enabled',policy.enabled); set('session-cache-ttl',policy.ttlSeconds||20);
+}
+async function loadSessionCachePolicy() {
+ if(!isDeveloperUnlocked()) return;
+ try { const result=await postDeveloperAdmin('getSessionCachePolicy',{}); applySessionCachePolicyToControls(result.policy); }
+ catch(e) { const status=document.getElementById('session-cache-status'); if(status)status.textContent=(currentLang === 'en' ? 'Policy could not be loaded: ' : 'Kebijakan belum dapat dimuat: ')+e.message; }
+}
+async function saveSessionCachePolicy() {
+ if(!isDeveloperUnlocked()) return;
+ const value=id=>{const el=document.getElementById(id);return el?el.value:'';};
+ const checked=id=>{const el=document.getElementById(id);return !!(el&&el.checked);};
+ const payload={session_cache_enabled:checked('session-cache-enabled')?'TRUE':'FALSE',session_cache_ttl_seconds:value('session-cache-ttl')};
+ try { const result=await postDeveloperAdmin('saveSessionCachePolicy',payload); applySessionCachePolicyToControls(result.policy); const status=document.getElementById('session-cache-status'); if(status)status.textContent=currentLang === 'en' ? 'Policy saved.' : 'Kebijakan tersimpan.'; }
+ catch(e) { showNoticeModal(currentLang === 'en' ? 'Save Policy Failed' : 'Simpan Kebijakan Gagal',e.message); }
+}
+
+// BARU (Security hardening -- rate limit perluasan, DIPUTUSKAN 22 Agu): panel toggle API
+// Abuse Guard -- pola LOAD/SAVE identik dgn Session Cache di atas, cuma target endpoint beda.
+function applyApiAbuseGuardPolicyToControls(policy) {
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.value=String(value);};
+ const check=(id,value)=>{const el=document.getElementById(id);if(el)el.checked=!!value;};
+ if(!policy) return;
+ check('api-abuse-guard-enabled',policy.enabled); set('api-abuse-guard-max',policy.maxRequests||90); set('api-abuse-guard-window',policy.windowSec||60);
+}
+async function loadApiAbuseGuardPolicy() {
+ if(!isDeveloperUnlocked()) return;
+ try { const result=await postDeveloperAdmin('getApiAbuseGuardPolicy',{}); applyApiAbuseGuardPolicyToControls(result.policy); }
+ catch(e) { const status=document.getElementById('api-abuse-guard-status'); if(status)status.textContent=(currentLang === 'en' ? 'Policy could not be loaded: ' : 'Kebijakan belum dapat dimuat: ')+e.message; }
+}
+async function saveApiAbuseGuardPolicy() {
+ if(!isDeveloperUnlocked()) return;
+ const value=id=>{const el=document.getElementById(id);return el?el.value:'';};
+ const checked=id=>{const el=document.getElementById(id);return !!(el&&el.checked);};
+ const payload={api_abuse_guard_enabled:checked('api-abuse-guard-enabled')?'TRUE':'FALSE',api_abuse_max_requests:value('api-abuse-guard-max'),api_abuse_window_sec:value('api-abuse-guard-window')};
+ try { const result=await postDeveloperAdmin('saveApiAbuseGuardPolicy',payload); applyApiAbuseGuardPolicyToControls(result.policy); const status=document.getElementById('api-abuse-guard-status'); if(status)status.textContent=currentLang === 'en' ? 'Policy saved.' : 'Kebijakan tersimpan.'; }
+ catch(e) { showNoticeModal(currentLang === 'en' ? 'Save Policy Failed' : 'Simpan Kebijakan Gagal',e.message); }
+}
+
 async function resetProjectData() {
   if(!isDeveloperUnlocked()) return;
   const confirmInput=document.getElementById('reset-project-confirm');
@@ -11938,7 +12949,12 @@ function initResetProjectControls() {
   document.querySelectorAll('.reset-project-target').forEach(function(el){el.addEventListener('change',updateResetProjectButton);});
   const member=document.getElementById('reset-project-member');
   if(member) member.addEventListener('change',updateResetProjectButton);
+  // Guard Reset Total x Retention (lihat komentar applyResetProjectRetentionGuard()) --
+  // reaksi LIVE begitu toggle diklik, sebelum sempat disimpan ke backend lewat Save Policy.
+  const retentionToggle=document.getElementById('retention-enabled');
+  if(retentionToggle) retentionToggle.addEventListener('change',applyResetProjectRetentionGuard);
   updateResetProjectButton();
+  loadRetentionPolicy();
 }
 
 async function cleanupGeneralSheet(sheetName) {
@@ -11954,12 +12970,16 @@ async function cleanupGeneralSheet(sheetName) {
 
  async function fetchChatData() {
  try {
-  const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=chat&t=' + new Date().getTime());
+  const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=chat&limit=100&t=' + new Date().getTime());
   const result = await response.json();
   if (result.status !== 'success') return;
 
   const wasAtBottom = isChatScrolledToBottom();
-  const hadNewMessages = result.data.length > globalChatData.length;
+  // Saat feed dibatasi 100 pesan, panjang array dapat tetap sama walau ada
+  // pesan baru. Nomor baris sheet adalah indikator baru yang stabil.
+  const previousLastRow = globalChatData.length ? Number(globalChatData[globalChatData.length - 1]._row || 0) : 0;
+  const nextLastRow = result.data && result.data.length ? Number(result.data[result.data.length - 1]._row || 0) : 0;
+  const hadNewMessages = nextLastRow > previousLastRow;
 
   globalChatData = result.data;
   renderChatMessages();
@@ -12124,7 +13144,6 @@ async function cleanupGeneralSheet(sheetName) {
  }
 
  async function fetchValidasiData() {
- const tbody = document.getElementById('validasi-table-body');
  try {
   const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=validasi&t=' + new Date().getTime());
   const result = await response.json();
@@ -12143,7 +13162,10 @@ async function cleanupGeneralSheet(sheetName) {
   renderBlockModelTable();
  } catch (err) {
   console.error('Gagal memuat data validasi:', err);
+  // FIX (23 Agu): dikembalikan ke tabel asli -- pesan error fetch ditulis ke tbody
+  // seperti semula, TIDAK lagi diarahkan ke kartu (kartu sudah dihapus, dikoreksi user).
   const isTimeout = err.name === 'AbortError';
+  const tbody = document.getElementById('validasi-table-body');
   if (tbody) {
   const msg = isTimeout ? (currentLang === 'en' ? 'Server did not respond within 20s (timeout).' : 'Server tidak merespons dalam 20 detik (timeout).') : (currentLang === 'en' ? 'Failed to load validation data from Google Sheets.' : 'Gagal memuat data validasi dari Google Sheets.');
   tbody.innerHTML = `<tr><td colspan="15" class="text-center p-6 text-rose-400 text-xs space-y-2 font-medium"><p>${msg}</p><button onclick="fetchValidasiData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all">${currentLang === 'en' ? 'Retry' : 'Coba Lagi (Retry)'}</button></td></tr>`;
@@ -12772,6 +13794,72 @@ async function cleanupGeneralSheet(sheetName) {
  }
  }
 
+ // Unlock AudioContext saat user pertama kali interaksi APAPUN dgn halaman (klik/tap/keydown) --
+ // syarat browser modern (Chrome/Safari) supaya AudioContext bisa benar-benar bunyi. Tanpa ini,
+ // AudioContext yang dibuat TANPA didahului gesture user akan tetap berstatus "suspended" dan
+ // TIDAK akan pernah mengeluarkan suara -- ini kebijakan browser (autoplay policy) demi keamanan
+ // user, BUKAN bug kode & tidak bisa dilewati sepenuhnya dari sisi kode manapun. Context dibuat
+ // SEKALI saja saat interaksi pertama & dipakai ulang oleh triggerEwsAlert() seterusnya.
+ let ewsAudioCtx = null;
+ function unlockEwsAudioContext() {
+ if (ewsAudioCtx) return;
+ try {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (AudioCtx) {
+   ewsAudioCtx = new AudioCtx();
+   if (ewsAudioCtx.state === 'suspended') ewsAudioCtx.resume().catch(() => {});
+  }
+ } catch (err) { /* diam-diam dilewati -- fallback ke pembuatan context langsung di triggerEwsAlert() */ }
+ }
+ ['click', 'touchstart', 'keydown'].forEach(evt => {
+ document.addEventListener(evt, unlockEwsAudioContext, { once: true, passive: true });
+ });
+
+ // BARU (Sidequest #3): Suara & Haptik EWS -- notifikasi audio+getar SEKALI SAJA saat
+ // banner EWS Dilusi/Ore Loss (F2 OUT OF TOL, satu-satunya sistem EWS di dashboard ini)
+ // PERTAMA KALI muncul (transisi dari 0 ke >0 Blok/Pit OUT OF TOL). TIDAK berulang tiap
+ // render/polling selama banner masih tampil, dan TIDAK berulang tiap ada tambahan Blok
+ // baru selama banner sudah tampil (dikonfirmasi user 22 Agu: "sekali saja saat pertama
+ // kali muncul"). Flag ewsAlertNotified direset ke false hanya kalau semua Blok kembali
+ // ke status aman (banner hilang total), supaya lain kali EWS ini muncul lagi, notifikasi
+ // jalan lagi dari awal. Web Audio API dipakai (bukan file suara eksternal) supaya tetap
+ // jalan offline di PWA (Windows/Android). Vibration API di-skip diam-diam kalau
+ // browser/OS tidak mendukung (mis. iOS Safari tidak pernah dukung Vibration API) --
+ // tidak ada error yang muncul ke user, fitur suara tetap jalan normal.
+ function triggerEwsAlert() {
+ try {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (AudioCtx) {
+   if (!ewsAudioCtx) ewsAudioCtx = new AudioCtx(); // fallback kalau belum sempat di-unlock
+   const ctx = ewsAudioCtx;
+   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+   const playBeep = (startTime, freq) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.25, startTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.28);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(startTime);
+    osc.stop(startTime + 0.3);
+   };
+   const now = ctx.currentTime;
+   playBeep(now, 880);
+   playBeep(now + 0.35, 880);
+  }
+ } catch (err) {
+  console.error('EWS audio alert gagal:', err);
+ }
+ try {
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+ } catch (err) {
+  // Diam-diam dilewati -- Vibration API memang tidak didukung di semua browser/OS.
+ }
+ }
+
  function computeReconciliationMatrix() {
  const tbody = document.getElementById('matrix-f1f2-body');
  if (!tbody) return; // elemen belum ada di DOM (belum sempat render awal), aman diabaikan
@@ -12902,9 +13990,14 @@ async function cleanupGeneralSheet(sheetName) {
      : `EWS: ${ewsF2OutOfTolCount} Blok/Pit deviasi F2 (Pit Actual/GC) melebihi toleransi ${EWS_F2_TOLERANSI_OUTOFTOL}% -- disarankan cek lapangan.`
    }`;
    if (typeof lucide !== 'undefined') lucide.createIcons();
+   if (!ewsAlertNotified) {
+    triggerEwsAlert();
+    ewsAlertNotified = true;
+   }
   } else {
    ewsBanner.classList.add('hidden');
    ewsBanner.innerHTML = '';
+   ewsAlertNotified = false; // Reset -- supaya lain kali EWS muncul lagi, notif jalan lagi dari awal.
   }
  }
  }
@@ -13096,10 +14189,33 @@ async function cleanupGeneralSheet(sheetName) {
  }
  }
 
- function toggleValidasiChart() {
- document.getElementById('validasi-chart-card').classList.toggle('hidden');
+ // BARU: tab-switcher Grafik <-> TP (pola persis switchTrendView di Visual & Trend) --
+ // eksklusif, cuma 1 view aktif dalam satu waktu. Default: Grafik aktif, TP tersembunyi.
+ // FIX (23 Agu, dikoreksi user): view "TP" sekarang menampilkan TABEL asli (bukan kartu) --
+ // toggle tetap sama polanya (pola persis switchTrendView di Visual & Trend), cuma target
+ // elemen dikembalikan ke tabel.
+ function switchValidasiView(view) {
+ const chartCard = document.getElementById('validasi-chart-card');
+ const tableCard = document.getElementById('validasi-table-card');
+ const btnChart = document.getElementById('btn-validasi-view-chart');
+ const btnTp = document.getElementById('btn-validasi-view-tp');
+ const activeCls = ['bg-blue-600', 'text-white', 'shadow-sm', 'font-semibold'];
+ const inactiveCls = ['text-slate-300', 'font-medium'];
+ if (view === 'tp') {
+  chartCard.classList.add('hidden');
+  tableCard.classList.remove('hidden');
+  btnTp.classList.add(...activeCls); btnTp.classList.remove(...inactiveCls);
+  btnChart.classList.remove(...activeCls); btnChart.classList.add(...inactiveCls);
+ } else {
+  tableCard.classList.add('hidden');
+  chartCard.classList.remove('hidden');
+  btnChart.classList.add(...activeCls); btnChart.classList.remove(...inactiveCls);
+  btnTp.classList.remove(...activeCls); btnTp.classList.add(...inactiveCls);
+ }
  }
 
+ // CATATAN (23 Agu): tabel dikembalikan seperti semula (bukan kartu) -- render langsung
+ // ke <tbody>, sama seperti sebelum sempat diubah ke kartu.
  function renderValidasiTable() {
  const tbody = document.getElementById('validasi-table-body');
  const countLabel = document.getElementById('validasi-count');
@@ -13114,23 +14230,15 @@ async function cleanupGeneralSheet(sheetName) {
 
  if (filtered.length === 0) {
   tbody.innerHTML = `<tr><td colspan="15" class="text-center p-6 text-slate-500 font-medium">${currentLang === 'en' ? 'No data found.' : 'Tidak ada data yang ditemukan.'}</td></tr>`;
-  return;
- }
-
- const fmt = v => v === null || v === undefined ? '-' : v.toFixed(2);
-
- tbody.innerHTML = filtered.map((g) => {
+ } else {
+  const fmt = v => v === null || v === undefined ? '-' : v.toFixed(2);
+  tbody.innerHTML = filtered.map((g) => {
   const idx = globalValidasiData.indexOf(g);
   const niStatus = getValidasiNiStatus(g.avg.ni);
-  // BARU: Class Grade (Waste/LG/MG/HG/VHG) dihitung dari rata-rata Ni% + Auto Detect
-  // (pakai SM% rata-rata yang sudah ada) -- sama fungsi classifyMaterial() dengan Tabel
-  // Digging, supaya klasifikasi grade konsisten di seluruh dashboard, bukan dihitung ulang
-  // dengan aturan berbeda. Auto dipakai di sini karena Validasi tidak punya field Tipe_Ore
-  // sendiri (yang ada cuma "Laterit" per-kedalaman: Topsoil/Limonit/Transisi/Saprolit/Bedrock,
-  // bukan Sapro/Limo langsung), jadi SM% rata-rata paling representatif buat tebak Tipe Ore.
-   const classifyValidasi = classifyMaterial(g.avg.ni, 'Auto', g.avg.sm);
-  // Warna Ni% ikut classGrade lewat preset terpusat (getGradeTextClass), konsisten
-  // dengan Tabel Digging & bisa diatur user di Settings > Parameter COG.
+  // Class Grade (Waste/LG/MG/HG/VHG) dihitung dari rata-rata Ni% + Auto Detect (pakai
+  // SM% rata-rata yang sudah ada) -- sama fungsi classifyMaterial() dengan Tabel Digging,
+  // supaya klasifikasi grade konsisten di seluruh dashboard.
+  const classifyValidasi = classifyMaterial(g.avg.ni, 'Auto', g.avg.sm);
   const niColorClassValidasi = getGradeTextClass(classifyValidasi.classGrade);
   return `
   <tr class="hover:bg-slate-800/30 transition-colors cursor-pointer" onclick="openValidasiDetailModal(${idx})">
@@ -13153,7 +14261,8 @@ async function cleanupGeneralSheet(sheetName) {
    </td>
   </tr>
   `;
- }).join('');
+  }).join('');
+ }
 
  if (validasiChart) {
   const byArea = {};
@@ -13685,9 +14794,18 @@ async function cleanupGeneralSheet(sheetName) {
  function renderReconciliation() {
  if (!globalRawData || globalRawData.length === 0) return;
 
- const startVal = document.getElementById('rekon-date-start').value;
- const endVal = document.getElementById('rekon-date-end').value;
- const pitVal = document.getElementById('rekon-pit-filter').value.toLowerCase();
+ // DIBUAT DEFENSIF (Split 3 Dashboard, 23 Agu): ketiga elemen filter ini hidup di
+ // tab-rekonsiliasi, tidak ada di dashboard Member. Fungsi ini dipanggil unconditional
+ // dari blok i18n dynamic-refresh begitu globalRawData terisi -- tanpa guard, Member
+ // crash setiap kali ganti bahasa (dan render lain sesudahnya di blok yang sama ikut batal).
+ const rekonDateStartEl = document.getElementById('rekon-date-start');
+ const rekonDateEndEl = document.getElementById('rekon-date-end');
+ const rekonPitFilterEl = document.getElementById('rekon-pit-filter');
+ if (!rekonDateStartEl || !rekonDateEndEl || !rekonPitFilterEl) return;
+
+ const startVal = rekonDateStartEl.value;
+ const endVal = rekonDateEndEl.value;
+ const pitVal = rekonPitFilterEl.value.toLowerCase();
  const startDate = startVal ? new Date(startVal + 'T00:00:00') : null;
  const endDate = endVal ? new Date(endVal + 'T23:59:59') : null;
 
@@ -14079,10 +15197,9 @@ async function cleanupGeneralSheet(sheetName) {
 
  document.getElementById('kpi-total-tonase').innerHTML = `${totalTonase.toLocaleString()} <span class="text-xs font-semibold text-slate-400 ml-1.5" data-i18n="unit_ton">${currentLang === 'en' ? 'Tons' : 'Ton'}</span>`;
  document.getElementById('kpi-ore-tonase').innerHTML = `${oreTonase.toLocaleString()} <span class="text-xs font-semibold text-slate-400 ml-1.5" data-i18n="unit_ton">${currentLang === 'en' ? 'Tons' : 'Ton'}</span>`;
- const saprolitPct = oreTonase > 0 ? (saprolitTon / oreTonase * 100).toFixed(1) : '0.0';
- const limonitPct = oreTonase > 0 ? (limonitTon / oreTonase * 100).toFixed(1) : '0.0';
- const lgPct = oreTonase > 0 ? (lgTon / oreTonase * 100).toFixed(1) : '0.0';
- document.getElementById('kpi-ore-sub').innerText = `Saprolit ${saprolitPct}% | Limonit ${limonitPct}% | LG ${lgPct}%`;
+ // FIX (23 Agu): persentase Sap/Lim/LG dipindah ke legend "Distribusi Material Per Blok"
+ // (generateLabels materialChart) -- kartu ini sekarang cukup teks statis (data-i18n
+ // kpi_ore_sub), tidak perlu dihitung/diisi dinamis lagi di sini.
  document.getElementById('kpi-rata-ni').innerText = avgNi.toFixed(2) + '%';
  document.getElementById('kpi-rata-ni-ore').innerText = avgNiOre.toFixed(2) + '%';
  document.getElementById('kpi-sr').innerText = sr;
@@ -14091,6 +15208,7 @@ async function cleanupGeneralSheet(sheetName) {
  if (materialChart) {
   materialChart.data.datasets[0].data = [saprolitTon, limonitTon, lgTon, wasteTonase];
   materialChart.update();
+  renderMaterialLegend([saprolitTon, limonitTon, lgTon, wasteTonase]);
  }
 
  if (gradeChart) {
@@ -14195,35 +15313,35 @@ window.addEventListener('DOMContentLoaded', async () => {
  // default" sekecil mungkin. Re-render otomatis tetap terjadi di akhir fetchCOGConfig() kalau
  // memang datang belakangan dari fetchDataFromGoogleSheets().
  setTimeout(() => fetchCOGConfig(), 0);
- // 4 fetch di bawah ini semua menembak Apps Script Web App yang SAMA (GOOGLE_SCRIPT_READ_URL).
- // Kalau ditembak bersamaan, Google sering mengantrekan eksekusinya sehingga malah lebih lambat
- // daripada dijeda sedikit satu-satu. Jeda 250ms per panggilan supaya tidak menumpuk di server.
+ // Initial load hanya memuat data yang langsung dipakai Ringkasan. Data Validasi,
+ // JSA, dan Chat dimuat saat tab terkait dibuka sehingga tidak ada enam request
+ // Apps Script yang saling berebut pada cold start.
  setTimeout(() => loadMembersFromSheet(), 0);
  setTimeout(() => fetchIssueData(), 250);
- setTimeout(() => fetchValidasiData(), 500);
- setTimeout(() => fetchBlockModelData(), 750);
- setTimeout(() => fetchChatData(), 1000);
- setTimeout(() => fetchJsaLogData(), 1250);
+ setTimeout(() => fetchBlockModelData(), 500);
  // Regional & Time READ is public and must load independently of Developer authorization.
  await loadRegionalTimeSettings();
  await refreshSecuritySession();
  renderMemberSessionAvatar();
  await refreshMemberSecuritySession();
- document.getElementById('app-version-label').innerText = APP_VERSION;
+ // DIBUAT DEFENSIF (Split 3 Dashboard, 23 Agu): elemen ini hidup di dalam tab-settings,
+ // yang tidak ada di dashboard Member/Supervisor -- guard null di sini, jalur unconditional
+ // di DOMContentLoaded ini kalau tidak dijaga akan throw dan menghentikan SEMUA inisialisasi
+ // sesudahnya (setInterval fetch berkala, dst) di kedua dashboard turunan.
+ const appVersionLabelEl = document.getElementById('app-version-label');
+ if (appVersionLabelEl) appVersionLabelEl.innerText = APP_VERSION;
  setInterval(() => {
   fetchDataFromGoogleSheets();
- }, 30000);
+ }, 60000);
  setInterval(() => {
   refreshMemberSecuritySession();
  }, MEMBER_SESSION_CHECK_INTERVAL_MS);
  setInterval(() => {
   rotateActiveSecurityTokens();
  }, 60 * 1000);
- // Chat Tim di-poll tiap 6 detik, tapi HANYA kalau tab Chat Tim sedang aktif dibuka --
- // sebelumnya polling ini jalan terus-menerus di background walau user di tab lain,
- // ikut membebani Apps Script yang sama dipakai fetch lainnya.
+ // Chat hanya dipoll saat tab Chat aktif dan browser terlihat.
  setInterval(() => {
-  if (currentActiveTab === 'chat') { fetchChatData(); }
+  if (currentActiveTab === 'chat' && !document.hidden) { fetchChatData(); }
  }, CHAT_POLL_INTERVAL);
  });
 </script>
@@ -14240,6 +15358,26 @@ window.addEventListener('DOMContentLoaded', async () => {
 <div id="print-periodic-report-container" class="hidden"></div>
 <!-- BARU: LAPORAN CETAK REKONSILIASI PROFESIONAL -->
 <div id="print-professional-report-container" class="hidden"></div>
+
+<!-- BARU (dibuat 22 Agu, PWA update notification -- Service Worker belum pernah ada
+     sebelumnya di proyek ini): toast diam-diam di pojok bawah, TIDAK menghalangi layar
+     kerja. Muncul HANYA kalau ada versi baru terdeteksi -- klik "Muat Ulang" bersifat
+     eksplisit dari user, TIDAK PERNAH reload otomatis/paksa supaya tidak memutus tim
+     yang sedang mengisi form. -->
+<div id="pwa-update-toast" class="hidden fixed bottom-4 right-4 z-[90] max-w-xs rounded-xl border border-blue-500/40 bg-slate-900/95 backdrop-blur-md shadow-2xl p-3.5">
+ <div class="flex items-start gap-2.5">
+  <div class="p-1.5 rounded-lg bg-blue-600/20 text-blue-400 shrink-0"><i data-lucide="sparkles" class="w-3.5 h-3.5"></i></div>
+  <div class="min-w-0 flex-1">
+   <p class="text-title text-xs font-bold" data-i18n="pwa_update_title">Versi baru tersedia</p>
+   <p class="text-slate-400 text-[10px] font-medium mt-0.5" data-i18n="pwa_update_desc">Muat ulang untuk memakai versi terbaru dashboard ini.</p>
+   <div class="flex gap-2 mt-2.5">
+    <button onclick="applyPwaUpdate()" class="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold transition-all cursor-pointer"><span data-i18n="pwa_update_btn_reload">Muat Ulang</span></button>
+    <button onclick="dismissPwaUpdateToast()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold transition-all cursor-pointer"><span data-i18n="pwa_update_btn_dismiss">Nanti Saja</span></button>
+   </div>
+  </div>
+ </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function(){
  try{ initResetProjectControls(); }catch(e){}
@@ -14252,7 +15390,64 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   updateDeveloperAccessUI();
  }catch(e){ console.warn('Developer Console init skipped:',e); }
+ try{ initPwaUpdateWatcher(); }catch(e){ console.warn('PWA update watcher skipped:',e); }
 });
+
+// BARU (22 Agu): Registrasi Service Worker + deteksi update PWA. Bungkus try-catch
+// menyeluruh + cek dukungan browser -- kalau serviceWorker tidak didukung (mis. HTTP
+// biasa bukan HTTPS, atau browser lama), dashboard TETAP jalan normal seperti sekarang,
+// cuma fitur notifikasi update ini yang tidak aktif.
+let pwaWaitingWorker = null;
+function initPwaUpdateWatcher() {
+ if (!('serviceWorker' in navigator)) return;
+ navigator.serviceWorker.register('./sw.js').then(function(registration) {
+  // Kasus A: SW baru ketemu SAAT halaman ini masih terbuka (paling umum -- tim buka
+  // app, lalu kita deploy versi baru, lalu browser cek ulang beberapa saat kemudian).
+  registration.addEventListener('updatefound', function() {
+   const newWorker = registration.installing;
+   if (!newWorker) return;
+   newWorker.addEventListener('statechange', function() {
+    // 'installed' + navigator.serviceWorker.controller SUDAH ada (bukan install
+    // pertama kali) = ini benar-benar UPDATE, bukan instalasi awal PWA.
+    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+     pwaWaitingWorker = newWorker;
+     showPwaUpdateToast();
+    }
+   });
+  });
+  // Kasus B: tab ini baru dibuka SETELAH versi baru sempat ter-install di background
+  // sebelumnya (mis. tab lain sempat dibuka duluan) -- SW baru sudah "waiting", tinggal ditawarkan.
+  if (registration.waiting && navigator.serviceWorker.controller) {
+   pwaWaitingWorker = registration.waiting;
+   showPwaUpdateToast();
+  }
+  // Poll aktif tiap 60 detik -- supaya notifikasi muncul dalam ~1 menit setelah deploy,
+  // tidak menunggu siklus cek otomatis browser (yang bisa sampai ~24 jam).
+  setInterval(function(){ registration.update().catch(function(){}); }, 60000);
+ }).catch(function(err) { console.warn('SW registration gagal:', err); });
+
+ // Begitu SW baru benar-benar ambil alih (setelah skipWaiting dari applyPwaUpdate()),
+ // reload SEKALI otomatis -- ini bagian dari alur yang sudah dikonfirmasi user via klik,
+ // bukan reload paksa tanpa sepengetahuan user.
+ let reloading = false;
+ navigator.serviceWorker.addEventListener('controllerchange', function() {
+  if (reloading) return;
+  reloading = true;
+  window.location.reload();
+ });
+}
+function showPwaUpdateToast() {
+ const toast = document.getElementById('pwa-update-toast');
+ if (toast) { toast.classList.remove('hidden'); lucide.createIcons(); }
+}
+function dismissPwaUpdateToast() {
+ const toast = document.getElementById('pwa-update-toast');
+ if (toast) toast.classList.add('hidden');
+}
+function applyPwaUpdate() {
+ if (pwaWaitingWorker) pwaWaitingWorker.postMessage({ type: 'SKIP_WAITING' });
+ dismissPwaUpdateToast();
+}
 </script>
 </body>
 </html>
