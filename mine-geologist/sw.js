@@ -16,7 +16,7 @@
  * terhadap yang sudah ter-install -- kalau isinya persis sama, Chrome/Edge/PWA app
  * akan menganggap TIDAK ADA update, walau index.html-nya sendiri sudah berubah total.
  * ============================================================ */
-const CACHE_NAME = 'mine-geologist-build-20260827e';
+const CACHE_NAME = 'mine-geologist-build-20260827f';
 
 // Precache HANYA app shell yang statis (HTML shell, manifest, ikon). SENGAJA TIDAK
 // mencakup panggilan ke Google Apps Script (doGet/doPost) -- itu SEMUA data produksi
