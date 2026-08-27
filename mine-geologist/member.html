@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
 <title>Geobank Minerals</title>
-<link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,13 +21,14 @@
 <!-- PapaParse -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 <style>
- /* Scrollbar custom tipis -- berlaku global, termasuk di dalam modal pop-up.
- Menggantikan scrollbar bawaan browser yang tebal & tidak matching tema gelap. */
- ::-webkit-scrollbar { width: 6px; height: 6px; }
- ::-webkit-scrollbar-track { background: transparent; }
- ::-webkit-scrollbar-thumb { background-color: rgba(100, 116, 139, 0.5); border-radius: 9999px; }
- ::-webkit-scrollbar-thumb:hover { background-color: rgba(100, 116, 139, 0.8); }
- * { scrollbar-width: thin; scrollbar-color: rgba(100, 116, 139, 0.5) transparent; }
+ /* FIX (27 Agu, diperkuat lagi): scrollbar disembunyikan TOTAL di seluruh app (horizontal
+ & vertical), termasuk di dalam modal/tabel manapun. Dipasang !important supaya PASTI
+ menang lawan aturan CSS lain manapun di file ini (mis. class .overflow-x-auto, modal
+ manapun) -- tidak peduli urutan/spesifisitas selector lain. Scroll TETAP berfungsi normal
+ (roda mouse/trackpad/sentuh/keyboard) -- ini murni menyembunyikan indikator visualnya. */
+ html, body, * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+ ::-webkit-scrollbar,
+ *::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; background: transparent !important; }
 
  /* APP LOADING OVERLAY -- dipakai untuk operasi autentikasi non-login; login memakai spinner di tombol. */
  #app-loading-overlay {
@@ -54,6 +55,9 @@
  /* Developer Console: fitur developer dikumpulkan dalam satu application modal. */
  #developer-console-modal .developer-console-card { width: 100%; max-width: 1080px; max-height: 90vh; }
  #developer-console-modal .developer-console-scroll { overflow-y: auto; max-height: calc(90vh - 150px); padding-right: 4px; }
+ /* BARU (27 Agu): modal kedua "Control Technical" -- ukuran/scroll sama persis. */
+ #developer-console-technical-modal .developer-console-technical-card { width: 100%; max-width: 1080px; max-height: 90vh; }
+ #developer-console-technical-modal .developer-console-scroll { overflow-y: auto; max-height: calc(90vh - 150px); padding-right: 4px; }
 
  /* Base Theme Dark Enterprise */
  body.theme-dark { background-color: #0b1329; color: #f8fafc; font-size: 0.875rem; letter-spacing: -0.01em; }
@@ -448,7 +452,12 @@
  .chart-wrap { position: relative; width: 100%; overflow: hidden; }
 
  /* Modal 4 inch fix */
- .modal-mobile { width: 95vw !important; max-width: 95vw !important; margin: 0 auto !important; max-height: 90vh !important; border-radius: 18px !important; }
+ /* FIX (27 Agu): max-height 90vh TANPA overflow-y sebelumnya bikin konten yg melebihi
+    tinggi itu cuma terpotong visual, TIDAK BISA di-scroll -- kasus nyata: modal Update
+    Tujuan, tombol "Simpan Perubahan" jadi tak terjangkau begitu "Buka Dome Baru" diklik
+    (form baru menambah tinggi konten). overflow-y:auto aman utk SEMUA modal yg pakai
+    class ini -- cuma aktif kalau konten benar2 melebihi 90vh, modal pendek tidak berubah. */
+ .modal-mobile { width: 95vw !important; max-width: 95vw !important; margin: 0 auto !important; max-height: 90vh !important; overflow-y: auto !important; border-radius: 18px !important; }
  @media (max-width: 480px){ .modal-mobile { width: 92vw !important; padding: 1rem !important; } }
 
 
@@ -558,6 +567,13 @@
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none;
+}
+/* BARU (27 Agu, Active User Indicator): avatar bulat kecil di header Developer,
+   menampilkan session Member+Supervisor yang sedang aktif. */
+.active-member-avatar { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 9999px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; border: 2px solid rgba(52, 211, 153, .72); background: #0f172a; color: #fff; font-size: 10px; font-weight: 800; line-height: 1; box-shadow: 0 2px 8px rgba(16,185,129,.10); }
+.active-member-avatar img { width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 480px) {
+  .active-member-avatar { width: 32px; height: 32px; flex-basis: 32px; }
 }
 </style>
 </head>
@@ -686,6 +702,15 @@ input[type="password"]::-ms-clear {
      <span>Log Out</span>
     </button>
    </div>
+  </div>
+
+  <!-- BARU (27 Agu): ACTIVE USER INDICATOR -- Developer melihat session Member+Supervisor
+       yang sedang aktif. ELEMEN TERPISAH dari avatar-diri di atas (ID beda sengaja, supaya
+       tidak bentrok dengan #member-session-avatar-wrap yang menampilkan sesi Member lokal
+       browser ini sendiri). Hanya tampil saat devToken ada (Developer unlocked). -->
+  <div id="active-sessions-indicator-wrap" class="relative hidden shrink-0">
+   <div id="active-sessions-avatar-list" class="flex items-center gap-1.5"></div>
+   <span id="active-sessions-count" class="hidden ml-0.5 min-w-[20px] h-5 px-1.5 items-center justify-center rounded-full bg-emerald-500/15 border border-emerald-400/40 text-[10px] font-extrabold text-emerald-300 leading-none">0</span>
   </div>
   </div>
 
@@ -2455,9 +2480,9 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <div class="min-w-0">
     <h3 class="font-bold text-title text-base tracking-tight flex items-center gap-2">
      <i data-lucide="shield-check" class="w-5 h-5 text-amber-400"></i>
-     <span data-i18n="dev_console_title">Developer Console</span>
+     <span data-i18n="dev_console_title_sistem">Developer Console &mdash; Control Sistem</span>
     </h3>
-    <p class="text-slate-400 text-[11px] font-medium mt-1" data-i18n="dev_console_desc">Semua fitur administrasi Developer dalam satu jendela.</p>
+    <p class="text-slate-400 text-[11px] font-medium mt-1" data-i18n="dev_console_desc_sistem">Credential, Cleanup Data, Padatkan Baris, Reset Total, Reset PIN Member.</p>
     <p id="developer-console-identity" class="text-emerald-400 text-[10px] font-semibold mt-1"></p>
    </div>
    <button onclick="closeDeveloperConsoleModal()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer shrink-0" data-i18n-title="tooltip_close" title="Tutup">
@@ -2483,6 +2508,36 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
   <div class="pt-4 mt-4 border-t border-slate-700/60 shrink-0 flex gap-2">
    <button onclick="closeDeveloperConsoleModal()" class="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-all cursor-pointer" data-i18n="dev_console_close">Tutup</button>
+   <button onclick="lockDeveloperAccess()" class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition-all cursor-pointer" data-i18n="dev_access_lock_btn">Kunci</button>
+  </div>
+ </div>
+</div>
+
+<!-- BARU (27 Agu): DEVELOPER CONSOLE -- CONTROL TECHNICAL. Dipisah dari Developer Console
+     lama ("Control Sistem" di atas), khusus panel konfigurasi/referensi yang lebih ringan
+     risikonya (COG, Flag Warna, Bucket & Sampel, Panduan Rekonsiliasi) -- dipisah dari
+     operasi sistem yang lebih berat/berisiko (Cleanup Data, Reset Total, dst). Struktur
+     modal & pola open/close/lock IDENTIK dgn Control Sistem, cuma isi panelnya beda. -->
+<div id="developer-console-technical-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[75] hidden items-center justify-center p-4">
+ <div class="glass-card modal-mobile developer-console-technical-card rounded-2xl p-5 sm:p-6 shadow-2xl border border-slate-700 flex flex-col">
+  <div class="flex items-start justify-between gap-4 pb-4 border-b border-slate-700/60 shrink-0">
+   <div class="min-w-0">
+    <h3 class="font-bold text-title text-base tracking-tight flex items-center gap-2">
+     <i data-lucide="sliders-horizontal" class="w-5 h-5 text-blue-400"></i>
+     <span data-i18n="dev_console_title_technical">Developer Console &mdash; Control Technical</span>
+    </h3>
+    <p class="text-slate-400 text-[11px] font-medium mt-1" data-i18n="dev_console_desc_technical">Panduan Rekonsiliasi &amp; Atur Parameter Global (COG, Flag Warna, Bucket &amp; Sampel).</p>
+    <p id="developer-console-technical-identity" class="text-emerald-400 text-[10px] font-semibold mt-1"></p>
+   </div>
+   <button onclick="closeDeveloperConsoleTechnicalModal()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer shrink-0" data-i18n-title="tooltip_close" title="Tutup">
+    <i data-lucide="x" class="w-4 h-4"></i>
+   </button>
+  </div>
+  <div id="developer-console-technical-scroll" class="developer-console-scroll pt-4 space-y-3">
+   <div id="developer-console-technical-panels" class="space-y-3"></div>
+  </div>
+  <div class="pt-4 mt-4 border-t border-slate-700/60 shrink-0 flex gap-2">
+   <button onclick="closeDeveloperConsoleTechnicalModal()" class="flex-1 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-all cursor-pointer" data-i18n="dev_console_close">Tutup</button>
    <button onclick="lockDeveloperAccess()" class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition-all cursor-pointer" data-i18n="dev_access_lock_btn">Kunci</button>
   </div>
  </div>
@@ -2722,6 +2777,12 @@ versi ini memilih status kehadiran Hadir / Izin / Cuti; kuis tetap ditahan. -->
    <span class="text-slate-400" data-i18n="digging_detail_keterangan">Keterangan</span>
    <span id="digging-detail-keterangan" class="font-semibold text-title text-right max-w-[60%]">-</span>
   </div>
+  <!-- BARU (27 Agu, "Submit Dulu, Koreksi Nanti"): cuma muncul kalau baris ini masih
+  menunggu hasil lab (Ni belum ada) -- klik buka modal isi hasil assay + (opsional)
+  Tujuan yang tadinya belum diputuskan. -->
+  <button id="btn-open-update-assay" onclick="openUpdateAssayModal()" class="hidden mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow-md transition-all cursor-pointer animate-pulse">
+   <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i> <span data-i18n="digging_detail_update_assay_btn">Update Hasil Assay</span>
+  </button>
   <button id="btn-open-update-tujuan" onclick="openUpdateTujuanModal()" class="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-xl shadow-md transition-all cursor-pointer">
    <i data-lucide="pencil" class="w-3.5 h-3.5"></i> <span data-i18n="digging_detail_update_btn">Update Tujuan &amp; ID Pengapalan</span>
   </button>
@@ -2854,6 +2915,91 @@ versi ini memilih status kehadiran Hadir / Izin / Cuti; kuis tetap ditahan. -->
   <button onclick="closeUpdateTujuanModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-medium transition-all cursor-pointer text-xs" data-i18n="btn_cancel">Batal</button>
   <button id="btn-submit-update-tujuan" onclick="submitUpdateTujuan()" class="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-semibold shadow-md transition-all cursor-pointer text-xs">
   <i data-lucide="save" class="w-3.5 h-3.5"></i> <span data-i18n="update_tujuan_save_btn">Simpan Perubahan</span>
+  </button>
+ </div>
+ </div>
+</div>
+
+<!-- BARU (27 Agu): MODAL UPDATE HASIL ASSAY -- alur "Submit Dulu, Koreksi Nanti".
+Dibuka dari baris Tabel Digging yang masih berstatus "Menunggu Lab" (Ni belum ada).
+Tujuan cuma ditampilkan sbg dropdown kalau baris ini BELUM pernah punya Tujuan (mis.
+tonase masih menumpuk di pit, keputusan hauling belum diambil) -- kalau Tujuan sudah
+ada dari awal, field itu disembunyikan di modal ini (ganti Tujuan tetap lewat modal
+Update Tujuan yang sudah ada, supaya tidak dobel jalur ubah Dome). -->
+<div id="update-assay-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden items-center justify-center p-4">
+ <div class="glass-card modal-mobile w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-700">
+ <div class="flex justify-between items-center pb-3.5 border-b border-slate-700/60 mb-4">
+  <div class="flex items-center gap-3">
+  <div class="p-2 bg-emerald-600 rounded-xl text-white shadow-md">
+   <i data-lucide="flask-conical" class="w-4.5 h-4.5"></i>
+  </div>
+  <div>
+   <h3 class="font-bold text-title text-sm tracking-tight" data-i18n="update_assay_title">Update Hasil Assay</h3>
+   <p id="update-assay-subtitle" class="text-[11px] text-slate-400 font-medium"></p>
+  </div>
+  </div>
+  <button onclick="closeUpdateAssayModal()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer">
+  <i data-lucide="x" class="w-4.5 h-4.5"></i>
+  </button>
+ </div>
+
+ <div class="rounded-xl bg-amber-500/10 border border-amber-500/25 px-3 py-2.5 text-[11px] text-amber-300 mb-4" data-i18n="update_assay_notice">
+  Isi hasil assay dari lab. Material (Waste/LG/MG/HG/VHG) akan dihitung ulang otomatis begitu Ni % diisi.
+ </div>
+
+ <div class="grid grid-cols-3 gap-2.5 mb-3">
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs" data-i18n="digging_form_ni">Ni %</label>
+  <input type="number" step="any" min="0" max="100" id="update-assay-ni" placeholder="cth. 1.85" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-emerald-500 font-medium text-xs">
+  </div>
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs" data-i18n="digging_form_fe">Fe %</label>
+  <input type="number" step="any" min="0" max="100" id="update-assay-fe" placeholder="cth. 12.40" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-emerald-500 font-medium text-xs">
+  </div>
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs" data-i18n="digging_form_co">Co %</label>
+  <input type="number" step="any" min="0" max="100" id="update-assay-co" placeholder="cth. 0.08" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-emerald-500 font-medium text-xs">
+  </div>
+ </div>
+ <div class="grid grid-cols-2 gap-2.5 mb-3">
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs" data-i18n="digging_form_mgo">MgO %</label>
+  <input type="number" step="any" min="0" max="100" id="update-assay-mgo" placeholder="cth. 28.50" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-emerald-500 font-medium text-xs">
+  </div>
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs" data-i18n="digging_form_sio2">SiO2 %</label>
+  <input type="number" step="any" min="0" max="100" id="update-assay-sio2" placeholder="cth. 38.20" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-emerald-500 font-medium text-xs">
+  </div>
+ </div>
+ <div class="mb-3">
+  <label class="block text-slate-300 mb-1 font-medium text-xs" data-i18n="digging_form_tipe_ore">Tipe Ore</label>
+  <select id="update-assay-tipe-ore" class="w-full custom-select bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-emerald-500 font-medium text-xs">
+  <option value="Sapro">Saprolite</option>
+  <option value="Limo">Limonite</option>
+  <option value="Auto">Auto (deteksi dari SM%)</option>
+  </select>
+ </div>
+ <div id="update-assay-tujuan-wrapper" class="hidden mb-3">
+  <label class="block text-slate-300 mb-1 font-medium text-xs" data-i18n="digging_form_tujuan">Tujuan</label>
+  <select id="update-assay-tujuan" onchange="onUpdateAssayTujuanChange()" class="w-full custom-select bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-emerald-500 font-medium text-xs">
+  <option value="">-</option>
+  <option value="EFO">EFO</option>
+  <option value="ETO">ETO</option>
+  <option value="Direct">Direct</option>
+  <option value="Disposal">Disposal</option>
+  </select>
+ </div>
+ <div id="update-assay-ship-wrapper" class="hidden mb-3">
+  <label class="block text-slate-300 mb-1 font-medium text-xs" data-i18n="digging_form_ship">Nama Ship</label>
+  <input type="text" id="update-assay-ship" placeholder="cth. MV Ocean Star" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-emerald-500 font-medium text-xs">
+ </div>
+
+ <p id="update-assay-status-msg" class="text-xs hidden mb-3"></p>
+
+ <div class="flex justify-end gap-2 pt-3 border-t border-slate-700/60">
+  <button onclick="closeUpdateAssayModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold transition-all cursor-pointer text-xs" data-i18n="update_tujuan_cancel_btn">Batal</button>
+  <button id="btn-submit-update-assay" onclick="submitUpdateAssay()" class="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold shadow-md transition-all cursor-pointer text-xs">
+  <i data-lucide="save" class="w-3.5 h-3.5"></i> <span data-i18n="update_assay_save_btn">Simpan Hasil Assay</span>
   </button>
  </div>
  </div>
@@ -4100,6 +4246,10 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   digging_detail_id_eto: "ID ETO",
   digging_detail_keterangan: "Keterangan",
   digging_detail_update_btn: "Update Tujuan & ID Pengapalan",
+  digging_detail_update_assay_btn: "Update Hasil Assay",
+  update_assay_title: "Update Hasil Assay",
+  update_assay_notice: "Isi hasil assay dari lab. Material (Waste/LG/MG/HG/VHG) akan dihitung ulang otomatis begitu Ni % diisi.",
+  update_assay_save_btn: "Simpan Hasil Assay",
   digging_detail_dome_history_btn: "Lihat Riwayat Dome",
   digging_detail_tujuan_history_btn: "Lihat Riwayat Tujuan",
   tujuan_history_title: "Riwayat Perubahan Tujuan",
@@ -4218,6 +4368,12 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   dev_access_lock_btn: "Kunci",
   dev_console_title: "Developer Console",
   dev_console_desc: "Semua fitur administrasi Developer dalam satu jendela.",
+  dev_console_title_sistem: "Developer Console \u2014 Control Sistem",
+  dev_console_desc_sistem: "Credential, Cleanup Data, Padatkan Baris, Reset Total, Reset PIN Member.",
+  dev_console_title_technical: "Developer Console \u2014 Control Technical",
+  dev_console_desc_technical: "Panduan Rekonsiliasi & Atur Parameter Global (COG, Flag Warna, Bucket & Sampel).",
+  dev_console_open_sistem: "Sistem",
+  dev_console_open_technical: "Technical",
   dev_console_active_as: "Akses aktif sebagai",
   dev_console_credential: "Credential Manager",
   dev_console_credential_desc: "Buat Credential untuk User aktif yang belum memilikinya.",
@@ -4727,6 +4883,10 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   digging_detail_id_eto: "ETO ID",
   digging_detail_keterangan: "Notes",
   digging_detail_update_btn: "Update Destination & Shipping ID",
+  digging_detail_update_assay_btn: "Update Assay Result",
+  update_assay_title: "Update Assay Result",
+  update_assay_notice: "Fill in the lab assay result. Material (Waste/LG/MG/HG/VHG) will be recalculated automatically once Ni % is filled in.",
+  update_assay_save_btn: "Save Assay Result",
   digging_detail_dome_history_btn: "View Dome History",
   digging_detail_tujuan_history_btn: "View Destination History",
   tujuan_history_title: "Destination Change History",
@@ -4845,6 +5005,12 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   dev_access_lock_btn: "Lock",
   dev_console_title: "Developer Console",
   dev_console_desc: "All Developer administration tools in one window.",
+  dev_console_title_sistem: "Developer Console \u2014 System Control",
+  dev_console_desc_sistem: "Credential, Cleanup Data, Compact Rows, Full Reset, Reset Member PIN.",
+  dev_console_title_technical: "Developer Console \u2014 Technical Control",
+  dev_console_desc_technical: "Reconciliation Guide & Global Parameters (COG, Color Flags, Bucket & Sample).",
+  dev_console_open_sistem: "System",
+  dev_console_open_technical: "Technical",
   dev_console_active_as: "Access active as",
   dev_console_credential: "Credential Manager",
   dev_console_credential_desc: "Create Credentials for active Users who do not have one yet.",
@@ -5897,7 +6063,7 @@ window.addEventListener('afterprint', function() {
  const stage = imgEl.dataset.fallbackStage || '0';
  if (stage === '0') {
   imgEl.dataset.fallbackStage = '1';
-  imgEl.src = './avatar-yaya.png';
+  imgEl.src = './assets/avatar-yaya.png';
  } else if (stage === '1') {
   imgEl.dataset.fallbackStage = '2';
   imgEl.src = 'https://ui-avatars.com/api/?name=Yaya&background=2563eb&color=fff';
@@ -5964,6 +6130,7 @@ window.addEventListener('afterprint', function() {
  const btnIssueDeleteAll = document.getElementById('btn-issue-delete-all');
  const devCleanupPanel = document.getElementById('dev-cleanup-panel');
  const panelResetProject = document.getElementById('panel-reset-project');
+ const panelResetMemberPin = document.getElementById('panel-reset-member-pin'); // BARU (27 Agu)
  const sidebarDevIdentityCard = document.getElementById('sidebar-dev-identity-card');
  const unlocked = isDeveloperUnlocked();
 
@@ -5984,6 +6151,10 @@ window.addEventListener('afterprint', function() {
 
  if (panelResetProject) {
   panelResetProject.classList.toggle('hidden', !unlocked);
+ }
+
+ if (panelResetMemberPin) {
+  panelResetMemberPin.classList.toggle('hidden', !unlocked);
  }
 
  if (devCleanupPanel) {
@@ -6103,6 +6274,29 @@ window.addEventListener('afterprint', function() {
   hideModalAnimated(modal);
  }
 
+ // BARU (27 Agu): Control Technical -- pola open/close identik dgn Control Sistem,
+ // cuma target modal & container identity beda. updateDeveloperAccessUI() dipanggil
+ // di sini juga karena fungsi itu men-toggle SEMUA panel Developer berdasarkan ID,
+ // tidak peduli panel itu ada di modal Sistem atau Technical.
+ function openDeveloperConsoleTechnicalModal() {
+  if (!isDeveloperUnlocked()) {
+   showNoticeModal(currentLang === 'en' ? 'Developer Access Locked' : 'Akses Developer Terkunci', currentLang === 'en' ? 'Unlock Developer Access first.' : 'Buka Akses Developer terlebih dahulu.');
+   return;
+  }
+  const modal = document.getElementById('developer-console-technical-modal');
+  const identity = document.getElementById('developer-console-technical-identity');
+  const name = (localStorage.getItem('mine_user_name') || localStorage.getItem('mine_user_id') || 'Developer').trim();
+  if (identity) identity.textContent = (currentLang === 'en' ? 'Access active as: ' : 'Akses aktif sebagai: ') + name;
+  updateDeveloperAccessUI();
+  showModalAnimated(modal);
+  if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+ }
+
+ function closeDeveloperConsoleTechnicalModal() {
+  const modal = document.getElementById('developer-console-technical-modal');
+  hideModalAnimated(modal);
+ }
+
  function setLoginButtonLoading(buttonId, spinnerId, loading, labelId, loadingLabel) {
   const button = document.getElementById(buttonId);
   const spinner = document.getElementById(spinnerId);
@@ -6151,6 +6345,7 @@ window.addEventListener('afterprint', function() {
     localStorage.setItem('mine_user_id',result.user_id||'');
     localStorage.setItem('mine_role_id',result.role_id||'');
     localStorage.setItem('mine_user_name',result.user_name||'');
+    loadActiveMemberSessions(); // BARU (27 Agu): Active User Indicator langsung terisi setelah unlock, tidak nunggu poll berikutnya
     input.value='';
     errorMsg.classList.add('hidden');
     updateDeveloperAccessUI();
@@ -6518,6 +6713,103 @@ async function refreshMemberSecuritySession() {
   });
 }
 
+// BARU (27 Agu): ACTIVE USER SESSION INDICATOR -- Developer melihat session Member +
+// Supervisor yang sedang aktif. Diadaptasi dari kiriman pihak lain (v90.2.105), diaudit
+// dan disambungkan ulang IDnya supaya tidak bentrok dengan avatar-diri (#member-session-*)
+// yang sudah ada. Server-authoritative sepenuhnya -- TIDAK pernah menyuntik sesi lokal
+// browser ini ke daftar (beda dari avatar-diri di atas yang baca localStorage sendiri).
+let activeMemberSessions = [];
+let activeMemberIndicatorRequestSeq = 0;
+
+function memberInitials(name, loginId) {
+ const sourceName = (name || loginId || 'Member').trim();
+ const words = sourceName.replace(/[_-]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+ if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+ return sourceName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'ME';
+}
+
+function renderActiveSessionsIndicator(sessionsOverride) {
+ const wrap = document.getElementById('active-sessions-indicator-wrap');
+ const list = document.getElementById('active-sessions-avatar-list');
+ const count = document.getElementById('active-sessions-count');
+ if (!wrap || !list || !count) return;
+
+ if (Array.isArray(sessionsOverride)) activeMemberSessions = sessionsOverride.slice();
+ let sessions = Array.isArray(activeMemberSessions) ? activeMemberSessions.slice() : [];
+
+ const seen = new Set();
+ sessions = sessions.filter(function(item) {
+  const sid = String(item.session_id || '').trim();
+  if (!sid || seen.has(sid)) return false;
+  seen.add(sid);
+  return true;
+ });
+ activeMemberSessions = sessions;
+
+ list.innerHTML = '';
+ if (!sessions.length) {
+  wrap.classList.add('hidden');
+  count.classList.add('hidden');
+  count.classList.remove('flex');
+  return;
+ }
+
+ wrap.classList.remove('hidden');
+ count.textContent = String(sessions.length);
+ count.classList.remove('hidden');
+ count.classList.add('flex');
+
+ sessions.forEach(function(session) {
+  const name = String(session.user_name || session.login_id || session.user_id || 'Member').trim();
+  const loginId = String(session.login_id || session.user_id || '').trim();
+  const avatarUrl = String(session.avatar_url || '').trim();
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'active-member-avatar';
+  btn.title = (currentLang === 'en' ? 'Active user: ' : 'User aktif: ') + name + (loginId ? ' (' + loginId + ')' : '');
+  btn.setAttribute('aria-label', btn.title);
+  if (avatarUrl) {
+   const img = document.createElement('img');
+   img.src = avatarUrl;
+   img.alt = name;
+   img.onerror = function() { this.replaceWith(document.createTextNode(memberInitials(name, loginId))); };
+   btn.appendChild(img);
+  } else {
+   btn.textContent = memberInitials(name, loginId);
+  }
+  list.appendChild(btn);
+ });
+}
+
+async function loadActiveMemberSessions() {
+ const devToken = (localStorage.getItem('mine_dev_token') || '').trim();
+ if (!devToken) {
+  activeMemberSessions = [];
+  renderActiveSessionsIndicator([]);
+  return false;
+ }
+ const requestSeq = ++activeMemberIndicatorRequestSeq;
+ try {
+  const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: new URLSearchParams({ action: 'getActiveMemberSessions', sessionToken: devToken }) }, 15000);
+  const result = await response.json();
+  if (requestSeq !== activeMemberIndicatorRequestSeq) return false;
+  if (!result || !result.success) {
+   console.warn('Active Member indicator skipped:', result && result.message ? result.message : result);
+   activeMemberSessions = [];
+   renderActiveSessionsIndicator([]);
+   return false;
+  }
+  renderActiveSessionsIndicator(result.sessions || []);
+  return true;
+ } catch (error) {
+  if (requestSeq !== activeMemberIndicatorRequestSeq) return false;
+  console.warn('Active Member indicator request failed:', error);
+  activeMemberSessions = [];
+  renderActiveSessionsIndicator([]);
+  return false;
+ }
+}
+
 function toggleMemberSessionMenu(event) {
   if (event) event.stopPropagation();
   const menu = document.getElementById('member-session-menu');
@@ -6741,6 +7033,39 @@ async function openCredentialManager() {
 function closeCredentialManager() {
  const modal = document.getElementById('credential-manager-modal');
  hideModalAnimated(modal);
+}
+
+// BARU (27 Agu): submit Reset PIN Member -- backend action setMemberPin sudah lama ada,
+// panel ini baru UI-nya. Validasi client (6 digit, PIN cocok 2x) SEBELUM kirim, tapi
+// server tetap re-validasi semuanya sendiri (tidak dipercaya dari client).
+async function submitResetMemberPin() {
+ const elUserId = document.getElementById('reset-member-pin-userid');
+ const elPin = document.getElementById('reset-member-pin-new');
+ const elConfirm = document.getElementById('reset-member-pin-confirm');
+ const elStatus = document.getElementById('reset-member-pin-status');
+ if (!elUserId || !elPin || !elConfirm || !elStatus) return;
+ const userId = elUserId.value.trim();
+ const pin = elPin.value.trim();
+ const confirmPin = elConfirm.value.trim();
+ function setStatus(msg, ok) {
+  elStatus.textContent = msg;
+  elStatus.className = 'text-[10px] font-medium mt-2 ' + (ok ? 'text-emerald-400' : 'text-rose-400');
+ }
+ if (!userId) { setStatus(currentLang === 'en' ? 'User_ID is required.' : 'User_ID wajib diisi.', false); return; }
+ if (!/^[0-9]{6}$/.test(pin)) { setStatus(currentLang === 'en' ? 'PIN must be 6 digits.' : 'PIN harus 6 digit angka.', false); return; }
+ if (pin !== confirmPin) { setStatus(currentLang === 'en' ? 'PIN confirmation does not match.' : 'Ulangi PIN tidak cocok.', false); return; }
+ setStatus(currentLang === 'en' ? 'Saving...' : 'Menyimpan...', true);
+ try {
+  const result = await postCentralAuthenticated({ action: 'setMemberPin', user_id: userId, pin: pin }, { developerOnly: true });
+  if (result.success) {
+   setStatus((currentLang === 'en' ? 'PIN saved for ' : 'PIN tersimpan utk ') + userId + '.', true);
+   elPin.value = ''; elConfirm.value = '';
+  } else {
+   setStatus(result.message || (currentLang === 'en' ? 'Failed to save PIN.' : 'Gagal menyimpan PIN.'), false);
+  }
+ } catch (err) {
+  setStatus((currentLang === 'en' ? 'Server error: ' : 'Error server: ') + (err && err.message ? err.message : String(err)), false);
+ }
 }
 
 function setCredentialManagerStatus(message, ok) {
@@ -7616,6 +7941,12 @@ async function provisionExistingCredential(index, userId) {
  const hasDomeLink = (row.idEfo && row.idEfo !== '-') || (row.idEto && row.idEto !== '-');
  const btnDomeHistory = document.getElementById('btn-open-dome-history');
  btnDomeHistory.classList.toggle('hidden', !(hasDomeLink && canViewDomeHistory()));
+
+ // BARU (27 Agu): tombol "Update Hasil Assay" cuma muncul kalau baris ini masih
+ // menunggu lab (Ni belum ada) -- terbuka utk semua role yang bisa submit Digging
+ // (server tetap re-validasi permission production_gc.create saat submit).
+ const btnUpdateAssay = document.getElementById('btn-open-update-assay');
+ if (btnUpdateAssay) btnUpdateAssay.classList.toggle('hidden', !row.isPendingAssay);
 
  const modal = document.getElementById('digging-detail-modal');
  showModalAnimated(modal);
@@ -10324,6 +10655,129 @@ async function provisionExistingCredential(index, userId) {
  }
  }
 
+ // ==== BARU (27 Agu, "Submit Dulu, Koreksi Nanti"): modal Update Hasil Assay ====
+ function onUpdateAssayTujuanChange() {
+ const tujuan = document.getElementById('update-assay-tujuan').value;
+ const shipWrapper = document.getElementById('update-assay-ship-wrapper');
+ if (tujuan === 'Direct') {
+  shipWrapper.classList.remove('hidden');
+ } else {
+  shipWrapper.classList.add('hidden');
+  document.getElementById('update-assay-ship').value = '';
+ }
+ }
+
+ function openUpdateAssayModal() {
+ const row = currentOpenDiggingRow;
+ if (!row) return;
+
+ if (!row.idSampel || row.idSampel === '-') {
+  showNoticeModal(
+  currentLang === 'en' ? 'No Sample ID' : 'ID Sampel Kosong',
+  currentLang === 'en' ? 'This record has no ID Sampel, so it cannot be reliably tracked or updated.' : 'Baris ini tidak punya ID Sampel, jadi tidak bisa dilacak/diupdate dengan aman.'
+  );
+  return;
+ }
+
+ document.getElementById('update-assay-subtitle').innerText = `${row.tanggal} -- ${row.pit} / ${row.blok} -- ${row.idSampel}`;
+ document.getElementById('update-assay-ni').value = '';
+ document.getElementById('update-assay-fe').value = '';
+ document.getElementById('update-assay-co').value = '';
+ document.getElementById('update-assay-mgo').value = '';
+ document.getElementById('update-assay-sio2').value = '';
+ document.getElementById('update-assay-tipe-ore').value = 'Sapro';
+
+ // Tujuan cuma ditawarkan di sini kalau baris ini BELUM pernah punya Tujuan --
+ // kalau sudah ada (mis. sudah EFO ke Dome tertentu), ganti Tujuan/Dome tetap lewat
+ // modal "Update Tujuan & ID Pengapalan" yang sudah ada, bukan dobel jalur di sini.
+ const belumAdaTujuan = !row.tujuan || row.tujuan === '-';
+ const tujuanWrapper = document.getElementById('update-assay-tujuan-wrapper');
+ tujuanWrapper.classList.toggle('hidden', !belumAdaTujuan);
+ document.getElementById('update-assay-tujuan').value = '';
+ document.getElementById('update-assay-ship-wrapper').classList.add('hidden');
+ document.getElementById('update-assay-ship').value = '';
+
+ document.getElementById('update-assay-status-msg').classList.add('hidden');
+
+ const modal = document.getElementById('update-assay-modal');
+ showModalAnimated(modal);
+ lucide.createIcons();
+ }
+
+ function closeUpdateAssayModal() {
+ const modal = document.getElementById('update-assay-modal');
+ hideModalAnimated(modal);
+ }
+
+ async function submitUpdateAssay() {
+ const row = currentOpenDiggingRow;
+ if (!row) return;
+ const submitBtn = document.getElementById('btn-submit-update-assay');
+ const statusMsg = document.getElementById('update-assay-status-msg');
+ const originalBtnHtml = submitBtn.innerHTML;
+
+ const niVal = document.getElementById('update-assay-ni').value.trim();
+ const feVal = document.getElementById('update-assay-fe').value.trim();
+ const coVal = document.getElementById('update-assay-co').value.trim();
+ const mgoVal = document.getElementById('update-assay-mgo').value.trim();
+ const sio2Val = document.getElementById('update-assay-sio2').value.trim();
+ const tipeOreVal = document.getElementById('update-assay-tipe-ore').value;
+ const tujuanVal = document.getElementById('update-assay-tujuan-wrapper').classList.contains('hidden')
+  ? '' : document.getElementById('update-assay-tujuan').value;
+ const shipVal = document.getElementById('update-assay-ship').value.trim();
+
+ if (!niVal) {
+  statusMsg.className = 'text-xs text-rose-400';
+  statusMsg.innerText = currentLang === 'en' ? 'Ni % is required to save assay results.' : 'Ni % wajib diisi untuk menyimpan hasil assay.';
+  statusMsg.classList.remove('hidden');
+  return;
+ }
+
+ // Material dihitung ulang di sini juga (client-side), SAMA PERSIS pola submitDiggingForm --
+ // supaya kolom Material konsisten dgn cara dashboard menghitung di tempat lain.
+ const smComputed = (parseFloat(mgoVal) > 0) ? (parseFloat(sio2Val) / parseFloat(mgoVal)) : 0;
+ const classifyResultAssay = classifyMaterial(parseFloat(niVal) || 0, tipeOreVal, smComputed);
+
+ submitBtn.disabled = true;
+ submitBtn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> ' + (currentLang === 'en' ? 'Saving...' : 'Menyimpan...');
+ statusMsg.classList.add('hidden');
+
+ try {
+  const payload = buildAuthenticatedPayload({
+  action: 'updateAssayResult',
+  id_sampel: row.idSampel,
+  ni: niVal, fe: feVal, co: coVal, mgo: mgoVal, sio2: sio2Val,
+  sm: smComputed ? smComputed.toFixed(2) : '',
+  material: classifyResultAssay.classGrade,
+  tipe_ore: classifyResultAssay.tipeOreFinal,
+  tujuan: tujuanVal,
+  ship: tujuanVal === 'Direct' ? shipVal : ''
+  });
+  const response = await fetch(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload });
+  const result = await response.json();
+  if (result.status !== 'success') throw new Error(result.message || (currentLang === 'en' ? 'Failed to save assay results.' : 'Gagal menyimpan hasil assay.'));
+
+  statusMsg.className = 'text-xs text-emerald-400';
+  statusMsg.innerText = result.auto_route ? ((currentLang === 'en' ? 'Saved -- ' : 'Tersimpan -- ') + result.auto_route) : (currentLang === 'en' ? 'Assay results saved!' : 'Hasil assay berhasil disimpan!');
+  statusMsg.classList.remove('hidden');
+  setTimeout(() => {
+  closeUpdateAssayModal();
+  closeDiggingDetailModal();
+  statusMsg.classList.add('hidden');
+  fetchDataFromGoogleSheets(true);
+  }, 900);
+ } catch (error) {
+  console.error('Error updating assay result:', error);
+  statusMsg.className = 'text-xs text-rose-400';
+  statusMsg.innerText = error && error.message ? error.message : (currentLang === 'en' ? 'An error occurred. Try again.' : 'Terjadi kesalahan. Coba lagi.');
+  statusMsg.classList.remove('hidden');
+ } finally {
+  submitBtn.disabled = false;
+  submitBtn.innerHTML = originalBtnHtml;
+  lucide.createIcons();
+ }
+ }
+
  async function submitDiggingForm(event) {
  event.preventDefault();
  const form = document.getElementById('diggingManagerForm');
@@ -10336,27 +10790,33 @@ async function provisionExistingCredential(index, userId) {
  const blok = form.blok.value.trim();
  const tonase = form.tonase.value;
  const totalSampel = form.total_sampel.value;
+ const idSampelVal = form.id_sampel.value.trim();
 
- if (!tanggal || !pit || !blok || !totalSampel || !tonase) {
+ if (!tanggal || !pit || !blok || !totalSampel || !tonase || !idSampelVal) {
   statusMsg.className = 'text-xs text-rose-400';
-  statusMsg.innerText = currentLang === 'en' ? 'Date, Pit, Block, and Total Samples are required.' : 'Tanggal, Pit, Blok, dan Total Sampel wajib diisi.';
+  statusMsg.innerText = currentLang === 'en' ? 'Date, Pit, Block, Total Samples, and Sample ID are required.' : 'Tanggal, Pit, Blok, Total Sampel, dan ID Sampel wajib diisi.';
   statusMsg.classList.remove('hidden');
   return;
  }
 
  const payload = buildAuthenticatedPayload(form);
 
- // BARU (v89.16.24): Class_Grade (Waste/LG/MG/HG/VHG) dihitung otomatis di sini lewat
- // classifyMaterial() -- MENGGANTIKAN pilihan manual dropdown Material yang lama.
- // Tipe_Ore diambil dari dropdown baru (Sapro/Limo/Auto); kalau Auto, tipeOreFinal
- // hasil deteksi (dari SM%) yang ditulis ke kolom Tipe_Ore, bukan literal "Auto",
- // supaya data tersimpan konsisten (baris lama tidak akan pernah baca "Auto" lagi).
- const niForClassify = parseFloat(form.ni.value) || 0;
- const smForClassify = parseFloat(form.sm.value) || 0;
- const tipeOreSelected = form.tipe_ore.value;
- const classifyResultForm = classifyMaterial(niForClassify, tipeOreSelected, smForClassify);
- payload.set('material', classifyResultForm.classGrade);
- payload.set('tipe_ore', classifyResultForm.tipeOreFinal);
+ // BARU (27 Agu, "Submit Dulu, Koreksi Nanti"): kalau Ni belum diisi (assay masih
+ // ditunggu lab), JANGAN klasifikasi Waste/LG/MG/HG/VHG (hasilnya bakal salah, seolah
+ // Ni=0 asli). Tandai eksplisit "Menunggu Assay" -- Tabel Digging akan kasih badge
+ // berkedip utk baris ini, beda dari klasifikasi grade manapun.
+ const niRawInput = form.ni.value.trim();
+ if (!niRawInput) {
+  payload.set('material', 'Menunggu Assay');
+  payload.set('tipe_ore', form.tipe_ore.value === 'Auto' ? 'Sapro' : form.tipe_ore.value);
+ } else {
+  const niForClassify = parseFloat(niRawInput) || 0;
+  const smForClassify = parseFloat(form.sm.value) || 0;
+  const tipeOreSelected = form.tipe_ore.value;
+  const classifyResultForm = classifyMaterial(niForClassify, tipeOreSelected, smForClassify);
+  payload.set('material', classifyResultForm.classGrade);
+  payload.set('tipe_ore', classifyResultForm.tipeOreFinal);
+ }
 
  submitBtn.disabled = true;
  submitBtn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> ' + (currentLang === 'en' ? 'Saving...' : 'Menyimpan...');
@@ -14283,7 +14743,14 @@ async function cleanupGeneralSheet(sheetName) {
   const tipeOreRow = cleanRow['tipe_ore'] || cleanRow['tipe ore'] || '';
   const smForClassify = typeof sm === 'number' ? sm : parseFloat(sm);
   const classifyResult = classifyMaterial(niNum, tipeOreRow, smForClassify);
-  const statusBadge = renderClassGradeBadge(classifyResult.classGrade);
+  // BARU (27 Agu, "Submit Dulu, Koreksi Nanti"): classGrade 'N/A' di konteks Tabel
+  // Digging SELALU berarti "Ni belum ada" (satu-satunya jalur ke 'N/A' di classifyMaterial
+  // adalah niNum<=0) -- jadi badge khusus berkedip di sini, BUKAN badge N/A abu-abu biasa
+  // (renderClassGradeBadge dibiarkan utuh krn dipakai jg di tabel Validasi, beda konteks).
+  const isPendingAssay = classifyResult.classGrade === 'N/A';
+  const statusBadge = isPendingAssay
+   ? '<span class="px-2 py-0.5 rounded-md text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>' + (currentLang === 'en' ? 'Awaiting Lab' : 'Menunggu Lab') + '</span>'
+   : renderClassGradeBadge(classifyResult.classGrade);
 
   // BARU: kolom "Material" cukup tampilkan Tipe Ore (nama lengkap Saprolite/Limonite) --
   // grade (Waste/LG/MG/HG/VHG) TIDAK diulang di sini karena sudah ada kolom "Status Grade"
@@ -14298,7 +14765,10 @@ async function cleanupGeneralSheet(sheetName) {
   cuaca, idSampel, tujuan, namaShip, idEfo, idEto, keterangan, totalSampelDisplay,
   // BARU (v89.16.24): simpan hasil classifyMaterial() supaya detail modal & tempat
   // lain yang baca dari currentPageDiggingRows tetap konsisten (bukan hitung ulang).
-  classGrade: classifyResult.classGrade, tipeOreFinal: classifyResult.tipeOreFinal, tipeOreLabel
+  classGrade: classifyResult.classGrade, tipeOreFinal: classifyResult.tipeOreFinal, tipeOreLabel,
+  // BARU (27 Agu): flag "masih menunggu hasil lab" -- dipakai detail modal utk
+  // tampilkan tombol "Update Hasil Assay".
+  isPendingAssay
   });
 
   // Warna teks Ni% ikut hasil classifyMaterial() (classGrade) lewat preset warna
@@ -14580,6 +15050,7 @@ window.addEventListener('DOMContentLoaded', async () => {
  await refreshSecuritySession();
  renderMemberSessionAvatar();
  await refreshMemberSecuritySession();
+ await loadActiveMemberSessions(); // BARU (27 Agu): Active User Indicator -- no-op kalau devToken kosong
  // DIBUAT DEFENSIF (Split 3 Dashboard, 23 Agu): elemen ini hidup di dalam tab-settings,
  // yang tidak ada di dashboard Member/Supervisor -- guard null di sini, jalur unconditional
  // di DOMContentLoaded ini kalau tidak dijaga akan throw dan menghentikan SEMUA inisialisasi
@@ -14591,6 +15062,9 @@ window.addEventListener('DOMContentLoaded', async () => {
  }, 60000);
  setInterval(() => {
   refreshMemberSecuritySession();
+ }, MEMBER_SESSION_CHECK_INTERVAL_MS);
+ setInterval(() => {
+  loadActiveMemberSessions(); // BARU (27 Agu): Active User Indicator refresh berkala
  }, MEMBER_SESSION_CHECK_INTERVAL_MS);
  setInterval(() => {
   rotateActiveSecurityTokens();
@@ -14635,14 +15109,45 @@ window.addEventListener('DOMContentLoaded', async () => {
 </div>
 
 <script>
+// BARU (27 Agu): scroll horizontal via roda mouse -- setelah batang scrollbar
+// disembunyikan total, mouse biasa (bukan trackpad) kehilangan satu-satunya cara
+// geser ke samping (drag batang horizontal). Solusi standar (dipakai GitHub dkk):
+// begitu roda mouse diputar SAAT kursor di atas tabel yang overflow horizontal (dan
+// TIDAK overflow vertikal -- supaya tidak "mencuri" scroll vertikal biasa dari
+// elemen yang memang scroll dua arah), gerakan roda dialihkan jadi scrollLeft.
+// Pakai event delegation di document supaya otomatis berlaku ke tabel manapun,
+// termasuk yang HTML-nya di-render ulang lewat innerHTML (barge-loading-log-table
+// dkk) -- tidak perlu daftar ulang listener tiap kali tabel di-refresh.
+document.addEventListener('wheel', function(e) {
+ const container = e.target.closest('.overflow-x-auto');
+ if (!container) return;
+ const hasHorizontalOverflow = container.scrollWidth > container.clientWidth;
+ const hasVerticalOverflow = container.scrollHeight > container.clientHeight;
+ // Cuma alihkan kalau gerakan roda dominan vertikal (deltaY) DAN elemen ini murni
+ // butuh scroll horizontal -- trackpad yang sudah kirim deltaX asli dibiarkan lewat apa adanya.
+ if (hasHorizontalOverflow && !hasVerticalOverflow && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+  container.scrollLeft += e.deltaY;
+  e.preventDefault();
+ }
+}, { passive: false });
+
 document.addEventListener('DOMContentLoaded', function(){
  try{ initResetProjectControls(); }catch(e){}
  try{ initCompactBlankRowsControls(); }catch(e){}
  try{
-  const mount=document.getElementById('developer-console-panels');
-  ['dev-cleanup-panel','dev-compact-panel','panel-guide-rekonsiliasi','panel-parameter-global','panel-reset-project'].forEach(function(id){
+  // BARU (27 Agu): dipisah jadi 2 mount point -- Sistem (Cleanup Data, Padatkan Baris,
+  // Reset Total, Reset PIN Member) vs Technical (Panduan Rekonsiliasi, Atur Parameter
+  // Global). updateDeveloperAccessUI() tetap 1 fungsi yg sama, toggle SEMUA panel
+  // berdasarkan ID tanpa peduli mount ke modal yang mana.
+  const mountSistem=document.getElementById('developer-console-panels');
+  ['dev-cleanup-panel','dev-compact-panel','panel-reset-project','panel-reset-member-pin'].forEach(function(id){
    const el=document.getElementById(id);
-   if(el && mount) mount.appendChild(el);
+   if(el && mountSistem) mountSistem.appendChild(el);
+  });
+  const mountTechnical=document.getElementById('developer-console-technical-panels');
+  ['panel-guide-rekonsiliasi','panel-parameter-global'].forEach(function(id){
+   const el=document.getElementById(id);
+   if(el && mountTechnical) mountTechnical.appendChild(el);
   });
   updateDeveloperAccessUI();
  }catch(e){ console.warn('Developer Console init skipped:',e); }
