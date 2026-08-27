@@ -724,10 +724,12 @@ input[type="password"]::-ms-clear {
   <!-- BARU (27 Agu): ACTIVE USER INDICATOR -- Developer melihat session Member+Supervisor
        yang sedang aktif. ELEMEN TERPISAH dari avatar-diri di atas (ID beda sengaja, supaya
        tidak bentrok dengan #member-session-avatar-wrap yang menampilkan sesi Member lokal
-       browser ini sendiri). Hanya tampil saat devToken ada (Developer unlocked). -->
+       browser ini sendiri). Hanya tampil saat devToken ada (Developer unlocked).
+       FIX (27 Agu): badge angka jumlah SENGAJA DIHAPUS (bikin baris kelihatan tidak
+       sejajar tinggi dgn avatar-avatar-nya) -- cukup avatar berjejer, tidak perlu
+       badge terpisah lagi. -->
   <div id="active-sessions-indicator-wrap" class="relative hidden shrink-0">
    <div id="active-sessions-avatar-list" class="flex items-center gap-1.5"></div>
-   <span id="active-sessions-count" class="hidden ml-0.5 min-w-[20px] h-5 px-1.5 items-center justify-center rounded-full bg-emerald-500/15 border border-emerald-400/40 text-[10px] font-extrabold text-emerald-300 leading-none">0</span>
   </div>
   </div>
 
@@ -7511,8 +7513,7 @@ function memberInitials(name, loginId) {
 function renderActiveSessionsIndicator(sessionsOverride) {
  const wrap = document.getElementById('active-sessions-indicator-wrap');
  const list = document.getElementById('active-sessions-avatar-list');
- const count = document.getElementById('active-sessions-count');
- if (!wrap || !list || !count) return;
+ if (!wrap || !list) return;
 
  if (Array.isArray(sessionsOverride)) activeMemberSessions = sessionsOverride.slice();
  let sessions = Array.isArray(activeMemberSessions) ? activeMemberSessions.slice() : [];
@@ -7529,15 +7530,10 @@ function renderActiveSessionsIndicator(sessionsOverride) {
  list.innerHTML = '';
  if (!sessions.length) {
   wrap.classList.add('hidden');
-  count.classList.add('hidden');
-  count.classList.remove('flex');
   return;
  }
 
  wrap.classList.remove('hidden');
- count.textContent = String(sessions.length);
- count.classList.remove('hidden');
- count.classList.add('flex');
 
  sessions.forEach(function(session) {
   const name = String(session.user_name || session.login_id || session.user_id || 'Member').trim();
