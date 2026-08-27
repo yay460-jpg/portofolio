@@ -451,7 +451,12 @@
  .chart-wrap { position: relative; width: 100%; overflow: hidden; }
 
  /* Modal 4 inch fix */
- .modal-mobile { width: 95vw !important; max-width: 95vw !important; margin: 0 auto !important; max-height: 90vh !important; border-radius: 18px !important; }
+ /* FIX (27 Agu): max-height 90vh TANPA overflow-y sebelumnya bikin konten yg melebihi
+    tinggi itu cuma terpotong visual, TIDAK BISA di-scroll -- kasus nyata: modal Update
+    Tujuan, tombol "Simpan Perubahan" jadi tak terjangkau begitu "Buka Dome Baru" diklik
+    (form baru menambah tinggi konten). overflow-y:auto aman utk SEMUA modal yg pakai
+    class ini -- cuma aktif kalau konten benar2 melebihi 90vh, modal pendek tidak berubah. */
+ .modal-mobile { width: 95vw !important; max-width: 95vw !important; margin: 0 auto !important; max-height: 90vh !important; overflow-y: auto !important; border-radius: 18px !important; }
  @media (max-width: 480px){ .modal-mobile { width: 92vw !important; padding: 1rem !important; } }
 
 
@@ -2313,15 +2318,19 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
       Logic tombol bahasa/tema dan modal Regional & Time tetap dipertahankan. -->
  <div id="panel-language-theme-regional" class="glass-card p-3.5 rounded-2xl border-l-4 border-l-violet-500">
   <div class="flex items-center justify-between gap-4 flex-wrap">
-   <div class="min-w-0">
-    <h3 class="font-bold text-title mb-1 flex items-center gap-2 text-sm tracking-tight">
-     <i data-lucide="globe-2" class="w-4.5 h-4.5 text-violet-400"></i>
+   <div class="flex items-center gap-3 min-w-0">
+    <div class="p-2.5 bg-violet-600/15 border border-violet-500/30 rounded-xl text-violet-400 shrink-0">
+     <i data-lucide="globe-2" class="w-4.5 h-4.5"></i>
+    </div>
+    <div class="min-w-0">
+    <h3 class="font-bold text-title mb-1 text-sm tracking-tight">
      <span data-i18n="lang_theme_settings_title">Bahasa, Tema & Regional</span>
     </h3>
     <p class="text-slate-400 text-xs font-medium" data-i18n="lang_theme_settings_desc">
      Atur bahasa, tampilan, timezone, dan format tanggal/waktu aplikasi.
     </p>
     <div id="regional-time-status" class="text-[10px] text-slate-500 font-medium mt-0.5">Memuat...</div>
+    </div>
    </div>
 
    <div class="flex items-center gap-2 flex-wrap shrink-0">
@@ -2449,12 +2458,17 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
 
  <!-- PANEL AKSES DEVELOPER -->
  <div class="glass-card p-3.5 rounded-2xl border-l-4 border-l-amber-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-  <div class="flex-1 min-w-0 sm:min-w-[220px]">
-  <h3 class="font-bold text-title mb-1 flex items-center gap-2 text-sm tracking-tight">
-   <i data-lucide="shield-check" class="w-4.5 h-4.5 text-amber-500"></i> <span data-i18n="dev_access_title">Akses Developer</span>
+  <div class="flex items-center gap-3 flex-1 min-w-0 sm:min-w-[220px]">
+   <div class="p-2.5 bg-amber-600/15 border border-amber-500/30 rounded-xl text-amber-500 shrink-0">
+    <i data-lucide="shield-check" class="w-4.5 h-4.5"></i>
+   </div>
+   <div class="min-w-0">
+  <h3 class="font-bold text-title mb-1 text-sm tracking-tight">
+   <span data-i18n="dev_access_title">Akses Developer</span>
   </h3>
   <p class="text-slate-400 text-xs font-medium" data-i18n="dev_access_desc">Masuk menggunakan Login_ID + email terdaftar + PIN aplikasi. Email hanya untuk memastikan member terdaftar; bukan password Google.</p>
   <p id="dev-pin-error" class="text-[11px] text-rose-400 font-medium hidden mt-1" data-i18n="dev_access_error">Login_ID, email, atau PIN tidak valid.</p>
+   </div>
   </div>
 
   <div id="dev-locked-view" class="flex items-center gap-2 shrink-0">
