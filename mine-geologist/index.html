@@ -21,13 +21,12 @@
 <!-- PapaParse -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 <style>
- /* Scrollbar custom tipis -- berlaku global, termasuk di dalam modal pop-up.
- Menggantikan scrollbar bawaan browser yang tebal & tidak matching tema gelap. */
- ::-webkit-scrollbar { width: 6px; height: 6px; }
- ::-webkit-scrollbar-track { background: transparent; }
- ::-webkit-scrollbar-thumb { background-color: rgba(100, 116, 139, 0.5); border-radius: 9999px; }
- ::-webkit-scrollbar-thumb:hover { background-color: rgba(100, 116, 139, 0.8); }
- * { scrollbar-width: thin; scrollbar-color: rgba(100, 116, 139, 0.5) transparent; }
+ /* FIX (27 Agu): scrollbar disembunyikan TOTAL di seluruh app (horizontal & vertical) --
+ sebelumnya cuma dibikin tipis (masih kelihatan garis abu-kebiruan di modal/panel manapun
+ yang bisa di-scroll). Scroll TETAP berfungsi normal (roda mouse/trackpad/sentuh/keyboard)
+ -- ini murni menyembunyikan indikator visualnya, bukan mematikan overflow/scroll-nya. */
+ ::-webkit-scrollbar { width: 0; height: 0; display: none; }
+ * { scrollbar-width: none; -ms-overflow-style: none; }
 
  /* APP LOADING OVERLAY -- dipakai untuk operasi autentikasi non-login; login memakai spinner di tombol. */
  #app-loading-overlay {
