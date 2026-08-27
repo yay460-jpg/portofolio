@@ -21,12 +21,14 @@
 <!-- PapaParse -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 <style>
- /* FIX (27 Agu): scrollbar disembunyikan TOTAL di seluruh app (horizontal & vertical) --
- sebelumnya cuma dibikin tipis (masih kelihatan garis abu-kebiruan di modal/panel manapun
- yang bisa di-scroll). Scroll TETAP berfungsi normal (roda mouse/trackpad/sentuh/keyboard)
- -- ini murni menyembunyikan indikator visualnya, bukan mematikan overflow/scroll-nya. */
- ::-webkit-scrollbar { width: 0; height: 0; display: none; }
- * { scrollbar-width: none; -ms-overflow-style: none; }
+ /* FIX (27 Agu, diperkuat lagi): scrollbar disembunyikan TOTAL di seluruh app (horizontal
+ & vertical), termasuk di dalam modal/tabel manapun. Dipasang !important supaya PASTI
+ menang lawan aturan CSS lain manapun di file ini (mis. class .overflow-x-auto, modal
+ manapun) -- tidak peduli urutan/spesifisitas selector lain. Scroll TETAP berfungsi normal
+ (roda mouse/trackpad/sentuh/keyboard) -- ini murni menyembunyikan indikator visualnya. */
+ html, body, * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+ ::-webkit-scrollbar,
+ *::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; background: transparent !important; }
 
  /* APP LOADING OVERLAY -- dipakai untuk operasi autentikasi non-login; login memakai spinner di tombol. */
  #app-loading-overlay {
