@@ -15645,6 +15645,28 @@ window.addEventListener('DOMContentLoaded', async () => {
 </div>
 
 <script>
+// BARU (27 Agu): scroll horizontal via roda mouse -- setelah batang scrollbar
+// disembunyikan total, mouse biasa (bukan trackpad) kehilangan satu-satunya cara
+// geser ke samping (drag batang horizontal). Solusi standar (dipakai GitHub dkk):
+// begitu roda mouse diputar SAAT kursor di atas tabel yang overflow horizontal (dan
+// TIDAK overflow vertikal -- supaya tidak "mencuri" scroll vertikal biasa dari
+// elemen yang memang scroll dua arah), gerakan roda dialihkan jadi scrollLeft.
+// Pakai event delegation di document supaya otomatis berlaku ke tabel manapun,
+// termasuk yang HTML-nya di-render ulang lewat innerHTML (barge-loading-log-table
+// dkk) -- tidak perlu daftar ulang listener tiap kali tabel di-refresh.
+document.addEventListener('wheel', function(e) {
+ const container = e.target.closest('.overflow-x-auto');
+ if (!container) return;
+ const hasHorizontalOverflow = container.scrollWidth > container.clientWidth;
+ const hasVerticalOverflow = container.scrollHeight > container.clientHeight;
+ // Cuma alihkan kalau gerakan roda dominan vertikal (deltaY) DAN elemen ini murni
+ // butuh scroll horizontal -- trackpad yang sudah kirim deltaX asli dibiarkan lewat apa adanya.
+ if (hasHorizontalOverflow && !hasVerticalOverflow && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+  container.scrollLeft += e.deltaY;
+  e.preventDefault();
+ }
+}, { passive: false });
+
 document.addEventListener('DOMContentLoaded', function(){
  try{ initResetProjectControls(); }catch(e){}
  try{ initCompactBlankRowsControls(); }catch(e){}
