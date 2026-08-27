@@ -1,6 +1,6 @@
 {
-  "name": "Mine Geologist - Geobank Minerals",
-  "short_name": "Mine Geologist",
+  "name": "Team Geologist - Geobank Minerals",
+  "short_name": "Team Geologist",
   "description": "Aplikasi Member - Geobank Minerals",
   "start_url": "./index.html",
   "scope": "./",
