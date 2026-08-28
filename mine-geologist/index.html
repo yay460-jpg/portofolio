@@ -2468,6 +2468,90 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
  </div>
 
+ <!-- BARU (28 Agu, dipindah ke Control Technical 28 Agu): Panel Approval KPIEvent --
+ Developer-only (kpi_event.approve). Daftar kejadian PENDING, tombol Approve/Reject
+ langsung memanggil action approveKpiEvent. -->
+ <div id="panel-kpi-event-approval" class="hidden glass-card p-3.5 rounded-2xl">
+  <div class="flex items-center gap-3 mb-3">
+   <div class="p-2.5 bg-amber-600/15 border border-amber-500/30 rounded-xl text-amber-500">
+    <i data-lucide="calendar-clock" class="w-4.5 h-4.5"></i>
+   </div>
+   <div>
+    <h3 class="font-bold text-title text-sm tracking-tight">Persetujuan Kejadian KPI</h3>
+    <p class="text-slate-400 text-xs font-medium">Kejadian PENDING menunggu disahkan -- pengaju tidak bisa mengesahkan pengajuannya sendiri.</p>
+   </div>
+   <button onclick="loadKpiEventApprovalList()" class="ml-auto p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
+  </div>
+  <div id="kpi-event-approval-list" class="space-y-2">
+   <div class="text-center text-slate-500 text-xs py-4">Memuat...</div>
+  </div>
+ </div>
+
+ <!-- BARU (v90.2.117): Panel "Formula KPI" -- atur mode bobot (A/B/C) & 5 slider per
+ pilar, dengan preview live thd 1 member contoh. Developer-only (sama pola panel lain
+ di Settings), mount+toggle mengikuti POLA BARU proyek (lihat memori: appendChild di
+ DOMContentLoaded + toggle updateDeveloperAccessUI). -->
+ <div id="panel-formula-kpi" class="hidden glass-card p-3.5 rounded-2xl">
+  <div class="flex items-center gap-3 mb-3">
+   <div class="p-2.5 bg-violet-600/15 border border-violet-500/30 rounded-xl text-violet-400">
+    <i data-lucide="scale" class="w-4.5 h-4.5"></i>
+   </div>
+   <div>
+    <h3 class="font-bold text-title text-sm tracking-tight">Formula KPI -- Bobot 5 Pilar</h3>
+    <p class="text-slate-400 text-xs font-medium">Atur mode bobot aktif & persentase tiap pilar. Total tidak wajib pas 100 -- engine otomatis menormalkan.</p>
+   </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+   <div>
+   <label class="block text-slate-300 mb-1 font-medium text-xs">Mode yang Diedit / Aktif</label>
+   <select id="kpi-formula-mode-select" onchange="onKpiFormulaModeChange()" class="w-full custom-select bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-violet-500 font-medium text-xs">
+    <option value="A">A -- Balanced</option>
+    <option value="B">B -- Safety First</option>
+    <option value="C">C -- Sampling & Assay Driven</option>
+   </select>
+   </div>
+   <div>
+   <label class="block text-slate-300 mb-1 font-medium text-xs">Preview Member (contoh)</label>
+   <select id="kpi-formula-preview-member" onchange="updateKpiFormulaPreview()" class="w-full custom-select bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-violet-500 font-medium text-xs"></select>
+   </div>
+  </div>
+
+  <div class="space-y-3 mb-2" id="kpi-formula-sliders">
+   <div>
+   <div class="flex justify-between text-xs font-medium mb-1"><span class="text-slate-300">Kehadiran</span> <span id="kpi-w-kehadiran-val" class="text-violet-400 font-bold">20</span></div>
+   <input type="range" id="kpi-w-kehadiran" min="0" max="100" value="20" oninput="onKpiFormulaSliderInput()" class="w-full accent-violet-500">
+   </div>
+   <div>
+   <div class="flex justify-between text-xs font-medium mb-1"><span class="text-slate-300">Safety (APD)</span> <span id="kpi-w-safety-val" class="text-violet-400 font-bold">20</span></div>
+   <input type="range" id="kpi-w-safety" min="0" max="100" value="20" oninput="onKpiFormulaSliderInput()" class="w-full accent-violet-500">
+   </div>
+   <div>
+   <div class="flex justify-between text-xs font-medium mb-1"><span class="text-slate-300">Kelengkapan Sampling</span> <span id="kpi-w-sampling-val" class="text-violet-400 font-bold">20</span></div>
+   <input type="range" id="kpi-w-sampling" min="0" max="100" value="20" oninput="onKpiFormulaSliderInput()" class="w-full accent-violet-500">
+   </div>
+   <div>
+   <div class="flex justify-between text-xs font-medium mb-1"><span class="text-slate-300">Laporan Tepat Waktu</span> <span id="kpi-w-laporan-val" class="text-violet-400 font-bold">20</span></div>
+   <input type="range" id="kpi-w-laporan" min="0" max="100" value="20" oninput="onKpiFormulaSliderInput()" class="w-full accent-violet-500">
+   </div>
+   <div>
+   <div class="flex justify-between text-xs font-medium mb-1"><span class="text-slate-300">Attitude</span> <span id="kpi-w-attitude-val" class="text-violet-400 font-bold">20</span></div>
+   <input type="range" id="kpi-w-attitude" min="0" max="100" value="20" oninput="onKpiFormulaSliderInput()" class="w-full accent-violet-500">
+   </div>
+  </div>
+
+  <div class="flex justify-between items-center text-[11px] font-medium mb-3 px-1">
+   <span class="text-slate-400">Total bobot: <span id="kpi-w-total" class="text-title font-bold">100</span></span>
+   <span class="text-slate-400" id="kpi-formula-preview-text">Preview: memuat...</span>
+  </div>
+
+  <p id="kpi-formula-status-msg" class="text-xs mb-2 hidden"></p>
+  <div class="flex gap-2">
+   <button id="btn-save-kpi-formula-mode" onclick="saveKpiFormula(false)" class="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl font-semibold text-xs transition-all cursor-pointer">Simpan Mode Ini</button>
+   <button id="btn-save-kpi-formula-active" onclick="saveKpiFormula(true)" class="flex-1 px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-semibold text-xs shadow-lg shadow-violet-600/20 transition-all cursor-pointer">Simpan &amp; Jadikan Aktif</button>
+  </div>
+ </div>
+
  <!-- PANEL AKSES DEVELOPER -->
  <div class="glass-card p-3.5 rounded-2xl border-l-4 border-l-amber-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
   <div class="flex items-center gap-3 flex-1 min-w-0 sm:min-w-[220px]">
@@ -2619,24 +2703,6 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
   <div class="flex gap-2 mt-3 flex-wrap"><button onclick="submitResetMemberPin()" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">Simpan PIN Baru</button></div>
   <div id="reset-member-pin-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
- </div>
-
- <!-- BARU (28 Agu): Panel Approval KPIEvent -- Developer-only (kpi_event.approve). Daftar
- kejadian PENDING, tombol Approve/Reject langsung memanggil action approveKpiEvent. -->
- <div id="panel-kpi-event-approval" class="hidden glass-card p-3.5 rounded-2xl">
-  <div class="flex items-center gap-3 mb-3">
-   <div class="p-2.5 bg-amber-600/15 border border-amber-500/30 rounded-xl text-amber-500">
-    <i data-lucide="calendar-clock" class="w-4.5 h-4.5"></i>
-   </div>
-   <div>
-    <h3 class="font-bold text-title text-sm tracking-tight">Persetujuan Kejadian KPI</h3>
-    <p class="text-slate-400 text-xs font-medium">Kejadian PENDING menunggu disahkan -- pengaju tidak bisa mengesahkan pengajuannya sendiri.</p>
-   </div>
-   <button onclick="loadKpiEventApprovalList()" class="ml-auto p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
-  </div>
-  <div id="kpi-event-approval-list" class="space-y-2">
-   <div class="text-center text-slate-500 text-xs py-4">Memuat...</div>
-  </div>
  </div>
 
  <!-- v90.2.100: PANEL PADATKAN BARIS KOSONG -- Developer-only, preview lalu eksekusi. -->
@@ -3041,7 +3107,8 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <div id="guide-content-12" class="hidden p-3 pt-0 text-[11px] text-slate-300 leading-relaxed space-y-2">
    <p class="text-violet-300 font-semibold" data-i18n="guide_step12_p0">STATUS: BELUM DIIMPLEMENTASI. Ini catatan hasil diskusi mekanisme (27 Agu) sebagai reminder sebelum dieksekusi ke sheet KPIConfig/KPIEvent -- bukan fitur yang sudah berjalan di dashboard.</p>
    <p data-i18n="guide_step12_p1"><b>Prinsip dasar: controllability.</b> Hanya masukkan ke KPI individu Geologist hal-hal yang benar-benar dia kontrol. Tonase harian TIDAK dijadikan pilar utama -- itu tanggung jawab campuran operator excavator + mine plan, bukan murni Grade Control.</p>
-   <p data-i18n="guide_step12_p2"><b>5 Pilar (revisi):</b> Kehadiran, Safety (JSA+APD), Kelengkapan Sampling &amp; Ketepatan Assay (pengganti "Produksi"), Laporan Tepat Waktu, Attitude (Disiplin/Kerja Sama/Inisiatif/Integritas dari Supervisor). 3 opsi bobot (Balanced/Safety First/Data-Integrity Driven) dipilih GM, diatur Developer -- rencana ditaruh di kartu baru "Formula KPI" sejajar Atur Parameter Global.</p>
+   <p data-i18n="guide_step12_p2"><b>5 Pilar (revisi):</b> Kehadiran, Safety (JSA+APD), Kelengkapan Sampling (pengganti "Produksi"), Laporan Tepat Waktu, Attitude (Disiplin/Kerja Sama/Inisiatif/Integritas dari Supervisor). 3 opsi bobot (Balanced/Safety First/Data-Integrity Driven) dipilih GM, diatur Developer -- rencana ditaruh di kartu baru "Formula KPI" sejajar Atur Parameter Global.</p>
+   <p class="text-cyan-300" data-i18n="guide_step12_p15">BARU (28 Agu): nama Pilar 3 DIPERSEMPIT dari "Kelengkapan Sampling &amp; Ketepatan Assay" jadi "Kelengkapan Sampling" SAJA -- ketepatan assay TETAP eksklusif jadi proksi Pilar 4 (hitungProksiKetepatanAssay_), supaya 1 keterlambatan assay tidak dihukum 2x (melanggar prinsip Anti Dobel-Hukuman guide_step12_p7). Pilar 3 murni kuantitas: (Sampel dgn Ni% terisi / Total baris disubmit) * 100, TIDAK peduli kapan diisinya.</p>
    <p data-i18n="guide_step12_p3"><b>Kartu "Kualitas Grade Control Bulanan" (terpisah dari skor KPI gabungan):</b> Ni% tertimbang = SUM(Tonase x Ni%) / SUM(Tonase) per Member per bulan, dibandingkan ke rentang COGConfig min-max (atau Estimasi Block Model kalau data cukup). Tonase tetap ditampilkan tapi bobot kecil (peringkat 3, bukan penentu). Jumlah sampel ditampilkan apa adanya TANPA ambang minimum -- ambang batas cuma pindahkan masalah controllability yang sama ke tempat lain.</p>
    <p data-i18n="guide_step12_p4"><b>Celah "Menunggu Assay" (2 lapis pengaman, WAJIB ada sebelum kartu Ni% dipakai):</b> (1) Assay yang tidak di-update dalam N hari (default 3 hari, configurable di Developer Console) otomatis jadi penalti ke pilar Laporan Tepat Waktu -- supaya menggantungkan data ada konsekuensinya. (2) Hitung terpisah tingkat penyelesaian = Sampel ter-assay lengkap / Total sampel disubmit.</p>
    <p data-i18n="guide_step12_p5"><b>Eligible Day, bukan hari dinilai 0.</b> Hari yang memang tidak bisa dinilai karena faktor eksternal DIKELUARKAN dari pembagi (denominator), bukan dihitung sebagai pencapaian nol. 3 jenis: Full Exclusion (libur nasional, demo besar sampai tutup total -- instruksi manajemen ke Head Dept), Partial Adjustment (breakdown alat/hujan parsial -- target hari itu disesuaikan proporsional sesuai jam tersedia), Member Exclusion (cuti/izin -- khusus 1 orang, rekan lain yang tetap masuk tetap dinilai normal).</p>
@@ -3050,6 +3117,9 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <p data-i18n="guide_step12_p7"><b>Anti dobel-hukuman:</b> Keterlambatan cuma dihitung 1 tempat (jangan dipotong di Kehadiran DAN Attitude-&gt;Disiplin sekaligus). Skor tiap pilar dibatasi maksimal 100 -- kalau mau beri penghargaan pencapaian di atas target, buat Bonus terpisah, jangan campur ke skor pilar.</p>
    <p data-i18n="guide_step12_p10"><b>Kehadiran administratif (27 Agu):</b> Cuti/Izin dikeluarkan dari Attendance denominator, reuse data JSA_Log attendance_status yang sudah ada -- tidak butuh field baru.</p>
    <p data-i18n="guide_step12_p11"><b>Safety Gate &amp; "Tidak Diwajibkan" (27 Agu):</b> Safety Gate opsional (ON/OFF) sbg pengaman tambahan thd Safety rendah yg tertutupi pilar lain. Kategori "Tidak Diwajibkan" pada Laporan = efek otomatis Full Exclusion. DITOLAK dari audit yg sama: Production/Tonase balik jadi pilar (kontradiksi controllability).</p>
+   <p class="text-amber-300 font-semibold" data-i18n="guide_step12_p12_title">STATUS 28 Agu -- Pilar 4 (Laporan Tepat Waktu) SELESAI &amp; live (badge sudah tampil di kartu KPI Member). Panduan uji skenario KPIEvent di bawah -- BELUM dijalankan user, masih ditunda sampai pilar lain selesai.</p>
+   <p data-i18n="guide_step12_p13"><b>Cara uji skenario KPIEvent Full Exclusion (utk dijalankan nanti):</b> (1) Tab KPI Member -&gt; "Ajukan Kejadian" -&gt; Jenis=Full Exclusion, isi Tanggal Kejadian &amp; Alasan. (2) Login Developer (akun BEDA dari pengaju, anti self-approve) -&gt; approve di panel KPIEvent. (3) Cek <code>?sheet=kpiscore&amp;member_id=NAMA&amp;periode=yyyy-MM</code> -- field <code>eligible_days</code> harus turun 1 dari total hari kalender bulan itu.</p>
+   <p class="text-rose-300" data-i18n="guide_step12_p14"><b>GAP DIKETAHUI (belum diperbaiki, keputusan ditunda):</b> <code>eligible_days</code> sudah dihitung benar &amp; tampil di response, TAPI skor pilar 4 saat ini BELUM memakainya sbg penyebut -- formula masih menilai dari baris yang ADA disubmit, bukan membandingkan ke jumlah hari yang SEHARUSNYA wajib lapor. Akibatnya: approve Full Exclusion utk 1 hari TIDAK OTOMATIS mengubah skor kalau memang tidak ada baris disubmit di hari itu. Perlu diputuskan: ubah formula jadi (hari eligible yg ada submit tepat waktu / total eligible days), atau biarkan begini krn constraint lain. BELUM diputuskan user -- jangan anggap ini sudah beres.</p>
    <p data-i18n="guide_step12_p8">Fondasi data yang SUDAH ADA dan siap dipakai tanpa sheet baru: JSA_Log (kehadiran+safety+Izin/Cuti), Produksi_GC (timestamp laporan, tonase, Ni% per Pelapor), Issue &amp; Action (bukti pendukung temuan kendala lapangan), COGConfig (rentang target Ni%), SecurityConfig (di-reuse utk bobot KPI, bukan sheet KPIConfig terpisah). Yang PERLU dibangun baru: sheet KPIEvent, sheet Attitude, key baru di SecurityConfig.</p>
    </div>
   </div>
@@ -3363,7 +3433,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
      <i data-lucide="sliders-horizontal" class="w-5 h-5 text-blue-400"></i>
      <span data-i18n="dev_console_title_technical">Developer Console &mdash; Control Technical</span>
     </h3>
-    <p class="text-slate-400 text-[11px] font-medium mt-1" data-i18n="dev_console_desc_technical">Panduan Rekonsiliasi &amp; Atur Parameter Global (COG, Flag Warna, Bucket &amp; Sampel).</p>
+    <p class="text-slate-400 text-[11px] font-medium mt-1" data-i18n="dev_console_desc_technical">Panduan Rekonsiliasi, Atur Parameter Global (COG, Flag Warna, Bucket &amp; Sampel), &amp; Persetujuan Kejadian KPI.</p>
     <p id="developer-console-technical-identity" class="text-emerald-400 text-[10px] font-semibold mt-1"></p>
    </div>
    <button onclick="closeDeveloperConsoleTechnicalModal()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer shrink-0" data-i18n-title="tooltip_close" title="Tutup">
@@ -3482,11 +3552,35 @@ versi ini memilih status kehadiran Hadir / Izin / Cuti; kuis tetap ditahan. -->
   </div>
   <div>
   <label class="block text-slate-300 mb-1 font-medium" data-i18n="jsa_confirm_status">Status Kehadiran</label>
-  <select id="jsa-confirm-status" class="w-full custom-select bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-emerald-500 font-medium text-xs">
+  <select id="jsa-confirm-status" onchange="toggleJsaApdVisibility()" class="w-full custom-select bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-emerald-500 font-medium text-xs">
    <option value="Hadir" data-i18n="jsa_status_present">Hadir</option>
    <option value="Izin" data-i18n="jsa_status_permission">Izin</option>
    <option value="Cuti" data-i18n="jsa_status_leave">Cuti</option>
   </select>
+  </div>
+  <!-- BARU (v90.2.112): checklist APD interaktif -- cuma relevan &amp; ditampilkan saat
+  Status Kehadiran = Hadir (di-toggle via onchange di bawah), independen dari kehadiran itu
+  sendiri. Dipakai Pilar 2 (Safety) di Engine KPI. -->
+  <div id="jsa-confirm-apd-wrap">
+  <label class="block text-slate-300 mb-1.5 font-medium" data-i18n="jsa_confirm_apd_label">Checklist APD Wajib</label>
+  <div class="space-y-1.5">
+   <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800 cursor-pointer">
+   <input type="checkbox" id="jsa-apd-helm" class="accent-emerald-500 w-3.5 h-3.5">
+   <span data-i18n="jsa_apd_helm">Helm Safety (SNI)</span>
+   </label>
+   <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800 cursor-pointer">
+   <input type="checkbox" id="jsa-apd-masker" class="accent-emerald-500 w-3.5 h-3.5">
+   <span data-i18n="jsa_apd_masker">Masker P2 / N95</span>
+   </label>
+   <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800 cursor-pointer">
+   <input type="checkbox" id="jsa-apd-sarung-tangan" class="accent-emerald-500 w-3.5 h-3.5">
+   <span data-i18n="jsa_apd_sarung_tangan">Sarung Tangan</span>
+   </label>
+   <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800 cursor-pointer">
+   <input type="checkbox" id="jsa-apd-rompi" class="accent-emerald-500 w-3.5 h-3.5">
+   <span data-i18n="jsa_apd_rompi">Rompi Reflektif</span>
+   </label>
+  </div>
   </div>
  </div>
  <p id="jsa-confirm-status-msg" class="text-xs mt-3 hidden"></p>
@@ -3545,6 +3639,10 @@ versi ini memilih status kehadiran Hadir / Izin / Cuti; kuis tetap ditahan. -->
  </div>
 
  <div class="space-y-3 text-sm">
+  <div class="flex justify-between items-center">
+  <span class="text-slate-400 text-xs font-medium" data-i18n="digging_detail_waktu_input">Waktu Input</span>
+  <span id="digging-detail-waktu-input" class="font-semibold text-title text-xs"></span>
+  </div>
   <div class="flex justify-between items-center">
   <span class="text-slate-400 text-xs font-medium" data-i18n="digging_detail_weather">Cuaca</span>
   <span id="digging-detail-cuaca" class="font-semibold text-title text-xs"></span>
@@ -5043,7 +5141,8 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  guide_step12_title: "KPI & Performance Member -- Mekanisme (RENCANA)",
  guide_step12_p0: "STATUS: BELUM DIIMPLEMENTASI. Ini catatan hasil diskusi mekanisme (27 Agu) sebagai reminder sebelum dieksekusi ke sheet KPIConfig/KPIEvent -- bukan fitur yang sudah berjalan di dashboard.",
  guide_step12_p1: "Prinsip dasar: controllability. Hanya masukkan ke KPI individu Geologist hal-hal yang benar-benar dia kontrol. Tonase harian TIDAK dijadikan pilar utama -- itu tanggung jawab campuran operator excavator + mine plan, bukan murni Grade Control.",
- guide_step12_p2: "5 Pilar (revisi): Kehadiran, Safety (JSA+APD), Kelengkapan Sampling & Ketepatan Assay (pengganti \"Produksi\"), Laporan Tepat Waktu, Attitude (Disiplin/Kerja Sama/Inisiatif/Integritas dari Supervisor). 3 opsi bobot (Balanced/Safety First/Data-Integrity Driven) dipilih GM, diatur Developer -- rencana ditaruh di kartu baru \"Formula KPI\" sejajar Atur Parameter Global.",
+ guide_step12_p2: "5 Pilar (revisi): Kehadiran, Safety (JSA+APD), Kelengkapan Sampling (pengganti \"Produksi\"), Laporan Tepat Waktu, Attitude (Disiplin/Kerja Sama/Inisiatif/Integritas dari Supervisor). 3 opsi bobot (Balanced/Safety First/Data-Integrity Driven) dipilih GM, diatur Developer -- rencana ditaruh di kartu baru \"Formula KPI\" sejajar Atur Parameter Global.",
+ guide_step12_p15: "BARU (28 Agu): nama Pilar 3 DIPERSEMPIT dari \"Kelengkapan Sampling & Ketepatan Assay\" jadi \"Kelengkapan Sampling\" SAJA -- ketepatan assay TETAP eksklusif jadi proksi Pilar 4 (hitungProksiKetepatanAssay_), supaya 1 keterlambatan assay tidak dihukum 2x (melanggar prinsip Anti Dobel-Hukuman guide_step12_p7). Pilar 3 murni kuantitas: (Sampel dgn Ni% terisi / Total baris disubmit) * 100, TIDAK peduli kapan diisinya.",
  guide_step12_p3: "Kartu \"Kualitas Grade Control Bulanan\" (terpisah dari skor KPI gabungan): Ni% tertimbang = SUM(Tonase x Ni%) / SUM(Tonase) per Member per bulan, dibandingkan ke rentang COGConfig min-max (atau Estimasi Block Model kalau data cukup). Tonase tetap ditampilkan tapi bobot kecil (peringkat 3, bukan penentu). Jumlah sampel ditampilkan apa adanya TANPA ambang minimum -- ambang batas cuma pindahkan masalah controllability yang sama ke tempat lain.",
  guide_step12_p4: "Celah \"Menunggu Assay\" (2 lapis pengaman, WAJIB ada sebelum kartu Ni% dipakai): (1) Assay yang tidak di-update dalam N hari (default 3 hari, configurable di Developer Console) otomatis jadi penalti ke pilar Laporan Tepat Waktu -- supaya menggantungkan data ada konsekuensinya. (2) Hitung terpisah tingkat penyelesaian = Sampel ter-assay lengkap / Total sampel disubmit.",
  guide_step12_p5: "Eligible Day, bukan hari dinilai 0. Hari yang memang tidak bisa dinilai karena faktor eksternal DIKELUARKAN dari pembagi (denominator), bukan dihitung sebagai pencapaian nol. 3 jenis: Full Exclusion (libur nasional, demo besar sampai tutup total -- instruksi manajemen ke Head Dept), Partial Adjustment (breakdown alat/hujan parsial -- target hari itu disesuaikan proporsional sesuai jam tersedia), Member Exclusion (cuti/izin -- khusus 1 orang, rekan lain yang tetap masuk tetap dinilai normal).",
@@ -5053,6 +5152,9 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  guide_step12_p8: "STATUS 28 Agu -- SEMUA LAPISAN DATA SUDAH DIBUAT. Sheet KPIEvent (17 kolom) dan Attitude (9 kolom) sudah dibuat di Google Sheets. SecurityConfig sudah ditambah 5 baris KPI_*. RolePermissions sudah ditambah kpi_event.create/approve + attitude.assess, dikonfirmasi persis sesuai desain. Yang tersisa murni lapisan KODE: backend (Code.gs -- addKpiEvent, approveKpiEvent, submitAttitudeAssessment, calculation engine) dan frontend (form pengajuan, panel approval, kartu skor KPI).",
  guide_step12_p10: "BARU (27 Agu, diadopsi dari audit dokumen pihak lain): Kehadiran administratif (Cuti/Izin) TIDAK mengurangi Attendance -- dikeluarkan dari Eligible Working Days, sama prinsip dgn Full Exclusion. TIDAK butuh field/sheet baru -- reuse data JSA_Log attendance_status (Hadir/Izin/Cuti) yang sudah berjalan lewat addJsaLog. Sakit belum dimasukkan (belum ada penyimpanan bukti medis) -- kalau nanti perlu, jadi status ke-4 di attendance_status yang sama, bukan mekanisme baru.",
  guide_step12_p11: "BARU (27 Agu): Safety Gate opsional (ON/OFF, default OFF, key KPI_SAFETY_GATE_ENABLED+KPI_SAFETY_GATE_THRESHOLD di SecurityConfig) -- pengaman tambahan supaya pilar lain yg tinggi tidak \"menutupi\" Safety yang buruk, BUKAN pengganti Safety Score. Kategori \"Tidak Diwajibkan\" pada pilar Laporan -- efek OTOMATIS dari hari Full Exclusion (bukan KPIEvent terpisah), dikeluarkan dari denominator Laporan, beda dari laporan yang memang telat/gagal. DITOLAK dari dokumen sama: Production/Tonase balik jadi pilar KPI (kontradiksi keputusan controllability yg sudah dikunci). DITUNDA: JSA partial-score per item (fitur skrng masih konfirmasi biner), Union Time (antisipasi kasus yg belum tentu terjadi).",
+ guide_step12_p12_title: "STATUS 28 Agu -- Pilar 4 (Laporan Tepat Waktu) SELESAI & live (badge sudah tampil di kartu KPI Member). Panduan uji skenario KPIEvent di bawah -- BELUM dijalankan user, masih ditunda sampai pilar lain selesai.",
+ guide_step12_p13: "Cara uji skenario KPIEvent Full Exclusion (utk dijalankan nanti): (1) Tab KPI Member -> \"Ajukan Kejadian\" -> Jenis=Full Exclusion, isi Tanggal Kejadian & Alasan. (2) Login Developer (akun BEDA dari pengaju, anti self-approve) -> approve di panel KPIEvent. (3) Cek ?sheet=kpiscore&member_id=NAMA&periode=yyyy-MM -- field eligible_days harus turun 1 dari total hari kalender bulan itu.",
+ guide_step12_p14: "FIXED 28 Agu (v90.2.115): eligible_days sekarang JADI PENYEBUT nyata di Pilar 4 -- formula di-loop per HARI ELIGIBLE (bukan per baris yg ada disubmit lagi), hari TANPA submission sama sekali dihukum sbg gagal lapor, hari yg dikecualikan KPIEvent APPROVED (Full/Member Exclusion) otomatis tidak ikut dinilai. 1 hari dgn >1 baris (beda Pit) dianggap on-time cuma kalau SEMUA baris hari itu on-time. Tervalidasi 4 test simulasi Node.js termasuk skenario persis yg diminta user (hari kosong = gagal, Full Exclusion beneran ubah skor).",
   blockmodel_title: "Block Model vs Actual",
   blockmodel_th_blok: "Blok",
   blockmodel_th_ni: "Ni % (Est -> Akt)",
@@ -5209,6 +5311,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   digging_form_footer_note: "Pastikan data assay akurat sebelum disimpan.",
   btn_save_digging: "Simpan Data",
   digging_detail_title: "Detail Baris Produksi",
+  digging_detail_waktu_input: "Waktu Input",
   digging_detail_weather: "Cuaca",
   digging_detail_sample_id: "ID Sampel",
   digging_detail_destination: "Tujuan",
@@ -5344,7 +5447,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   dev_console_title_sistem: "Developer Console \u2014 Control Sistem",
   dev_console_desc_sistem: "Credential, Cleanup Data, Padatkan Baris, Reset Total, Reset PIN Member.",
   dev_console_title_technical: "Developer Console \u2014 Control Technical",
-  dev_console_desc_technical: "Panduan Rekonsiliasi & Atur Parameter Global (COG, Flag Warna, Bucket & Sampel).",
+  dev_console_desc_technical: "Panduan Rekonsiliasi, Atur Parameter Global (COG, Flag Warna, Bucket & Sampel), & Persetujuan Kejadian KPI.",
   dev_console_open_sistem: "Sistem",
   dev_console_open_technical: "Technical",
   dev_console_active_as: "Akses aktif sebagai",
@@ -5384,6 +5487,11 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   jsa_status_present: "Hadir",
   jsa_status_permission: "Izin",
   jsa_status_leave: "Cuti",
+  jsa_confirm_apd_label: "Checklist APD Wajib",
+  jsa_apd_helm: "Helm Safety (SNI)",
+  jsa_apd_masker: "Masker P2 / N95",
+  jsa_apd_sarung_tangan: "Sarung Tangan",
+  jsa_apd_rompi: "Rompi Reflektif",
   jsa_confirm_submit: "Konfirmasi & Simpan",
   dev_profile_btn: "Profil Developer",
   dev_profile_role: "Head Mine Geologist / Developer",
@@ -5693,7 +5801,8 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  guide_step12_title: "Member KPI & Performance -- Mechanism (PLANNED)",
  guide_step12_p0: "STATUS: NOT YET IMPLEMENTED. This is a design-discussion note (Aug 27) kept as a reminder before it's executed into the KPIConfig/KPIEvent sheets -- not a feature that's live in the dashboard.",
  guide_step12_p1: "Core principle: controllability. Only put things a Geologist genuinely controls into their individual KPI. Daily tonnage is NOT a main pillar -- it's a mixed responsibility of the excavator operator + mine plan, not purely Grade Control.",
- guide_step12_p2: "5 Pillars (revised): Attendance, Safety (JSA+PPE), Sampling Completeness & Assay Timeliness (replaces \"Production\"), Timely Reporting, Attitude (Discipline/Teamwork/Initiative/Integrity from Supervisor). 3 weighting options (Balanced/Safety First/Data-Integrity Driven) chosen by GM, configured by Developer -- planned as a new \"KPI Formula\" card next to Global Parameters.",
+ guide_step12_p2: "5 Pillars (revised): Attendance, Safety (JSA+PPE), Sampling Completeness (replaces \"Production\"), Timely Reporting, Attitude (Discipline/Teamwork/Initiative/Integrity from Supervisor). 3 weighting options (Balanced/Safety First/Data-Integrity Driven) chosen by GM, configured by Developer -- planned as a new \"KPI Formula\" card next to Global Parameters.",
+ guide_step12_p15: "NEW (Aug 28): Pillar 3's name NARROWED from \"Sampling Completeness & Assay Timeliness\" to just \"Sampling Completeness\" -- assay timeliness stays EXCLUSIVE to the Pillar-4 proxy (hitungProksiKetepatanAssay_), so one late assay isn't penalized twice (which would violate the locked Anti Double-Penalty principle, guide_step12_p7). Pillar 3 is pure quantity: (Rows with Ni% filled / Total rows submitted) * 100, regardless of when it was filled.",
  guide_step12_p3: "\"Monthly Grade Control Quality\" card (kept separate from the combined KPI score): weighted Ni% = SUM(Tonnage x Ni%) / SUM(Tonnage) per Member per month, compared against the COGConfig min-max range (or Block Model Estimate if enough data exists). Tonnage is still shown but lightly weighted (rank 3, not a determinant). Sample count is shown as-is with NO minimum threshold -- a threshold just moves the same controllability problem elsewhere.",
  guide_step12_p4: "\"Awaiting Assay\" loophole (2-layer safeguard, REQUIRED before the Ni% card is used): (1) Assay not updated within N days (default 3 days, configurable in Developer Console) automatically becomes a penalty on the Timely Reporting pillar -- so leaving data hanging has a consequence. (2) Completion rate calculated separately = fully-assayed samples / total samples submitted.",
  guide_step12_p5: "Eligible Day, not a zero-scored day. Days that genuinely cannot be evaluated due to external factors are EXCLUDED from the denominator, not counted as zero achievement. 3 types: Full Exclusion (national holidays, large protests causing full shutdown -- management instruction to Head Dept), Partial Adjustment (partial equipment breakdown/rain -- that day's target is adjusted proportionally to available hours), Member Exclusion (leave/permission -- specific to one person, colleagues who still worked that day are still evaluated normally).",
@@ -5703,6 +5812,9 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  guide_step12_p8: "STATUS Aug 28 -- THE ENTIRE DATA LAYER IS DONE. The KPIEvent sheet (17 columns) and Attitude sheet (9 columns) have been created in Google Sheets. SecurityConfig has 5 new KPI_* rows. RolePermissions has kpi_event.create/approve + attitude.assess added, confirmed to match the design exactly. What remains is purely the CODE layer: backend (Code.gs -- addKpiEvent, approveKpiEvent, submitAttitudeAssessment, calculation engine) and frontend (proposal form, approval panel, KPI score card).",
  guide_step12_p10: "NEW (Aug 27, adopted from an external document audit): Administrative absence (Izin/Cuti) does NOT reduce Attendance -- excluded from Eligible Working Days, same principle as Full Exclusion. Needs NO new field/sheet -- reuses the already-working JSA_Log attendance_status data (Hadir/Izin/Cuti) via addJsaLog. Sick leave is not yet included (no medical-evidence storage exists) -- if needed later, it becomes a 4th status on the same attendance_status field, not a new mechanism.",
  guide_step12_p11: "NEW (Aug 27): Optional Safety Gate (ON/OFF, default OFF, keys KPI_SAFETY_GATE_ENABLED+KPI_SAFETY_GATE_THRESHOLD in SecurityConfig) -- an extra safeguard so other high pillars can't \"mask\" a poor Safety score, NOT a replacement for the Safety pillar score itself. \"Not Required\" category on the Reporting pillar -- an AUTOMATIC consequence of a Full Exclusion day (not a separate KPIEvent), excluded from the Reporting denominator, distinct from a report that's genuinely late/failed. REJECTED from the same document: bringing back Production/Tonnage as a KPI pillar (contradicts the already-locked controllability decision). DEFERRED: per-item JSA partial scoring (the current feature is a binary confirmation), Union Time (anticipates a case that hasn't actually occurred yet).",
+ guide_step12_p12_title: "STATUS Aug 28 -- Pillar 4 (On-Time Reporting) DONE & live (badge now shown on KPI Member cards). KPIEvent test scenario guide below -- NOT YET run by the user, deferred until the other pillars are done.",
+ guide_step12_p13: "How to test the KPIEvent Full Exclusion scenario (to be run later): (1) KPI Member tab -> \"Propose Event\" -> Type=Full Exclusion, fill in Event Date & Reason. (2) Log in as Developer (a DIFFERENT account from the proposer, anti self-approve) -> approve in the KPIEvent panel. (3) Check ?sheet=kpiscore&member_id=NAME&periode=yyyy-MM -- the eligible_days field should drop by 1 from the month's total calendar days.",
+ guide_step12_p14: "FIXED Aug 28 (v90.2.115): eligible_days is now a REAL denominator in Pillar 4 -- the formula loops per ELIGIBLE DAY (no longer per submitted row), a day with NO submission at all is penalized as a missed report, and days excluded by an APPROVED KPIEvent (Full/Member Exclusion) are automatically skipped from scoring. A day with >1 row (different Pit) only counts as on-time if EVERY row that day is on-time. Validated with 4 Node.js simulation tests, including the exact scenario the user requested (empty day = fail, Full Exclusion genuinely changes the score).",
   blockmodel_title: "Block Model vs Actual",
   blockmodel_th_blok: "Block",
   blockmodel_th_ni: "Ni % (Est -> Act)",
@@ -5859,6 +5971,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   digging_form_footer_note: "Make sure assay data is accurate before saving.",
   btn_save_digging: "Save Data",
   digging_detail_title: "Production Row Detail",
+  digging_detail_waktu_input: "Input Time",
   digging_detail_weather: "Weather",
   digging_detail_sample_id: "Sample ID",
   digging_detail_destination: "Destination",
@@ -5994,7 +6107,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   dev_console_title_sistem: "Developer Console \u2014 System Control",
   dev_console_desc_sistem: "Credential, Cleanup Data, Compact Rows, Full Reset, Reset Member PIN.",
   dev_console_title_technical: "Developer Console \u2014 Technical Control",
-  dev_console_desc_technical: "Reconciliation Guide & Global Parameters (COG, Color Flags, Bucket & Sample).",
+  dev_console_desc_technical: "Reconciliation Guide, Global Parameters (COG, Color Flags, Bucket & Sample), & KPI Event Approval.",
   dev_console_open_sistem: "System",
   dev_console_open_technical: "Technical",
   dev_console_active_as: "Access active as",
@@ -6034,6 +6147,11 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   jsa_status_present: "Present",
   jsa_status_permission: "Permission",
   jsa_status_leave: "Leave",
+  jsa_confirm_apd_label: "Mandatory PPE Checklist",
+  jsa_apd_helm: "Safety Helmet (SNI)",
+  jsa_apd_masker: "P2 / N95 Mask",
+  jsa_apd_sarung_tangan: "Gloves",
+  jsa_apd_rompi: "Reflective Vest",
   jsa_confirm_submit: "Confirm & Save",
   dev_profile_btn: "Developer Profile",
   dev_profile_role: "Head Mine Geologist / Developer",
@@ -7169,6 +7287,17 @@ window.addEventListener('afterprint', function() {
  if (panelKpiEventApproval) {
   panelKpiEventApproval.classList.toggle('hidden', !unlocked);
   if (unlocked) loadKpiEventApprovalList();
+ }
+
+ // BARU (v90.2.117)
+ const panelFormulaKpi = document.getElementById('panel-formula-kpi');
+ if (panelFormulaKpi) {
+  panelFormulaKpi.classList.toggle('hidden', !unlocked);
+  if (unlocked && panelFormulaKpi.dataset.kpiFormulaLoaded !== '1') {
+   panelFormulaKpi.dataset.kpiFormulaLoaded = '1';
+   loadKpiFormulaConfig();
+  }
+  if (!unlocked) panelFormulaKpi.dataset.kpiFormulaLoaded = '';
  }
 
  if (devCleanupPanel) {
@@ -8716,10 +8845,20 @@ async function provisionExistingCredential(index, userId) {
   nameSelect.disabled = true;
   nameSelect.classList.add('opacity-80','cursor-not-allowed');
   document.getElementById('jsa-confirm-status').value = 'Hadir';
+  ['jsa-apd-helm','jsa-apd-masker','jsa-apd-sarung-tangan','jsa-apd-rompi'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+  toggleJsaApdVisibility();
   document.getElementById('jsa-confirm-status-msg').classList.add('hidden');
   const modal = document.getElementById('jsa-confirm-modal');
   showModalAnimated(modal);
   lucide.createIcons();
+ }
+
+ // BARU (v90.2.112): checklist APD cuma relevan &amp; ditampilkan saat Status Kehadiran =
+ // Hadir (Izin/Cuti tidak perlu APD di lapangan hari itu).
+ function toggleJsaApdVisibility() {
+  const status = document.getElementById('jsa-confirm-status').value;
+  const wrap = document.getElementById('jsa-confirm-apd-wrap');
+  if (wrap) wrap.classList.toggle('hidden', status !== 'Hadir');
  }
 
  function closeJsaConfirmModal() {
@@ -8750,7 +8889,11 @@ async function provisionExistingCredential(index, userId) {
   const payload = buildAuthenticatedPayload({
    action: 'addJsaLog',
    jsa_no: 'JSA-MINEGEO-2026-REV02',
-   attendance_status: attendanceStatus
+   attendance_status: attendanceStatus,
+   apd_helm: document.getElementById('jsa-apd-helm')?.checked ? 'Y' : 'N',
+   apd_masker: document.getElementById('jsa-apd-masker')?.checked ? 'Y' : 'N',
+   apd_sarung_tangan: document.getElementById('jsa-apd-sarung-tangan')?.checked ? 'Y' : 'N',
+   apd_rompi: document.getElementById('jsa-apd-rompi')?.checked ? 'Y' : 'N'
   });
   const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload }, 20000);
   let result;
@@ -8971,6 +9114,7 @@ async function provisionExistingCredential(index, userId) {
  currentOpenDiggingRow = row;
 
  document.getElementById('digging-detail-subtitle').innerText = `${row.tanggal} -- ${row.pit} / ${row.blok} -- ${row.classGrade} (${row.tipeOreLabel})`;
+ document.getElementById('digging-detail-waktu-input').innerText = row.waktuInput;
  document.getElementById('digging-detail-cuaca').innerText = row.cuaca;
  document.getElementById('digging-detail-sampel').innerText = row.idSampel;
  document.getElementById('digging-detail-ship').innerText = row.namaShip;
@@ -10271,6 +10415,284 @@ async function provisionExistingCredential(index, userId) {
  // beda dari RCA/Dome/Barging yang INPUT-nya developer-only, sign-off JSA memang harus bisa
  // diisi semua member sendiri, bukan cuma Developer). Dipakai badge Compliance di KPI Member.
  // ============================================================
+
+ // BARU (v90.2.110/111): badge pilar KPI di kartu KPI Member -- panggil endpoint kpiscore
+ // SEKALI per member (periode = bulan berjalan), isi SEMUA badge pilar dari 1 response yg
+ // sama. Fire-and-forget per kartu, tidak memblokir render grid member yang lain.
+ // ============================================================
+ // BARU (v90.2.117): Panel "Formula KPI" -- Developer-only. Simpan state bobot per mode
+ // (A/B/C) di memori lokal supaya pindah dropdown tidak kehilangan draft yg belum disimpan
+ // ke server dalam sesi yg sama.
+ // ============================================================
+ let kpiFormulaWeightsCache = { A: null, B: null, C: null };
+ let kpiFormulaActiveOption = 'A';
+
+ async function loadKpiFormulaConfig() {
+  const statusMsg = document.getElementById('kpi-formula-status-msg');
+  try {
+   const payload = buildAuthenticatedPayload({}, { developerOnly: true });
+   const url = GOOGLE_SCRIPT_READ_URL + '?sheet=kpiformula&' + payload.toString() + '&t=' + new Date().getTime();
+   const response = await fetchWithTimeout(url);
+   const result = await response.json();
+   if (result.status !== 'success' || !result.data) throw new Error(result.message || 'Gagal memuat config Formula KPI.');
+   kpiFormulaWeightsCache = result.data.weights || { A: null, B: null, C: null };
+   kpiFormulaActiveOption = result.data.active_option || 'A';
+   document.getElementById('kpi-formula-mode-select').value = kpiFormulaActiveOption;
+   applyKpiFormulaWeightsToSliders(kpiFormulaActiveOption);
+   populateKpiFormulaPreviewMemberDropdown();
+  } catch (error) {
+   console.error('Error loadKpiFormulaConfig:', error);
+   if (statusMsg) {
+    statusMsg.className = 'text-xs text-rose-400';
+    statusMsg.innerText = error && error.message ? error.message : 'Gagal memuat config Formula KPI.';
+    statusMsg.classList.remove('hidden');
+   }
+  }
+ }
+
+ function applyKpiFormulaWeightsToSliders(mode) {
+  const w = (kpiFormulaWeightsCache && kpiFormulaWeightsCache[mode]) || { kehadiran: 20, safety: 20, sampling: 20, laporan: 20, attitude: 20 };
+  document.getElementById('kpi-w-kehadiran').value = w.kehadiran;
+  document.getElementById('kpi-w-safety').value = w.safety;
+  document.getElementById('kpi-w-sampling').value = w.sampling;
+  document.getElementById('kpi-w-laporan').value = w.laporan;
+  document.getElementById('kpi-w-attitude').value = w.attitude;
+  onKpiFormulaSliderInput();
+ }
+
+ function onKpiFormulaModeChange() {
+  const mode = document.getElementById('kpi-formula-mode-select').value;
+  applyKpiFormulaWeightsToSliders(mode);
+ }
+
+ function onKpiFormulaSliderInput() {
+  const ids = ['kehadiran','safety','sampling','laporan','attitude'];
+  let total = 0;
+  ids.forEach(k => {
+   const val = document.getElementById('kpi-w-' + k).value;
+   document.getElementById('kpi-w-' + k + '-val').textContent = val;
+   total += parseFloat(val) || 0;
+  });
+  document.getElementById('kpi-w-total').textContent = total;
+  updateKpiFormulaPreview();
+ }
+
+ function populateKpiFormulaPreviewMemberDropdown() {
+  const select = document.getElementById('kpi-formula-preview-member');
+  if (!select) return;
+  const currentVal = select.value;
+  select.innerHTML = '';
+  (globalMemberData || []).forEach(item => {
+   const member = {};
+   Object.keys(item).forEach(k => member[k.trim().toLowerCase()] = item[k]);
+   const nama = member['nama'] || member['name'] || '';
+   if (!nama) return;
+   const opt = document.createElement('option');
+   opt.value = nama;
+   opt.textContent = nama;
+   select.appendChild(opt);
+  });
+  if (currentVal) select.value = currentVal;
+  updateKpiFormulaPreview();
+ }
+
+ // Preview LIVE: simulasi client-side pakai skor 5 pilar yg SUDAH pernah diambil endpoint
+ // kpiscore (fetch ulang tiap ganti member/slider supaya selalu terkini) -- rumus persis
+ // sama dgn computeKpiFinalScore_ backend (weighted average + Safety Gate), supaya preview
+ // di UI konsisten dgn hasil sungguhan begitu disimpan.
+ let kpiFormulaPreviewDebounceTimer = null;
+ function updateKpiFormulaPreview() {
+  clearTimeout(kpiFormulaPreviewDebounceTimer);
+  kpiFormulaPreviewDebounceTimer = setTimeout(async () => {
+   const previewEl = document.getElementById('kpi-formula-preview-text');
+   const namaMember = document.getElementById('kpi-formula-preview-member')?.value;
+   if (!previewEl) return;
+   if (!namaMember) { previewEl.textContent = currentLang === 'en' ? 'Preview: no member available' : 'Preview: belum ada member'; return; }
+   previewEl.textContent = (currentLang === 'en' ? 'Preview: loading...' : 'Preview: memuat...');
+   try {
+    const periode = new Date().toISOString().slice(0,7);
+    const url = GOOGLE_SCRIPT_READ_URL + '?sheet=kpiscore&member_id=' + encodeURIComponent(namaMember) + '&periode=' + periode + '&t=' + new Date().getTime();
+    const response = await fetchWithTimeout(url);
+    const result = await response.json();
+    if (result.status !== 'success' || !result.data) throw new Error('no data');
+    const p = result.data;
+    const scores = {
+     kehadiran: (p.pilar_kehadiran && p.pilar_kehadiran.score) || 0,
+     safety: (p.pilar_safety && p.pilar_safety.score) || 0,
+     sampling: (p.pilar_kelengkapan_sampling && p.pilar_kelengkapan_sampling.score) || 0,
+     laporan: (p.pilar_laporan_tepat_waktu && p.pilar_laporan_tepat_waktu.score) || 0,
+     attitude: (p.pilar_attitude && p.pilar_attitude.score) || 0
+    };
+    const w = {
+     kehadiran: parseFloat(document.getElementById('kpi-w-kehadiran').value) || 0,
+     safety: parseFloat(document.getElementById('kpi-w-safety').value) || 0,
+     sampling: parseFloat(document.getElementById('kpi-w-sampling').value) || 0,
+     laporan: parseFloat(document.getElementById('kpi-w-laporan').value) || 0,
+     attitude: parseFloat(document.getElementById('kpi-w-attitude').value) || 0
+    };
+    const totalW = w.kehadiran + w.safety + w.sampling + w.laporan + w.attitude;
+    const weightedSum = scores.kehadiran*w.kehadiran + scores.safety*w.safety + scores.sampling*w.sampling + scores.laporan*w.laporan + scores.attitude*w.attitude;
+    let finalScore = totalW > 0 ? (weightedSum/totalW) : ((scores.kehadiran+scores.safety+scores.sampling+scores.laporan+scores.attitude)/5);
+    let gateNote = '';
+    const gate = p.safety_gate;
+    if (gate && gate.enabled && scores.safety < gate.threshold) {
+     finalScore = Math.min(finalScore, gate.cap);
+     gateNote = ' (Gate)';
+    }
+    finalScore = Math.round(finalScore*100)/100;
+    const mode = document.getElementById('kpi-formula-mode-select').value;
+    previewEl.textContent = (currentLang === 'en' ? 'Preview: If using this mode, ' : 'Preview: Jika pakai mode ini, ') + namaMember + ' = ' + finalScore + gateNote + ' (' + mode + ')';
+   } catch (err) {
+    previewEl.textContent = currentLang === 'en' ? 'Preview: failed to load' : 'Preview: gagal memuat';
+   }
+  }, 300);
+ }
+
+ async function saveKpiFormula(setActive) {
+  const statusMsg = document.getElementById('kpi-formula-status-msg');
+  const btnMode = document.getElementById('btn-save-kpi-formula-mode');
+  const btnActive = document.getElementById('btn-save-kpi-formula-active');
+  const mode = document.getElementById('kpi-formula-mode-select').value;
+  function showErr(msg) { if(statusMsg){statusMsg.className = 'text-xs text-rose-400'; statusMsg.innerText = msg; statusMsg.classList.remove('hidden');} }
+
+  const w = {
+   kehadiran: document.getElementById('kpi-w-kehadiran').value,
+   safety: document.getElementById('kpi-w-safety').value,
+   sampling: document.getElementById('kpi-w-sampling').value,
+   laporan: document.getElementById('kpi-w-laporan').value,
+   attitude: document.getElementById('kpi-w-attitude').value
+  };
+
+  [btnMode, btnActive].forEach(b => { if(b) b.disabled = true; });
+  if (statusMsg) statusMsg.classList.add('hidden');
+  try {
+   const payload = buildAuthenticatedPayload({
+    action: 'saveKpiFormula', mode, set_active: setActive ? 'true' : 'false',
+    w_kehadiran: w.kehadiran, w_safety: w.safety, w_sampling: w.sampling, w_laporan: w.laporan, w_attitude: w.attitude
+   }, { developerOnly: true });
+   const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload });
+   const result = await response.json();
+   if (result.status !== 'success') throw new Error(result.message || 'Gagal menyimpan Formula KPI.');
+   kpiFormulaWeightsCache[mode] = { kehadiran: parseFloat(w.kehadiran), safety: parseFloat(w.safety), sampling: parseFloat(w.sampling), laporan: parseFloat(w.laporan), attitude: parseFloat(w.attitude) };
+   if (setActive) kpiFormulaActiveOption = mode;
+   if (statusMsg) {
+    statusMsg.className = 'text-xs text-emerald-400';
+    statusMsg.innerText = setActive ? ('Mode ' + mode + ' disimpan & dijadikan aktif.') : ('Mode ' + mode + ' disimpan.');
+    statusMsg.classList.remove('hidden');
+   }
+   updateKpiFormulaPreview();
+  } catch (error) {
+   console.error('Error saveKpiFormula:', error);
+   showErr(error && error.message ? error.message : 'Terjadi kesalahan.');
+  } finally {
+   [btnMode, btnActive].forEach(b => { if(b) b.disabled = false; });
+  }
+ }
+
+ async function fetchKpiBadgesForMember_(namaMember, laporanBadgeId, kehadiranBadgeId, safetyBadgeId, samplingBadgeId, attitudeBadgeId, finalScoreId, finalScoreGateId) { const laporanBadgeEl = document.getElementById(laporanBadgeId);
+ const kehadiranBadgeEl = document.getElementById(kehadiranBadgeId);
+ const safetyBadgeEl = document.getElementById(safetyBadgeId);
+ const samplingBadgeEl = document.getElementById(samplingBadgeId);
+ const attitudeBadgeEl = document.getElementById(attitudeBadgeId);
+ const finalScoreEl = document.getElementById(finalScoreId);
+ const finalScoreGateEl = document.getElementById(finalScoreGateId);
+ if (!laporanBadgeEl && !kehadiranBadgeEl && !safetyBadgeEl && !samplingBadgeEl && !attitudeBadgeEl && !finalScoreEl) return;
+ try {
+  const periode = new Date().toISOString().slice(0,7);
+  const url = GOOGLE_SCRIPT_READ_URL + '?sheet=kpiscore&member_id=' + encodeURIComponent(namaMember) + '&periode=' + periode + '&t=' + new Date().getTime();
+  const response = await fetchWithTimeout(url);
+  const result = await response.json();
+  if (result.status !== 'success' || !result.data) throw new Error('no data');
+
+  const pilar = result.data.pilar_laporan_tepat_waktu;
+  if (laporanBadgeEl) {
+   if (!pilar || pilar.score === null || pilar.score === undefined) { laporanBadgeEl.textContent = '-'; }
+   else {
+    const scoreColor = pilar.score >= 90 ? 'text-emerald-400' : (pilar.score >= 70 ? 'text-amber-400' : 'text-rose-400');
+    const modeLabel = pilar.mode === 'proksi_assay' ? (currentLang === 'en' ? ' (proxy)' : ' (proksi)') : '';
+    laporanBadgeEl.className = 'font-semibold ' + scoreColor;
+    laporanBadgeEl.textContent = pilar.score + modeLabel;
+    laporanBadgeEl.title = pilar.mode === 'proksi_assay'
+     ? (currentLang === 'en' ? 'Based on Assay Update timeliness proxy (Waktu_Input data not old enough yet)' : 'Berdasarkan proksi Ketepatan Update Assay (data Waktu_Input belum cukup umur)')
+     : (currentLang === 'en' ? 'Based on actual submission time' : 'Berdasarkan jam submit asli (Waktu_Input)');
+   }
+  }
+
+  const kehadiran = result.data.pilar_kehadiran;
+  if (kehadiranBadgeEl) {
+   if (!kehadiran || kehadiran.score === null || kehadiran.score === undefined) { kehadiranBadgeEl.textContent = '-'; }
+   else {
+    const scoreColorK = kehadiran.score >= 90 ? 'text-emerald-400' : (kehadiran.score >= 70 ? 'text-amber-400' : 'text-rose-400');
+    kehadiranBadgeEl.className = 'font-semibold ' + scoreColorK;
+    kehadiranBadgeEl.textContent = kehadiran.score;
+    kehadiranBadgeEl.title = currentLang === 'en'
+     ? `Present: ${kehadiran.hadir} / Eligible days (excl. Izin/Cuti): ${kehadiran.denominator}`
+     : `Hadir: ${kehadiran.hadir} / Hari wajib dinilai (sudah dikurangi Izin/Cuti): ${kehadiran.denominator}`;
+   }
+  }
+
+  const sampling = result.data.pilar_kelengkapan_sampling;
+  if (samplingBadgeEl) {
+   if (!sampling || sampling.score === null || sampling.score === undefined) { samplingBadgeEl.textContent = '-'; }
+   else {
+    const scoreColorSp = sampling.score >= 90 ? 'text-emerald-400' : (sampling.score >= 70 ? 'text-amber-400' : 'text-rose-400');
+    samplingBadgeEl.className = 'font-semibold ' + scoreColorSp;
+    samplingBadgeEl.textContent = sampling.score;
+    samplingBadgeEl.title = currentLang === 'en'
+     ? `Complete with Ni%: ${sampling.lengkap} / Total rows submitted: ${sampling.total_baris}`
+     : `Sampel lengkap Ni%: ${sampling.lengkap} / Total baris disubmit: ${sampling.total_baris}`;
+   }
+  }
+
+  const attitude = result.data.pilar_attitude;
+  if (attitudeBadgeEl) {
+   if (!attitude || attitude.score === null || attitude.score === undefined) { attitudeBadgeEl.textContent = '-'; }
+   else {
+    const scoreColorA = attitude.score >= 90 ? 'text-emerald-400' : (attitude.score >= 70 ? 'text-amber-400' : 'text-rose-400');
+    attitudeBadgeEl.className = 'font-semibold ' + scoreColorA;
+    attitudeBadgeEl.textContent = attitude.score + (attitude.mode === 'belum_dinilai' ? (currentLang === 'en' ? ' (not yet assessed)' : ' (belum dinilai)') : '');
+    attitudeBadgeEl.title = attitude.mode === 'belum_dinilai'
+     ? (currentLang === 'en' ? 'No Attitude assessment yet this period' : 'Belum ada penilaian Attitude periode ini')
+     : (currentLang === 'en'
+       ? `Discipline: ${attitude.disiplin} · Teamwork: ${attitude.kerja_sama} · Initiative: ${attitude.inisiatif} · Integrity: ${attitude.integritas} (scale 1-5)`
+       : `Disiplin: ${attitude.disiplin} · Kerja Sama: ${attitude.kerja_sama} · Inisiatif: ${attitude.inisiatif} · Integritas: ${attitude.integritas} (skala 1-5)`);
+   }
+  }
+
+  const safety = result.data.pilar_safety;
+  if (safetyBadgeEl) {
+   if (!safety || safety.score === null || safety.score === undefined) { safetyBadgeEl.textContent = '-'; }
+   else {
+    const scoreColorS = safety.score >= 90 ? 'text-emerald-400' : (safety.score >= 70 ? 'text-amber-400' : 'text-rose-400');
+    safetyBadgeEl.className = 'font-semibold ' + scoreColorS;
+    safetyBadgeEl.textContent = safety.score;
+    safetyBadgeEl.title = currentLang === 'en'
+     ? `Average PPE checklist compliance across ${safety.total_hari_hadir} present day(s)`
+     : `Rata-rata kepatuhan checklist APD dari ${safety.total_hari_hadir} hari Hadir`;
+   }
+  }
+
+  if (finalScoreEl) {
+   const finalScore = result.data.final_score;
+   if (finalScore === null || finalScore === undefined) { finalScoreEl.textContent = '-'; }
+   else {
+    const scoreColorF = finalScore >= 90 ? 'text-emerald-400' : (finalScore >= 70 ? 'text-amber-400' : 'text-rose-400');
+    finalScoreEl.className = 'font-bold text-sm ' + scoreColorF;
+    finalScoreEl.textContent = finalScore;
+    finalScoreEl.title = currentLang === 'en' ? `Weight mode: ${result.data.weight_mode}` : `Mode bobot: ${result.data.weight_mode}`;
+    const gate = result.data.safety_gate;
+    if (finalScoreGateEl) finalScoreGateEl.classList.toggle('hidden', !(gate && gate.triggered));
+   }
+  }
+ } catch (err) {
+  if (laporanBadgeEl) { laporanBadgeEl.textContent = '-'; laporanBadgeEl.title = currentLang === 'en' ? 'Failed to load score' : 'Gagal memuat skor'; }
+  if (kehadiranBadgeEl) { kehadiranBadgeEl.textContent = '-'; kehadiranBadgeEl.title = currentLang === 'en' ? 'Failed to load score' : 'Gagal memuat skor'; }
+  if (safetyBadgeEl) { safetyBadgeEl.textContent = '-'; safetyBadgeEl.title = currentLang === 'en' ? 'Failed to load score' : 'Gagal memuat skor'; }
+  if (samplingBadgeEl) { samplingBadgeEl.textContent = '-'; samplingBadgeEl.title = currentLang === 'en' ? 'Failed to load score' : 'Gagal memuat skor'; }
+  if (attitudeBadgeEl) { attitudeBadgeEl.textContent = '-'; attitudeBadgeEl.title = currentLang === 'en' ? 'Failed to load score' : 'Gagal memuat skor'; }
+  if (finalScoreEl) { finalScoreEl.textContent = '-'; finalScoreEl.title = currentLang === 'en' ? 'Failed to load score' : 'Gagal memuat skor'; }
+ }
+ }
 
  async function fetchJsaLogData() {
  try {
@@ -13308,6 +13730,40 @@ async function postCentralAuthenticated(source, options) {
    ? `<div class="flex justify-between"><span class="text-slate-400">JSA:</span> <span class="font-semibold text-cyan-400">${jsaTtdCount}x ${currentLang === 'en' ? 'signed' : 'TTD'} &middot; ${jsaToolboxCount}x Toolbox</span></div>`
    : `<div class="flex justify-between"><span class="text-slate-400">JSA:</span> <span class="font-semibold text-slate-500">${currentLang === 'en' ? 'No record yet' : 'Belum ada catatan'}</span></div>`;
 
+   // BARU (v90.2.110): badge pilar KPI "Laporan Tepat Waktu" -- baru pilar INI yang punya
+   // engine skor (4 pilar lain masih menyusul, lihat Kerangka_Engine_KPI_5_Pilar.md).
+   // Diisi placeholder dulu, di-update async setelah endpoint kpiscore selesai dipanggil
+   // (per-kartu, TIDAK memblokir render grid member yg lain).
+   const kpiLaporanBadgeId = `kpi-laporan-badge-${index}`;
+   const kpiLaporanBadgeHtml = `<div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'On-Time Reporting' : 'Laporan Tepat Waktu'}:</span> <span id="${kpiLaporanBadgeId}" class="font-semibold text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span></div>`;
+   // BARU (v90.2.111): badge pilar KPI "Kehadiran" -- sama pola, 1 elemen id unik, diisi
+   // dari response endpoint kpiscore yg SAMA dgn Laporan (field pilar_kehadiran), TIDAK
+   // nambah panggilan fetch terpisah.
+   const kpiKehadiranBadgeId = `kpi-kehadiran-badge-${index}`;
+   const kpiKehadiranBadgeHtml = `<div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Attendance' : 'Kehadiran'}:</span> <span id="${kpiKehadiranBadgeId}" class="font-semibold text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span></div>`;
+   // BARU (v90.2.112): badge pilar "Safety (APD)".
+   const kpiSafetyBadgeId = `kpi-safety-badge-${index}`;
+   const kpiSafetyBadgeHtml = `<div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Safety (PPE)' : 'Safety (APD)'}:</span> <span id="${kpiSafetyBadgeId}" class="font-semibold text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span></div>`;
+   // BARU (v90.2.113): badge pilar "Kelengkapan Sampling".
+   const kpiSamplingBadgeId = `kpi-sampling-badge-${index}`;
+   const kpiSamplingBadgeHtml = `<div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Sampling Completeness' : 'Kelengkapan Sampling'}:</span> <span id="${kpiSamplingBadgeId}" class="font-semibold text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span></div>`;
+   // BARU (v90.2.114): badge pilar "Attitude" -- pilar KE-5 DAN TERAKHIR, engine 5 pilar
+   // KPI kini lengkap semua (Kehadiran/Safety/Sampling/Laporan/Attitude).
+   const kpiAttitudeBadgeId = `kpi-attitude-badge-${index}`;
+   const kpiAttitudeBadgeHtml = `<div class="flex justify-between"><span class="text-slate-400">Attitude:</span> <span id="${kpiAttitudeBadgeId}" class="font-semibold text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span></div>`;
+   // BARU (v90.2.116): Skor KPI Gabungan Final -- 5 pilar x bobot mode aktif + Safety Gate.
+   // Ditaruh terpisah dari 5 badge pilar (styling lebih menonjol), karena ini "hasil akhir"
+   // yg paling relevan dilihat sekilas, bukan cuma 1 dari sekian badge biasa.
+   const kpiFinalScoreId = `kpi-final-score-${index}`;
+   const kpiFinalScoreGateId = `kpi-final-score-gate-${index}`;
+   const kpiFinalScoreHtml = `<div class="flex justify-between items-center pt-2 mt-1.5 border-t border-slate-700/40">
+    <span class="text-slate-300 font-bold text-[11px]">${currentLang === 'en' ? 'Final KPI Score' : 'Skor KPI Gabungan'}:</span>
+    <span class="flex items-center gap-1.5">
+    <span id="${kpiFinalScoreId}" class="font-bold text-sm text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span>
+    <span id="${kpiFinalScoreGateId}" class="hidden px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[9px] font-bold" title="${currentLang === 'en' ? 'Capped by Safety Gate' : 'Dipotong Safety Gate'}">GATE</span>
+    </span>
+   </div>`;
+
    const card = document.createElement('div');
    card.className = "glass-card p-4.5 rounded-xl border border-slate-700/40 flex flex-col justify-between hover:border-blue-500/50 transition-all cursor-pointer text-xs";
    card.onclick = () => openMemberModal(index);
@@ -13325,6 +13781,12 @@ async function postCentralAuthenticated(source, options) {
     <div class="flex justify-between"><span class="text-slate-400">${translations[currentLang].modal_bench_insp}:</span> <span class="font-semibold text-emerald-400">${inspeksiVal}</span></div>
     <div class="flex justify-between"><span class="text-slate-400">${translations[currentLang].modal_curr_accuracy}:</span> <span class="font-semibold text-blue-400">${accuracyVal}</span></div>
     ${jsaBadgeHtml}
+    ${kpiLaporanBadgeHtml}
+    ${kpiKehadiranBadgeHtml}
+    ${kpiSafetyBadgeHtml}
+    ${kpiSamplingBadgeHtml}
+    ${kpiAttitudeBadgeHtml}
+    ${kpiFinalScoreHtml}
     </div>
    </div>
    <div class="pt-3 border-t border-slate-700/40 flex justify-between items-center text-[11px]">
@@ -13337,6 +13799,7 @@ async function postCentralAuthenticated(source, options) {
    </div>` : ''}
    `;
    container.appendChild(card);
+   fetchKpiBadgesForMember_(namaVal, kpiLaporanBadgeId, kpiKehadiranBadgeId, kpiSafetyBadgeId, kpiSamplingBadgeId, kpiAttitudeBadgeId, kpiFinalScoreId, kpiFinalScoreGateId);
   });
   lucide.createIcons();
   } else {
@@ -15633,10 +16096,15 @@ async function cleanupGeneralSheet(sheetName) {
    'id sampel', 'total sampel (karung)', 'tonase', 'ni %', 'fe %', 'co %',
    'mgo %', 'sio2 %', 'sm %', 'tujuan'
   ];
-  return requiredKeys.every(key => {
+  const requiredOk = requiredKeys.every(key => {
    const value = cleanRow[key];
    return value !== null && value !== undefined && String(value).trim() !== '';
   });
+  // BARU (v90.2.108): samakan dgn backend isProduksiGcComplete_() yg mewajibkan Tipe_Ore --
+  // sebelumnya frontend TIDAK cek field ini, jadi baris yg Tipe_Ore-nya kosong di sheet bisa
+  // tampil "lengkap" (urutan sorting) padahal backend menganggapnya belum lengkap.
+  const tipeOreOk = cleanRow['tipe_ore'] !== null && cleanRow['tipe_ore'] !== undefined && String(cleanRow['tipe_ore'] || cleanRow['tipe ore'] || '').trim() !== '';
+  return requiredOk && tipeOreOk;
  }
 
  function sortDiggingCompleteFirst(data) {
@@ -15917,6 +16385,10 @@ async function cleanupGeneralSheet(sheetName) {
 
   // Field detail (sebagian juga ditampilkan di tabel utama, sisanya cuma lewat popup)
   const cuaca = cleanRow['cuaca'] || '-';
+  // BARU (v90.2.108): Waktu_Input diisi otomatis server-side saat submit (kolom B baru,
+  // disisipkan setelah Tanggal) -- ditampilkan di popup detail, TIDAK ada di form input
+  // manapun karena bukan field yang diisi user.
+  const waktuInput = cleanRow['waktu_input'] || cleanRow['waktu input'] || '-';
   const idSampel = cleanRow['id sampel'] || cleanRow['id_sampel'] || '-';
   // BARU: Total Sampel (jumlah karung) -- sebelumnya cuma dibaca di form INPUT (buat hitung
   // Tonase otomatis), tapi tidak pernah ditampilkan balik ke Tabel Digging/popup detail
@@ -15954,7 +16426,7 @@ async function cleanupGeneralSheet(sheetName) {
   const rowIndex = currentPageDiggingRows.length;
   currentPageDiggingRows.push({
   tanggal, dayVal, pelapor, pit, blok, material, tonase, ni, fe, co, mgo, sio2, sm,
-  cuaca, idSampel, tujuan, namaShip, idEfo, idEto, keterangan, totalSampelDisplay,
+  cuaca, waktuInput, idSampel, tujuan, namaShip, idEfo, idEto, keterangan, totalSampelDisplay,
   // BARU (v89.16.24): simpan hasil classifyMaterial() supaya detail modal & tempat
   // lain yang baca dari currentPageDiggingRows tetap konsisten (bukan hitung ulang).
   classGrade: classifyResult.classGrade, tipeOreFinal: classifyResult.tipeOreFinal, tipeOreLabel,
@@ -16332,12 +16804,12 @@ document.addEventListener('DOMContentLoaded', function(){
   // Global). updateDeveloperAccessUI() tetap 1 fungsi yg sama, toggle SEMUA panel
   // berdasarkan ID tanpa peduli mount ke modal yang mana.
   const mountSistem=document.getElementById('developer-console-panels');
-  ['dev-cleanup-panel','dev-compact-panel','panel-reset-project','panel-reset-member-pin','panel-kpi-event-approval'].forEach(function(id){
+  ['dev-cleanup-panel','dev-compact-panel','panel-reset-project','panel-reset-member-pin'].forEach(function(id){
    const el=document.getElementById(id);
    if(el && mountSistem) mountSistem.appendChild(el);
   });
   const mountTechnical=document.getElementById('developer-console-technical-panels');
-  ['panel-guide-rekonsiliasi','panel-parameter-global'].forEach(function(id){
+  ['panel-guide-rekonsiliasi','panel-parameter-global','panel-kpi-event-approval','panel-formula-kpi'].forEach(function(id){
    const el=document.getElementById(id);
    if(el && mountTechnical) mountTechnical.appendChild(el);
   });
