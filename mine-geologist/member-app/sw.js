@@ -10,7 +10,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'geobank-member-app-build-20260827a';
+const CACHE_NAME = 'geobank-member-app-build-20260828a';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
