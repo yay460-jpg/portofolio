@@ -610,15 +610,27 @@ input[type="password"]::-ms-clear {
   <button id="btn-ringkasan" onclick="switchTab('ringkasan')" title="Ringkasan" data-i18n-title="nav_ringkasan" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-active">
   <i data-lucide="layout-dashboard" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_ringkasan">Ringkasan</span>
   </button>
-  
+  <!-- ROLE:SUPERVISOR,DEVELOPER -->
+  <button id="btn-trend" onclick="switchTab('trend')" title="Visual & Trend" data-i18n-title="nav_trend" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="trending-up" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_trend">Visual & Trend</span>
+  </button>
+  <!-- /ROLE -->
   <button id="btn-tabel" onclick="switchTab('tabel')" title="Tabel Digging" data-i18n-title="nav_tabel" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
   <i data-lucide="table" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_tabel">Tabel Digging</span>
   </button>
-  
+  <!-- ROLE:SUPERVISOR,DEVELOPER -->
+  <button id="btn-rekonsiliasi" onclick="switchTab('rekonsiliasi')" title="Rekonsiliasi" data-i18n-title="nav_rekonsiliasi" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="git-compare-arrows" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_rekonsiliasi">Rekonsiliasi</span>
+  </button>
+  <!-- /ROLE -->
   <button id="btn-validasi" onclick="switchTab('validasi')" title="Validasi" data-i18n-title="nav_validasi" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
   <i data-lucide="flask-conical" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_validasi">Validasi</span>
   </button>
-  
+  <!-- ROLE:SUPERVISOR,DEVELOPER -->
+  <button id="btn-barging" onclick="switchTab('barging')" title="Barging" data-i18n-title="nav_barging" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="ship" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_barging">Barging</span>
+  </button>
+  <!-- /ROLE -->
   <button id="btn-issue" onclick="switchTab('issue')" title="Issue & Action" data-i18n-title="nav_issue" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
   <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_issue">Issue & Action</span>
   </button>
@@ -629,7 +641,11 @@ input[type="password"]::-ms-clear {
   <i data-lucide="message-circle" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_chat">Chat Tim</span>
   <span id="chat-unread-badge" class="hidden ml-auto bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none"></span>
   </button>
-  
+  <!-- ROLE:DEVELOPER -->
+  <button id="btn-settings" onclick="switchTab('settings')" title="Settings" data-i18n-title="nav_settings" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all nav-item-inactive">
+  <i data-lucide="settings" class="w-4 h-4 shrink-0"></i> <span class="sidebar-label" data-i18n="nav_settings">Settings</span>
+  </button>
+  <!-- /ROLE -->
  </nav>
  </div>
 
@@ -661,10 +677,11 @@ input[type="password"]::-ms-clear {
    </select>
   </div>
 
-    <button id="btn-header-theme-toggle" onclick="toggleHeaderTheme()" class="flex items-center justify-center w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-slate-200 shadow-sm transition-all cursor-pointer" title="Ganti tema Dark/White" data-i18n-title="tooltip_toggle_theme">
+  <!-- ROLE:MEMBER,SUPERVISOR -->
+  <button id="btn-header-theme-toggle" onclick="toggleHeaderTheme()" class="flex items-center justify-center w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-slate-200 shadow-sm transition-all cursor-pointer" title="Ganti tema Dark/White" data-i18n-title="tooltip_toggle_theme">
    <i id="header-theme-toggle-icon" data-lucide="sun" class="w-3.5 h-3.5 text-amber-400"></i>
   </button>
-  
+  <!-- /ROLE -->
 
   <button id="btn-manual-refresh" onclick="manualRefreshData()" class="flex items-center justify-center w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-slate-200 shadow-sm transition-all cursor-pointer" title="Refresh data manual dari Google Sheets" data-i18n-title="tooltip_refresh_data">
    <i id="refresh-icon" data-lucide="rotate-cw" class="w-3.5 h-3.5 text-emerald-400"></i>
@@ -707,10 +724,12 @@ input[type="password"]::-ms-clear {
   <!-- BARU (27 Agu): ACTIVE USER INDICATOR -- Developer melihat session Member+Supervisor
        yang sedang aktif. ELEMEN TERPISAH dari avatar-diri di atas (ID beda sengaja, supaya
        tidak bentrok dengan #member-session-avatar-wrap yang menampilkan sesi Member lokal
-       browser ini sendiri). Hanya tampil saat devToken ada (Developer unlocked). -->
+       browser ini sendiri). Hanya tampil saat devToken ada (Developer unlocked).
+       FIX (27 Agu): badge angka jumlah SENGAJA DIHAPUS (bikin baris kelihatan tidak
+       sejajar tinggi dgn avatar-avatar-nya) -- cukup avatar berjejer, tidak perlu
+       badge terpisah lagi. -->
   <div id="active-sessions-indicator-wrap" class="relative hidden shrink-0">
    <div id="active-sessions-avatar-list" class="flex items-center gap-1.5"></div>
-   <span id="active-sessions-count" class="hidden ml-0.5 min-w-[20px] h-5 px-1.5 items-center justify-center rounded-full bg-emerald-500/15 border border-emerald-400/40 text-[10px] font-extrabold text-emerald-300 leading-none">0</span>
   </div>
   </div>
 
@@ -836,7 +855,120 @@ input[type="password"]::-ms-clear {
  </section>
 
  <!-- VISUAL & TREND -->
- 
+ <!-- ROLE:SUPERVISOR,DEVELOPER -->
+<section id="tab-trend" class="space-y-6 hidden">
+ <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5 force-1col">
+  <div class="glass-card p-4.5 rounded-2xl flex items-center gap-4 border-l-4 border-l-blue-500">
+  <div class="p-2.5 bg-blue-500/20 text-blue-400 rounded-xl border border-blue-500/30">
+   <i data-lucide="line-chart" class="w-5 h-5"></i>
+  </div>
+  <div>
+   <div id="trend-peak-tonnage" class="text-lg font-bold text-title tracking-tight">0 Ton</div>
+   <div class="text-[11px] text-slate-400 font-medium" data-i18n="trend_box_1">Puncak Produksi Harian Tertinggi</div>
+  </div>
+  </div>
+  <div class="glass-card p-4.5 rounded-2xl flex items-center gap-4 border-l-4 border-l-emerald-500">
+  <div class="p-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+   <i data-lucide="award" class="w-5 h-5"></i>
+  </div>
+  <div>
+   <div id="trend-max-grade" class="text-lg font-bold text-title tracking-tight">0.00%</div>
+   <div class="text-[11px] text-slate-400 font-medium" data-i18n="trend_box_2">Kadar Nikel Tertinggi Terpantau</div>
+  </div>
+  </div>
+  <div class="glass-card p-4.5 rounded-2xl flex items-center gap-4 border-l-4 border-l-amber-500">
+  <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+   <i data-lucide="shield-alert" class="w-5 h-5"></i>
+  </div>
+  <div>
+   <div id="trend-stability-status" class="text-lg font-bold text-emerald-400 tracking-tight" data-i18n="trend_box_status">Stabil</div>
+   <div class="text-[11px] text-slate-400 font-medium" data-i18n="trend_box_3">Indeks Kestabilan Kadar Grade</div>
+  </div>
+  </div>
+ </div>
+
+ <div class="trend-chart-card glass-card p-4 sm:p-6 rounded-2xl relative overflow-hidden chart-wrap">
+  <div class="trend-chart-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+  <div class="trend-heading">
+   <h3 id="trend-active-title" class="font-bold text-title flex items-center gap-2 text-sm tracking-tight">
+   <i id="trend-active-icon" data-lucide="trending-up" class="w-4 h-4 text-blue-400"></i>
+   <span id="trend-title-text" data-i18n="trend_1_title">Tren Tonase Digging (Harian)</span>
+   </h3>
+   <p id="trend-active-desc" class="text-[11px] text-slate-400 mt-0.5 font-medium" data-i18n="trend_1_desc">Grafik pergerakan kapasitas produksi pemindahan material harian aktual di front penambangan.</p>
+  </div>
+
+  <div class="trend-toggle-box flex items-center gap-1.5 bg-slate-800/60 border border-slate-700/80 rounded-xl p-1 shadow-sm flex-nowrap overflow-x-auto max-w-full">
+   <button id="btn-view-tonase" onclick="switchTrendView('tonase')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0">
+   <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> <span data-i18n="btn_trend_tonase">Tonase Digging</span>
+   </button>
+   <button id="btn-view-ni" onclick="switchTrendView('ni')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0">
+   <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i> <span data-i18n="btn_trend_ni">Fluktuasi Ni %</span>
+   </button>
+   <button id="btn-view-sm" onclick="switchTrendView('sm')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0">
+   <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-amber-400"></i> <span data-i18n="btn_trend_sm">Distribusi SM</span>
+   </button>
+   <button id="btn-view-breakdown" onclick="switchTrendView('breakdown')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0">
+   <i data-lucide="layers" class="w-3.5 h-3.5 text-purple-400"></i> <span data-i18n="rekon_chart_title">Breakdown/Pit</span>
+   </button>
+   <button id="btn-view-blockmodel" onclick="switchTrendView('blockmodel')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0">
+   <i data-lucide="layers-3" class="w-3.5 h-3.5 text-rose-400"></i> <span data-i18n="blockmodel_title">Block Model vs Actual</span>
+   <span id="blockmodel-badge" class="hidden bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none"></span>
+   </button>
+   <button id="btn-view-monthly" onclick="switchTrendView('monthly')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0">
+   <i data-lucide="calendar-range" class="w-3.5 h-3.5 text-cyan-400"></i> <span data-i18n="btn_trend_monthly">Bulan ke Bulan</span>
+   </button>
+  </div>
+  </div>
+
+  <div id="wrapper-trend-tonase" class="h-80">
+  <canvas id="trendTonaseChart"></canvas>
+  </div>
+
+  <div id="wrapper-trend-ni" class="h-80 hidden">
+  <canvas id="trendNiChart"></canvas>
+  </div>
+
+  <div id="wrapper-trend-sm" class="h-80 hidden">
+  <canvas id="smChart"></canvas>
+  </div>
+
+  <!-- BARU: Trend Bulan-ke-Bulan (item 4 daftar pending lama) -- 2 kartu perbandingan
+  Bulan Ini vs Bulan Lalu (Tonase & Ni%), + chart batang 6 bulan terakhir. Data diagregasi
+  otomatis dari data digging yang sama dipakai chart Tonase/Ni harian (bukan sumber baru). -->
+  <div id="wrapper-trend-monthly" class="hidden">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+   <div class="glass-card p-4 rounded-2xl border border-slate-700/80">
+   <p class="text-[11px] text-slate-400 font-medium mb-1" data-i18n="trend_monthly_tonase_label">Tonase Bulan Ini vs Bulan Lalu</p>
+   <div class="flex items-end gap-2">
+    <span id="monthly-tonase-current" class="text-xl font-bold text-title">-</span>
+    <span id="monthly-tonase-delta" class="text-xs font-semibold mb-1">-</span>
+   </div>
+   <p id="monthly-tonase-prev-label" class="text-[10px] text-slate-500 font-medium mt-0.5">-</p>
+   </div>
+   <div class="glass-card p-4 rounded-2xl border border-slate-700/80">
+   <p class="text-[11px] text-slate-400 font-medium mb-1" data-i18n="trend_monthly_ni_label">Rata-rata Ni % Bulan Ini vs Bulan Lalu</p>
+   <div class="flex items-end gap-2">
+    <span id="monthly-ni-current" class="text-xl font-bold text-title">-</span>
+    <span id="monthly-ni-delta" class="text-xs font-semibold mb-1">-</span>
+   </div>
+   <p id="monthly-ni-prev-label" class="text-[10px] text-slate-500 font-medium mt-0.5">-</p>
+   </div>
+  </div>
+  <div class="h-72">
+   <canvas id="trendMonthlyChart"></canvas>
+  </div>
+  </div>
+
+  <div id="wrapper-trend-breakdown" class="h-80 hidden">
+  <canvas id="rekonChart"></canvas>
+  </div>
+
+  <div id="wrapper-trend-blockmodel" class="h-80 hidden">
+  <canvas id="blockModelChart"></canvas>
+  </div>
+ </div>
+ </section>
+<!-- /ROLE -->
 
 
  <!-- TABEL DIGGING -->
@@ -906,7 +1038,251 @@ input[type="password"]::-ms-clear {
  </section>
 
  <!-- REKONSILIASI -->
- 
+ <!-- ROLE:SUPERVISOR,DEVELOPER -->
+<section id="tab-rekonsiliasi" class="space-y-5 hidden">
+ <div class="glass-card rounded-2xl p-2">
+  <div class="flex flex-wrap items-center gap-2">
+   <div class="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 rounded-xl pl-2 pr-3 py-1">
+   <div class="p-1 bg-blue-500/20 text-blue-400 rounded-lg"><i data-lucide="package" class="w-3.5 h-3.5"></i></div>
+   <div class="leading-tight">
+    <div id="rekon-total-produksi" class="text-xs font-bold text-title">0 Ton</div>
+    <div class="text-[9px] text-slate-400 font-medium whitespace-nowrap" data-i18n="rekon_total_produksi">Produksi</div>
+   </div>
+   </div>
+   <div class="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl pl-2 pr-3 py-1">
+   <div class="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg"><i data-lucide="ship" class="w-3.5 h-3.5"></i></div>
+   <div class="leading-tight">
+    <div id="rekon-total-terkirim" class="text-xs font-bold text-title">0 Ton</div>
+    <div class="text-[9px] text-slate-400 font-medium whitespace-nowrap" data-i18n="rekon_total_terkirim">Ter-assign</div>
+   </div>
+   </div>
+   <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 rounded-xl pl-2 pr-3 py-1">
+   <div class="p-1 bg-amber-500/20 text-amber-400 rounded-lg"><i data-lucide="scale" class="w-3.5 h-3.5"></i></div>
+   <div class="leading-tight">
+    <div id="rekon-selisih" class="text-xs font-bold text-title">0 Ton</div>
+    <div class="text-[9px] text-slate-400 font-medium whitespace-nowrap" data-i18n="rekon_selisih">Selisih</div>
+   </div>
+   </div>
+   <div class="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 rounded-xl pl-2 pr-3 py-1">
+   <div class="p-1 bg-blue-500/20 text-blue-400 rounded-lg"><i data-lucide="percent" class="w-3.5 h-3.5"></i></div>
+   <div class="leading-tight">
+    <div id="rekon-persen" class="text-xs font-bold text-title">0%</div>
+    <div class="text-[9px] text-slate-400 font-medium whitespace-nowrap" data-i18n="rekon_persen_reconciled">% Ter-reconcile</div>
+   </div>
+   </div>
+
+   <div class="relative ml-auto flex items-center gap-2">
+   <button id="rekon-filter-toggle-btn" onclick="toggleRekonFilterPanel()" class="sm:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/80 text-slate-300 transition-all cursor-pointer" title="Filter Tanggal &amp; Pit">
+    <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+   </button>
+   <div id="rekon-filter-panel" class="hidden sm:flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-1.5 absolute sm:static right-0 top-full mt-2 sm:mt-0 z-20 bg-slate-900 sm:bg-transparent border sm:border-0 border-slate-700 rounded-xl p-3 sm:p-0 shadow-xl sm:shadow-none w-60 sm:w-auto">
+    <select id="rekon-pit-filter" onchange="renderReconciliation()" class="custom-select w-full sm:w-auto bg-slate-800/60 border border-slate-700/80 rounded-full px-3 py-0.5 text-title text-xs font-medium focus:outline-none focus:border-blue-500" title="Filter berdasarkan Pit" data-i18n-title="tooltip_filter_pit">
+     <option value="" data-i18n="filter_all_pit">Pit</option>
+    </select>
+    <div class="relative w-9 h-9 rounded-full overflow-hidden shrink-0">
+    <input type="date" id="rekon-date-start" min="2020-01-01" max="2035-12-31" onkeydown="return false;" onpaste="return false;" onchange="renderReconciliation(); this.title = this.value ? ((currentLang === 'en' ? 'Start Date: ' : 'Tanggal Mulai: ') + this.value) : translations[currentLang].tooltip_filter_start;" class="w-9 h-9 bg-slate-800/60 border border-slate-700/80 rounded-full focus:outline-none focus:border-blue-500 cursor-pointer" title="Filter Tanggal Mulai" data-i18n-title="tooltip_filter_start">
+    <div class="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-800 text-slate-300">
+     <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+    </div>
+    </div>
+    <span class="text-slate-500 text-xs text-center sm:text-left" data-i18n="rekon_date_to">s/d</span>
+    <div class="relative w-9 h-9 rounded-full overflow-hidden shrink-0">
+    <input type="date" id="rekon-date-end" min="2020-01-01" max="2035-12-31" onkeydown="return false;" onpaste="return false;" onchange="renderReconciliation(); this.title = this.value ? ((currentLang === 'en' ? 'End Date: ' : 'Tanggal Akhir: ') + this.value) : translations[currentLang].tooltip_filter_end;" class="w-9 h-9 bg-slate-800/60 border border-slate-700/80 rounded-full focus:outline-none focus:border-blue-500 cursor-pointer" title="Filter Tanggal Akhir" data-i18n-title="tooltip_filter_end">
+    <div class="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-800 text-slate-300">
+     <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+    </div>
+    </div>
+    <button onclick="resetReconciliationFilter()" class="flex items-center justify-center w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 transition-all cursor-pointer" title="Reset Filter Tanggal & Pit" data-i18n-title="tooltip_reset_filter">
+     <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+    </button>
+    <button onclick="openPeriodicReportModal()" class="flex items-center justify-center w-9 h-9 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition-all cursor-pointer" title="Laporan Berkala" data-i18n-title="tooltip_periodic_report">
+     <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+    </button>
+    <button onclick="openProfessionalReportModal()" class="flex items-center justify-center w-9 h-9 rounded-full bg-rose-600 hover:bg-rose-500 text-white shadow-sm transition-all cursor-pointer" title="Laporan Rekonsiliasi Profesional" data-i18n-title="tooltip_professional_report">
+     <i data-lucide="file-check-2" class="w-3.5 h-3.5"></i>
+    </button>
+   </div>
+   </div>
+  </div>
+ </div>
+
+ <div class="rekon-view-card glass-card rounded-2xl p-5">
+  <div class="rekon-view-header flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-3">
+  <div class="rekon-view-heading">
+   <h3 id="rekon-active-title" class="font-bold text-title flex items-center gap-2 text-sm tracking-tight">
+   <i id="rekon-active-icon" data-lucide="layers" class="w-4 h-4 text-blue-400"></i>
+   <span id="rekon-title-text">Breakdown per Pit & Tujuan</span>
+   </h3>
+   <p id="rekon-active-desc" class="text-[11px] text-slate-400 mt-0.5 font-medium">Rincian tonase produksi per Pit, dipecah berdasarkan tujuan pengapalan.</p>
+  </div>
+
+  <div class="trend-toggle-box flex items-center gap-2 bg-slate-800/60 border border-slate-700/80 rounded-xl p-1 shadow-sm flex-wrap">
+   <button id="btn-rekon-view-breakdown" onclick="switchRekonView('breakdown')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0">
+   <i data-lucide="layers" class="w-3.5 h-3.5"></i> <span data-i18n="rekon_view_breakdown">Breakdown per Pit</span>
+   </button>
+   <button id="btn-rekon-view-pending" onclick="switchRekonView('pending')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0">
+   <i data-lucide="alert-circle" class="w-3.5 h-3.5 text-amber-400"></i> <span data-i18n="rekon_view_pending">Belum Ter-assign</span>
+   <span id="rekon-pending-badge" class="hidden bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none"></span>
+   </button>
+   <button id="btn-rekon-view-blockmodel" onclick="switchRekonView('blockmodel')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0">
+   <i data-lucide="layers-3" class="w-3.5 h-3.5 text-rose-400"></i> <span data-i18n="rekon_view_blockmodel">Block Model</span>
+   <span id="rekon-blockmodel-badge" class="hidden bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none"></span>
+   </button>
+   <button id="btn-rekon-view-matrix" onclick="switchRekonView('matrix')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0">
+   <i data-lucide="git-compare" class="w-3.5 h-3.5 text-indigo-400"></i> <span data-i18n="rekon_view_matrix">Matriks F1-F4</span>
+   </button>
+   <button id="btn-rekon-view-rca" onclick="switchRekonView('rca')" class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0">
+   <i data-lucide="search-check" class="w-3.5 h-3.5 text-blue-400"></i> <span data-i18n="rekon_view_rca">RCA Log</span>
+   </button>
+  </div>
+  </div>
+
+  <div id="wrapper-rekon-breakdown">
+  <div class="overflow-x-auto">
+   <table class="w-full text-left text-xs whitespace-nowrap">
+   <thead class="uppercase text-slate-400 font-semibold border-b border-slate-700/80">
+    <tr>
+    <th class="p-2.5" data-i18n="th_block">Blok</th>
+    <th class="p-2.5" data-i18n="th_pit">Pit</th>
+    <th class="p-2.5 text-right" data-i18n="rekon_th_produksi">Produksi (Ton)</th>
+    <th class="p-2.5 text-right" data-i18n="rekon_th_efo">EFO (Ton)</th>
+    <th class="p-2.5 text-right" data-i18n="rekon_th_eto">ETO (Ton)</th>
+    <th class="p-2.5 text-right" data-i18n="rekon_th_direct">Direct (Ton)</th>
+    <th class="p-2.5 text-right" data-i18n="rekon_th_disposal">Disposal (Ton)</th>
+    <th class="p-2.5 text-right" data-i18n="rekon_th_belum">Belum Dikirim (Ton)</th>
+    </tr>
+   </thead>
+   <tbody id="rekon-breakdown-body" class="divide-y divide-slate-800/40 font-medium"></tbody>
+   </table>
+  </div>
+  </div>
+
+  <div id="wrapper-rekon-pending" class="hidden">
+  <div class="overflow-x-auto">
+   <table class="w-full text-left text-xs whitespace-nowrap">
+   <thead class="uppercase text-slate-400 font-semibold border-b border-slate-700/80">
+    <tr>
+    <th class="p-2.5" data-i18n="th_date">Tanggal</th>
+    <th class="p-2.5" data-i18n="th_pit">Pit</th>
+    <th class="p-2.5" data-i18n="th_block">Blok</th>
+    <th class="p-2.5" data-i18n="th_material">Material</th>
+    <th class="p-2.5 text-right" data-i18n="th_tonnage">Tonase</th>
+    <th class="p-2.5" data-i18n="digging_form_sample_id">ID Sampel</th>
+    <th class="p-2.5 text-center" data-i18n="rekon_th_menunggu">Menunggu</th>
+    </tr>
+   </thead>
+   <tbody id="rekon-pending-body" class="divide-y divide-slate-800/40 font-medium"></tbody>
+   </table>
+  </div>
+  </div>
+
+  <div id="wrapper-rekon-blockmodel" class="hidden">
+  <div class="overflow-x-auto">
+   <table class="w-full text-left text-xs whitespace-nowrap">
+   <thead class="uppercase text-slate-400 font-semibold border-b border-slate-700/80">
+    <tr>
+    <th class="p-2.5" data-i18n="blockmodel_th_blok">Blok</th>
+    <th class="p-2.5" data-i18n="th_pit">Pit</th>
+    <th class="p-2.5 text-center" data-i18n="blockmodel_th_ni">Ni % (Est -&gt; Akt)</th>
+    <th class="p-2.5 text-center" data-i18n="blockmodel_th_fe">Fe % (Est -&gt; Akt)</th>
+    <th class="p-2.5 text-center" data-i18n="blockmodel_th_sm">SM % (Est -&gt; Akt)</th>
+    <th class="p-2.5 text-right" data-i18n="blockmodel_th_estimasi">Estimasi (Ton)</th>
+    <th class="p-2.5 text-right" data-i18n="blockmodel_th_realisasi">Realisasi (Ton)</th>
+    <th class="p-2.5 text-right" data-i18n="blockmodel_th_variasi">Variasi %</th>
+    <th class="p-2.5 text-center" data-i18n="blockmodel_th_status">Status</th>
+    </tr>
+   </thead>
+   <tbody id="rekon-blockmodel-body" class="divide-y divide-slate-800/40 font-medium"></tbody>
+   </table>
+  </div>
+  <p class="text-[11px] text-slate-500 font-medium mt-3" data-i18n="blockmodel_variance_note">Variasi % berwarna kuning = Loss (Realisasi &lt; Estimasi), berwarna merah = Dilusi (Realisasi &gt; Estimasi). Pewarnaan cuma berlaku untuk blok berstatus Aman/Tidak Aman -- blok Menunggu Data belum bisa dinilai. Klik baris untuk lihat detail lengkap perbandingan kimia (Ni/Fe/Co/MgO/SiO2/SM) Estimasi vs Aktual, termasuk cross-check Validasi (Test Pit).</p>
+  <!-- BARU: legenda toleransi -- ambang OK/WARNING/OUT OF TOL diambil dari Settings > Parameter COG (tab COG), diisi teksnya di renderBlockModelTable() -->
+  <p id="blockmodel-toleransi-legend" class="text-[11px] text-slate-500 font-medium mt-1"></p>
+  </div>
+
+  <!-- MATRIKS REKONSILIASI F1-F4 (5-tahap: BM -> Validasi -> GC -> Pit Actual -> Plant) -->
+  <div id="wrapper-rekon-matrix" class="hidden">
+  <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-5 items-stretch">
+   <div class="bg-slate-900/40 border border-slate-700/60 rounded-xl p-2 flex flex-col justify-center h-[54px]">
+   <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mb-1" data-i18n="matrix_f3_label">F3: Plant / Pit Actual</p>
+   <p id="matrix-f3-value" class="text-lg font-bold text-title">-</p>
+   </div>
+   <div class="bg-slate-900/40 border border-slate-700/60 rounded-xl p-2 flex flex-col justify-center h-[54px]">
+   <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mb-1" data-i18n="matrix_f4_label">F4: Plant / Block Model</p>
+   <p id="matrix-f4-value" class="text-lg font-bold text-title">-</p>
+   </div>
+   <div class="bg-slate-900/40 border border-slate-700/60 rounded-xl p-2 flex flex-col justify-center h-[54px]">
+   <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mb-1" data-i18n="matrix_total_pitactual">Total Pit Actual</p>
+   <p id="matrix-total-pitactual" class="text-lg font-bold text-title">-</p>
+   </div>
+   <div class="bg-slate-900/40 border border-slate-700/60 rounded-xl p-2 flex flex-col justify-center h-[54px]">
+   <p class="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mb-1" data-i18n="matrix_total_plant">Total Plant (Aktual)</p>
+   <p id="matrix-total-plant" class="text-lg font-bold text-title">-</p>
+   </div>
+   <!-- BARU: tombol Riwayat Pit Actual -- lihat semua baris timbangan + Catatan/kendala,
+   bukan cuma total angka yang dipakai Matriks F1-F4 di atas. Terbuka untuk SEMUA orang
+   lihat (bukan server-side rca.create/rca.close), sama pola dengan RCA Log -- catatan lapangan perlu bisa
+   dibaca siapa saja untuk kebutuhan audit, INPUT-nya saja yang tetap Developer-only. -->
+   <button onclick="openPitActualHistoryModal()" class="flex items-center justify-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all cursor-pointer px-4 h-[54px] self-center whitespace-nowrap">
+   <i data-lucide="history" class="w-3.5 h-3.5"></i> <span data-i18n="pitactual_history_btn">Riwayat</span>
+   </button>
+   <button id="btn-open-form-pitactual" onclick="openFormPitActualPopup()" class="hidden items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all cursor-pointer px-4 h-[54px] self-center justify-self-end whitespace-nowrap">
+   <i data-lucide="plus" class="w-3.5 h-3.5"></i> <span data-i18n="pitactual_new_btn">Catat Pit Actual</span>
+   </button>
+  </div>
+
+  <!-- EWS Dilusi/Ore Loss: banner ringkasan, muncul otomatis kalau ada Blok/Pit F2 OUT OF TOL,
+  disi & di-toggle hidden/tampil dari computeReconciliationMatrix() -->
+  <div id="matrix-ews-banner" class="hidden mb-3 flex items-center gap-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold px-3 py-2"></div>
+
+  <div class="overflow-x-auto">
+   <table class="w-full text-left text-xs whitespace-nowrap">
+   <thead class="uppercase text-slate-400 font-semibold border-b border-slate-700/80">
+    <tr>
+    <th class="p-2.5" data-i18n="blockmodel_th_blok">Blok</th>
+    <th class="p-2.5" data-i18n="th_pit">Pit</th>
+    <th class="p-2.5 text-right" data-i18n="matrix_th_bm">BM (Ton)</th>
+    <th class="p-2.5 text-right" data-i18n="matrix_th_gc">GC (Ton)</th>
+    <th class="p-2.5 text-center" data-i18n="matrix_f1_label">F1 (GC/BM)</th>
+    <th class="p-2.5 text-right" data-i18n="matrix_th_pitactual">Pit Actual (Ton)</th>
+    <th class="p-2.5 text-center" data-i18n="matrix_f2_label">F2 (PA/GC)</th>
+    </tr>
+   </thead>
+   <tbody id="matrix-f1f2-body" class="divide-y divide-slate-800/40 font-medium"></tbody>
+   </table>
+  </div>
+  <p class="text-[11px] text-slate-500 font-medium mt-3" data-i18n="matrix_f1f2_note">F1/F2 mendekati 100% = bagus (sesuai rencana). Di bawah 100% = ada Loss di tahap itu. Di atas 100% = ada Dilusi/tambahan material di tahap itu.</p>
+  </div>
+ </div>
+
+ <!-- RCA LOG (Root Cause Analysis rekonsiliasi) -- LIHAT terbuka untuk semua, INPUT developer-only.
+      View ke-5 agar RCA tetap berada dalam panel Rekonsiliasi. -->
+ <div id="wrapper-rekon-rca" class="hidden">
+ <div class="glass-card p-4.5 rounded-2xl border border-slate-700/60">
+  <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
+  <div class="flex items-center gap-2">
+   <i data-lucide="search-check" class="w-4.5 h-4.5 text-blue-500"></i>
+   <div>
+   <div class="flex items-center gap-1.5 flex-wrap">
+    <h3 class="font-bold text-title text-sm" data-i18n="rca_title">RCA Log -- Root Cause &amp; Rekomendasi</h3>
+    <span id="rca-overdue-badge" class="hidden px-1.5 py-0.5 rounded-md bg-rose-500/25 text-rose-300 border border-rose-500/40 text-[10px] font-bold whitespace-nowrap"></span>
+   </div>
+   <p class="text-[11px] text-slate-400 font-medium" data-i18n="rca_subtitle">Penjelasan akar masalah &amp; tindakan untuk penyimpangan rekonsiliasi per Blok</p>
+   </div>
+  </div>
+  <button id="btn-open-form-rca" onclick="openFormRcaPopup()" class="hidden items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all cursor-pointer">
+   <i data-lucide="plus" class="w-3.5 h-3.5"></i> <span data-i18n="rca_new_btn">RCA Baru</span>
+  </button>
+  </div>
+  <!-- Hanya sekitar 2 record yang terlihat; history berikutnya di-scroll di dalam area RCA. -->
+  <div id="rca-log-list" class="space-y-2.5 max-h-[220px] overflow-y-auto overflow-x-hidden pr-1 overscroll-contain">
+  <p class="text-[11px] text-slate-500 font-medium" data-i18n="rca_loading">Memuat data RCA...</p>
+  </div>
+ </div>
+ </div>
+
+ </section>
+<!-- /ROLE -->
 
 
  <!-- MODAL FORM: PIT ACTUAL -->
@@ -1407,7 +1783,24 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
  </div>
 
  <!-- BARGING (Fase 2) -->
- 
+ <!-- ROLE:SUPERVISOR,DEVELOPER -->
+<section id="tab-barging" class="space-y-5 hidden">
+ <div class="glass-card p-4.5 rounded-2xl">
+  <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
+  <div class="flex items-center gap-2">
+   <i data-lucide="ship" class="w-4.5 h-4.5 text-blue-500"></i>
+   <h3 class="font-bold text-title text-sm" data-i18n="barging_list_title">Daftar Shipment</h3>
+  </div>
+  <button id="btn-open-form-barge-shipment" onclick="openFormBargeShipmentPopup()" class="hidden items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all cursor-pointer">
+   <i data-lucide="plus" class="w-3.5 h-3.5"></i> <span data-i18n="barging_new_shipment_btn">Shipment Baru</span>
+  </button>
+  </div>
+  <div id="barge-shipment-list" class="space-y-3">
+  <p class="text-[11px] text-slate-500 font-medium" data-i18n="barging_loading">Memuat data shipment...</p>
+  </div>
+ </div>
+ </section>
+<!-- /ROLE -->
 
 
  <!-- MODAL DETAIL SHIPMENT -->
@@ -1852,6 +2245,15 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   <button id="btn-open-form-member" onclick="openFormPopup()" class="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all cursor-pointer">
    <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> <span data-i18n="btn_form_member">Form Member</span>
   </button>
+  <!-- BARU (28 Agu): Ajukan Kejadian KPI (kpi_event.create -- Member/Supervisor/Developer)
+  dan Nilai Attitude (attitude.assess -- Supervisor/Developer). Visibility diatur JS di
+  updateKpiButtonsVisibility(), dipanggil setiap render tab ini. -->
+  <button id="btn-open-kpi-event" onclick="openKpiEventModal()" class="hidden items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-lg shadow-amber-600/20 transition-all cursor-pointer">
+   <i data-lucide="calendar-clock" class="w-3.5 h-3.5"></i> <span>Ajukan Kejadian</span>
+  </button>
+  <button id="btn-open-attitude" onclick="openAttitudeModal()" class="hidden items-center gap-2 px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/20 transition-all cursor-pointer">
+   <i data-lucide="star" class="w-3.5 h-3.5"></i> <span>Nilai Attitude</span>
+  </button>
   </div>
   </div>
 
@@ -1922,7 +2324,414 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
  </section>
 
  <!-- SETTINGS -->
- 
+ <!-- ROLE:DEVELOPER -->
+<section id="tab-settings" class="space-y-3 hidden">
+ <!-- v90.2.99 UI refinement: Language, Theme & Regional digabung menjadi satu card.
+      Logic tombol bahasa/tema dan modal Regional & Time tetap dipertahankan. -->
+ <div id="panel-language-theme-regional" class="glass-card p-3.5 rounded-2xl border-l-4 border-l-violet-500">
+  <div class="flex items-center justify-between gap-4 flex-wrap">
+   <div class="flex items-center gap-3 min-w-0">
+    <div class="p-2.5 bg-violet-600/15 border border-violet-500/30 rounded-xl text-violet-400 shrink-0">
+     <i data-lucide="globe-2" class="w-4.5 h-4.5"></i>
+    </div>
+    <div class="min-w-0">
+    <h3 class="font-bold text-title mb-1 text-sm tracking-tight">
+     <span data-i18n="lang_theme_settings_title">Bahasa, Tema & Regional</span>
+    </h3>
+    <p class="text-slate-400 text-xs font-medium" data-i18n="lang_theme_settings_desc">
+     Atur bahasa, tampilan, timezone, dan format tanggal/waktu aplikasi.
+    </p>
+    <div id="regional-time-status" class="text-[10px] text-slate-500 font-medium mt-0.5">Memuat...</div>
+    </div>
+   </div>
+
+   <div class="flex items-center gap-2 flex-wrap shrink-0">
+    <div class="flex items-center gap-2">
+     <div onclick="setLanguage('id')" id="lang-card-id" class="cursor-pointer w-11 h-11 rounded-full border-2 border-blue-500 flex items-center justify-center transition-all hover:scale-105" title="Indonesia" aria-label="Indonesia">
+      <span class="font-extrabold text-[11px] text-title">ID</span>
+      <i id="check-lang-id" data-lucide="check" class="w-3 h-3 text-blue-500 absolute hidden"></i>
+     </div>
+     <div onclick="setLanguage('en')" id="lang-card-en" class="cursor-pointer w-11 h-11 rounded-full border-2 border-transparent flex items-center justify-center transition-all hover:scale-105" title="English" aria-label="English">
+      <span class="font-extrabold text-[11px] text-title">EN</span>
+      <i id="check-lang-en" data-lucide="check" class="w-3 h-3 text-blue-500 absolute hidden"></i>
+     </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+     <div onclick="setTheme('dark')" id="theme-card-dark" class="cursor-pointer w-11 h-11 rounded-full border-2 border-blue-500 flex items-center justify-center transition-all hover:scale-105" title="Dark / Gelap" aria-label="Dark / Gelap">
+      <i data-lucide="moon" class="w-4 h-4 text-blue-400"></i>
+      <i id="check-dark" data-lucide="check" class="w-3 h-3 text-blue-500 absolute hidden"></i>
+     </div>
+     <div onclick="setTheme('white')" id="theme-card-white" class="cursor-pointer w-11 h-11 rounded-full border-2 border-transparent flex items-center justify-center transition-all hover:scale-105" title="White / Putih" aria-label="White / Putih">
+      <i data-lucide="sun" class="w-4 h-4 text-amber-400"></i>
+      <i id="check-white" data-lucide="check" class="w-3 h-3 text-blue-500 absolute hidden"></i>
+     </div>
+    </div>
+
+    <button type="button" onclick="openRegionalTimeModal()" class="shrink-0 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/20 transition-all cursor-pointer flex items-center gap-2">
+     <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+     <span data-i18n="regional_time_open">Atur Regional & Time</span>
+    </button>
+   </div>
+  </div>
+ </div>
+
+ <div class="glass-card p-3.5 rounded-2xl border-l-4 border-l-blue-500 flex items-center justify-between gap-4 flex-wrap">
+  <div class="flex items-center gap-3 min-w-0">
+   <div class="p-2.5 bg-blue-600/15 border border-blue-500/30 rounded-xl text-blue-400 shrink-0">
+    <i data-lucide="database" class="w-4.5 h-4.5"></i>
+   </div>
+   <div class="min-w-0">
+    <h3 class="font-bold text-title mb-1 flex items-center gap-2 text-sm tracking-tight">
+     <span data-i18n="settings_data_update_title">Data Feed &amp; Riwayat Update</span>
+    </h3>
+    <p class="text-slate-300 text-xs font-semibold">
+     <span data-i18n="settings_api_status">Status:</span> <span class="text-emerald-400 font-bold" data-i18n="settings_api_connected">Terhubung Langsung ke Google Sheets API</span>
+    </p>
+    <p class="text-[11px] text-slate-400 mt-1 font-medium" data-i18n="settings_api_desc">Data dashboard ini disinkronisasi secara otomatis setiap 30 detik.</p>
+   </div>
+  </div>
+  <div class="flex items-center gap-3 shrink-0">
+   <div class="hidden md:block text-right">
+    <p class="text-[10px] text-slate-400 font-medium"><span data-i18n="changelog_version_label">Versi</span> <span id="app-version-label" class="text-blue-400 font-bold">v90.2.37</span></p>
+   </div>
+   <button onclick="openDeveloperProfileModal()" class="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap">
+    <i data-lucide="user-circle" class="w-3.5 h-3.5"></i> <span data-i18n="dev_profile_btn">Profil Developer</span>
+   </button>
+   <button onclick="openChangelogModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap">
+    <i data-lucide="scroll-text" class="w-3.5 h-3.5"></i> <span data-i18n="changelog_btn">Lihat Riwayat Update</span>
+   </button>
+  </div>
+ </div>
+
+ <!-- PANEL PANDUAN REKONSILIASI (Developer Only) -- kartu pemicu, isi lengkap ada di modal -->
+ <div id="panel-guide-rekonsiliasi" class="hidden glass-card p-3.5 rounded-2xl flex items-center justify-between gap-4 flex-wrap">
+  <div class="flex items-center gap-3">
+  <div class="p-2.5 bg-indigo-600/15 border border-indigo-500/30 rounded-xl text-indigo-400">
+   <i data-lucide="book-open" class="w-4.5 h-4.5"></i>
+  </div>
+  <div>
+   <h3 class="font-bold text-title text-sm tracking-tight" data-i18n="guide_title">Panduan Rekonsiliasi (Developer)</h3>
+   <p class="text-slate-400 text-xs font-medium" data-i18n="guide_subtitle">Urutan input dari hulu ke hilir -- pengingat kalau lupa cara pakai dashboard ini.</p>
+  </div>
+  </div>
+  <button onclick="openGuideModal()" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition-all cursor-pointer whitespace-nowrap">
+  <i data-lucide="book-open" class="w-3.5 h-3.5"></i> <span data-i18n="guide_open_btn">Lihat Panduan</span>
+  </button>
+ </div>
+
+ <!-- BARU: Section "Atur Parameter (Global)" -- 3 kartu terpisah (COG / Flag / Bucket & Sampel),
+ semuanya membuka modal cogconfig-modal yang sama, cuma beda tab default yang ditampilkan.
+ Dulunya 1 kartu tunggal "Parameter COG" -- dipecah supaya tiap kategori pengaturan lebih
+ gampang ditemukan tanpa bikin 1 kartu terlalu padat. Tambah kartu baru di sini kalau nanti
+ ada mekanisme lain yang perlu di-setting (sesuai kesepakatan). -->
+ <div id="panel-parameter-global" class="hidden">
+  <p class="text-slate-400 text-xs font-semibold uppercase tracking-wider px-1 mb-2" data-i18n="parameter_global_title">Atur Parameter (Global)</p>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+  <!-- BARU: tombol besar di bawah kartu DIHAPUS -- sekarang icon di pojok kiri atas
+  kartu yang jadi pemicu klik (cursor-pointer + hover), area klik lebih ringkas. -->
+  <div class="glass-card p-3.5 rounded-2xl flex flex-col gap-3">
+   <div class="flex items-center gap-3">
+   <div onclick="openCOGConfigModal('cog')" title="Atur COG" data-i18n-title="tooltip_cog" class="p-2.5 bg-cyan-600/15 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-xl text-cyan-400 shrink-0 cursor-pointer transition-all">
+    <i data-lucide="sliders-horizontal" class="w-4.5 h-4.5"></i>
+   </div>
+   <div class="min-w-0">
+    <h3 class="font-bold text-title text-sm tracking-tight" data-i18n="cogconfig_card_title">COG (Cut of Grade)</h3>
+    <p class="text-slate-400 text-[11px] font-medium" data-i18n="cogconfig_card_desc">Batas klasifikasi Waste/LG/MG/HG/VHG per Tipe Ore.</p>
+   </div>
+   </div>
+  </div>
+
+  <div class="glass-card p-3.5 rounded-2xl flex flex-col gap-3">
+   <div class="flex items-center gap-3">
+   <div onclick="openCOGConfigModal('flag')" title="Atur Flag" data-i18n-title="tooltip_flag" class="p-2.5 bg-fuchsia-600/15 hover:bg-fuchsia-600/30 border border-fuchsia-500/30 rounded-xl text-fuchsia-400 shrink-0 cursor-pointer transition-all">
+    <i data-lucide="flag" class="w-4.5 h-4.5"></i>
+   </div>
+   <div class="min-w-0">
+    <h3 class="font-bold text-title text-sm tracking-tight" data-i18n="flagconfig_card_title">Flag Warna</h3>
+    <p class="text-slate-400 text-[11px] font-medium" data-i18n="flagconfig_card_desc">Warna badge & angka Ni% per Grade, sesuai standar perusahaan.</p>
+   </div>
+   </div>
+  </div>
+
+  <div class="glass-card p-3.5 rounded-2xl flex flex-col gap-3">
+   <div class="flex items-center gap-3">
+   <div onclick="openCOGConfigModal('bucket')" title="Atur Bucket" data-i18n-title="tooltip_bucket" class="p-2.5 bg-orange-600/15 hover:bg-orange-600/30 border border-orange-500/30 rounded-xl text-orange-400 shrink-0 cursor-pointer transition-all">
+    <i data-lucide="package" class="w-4.5 h-4.5"></i>
+   </div>
+   <div class="min-w-0">
+    <h3 class="font-bold text-title text-sm tracking-tight" data-i18n="bucketconfig_card_title">Bucket & Sampel</h3>
+    <p class="text-slate-400 text-[11px] font-medium" data-i18n="bucketconfig_card_desc">Konversi bucket ke tonase & batas sampel per Dome.</p>
+   </div>
+   </div>
+  </div>
+  </div>
+ </div>
+
+ <!-- PANEL AKSES DEVELOPER -->
+ <div class="glass-card p-3.5 rounded-2xl border-l-4 border-l-amber-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <div class="flex items-center gap-3 flex-1 min-w-0 sm:min-w-[220px]">
+   <div class="p-2.5 bg-amber-600/15 border border-amber-500/30 rounded-xl text-amber-500 shrink-0">
+    <i data-lucide="shield-check" class="w-4.5 h-4.5"></i>
+   </div>
+   <div class="min-w-0">
+  <h3 class="font-bold text-title mb-1 text-sm tracking-tight">
+   <span data-i18n="dev_access_title">Akses Developer</span>
+  </h3>
+  <p class="text-slate-400 text-xs font-medium" data-i18n="dev_access_desc">Masuk menggunakan Login_ID + email terdaftar + PIN aplikasi. Email hanya untuk memastikan member terdaftar; bukan password Google.</p>
+  <p id="dev-pin-error" class="text-[11px] text-rose-400 font-medium hidden mt-1" data-i18n="dev_access_error">Login_ID, email, atau PIN tidak valid.</p>
+   </div>
+  </div>
+
+  <div id="dev-locked-view" class="flex items-center gap-2 shrink-0">
+  <input type="text" id="dev-login-id-input" placeholder="Login_ID" autocomplete="username" class="w-28 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-title focus:outline-none focus:border-amber-500 font-medium">
+  <input type="email" id="dev-email-input" placeholder="Email terdaftar" autocomplete="email" class="w-44 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-title focus:outline-none focus:border-amber-500 font-medium">
+  <div class="relative w-28">
+  <input type="password" id="dev-pin-input" placeholder="PIN 6 digit" inputmode="numeric" maxlength="6" autocomplete="current-password" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-3 pr-8 py-1.5 text-xs text-title focus:outline-none focus:border-amber-500 font-medium">
+  <button type="button" data-toggle-pin="dev-pin-input" aria-label="Tampilkan PIN" data-i18n-aria-label="tooltip_show_pin" title="Tampilkan PIN" data-i18n-title="tooltip_show_pin" class="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors flex items-center justify-center">
+   <i data-lucide="eye" class="w-3.5 h-3.5 pointer-events-none"></i>
+  </button>
+  </div>
+  <button id="dev-login-submit" type="button" onclick="unlockDeveloperAccess()" aria-label="Buka Akses Developer" data-i18n-aria-label="tooltip_developer_access" title="Buka Akses Developer" data-i18n-title="tooltip_developer_access" class="w-9 h-9 rounded-full bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-600/20 transition-all cursor-pointer shrink-0">
+   <i id="dev-login-lock-icon" data-lucide="lock" class="w-4 h-4"></i>
+   <span id="dev-login-spinner" class="login-btn-spinner hidden" aria-hidden="true"></span>
+  </button>
+  </div>
+
+  <div id="dev-unlocked-view" class="hidden items-center gap-2 shrink-0 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-1.5">
+  <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+  <span class="text-emerald-400 text-[11px] font-semibold whitespace-nowrap" data-i18n="dev_access_active">Aktif</span>
+  <button onclick="openDeveloperConsoleModal()" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-semibold border border-indigo-500/40 transition-all cursor-pointer whitespace-nowrap">
+   <i data-lucide="layout-dashboard" class="w-3 h-3"></i>
+   <span data-i18n="dev_console_open_sistem">Sistem</span>
+  </button>
+  <button onclick="openDeveloperConsoleTechnicalModal()" class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-semibold border border-blue-500/40 transition-all cursor-pointer whitespace-nowrap">
+   <i data-lucide="sliders-horizontal" class="w-3 h-3"></i>
+   <span data-i18n="dev_console_open_technical">Technical</span>
+  </button>
+  <button onclick="lockDeveloperAccess()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold border border-slate-700 transition-all cursor-pointer whitespace-nowrap">
+   <span data-i18n="dev_access_lock_btn">Kunci</span>
+  </button>
+  </div>
+ </div>
+
+ <!-- BARU: Panel Cleanup Data (developer-only, diambil dari fitur v90.2.97) -->
+ <div id="dev-cleanup-panel" class="hidden glass-card p-3.5 rounded-2xl">
+  <div class="flex items-center gap-3 mb-3">
+   <div class="p-2.5 bg-rose-600/15 border border-rose-500/30 rounded-xl text-rose-400">
+    <i data-lucide="trash-2" class="w-4.5 h-4.5"></i>
+   </div>
+   <div>
+    <h3 class="font-bold text-title text-sm tracking-tight" data-i18n="dev_cleanup_panel_title">Cleanup Data (Developer)</h3>
+    <p class="text-slate-400 text-xs font-medium" data-i18n="dev_cleanup_panel_desc">Bersihkan sheet log tertentu -- sesi Developer yang sedang aktif selalu dipertahankan.</p>
+   </div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+   <button onclick="cleanupGeneralSheet('Sessions')" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all text-left">
+    <span data-i18n="dev_cleanup_btn_sessions">Bersihkan Sessions</span>
+   </button>
+   <button onclick="cleanupGeneralSheet('SecurityAuditLog')" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all text-left">
+    <span data-i18n="dev_cleanup_btn_security">Bersihkan SecurityAuditLog</span>
+   </button>
+   <button onclick="cleanupGeneralSheet('AuditTrail')" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all text-left">
+    <span data-i18n="dev_cleanup_btn_audit">Bersihkan AuditTrail</span>
+   </button>
+   </div>
+   <div id="general-cleanup-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
+   <div class="mt-4 pt-3 border-t border-slate-800">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+     <div>
+      <h4 class="font-bold text-slate-200 text-xs" data-i18n="retention_title">Retention &amp; Archive</h4>
+      <p class="text-[10px] text-slate-400 mt-0.5" data-i18n="retention_desc">Sessions non-ACTIVE dihapus setelah 7 hari. SecurityAuditLog dan AuditTrail dipindahkan ke sheet archive setelah 90 hari.</p>
+     </div>
+     <label class="inline-flex items-center gap-2 text-[10px] font-semibold text-slate-300 cursor-pointer"><input id="retention-enabled" type="checkbox" class="accent-emerald-500"> <span data-i18n="retention_enable_label">Aktifkan terjadwal</span></label>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3">
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_sessions_label">Sessions (hari)</span><input id="retention-sessions-days" type="number" min="1" value="7" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_security_label">SecurityAuditLog (hari)</span><input id="retention-security-days" type="number" min="1" value="90" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_audit_label">AuditTrail (hari)</span><input id="retention-audit-days" type="number" min="1" value="90" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="retention_chatlog_label">ChatLog (opsional)</span><span class="flex items-center gap-2 mt-1"><input id="retention-chat-enabled" type="checkbox" class="accent-amber-500"><input id="retention-chat-days" type="number" min="1" value="90" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></span></label>
+    </div>
+    <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveRetentionPolicy()" class="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold"><span data-i18n="retention_btn_save">Simpan Kebijakan</span></button><button onclick="runRetentionArchiveNow()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold"><span data-i18n="retention_btn_run">Jalankan Sekarang</span></button></div>
+    <div id="retention-policy-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
+   <div class="text-[10px] text-slate-500 font-medium mt-1" data-i18n="retention_footer_note">ChatLog default OFF. Reset Total tidak pernah menyentuh data keamanan atau archive.</div>
+   </div>
+
+   <!-- BARU (Pending item #1 spesifikasi performa, DIPUTUSKAN 22 Agu): cache validateSession_()
+        + kill-switch. Lihat komentar validateSessionCached_() di Code.gs utk desain lengkap --
+        SENGAJA beda dari validateSessionOptimized_ pihak lain yang sudah DITOLAK (itu skip
+        total re-validasi keamanan). Cache ini TETAP full re-validasi tiap cache-miss, cuma
+        menyimpan hasilnya sebentar (TTL pendek) utk request beruntun dari token yang sama. -->
+   <div class="mt-4 pt-3 border-t border-slate-800">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+     <div>
+      <h4 class="font-bold text-slate-200 text-xs" data-i18n="session_cache_title">Session Cache</h4>
+      <p class="text-[10px] text-slate-400 mt-0.5" data-i18n="session_cache_desc">Cache hasil validasi sesi selama beberapa detik supaya request beruntun (polling tab) tidak scan ulang Sessions/Users/Credential tiap kali. Tetap full re-validasi keamanan tiap cache-miss -- default OFF.</p>
+     </div>
+     <label class="inline-flex items-center gap-2 text-[10px] font-semibold text-slate-300 cursor-pointer"><input id="session-cache-enabled" type="checkbox" class="accent-cyan-500"> <span data-i18n="session_cache_enable_label">Aktifkan cache</span></label>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+     <label class="block text-[10px] text-slate-400"><span data-i18n="session_cache_ttl_label">TTL Cache (detik, 5-60)</span><input id="session-cache-ttl" type="number" min="5" max="60" value="20" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+    </div>
+    <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveSessionCachePolicy()" class="px-3 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-white text-xs font-bold"><span data-i18n="session_cache_btn_save">Simpan Kebijakan</span></button></div>
+    <div id="session-cache-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
+   </div>
+
+   <!-- BARU (Security hardening -- rate limit perluasan, DIPUTUSKAN 22 Agu): panel toggle
+        API Abuse Guard -- pola LOAD/SAVE identik dgn Session Cache di atas, target endpoint
+        beda. Melindungi request pasca-login (token valid) dari penyalahgunaan berulang,
+        melengkapi rate-limit login yang sudah ada. -->
+   <div class="mt-4 pt-3 border-t border-slate-800">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+     <div>
+      <h4 class="font-bold text-slate-200 text-xs" data-i18n="api_abuse_guard_title">API Abuse Guard</h4>
+      <p class="text-[10px] text-slate-400 mt-0.5" data-i18n="api_abuse_guard_desc">Batasi jumlah request per sesi dalam rentang waktu tertentu -- melindungi token yang sudah login dari penyalahgunaan berulang (mis. token bocor dipakai spam request). Rate-limit login tetap berjalan terpisah. Default OFF.</p>
+     </div>
+     <label class="inline-flex items-center gap-2 text-[10px] font-semibold text-slate-300 cursor-pointer"><input id="api-abuse-guard-enabled" type="checkbox" class="accent-amber-500"> <span data-i18n="api_abuse_guard_enable_label">Aktifkan guard</span></label>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+     <label class="block text-[10px] text-slate-400"><span data-i18n="api_abuse_guard_max_label">Maks Request (10-1000)</span><input id="api-abuse-guard-max" type="number" min="10" max="1000" value="90" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+     <label class="block text-[10px] text-slate-400"><span data-i18n="api_abuse_guard_window_label">Jendela Waktu (detik, 10-300)</span><input id="api-abuse-guard-window" type="number" min="10" max="300" value="60" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+    </div>
+    <div class="flex gap-2 mt-3 flex-wrap"><button onclick="saveApiAbuseGuardPolicy()" class="px-3 py-2 rounded-xl bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold"><span data-i18n="api_abuse_guard_btn_save">Simpan Kebijakan</span></button></div>
+    <div id="api-abuse-guard-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
+   </div>
+  </div>
+
+ <!-- BARU (27 Agu): Reset PIN Member -- backend setMemberPin sudah lama ada tapi belum
+      pernah punya UI. Developer isi User_ID manual (bukan dropdown -- sheet Member/KPI
+      TIDAK menyimpan User_ID, cuma nama/jabatan/dsb; User_ID paling gampang dilihat di
+      Credential Manager). PIN baru diketik 2x supaya tidak salah ketik terkirim. -->
+ <div id="panel-reset-member-pin" class="hidden glass-card p-3.5 rounded-2xl">
+  <div class="flex items-center gap-3 mb-3">
+   <div class="p-2.5 bg-indigo-600/15 border border-indigo-500/30 rounded-xl text-indigo-400">
+    <i data-lucide="key-round" class="w-4.5 h-4.5"></i>
+   </div>
+   <div>
+    <h3 class="font-bold text-title text-sm tracking-tight">Reset PIN Member</h3>
+    <p class="text-slate-400 text-xs font-medium">Setel ulang PIN Member yang lupa/terkunci -- PIN tersimpan sbg hash, tidak pernah plaintext.</p>
+   </div>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+   <label class="block text-[10px] text-slate-400">User_ID<input id="reset-member-pin-userid" type="text" placeholder="cth. GEO-007" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+   <label class="block text-[10px] text-slate-400">PIN Baru (6 digit)<input id="reset-member-pin-new" type="password" inputmode="numeric" maxlength="6" placeholder="******" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+   <label class="block text-[10px] text-slate-400">Ulangi PIN Baru<input id="reset-member-pin-confirm" type="password" inputmode="numeric" maxlength="6" placeholder="******" class="w-full mt-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-title"></label>
+  </div>
+  <div class="flex gap-2 mt-3 flex-wrap"><button onclick="submitResetMemberPin()" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">Simpan PIN Baru</button></div>
+  <div id="reset-member-pin-status" class="text-[10px] text-slate-500 font-medium mt-2"></div>
+ </div>
+
+ <!-- BARU (28 Agu): Panel Approval KPIEvent -- Developer-only (kpi_event.approve). Daftar
+ kejadian PENDING, tombol Approve/Reject langsung memanggil action approveKpiEvent. -->
+ <div id="panel-kpi-event-approval" class="hidden glass-card p-3.5 rounded-2xl">
+  <div class="flex items-center gap-3 mb-3">
+   <div class="p-2.5 bg-amber-600/15 border border-amber-500/30 rounded-xl text-amber-500">
+    <i data-lucide="calendar-clock" class="w-4.5 h-4.5"></i>
+   </div>
+   <div>
+    <h3 class="font-bold text-title text-sm tracking-tight">Persetujuan Kejadian KPI</h3>
+    <p class="text-slate-400 text-xs font-medium">Kejadian PENDING menunggu disahkan -- pengaju tidak bisa mengesahkan pengajuannya sendiri.</p>
+   </div>
+   <button onclick="loadKpiEventApprovalList()" class="ml-auto p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
+  </div>
+  <div id="kpi-event-approval-list" class="space-y-2">
+   <div class="text-center text-slate-500 text-xs py-4">Memuat...</div>
+  </div>
+ </div>
+
+ <!-- v90.2.100: PANEL PADATKAN BARIS KOSONG -- Developer-only, preview lalu eksekusi. -->
+ <div id="dev-compact-panel" class="hidden glass-card p-3.5 rounded-2xl border border-slate-700">
+  <div class="flex items-start gap-3 mb-3">
+   <div class="p-2.5 bg-indigo-600/15 border border-indigo-500/30 rounded-xl text-indigo-400 shrink-0">
+    <i data-lucide="rows-3" class="w-4.5 h-4.5"></i>
+   </div>
+   <div class="min-w-0">
+    <h3 class="font-bold text-title text-sm tracking-tight" data-i18n="compact_card_title">Padatkan Baris Kosong (Developer)</h3>
+    <p class="text-slate-400 text-xs font-medium" data-i18n="compact_card_desc">Hanya memadatkan baris yang benar-benar kosong. Header dan baris yang masih berisi data tidak disentuh.</p>
+   </div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2.5 items-end">
+   <label class="block">
+    <span class="block text-[10px] font-bold text-slate-400 mb-1" data-i18n="compact_sheet_label">Sheet Target</span>
+    <select id="compact-sheet-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-title focus:outline-none focus:border-indigo-500">
+     <option value="Credential">Credential</option>
+     <option value="Validasi">Validasi</option>
+     <option value="Permissions">Permissions</option>
+     <option value="RolePermissions">RolePermissions</option>
+    </select>
+   </label>
+   <button id="btn-compact-preview" onclick="previewCompactBlankRows()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all cursor-pointer" data-i18n="compact_preview_btn">Preview</button>
+   <button id="btn-compact-execute" onclick="executeCompactBlankRows()" disabled class="px-4 py-2 rounded-xl bg-indigo-700/30 border border-indigo-500/30 text-indigo-200 text-xs font-bold cursor-not-allowed opacity-50 transition-all" data-i18n="compact_execute_btn">Padatkan Sekarang</button>
+  </div>
+  <div id="compact-preview-status" class="mt-3 rounded-xl border border-slate-800 bg-slate-950/40 p-2.5 text-[10px] text-slate-400 font-medium min-h-[38px]" data-i18n="compact_status_idle">Pilih sheet lalu jalankan Preview. Tidak ada perubahan data pada tahap ini.</div>
+ </div>
+
+ <!-- RP06-RLS v90.2.98: RESET TOTAL — PINDAH PROYEK. Developer only. -->
+ <div id="panel-reset-project" class="hidden glass-card p-4 rounded-2xl border-2 border-rose-600/60 bg-rose-950/10">
+  <div class="flex items-start justify-between gap-4 flex-wrap">
+   <div>
+    <h3 class="font-bold text-title mb-1 flex items-center gap-2 text-sm tracking-tight">
+     <i data-lucide="octagon-alert" class="w-4.5 h-4.5 text-rose-400"></i>
+     <span>Reset Total — Pindah Proyek</span>
+     <span class="px-1.5 py-0.5 rounded-md bg-rose-500/15 text-rose-300 border border-rose-500/30 text-[9px] font-bold uppercase">Developer Only</span>
+    </h3>
+    <p class="text-[11px] text-rose-200/80 font-medium">Kosongkan data operasional lama sambil mempertahankan struktur, konfigurasi, dan akun login.</p>
+    <p class="text-[10px] text-slate-400 mt-1">Users, Credential, Roles, Permissions, RolePermissions, dan SecurityConfig tidak pernah tersedia sebagai target reset.</p>
+    <p class="text-[10px] text-slate-400 mt-1">Sessions, SecurityAuditLog, dan AuditTrail juga tidak pernah ikut ter-reset -- ketiganya dikelola terpisah lewat kebijakan Retention &amp; Archive di panel Cleanup Data (Developer) di atas, bukan lewat Reset Total ini.</p>
+   </div>
+   <div id="reset-project-status" class="text-[10px] text-slate-400 font-medium"></div>
+  </div>
+
+  <div class="mt-3 rounded-xl border border-rose-500/20 bg-slate-950/40 p-3">
+   <div class="flex items-center justify-between gap-3 flex-wrap mb-2">
+    <div class="text-[10px] font-bold uppercase tracking-wide text-slate-300">Data Operasional</div>
+    <div class="text-[9px] text-slate-500">Default: TIDAK tercentang — pilih manual.</div>
+   </div>
+   <div id="reset-project-guard-hint" class="hidden mb-2 text-[10px] text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+    <i data-lucide="lock" class="w-3 h-3 shrink-0"></i>
+    <span>Retention &amp; Archive aktif -- 14 checkbox operasional (kecuali ChatLog) dikunci tercentang semua supaya Reset Total selalu full-wipe konsisten. Matikan toggle Retention di panel Cleanup Data kalau butuh reset parsial.</span>
+   </div>
+   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="BlockModel"> <span>BlockModel</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="Validasi"> <span>Validasi</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="Produksi_GC"> <span>Produksi_GC</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="PitActual"> <span>PitActual</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="DomeLog"> <span>DomeLog</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="BargeShipment"> <span>BargeShipment</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="BargeLoadingLog"> <span>BargeLoadingLog</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="BargeShiftReport"> <span>BargeShiftReport</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="BargeSublot"> <span>BargeSublot</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="RCA_Log"> <span>RCA_Log</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="Masalah & Rekomendasi"> <span>Masalah &amp; Rekomendasi</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="ChatLog"> <span>ChatLog</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="TujuanChangeLog"> <span>TujuanChangeLog</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="JSA_Log"> <span>JSA_Log</span></label>
+    <label class="flex items-center gap-2 p-2 rounded-lg bg-slate-900/70 border border-slate-800"><input type="checkbox" class="reset-project-target" value="Production_Plan"> <span>Production_Plan</span></label>
+   </div>
+  </div>
+
+  <label class="mt-3 flex items-start gap-2 p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 cursor-pointer">
+   <input id="reset-project-member" type="checkbox" class="mt-0.5">
+   <span><strong class="text-amber-300">Member — opsi khusus</strong><span class="block text-[10px] text-amber-100/75 mt-0.5">Akun login Users/Credential TIDAK ikut terhapus. Record Developer di Member tetap dipertahankan; hanya profil Member non-Developer yang dikosongkan.</span></span>
+  </label>
+
+  <div class="mt-3 rounded-xl border border-slate-700 bg-slate-950/50 p-3">
+   <label class="block text-[10px] font-bold text-slate-300">Konfirmasi wajib</label>
+   <p class="text-[10px] text-slate-500 mt-0.5">Ketik persis: <span class="font-bold text-rose-300">RESET PROJECT</span></p>
+   <input id="reset-project-confirm" type="text" autocomplete="off" spellcheck="false" class="w-full mt-2 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-title outline-none focus:border-rose-500" placeholder="RESET PROJECT">
+  </div>
+
+  <div class="flex items-center justify-between gap-3 mt-3 flex-wrap">
+   <div class="text-[9px] text-slate-500">Shortcut "Pilih Semua" sengaja tidak disediakan untuk mencegah reset massal tidak sengaja.</div>
+   <button id="btn-reset-project" onclick="resetProjectData()" disabled class="px-4 py-2.5 rounded-xl bg-rose-700/30 border border-rose-500/30 text-rose-200 text-xs font-bold cursor-not-allowed opacity-50 transition-all">
+    <i data-lucide="trash-2" class="w-3.5 h-3.5 inline-block mr-1"></i> Reset Data Terpilih
+   </button>
+  </div>
+ </div>
+
+ <!-- Riwayat Update digabung ke card Data Feed agar Settings lebih ringkas. -->
+ </section>
+<!-- /ROLE -->
 
 </main>
 
@@ -2214,6 +3023,34 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <p data-i18n="guide_step11_p4">2. Buka file <code class="text-cyan-300">sw.js</code>, ganti baris <code class="text-cyan-300">const CACHE_NAME = 'mine-geologist-vX.X.X';</code> supaya angkanya SAMA PERSIS dengan APP_VERSION yang baru. Kalau baris ini TIDAK diubah, browser akan menganggap sw.js "tidak berubah" (dibandingkan byte-per-byte) dan toast update TIDAK AKAN PERNAH muncul, walau index.html-nya sendiri sudah beda total.</p>
    <p data-i18n="guide_step11_p5">3. Upload ULANG kedua file (index.html dan sw.js) ke folder yang sama di GitHub Pages. Tunggu sekitar 1 menit -- toast "Versi baru tersedia" akan muncul otomatis di pojok kanan bawah untuk semua user yang sedang membuka dashboard (desktop maupun Android), tanpa perlu reload paksa (user pilih sendiri kapan klik "Muat Ulang").</p>
    <p data-i18n="guide_step11_p6">Catatan: Service Worker ini sengaja HANYA menyimpan cache untuk file statis (HTML shell, manifest, ikon) -- data live (dashboard, chat, RCA, dsb dari Google Sheets) TIDAK PERNAH ikut di-cache, selalu diambil segar dari server setiap saat.</p>
+   </div>
+  </div>
+
+  <!-- BARU (27 Agu): Step 12 -- KPI & Performance Member (mekanisme RENCANA, hasil
+  diskusi panjang, BELUM DIIMPLEMENTASI). Warna violet supaya beda dari kategori lain
+  (bukan security/deploy/data flow) -- ini murni catatan desain sebagai reminder
+  sebelum eksekusi ke sheet KPIConfig/KPIEvent nanti. -->
+  <div class="border border-violet-600/40 rounded-xl overflow-hidden">
+   <button onclick="toggleGuideStep(12)" class="w-full flex items-center justify-between gap-2 p-3 bg-violet-900/10 hover:bg-violet-900/20 transition-all cursor-pointer text-left">
+   <div class="flex items-center gap-2.5">
+    <span class="w-6 h-6 rounded-full bg-violet-600 text-white text-xs font-bold flex items-center justify-center shrink-0">12</span>
+    <span class="font-bold text-title text-xs" data-i18n="guide_step12_title">KPI &amp; Performance Member -- Mekanisme (RENCANA)</span>
+   </div>
+   <i id="guide-chevron-12" data-lucide="chevron-down" class="w-4 h-4 text-slate-400 transition-transform shrink-0"></i>
+   </button>
+   <div id="guide-content-12" class="hidden p-3 pt-0 text-[11px] text-slate-300 leading-relaxed space-y-2">
+   <p class="text-violet-300 font-semibold" data-i18n="guide_step12_p0">STATUS: BELUM DIIMPLEMENTASI. Ini catatan hasil diskusi mekanisme (27 Agu) sebagai reminder sebelum dieksekusi ke sheet KPIConfig/KPIEvent -- bukan fitur yang sudah berjalan di dashboard.</p>
+   <p data-i18n="guide_step12_p1"><b>Prinsip dasar: controllability.</b> Hanya masukkan ke KPI individu Geologist hal-hal yang benar-benar dia kontrol. Tonase harian TIDAK dijadikan pilar utama -- itu tanggung jawab campuran operator excavator + mine plan, bukan murni Grade Control.</p>
+   <p data-i18n="guide_step12_p2"><b>5 Pilar (revisi):</b> Kehadiran, Safety (JSA+APD), Kelengkapan Sampling &amp; Ketepatan Assay (pengganti "Produksi"), Laporan Tepat Waktu, Attitude (Disiplin/Kerja Sama/Inisiatif/Integritas dari Supervisor). 3 opsi bobot (Balanced/Safety First/Data-Integrity Driven) dipilih GM, diatur Developer -- rencana ditaruh di kartu baru "Formula KPI" sejajar Atur Parameter Global.</p>
+   <p data-i18n="guide_step12_p3"><b>Kartu "Kualitas Grade Control Bulanan" (terpisah dari skor KPI gabungan):</b> Ni% tertimbang = SUM(Tonase x Ni%) / SUM(Tonase) per Member per bulan, dibandingkan ke rentang COGConfig min-max (atau Estimasi Block Model kalau data cukup). Tonase tetap ditampilkan tapi bobot kecil (peringkat 3, bukan penentu). Jumlah sampel ditampilkan apa adanya TANPA ambang minimum -- ambang batas cuma pindahkan masalah controllability yang sama ke tempat lain.</p>
+   <p data-i18n="guide_step12_p4"><b>Celah "Menunggu Assay" (2 lapis pengaman, WAJIB ada sebelum kartu Ni% dipakai):</b> (1) Assay yang tidak di-update dalam N hari (default 3 hari, configurable di Developer Console) otomatis jadi penalti ke pilar Laporan Tepat Waktu -- supaya menggantungkan data ada konsekuensinya. (2) Hitung terpisah tingkat penyelesaian = Sampel ter-assay lengkap / Total sampel disubmit.</p>
+   <p data-i18n="guide_step12_p5"><b>Eligible Day, bukan hari dinilai 0.</b> Hari yang memang tidak bisa dinilai karena faktor eksternal DIKELUARKAN dari pembagi (denominator), bukan dihitung sebagai pencapaian nol. 3 jenis: Full Exclusion (libur nasional, demo besar sampai tutup total -- instruksi manajemen ke Head Dept), Partial Adjustment (breakdown alat/hujan parsial -- target hari itu disesuaikan proporsional sesuai jam tersedia), Member Exclusion (cuti/izin -- khusus 1 orang, rekan lain yang tetap masuk tetap dinilai normal).</p>
+   <p data-i18n="guide_step12_p6"><b>Alur pengajuan-persetujuan (FINAL, 27 Agu):</b> status PENDING -&gt; APPROVED (sistem hitung ulang otomatis) -&gt; REJECTED (kembali normal). Permission: kpi_event.create utk Member/Supervisor/Head Dept/Developer, kpi_event.approve HANYA Head Dept &amp; Developer -- pola sama rca.create/rca.close.</p>
+   <p data-i18n="guide_step12_p9"><b>Rumus breakdown vs hujan (27 Agu):</b> Hujan cuma Jam Hilang (langsung lanjut begitu reda). Breakdown Alat = Jam Hilang + Jam Recovery (butuh waktu pemanasan mesin &amp; pindah front). Sheet KPIEvent perlu 2 kolom terpisah -- kalau totalnya &gt;= jam kerja normal, otomatis jadi Full Exclusion.</p>
+   <p data-i18n="guide_step12_p7"><b>Anti dobel-hukuman:</b> Keterlambatan cuma dihitung 1 tempat (jangan dipotong di Kehadiran DAN Attitude-&gt;Disiplin sekaligus). Skor tiap pilar dibatasi maksimal 100 -- kalau mau beri penghargaan pencapaian di atas target, buat Bonus terpisah, jangan campur ke skor pilar.</p>
+   <p data-i18n="guide_step12_p10"><b>Kehadiran administratif (27 Agu):</b> Cuti/Izin dikeluarkan dari Attendance denominator, reuse data JSA_Log attendance_status yang sudah ada -- tidak butuh field baru.</p>
+   <p data-i18n="guide_step12_p11"><b>Safety Gate &amp; "Tidak Diwajibkan" (27 Agu):</b> Safety Gate opsional (ON/OFF) sbg pengaman tambahan thd Safety rendah yg tertutupi pilar lain. Kategori "Tidak Diwajibkan" pada Laporan = efek otomatis Full Exclusion. DITOLAK dari audit yg sama: Production/Tonase balik jadi pilar (kontradiksi controllability).</p>
+   <p data-i18n="guide_step12_p8">Fondasi data yang SUDAH ADA dan siap dipakai tanpa sheet baru: JSA_Log (kehadiran+safety+Izin/Cuti), Produksi_GC (timestamp laporan, tonase, Ni% per Pelapor), Issue &amp; Action (bukti pendukung temuan kendala lapangan), COGConfig (rentang target Ni%), SecurityConfig (di-reuse utk bobot KPI, bukan sheet KPIConfig terpisah). Yang PERLU dibangun baru: sheet KPIEvent, sheet Attitude, key baru di SecurityConfig.</p>
    </div>
   </div>
  </div>
@@ -3000,6 +3837,129 @@ Update Tujuan yang sudah ada, supaya tidak dobel jalur ubah Dome). -->
   <button onclick="closeUpdateAssayModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold transition-all cursor-pointer text-xs" data-i18n="update_tujuan_cancel_btn">Batal</button>
   <button id="btn-submit-update-assay" onclick="submitUpdateAssay()" class="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold shadow-md transition-all cursor-pointer text-xs">
   <i data-lucide="save" class="w-3.5 h-3.5"></i> <span data-i18n="update_assay_save_btn">Simpan Hasil Assay</span>
+  </button>
+ </div>
+ </div>
+</div>
+
+<!-- BARU (28 Agu): MODAL AJUKAN KEJADIAN KPI -- kpi_event.create (Member/Supervisor/
+Developer). Ajukan Full Exclusion / Partial Adjustment / Member Exclusion, status
+langsung PENDING sampai disahkan Developer lewat panel approval di Developer Console. -->
+<div id="kpi-event-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden items-center justify-center p-4">
+ <div class="glass-card modal-mobile w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-700">
+ <div class="flex justify-between items-center pb-3.5 border-b border-slate-700/60 mb-4">
+  <div class="flex items-center gap-3">
+  <div class="p-2 bg-amber-600 rounded-xl text-white shadow-md"><i data-lucide="calendar-clock" class="w-4.5 h-4.5"></i></div>
+  <div>
+   <h3 class="font-bold text-title text-sm tracking-tight">Ajukan Kejadian KPI</h3>
+   <p class="text-[11px] text-slate-400 font-medium">Breakdown, hujan, hari libur, dsb</p>
+  </div>
+  </div>
+  <button onclick="closeKpiEventModal()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer"><i data-lucide="x" class="w-4.5 h-4.5"></i></button>
+ </div>
+ <div class="rounded-xl bg-amber-500/10 border border-amber-500/25 px-3 py-2.5 text-[11px] text-amber-300 mb-4">Pengajuan akan berstatus PENDING sampai disahkan Developer. Pengaju tidak bisa mengesahkan pengajuannya sendiri.</div>
+ <div class="mb-3">
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Jenis Kejadian</label>
+  <select id="kpi-event-jenis" onchange="onKpiEventJenisChange()" class="w-full custom-select bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-amber-500 font-medium text-xs">
+   <option value="Full Exclusion">Full Exclusion (libur nasional, demo besar)</option>
+   <option value="Partial Adjustment">Partial Adjustment (breakdown alat, hujan)</option>
+   <option value="Member Exclusion">Member Exclusion (cuti/izin -- khusus 1 orang)</option>
+  </select>
+ </div>
+ <div class="grid grid-cols-2 gap-2.5 mb-3">
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Tanggal Kejadian</label>
+  <input type="date" id="kpi-event-tanggal" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-amber-500 font-medium text-xs">
+  </div>
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Pit/Area</label>
+  <input type="text" id="kpi-event-pit-area" placeholder="cth. Avanza" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-amber-500 font-medium text-xs">
+  </div>
+ </div>
+ <div id="kpi-event-target-member-wrapper" class="hidden mb-3">
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Target Member (User_ID)</label>
+  <input type="text" id="kpi-event-target-member" placeholder="cth. GEO-007" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-amber-500 font-medium text-xs">
+ </div>
+ <div id="kpi-event-jam-wrapper" class="hidden grid grid-cols-3 gap-2.5 mb-3">
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Jam Kerja Normal</label>
+  <input type="number" step="any" id="kpi-event-jam-normal" placeholder="10" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-amber-500 font-medium text-xs">
+  </div>
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Jam Hilang</label>
+  <input type="number" step="any" id="kpi-event-jam-hilang" placeholder="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-amber-500 font-medium text-xs">
+  </div>
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Jam Recovery</label>
+  <input type="number" step="any" id="kpi-event-jam-recovery" placeholder="0/1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-amber-500 font-medium text-xs">
+  </div>
+ </div>
+ <div class="mb-3">
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Alasan</label>
+  <textarea id="kpi-event-alasan" rows="2" placeholder="cth. Excavator EXC-02 breakdown 08:00-10:00" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-amber-500 font-medium text-xs resize-none"></textarea>
+ </div>
+ <p id="kpi-event-status-msg" class="text-xs hidden mb-3"></p>
+ <div class="flex justify-end gap-2 pt-3 border-t border-slate-700/60">
+  <button onclick="closeKpiEventModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold transition-all cursor-pointer text-xs">Batal</button>
+  <button id="btn-submit-kpi-event" onclick="submitKpiEvent()" class="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-semibold shadow-md transition-all cursor-pointer text-xs">
+  <i data-lucide="send" class="w-3.5 h-3.5"></i> <span>Ajukan</span>
+  </button>
+ </div>
+ </div>
+</div>
+
+<!-- BARU (28 Agu): MODAL NILAI ATTITUDE -- attitude.assess (Supervisor/Developer).
+Member_ID diisi manual (sheet Member/KPI tidak simpan User_ID, sama pola dgn Reset PIN
+Member) -- User_ID paling gampang dilihat di Credential Manager. -->
+<div id="attitude-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[70] hidden items-center justify-center p-4">
+ <div class="glass-card modal-mobile w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-700">
+ <div class="flex justify-between items-center pb-3.5 border-b border-slate-700/60 mb-4">
+  <div class="flex items-center gap-3">
+  <div class="p-2 bg-violet-600 rounded-xl text-white shadow-md"><i data-lucide="star" class="w-4.5 h-4.5"></i></div>
+  <div>
+   <h3 class="font-bold text-title text-sm tracking-tight">Nilai Attitude Bulanan</h3>
+   <p class="text-[11px] text-slate-400 font-medium">Disiplin, Kerja Sama, Inisiatif, Integritas</p>
+  </div>
+  </div>
+  <button onclick="closeAttitudeModal()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all cursor-pointer"><i data-lucide="x" class="w-4.5 h-4.5"></i></button>
+ </div>
+ <div class="grid grid-cols-2 gap-2.5 mb-3">
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Periode</label>
+  <input type="month" id="attitude-periode" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-violet-500 font-medium text-xs">
+  </div>
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Member_ID</label>
+  <input type="text" id="attitude-member-id" placeholder="cth. GEO-007" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-violet-500 font-medium text-xs">
+  </div>
+ </div>
+ <div class="grid grid-cols-2 gap-2.5 mb-3">
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Disiplin (1-5)</label>
+  <input type="number" min="1" max="5" step="1" id="attitude-disiplin" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-violet-500 font-medium text-xs">
+  </div>
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Kerja Sama (1-5)</label>
+  <input type="number" min="1" max="5" step="1" id="attitude-kerjasama" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-violet-500 font-medium text-xs">
+  </div>
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Inisiatif (1-5)</label>
+  <input type="number" min="1" max="5" step="1" id="attitude-inisiatif" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-violet-500 font-medium text-xs">
+  </div>
+  <div>
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Integritas (1-5)</label>
+  <input type="number" min="1" max="5" step="1" id="attitude-integritas" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-violet-500 font-medium text-xs">
+  </div>
+ </div>
+ <div class="mb-3">
+  <label class="block text-slate-300 mb-1 font-medium text-xs">Catatan <span class="text-amber-400">(wajib kalau ada nilai 1 atau 5)</span></label>
+  <textarea id="attitude-catatan" rows="2" placeholder="Evidence/alasan penilaian" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-title focus:outline-none focus:border-violet-500 font-medium text-xs resize-none"></textarea>
+ </div>
+ <p id="attitude-status-msg" class="text-xs hidden mb-3"></p>
+ <div class="flex justify-end gap-2 pt-3 border-t border-slate-700/60">
+  <button onclick="closeAttitudeModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold transition-all cursor-pointer text-xs">Batal</button>
+  <button id="btn-submit-attitude" onclick="submitAttitudeAssessment()" class="flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-semibold shadow-md transition-all cursor-pointer text-xs">
+  <i data-lucide="save" class="w-3.5 h-3.5"></i> <span>Simpan Penilaian</span>
   </button>
  </div>
  </div>
@@ -4080,6 +5040,19 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  guide_step11_p4: "2. Buka file sw.js, ganti baris const CACHE_NAME = 'mine-geologist-vX.X.X'; supaya angkanya SAMA PERSIS dengan APP_VERSION yang baru. Kalau baris ini TIDAK diubah, browser akan menganggap sw.js \"tidak berubah\" (dibandingkan byte-per-byte) dan toast update TIDAK AKAN PERNAH muncul, walau index.html-nya sendiri sudah beda total.",
  guide_step11_p5: "3. Upload ULANG kedua file (index.html dan sw.js) ke folder yang sama di GitHub Pages. Tunggu sekitar 1 menit -- toast \"Versi baru tersedia\" akan muncul otomatis di pojok kanan bawah untuk semua user yang sedang membuka dashboard (desktop maupun Android), tanpa perlu reload paksa (user pilih sendiri kapan klik \"Muat Ulang\").",
  guide_step11_p6: "Catatan: Service Worker ini sengaja HANYA menyimpan cache untuk file statis (HTML shell, manifest, ikon) -- data live (dashboard, chat, RCA, dsb dari Google Sheets) TIDAK PERNAH ikut di-cache, selalu diambil segar dari server setiap saat.",
+ guide_step12_title: "KPI & Performance Member -- Mekanisme (RENCANA)",
+ guide_step12_p0: "STATUS: BELUM DIIMPLEMENTASI. Ini catatan hasil diskusi mekanisme (27 Agu) sebagai reminder sebelum dieksekusi ke sheet KPIConfig/KPIEvent -- bukan fitur yang sudah berjalan di dashboard.",
+ guide_step12_p1: "Prinsip dasar: controllability. Hanya masukkan ke KPI individu Geologist hal-hal yang benar-benar dia kontrol. Tonase harian TIDAK dijadikan pilar utama -- itu tanggung jawab campuran operator excavator + mine plan, bukan murni Grade Control.",
+ guide_step12_p2: "5 Pilar (revisi): Kehadiran, Safety (JSA+APD), Kelengkapan Sampling & Ketepatan Assay (pengganti \"Produksi\"), Laporan Tepat Waktu, Attitude (Disiplin/Kerja Sama/Inisiatif/Integritas dari Supervisor). 3 opsi bobot (Balanced/Safety First/Data-Integrity Driven) dipilih GM, diatur Developer -- rencana ditaruh di kartu baru \"Formula KPI\" sejajar Atur Parameter Global.",
+ guide_step12_p3: "Kartu \"Kualitas Grade Control Bulanan\" (terpisah dari skor KPI gabungan): Ni% tertimbang = SUM(Tonase x Ni%) / SUM(Tonase) per Member per bulan, dibandingkan ke rentang COGConfig min-max (atau Estimasi Block Model kalau data cukup). Tonase tetap ditampilkan tapi bobot kecil (peringkat 3, bukan penentu). Jumlah sampel ditampilkan apa adanya TANPA ambang minimum -- ambang batas cuma pindahkan masalah controllability yang sama ke tempat lain.",
+ guide_step12_p4: "Celah \"Menunggu Assay\" (2 lapis pengaman, WAJIB ada sebelum kartu Ni% dipakai): (1) Assay yang tidak di-update dalam N hari (default 3 hari, configurable di Developer Console) otomatis jadi penalti ke pilar Laporan Tepat Waktu -- supaya menggantungkan data ada konsekuensinya. (2) Hitung terpisah tingkat penyelesaian = Sampel ter-assay lengkap / Total sampel disubmit.",
+ guide_step12_p5: "Eligible Day, bukan hari dinilai 0. Hari yang memang tidak bisa dinilai karena faktor eksternal DIKELUARKAN dari pembagi (denominator), bukan dihitung sebagai pencapaian nol. 3 jenis: Full Exclusion (libur nasional, demo besar sampai tutup total -- instruksi manajemen ke Head Dept), Partial Adjustment (breakdown alat/hujan parsial -- target hari itu disesuaikan proporsional sesuai jam tersedia), Member Exclusion (cuti/izin -- khusus 1 orang, rekan lain yang tetap masuk tetap dinilai normal).",
+ guide_step12_p6: "Alur pengajuan-persetujuan (FINAL, 27 Agu; DIKONFIRMASI dari RolePermissions asli 28 Agu): sistem cuma punya 4 role -- PUBLIC/MEMBER/SUPERVISOR/DEVELOPER, TIDAK ADA role Head Dept terpisah. Head Department Mine Geologist = Developer, orang yang sama. Status PENDING (baru diajukan) -> APPROVED (disahkan Developer, sistem hitung ulang otomatis) -> REJECTED (ditolak, kembali ke perhitungan normal). Permission SUDAH ADA di sheet: kpi_event.create = MEMBER+SUPERVISOR+DEVELOPER, kpi_event.approve = DEVELOPER saja (persis pola rca.close), attitude.assess = SUPERVISOR+DEVELOPER. Setiap perubahan tersimpan sbg audit trail.",
+ guide_step12_p9: "Rumus Partial Adjustment DIBEDAKAN menurut jenis kejadian (27 Agu): Hujan cuma pakai Jam Hilang (tim langsung lanjut begitu reda, tanpa waktu pemulihan). Breakdown Alat pakai Jam Hilang + Jam Recovery (butuh waktu tambahan pemanasan mesin & pindah front setelah alat normal). Contoh: breakdown 2 jam + recovery 1 jam dari 10 jam kerja -> target disesuaikan proporsional thd 7 jam tersisa (BUKAN 8 jam). Sheet KPIEvent butuh 2 kolom terpisah (Jam Hilang, Jam Recovery) supaya fakta yg disaksikan & estimasi tambahan tetap bisa ditelusuri terpisah saat diaudit. Validasi wajib: kalau (Jam Hilang+Jam Recovery) >= Jam Kerja Normal, kejadian otomatis jadi Full Exclusion, bukan Partial Adjustment lagi.",
+ guide_step12_p7: "Anti dobel-hukuman: Keterlambatan cuma dihitung 1 tempat (jangan dipotong di Kehadiran DAN Attitude->Disiplin sekaligus). Skor tiap pilar dibatasi maksimal 100 -- kalau mau beri penghargaan pencapaian di atas target, buat Bonus terpisah, jangan campur ke skor pilar.",
+ guide_step12_p8: "STATUS 28 Agu -- SEMUA LAPISAN DATA SUDAH DIBUAT. Sheet KPIEvent (17 kolom) dan Attitude (9 kolom) sudah dibuat di Google Sheets. SecurityConfig sudah ditambah 5 baris KPI_*. RolePermissions sudah ditambah kpi_event.create/approve + attitude.assess, dikonfirmasi persis sesuai desain. Yang tersisa murni lapisan KODE: backend (Code.gs -- addKpiEvent, approveKpiEvent, submitAttitudeAssessment, calculation engine) dan frontend (form pengajuan, panel approval, kartu skor KPI).",
+ guide_step12_p10: "BARU (27 Agu, diadopsi dari audit dokumen pihak lain): Kehadiran administratif (Cuti/Izin) TIDAK mengurangi Attendance -- dikeluarkan dari Eligible Working Days, sama prinsip dgn Full Exclusion. TIDAK butuh field/sheet baru -- reuse data JSA_Log attendance_status (Hadir/Izin/Cuti) yang sudah berjalan lewat addJsaLog. Sakit belum dimasukkan (belum ada penyimpanan bukti medis) -- kalau nanti perlu, jadi status ke-4 di attendance_status yang sama, bukan mekanisme baru.",
+ guide_step12_p11: "BARU (27 Agu): Safety Gate opsional (ON/OFF, default OFF, key KPI_SAFETY_GATE_ENABLED+KPI_SAFETY_GATE_THRESHOLD di SecurityConfig) -- pengaman tambahan supaya pilar lain yg tinggi tidak \"menutupi\" Safety yang buruk, BUKAN pengganti Safety Score. Kategori \"Tidak Diwajibkan\" pada pilar Laporan -- efek OTOMATIS dari hari Full Exclusion (bukan KPIEvent terpisah), dikeluarkan dari denominator Laporan, beda dari laporan yang memang telat/gagal. DITOLAK dari dokumen sama: Production/Tonase balik jadi pilar KPI (kontradiksi keputusan controllability yg sudah dikunci). DITUNDA: JSA partial-score per item (fitur skrng masih konfirmasi biner), Union Time (antisipasi kasus yg belum tentu terjadi).",
   blockmodel_title: "Block Model vs Actual",
   blockmodel_th_blok: "Blok",
   blockmodel_th_ni: "Ni % (Est -> Akt)",
@@ -4717,6 +5690,19 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  guide_step11_p4: "2. Open the sw.js file and change the const CACHE_NAME = 'mine-geologist-vX.X.X'; line so the number EXACTLY matches the new APP_VERSION. If this line is NOT changed, the browser will consider sw.js \"unchanged\" (compared byte-for-byte) and the update toast will NEVER appear, even though index.html itself is completely different.",
  guide_step11_p5: "3. Re-upload BOTH files (index.html and sw.js) to the same folder on GitHub Pages. Wait about 1 minute -- the \"New version available\" toast will automatically appear in the bottom-right corner for every user with the dashboard open (desktop or Android), without forcing a reload (the user chooses when to click \"Reload\").",
  guide_step11_p6: "Note: this Service Worker deliberately caches ONLY static files (HTML shell, manifest, icons) -- live data (dashboard, chat, RCA, etc. from Google Sheets) is NEVER cached, and is always fetched fresh from the server every time.",
+ guide_step12_title: "Member KPI & Performance -- Mechanism (PLANNED)",
+ guide_step12_p0: "STATUS: NOT YET IMPLEMENTED. This is a design-discussion note (Aug 27) kept as a reminder before it's executed into the KPIConfig/KPIEvent sheets -- not a feature that's live in the dashboard.",
+ guide_step12_p1: "Core principle: controllability. Only put things a Geologist genuinely controls into their individual KPI. Daily tonnage is NOT a main pillar -- it's a mixed responsibility of the excavator operator + mine plan, not purely Grade Control.",
+ guide_step12_p2: "5 Pillars (revised): Attendance, Safety (JSA+PPE), Sampling Completeness & Assay Timeliness (replaces \"Production\"), Timely Reporting, Attitude (Discipline/Teamwork/Initiative/Integrity from Supervisor). 3 weighting options (Balanced/Safety First/Data-Integrity Driven) chosen by GM, configured by Developer -- planned as a new \"KPI Formula\" card next to Global Parameters.",
+ guide_step12_p3: "\"Monthly Grade Control Quality\" card (kept separate from the combined KPI score): weighted Ni% = SUM(Tonnage x Ni%) / SUM(Tonnage) per Member per month, compared against the COGConfig min-max range (or Block Model Estimate if enough data exists). Tonnage is still shown but lightly weighted (rank 3, not a determinant). Sample count is shown as-is with NO minimum threshold -- a threshold just moves the same controllability problem elsewhere.",
+ guide_step12_p4: "\"Awaiting Assay\" loophole (2-layer safeguard, REQUIRED before the Ni% card is used): (1) Assay not updated within N days (default 3 days, configurable in Developer Console) automatically becomes a penalty on the Timely Reporting pillar -- so leaving data hanging has a consequence. (2) Completion rate calculated separately = fully-assayed samples / total samples submitted.",
+ guide_step12_p5: "Eligible Day, not a zero-scored day. Days that genuinely cannot be evaluated due to external factors are EXCLUDED from the denominator, not counted as zero achievement. 3 types: Full Exclusion (national holidays, large protests causing full shutdown -- management instruction to Head Dept), Partial Adjustment (partial equipment breakdown/rain -- that day's target is adjusted proportionally to available hours), Member Exclusion (leave/permission -- specific to one person, colleagues who still worked that day are still evaluated normally).",
+ guide_step12_p6: "Proposal-approval flow (FINAL, Aug 27; CONFIRMED from the real RolePermissions data Aug 28): the system only has 4 roles -- PUBLIC/MEMBER/SUPERVISOR/DEVELOPER, there is NO separate Head Dept role. The Head of Mine Geologist Department IS the Developer, the same person. Status PENDING (just proposed) -> APPROVED (approved by the Developer, system recalculates automatically) -> REJECTED (rejected, reverts to normal calculation). Permissions are ALREADY set up in the sheet: kpi_event.create = MEMBER+SUPERVISOR+DEVELOPER, kpi_event.approve = DEVELOPER only (the exact same pattern as rca.close), attitude.assess = SUPERVISOR+DEVELOPER. Every change is stored as an audit trail.",
+ guide_step12_p9: "Partial Adjustment formula is DIFFERENTIATED by event type (Aug 27): Rain uses only Hours Lost (the team resumes immediately once it clears, no recovery time needed). Equipment Breakdown uses Hours Lost + Recovery Hours (extra time needed to warm up the machine & relocate to the working front once the equipment is back to normal). Example: 2-hour breakdown + 1-hour recovery out of a 10-hour workday -> target is adjusted proportionally to the 7 remaining hours (NOT 8). The KPIEvent sheet needs two separate columns (Hours Lost, Recovery Hours) so the witnessed fact and the added estimate can still be traced separately during an audit. Required validation: if (Hours Lost + Recovery Hours) >= the day's Normal Working Hours, the event automatically becomes a Full Exclusion instead of a Partial Adjustment.",
+ guide_step12_p7: "Anti double-penalty: Lateness is counted in only one place (don't dock it in both Attendance AND Attitude->Discipline). Each pillar's score is capped at 100 -- if you want to reward over-target achievement, create a separate Bonus, don't mix it into a pillar score.",
+ guide_step12_p8: "STATUS Aug 28 -- THE ENTIRE DATA LAYER IS DONE. The KPIEvent sheet (17 columns) and Attitude sheet (9 columns) have been created in Google Sheets. SecurityConfig has 5 new KPI_* rows. RolePermissions has kpi_event.create/approve + attitude.assess added, confirmed to match the design exactly. What remains is purely the CODE layer: backend (Code.gs -- addKpiEvent, approveKpiEvent, submitAttitudeAssessment, calculation engine) and frontend (proposal form, approval panel, KPI score card).",
+ guide_step12_p10: "NEW (Aug 27, adopted from an external document audit): Administrative absence (Izin/Cuti) does NOT reduce Attendance -- excluded from Eligible Working Days, same principle as Full Exclusion. Needs NO new field/sheet -- reuses the already-working JSA_Log attendance_status data (Hadir/Izin/Cuti) via addJsaLog. Sick leave is not yet included (no medical-evidence storage exists) -- if needed later, it becomes a 4th status on the same attendance_status field, not a new mechanism.",
+ guide_step12_p11: "NEW (Aug 27): Optional Safety Gate (ON/OFF, default OFF, keys KPI_SAFETY_GATE_ENABLED+KPI_SAFETY_GATE_THRESHOLD in SecurityConfig) -- an extra safeguard so other high pillars can't \"mask\" a poor Safety score, NOT a replacement for the Safety pillar score itself. \"Not Required\" category on the Reporting pillar -- an AUTOMATIC consequence of a Full Exclusion day (not a separate KPIEvent), excluded from the Reporting denominator, distinct from a report that's genuinely late/failed. REJECTED from the same document: bringing back Production/Tonnage as a KPI pillar (contradicts the already-locked controllability decision). DEFERRED: per-item JSA partial scoring (the current feature is a binary confirmation), Union Time (anticipates a case that hasn't actually occurred yet).",
   blockmodel_title: "Block Model vs Actual",
   blockmodel_th_blok: "Block",
   blockmodel_th_ni: "Ni % (Est -> Act)",
@@ -6088,6 +7074,27 @@ window.addEventListener('afterprint', function() {
  return isDeveloperUnlocked();
  }
 
+ // BARU (28 Agu): helper permission KPI & Attitude -- kpi_event.create dikonfirmasi
+ // MEMBER/SUPERVISOR/DEVELOPER (siapa saja yg login boleh ajukan kejadian). approve
+ // & assess DEVELOPER-only / SUPERVISOR+DEVELOPER, sesuai RolePermissions asli.
+ function canProposeKpiEvent() {
+ const role = String(getCurrentExportRole() || '').trim().toUpperCase();
+ return role === 'MEMBER' || role === 'SUPERVISOR' || role === 'DEVELOPER';
+ }
+ function canApproveKpiEvent() {
+ return isDeveloperUnlocked();
+ }
+ function canAssessAttitude() {
+ const role = String(getCurrentExportRole() || '').trim().toUpperCase();
+ return role === 'SUPERVISOR' || role === 'DEVELOPER';
+ }
+ function updateKpiButtonsVisibility() {
+ const btnEvent = document.getElementById('btn-open-kpi-event');
+ const btnAttitude = document.getElementById('btn-open-attitude');
+ if (btnEvent) { btnEvent.classList.toggle('hidden', !canProposeKpiEvent()); btnEvent.classList.toggle('flex', canProposeKpiEvent()); }
+ if (btnAttitude) { btnAttitude.classList.toggle('hidden', !canAssessAttitude()); btnAttitude.classList.toggle('flex', canAssessAttitude()); }
+ }
+
  // Fitur Barging: LIHAT progress terbuka untuk semua (tidak butuh fungsi akses -- semua
  // fetch/render publik). INPUT/kelola data (bikin shipment, catat loading log, dst) tetap
  // developer-only, sesuai kesepakatan yang sama dengan pola Dome di atas.
@@ -6155,6 +7162,13 @@ window.addEventListener('afterprint', function() {
 
  if (panelResetMemberPin) {
   panelResetMemberPin.classList.toggle('hidden', !unlocked);
+ }
+
+ // BARU (28 Agu)
+ const panelKpiEventApproval = document.getElementById('panel-kpi-event-approval');
+ if (panelKpiEventApproval) {
+  panelKpiEventApproval.classList.toggle('hidden', !unlocked);
+  if (unlocked) loadKpiEventApprovalList();
  }
 
  if (devCleanupPanel) {
@@ -6731,8 +7745,7 @@ function memberInitials(name, loginId) {
 function renderActiveSessionsIndicator(sessionsOverride) {
  const wrap = document.getElementById('active-sessions-indicator-wrap');
  const list = document.getElementById('active-sessions-avatar-list');
- const count = document.getElementById('active-sessions-count');
- if (!wrap || !list || !count) return;
+ if (!wrap || !list) return;
 
  if (Array.isArray(sessionsOverride)) activeMemberSessions = sessionsOverride.slice();
  let sessions = Array.isArray(activeMemberSessions) ? activeMemberSessions.slice() : [];
@@ -6749,15 +7762,10 @@ function renderActiveSessionsIndicator(sessionsOverride) {
  list.innerHTML = '';
  if (!sessions.length) {
   wrap.classList.add('hidden');
-  count.classList.add('hidden');
-  count.classList.remove('flex');
   return;
  }
 
  wrap.classList.remove('hidden');
- count.textContent = String(sessions.length);
- count.classList.remove('hidden');
- count.classList.add('flex');
 
  sessions.forEach(function(session) {
   const name = String(session.user_name || session.login_id || session.user_id || 'Member').trim();
@@ -7065,6 +8073,57 @@ async function submitResetMemberPin() {
   }
  } catch (err) {
   setStatus((currentLang === 'en' ? 'Server error: ' : 'Error server: ') + (err && err.message ? err.message : String(err)), false);
+ }
+}
+
+// ==== BARU (28 Agu): Panel Approval KPIEvent -- muat daftar PENDING, Approve/Reject
+// langsung kirim ke action approveKpiEvent. Pengaju yang sama TIDAK BOLEH approve
+// pengajuannya sendiri -- backend sudah menolak ini, di sini kita cuma tampilkan pesannya.
+async function loadKpiEventApprovalList() {
+ const listEl = document.getElementById('kpi-event-approval-list');
+ if (!listEl) return;
+ listEl.innerHTML = '<div class="text-center text-slate-500 text-xs py-4">Memuat...</div>';
+ try {
+  const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=kpievent&t=' + Date.now());
+  const result = await response.json();
+  if (result.status !== 'success') throw new Error(result.message || 'Gagal memuat data KPIEvent.');
+  const pending = (result.data || []).filter(function(ev) { return String(ev.status||'').toUpperCase() === 'PENDING'; });
+  if (!pending.length) {
+   listEl.innerHTML = '<div class="text-center text-slate-500 text-xs py-4">Tidak ada kejadian yang menunggu persetujuan.</div>';
+   return;
+  }
+  listEl.innerHTML = pending.map(function(ev) {
+   const jenisColor = ev.jenis === 'Full Exclusion' ? 'text-rose-400' : (ev.jenis === 'Member Exclusion' ? 'text-blue-400' : 'text-amber-400');
+   const jamInfo = ev.jenis === 'Partial Adjustment' ? ('Jam Hilang: ' + (ev.jam_hilang||'-') + ' &bull; Jam Recovery: ' + (ev.jam_recovery||'-') + ' &bull; ') : '';
+   return '<div class="rounded-xl bg-slate-900 border border-slate-700 p-3">' +
+    '<div class="flex items-center justify-between mb-1.5">' +
+     '<span class="text-xs font-bold ' + jenisColor + '">' + ev.jenis + '</span>' +
+     '<span class="text-[10px] text-slate-500">' + ev.event_id + '</span>' +
+    '</div>' +
+    '<div class="text-[11px] text-slate-300 mb-1">' + ev.alasan + '</div>' +
+    '<div class="text-[10px] text-slate-500 mb-2">Diajukan: ' + ev.diajukan_oleh + ' &bull; Tanggal Kejadian: ' + ev.tanggal_kejadian + (ev.pit_area ? (' &bull; ' + ev.pit_area) : '') + (ev.target_member ? (' &bull; Target: ' + ev.target_member) : '') + '</div>' +
+    (jamInfo ? '<div class="text-[10px] text-slate-500 mb-2">' + jamInfo.replace(/&bull; $/, '') + '</div>' : '') +
+    '<div class="flex gap-2">' +
+     '<button onclick="decideKpiEvent(\'' + ev.event_id + '\',\'APPROVED\')" class="flex-1 px-2 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold">Approve</button>' +
+     '<button onclick="decideKpiEvent(\'' + ev.event_id + '\',\'REJECTED\')" class="flex-1 px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-rose-300 text-[11px] font-bold">Reject</button>' +
+    '</div>' +
+   '</div>';
+  }).join('');
+ } catch (err) {
+  console.error('Gagal memuat KPIEvent:', err);
+  listEl.innerHTML = '<div class="text-center text-rose-400 text-xs py-4">Gagal memuat data. <button onclick="loadKpiEventApprovalList()" class="underline">Coba lagi</button></div>';
+ }
+}
+async function decideKpiEvent(eventId, decision) {
+ try {
+  const result = await postCentralAuthenticated({ action: 'approveKpiEvent', event_id: eventId, decision: decision }, { developerOnly: true });
+  if (!result.success && !(result.status === 'success')) {
+   alert(result.message || 'Gagal memproses keputusan.');
+   return;
+  }
+  loadKpiEventApprovalList();
+ } catch (err) {
+  alert('Error server: ' + (err && err.message ? err.message : String(err)));
  }
 }
 
@@ -10778,6 +11837,138 @@ async function provisionExistingCredential(index, userId) {
  }
  }
 
+ // ==== BARU (28 Agu): MODAL AJUKAN KEJADIAN KPI (addKpiEvent) ====
+ function openKpiEventModal() {
+ document.getElementById('kpi-event-jenis').value = 'Full Exclusion';
+ document.getElementById('kpi-event-tanggal').value = new Date().toISOString().slice(0,10);
+ document.getElementById('kpi-event-pit-area').value = '';
+ document.getElementById('kpi-event-target-member').value = '';
+ document.getElementById('kpi-event-jam-normal').value = '';
+ document.getElementById('kpi-event-jam-hilang').value = '';
+ document.getElementById('kpi-event-jam-recovery').value = '';
+ document.getElementById('kpi-event-alasan').value = '';
+ document.getElementById('kpi-event-status-msg').classList.add('hidden');
+ onKpiEventJenisChange();
+ const modal = document.getElementById('kpi-event-modal');
+ showModalAnimated(modal);
+ lucide.createIcons();
+ }
+ function closeKpiEventModal() {
+ const modal = document.getElementById('kpi-event-modal');
+ hideModalAnimated(modal);
+ }
+ function onKpiEventJenisChange() {
+ const jenis = document.getElementById('kpi-event-jenis').value;
+ document.getElementById('kpi-event-target-member-wrapper').classList.toggle('hidden', jenis !== 'Member Exclusion');
+ document.getElementById('kpi-event-jam-wrapper').classList.toggle('hidden', jenis !== 'Partial Adjustment');
+ }
+ async function submitKpiEvent() {
+ const submitBtn = document.getElementById('btn-submit-kpi-event');
+ const statusMsg = document.getElementById('kpi-event-status-msg');
+ const originalBtnHtml = submitBtn.innerHTML;
+ const jenis = document.getElementById('kpi-event-jenis').value;
+ const tanggalKejadian = document.getElementById('kpi-event-tanggal').value;
+ const pitArea = document.getElementById('kpi-event-pit-area').value.trim();
+ const targetMember = document.getElementById('kpi-event-target-member').value.trim();
+ const jamNormal = document.getElementById('kpi-event-jam-normal').value;
+ const jamHilang = document.getElementById('kpi-event-jam-hilang').value;
+ const jamRecovery = document.getElementById('kpi-event-jam-recovery').value;
+ const alasan = document.getElementById('kpi-event-alasan').value.trim();
+
+ function showErr(msg) { statusMsg.className = 'text-xs text-rose-400'; statusMsg.innerText = msg; statusMsg.classList.remove('hidden'); }
+ if (!tanggalKejadian) return showErr('Tanggal Kejadian wajib diisi.');
+ if (!alasan) return showErr('Alasan wajib diisi.');
+ if (jenis === 'Member Exclusion' && !targetMember) return showErr('Member Exclusion wajib mencantumkan Target_Member (User_ID).');
+
+ submitBtn.disabled = true;
+ submitBtn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Mengajukan...';
+ statusMsg.classList.add('hidden');
+ try {
+  const payload = buildAuthenticatedPayload({
+  action: 'addKpiEvent', jenis, tanggal_kejadian: tanggalKejadian, pit_area: pitArea,
+  target_member: targetMember, jam_kerja_normal: jamNormal, jam_hilang: jamHilang,
+  jam_recovery: jamRecovery, alasan
+  });
+  const response = await fetch(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload });
+  const result = await response.json();
+  if (result.status !== 'success') throw new Error(result.message || 'Gagal mengajukan kejadian.');
+  statusMsg.className = 'text-xs text-emerald-400';
+  statusMsg.innerText = 'Kejadian berhasil diajukan sebagai PENDING (' + (result.data && result.data.event_id || '') + ').';
+  statusMsg.classList.remove('hidden');
+  setTimeout(() => { closeKpiEventModal(); statusMsg.classList.add('hidden'); }, 1200);
+ } catch (error) {
+  console.error('Error submitKpiEvent:', error);
+  showErr(error && error.message ? error.message : 'Terjadi kesalahan. Coba lagi.');
+ } finally {
+  submitBtn.disabled = false;
+  submitBtn.innerHTML = originalBtnHtml;
+  lucide.createIcons();
+ }
+ }
+
+ // ==== BARU (28 Agu): MODAL NILAI ATTITUDE (submitAttitudeAssessment) ====
+ function openAttitudeModal() {
+ const now = new Date();
+ document.getElementById('attitude-periode').value = now.toISOString().slice(0,7);
+ document.getElementById('attitude-member-id').value = '';
+ document.getElementById('attitude-disiplin').value = '';
+ document.getElementById('attitude-kerjasama').value = '';
+ document.getElementById('attitude-inisiatif').value = '';
+ document.getElementById('attitude-integritas').value = '';
+ document.getElementById('attitude-catatan').value = '';
+ document.getElementById('attitude-status-msg').classList.add('hidden');
+ const modal = document.getElementById('attitude-modal');
+ showModalAnimated(modal);
+ lucide.createIcons();
+ }
+ function closeAttitudeModal() {
+ const modal = document.getElementById('attitude-modal');
+ hideModalAnimated(modal);
+ }
+ async function submitAttitudeAssessment() {
+ const submitBtn = document.getElementById('btn-submit-attitude');
+ const statusMsg = document.getElementById('attitude-status-msg');
+ const originalBtnHtml = submitBtn.innerHTML;
+ const periode = document.getElementById('attitude-periode').value;
+ const memberId = document.getElementById('attitude-member-id').value.trim();
+ const disiplin = document.getElementById('attitude-disiplin').value;
+ const kerjaSama = document.getElementById('attitude-kerjasama').value;
+ const inisiatif = document.getElementById('attitude-inisiatif').value;
+ const integritas = document.getElementById('attitude-integritas').value;
+ const catatan = document.getElementById('attitude-catatan').value.trim();
+
+ function showErr(msg) { statusMsg.className = 'text-xs text-rose-400'; statusMsg.innerText = msg; statusMsg.classList.remove('hidden'); }
+ if (!periode) return showErr('Periode wajib diisi.');
+ if (!memberId) return showErr('Member_ID wajib diisi.');
+ const scores = [disiplin, kerjaSama, inisiatif, integritas].map(v => parseInt(v, 10));
+ if (scores.some(s => isNaN(s) || s < 1 || s > 5)) return showErr('Disiplin/Kerja Sama/Inisiatif/Integritas wajib angka 1-5.');
+ if (scores.some(s => s === 1 || s === 5) && !catatan) return showErr('Catatan (evidence) wajib diisi kalau ada nilai 1 atau 5.');
+
+ submitBtn.disabled = true;
+ submitBtn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Menyimpan...';
+ statusMsg.classList.add('hidden');
+ try {
+  const payload = buildAuthenticatedPayload({
+  action: 'submitAttitudeAssessment', periode, member_id: memberId,
+  disiplin, kerja_sama: kerjaSama, inisiatif, integritas, catatan
+  });
+  const response = await fetch(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload });
+  const result = await response.json();
+  if (result.status !== 'success') throw new Error(result.message || 'Gagal menyimpan penilaian.');
+  statusMsg.className = 'text-xs text-emerald-400';
+  statusMsg.innerText = 'Penilaian Attitude berhasil disimpan.';
+  statusMsg.classList.remove('hidden');
+  setTimeout(() => { closeAttitudeModal(); statusMsg.classList.add('hidden'); }, 1200);
+ } catch (error) {
+  console.error('Error submitAttitudeAssessment:', error);
+  showErr(error && error.message ? error.message : 'Terjadi kesalahan. Coba lagi.');
+ } finally {
+  submitBtn.disabled = false;
+  submitBtn.innerHTML = originalBtnHtml;
+  lucide.createIcons();
+ }
+ }
+
  async function submitDiggingForm(event) {
  event.preventDefault();
  const form = document.getElementById('diggingManagerForm');
@@ -11562,6 +12753,7 @@ async function postCentralAuthenticated(source, options) {
 
  if (tabName === 'kpimember') {
   fetchJsaLogData();
+  updateKpiButtonsVisibility();
  }
 
  if (tabName === 'chat') {
@@ -15140,7 +16332,7 @@ document.addEventListener('DOMContentLoaded', function(){
   // Global). updateDeveloperAccessUI() tetap 1 fungsi yg sama, toggle SEMUA panel
   // berdasarkan ID tanpa peduli mount ke modal yang mana.
   const mountSistem=document.getElementById('developer-console-panels');
-  ['dev-cleanup-panel','dev-compact-panel','panel-reset-project','panel-reset-member-pin'].forEach(function(id){
+  ['dev-cleanup-panel','dev-compact-panel','panel-reset-project','panel-reset-member-pin','panel-kpi-event-approval'].forEach(function(id){
    const el=document.getElementById(id);
    if(el && mountSistem) mountSistem.appendChild(el);
   });
