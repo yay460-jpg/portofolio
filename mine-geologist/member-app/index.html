@@ -3,15 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Team Geologist - Geobank Minerals</title>
-<!-- BARU (27 Agu): jadi PWA sungguhan -- pakai folder assets/ BERSAMA dgn dashboard
-utama (../assets/, tidak menggandakan file ikon), nama app ikut master persis.
-Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. -->
-<link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#070b1c">
+<title>Geobank Minerals - Member</title>
+<link rel="icon" href="./favicon-32.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
@@ -418,7 +411,6 @@ function closeLoginModal() { loginModalOpen = false; render(); }
 function renderHeader() {
   const hasSession = !!(sessionInfo && sessionInfo.userName);
   const initials = hasSession ? sessionInfo.userName.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase() : '';
-  const customAvatar = hasSession ? getCustomAvatarDataUrl() : '';
   const todayLabel = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   return '' +
   '<header class="shrink-0 sticky top-0 z-40 px-4 h-[64px] flex items-center justify-between bg-[#070b1c] border-b border-white/[0.08]">' +
@@ -439,10 +431,8 @@ function renderHeader() {
         icon('message-circle-more','w-[18px] h-[18px] text-white/70') +
       '</button>' +
       // Avatar: tempat Login/Logout beneran (fungsi lama dipertahankan, restyle saja).
-      // BARU (27 Agu): kalau Member sudah pasang Foto Profil lokal, tampilkan itu --
-      // fallback ke inisial nama seperti sebelumnya kalau belum/sudah dicopot.
       '<button onclick="toggleAccountMenu()" class="w-8 h-8 rounded-full bg-[#0b1329] border border-white/[0.08] overflow-hidden flex items-center justify-center text-[10px] font-bold text-blue-200">' +
-        (customAvatar ? '<img src="' + customAvatar + '" class="w-full h-full object-cover">' : (hasSession ? initials : icon('user','w-3.5 h-3.5 text-white/60'))) +
+        (hasSession ? initials : icon('user','w-3.5 h-3.5 text-white/60')) +
       '</button>' +
     '</div>' +
   '</header>';
@@ -1227,31 +1217,8 @@ function openSettingsModal() { settingsModalOpen = true; accountMenuOpen = false
 function closeSettingsModal() { settingsModalOpen = false; render(); }
 function renderSettingsModal() {
   if (!settingsModalOpen) return '';
-  const hasCustomAvatar = !!getCustomAvatarDataUrl();
   const body = '' +
-    // BARU (27 Agu): Foto Profil -- disimpan LOKAL di HP masing-masing (localStorage,
-    // per Login_ID), TIDAK pernah terupload ke server manapun. Member bebas pasang/
-    // copot kapan saja lewat tombol di sini -- kalau foto dihapus dari galeri Android,
-    // app TIDAK bisa otomatis tahu (batasan PWA, bukan bug) -- makanya disediakan tombol
-    // "Copot Foto" di dalam app sebagai cara pasti untuk menghapusnya.
-    '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4">' +
-      '<div class="flex items-center gap-3 mb-3">' +
-        '<div class="w-14 h-14 rounded-full bg-[#0b1329] border-2 border-white/10 overflow-hidden flex items-center justify-center text-[16px] font-bold text-blue-200 shrink-0">' +
-          (hasCustomAvatar ? '<img id="settings-avatar-preview" src="' + getCustomAvatarDataUrl() + '" class="w-full h-full object-cover">' : '<span id="settings-avatar-preview-initials">' + getMemberInitials() + '</span>') +
-        '</div>' +
-        '<div class="min-w-0">' +
-          '<div class="text-[13px] font-bold text-white">Foto Profil</div>' +
-          '<div class="text-[11px] text-white/40">Tersimpan lokal di HP ini saja</div>' +
-        '</div>' +
-      '</div>' +
-      '<input type="file" accept="image/*" id="avatar-file-input" class="hidden" onchange="handleAvatarFileSelected(event)">' +
-      '<div class="flex gap-2">' +
-        '<button onclick="document.getElementById(\'avatar-file-input\').click()" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold">' + icon('image-plus','w-4 h-4') + '<span>' + (hasCustomAvatar ? 'Ganti Foto' : 'Pilih Foto') + '</span></button>' +
-        (hasCustomAvatar ? '<button onclick="removeCustomAvatar()" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-rose-300 text-xs font-bold">' + icon('trash-2','w-4 h-4') + '<span>Copot Foto</span></button>' : '') +
-      '</div>' +
-      '<p id="avatar-status-msg" class="text-[10px] mt-2 hidden"></p>' +
-    '</div>' +
-    '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4 flex items-center justify-between mt-2.5">' +
+    '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4 flex items-center justify-between">' +
       '<div><div class="text-[13px] font-bold text-white">Versi App</div><div class="text-[11px] text-white/40">' + APP_VERSION + '</div></div>' +
       icon('info','w-4 h-4 text-white/30') +
     '</div>' +
@@ -1382,65 +1349,6 @@ function renderIssueModal() {
 }
 
 // ==== MENU AKUN (dipicu dari avatar header) ====
-// ==== BARU (27 Agu): FOTO PROFIL LOKAL -- Member pilih foto dari galeri Android,
-// disimpan di localStorage HP itu SENDIRI (base64, dikompres dulu via canvas supaya
-// hemat kuota), kunci disimpan per Login_ID (bukan 1 kunci global) supaya kalau ganti
-// akun di HP yang sama, fotonya tidak tertukar. TIDAK PERNAH terupload ke server --
-// murni preferensi lokal per perangkat. Karena PWA (bukan app native), app TIDAK BISA
-// otomatis tahu kalau foto aslinya dihapus dari galeri Android -- makanya disediakan
-// tombol "Copot Foto" di dalam app sebagai satu-satunya cara pasti menghapusnya.
-function getCustomAvatarStorageKey() {
-  const loginId = (localStorage.getItem('mine_member_login_id') || 'guest').trim();
-  return 'mine_member_avatar_custom_' + loginId;
-}
-function getCustomAvatarDataUrl() {
-  try { return localStorage.getItem(getCustomAvatarStorageKey()) || ''; } catch (e) { return ''; }
-}
-function getMemberInitials() {
-  const name = (sessionInfo && sessionInfo.userName) ? sessionInfo.userName.trim() : '';
-  if (!name) return '';
-  return name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
-}
-function handleAvatarFileSelected(event) {
-  const file = event.target.files && event.target.files[0];
-  const statusEl = document.getElementById('avatar-status-msg');
-  if (!file) return;
-  if (!file.type.startsWith('image/')) {
-    if (statusEl) { statusEl.textContent = 'File yang dipilih bukan gambar.'; statusEl.className = 'text-[10px] mt-2 text-rose-400'; statusEl.classList.remove('hidden'); }
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      // Kompres + resize ke maksimal 256x256 sebelum disimpan -- foto asli dari kamera
-      // HP modern bisa >5MB, jauh melebihi kuota localStorage (~5-10MB total per app).
-      const canvas = document.createElement('canvas');
-      const maxSize = 256;
-      let w = img.width, h = img.height;
-      if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
-      else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
-      try {
-        localStorage.setItem(getCustomAvatarStorageKey(), compressedDataUrl);
-        if (statusEl) { statusEl.textContent = 'Foto tersimpan di HP ini.'; statusEl.className = 'text-[10px] mt-2 text-emerald-400'; statusEl.classList.remove('hidden'); }
-        render();
-      } catch (err) {
-        if (statusEl) { statusEl.textContent = 'Gagal menyimpan -- ruang penyimpanan HP penuh.'; statusEl.className = 'text-[10px] mt-2 text-rose-400'; statusEl.classList.remove('hidden'); }
-      }
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-  event.target.value = ''; // reset supaya bisa pilih file yg sama lagi kalau mau
-}
-function removeCustomAvatar() {
-  try { localStorage.removeItem(getCustomAvatarStorageKey()); } catch (e) {}
-  render();
-}
-
 let accountMenuOpen = false;
 function toggleAccountMenu() { accountMenuOpen = !accountMenuOpen; render(); }
 function closeAccountMenu() { accountMenuOpen = false; render(); }
@@ -1576,27 +1484,7 @@ async function handleSubmitDigging() {
   }
 }
 function switchTab(id) { currentTab = id; render(); }
-// BARU (27 Agu): logout sekarang (1) lapor ke server dulu (action=logoutSession) supaya
-// sesi ini ditandai LOGOUT di sheet Sessions -- sebelumnya cuma dihapus di HP sendiri,
-// server masih menganggap sesi "aktif" sampai idle-timeout alami habis (nyambung
-// langsung ke fix Active User Indicator yang dikerjakan hari ini di web dashboard).
-// Best-effort, timeout pendek -- gagal pun tetap lanjut logout, jangan sampai macet
-// cuma gara2 network jelek. (2) reload PENUH (persis Ctrl+F5) supaya semua sisa state
-// (avatar, polling chat, dsb) benar2 hilang total, bukan cuma di-render ulang di tempat.
-async function handleLogout() {
-  if (sessionInfo && sessionInfo.token) {
-    try {
-      await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL, {
-        method: 'POST',
-        body: new URLSearchParams({ action: 'logoutSession', sessionToken: sessionInfo.token })
-      }, 5000);
-    } catch (e) {
-      console.warn('Lapor logout ke server gagal (tetap lanjut logout lokal):', e);
-    }
-  }
-  clearSession();
-  location.reload();
-}
+function handleLogout() { clearSession(); render(); }
 
 // ==== MAIN RENDER ====
 function render() {
@@ -1640,31 +1528,14 @@ function render() {
 }
 
 // ==== BOOT ====
-// BARU (27 Agu): daftarkan Service Worker -- Member App sekarang PWA sungguhan,
-// bisa di-install ke homescreen Android, ikon+nama ikut manifest.json (share
-// assets/ dgn dashboard utama). Gagal daftar (mis. browser lama) tidak boleh
-// menghentikan app -- app tetap jalan normal tanpa PWA kalau SW gagal.
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch((err) => {
-      console.warn('Gagal mendaftarkan Service Worker Member App:', err);
-    });
-  });
-}
-
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('app').innerHTML = renderSplash();
   if (window.lucide) lucide.createIcons();
   setTimeout(async () => {
     const stored = loadStoredSession();
     if (stored) sessionInfo = stored; // kalau kebetulan ada sesi lama tersimpan, tetap dipakai
-    // FIX (27 Agu): splash TIDAK boleh langsung diganti Ringkasan sebelum data beneran
-    // siap -- sebelumnya render() dipanggil DULUAN di sini, jadi user sempat lihat
-    // Ringkasan kosong (0 Ton dkk) sesaat sebelum data asli masuk, dikira error/rusak.
-    // loadRingkasanData() sendiri SUDAH memanggil render() di baris terakhirnya begitu
-    // data selesai (sukses ATAU gagal) -- splash otomatis tetap tampil sampai saat itu,
-    // tidak perlu render() terpisah di sini lagi.
-    await loadRingkasanData();
+    render();
+    await loadRingkasanData(); // tetap dicoba biar makin dekat ke perilaku nyata; kalau backend nolak krn belum login, gagal dgn tenang (lihat catch di masing-masing fetch)
   }, 900);
 });
 </script>
