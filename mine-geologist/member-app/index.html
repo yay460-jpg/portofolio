@@ -1261,10 +1261,21 @@ let jsaSubmitBusy = false;
 let jsaSubmitStatusMsg = '';
 let jsaSubmitOk = true;
 let jsaConfirmedToday = false;
+// BARU (v90.2.112): state checklist APD -- 4 item INDEPENDEN dari Status_Kehadiran, dicentang
+// manual per-item oleh member sendiri. HANYA 4 item ini yg dikirim ke backend (kolom
+// APD_Helm/APD_Masker/APD_Sarung_Tangan/APD_Rompi di JSA_Log) -- 4 item lain (Kacamata/Safety
+// Boots/Life Jacket/Earplug) tetap tampil sbg referensi teks saja, backend belum punya kolomnya.
+let jsaApdChecked = { helm: false, masker: false, sarung_tangan: false, rompi: false };
+
+function toggleJsaApd(key) {
+  jsaApdChecked[key] = !jsaApdChecked[key];
+  render();
+}
 
 function openJsaModal() {
   jsaModalOpen = true;
   jsaSubmitStatusMsg = ''; jsaConfirmedToday = false;
+  jsaApdChecked = { helm: false, masker: false, sarung_tangan: false, rompi: false };
   render();
 }
 function closeJsaModal() { jsaModalOpen = false; render(); }
@@ -1273,7 +1284,13 @@ async function submitJsaConfirm(status) {
   if (!sessionInfo) { openLoginModal(); return; }
   jsaSubmitBusy = true; jsaSubmitStatusMsg = ''; render();
   try {
-    const payload = buildAuthenticatedPayload({ action: 'addJsaLog', jsa_no: JSA_DOC_NO, attendance_status: status });
+    const payload = buildAuthenticatedPayload({
+      action: 'addJsaLog', jsa_no: JSA_DOC_NO, attendance_status: status,
+      apd_helm: jsaApdChecked.helm ? 'Y' : 'N',
+      apd_masker: jsaApdChecked.masker ? 'Y' : 'N',
+      apd_sarung_tangan: jsaApdChecked.sarung_tangan ? 'Y' : 'N',
+      apd_rompi: jsaApdChecked.rompi ? 'Y' : 'N'
+    });
     const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload }, 20000);
     const result = await response.json();
     if (result.status === 'success') {
@@ -1304,6 +1321,18 @@ function renderJsaModal() {
   function apdItem(label) {
     return '<div class="flex items-center gap-2 px-3 py-2 rounded-[8px] bg-white/[0.03] border border-white/[0.06]"><span class="w-1.5 h-1.5 rounded-full bg-[#2563eb] shrink-0"></span><span class="text-[11px] text-white/70">' + label + '</span></div>';
   }
+  // BARU (v90.2.112): checkbox APD interaktif (4 item yg dilacak backend). Dibungkus DIV
+  // onclick (bukan input checkbox asli) supaya konsisten dgn pola re-render penuh app ini
+  // -- input checkbox asli akan reset fokus/state visual tiap render() dipanggil ulang.
+  function apdCheckbox(key, label) {
+    const checked = !!jsaApdChecked[key];
+    return '<div onclick="toggleJsaApd(\'' + key + '\')" class="flex items-center gap-2 px-3 py-2.5 rounded-[8px] cursor-pointer border transition-all ' +
+      (checked ? 'bg-emerald-500/15 border-emerald-500/40' : 'bg-white/[0.03] border-white/[0.06]') + '">' +
+      '<span class="w-4 h-4 rounded shrink-0 flex items-center justify-center border-2 ' +
+      (checked ? 'bg-emerald-500 border-emerald-500' : 'border-white/25') + '">' +
+      (checked ? icon('check','w-3 h-3 text-white') : '') +
+      '</span><span class="text-[11px] font-medium ' + (checked ? 'text-emerald-300' : 'text-white/70') + '">' + label + '</span></div>';
+  }
   let body = '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4 mb-3">' +
     '<div class="flex items-center gap-2 mb-2">' +
       '<span class="text-[9px] font-bold px-2 py-1 rounded-full bg-[#2563eb]/15 text-blue-300 border border-[#2563eb]/25">' + JSA_DOC_NO + '</span>' +
@@ -1312,10 +1341,10 @@ function renderJsaModal() {
     '<div class="text-[11px] text-white/40 mb-3">Division Mine Geologist &bull; Pit, Stockpile &amp; Jetty</div>' +
     '<div class="text-[11px] text-white/60 leading-relaxed">Pekerjaan Mine Geologist mencakup validasi block model, pengambilan sampel grade control, supervisi penggalian, pengawasan barging shipment, hingga entry data dashboard -- di area pit aktif &amp; jetty dengan risiko heavy equipment dan geoteknis.</div>' +
   '</div>';
-  body += '<div class="mb-3"><div class="text-[10px] font-bold text-white/40 tracking-wide mb-2">APD WAJIB (MINIMUM)</div><div class="grid grid-cols-2 gap-1.5">' +
-    apdItem('Helm Safety (SNI)') + apdItem('Kacamata Safety') +
-    apdItem('Masker P2 / N95') + apdItem('Sarung Tangan') +
-    apdItem('Safety Boots Steel') + apdItem('Rompi Reflektif') +
+  body += '<div class="mb-3"><div class="text-[10px] font-bold text-white/40 tracking-wide mb-2">APD WAJIB (MINIMUM) -- centang sebelum konfirmasi Hadir</div><div class="grid grid-cols-2 gap-1.5">' +
+    apdCheckbox('helm', 'Helm Safety (SNI)') + apdItem('Kacamata Safety') +
+    apdCheckbox('masker', 'Masker P2 / N95') + apdCheckbox('sarung_tangan', 'Sarung Tangan') +
+    apdItem('Safety Boots Steel') + apdCheckbox('rompi', 'Rompi Reflektif') +
     apdItem('Life Jacket (Jetty)') + apdItem('Earplug (Area Bising)') +
   '</div></div>';
   body += '<div class="rounded-[10px] bg-amber-500/10 border border-amber-500/25 px-3 py-2.5 text-[10px] text-amber-300 mb-4">Dokumen ini WAJIB dibaca sebelum mulai bekerja (toolbox meeting). Konfirmasi kehadiran di bawah ini akan tercatat dgn nama &amp; waktu dari sesi login Anda -- tidak bisa diwakilkan.</div>';
