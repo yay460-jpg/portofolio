@@ -903,7 +903,7 @@ async function provisionExistingCredential(index, userId) {
  populateReporterDropdown();
  const dateInput = document.querySelector('#diggingManagerForm input[name="tanggal"]');
  if (dateInput) {
-  dateInput.value = new Date().toISOString().slice(0, 10);
+  dateInput.value = getLocalDateYyyyMmDd();
  }
  document.getElementById('digging-id-sampel-warning').classList.add('hidden');
  const modal = document.getElementById('form-digging-popup-modal');
@@ -1094,8 +1094,10 @@ async function provisionExistingCredential(index, userId) {
   // Block Model jalan paralel, tidak ada jaminan urutan selesainya, backend Apps Script
   // sering variatif latency-nya). Aman dipanggil walau tabelnya sedang tidak kelihatan.
   renderBlockModelTable();
+  markDataFresh_('Validasi');
  } catch (err) {
   console.error('Gagal memuat data validasi:', err);
+  markDataStale_('Validasi');
   // FIX (23 Agu): dikembalikan ke tabel asli -- pesan error fetch ditulis ke tbody
   // seperti semula, TIDAK lagi diarahkan ke kartu (kartu sudah dihapus, dikoreksi user).
   const isTimeout = err.name === 'AbortError';
@@ -1111,7 +1113,43 @@ async function provisionExistingCredential(index, userId) {
  // per Tipe_Ore (Sapro/Limo), toggle Limo_Aktif, dan ambang SM_Threshold_AutoDetect.
  // Dipanggil sekali di awal load (sama pola dengan fetchValidasiData), hasilnya disimpan
  // di globalCOGConfig supaya classifyMaterial() bisa dipakai di banyak tempat tanpa fetch ulang.
+ // BARU (v90.2.123, temuan audit COGConfig fallback diam-diam): toast peringatan
+ // dibuat murni via JS (tidak perlu markup baru di index.html), gaya konsisten dgn
+ // pwa-update-toast yg sudah ada. TIDAK auto-hilang -- user harus sadar & klik "Mengerti"
+ // supaya tidak terlewat begitu saja (beda dari toast update biasa yg boleh diabaikan).
+ let cogFallbackToastShown = false;
+ function showCogFallbackWarning_() {
+ if (cogFallbackToastShown) return; // jangan dobel kalau fetchCOGConfig kepanggil berkali2
+ cogFallbackToastShown = true;
+ const toast = document.createElement('div');
+ toast.id = 'cog-fallback-toast';
+ toast.className = 'fixed bottom-4 left-4 z-[95] max-w-xs rounded-xl border border-amber-500/40 bg-slate-900/95 backdrop-blur-md shadow-2xl p-3.5';
+ toast.innerHTML = `
+  <div class="flex items-start gap-2.5">
+  <div class="p-1.5 rounded-lg bg-amber-600/20 text-amber-400 shrink-0"><i data-lucide="triangle-alert" class="w-3.5 h-3.5"></i></div>
+  <div class="min-w-0 flex-1">
+   <p class="text-title text-xs font-bold">${currentLang === 'en' ? 'Using default COG parameters' : 'Memakai parameter COG default'}</p>
+   <p class="text-slate-400 text-[10px] font-medium mt-0.5">${currentLang === 'en' ? 'Failed to load COGConfig from sheet. Grade classification (HG/MG/LG/Waste) currently uses fallback numbers, not the live configured values.' : 'Gagal memuat COGConfig dari sheet. Klasifikasi Grade (HG/MG/LG/Waste) saat ini memakai angka default, bukan nilai yang benar-benar berlaku.'}</p>
+   <div class="flex gap-2 mt-2.5">
+    <button onclick="document.getElementById('cog-fallback-toast')?.remove()" class="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold transition-all cursor-pointer">${currentLang === 'en' ? 'Understood' : 'Mengerti'}</button>
+    <button onclick="document.getElementById('cog-fallback-toast')?.remove(); fetchCOGConfig();" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold transition-all cursor-pointer">${currentLang === 'en' ? 'Retry' : 'Coba Lagi'}</button>
+   </div>
+  </div>
+  </div>`;
+ document.body.appendChild(toast);
+ if (window.lucide) lucide.createIcons();
+ }
+
+ // v90.2.125 FIX (temuan audit -- race condition nyata): sequence guard -- kalau
+ // fetchCOGConfig() dipanggil lagi (mis. auto-refresh) SEBELUM panggilan sebelumnya
+ // selesai, response yg datang belakangan dari panggilan LAMA bisa menimpa
+ // globalCOGConfig dgn config LAMA, walau user baru saja Save config BARU & trigger
+ // fetch ulang. Skenario nyata: Fetch A mulai -> user Save config baru -> Fetch B
+ // (refresh pasca-save) mulai&selesai duluan -> Fetch A (basi) selesai belakangan,
+ // tetap menimpa globalCOGConfig balik ke config LAMA.
+ let cogConfigFetchRequestSeq = 0;
  async function fetchCOGConfig() {
+ const requestSeq = ++cogConfigFetchRequestSeq;
  try {
   const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=cogconfig&t=' + new Date().getTime());
   const result = await response.json();
@@ -1128,6 +1166,18 @@ async function provisionExistingCredential(index, userId) {
   Toleransi_Warning_Pct: 5, Toleransi_OutOfTol_Pct: 10
   };
   const VALID_COLOR_PRESETS = ['merah', 'abu', 'kuning', 'biru', 'hijau'];
+  // v90.2.126 FIX (temuan audit -- edge case): SEBELUMNYA komentar bilang parameter
+  // global "cuma dibaca dari baris pertama yg punya nilai", TAPI implementasinya menimpa
+  // TIAP KALI ketemu baris dgn nilai -- kalau 2 baris (Sapro & Limo) kebetulan SAMA-SAMA
+  // terisi beda nilai, hasil akhir tergantung urutan baris (baris TERAKHIR menang), bukan
+  // baris pertama spt yg didokumentasikan. Set ini melacak field mana yg SUDAH di-set,
+  // supaya beneran first-value-wins sesuai maksud aslinya.
+  const alreadySetFields = new Set();
+  function setOnceGlobal_(fieldName, value) {
+  if (alreadySetFields.has(fieldName)) return;
+  alreadySetFields.add(fieldName);
+  cfg[fieldName] = value;
+  }
   rows.forEach(row => {
   const tipe = (row['Tipe_Ore'] || '').toString().trim();
   const batas = {
@@ -1143,58 +1193,67 @@ async function provisionExistingCredential(index, userId) {
   if (tipe === 'Sapro') cfg.Sapro = batas;
   if (tipe === 'Limo') cfg.Limo = batas;
   // Limo_Aktif, SM_Threshold_AutoDetect, Target_Ship_Ni_Min/Max, Warna_*, Bucket_per_Sampel,
-  // & Sampel_per_Dome_Max sifatnya global -- cuma dibaca dari baris pertama yang punya
-  // nilai (diisi di baris Sapro saja).
+  // & Sampel_per_Dome_Max sifatnya global -- cuma dibaca dari baris PERTAMA yang punya
+  // nilai (setOnceGlobal_ menjamin ini, baris berikutnya diabaikan meski ada nilai lagi).
   if (row['Limo_Aktif'] !== undefined && row['Limo_Aktif'] !== '') {
    const v = row['Limo_Aktif'].toString().trim().toUpperCase();
-   cfg.Limo_Aktif = (v === 'TRUE');
+   setOnceGlobal_('Limo_Aktif', v === 'TRUE');
   }
   if (row['SM_Threshold_AutoDetect'] !== undefined && row['SM_Threshold_AutoDetect'] !== '') {
    const smT = parseFloat(row['SM_Threshold_AutoDetect']);
-   if (!isNaN(smT)) cfg.SM_Threshold_AutoDetect = smT;
+   if (!isNaN(smT)) setOnceGlobal_('SM_Threshold_AutoDetect', smT);
   }
   if (row['Target_Ship_Ni_Min'] !== undefined && row['Target_Ship_Ni_Min'] !== '') {
    const tsMin = parseFloat(row['Target_Ship_Ni_Min']);
-   if (!isNaN(tsMin)) cfg.Target_Ship_Ni_Min = tsMin;
+   if (!isNaN(tsMin)) setOnceGlobal_('Target_Ship_Ni_Min', tsMin);
   }
   if (row['Target_Ship_Ni_Max'] !== undefined && row['Target_Ship_Ni_Max'] !== '') {
    const tsMax = parseFloat(row['Target_Ship_Ni_Max']);
-   if (!isNaN(tsMax)) cfg.Target_Ship_Ni_Max = tsMax;
+   if (!isNaN(tsMax)) setOnceGlobal_('Target_Ship_Ni_Max', tsMax);
   }
   if (row['Bucket_per_Sampel'] !== undefined && row['Bucket_per_Sampel'] !== '') {
    const bps = parseFloat(row['Bucket_per_Sampel']);
-   if (!isNaN(bps)) cfg.Bucket_per_Sampel = bps;
+   if (!isNaN(bps)) setOnceGlobal_('Bucket_per_Sampel', bps);
   }
   if (row['Sampel_per_Dome_Max'] !== undefined && row['Sampel_per_Dome_Max'] !== '') {
    const spd = parseFloat(row['Sampel_per_Dome_Max']);
-   if (!isNaN(spd)) cfg.Sampel_per_Dome_Max = spd;
+   if (!isNaN(spd)) setOnceGlobal_('Sampel_per_Dome_Max', spd);
   }
   if (row['Toleransi_Warning_Pct'] !== undefined && row['Toleransi_Warning_Pct'] !== '') {
    const twp = parseFloat(row['Toleransi_Warning_Pct']);
-   if (!isNaN(twp)) cfg.Toleransi_Warning_Pct = twp;
+   if (!isNaN(twp)) setOnceGlobal_('Toleransi_Warning_Pct', twp);
   }
   if (row['Toleransi_OutOfTol_Pct'] !== undefined && row['Toleransi_OutOfTol_Pct'] !== '') {
    const top = parseFloat(row['Toleransi_OutOfTol_Pct']);
-   if (!isNaN(top)) cfg.Toleransi_OutOfTol_Pct = top;
+   if (!isNaN(top)) setOnceGlobal_('Toleransi_OutOfTol_Pct', top);
   }
   // Preferensi warna per grade -- validasi terhadap 5 preset yang sah, kalau nilai
   // di sheet rusak/tidak dikenal, biarkan default (jangan sampai badge/teks error).
+  // Sama spt field global lain -- first-value-wins, bukan overwrite tiap baris.
   ['Waste', 'LG', 'MG', 'HG', 'VHG'].forEach(grade => {
    const colKey = 'Warna_' + grade;
    const val = row[colKey];
    if (val !== undefined && val !== '' && VALID_COLOR_PRESETS.indexOf(val.toString().trim()) !== -1) {
-   cfg[colKey] = val.toString().trim();
+   setOnceGlobal_(colKey, val.toString().trim());
    }
   });
   });
 
   // Fallback aman kalau sheet belum lengkap -- jangan sampai classifyMaterial() error
   // dan mematikan render tabel lain gara-gara COGConfig kosong/belum diisi.
-  if (!cfg.Sapro) cfg.Sapro = { Batas_Waste_LG: 0.8, Batas_LG_MG: 1.25, Batas_MG_HG: 1.45, Batas_HG_VHG: 1.7, WMT_per_Bucket: 2.2 };
-  if (!cfg.Limo) cfg.Limo = { Batas_Waste_LG: 0.8, Batas_LG_MG: 1.25, Batas_MG_HG: 1.45, Batas_HG_VHG: 1.7, WMT_per_Bucket: 2.2 };
+  const sapreoMissing = !cfg.Sapro, limoMissing = !cfg.Limo;
+  if (sapreoMissing) cfg.Sapro = { Batas_Waste_LG: 0.8, Batas_LG_MG: 1.25, Batas_MG_HG: 1.45, Batas_HG_VHG: 1.7, WMT_per_Bucket: 2.2 };
+  if (limoMissing) cfg.Limo = { Batas_Waste_LG: 0.8, Batas_LG_MG: 1.25, Batas_MG_HG: 1.45, Batas_HG_VHG: 1.7, WMT_per_Bucket: 2.2 };
 
+  if (requestSeq !== cogConfigFetchRequestSeq) return; // fetch lebih baru sudah menang, buang hasil basi ini
   globalCOGConfig = cfg;
+  // BARU (v90.2.123, temuan audit): tampilkan peringatan VISIBLE kalau sebagian/seluruh
+  // COGConfig pakai default fallback -- sebelumnya cuma console.error(), badge Grade tetap
+  // terlihat normal padahal pakai parameter default, bukan dari sheet yg sebenarnya berlaku.
+  cogConfigUsingFallback = sapreoMissing || limoMissing;
+  if (cogConfigUsingFallback) showCogFallbackWarning_();
  } catch (err) {
+  if (requestSeq !== cogConfigFetchRequestSeq) return;
   console.error('Gagal memuat COGConfig, pakai fallback default Sapro:', err);
   // Fallback total kalau fetch gagal -- dashboard tetap jalan pakai angka default lama,
   // supaya kegagalan endpoint baru ini tidak mematikan seluruh Tabel Digging/BlockModel.
@@ -1209,6 +1268,8 @@ async function provisionExistingCredential(index, userId) {
   Bucket_per_Sampel: 8, Sampel_per_Dome_Max: 25,
   Toleransi_Warning_Pct: 5, Toleransi_OutOfTol_Pct: 10
   };
+  cogConfigUsingFallback = true;
+  showCogFallbackWarning_();
  }
  // Race condition: fetchCOGConfig() jalan paralel dengan fetchDataFromGoogleSheets(),
  // tidak ada jaminan urutan selesainya. Tabel Digging & KPI Saprolit/Limonit/LG/Waste
@@ -1244,12 +1305,14 @@ async function provisionExistingCredential(index, userId) {
   }
 
   globalBlockModelData = result.data || [];
+  markDataFresh_('Block Model');
   renderBlockModelChart();
   renderBlockModelTable();
   updateBlockModelSummaryCard();
   computeReconciliationMatrix();
  } catch (err) {
   console.error('Gagal memuat data Block Model:', err);
+  markDataStale_('Block Model');
   const isTimeout = err.name === 'AbortError';
   const tbody = document.getElementById('rekon-blockmodel-body');
   if (tbody) {
@@ -1273,7 +1336,8 @@ async function provisionExistingCredential(index, userId) {
 
  const finalRows = (globalBlockModelData || []).filter(row => {
   const statusKpi = (row['Status_KPI'] || '').toString();
-  const isBelumFinal = statusKpi.includes('Belum Final') || !row['Status_Depletion'];
+  const depletionVal_ = (row['Status_Depletion'] || '').toString().trim();
+  const isBelumFinal = statusKpi.includes('Belum Final') || depletionVal_ !== 'Selesai';
   return !isBelumFinal;
  });
 
@@ -1336,15 +1400,25 @@ async function provisionExistingCredential(index, userId) {
  // jadi dihitung dari data Digging asli (globalRawData), difilter cuma baris yang Blok-nya
  // termasuk dalam set Blok final di atas, rata-rata tertimbang tonase juga.
  if (realNiEl) {
-  const finalBlokSet = new Set(finalRows.map(r => (r['Id_blok'] || '').toString().trim().toUpperCase()));
+  // v90.2.125 FIX (temuan audit -- bug serius): SEBELUMNYA finalBlokSet cuma kunci
+  // Id_blok, padahal granularitas final yg BENAR adalah Blok+Pit (1 Blok bisa punya
+  // banyak Pit, sebagian final sebagian belum). Contoh nyata: L-01/Pit A sudah Final,
+  // L-01/Pit B belum -- Summary lama tetap ikutkan SEMUA produksi L-01 termasuk Pit B yg
+  // belum final. Sekarang kunci Blok+Pit, konsisten dgn renderReconciliation() (v90.2.124).
+  const finalBlokPitSet = new Set(finalRows.map(r => {
+  const b = (r['Id_blok'] || '').toString().trim().toUpperCase();
+  const p = (r['Pit'] || '').toString().trim().toUpperCase();
+  return b + '|' + p;
+  }));
   let sumRealisasiMetal = 0, sumRealisasiTon = 0;
   (globalRawData || []).forEach(row => {
   const cleanRow = rawToCleanRow ? rawToCleanRow.get(row) : null;
   if (!cleanRow) return;
   const blok = (cleanRow['blok'] || cleanRow['id blok'] || cleanRow['id_blok'] || '').toString().trim().toUpperCase();
-  if (!finalBlokSet.has(blok)) return;
+  const pit = (cleanRow['pit'] || cleanRow['area'] || '').toString().trim().toUpperCase();
+  if (!finalBlokPitSet.has(blok + '|' + pit)) return;
   const tonase = cleanNumber(cleanRow['tonase']);
-  let ni = cleanNumber(cleanRow['ni %'] || cleanRow['ni']);
+  let ni = cleanPercentValue(cleanRow['ni %'] || cleanRow['ni']);
   if (ni > 50) ni = ni / 100;
   if (tonase > 0 && ni > 0) {
    sumRealisasiMetal += tonase * ni;
@@ -1396,7 +1470,8 @@ async function provisionExistingCredential(index, userId) {
   const variasi = row['Variasi_%'];
   const arahRaw = (row['Arah'] || '').toString();
   const statusKpi = (row['Status_KPI'] || '').toString();
-  const isBelumFinal = statusKpi.includes('Belum Final') || !row['Status_Depletion'];
+  const depletionVal_ = (row['Status_Depletion'] || '').toString().trim();
+  const isBelumFinal = statusKpi.includes('Belum Final') || depletionVal_ !== 'Selesai';
 
   const estimasiFmt = (typeof estimasi === 'number') ? estimasi.toLocaleString('id-ID') : (estimasi || '-');
   const realisasiFmt = (typeof realisasi === 'number') ? realisasi.toLocaleString('id-ID') : (realisasi || '-');
@@ -1467,7 +1542,11 @@ async function provisionExistingCredential(index, userId) {
   if (isBelumFinal) {
   const label = currentLang === 'en' ? 'Awaiting Data' : 'Menunggu Data';
   statusBadge = `<span class="px-2 py-0.5 rounded-lg bg-slate-700/40 text-slate-400 border border-slate-600/40 font-semibold text-[11px]">${label}</span>`;
-  } else if (statusKpi.includes('Aman')) {
+  // v90.2.125 FIX (temuan audit -- BUG PALING KRITIS sesi ini): SEBELUMNYA pakai
+  // .includes('Aman'), tapi "Tidak Aman".includes('Aman') === true di JS -- blok yg
+  // sebenarnya TIDAK AMAN bisa dirender badge hijau "Aman", kebalikan total dari
+  // status sebenarnya. Sekarang exact-match (trim+lowercase), tidak lagi substring.
+  } else if (statusKpi.trim().toLowerCase() === 'aman') {
   const label = currentLang === 'en' ? 'Safe' : 'Aman';
   statusBadge = `<span class="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold text-[11px]">${label}</span>`;
   } else {
@@ -1580,8 +1659,10 @@ async function provisionExistingCredential(index, userId) {
   if (result.status !== 'success') throw new Error(result.message || (currentLang === 'en' ? 'Failed to load Pit Actual data.' : 'Gagal memuat data Pit Actual'));
   globalPitActualData = result.data || [];
   computeReconciliationMatrix();
+  markDataFresh_('Pit Actual');
  } catch (err) {
   console.error('Gagal memuat data Pit Actual:', err);
+  markDataStale_('Pit Actual');
  }
  }
 
@@ -1639,7 +1720,8 @@ async function provisionExistingCredential(index, userId) {
   const variasi = row['Variasi_%'];
   const arah = arahLabel(row['Arah'] || '-');
   const statusKpi = (row['Status_KPI'] || '').toString();
-  const isBelumFinal = statusKpi.includes('Belum Final') || !row['Status_Depletion'];
+  const depletionVal_ = (row['Status_Depletion'] || '').toString().trim();
+  const isBelumFinal = statusKpi.includes('Belum Final') || depletionVal_ !== 'Selesai';
 
   labels.push([`${idBlok} ${pit}`, isBelumFinal ? '-' : (typeof variasi === 'number' ? variasi.toFixed(2) + '%' : '-')]);
   estimasiData.push(typeof estimasi === 'number' ? estimasi : 0);
@@ -1651,7 +1733,7 @@ async function provisionExistingCredential(index, userId) {
   if (isBelumFinal) {
   barColor = '#64748b';
   statusLabel = currentLang === 'en' ? 'Awaiting Data' : 'Menunggu Data';
-  } else if (statusKpi.includes('Aman')) {
+  } else if (statusKpi.trim().toLowerCase() === 'aman') {
   barColor = '#10b981';
   statusLabel = currentLang === 'en' ? 'Safe' : 'Aman';
   } else {
@@ -1953,7 +2035,7 @@ async function provisionExistingCredential(index, userId) {
  function openFormValidasiPopup() {
  const form = document.getElementById('validasiManagerForm');
  form.reset();
- document.getElementById('validasi-tanggal-input').value = new Date().toISOString().slice(0, 10);
+ document.getElementById('validasi-tanggal-input').value = getLocalDateYyyyMmDd();
  document.getElementById('validasi-header-fields').classList.remove('hidden');
  document.getElementById('validasi-idtp-hint').classList.add('hidden');
  document.getElementById('validasi-sm-input').value = '';
@@ -2060,7 +2142,13 @@ async function provisionExistingCredential(index, userId) {
   // BARU (v90.2.108): samakan dgn backend isProduksiGcComplete_() yg mewajibkan Tipe_Ore --
   // sebelumnya frontend TIDAK cek field ini, jadi baris yg Tipe_Ore-nya kosong di sheet bisa
   // tampil "lengkap" (urutan sorting) padahal backend menganggapnya belum lengkap.
-  const tipeOreOk = cleanRow['tipe_ore'] !== null && cleanRow['tipe_ore'] !== undefined && String(cleanRow['tipe_ore'] || cleanRow['tipe ore'] || '').trim() !== '';
+  // v90.2.123 FIX (temuan audit): SEBELUMNYA cek `cleanRow['tipe_ore'] !== undefined` duluan
+ // -- kalau kunci sebenarnya 'tipe ore' (spasi, bukan underscore), kondisi ini langsung
+ // gagal (short-circuit &&) SEBELUM sempat cek fallback 'tipe ore' di baris yg sama,
+ // padahal datanya sendiri valid. Sekarang resolve nilai dulu dari SALAH SATU kunci yg
+ // ada, baru divalidasi -- konsisten apapun nama kunci yg dikembalikan endpoint.
+ const tipeOreResolved = cleanRow['tipe_ore'] !== undefined ? cleanRow['tipe_ore'] : cleanRow['tipe ore'];
+ const tipeOreOk = tipeOreResolved !== null && tipeOreResolved !== undefined && String(tipeOreResolved).trim() !== '';
   return requiredOk && tipeOreOk;
  }
 
@@ -2092,4 +2180,3 @@ async function provisionExistingCredential(index, userId) {
  const d = new Date(raw);
  return isNaN(d.getTime()) ? null : d;
  }
-
