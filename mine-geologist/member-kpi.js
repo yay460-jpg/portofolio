@@ -478,6 +478,49 @@ async function decideKpiEvent(eventId, decision) {
   }
  }
 
+ // BARU (v90.2.136, keputusan user -- "Konteks Periode Ini"): fetch gabungan KPIEvent+
+ // Issue&Action+RCA per periode, MURNI TAMPILAN -- fungsi ini TIDAK PERNAH dipanggil dari
+ // manapun yg terhubung ke perhitungan skor (computeKpiFinalScore_ dkk sama sekali tidak
+ // menyentuh endpoint ini). Ambil referensi DOM SEBELUM await, sama pola aman dgn
+ // fetchKpiBadgesForMember_ -- kalau kartu di-render ulang saat fetch masih jalan, response
+ // basi nulis ke node yg sudah lepas dari DOM (tidak ada efek visual keliru).
+ async function fetchKpiContextForMember_(namaMember, contextElId) {
+ const contextEl = document.getElementById(contextElId);
+ if (!contextEl) return;
+ try {
+  const periode = getLocalPeriodeYyyyMm();
+  const url = GOOGLE_SCRIPT_READ_URL + '?sheet=kpicontext&member_id=' + encodeURIComponent(namaMember) + '&periode=' + periode + '&t=' + new Date().getTime();
+  const response = await fetchWithTimeout(url);
+  const result = await response.json();
+  if (result.status !== 'success' || !result.data) { contextEl.innerHTML = ''; return; }
+  const events = result.data.events || [];
+  if (events.length === 0) { contextEl.innerHTML = ''; return; }
+
+  const sourceIcon = { kpievent: '🔧', issue: '⚠️', rca: '📋' };
+  const rows = events.map((ev, i) => {
+   const safeRingkasan = String(ev.ringkasan || '-').replace(/</g, '&lt;');
+   const safeDetail = String(ev.detail || '').replace(/</g, '&lt;');
+   const tglShort = (ev.tanggal || '').slice(8, 10) + '/' + (ev.tanggal || '').slice(5, 7);
+   return `
+    <div class="cursor-pointer" onclick="event.stopPropagation(); const d=document.getElementById('kctx-detail-${contextElId}-${i}'); d.classList.toggle('hidden');">
+    <div class="flex items-center gap-1 text-slate-400 hover:text-slate-200 transition-colors">
+     <span>${sourceIcon[ev.source] || '•'}</span>
+     <span class="font-semibold">${tglShort}</span>
+     <span class="truncate">${safeRingkasan}</span>
+    </div>
+    ${safeDetail ? `<div id="kctx-detail-${contextElId}-${i}" class="hidden pl-4 py-1 text-slate-500 italic">${safeDetail}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  contextEl.innerHTML = `
+   <div class="text-[9px] font-bold text-amber-400 tracking-wide uppercase mb-1">${currentLang === 'en' ? `Context This Period (${events.length})` : `Konteks Periode Ini (${events.length})`}</div>
+   <div class="space-y-0.5 max-h-24 overflow-y-auto">${rows}</div>
+  `;
+ } catch (err) {
+  if (contextEl) contextEl.innerHTML = ''; // gagal diam-diam -- ini cuma info pendukung, jangan ganggu tampilan utama kartu
+ }
+ }
+
  async function fetchKpiBadgesForMember_(namaMember, laporanBadgeId, kehadiranBadgeId, safetyBadgeId, samplingBadgeId, attitudeBadgeId, finalScoreId, finalScoreGateId) { const laporanBadgeEl = document.getElementById(laporanBadgeId);
  const kehadiranBadgeEl = document.getElementById(kehadiranBadgeId);
  const safetyBadgeEl = document.getElementById(safetyBadgeId);
@@ -961,7 +1004,7 @@ async function decideKpiEvent(eventId, decision) {
  function showErr(msg) { statusMsg.className = 'text-xs text-rose-400'; statusMsg.innerText = msg; statusMsg.classList.remove('hidden'); }
  if (!tanggalKejadian) return showErr('Tanggal Kejadian wajib diisi.');
  if (!alasan) return showErr('Alasan wajib diisi.');
- if (jenis === 'Member Exclusion' && !targetMember) return showErr('Member Exclusion wajib mencantumkan Target_Member (User_ID).');
+ if (jenis === 'Member Exclusion' && !targetMember) return showErr('Member Exclusion wajib mencantumkan Target Member (Nama persis, BUKAN ID -- backend mencocokkan berdasarkan Nama, sistem ini belum punya User_ID resmi yg bisa dipilih).');
 
  submitBtn.disabled = true;
  submitBtn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Mengajukan...';
@@ -1263,6 +1306,11 @@ async function decideKpiEvent(eventId, decision) {
     <span id="${kpiFinalScoreGateId}" class="hidden px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[9px] font-bold" title="${currentLang === 'en' ? 'Capped by Safety Gate' : 'Dipotong Safety Gate'}">GATE</span>
     </span>
    </div>`;
+   // BARU (v90.2.136, keputusan user -- "Konteks Periode Ini"): gabungan KPIEvent+Issue&
+   // Action+RCA utk periode yg sama, MURNI INFORMASI PENDUKUNG audit -- TIDAK mengubah skor
+   // apapun (lihat prinsip locked di catatan proyek). Ringkas di kartu, klik utk detail.
+   const kpiContextId = `kpi-context-${index}`;
+   const kpiContextHtml = `<div id="${kpiContextId}" class="pt-2 mt-1.5 border-t border-slate-700/40 text-[10px]"></div>`;
 
    const card = document.createElement('div');
    card.className = "glass-card p-4.5 rounded-xl border border-slate-700/40 flex flex-col justify-between hover:border-blue-500/50 transition-all cursor-pointer text-xs";
@@ -1288,6 +1336,7 @@ async function decideKpiEvent(eventId, decision) {
     ${kpiSamplingBadgeHtml}
     ${kpiAttitudeBadgeHtml}
     ${kpiFinalScoreHtml}
+    ${kpiContextHtml}
     </div>
    </div>
    <div class="pt-3 border-t border-slate-700/40 flex justify-between items-center text-[11px]">
@@ -1301,6 +1350,7 @@ async function decideKpiEvent(eventId, decision) {
    `;
    container.appendChild(card);
    fetchKpiBadgesForMember_(namaVal, kpiLaporanBadgeId, kpiKehadiranBadgeId, kpiSafetyBadgeId, kpiSamplingBadgeId, kpiAttitudeBadgeId, kpiFinalScoreId, kpiFinalScoreGateId);
+   fetchKpiContextForMember_(namaVal, kpiContextId);
   });
   lucide.createIcons();
   } else {
