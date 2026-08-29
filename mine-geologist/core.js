@@ -10,7 +10,10 @@
  initSidebarCollapseState();
  lucide.createIcons();
 
- const ORIGINAL_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR_V7N6lGzP-YFgzLsc-yDhE2J5tgrCiwRfKJX48X3RQL6oxzwe87Jo2AchJP-x4zc-FXuo5R1GGYT5/pub?gid=1273255101&single=true&output=csv';
+ // v90.2.121: ORIGINAL_CSV_URL (jalur CSV publik cadangan) DIHAPUS -- fallback proxy pihak
+ // ketiga (AllOrigins) yg dulu pakai konstanta ini sudah dibuang total dari
+ // fetchDataFromGoogleSheets() (temuan audit: perilaku diam-diam pindah sumber data,
+ // tidak cocok utk sistem KPI/operasional).
  const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbwVeP2inU_-Cm4aazxiaTfulb_ta3OalMdKk9icwqRUNVF-Rz8n9cnhylQuWOspYh2Ztw/exec';
 
  // Timeout default untuk fetch data (baca) -- dulu semua fetch() di dashboard ini TIDAK
@@ -509,7 +512,7 @@
   btn_form_member: "Form Member",
   loading_members: "Mengambil data member dari Google Sheets...",
   leaderboard_title: "Leaderboard Geologist",
-  leaderboard_desc: "Peringkat berdasarkan Current Accuracy -- otomatis dihitung dari data KPI Member yang sama di atas.",
+  leaderboard_desc: "Peringkat berdasarkan Current Accuracy (sistem Accuracy Grade LAMA -- bukan Skor Gabungan Engine KPI 5 Pilar) -- otomatis dihitung dari data KPI Member yang sama di atas, TIDAK terikat ke periode tertentu.",
   leaderboard_empty: "Belum ada member dengan Accuracy dalam format angka untuk diperingkat.",
   leaderboard_col_accuracy: "Accuracy",
   sublot_radar_title: "Chemical Fingerprint",
@@ -1175,7 +1178,7 @@
   btn_form_member: "Member Form",
   loading_members: "Fetching member data from Google Sheets...",
   leaderboard_title: "Geologist Leaderboard",
-  leaderboard_desc: "Ranked by Current Accuracy -- automatically calculated from the same KPI Member data above.",
+  leaderboard_desc: "Ranked by Current Accuracy (OLD Accuracy Grade system -- NOT the new 5-Pillar KPI Engine Final Score) -- automatically calculated from the same KPI Member data above, NOT tied to any specific period.",
   leaderboard_empty: "No members with a numeric Accuracy value to rank yet.",
   leaderboard_col_accuracy: "Accuracy",
   sublot_radar_title: "Chemical Fingerprint",
@@ -1390,7 +1393,7 @@
  let globalFilteredTableData = [];
  let globalRawData = [];
  // Cache hasil "pembersihan" nama kolom (lowercase, trim) per baris data produksi --
- // dibangun SEKALI tiap kali data baru masuk (lihat parseAndRenderCSV), supaya
+ // dibangun SEKALI tiap kali data baru masuk (lihat applyFetchedProductionData), supaya
  // applyGlobalFilter/updateDashboard/renderReconciliation/populatePitDropdown
  // tidak perlu mengulang proses yang sama untuk baris yang identik di setiap siklus refresh.
  let rawToCleanRow = new WeakMap();
@@ -1416,6 +1419,46 @@
  // Struktur: { Sapro: {Batas_Waste_LG, Batas_LG_MG, Batas_MG_HG, Batas_HG_VHG}, Limo: {...},
  //             Limo_Aktif: bool, SM_Threshold_AutoDetect: number }
  let globalCOGConfig = null;
+
+ // BARU (v90.2.125, temuan audit #41): infrastruktur ringan penanda "STALE DATA" --
+ // sebelumnya kalau fetch gagal, globalXxxData TIDAK direset (tetap data lama), dan cuma
+ // 1 elemen tabel spesifik yg tampil pesan error -- tempat LAIN yg baca data sama (Summary
+ // Card, Matriks F1-F4, Chart) diam-diam terus pakai angka lama tanpa penanda apapun.
+ // Sekarang: setiap fetchXxxData() lapor ke sini saat sukses/gagal, banner global muncul
+ // otomatis begitu ADA SATU SAJA sumber data yg gagal, hilang lagi begitu semua fresh.
+ const staleDataSources = new Set();
+ function markDataFresh_(sourceName) {
+ staleDataSources.delete(sourceName);
+ updateStaleDataBanner_();
+ }
+ function markDataStale_(sourceName) {
+ staleDataSources.add(sourceName);
+ updateStaleDataBanner_();
+ }
+ function updateStaleDataBanner_() {
+ let banner = document.getElementById('stale-data-banner');
+ if (staleDataSources.size === 0) {
+  if (banner) banner.remove();
+  return;
+ }
+ const listText = Array.from(staleDataSources).join(', ');
+ const message = currentLang === 'en'
+  ? `Some data failed to refresh (${listText}) -- numbers shown for these may be outdated.`
+  : `Sebagian data gagal dimuat ulang (${listText}) -- angka yang ditampilkan untuk bagian ini mungkin sudah usang.`;
+ if (!banner) {
+  banner = document.createElement('div');
+  banner.id = 'stale-data-banner';
+  banner.className = 'fixed top-0 left-0 right-0 z-[96] bg-amber-600/95 backdrop-blur-sm text-white text-[11px] font-semibold text-center py-1.5 px-4 shadow-lg';
+  document.body.appendChild(banner);
+ }
+ banner.innerHTML = `<i data-lucide="triangle-alert" class="w-3 h-3 inline-block align-text-bottom mr-1"></i> ${message}`;
+ if (window.lucide) lucide.createIcons();
+ }
+ // BARU (v90.2.123, temuan audit): penanda apakah COGConfig SEDANG pakai angka default
+ // fallback (bukan dari sheet COGConfig sungguhan) -- sebelumnya cuma console.error(),
+ // user awam tidak pernah lihat, badge Grade (HG/MG/LG/Waste) tetap tampil normal seolah
+ // resmi padahal pakai parameter default lama. Sekarang ditampilkan sbg peringatan visual.
+ let cogConfigUsingFallback = false;
  let globalBlockModelData = [];
  let globalChatData = [];
  // FIX (23 Agu, ditemukan saat terapkan pagination chat limit=100 dari kiriman pihak
@@ -1542,7 +1585,7 @@
  (globalRawData || []).forEach(row => {
   const cleanRow = rawToCleanRow.get(row) || {};
   const tonase = cleanNumber(cleanRow['tonase']);
-  let ni = cleanNumber(cleanRow['ni %'] || cleanRow['ni']);
+  let ni = cleanPercentValue(cleanRow['ni %'] || cleanRow['ni']);
   if (ni > 50) ni = ni / 100;
   const tanggal = cleanRow['tanggal'] ? cleanRow['tanggal'].trim() : (cleanRow['date'] ? cleanRow['date'].trim() : '');
   if (!tanggal || tonase === 0) return;
@@ -2244,7 +2287,7 @@ function exportToWord() {
  const link = document.createElement('a');
  const filenameBase = pendingExportSource === 'member' ? 'Laporan_KPI_Member_' : (pendingExportSource === 'rekonsiliasi' ? 'Laporan_Rekonsiliasi_' : (pendingExportSource === 'validasi' ? 'Laporan_Validasi_TestPit_' : (pendingExportSource === 'rca' ? 'Laporan_RCA_Log_' : 'Laporan_Produksi_Tambang_')));
  link.setAttribute('href', url);
- link.setAttribute('download', filenameBase + new Date().toISOString().slice(0, 10) + '.doc');
+ link.setAttribute('download', filenameBase + getLocalDateYyyyMmDd() + '.doc');
  document.body.appendChild(link);
  link.click();
  document.body.removeChild(link);
@@ -2279,7 +2322,7 @@ function exportToWord() {
    const link = document.createElement('a');
    const filenameBase = pendingExportSource === 'member' ? 'Laporan_KPI_Member_' : (pendingExportSource === 'rekonsiliasi' ? 'Laporan_Rekonsiliasi_' : (pendingExportSource === 'validasi' ? 'Laporan_Validasi_TestPit_' : (pendingExportSource === 'rca' ? 'Laporan_RCA_Log_' : 'Laporan_Produksi_Tambang_')));
    link.setAttribute('href',url);
-   link.setAttribute('download',filenameBase + new Date().toISOString().slice(0,10) + '.csv');
+   link.setAttribute('download',filenameBase + getLocalDateYyyyMmDd() + '.csv');
    document.body.appendChild(link); link.click(); document.body.removeChild(link);
    logExportActivity(pendingExportSource,'CSV',filteredExportData.length,'SUCCESS');
   } catch(error) {
@@ -2348,8 +2391,21 @@ window.addEventListener('afterprint', function() {
  // (Google Apps Script), yang mengembalikan token sesi bila PIN benar.
  // Ini mencegah PIN terbaca lewat "View Page Source" / DevTools.
 
+ // v90.2.129 FIX (temuan audit): SEBELUMNYA cuma cek KEBERADAAN token di localStorage,
+ // tidak cek kadaluarsa -- token yg sudah expired (tapi belum sempat dihapus browser)
+ // tetap membuat UI menampilkan fitur Developer, padahal request sungguhan ke server akan
+ // DITOLAK (server tetap jadi sumber kebenaran final, ini cuma benerin state UI biar tidak
+ // "menjanjikan" akses yg sebenarnya sudah tidak berlaku). Pakai mine_dev_expires_at yg
+ // SUDAH disimpan sejak login/rotateSession -- tidak perlu request baru ke server.
  function isDeveloperUnlocked() {
- return !!localStorage.getItem('mine_dev_token');
+ const token = localStorage.getItem('mine_dev_token');
+ if (!token) return false;
+ const expiresAt = localStorage.getItem('mine_dev_expires_at');
+ if (expiresAt) {
+  const expiresMs = new Date(expiresAt).getTime();
+  if (!isNaN(expiresMs) && Date.now() >= expiresMs) return false;
+ }
+ return true;
  }
 
  // BARU (22 Agu): fallback avatar sidebar bertingkat -- Google Drive (utama) gagal ->
@@ -3662,59 +3718,34 @@ async function submitResetMemberPin() {
   : keteranganUser;
 
  try {
-  const payload = buildAuthenticatedPayload({
-  action: 'updateDiggingIds',
+  // v90.2.130 FIX (temuan audit #39 -- data-integrity risk): SEBELUMNYA 2 panggilan
+  // terpisah (updateDiggingIds sukses dulu, BARU loop addDomeTransaction) -- kalau
+  // Tujuan sukses tapi Dome gagal di tengah, data tersangkut PARSIAL tanpa rollback.
+  // Sekarang 1 panggilan ke endpoint gabungan 'updateDiggingIdsWithDome' -- backend
+  // yg menjamin atomicity (rollback Tujuan kalau ADA SATU SAJA Dome gagal).
+  const comboPayloadObj = {
+  action: 'updateDiggingIdsWithDome',
   id_sampel: idSampel,
   tujuan: tujuanFinal,
   id_efo: (areaA === 'EFO' ? domeA : (areaB === 'EFO' ? domeB : '')),
   id_eto: (areaA === 'ETO' ? domeA : (areaB === 'ETO' ? domeB : '')),
   pic: pic,
-  keterangan: keteranganFinal
-  }, { developerOnly: true });
+  keterangan: keteranganFinal,
+  portion0_area: areaA, portion0_dome: domeA, portion0_tonase: tonaseA,
+  portion0_ni: row ? cleanNumber(row.ni) : 0, portion0_catatan: catatanA || keteranganUser
+  };
+  if (isCombo) {
+  comboPayloadObj.portion1_area = areaB;
+  comboPayloadObj.portion1_dome = domeB;
+  comboPayloadObj.portion1_tonase = tonaseB;
+  comboPayloadObj.portion1_ni = row ? cleanNumber(row.ni) : 0;
+  comboPayloadObj.portion1_catatan = catatanB || keteranganUser;
+  }
+  const payload = buildAuthenticatedPayload(comboPayloadObj, { developerOnly: true });
   const response = await fetch(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload });
   const result = await response.json();
   if (result.status !== 'success') {
   throw new Error(result.message || (currentLang === 'en' ? 'Failed to update data.' : 'Gagal mengupdate data.'));
-  }
-
-  const domeCallErrors = [];
-  const portions = [{ area: areaA, tonase: tonaseA, dome: domeA, catatan: catatanA }];
-  if (isCombo) portions.push({ area: areaB, tonase: tonaseB, dome: domeB, catatan: catatanB });
-
-  for (const p of portions) {
-  if (p.area === 'TONGKANG') continue;
-  const domePayload = buildAuthenticatedPayload({
-   action: 'addDomeTransaction',
-    dome_id: p.dome,
-   area: p.area,
-   jenis: 'Masuk',
-   ref_id_sampel: idSampel,
-   tonase_transaksi: p.tonase,
-   ni_transaksi: row ? cleanNumber(row.ni) : 0,
-   pic: pic,
-   catatan: p.catatan || keteranganUser
-  }, { developerOnly: true });
-  const domeResp = await fetch(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: domePayload });
-  const domeResult = await domeResp.json();
-  if (domeResult.status !== 'success') {
-   domeCallErrors.push(p.area + ': ' + (domeResult.message || 'gagal'));
-  }
-  }
-
-  if (domeCallErrors.length > 0) {
-  console.error('Sebagian transaksi Dome gagal dicatat:', domeCallErrors);
-  statusMsg.className = 'text-xs text-amber-400';
-  statusMsg.innerText = (currentLang === 'en'
-   ? 'Destination updated, but some Dome logs failed: '
-   : 'Tujuan berhasil diupdate, tapi sebagian catatan Dome gagal: ') + domeCallErrors.join('; ');
-  statusMsg.classList.remove('hidden');
-  setTimeout(() => {
-   closeUpdateTujuanModal();
-   closeDiggingDetailModal();
-   statusMsg.classList.add('hidden');
-   fetchDataFromGoogleSheets(true);
-  }, 3000);
-  return;
   }
 
   statusMsg.className = 'text-xs text-emerald-400';
@@ -3729,7 +3760,7 @@ async function submitResetMemberPin() {
  } catch (error) {
   console.error('Error updating tujuan (dome/split):', error);
   statusMsg.className = 'text-xs text-rose-400';
-  statusMsg.innerText = currentLang === 'en' ? 'An error occurred. Try again.' : 'Terjadi kesalahan. Coba lagi.';
+  statusMsg.innerText = error && error.message ? error.message : (currentLang === 'en' ? 'An error occurred. Try again.' : 'Terjadi kesalahan. Coba lagi.');
   statusMsg.classList.remove('hidden');
  } finally {
   submitBtn.disabled = false;
@@ -3793,7 +3824,7 @@ async function submitResetMemberPin() {
 
  function setPeriodicReportPreset(type) {
  const today = new Date();
- const endStr = today.toISOString().slice(0, 10);
+ const endStr = getLocalDateYyyyMmDd(today);
  let start;
  if (type === 'week') {
   const day = today.getDay();
@@ -3803,7 +3834,7 @@ async function submitResetMemberPin() {
  } else {
   start = new Date(today.getFullYear(), today.getMonth(), 1);
  }
- document.getElementById('periodic-report-start').value = start.toISOString().slice(0, 10);
+ document.getElementById('periodic-report-start').value = getLocalDateYyyyMmDd(start);
  document.getElementById('periodic-report-end').value = endStr;
  }
 
@@ -3856,7 +3887,8 @@ async function submitResetMemberPin() {
 
  const finalRows = (globalBlockModelData || []).filter(row => {
   const statusKpi = (row['Status_KPI'] || '').toString();
-  const isBelumFinal = statusKpi.includes('Belum Final') || !row['Status_Depletion'];
+  const depletionVal_ = (row['Status_Depletion'] || '').toString().trim();
+  const isBelumFinal = statusKpi.includes('Belum Final') || depletionVal_ !== 'Selesai';
   return !isBelumFinal;
  });
  const totalEstimasi = finalRows.reduce((s, r) => s + (typeof r['Estimasi_tonase'] === 'number' ? r['Estimasi_tonase'] : 0), 0);
@@ -4042,7 +4074,8 @@ async function submitResetMemberPin() {
   const realisasi = typeof row['Realisasi_Tonase'] === 'number' ? row['Realisasi_Tonase'] : 0;
   const variasi = row['Variasi_%'];
   const statusKpi = (row['Status_KPI'] || '').toString();
-  const isBelumFinal = statusKpi.includes('Belum Final') || !row['Status_Depletion'];
+  const depletionVal_ = (row['Status_Depletion'] || '').toString().trim();
+  const isBelumFinal = statusKpi.includes('Belum Final') || depletionVal_ !== 'Selesai';
   const gcKey = idBlok.trim().toUpperCase() + '|' + pit.trim().toUpperCase();
   const gc = gcTonaseByBlok[gcKey] || 0;
 
@@ -4505,7 +4538,7 @@ async function submitResetMemberPin() {
  function openFormIssuePopup() {
  populateReporterDropdown();
  const now = new Date();
- const tanggalOnly = now.toISOString().slice(0, 10);           // yyyy-MM-dd
+ const tanggalOnly = getLocalDateYyyyMmDd(now);                // yyyy-MM-dd (lokal, bukan UTC -- v90.2.122)
  const waktuOnly = now.toTimeString().slice(0, 5);             // HH:MM
  const displayText = tanggalOnly + '  ' + waktuOnly;
 
@@ -5162,8 +5195,13 @@ async function postCentralAuthenticated(source, options) {
  function renderMaterialLegend(values) {
  const el = document.getElementById('material-chart-legend');
  if (!el) return;
- const labels = ['Saprolit', 'Limonit', 'Low Grade', 'Waste'];
- const colors = ['#059669', '#0ea5e9', '#f59e0b', '#475569'];
+ // v90.2.125 FIX (temuan audit): "Menunggu Assay" (N/A -- Ni belum ada, MASIH nunggu
+ // lab) ditambah sbg kategori TERPISAH dari "Waste" (Ni sudah ada tapi di bawah ambang
+ // COG). SEBELUMNYA keduanya digabung jadi 1 angka Waste, bikin Total Waste kelihatan
+ // lebih besar dari yg sebenarnya (sampel yg BELUM DIKETAHUI grade-nya ikut kehitung
+ // seolah-olah sudah dikonfirmasi rendah).
+ const labels = ['Saprolit', 'Limonit', 'Low Grade', 'Waste', currentLang === 'en' ? 'Pending Assay' : 'Menunggu Assay'];
+ const colors = ['#059669', '#0ea5e9', '#f59e0b', '#475569', '#a855f7'];
  const isWhite = document.body.classList.contains('theme-white');
  const textColor = isWhite ? '#334155' : '#e2e8f0';
  const total = values.reduce(function(a, b) { return a + (Number(b) || 0); }, 0);
@@ -5201,10 +5239,10 @@ async function postCentralAuthenticated(source, options) {
  materialChart = new Chart(ctx1, {
   type: 'doughnut',
   data: {
-  labels: ['Saprolit', 'Limonit', 'Low Grade', 'Waste'],
+  labels: ['Saprolit', 'Limonit', 'Low Grade', 'Waste', 'Pending Assay'],
   datasets: [{
-   data: [0, 0, 0, 0],
-   backgroundColor: ['#059669', '#0ea5e9', '#f59e0b', '#475569'],
+   data: [0, 0, 0, 0, 0],
+   backgroundColor: ['#059669', '#0ea5e9', '#f59e0b', '#475569', '#a855f7'],
    borderWidth: 0
   }]
   },
@@ -5222,7 +5260,7 @@ async function postCentralAuthenticated(source, options) {
   cutout: '68%'
   }
  });
- renderMaterialLegend([0, 0, 0, 0]);
+ renderMaterialLegend([0, 0, 0, 0, 0]);
 
  const ctx2 = document.getElementById('gradeChart').getContext('2d');
  gradeChart = new Chart(ctx2, {
@@ -5535,39 +5573,35 @@ async function postCentralAuthenticated(source, options) {
  // Realisasi_Tonase di BlockModel (1 baris = 1 Blok+Pit, misal "L-01 Avanza"), konsisten
  // dengan pola computeRealisasiKimiaByBlok() -- kalau cuma dikelompokkan per Blok saja,
  // semua Pit dalam 1 Blok salah dapat angka gabungan yang sama (bug yang pernah ditemukan).
+ // BARU (v90.2.122, temuan audit): sequence guard -- kalau ada request BARU dimulai
+ // sebelum request LAMA selesai (mis. auto-refresh interval tumpang tindih manual refresh),
+ // response yg datang belakangan dari request LAMA dibuang, TIDAK diizinkan menimpa data
+ // yg sudah lebih baru di layar. Pola sama persis dgn loadActiveMemberSessions() yg sudah
+ // terbukti dipakai di codebase ini (activeMemberIndicatorRequestSeq).
+ let produksiFetchRequestSeq = 0;
+
  async function fetchDataFromGoogleSheets(isManual = false) {
- // Jalur UTAMA: Apps Script (GOOGLE_SCRIPT_READ_URL?sheet=produksi) -- sama seperti
- // Member/Issue/Validasi/BlockModel yang sudah terbukti stabil, tidak butuh proxy pihak ketiga.
+ // v90.2.121: fallback CSV publik + proxy AllOrigins DIHAPUS TOTAL (temuan audit --
+ // komentar lama bilang jalur utama "tidak butuh proxy pihak ketiga" tapi kode di bawahnya
+ // tetap membawa proxy pihak ketiga, kontradiksi). Disamakan persis dgn pola fetchXxxData()
+ // lain (Member/Issue/Validasi/BlockModel) -- langsung ke Apps Script, GAGAL BERSIH kalau
+ // down (tampilkan error jelas), TIDAK diam-diam pindah sumber data alternatif. Untuk
+ // sistem KPI/operasional, data yg tampil harus selalu dari 1 sumber yg sama & dapat
+ // dipertanggungjawabkan -- bukan tercampur jalur berbeda tanpa sepengetahuan user.
+ const requestSeq = ++produksiFetchRequestSeq;
  try {
   const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=produksi&t=' + new Date().getTime());
   const result = await response.json();
+  if (requestSeq !== produksiFetchRequestSeq) return; // request lebih baru sudah menang, buang hasil ini
   if (result.status !== 'success') throw new Error(result.message || (currentLang === 'en' ? 'Failed to load production data.' : 'Gagal memuat data produksi'));
   applyFetchedProductionData(result.data || []);
-  return;
+  markDataFresh_('Produksi');
  } catch (err) {
-  console.error('Gagal memuat data produksi via Apps Script, coba jalur CSV cadangan:', err);
- }
-
- // Jalur CADANGAN (fallback) -- CSV publish langsung, lalu proxy pihak ketiga kalau itu pun
- // gagal. Dipertahankan sebagai jaring pengaman kalau Apps Script sendiri sedang bermasalah,
- // bukan lagi jalur utama seperti sebelumnya.
- const noCacheUrl = ORIGINAL_CSV_URL + '&t=' + new Date().getTime();
- const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(noCacheUrl);
-
- try {
-  let response = await fetchWithTimeout(noCacheUrl);
-  if (!response.ok) throw new Error("Direct fetch failed");
-  let csvText = await response.text();
-  parseAndRenderCSV(csvText);
- } catch (err) {
-  try {
-  let responseProxy = await fetchWithTimeout(proxyUrl);
-  let csvText = await responseProxy.text();
-  parseAndRenderCSV(csvText);
-  } catch (proxyErr) {
-  const isTimeout = err.name === 'AbortError' || proxyErr.name === 'AbortError';
-  showError(isTimeout ? "Server Tidak Merespons (Timeout)" : "Offline");
-  }
+  if (requestSeq !== produksiFetchRequestSeq) return;
+  console.error('Gagal memuat data produksi via Apps Script:', err);
+  markDataStale_('Produksi');
+  const isTimeout = err.name === 'AbortError';
+  showError(isTimeout ? (currentLang === 'en' ? 'Server Not Responding (Timeout)' : 'Server Tidak Merespons (Timeout)') : (currentLang === 'en' ? 'Failed to load data. Please check your connection.' : 'Gagal memuat data. Silakan cek koneksi Anda.'));
  }
  }
 
@@ -6152,12 +6186,14 @@ async function cleanupGeneralSheet(sheetName) {
   globalIssueRawData = result.data || [];
   renderIssueTable(globalIssueRawData);
   issueAutoRetryCount = 0;
+  markDataFresh_('Issue');
  } catch (err) {
   console.error('Gagal memuat data issue:', err);
   if (issueAutoRetryCount < ISSUE_MAX_AUTO_RETRY) {
   issueAutoRetryCount++;
   setTimeout(() => fetchIssueData(true), 2000 * issueAutoRetryCount);
   } else {
+  markDataStale_('Issue');
   const isTimeout = err.name === 'AbortError';
   const msg = isTimeout ? (currentLang === 'en' ? 'Server did not respond within 20 seconds (timeout).' : 'Server tidak merespons dalam 20 detik (timeout).') : (currentLang === 'en' ? 'Failed to load issue data from Google Sheets.' : 'Gagal memuat data issue dari Google Sheets.');
   tbody.innerHTML = `<tr><td colspan="9" class="text-center p-6 text-rose-400 text-xs space-y-2 font-medium"><p>${msg}</p><button onclick="fetchIssueData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all">${translations[currentLang].retry}</button></td></tr>`;
@@ -6167,14 +6203,33 @@ async function cleanupGeneralSheet(sheetName) {
 
  function classifyMaterial(ni, tipeOreInput, smValue) {
  const niNum = parseFloat(ni) || 0;
+ const usingInlineFallback = !globalCOGConfig;
  const cfg = globalCOGConfig || {
   Sapro: { Batas_Waste_LG: 0.8, Batas_LG_MG: 1.25, Batas_MG_HG: 1.45, Batas_HG_VHG: 1.7 },
   Limo: { Batas_Waste_LG: 0.8, Batas_LG_MG: 1.25, Batas_MG_HG: 1.45, Batas_HG_VHG: 1.7 },
   Limo_Aktif: false,
   SM_Threshold_AutoDetect: 3
  };
+ // BARU (v90.2.123, temuan audit): globalCOGConfig masih null berarti fetchCOGConfig()
+ // belum selesai/belum pernah dipanggil -- classifyMaterial() TIDAK BOLEH diam-diam pakai
+ // default inline ini tanpa peringatan yg sama spt 2 fallback lain di fetchCOGConfig().
+ if (usingInlineFallback && typeof showCogFallbackWarning_ === 'function') {
+  cogConfigUsingFallback = true;
+  showCogFallbackWarning_();
+ }
 
  let tipeOreFinal = (tipeOreInput || 'Sapro').trim();
+ // v90.2.126 FIX (temuan audit -- edge case): SEBELUMNYA perbandingan case-sensitive
+ // persis ('Auto'/'Sapro'/'Limo') -- input "LIMO"/"limo"/"AUTO" (variasi huruf besar-kecil
+ // yg semantiknya sama) tidak match APAPUN, jatuh ke fallback Sapro secara diam-diam,
+ // walau datanya sebenarnya valid cuma beda kapitalisasi. Sekarang dinormalisasi dulu ke
+ // bentuk baku sebelum dibandingkan/dipakai sbg kunci cfg[tipeOreFinal].
+ const tipeOreNorm = tipeOreFinal.toLowerCase();
+ if (tipeOreNorm === 'auto') tipeOreFinal = 'Auto';
+ else if (tipeOreNorm === 'sapro') tipeOreFinal = 'Sapro';
+ else if (tipeOreNorm === 'limo') tipeOreFinal = 'Limo';
+ // kalau tidak cocok satupun (kosong/typo lain), tipeOreFinal dibiarkan apa adanya --
+ // ditangkap cabang fallback "tidak dikenal" di bawah, sama seperti perilaku lama.
 
  // Kalau toggle Limo_Aktif MATI, paksa semua material pakai batas Sapro -- ini jaring
  // pengaman supaya baris yang Tipe_Ore-nya kosong/belum diisi tidak salah kena batas Limo.
@@ -6270,18 +6325,41 @@ async function cleanupGeneralSheet(sheetName) {
   const key = blok + '|' + pit;
   const tonase = cleanNumber(c['tonase']);
   if (tonase <= 0) return;
-  let ni = cleanNumber(c['ni %'] || c['ni']); if (ni > 50) ni = ni / 100;
-  const fe = cleanNumber(c['fe %'] || c['fe']);
-  const co = cleanNumber(c['co %'] || c['co']);
-  const mgo = cleanNumber(c['mgo %'] || c['mgo']);
-  const sio2 = cleanNumber(c['sio2 %'] || c['sio2']);
-  if (!acc[key]) acc[key] = { tonase: 0, ni: 0, fe: 0, co: 0, mgo: 0, sio2: 0 };
-  acc[key].tonase += tonase;
-  acc[key].ni += ni * tonase;
-  acc[key].fe += fe * tonase;
-  acc[key].co += co * tonase;
-  acc[key].mgo += mgo * tonase;
-  acc[key].sio2 += sio2 * tonase;
+  if (!acc[key]) acc[key] = {
+  niSum: 0, niTon: 0, feSum: 0, feTon: 0, coSum: 0, coTon: 0, mgoSum: 0, mgoTon: 0, sio2Sum: 0, sio2Ton: 0
+  };
+  // v90.2.126 FIX (temuan audit -- bug serius): SEBELUMNYA 1 penyebut `tonase` dipakai
+  // BERSAMA utk kelima elemen, sementara assay KOSONG diubah cleanPercentValue() jadi 0 --
+  // baris tanpa hasil lab tetap MENAMBAH TONASE PENYEBUT tapi menyumbang 0 ke pembilang,
+  // mengencerkan rata-rata (Ni 1.50% + kosong 100ton jadi 0.75%, bukan tetap 1.50%).
+  // Sekarang PENYEBUT TERPISAH per elemen -- baris yg elemen tsb kosong (raw value null/
+  // undefined/'') TIDAK ikut penyebut elemen itu sama sekali, tapi tetap ikut penyebut
+  // elemen LAIN yg terisi di baris yg sama.
+  const rawNi = c['ni %'] !== undefined && c['ni %'] !== null && c['ni %'] !== '' ? c['ni %'] : c['ni'];
+  if (rawNi !== undefined && rawNi !== null && rawNi !== '') {
+  let ni = cleanPercentValue(rawNi); if (ni > 50) ni = ni / 100;
+  acc[key].niSum += ni * tonase; acc[key].niTon += tonase;
+  }
+  const rawFe = c['fe %'] !== undefined && c['fe %'] !== null && c['fe %'] !== '' ? c['fe %'] : c['fe'];
+  if (rawFe !== undefined && rawFe !== null && rawFe !== '') {
+  const fe = cleanPercentValue(rawFe);
+  acc[key].feSum += fe * tonase; acc[key].feTon += tonase;
+  }
+  const rawCo = c['co %'] !== undefined && c['co %'] !== null && c['co %'] !== '' ? c['co %'] : c['co'];
+  if (rawCo !== undefined && rawCo !== null && rawCo !== '') {
+  const co = cleanPercentValue(rawCo);
+  acc[key].coSum += co * tonase; acc[key].coTon += tonase;
+  }
+  const rawMgo = c['mgo %'] !== undefined && c['mgo %'] !== null && c['mgo %'] !== '' ? c['mgo %'] : c['mgo'];
+  if (rawMgo !== undefined && rawMgo !== null && rawMgo !== '') {
+  const mgo = cleanPercentValue(rawMgo);
+  acc[key].mgoSum += mgo * tonase; acc[key].mgoTon += tonase;
+  }
+  const rawSio2 = c['sio2 %'] !== undefined && c['sio2 %'] !== null && c['sio2 %'] !== '' ? c['sio2 %'] : c['sio2'];
+  if (rawSio2 !== undefined && rawSio2 !== null && rawSio2 !== '') {
+  const sio2 = cleanPercentValue(rawSio2);
+  acc[key].sio2Sum += sio2 * tonase; acc[key].sio2Ton += tonase;
+  }
  });
  const result = {};
  Object.keys(acc).forEach(key => {
@@ -6289,9 +6367,15 @@ async function cleanupGeneralSheet(sheetName) {
   // SM% (SiO2/MgO) dihitung dari RASIO jumlah tertimbang (bukan rata-rata SM per baris) --
   // ini pendekatan standar untuk rasio tertimbang, konsisten dengan cara Estimasi_SM% di
   // BlockModel dihitung (SiO2 total / MgO total per blok), bukan rata-rata rasio per sampel.
-  result[key] = a.tonase > 0 ? {
-  ni: a.ni / a.tonase, fe: a.fe / a.tonase, co: a.co / a.tonase, mgo: a.mgo / a.tonase, sio2: a.sio2 / a.tonase,
-  sm: a.mgo > 0 ? (a.sio2 / a.mgo) : null
+  const mgoAvg = a.mgoTon > 0 ? a.mgoSum / a.mgoTon : null;
+  const sio2Avg = a.sio2Ton > 0 ? a.sio2Sum / a.sio2Ton : null;
+  result[key] = (a.niTon > 0 || a.feTon > 0 || a.coTon > 0 || a.mgoTon > 0 || a.sio2Ton > 0) ? {
+  ni: a.niTon > 0 ? a.niSum / a.niTon : null,
+  fe: a.feTon > 0 ? a.feSum / a.feTon : null,
+  co: a.coTon > 0 ? a.coSum / a.coTon : null,
+  mgo: mgoAvg,
+  sio2: sio2Avg,
+  sm: (mgoAvg && mgoAvg > 0 && sio2Avg !== null) ? (sio2Avg / mgoAvg) : null
   } : null;
  });
  return result;
@@ -6411,7 +6495,8 @@ async function cleanupGeneralSheet(sheetName) {
  let totalBM = 0;
  (globalBlockModelData || []).forEach(row => {
   const statusKpi = (row['Status_KPI'] || '').toString();
-  const isBelumFinal = statusKpi.includes('Belum Final') || !row['Status_Depletion'];
+  const depletionVal_ = (row['Status_Depletion'] || '').toString().trim();
+  const isBelumFinal = statusKpi.includes('Belum Final') || depletionVal_ !== 'Selesai';
   if (!isBelumFinal) totalBM += (row['Estimasi_tonase'] || 0);
  });
 
@@ -6423,7 +6508,19 @@ async function cleanupGeneralSheet(sheetName) {
  const totalPaEl = document.getElementById('matrix-total-pitactual');
  const totalPlantEl = document.getElementById('matrix-total-plant');
  if (f3El) f3El.innerText = f3 !== null ? f3.toFixed(1) + '%' : '-';
- if (f4El) f4El.innerText = f4 !== null ? f4.toFixed(1) + '%' : '-';
+ // BARU (v90.2.124, temuan audit): F4 membandingkan 2 POPULASI BERBEDA -- Total BM cuma
+ // Blok yg statusnya sudah Final, tapi Total Plant = SEMUA shipment aktual TANPA filter
+ // Blok (BargeShipment tidak punya field Blok sama sekali -- material sudah tercampur di
+ // tahap Dome/blending sebelum sampai kapal, traceability per-Blok hilang di titik itu).
+ // Angka F4 matematis valid, TAPI konteksnya bisa menyesatkan kalau ada tonase dari Blok
+ // yg BELUM final ikut masuk Total Plant. Ditambahkan title (tooltip) + tanda (*) supaya
+ // pembaca tahu keterbatasan ini, bukan cuma percaya angka mentah.
+ if (f4El) {
+  f4El.innerText = f4 !== null ? f4.toFixed(1) + '%*' : '-';
+  f4El.title = currentLang === 'en'
+   ? 'Caution: F4 compares 2 different populations -- Total BM only counts finalized Blocks, but Total Plant includes ALL actual shipments without Block filtering (shipments have no Block traceability after blending at the Dome stage). This number may include tonnage from Blocks not yet finalized.'
+   : 'Perhatian: F4 membandingkan 2 populasi berbeda -- Total BM hanya menghitung Blok yang sudah final, sedangkan Total Plant mencakup SEMUA shipment aktual tanpa filter Blok (shipment tidak punya traceability ke Blok setelah tercampur di tahap Dome). Angka ini bisa termasuk tonase dari Blok yang belum final.';
+ }
  if (totalPaEl) totalPaEl.innerText = totalPitActual > 0 ? totalPitActual.toLocaleString('id-ID') + (currentLang === 'en' ? ' Tons' : ' Ton') : '-';
  if (totalPlantEl) totalPlantEl.innerText = totalPlant > 0 ? totalPlant.toLocaleString('id-ID') + (currentLang === 'en' ? ' Tons' : ' Ton') : '-';
 
@@ -6696,16 +6793,6 @@ async function cleanupGeneralSheet(sheetName) {
  document.getElementById('sync-status').innerHTML = '<span class="text-emerald-400 font-semibold">' + (currentLang === 'en' ? 'Online ● ' : 'Online ● ') + new Date().toLocaleTimeString() + '</span>';
  }
 
- function parseAndRenderCSV(csvText) {
- Papa.parse(csvText, {
-  header: true,
-  skipEmptyLines: true,
-  complete: function(results) {
-  applyFetchedProductionData(results.data);
-  }
- });
- }
-
  function populatePitDropdown(data) {
  const pitSelect = document.getElementById('pit-filter');
  const currentVal = pitSelect.value;
@@ -6743,6 +6830,31 @@ async function cleanupGeneralSheet(sheetName) {
  document.getElementById('sync-status').innerHTML = '<span class="text-red-400 font-bold">' + msg + '</span>';
  }
 
+ // BARU (v90.2.121, temuan audit): pengganti `new Date().toISOString().slice(0,7)` yg
+ // dipakai KPI preview & Attitude periode -- toISOString() SELALU konversi ke UTC, bukan
+ // timezone lokal browser. Bug boundary: di WIB (UTC+7), jam 00:00-06:59 tanggal 1 bulan
+ // baru, toISOString() masih menunjuk BULAN LALU (krn di UTC belum lewat tengah malam) --
+ // periode yg dikirim ke endpoint kpiscore/Attitude jadi salah 1 bulan tepat di awal bulan.
+ // Fungsi ini pakai getFullYear()/getMonth() (getter LOKAL browser, ikut timezone sistem
+ // user -- WIB kalau HP/PC diset benar), bukan getter UTC.
+ function getLocalPeriodeYyyyMm(dateObj) {
+  const d = dateObj || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return y + '-' + m;
+ }
+
+ // BARU (v90.2.122, temuan audit): sama alasannya dgn getLocalPeriodeYyyyMm() -- pengganti
+ // `new Date().toISOString().slice(0,10)` yg dipakai default tanggal form (Digging/Validasi/
+ // KPI Event/Issue) & nama file unduhan. Pakai getter tanggal LOKAL, bukan UTC.
+ function getLocalDateYyyyMmDd(dateObj) {
+  const d = dateObj || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+ }
+
  function cleanNumber(val) {
  if (val === null || val === undefined || val === '') return 0;
  let s = val.toString().trim();
@@ -6762,6 +6874,31 @@ async function cleanupGeneralSheet(sheetName) {
   }
  }
 
+ return parseFloat(s) || 0;
+ }
+
+ // BARU (v90.2.123, temuan audit): cleanNumber() PUNYA HEURISTIK BERBAHAYA untuk field
+ // persentase assay -- angka desimal 3-digit spt "1.234" (artinya 1.234%) SALAH dikira
+ // pemisah ribuan & diubah jadi 1234, lalu kalau lewat normalisasi `if(ni>50) ni=ni/100`
+ // hasil akhirnya 12.34% -- BUKAN 1.234% aslinya (kesalahan 10x, fatal utk data geologi).
+ // Heuristik itu MASUK AKAL utk field besar (Tonase -- "1.234" wajar berarti 1.234 ton
+ // format ribuan Indonesia), tapi TIDAK PERNAH masuk akal utk field persentase Ni/Fe/Co/
+ // MgO/SiO2/SM (nilainya selalu < 100, tidak pernah butuh pemisah ribuan). cleanNumber()
+ // SENGAJA TIDAK diubah (field Tonase & lain2 masih butuh perilaku lamanya) -- fungsi
+ // baru INI yang dipakai KHUSUS utk ke-6 field assay tsb, tanpa heuristik ribuan sama sekali.
+ function cleanPercentValue(val) {
+ if (val === null || val === undefined || val === '') return 0;
+ let s = val.toString().trim();
+ if (s === '') return 0;
+ const hasComma = s.includes(',');
+ const hasDot = s.includes('.');
+ if (hasComma && hasDot) {
+  s = s.replace(/\./g, '').replace(',', '.');
+ } else if (hasComma && !hasDot) {
+  s = s.replace(',', '.');
+ }
+ // SENGAJA TIDAK ADA cabang "hasDot && !hasComma" -- titik pada field persentase SELALU
+ // dianggap desimal, tidak pernah pemisah ribuan.
  return parseFloat(s) || 0;
  }
 
@@ -6838,7 +6975,13 @@ async function cleanupGeneralSheet(sheetName) {
  });
 
  let totalProduksi = 0;
- const byPit = {};
+ // v90.2.124 FIX (temuan audit -- bug serius): SEBELUMNYA kunci agregasi cuma nama Pit
+ // (byPit[pit]), padahal 1 nama Pit BISA muncul di beberapa Blok berbeda (spt diakui
+ // komentar asli di bawah: "L-01: Avanza/Honda/Yamaha") -- tonase dari Blok berbeda dgn
+ // Pit bernama sama akan TERCAMPUR jadi 1 baris, mengikuti Blok yg pertama kali masuk.
+ // Sekarang kunci = Blok+Pit (byBlokPit), konsisten dgn granularitas yg sudah dipakai di
+ // computeGcTonaseByBlok()/computeRealisasiKimiaByBlok() & Matriks F1-F4 di tempat lain.
+ const byBlokPit = {};
  const pendingRows = [];
 
  rows.forEach(r => {
@@ -6848,20 +6991,21 @@ async function cleanupGeneralSheet(sheetName) {
   const tonase = cleanNumber(r['tonase']);
   totalProduksi += tonase;
 
-  if (!byPit[pit]) byPit[pit] = { blok, produksi: 0, efo: 0, eto: 0, direct: 0, disposal: 0, belum: 0 };
-  byPit[pit].produksi += tonase;
+  const blokPitKey = blok + '|' + pit;
+  if (!byBlokPit[blokPitKey]) byBlokPit[blokPitKey] = { blok, pit, produksi: 0, efo: 0, eto: 0, direct: 0, disposal: 0, belum: 0 };
+  byBlokPit[blokPitKey].produksi += tonase;
 
-  if (tujuan.toLowerCase() === 'efo') byPit[pit].efo += tonase;
-  else if (tujuan.toLowerCase() === 'eto') byPit[pit].eto += tonase;
-  else if (tujuan.toLowerCase() === 'direct') byPit[pit].direct += tonase;
-  else if (tujuan.toLowerCase() === 'disposal') byPit[pit].disposal += tonase;
+  if (tujuan.toLowerCase() === 'efo') byBlokPit[blokPitKey].efo += tonase;
+  else if (tujuan.toLowerCase() === 'eto') byBlokPit[blokPitKey].eto += tonase;
+  else if (tujuan.toLowerCase() === 'direct') byBlokPit[blokPitKey].direct += tonase;
+  else if (tujuan.toLowerCase() === 'disposal') byBlokPit[blokPitKey].disposal += tonase;
   else {
-  byPit[pit].belum += tonase;
+  byBlokPit[blokPitKey].belum += tonase;
   pendingRows.push(r);
   }
  });
 
- const totalTerkirim = totalProduksi - Object.values(byPit).reduce((s, p) => s + p.belum, 0);
+ const totalTerkirim = totalProduksi - Object.values(byBlokPit).reduce((s, p) => s + p.belum, 0);
  const selisih = totalProduksi - totalTerkirim;
  const persen = totalProduksi > 0 ? (totalTerkirim / totalProduksi * 100) : 0;
 
@@ -6874,21 +7018,21 @@ async function cleanupGeneralSheet(sheetName) {
  // Dikelompokkan per Blok dulu, baru alfabetis per Pit di dalamnya --
  // supaya Pit-Pit yang berada di Blok yang sama (mis. L-01: Avanza/Honda/Yamaha)
  // tampil berurutan, bukan tersebar acak sesuai abjad nama Pit.
- const pitNames = Object.keys(byPit).sort((a, b) => {
-  const blokA = byPit[a].blok, blokB = byPit[b].blok;
+ const blokPitKeys = Object.keys(byBlokPit).sort((a, b) => {
+  const blokA = byBlokPit[a].blok, blokB = byBlokPit[b].blok;
   if (blokA !== blokB) return blokA.localeCompare(blokB);
-  return a.localeCompare(b);
+  return byBlokPit[a].pit.localeCompare(byBlokPit[b].pit);
  });
- reconciliationBreakdownData = pitNames.map(pit => ({ pit, ...byPit[pit] }));
- if (pitNames.length === 0) {
+ reconciliationBreakdownData = blokPitKeys.map(k => ({ ...byBlokPit[k] }));
+ if (blokPitKeys.length === 0) {
   breakdownBody.innerHTML = `<tr><td colspan="8" class="text-center p-6 text-slate-500 font-medium">${currentLang === 'en' ? 'No data for this filter.' : 'Tidak ada data untuk filter ini.'}</td></tr>`;
  } else {
-  breakdownBody.innerHTML = pitNames.map(pit => {
-  const p = byPit[pit];
+  breakdownBody.innerHTML = blokPitKeys.map(k => {
+  const p = byBlokPit[k];
   return `
    <tr class="hover:bg-slate-800/30 transition-colors">
    <td class="p-2.5 text-slate-400">${p.blok}</td>
-   <td class="p-2.5 font-semibold text-title">${pit}</td>
+   <td class="p-2.5 font-semibold text-title">${p.pit}</td>
    <td class="p-2.5 text-right font-bold text-title">${p.produksi.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
    <td class="p-2.5 text-right text-blue-400">${p.efo.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
    <td class="p-2.5 text-right text-emerald-400">${p.eto.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</td>
@@ -6901,12 +7045,15 @@ async function cleanupGeneralSheet(sheetName) {
  }
 
  if (rekonChart) {
-  rekonChart.data.labels = pitNames;
-  rekonChart.data.datasets[0].data = pitNames.map(p => byPit[p].efo);
-  rekonChart.data.datasets[1].data = pitNames.map(p => byPit[p].eto);
-  rekonChart.data.datasets[2].data = pitNames.map(p => byPit[p].direct);
-  rekonChart.data.datasets[3].data = pitNames.map(p => byPit[p].disposal);
-  rekonChart.data.datasets[4].data = pitNames.map(p => byPit[p].belum);
+  // BARU v90.2.124: label chart pakai "Blok - Pit" (bukan cuma nama Pit) supaya 2 Pit
+  // bernama sama di Blok berbeda tetap bisa dibedakan visualnya di chart.
+  const chartLabels = blokPitKeys.map(k => byBlokPit[k].blok + ' - ' + byBlokPit[k].pit);
+  rekonChart.data.labels = chartLabels;
+  rekonChart.data.datasets[0].data = blokPitKeys.map(k => byBlokPit[k].efo);
+  rekonChart.data.datasets[1].data = blokPitKeys.map(k => byBlokPit[k].eto);
+  rekonChart.data.datasets[2].data = blokPitKeys.map(k => byBlokPit[k].direct);
+  rekonChart.data.datasets[3].data = blokPitKeys.map(k => byBlokPit[k].disposal);
+  rekonChart.data.datasets[4].data = blokPitKeys.map(k => byBlokPit[k].belum);
   rekonChart.update();
  }
 
@@ -6939,7 +7086,11 @@ async function cleanupGeneralSheet(sheetName) {
   const badgeClass = isStale
    ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
    : 'bg-slate-700/40 text-slate-400 border-slate-600/40';
-  const badgeText = daysWaiting === null ? '-' : (daysWaiting + (currentLang === 'en' ? 'd' : 'h'));
+  // v90.2.124 FIX (temuan audit): label 'h' utk Indonesia AMBIGU -- bisa dibaca "hari"
+  // (benar) tapi konvensi umum UI modern (termasuk banyak app berbahasa Indonesia yg
+  // terpengaruh gaya Inggris "2h ago") bikin gampang disalahartikan sbg "jam". Ganti jadi
+  // "hr" (singkatan hari yg lebih baku & tidak tumpang tindih dgn singkatan jam/j).
+  const badgeText = daysWaiting === null ? '-' : (daysWaiting + (currentLang === 'en' ? 'd' : ' hr'));
   return `
    <tr class="hover:bg-slate-800/30 transition-colors">
    <td class="p-2.5 text-slate-300">${(r['tanggal'] || r['date'] || '-').toString().split(' ')[0]}</td>
@@ -7135,7 +7286,7 @@ async function cleanupGeneralSheet(sheetName) {
  function updateDashboard(data) {
  let totalTonase = 0, oreTonase = 0, wasteTonase = 0, totalNi = 0, niCount = 0;
  let totalNiOre = 0, niCountOre = 0;
- let saprolitTon = 0, limonitTon = 0, lgTon = 0;
+ let saprolitTon = 0, limonitTon = 0, lgTon = 0, pendingAssayTon = 0;
 
  const matGroupNiSum = {};
  const matGroupNiCount = {};
@@ -7147,7 +7298,7 @@ async function cleanupGeneralSheet(sheetName) {
   const cleanRow = rawToCleanRow.get(row) || {};
 
   const tonase = cleanNumber(cleanRow['tonase']);
-  let ni = cleanNumber(cleanRow['ni %'] || cleanRow['ni']);
+  let ni = cleanPercentValue(cleanRow['ni %'] || cleanRow['ni']);
   if (ni > 50) ni = ni / 100;
 
   // BARU (v89.16.24): grouping KPI ini sekarang berbasis classifyMaterial() (Class_Grade
@@ -7156,24 +7307,43 @@ async function cleanupGeneralSheet(sheetName) {
   const blok = (cleanRow['blok'] || cleanRow['id blok'] || cleanRow['idblok'] || cleanRow['id_blok'] || '').trim();
   const tanggal = cleanRow['tanggal'] ? cleanRow['tanggal'].trim() : (cleanRow['date'] ? cleanRow['date'].trim() : '');
   const tipeOreRowKpi = cleanRow['tipe_ore'] || cleanRow['tipe ore'] || '';
-  const smRowKpi = cleanNumber(cleanRow['sm %'] || cleanRow['sm']);
+  const smRowKpi = cleanPercentValue(cleanRow['sm %'] || cleanRow['sm']);
   const classifyKpi = classifyMaterial(ni, tipeOreRowKpi, smRowKpi);
   const mat = classifyKpi.classGrade.toLowerCase();
 
   if (tonase === 0) return;
 
   totalTonase += tonase;
+  // v90.2.125 FIX (temuan audit -- bug serius): SEBELUMNYA saprolitTon/limonitTon (sumbu
+  // Tipe_Ore) & lgTon (sumbu Class_Grade) DIISI TERPISAH tanpa saling eksklusif -- 1 baris
+  // Sapro+LG akan menambah KEDUANYA, bikin total legend Donut bisa >100%. Sekarang 4
+  // kategori dipaksa SALING EKSKLUSIF sesuai urutan prioritas yg matching nama legend
+  // (Saprolit/Limonit/Low Grade/Waste): Waste/N-A duluan, lalu LG (apapun tipe ore-nya),
+  // baru sisanya (MG/HG/VHG genuine ore) dipecah per Tipe_Ore. ASUMSI DESAIN -- kalau
+  // urutan prioritas yg dimaksud beda, perlu dikoreksi ulang.
   if (mat === 'waste' || mat === 'n/a') {
-  wasteTonase += tonase;
+  // v90.2.125 FIX (temuan audit): "n/a" (Ni belum ada, MASIH nunggu lab) DIPISAH dari
+  // "waste" genuine (Ni sudah ada, dibawah ambang COG) -- sebelumnya digabung, membuat
+  // Total Waste kelihatan lebih besar dari kenyataan.
+  if (mat === 'n/a') pendingAssayTon += tonase; else wasteTonase += tonase;
+  } else if (mat === 'lg') {
+  oreTonase += tonase;
+  lgTon += tonase;
   } else {
   oreTonase += tonase;
   // saprolitTon/limonitTon sekarang mewakili Tipe_Ore hasil klasifikasi (bukan lagi
-  // teks manual); lgTon mewakili baris dengan Class_Grade = LG.
+  // teks manual), HANYA utk grade MG/HG/VHG (Waste & LG sudah ditangani cabang di atas).
   if (classifyKpi.tipeOreFinal === 'Sapro') saprolitTon += tonase;
   else if (classifyKpi.tipeOreFinal === 'Limo') limonitTon += tonase;
-  if (mat === 'lg') lgTon += tonase;
   }
 
+  // v90.2.125 FIX (temuan audit -- source mismatch): SEBELUMNYA gradeChart dikelompokkan
+  // dari cleanRow['material'] MENTAH (pilihan manual operator saat input Digging), BUKAN
+  // dari classifyKpi.classGrade (hasil hitung live Ni%+Tipe_Ore+COGConfig, sumber yg SAMA
+  // dipakai Tabel Digging & Donut Material). Kalau COGConfig berubah, Tabel ikut berubah
+  // tapi Chart ini TIDAK -- 2 sumber kebenaran berbeda utk 1 konsep yg sama. Sekarang
+  // pakai classifyKpi.classGrade, konsisten dgn seluruh dashboard.
+  let displayMatKey = classifyKpi.classGrade;
   if (ni > 0) {
   totalNi += ni;
   niCount++;
@@ -7182,7 +7352,6 @@ async function cleanupGeneralSheet(sheetName) {
    niCountOre++;
   }
 
-  let displayMatKey = cleanRow['material'].trim();
   if (!matGroupNiSum[displayMatKey]) {
    matGroupNiSum[displayMatKey] = 0;
    matGroupNiCount[displayMatKey] = 0;
@@ -7192,7 +7361,6 @@ async function cleanupGeneralSheet(sheetName) {
   }
 
   if (blok) {
-  let displayMatKey = cleanRow['material'].trim();
   matGroupBlok[displayMatKey] = (matGroupBlok[displayMatKey] || 0) + tonase;
   }
 
@@ -7206,8 +7374,8 @@ async function cleanupGeneralSheet(sheetName) {
   }
   }
 
-  const mgo = cleanNumber(cleanRow['mgo %'] || cleanRow['mgo']);
-  const sio2 = cleanNumber(cleanRow['sio2 %'] || cleanRow['sio2']);
+  const mgo = cleanPercentValue(cleanRow['mgo %'] || cleanRow['mgo']);
+  const sio2 = cleanPercentValue(cleanRow['sio2 %'] || cleanRow['sio2']);
   if (mgo > 0 && sio2 > 0) {
   const pitName = (cleanRow['pit'] || cleanRow['area'] || 'Unknown').trim();
   if (!pitSmMap[pitName]) pitSmMap[pitName] = { sum: 0, count: 0 };
@@ -7231,9 +7399,9 @@ async function cleanupGeneralSheet(sheetName) {
  document.getElementById('kpi-waste').innerText = (currentLang === 'en' ? 'Total Waste: ' : 'Total Waste: ') + wasteTonase.toLocaleString() + (currentLang === 'en' ? ' Tons' : ' Ton');
 
  if (materialChart) {
-  materialChart.data.datasets[0].data = [saprolitTon, limonitTon, lgTon, wasteTonase];
+  materialChart.data.datasets[0].data = [saprolitTon, limonitTon, lgTon, wasteTonase, pendingAssayTon];
   materialChart.update();
-  renderMaterialLegend([saprolitTon, limonitTon, lgTon, wasteTonase]);
+  renderMaterialLegend([saprolitTon, limonitTon, lgTon, wasteTonase, pendingAssayTon]);
  }
 
  if (gradeChart) {
@@ -7297,11 +7465,18 @@ async function cleanupGeneralSheet(sheetName) {
  if (trendNiChart) {
   const sortedDates = Object.keys(dateNiMap).sort();
   const niValues = sortedDates.map(d => (dateNiMap[d].sum / dateNiMap[d].count).toFixed(2));
-  const cutOffLine = sortedDates.map(() => 1.30);
+  // v90.2.125 FIX (temuan audit -- configuration mismatch): SEBELUMNYA hardcode 1.30,
+  // padahal gradeChart di dekatnya (baris ~7346) sudah benar pakai
+  // globalCOGConfig.Target_Ship_Ni_Min yg configurable dari Settings. Kalau Settings
+  // diubah, gradeChart ikut berubah tapi trendNiChart TIDAK -- 2 chart bersebelahan
+  // menampilkan cut-off berbeda utk konsep yg sama. Sekarang pakai sumber yg sama.
+  const shipMinTrend = (globalCOGConfig && globalCOGConfig.Target_Ship_Ni_Min) || 1.3;
+  const cutOffLine = sortedDates.map(() => shipMinTrend);
 
   trendNiChart.data.labels = sortedDates;
   trendNiChart.data.datasets[0].data = niValues;
   trendNiChart.data.datasets[1].data = cutOffLine;
+  trendNiChart.data.datasets[1].label = (currentLang === 'en' ? 'Cut-off Minimum (' : 'Cut-off Minimum (') + shipMinTrend.toFixed(2) + '%)';
   trendNiChart.update();
 
   if (niValues.length > 0) {
@@ -7477,4 +7652,3 @@ function applyPwaUpdate() {
  if (pwaWaitingWorker) pwaWaitingWorker.postMessage({ type: 'SKIP_WAITING' });
  dismissPwaUpdateToast();
 }
-
