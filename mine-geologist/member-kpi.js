@@ -344,7 +344,13 @@ async function decideKpiEvent(eventId, decision) {
    document.getElementById('kpi-w-' + k + '-val').textContent = val;
    total += parseFloat(val) || 0;
   });
-  document.getElementById('kpi-w-total').textContent = total;
+  const totalEl = document.getElementById('kpi-w-total');
+  totalEl.textContent = total;
+  // BARU (v90.2.128, keputusan user): backend sekarang WAJIB total persis 100 -- beri
+  // peringatan visual (merah) SEBELUM user klik Simpan & kena ditolak backend, supaya
+  // jelas kenapa gagal tanpa perlu baca pesan error dulu.
+  const isValidTotal = Math.abs(total - 100) < 0.01;
+  totalEl.className = isValidTotal ? 'text-title font-bold' : 'text-rose-400 font-bold';
   updateKpiFormulaPreview();
  }
 
@@ -372,28 +378,31 @@ async function decideKpiEvent(eventId, decision) {
  // sama dgn computeKpiFinalScore_ backend (weighted average + Safety Gate), supaya preview
  // di UI konsisten dgn hasil sungguhan begitu disimpan.
  let kpiFormulaPreviewDebounceTimer = null;
+ let kpiFormulaPreviewRequestSeq = 0; // BARU (v90.2.122, temuan audit): sequence guard
  function updateKpiFormulaPreview() {
   clearTimeout(kpiFormulaPreviewDebounceTimer);
   kpiFormulaPreviewDebounceTimer = setTimeout(async () => {
+   const requestSeq = ++kpiFormulaPreviewRequestSeq;
    const previewEl = document.getElementById('kpi-formula-preview-text');
    const namaMember = document.getElementById('kpi-formula-preview-member')?.value;
    if (!previewEl) return;
    if (!namaMember) { previewEl.textContent = currentLang === 'en' ? 'Preview: no member available' : 'Preview: belum ada member'; return; }
    previewEl.textContent = (currentLang === 'en' ? 'Preview: loading...' : 'Preview: memuat...');
    try {
-    const periode = new Date().toISOString().slice(0,7);
+    const periode = getLocalPeriodeYyyyMm();
     const url = GOOGLE_SCRIPT_READ_URL + '?sheet=kpiscore&member_id=' + encodeURIComponent(namaMember) + '&periode=' + periode + '&t=' + new Date().getTime();
     const response = await fetchWithTimeout(url);
     const result = await response.json();
+    if (requestSeq !== kpiFormulaPreviewRequestSeq) return; // pilihan Member/slider sudah berubah lagi, buang hasil basi ini
     if (result.status !== 'success' || !result.data) throw new Error('no data');
     const p = result.data;
-    const scores = {
-     kehadiran: (p.pilar_kehadiran && p.pilar_kehadiran.score) || 0,
-     safety: (p.pilar_safety && p.pilar_safety.score) || 0,
-     sampling: (p.pilar_kelengkapan_sampling && p.pilar_kelengkapan_sampling.score) || 0,
-     laporan: (p.pilar_laporan_tepat_waktu && p.pilar_laporan_tepat_waktu.score) || 0,
-     attitude: (p.pilar_attitude && p.pilar_attitude.score) || 0
-    };
+    // BARU (v90.2.122, temuan audit): pilar yg BELUM ADA skornya (null/undefined) sekarang
+    // DIKELUARKAN dari total bobot penyebut, BUKAN dipaksa jadi 0 -- sebelumnya `|| 0`
+    // membuat weighted average turun drastis kalau 1 pilar memang belum dinilai (mis.
+    // Attitude belum dinilai bulan ini), padahal badge pilar itu sendiri tampil "-"
+    // (bukan 0). Preview sekarang konsisten dgn makna "-" di badge: pilar tsb tidak ikut
+    // dihitung sama sekali, bukan dianggap gagal total.
+    const pilarKeys = { kehadiran: 'pilar_kehadiran', safety: 'pilar_safety', sampling: 'pilar_kelengkapan_sampling', laporan: 'pilar_laporan_tepat_waktu', attitude: 'pilar_attitude' };
     const w = {
      kehadiran: parseFloat(document.getElementById('kpi-w-kehadiran').value) || 0,
      safety: parseFloat(document.getElementById('kpi-w-safety').value) || 0,
@@ -401,19 +410,28 @@ async function decideKpiEvent(eventId, decision) {
      laporan: parseFloat(document.getElementById('kpi-w-laporan').value) || 0,
      attitude: parseFloat(document.getElementById('kpi-w-attitude').value) || 0
     };
-    const totalW = w.kehadiran + w.safety + w.sampling + w.laporan + w.attitude;
-    const weightedSum = scores.kehadiran*w.kehadiran + scores.safety*w.safety + scores.sampling*w.sampling + scores.laporan*w.laporan + scores.attitude*w.attitude;
-    let finalScore = totalW > 0 ? (weightedSum/totalW) : ((scores.kehadiran+scores.safety+scores.sampling+scores.laporan+scores.attitude)/5);
+    let weightedSum = 0, totalW = 0, missingCount = 0;
+    Object.keys(pilarKeys).forEach(key => {
+     const pilarData = p[pilarKeys[key]];
+     const hasScore = pilarData && pilarData.score !== null && pilarData.score !== undefined;
+     if (!hasScore) { missingCount++; return; }
+     weightedSum += pilarData.score * w[key];
+     totalW += w[key];
+    });
+    let finalScore = totalW > 0 ? (weightedSum / totalW) : 0;
+    const scores_safety = (p.pilar_safety && p.pilar_safety.score !== null && p.pilar_safety.score !== undefined) ? p.pilar_safety.score : null;
     let gateNote = '';
     const gate = p.safety_gate;
-    if (gate && gate.enabled && scores.safety < gate.threshold) {
+    if (gate && gate.enabled && scores_safety !== null && scores_safety < gate.threshold) {
      finalScore = Math.min(finalScore, gate.cap);
      gateNote = ' (Gate)';
     }
     finalScore = Math.round(finalScore*100)/100;
     const mode = document.getElementById('kpi-formula-mode-select').value;
-    previewEl.textContent = (currentLang === 'en' ? 'Preview: If using this mode, ' : 'Preview: Jika pakai mode ini, ') + namaMember + ' = ' + finalScore + gateNote + ' (' + mode + ')';
+    const incompleteNote = missingCount > 0 ? (currentLang === 'en' ? ` [${missingCount} pillar(s) not yet scored, excluded]` : ` [${missingCount} pilar belum dinilai, dikecualikan]`) : '';
+    previewEl.textContent = (currentLang === 'en' ? 'Preview: If using this mode, ' : 'Preview: Jika pakai mode ini, ') + namaMember + ' = ' + finalScore + gateNote + ' (' + mode + ')' + incompleteNote;
    } catch (err) {
+    if (requestSeq !== kpiFormulaPreviewRequestSeq) return;
     previewEl.textContent = currentLang === 'en' ? 'Preview: failed to load' : 'Preview: gagal memuat';
    }
   }, 300);
@@ -469,7 +487,7 @@ async function decideKpiEvent(eventId, decision) {
  const finalScoreGateEl = document.getElementById(finalScoreGateId);
  if (!laporanBadgeEl && !kehadiranBadgeEl && !safetyBadgeEl && !samplingBadgeEl && !attitudeBadgeEl && !finalScoreEl) return;
  try {
-  const periode = new Date().toISOString().slice(0,7);
+  const periode = getLocalPeriodeYyyyMm();
   const url = GOOGLE_SCRIPT_READ_URL + '?sheet=kpiscore&member_id=' + encodeURIComponent(namaMember) + '&periode=' + periode + '&t=' + new Date().getTime();
   const response = await fetchWithTimeout(url);
   const result = await response.json();
@@ -905,7 +923,7 @@ async function decideKpiEvent(eventId, decision) {
  // ---- Panduan Rekonsiliasi (accordion, khusus Developer, sekarang dibuka lewat modal) ----
  function openKpiEventModal() {
  document.getElementById('kpi-event-jenis').value = 'Full Exclusion';
- document.getElementById('kpi-event-tanggal').value = new Date().toISOString().slice(0,10);
+ document.getElementById('kpi-event-tanggal').value = getLocalDateYyyyMmDd();
  document.getElementById('kpi-event-pit-area').value = '';
  document.getElementById('kpi-event-target-member').value = '';
  document.getElementById('kpi-event-jam-normal').value = '';
@@ -974,7 +992,7 @@ async function decideKpiEvent(eventId, decision) {
  // ==== BARU (28 Agu): MODAL NILAI ATTITUDE (submitAttitudeAssessment) ====
  function openAttitudeModal() {
  const now = new Date();
- document.getElementById('attitude-periode').value = now.toISOString().slice(0,7);
+ document.getElementById('attitude-periode').value = getLocalPeriodeYyyyMm(now);
  document.getElementById('attitude-member-id').value = '';
  document.getElementById('attitude-disiplin').value = '';
  document.getElementById('attitude-kerjasama').value = '';
@@ -1209,7 +1227,7 @@ async function decideKpiEvent(eventId, decision) {
    const jsaTtdCount = jsaLogsForMember.length;
    const jsaToolboxCount = jsaLogsForMember.filter(l => (l.toolbox_hadir || '').toString().trim().toUpperCase() === 'Y').length;
    const jsaBadgeHtml = jsaTtdCount > 0
-   ? `<div class="flex justify-between"><span class="text-slate-400">JSA:</span> <span class="font-semibold text-cyan-400">${jsaTtdCount}x ${currentLang === 'en' ? 'signed' : 'TTD'} &middot; ${jsaToolboxCount}x Toolbox</span></div>`
+   ? `<div class="flex justify-between"><span class="text-slate-400">JSA <span class="text-slate-600 font-normal">(${currentLang === 'en' ? 'all-time' : 'sepanjang waktu'})</span>:</span> <span class="font-semibold text-cyan-400">${jsaTtdCount}x ${currentLang === 'en' ? 'signed' : 'TTD'} &middot; ${jsaToolboxCount}x Toolbox</span></div>`
    : `<div class="flex justify-between"><span class="text-slate-400">JSA:</span> <span class="font-semibold text-slate-500">${currentLang === 'en' ? 'No record yet' : 'Belum ada catatan'}</span></div>`;
 
    // BARU (v90.2.110): badge pilar KPI "Laporan Tepat Waktu" -- baru pilar INI yang punya
@@ -1289,8 +1307,10 @@ async function decideKpiEvent(eventId, decision) {
   container.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400 text-xs font-medium">${translations[currentLang].member_empty}</div>`;
   }
   renderLeaderboard();
+  markDataFresh_('Member');
  } catch (error) {
   console.error('Error fetching member data:', error);
+  markDataStale_('Member');
   const isTimeout = error.name === 'AbortError';
   container.innerHTML = `
   <div class="col-span-full text-center py-8 text-rose-400 text-xs space-y-3 font-medium">
@@ -1387,4 +1407,3 @@ function openMemberEdit(rowNumber) {
   const btn=document.getElementById('btn-submit-member'); if(btn) btn.innerHTML='<i data-lucide="save" class="w-3.5 h-3.5"></i> Simpan Perubahan';
   showModalAnimated(document.getElementById('form-popup-modal')); lucide.createIcons();
 }
-
