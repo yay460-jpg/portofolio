@@ -1435,10 +1435,19 @@
  staleDataSources.add(sourceName);
  updateStaleDataBanner_();
  }
+ // v90.2.139 FIX (temuan lapangan -- bar penuh di atas terlalu mengganggu): dipindah jadi
+ // toast kompak dekat foto profil sidebar (bawah kiri), muncul dgn animasi slide dari kiri
+ // (bukan bar full-width statis atas). Transisi pakai CSS transform+opacity, ditoggle lewat
+ // class 'stale-toast-show'/'stale-toast-hide' -- elemen baru benar2 dihapus dari DOM
+ // SETELAH animasi slide-keluar selesai (bukan instan), supaya terlihat halus.
  function updateStaleDataBanner_() {
  let banner = document.getElementById('stale-data-banner');
  if (staleDataSources.size === 0) {
-  if (banner) banner.remove();
+  if (banner) {
+   banner.classList.remove('stale-toast-show');
+   banner.classList.add('stale-toast-hide');
+   setTimeout(() => { const b = document.getElementById('stale-data-banner'); if (b) b.remove(); }, 350);
+  }
   return;
  }
  const listText = Array.from(staleDataSources).join(', ');
@@ -1448,10 +1457,25 @@
  if (!banner) {
   banner = document.createElement('div');
   banner.id = 'stale-data-banner';
-  banner.className = 'fixed top-0 left-0 right-0 z-[96] bg-amber-600/95 backdrop-blur-sm text-white text-[11px] font-semibold text-center py-1.5 px-4 shadow-lg';
+  banner.className = 'fixed z-[96] bg-amber-600/95 backdrop-blur-sm text-white text-[11px] font-semibold py-2 px-3 shadow-2xl rounded-xl max-w-[260px] stale-toast-anchor';
+  if (!document.getElementById('stale-toast-style')) {
+   const style = document.createElement('style');
+   style.id = 'stale-toast-style';
+   style.textContent = `
+    .stale-toast-anchor { left: 76px; bottom: 76px; transform: translateX(-24px); opacity: 0; transition: transform 0.3s ease, opacity 0.3s ease; }
+    .stale-toast-anchor.stale-toast-show { transform: translateX(0); opacity: 1; }
+    .stale-toast-anchor.stale-toast-hide { transform: translateX(-24px); opacity: 0; }
+   `;
+   document.head.appendChild(style);
+  }
   document.body.appendChild(banner);
+  // paksa reflow sekali supaya transisi awal (opacity 0 -> 1) benar2 ter-animasi, bukan
+  // langsung muncul instan krn class ditambah di frame yg sama dgn elemen dibuat.
+  void banner.offsetWidth;
  }
- banner.innerHTML = `<i data-lucide="triangle-alert" class="w-3 h-3 inline-block align-text-bottom mr-1"></i> ${message}`;
+ banner.classList.remove('stale-toast-hide');
+ banner.classList.add('stale-toast-show');
+ banner.innerHTML = `<div class="flex items-start gap-1.5"><i data-lucide="triangle-alert" class="w-3.5 h-3.5 shrink-0 mt-0.5"></i><span>${message}</span></div>`;
  if (window.lucide) lucide.createIcons();
  }
  // BARU (v90.2.123, temuan audit): penanda apakah COGConfig SEDANG pakai angka default
