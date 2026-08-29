@@ -6,7 +6,7 @@
  * granular: kalau cuma member-kpi.js berubah, 4 file lain dapat 304 Not Modified,
  * TIDAK perlu download ulang semuanya (beda dari skema lama, 1 file 1MB monolitik).
  * ============================================================ */
-const CACHE_NAME = 'mine-geologist-build-20260829d';
+const CACHE_NAME = 'mine-geologist-build-20260829e';
 
 const APP_SHELL = [
   './',
