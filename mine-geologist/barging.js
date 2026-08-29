@@ -712,11 +712,16 @@
  const shift = document.getElementById('bl-shift').value;
  const area = document.getElementById('bl-area').value;
  const domeId = document.getElementById('bl-dome-id').value;
- const ni = parseFloat(document.getElementById('bl-ni').value) || 0;
- const fe = parseFloat(document.getElementById('bl-fe').value) || 0;
- const co = parseFloat(document.getElementById('bl-co').value) || 0;
- const mgo = parseFloat(document.getElementById('bl-mgo').value) || 0;
- const sio2 = parseFloat(document.getElementById('bl-sio2').value) || 0;
+ // v90.2.133 FIX (temuan audit #4 -- missing != 0): SEBELUMNYA `parseFloat(...) || 0` --
+ // field Ni/Fe/Co/MgO/SiO2 ini OPSIONAL (lolos validasi wajib di bawah), assay boleh
+ // menyusul belakangan. Kosong dipaksa jadi 0 di sini akan tersimpan sbg "hasil lab 0%"
+ // permanen, ikut mengencerkan rata-rata tertimbang Sublot nanti. Sekarang kirim string
+ // kosong apa adanya kalau field belum diisi -- backend yg menentukan cara simpannya.
+ const rawNiVal = document.getElementById('bl-ni').value.trim();
+ const rawFeVal = document.getElementById('bl-fe').value.trim();
+ const rawCoVal = document.getElementById('bl-co').value.trim();
+ const rawMgoVal = document.getElementById('bl-mgo').value.trim();
+ const rawSio2Val = document.getElementById('bl-sio2').value.trim();
  const rit = parseFloat(document.getElementById('bl-rit').value) || 0;
  const tf = parseFloat(document.getElementById('bl-tf').value) || 0;
  const noSublot = document.getElementById('bl-no-sublot').value.trim();
@@ -739,7 +744,7 @@
   const payload = buildAuthenticatedPayload({
   action: 'addBargeLoadingLog',
   tanggal, shift, no_shipment: currentOpenBargeShipment, dome_id: domeId, area,
-  ni, fe, co, mgo, sio2, rit, tf, no_sublot: noSublot
+  ni: rawNiVal, fe: rawFeVal, co: rawCoVal, mgo: rawMgoVal, sio2: rawSio2Val, rit, tf, no_sublot: noSublot
   }, { developerOnly: true });
   const response = await fetch(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload });
   const result = await response.json();
