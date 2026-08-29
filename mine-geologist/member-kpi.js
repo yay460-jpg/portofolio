@@ -494,9 +494,21 @@ async function decideKpiEvent(eventId, decision) {
   const result = await response.json();
   if (result.status !== 'success' || !result.data) { contextEl.innerHTML = ''; return; }
   const events = result.data.events || [];
-  if (events.length === 0) { contextEl.innerHTML = ''; return; }
+  // v90.2.138 FIX (temuan audit #3 -- identitas Nama vs User_ID): kalau backend deteksi
+  // >1 Member dgn Nama persis sama, tampilkan peringatan jelas -- konteks di bawah ini
+  // BISA SAJA milik member lain yg kebetulan namanya identik, bukan cuma dekorasi info.
+  const ambiguousWarning = result.data.identity_ambiguous
+   ? `<div class="text-rose-400 font-bold mb-1">⚠️ ${currentLang === 'en' ? `Ambiguous name (${result.data.identity_match_count} Members share this exact name) -- context below may not belong to this specific person.` : `Nama ambigu (${result.data.identity_match_count} Member punya Nama persis sama) -- konteks di bawah bisa saja bukan milik orang ini.`}</div>`
+   : '';
+  if (events.length === 0 && !result.data.identity_ambiguous) { contextEl.innerHTML = ''; return; }
 
   const sourceIcon = { kpievent: '🔧', issue: '⚠️', rca: '📋' };
+  // v90.2.137 FIX (temuan audit -- klarifikasi cakupan): tag kecil "Tim"/"Semua" utk
+  // event yg TIDAK spesifik ke member ini (scope !== 'personal') -- supaya reviewer tidak
+  // salah kira SEMUA baris di panel ini "milik" member yg kartunya sedang dibuka.
+  const scopeTag = (scope) => scope === 'personal'
+   ? ''
+   : `<span class="px-1 rounded bg-slate-700/60 text-slate-400 text-[8px] font-bold uppercase">${currentLang === 'en' ? 'Team' : 'Tim'}</span>`;
   const rows = events.map((ev, i) => {
    const safeRingkasan = String(ev.ringkasan || '-').replace(/</g, '&lt;');
    const safeDetail = String(ev.detail || '').replace(/</g, '&lt;');
@@ -507,13 +519,16 @@ async function decideKpiEvent(eventId, decision) {
      <span>${sourceIcon[ev.source] || '•'}</span>
      <span class="font-semibold">${tglShort}</span>
      <span class="truncate">${safeRingkasan}</span>
+     ${scopeTag(ev.scope)}
     </div>
     ${safeDetail ? `<div id="kctx-detail-${contextElId}-${i}" class="hidden pl-4 py-1 text-slate-500 italic">${safeDetail}</div>` : ''}
     </div>`;
   }).join('');
 
   contextEl.innerHTML = `
+   ${ambiguousWarning}
    <div class="text-[9px] font-bold text-amber-400 tracking-wide uppercase mb-1">${currentLang === 'en' ? `Context This Period (${events.length})` : `Konteks Periode Ini (${events.length})`}</div>
+   <div class="text-[9px] text-slate-500 mb-1">${currentLang === 'en' ? 'Tag "Team" = not specific to this member, shown for cross-reference' : 'Tag "Tim" = bukan spesifik member ini, ditampilkan utk cross-reference'}</div>
    <div class="space-y-0.5 max-h-24 overflow-y-auto">${rows}</div>
   `;
  } catch (err) {
