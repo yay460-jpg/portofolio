@@ -96,6 +96,11 @@
   const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=domelog&t=' + new Date().getTime());
   const result = await response.json();
   if (result.status !== 'success') throw new Error(result.message || (currentLang === 'en' ? 'Failed to load Dome history.' : 'Gagal memuat riwayat Dome'));
+  // v90.2.125 FIX (temuan audit -- race condition nyata): modal ini PERSISTEN, sama pola
+  // dgn openBargeDetailModal() -- kalau user pindah ke baris Digging lain sblm fetch ini
+  // selesai, response basi ttg baris LAMA bisa menimpa modal yg subtitle-nya sudah baris
+  // BARU. Guard ini buang hasil basi kalau baris yg sedang dibuka user sudah beda.
+  if (row !== currentOpenDiggingRow) return;
 
   const allLogs = result.data || [];
   bodyEl.innerHTML = domeIds.map(domeId => {
@@ -104,6 +109,7 @@
   }).join('');
   lucide.createIcons();
  } catch (err) {
+  if (row !== currentOpenDiggingRow) return;
   console.error('Gagal memuat riwayat Dome:', err);
   const isTimeout = err.name === 'AbortError';
   bodyEl.innerHTML = `<p class="text-[11px] text-rose-400 font-medium">${isTimeout ? (currentLang === 'en' ? 'Server not responding (timeout).' : 'Server tidak merespons (timeout).') : (currentLang === 'en' ? 'Failed to load Dome history.' : 'Gagal memuat riwayat Dome.')}</p>`;
@@ -266,8 +272,10 @@
   renderBargeShipmentList();
   computeReconciliationMatrix(); // F3/F4 butuh Total Plant (Tonase Aktual) dari data ini
   lucide.createIcons();
+  markDataFresh_('Barging');
  } catch (err) {
   console.error('Gagal memuat data shipment:', err);
+  markDataStale_('Barging');
   const isTimeout = err.name === 'AbortError';
   listEl.innerHTML = `<div class="text-center py-6"><p class="text-[11px] text-rose-400 font-medium mb-2">${isTimeout ? (currentLang === 'en' ? 'Server not responding (timeout).' : 'Server tidak merespons (timeout).') : (currentLang === 'en' ? 'Failed to load shipment data.' : 'Gagal memuat data shipment.')}</p><button onclick="fetchBargeShipmentData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all cursor-pointer">${currentLang === 'en' ? 'Retry' : 'Coba Lagi'}</button></div>`;
  }
@@ -347,6 +355,12 @@
   fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=bargeshiftreport&t=' + new Date().getTime()).then(r => r.json()),
   fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=bargesublot&t=' + new Date().getTime()).then(r => r.json())
   ]);
+  // v90.2.125 FIX (temuan audit -- race condition nyata): modal ini PERSISTEN (tidak
+  // dihancurkan/dibangun ulang spt kartu Member), render function query DOM SEGAR
+  // setelah await -- kalau user buka Shipment B sebelum fetch Shipment A selesai, response
+  // A yg telat BENERAN bisa menimpa body modal yg judulnya sudah B. Guard ini buang hasil
+  // basi kalau shipment yg sedang dibuka user sudah beda dari saat fetch ini dimulai.
+  if (noShipment !== currentOpenBargeShipment) return;
   globalBargeLoadingLogData = llRes.status === 'success' ? (llRes.data || []) : [];
   globalBargeShiftReportData = srRes.status === 'success' ? (srRes.data || []) : [];
   globalBargeSublotData = slRes.status === 'success' ? (slRes.data || []) : [];
@@ -357,6 +371,7 @@
   renderBargeSublotTable(noShipment);
   lucide.createIcons();
  } catch (err) {
+  if (noShipment !== currentOpenBargeShipment) return;
   console.error('Gagal memuat detail shipment:', err);
   document.getElementById('barge-detail-summary').innerHTML = `<p class="text-[11px] text-rose-400 col-span-full">${currentLang === 'en' ? 'Failed to load details.' : 'Gagal memuat detail.'}</p>`;
  }
@@ -443,18 +458,22 @@
   tableEl.innerHTML = `<p class="text-[11px] text-slate-500 font-medium">${currentLang === 'en' ? 'No sublot data yet.' : 'Belum ada data Sublot.'}</p>`;
   return;
  }
+ // BARU (v90.2.124, temuan audit): pembeda "belum ada hasil lab" (null/undefined) vs
+ // "hasil lab = 0" (angka 0 yg genuine) -- sebelumnya `|| 0` menyamarkan keduanya jadi
+ // "0.00%"/"0.000" yg sama, padahal beda makna penting utk audit data geologi.
+ const fmtOrDash_ = (val, decimals, suffix) => (val === null || val === undefined || val === '') ? '-' : Number(val).toFixed(decimals) + (suffix || '');
  const rowsHtml = rows.map(r => {
   const safeSublot = String(r.no_sublot || '').replace(/'/g, "\\'");
   const safeShipment = String(r.no_shipment || '').replace(/'/g, "\\'");
   return `
   <tr>
   <td class="p-2 font-semibold text-title">${r.no_sublot} <button type="button" onclick="openSublotRadarModal('${safeSublot}', '${safeShipment}')" title="${currentLang === 'en' ? 'Chemical Fingerprint' : 'Chemical Fingerprint'}" class="ml-1 inline-flex items-center justify-center w-4.5 h-4.5 rounded bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 transition-all cursor-pointer align-middle"><i data-lucide="activity" class="w-2.5 h-2.5"></i></button></td>
-  <td class="p-2 text-right">${(r.tonase_plan || 0).toLocaleString()}</td>
-  <td class="p-2 text-center text-slate-300">${(r.ni_plan || 0).toFixed(2)}%</td>
-  <td class="p-2 text-right">${(r.tonase_aktual || 0).toLocaleString()}</td>
-  <td class="p-2 text-center text-emerald-400">${(r.ni_aktual || 0).toFixed(2)}%</td>
-  <td class="p-2 text-center ${Math.abs(r.disc_ni || 0) > 0.1 ? 'text-amber-400' : 'text-slate-300'}">${(r.disc_ni || 0).toFixed(3)}</td>
-  <td class="p-2 text-center ${Math.abs(r.disc_sio2_mgo || 0) > 0.2 ? 'text-amber-400' : 'text-slate-300'}">${(r.disc_sio2_mgo || 0).toFixed(3)}</td>
+  <td class="p-2 text-right">${r.tonase_plan === null || r.tonase_plan === undefined || r.tonase_plan === '' ? '-' : Number(r.tonase_plan).toLocaleString()}</td>
+  <td class="p-2 text-center text-slate-300">${fmtOrDash_(r.ni_plan, 2, '%')}</td>
+  <td class="p-2 text-right">${r.tonase_aktual === null || r.tonase_aktual === undefined || r.tonase_aktual === '' ? '-' : Number(r.tonase_aktual).toLocaleString()}</td>
+  <td class="p-2 text-center text-emerald-400">${fmtOrDash_(r.ni_aktual, 2, '%')}</td>
+  <td class="p-2 text-center ${Math.abs(r.disc_ni || 0) > 0.1 ? 'text-amber-400' : 'text-slate-300'}">${fmtOrDash_(r.disc_ni, 3)}</td>
+  <td class="p-2 text-center ${Math.abs(r.disc_sio2_mgo || 0) > 0.2 ? 'text-amber-400' : 'text-slate-300'}">${fmtOrDash_(r.disc_sio2_mgo, 3)}</td>
   </tr>
  `;
  }).join('');
@@ -494,6 +513,12 @@
  const labels = elements.map(e => e.label);
  // Plan = 0 dianggap tidak punya acuan deviasi utk unsur itu -- default ratio 100 (netral)
  // supaya bentuk radar tidak "jebol" ke titik 0 hanya krn Plan-nya kebetulan kosong.
+ // BARU (v90.2.124, temuan audit): 100 di sini murni penanda GEOMETRI radar (biar bentuk
+ // tidak collapse), BUKAN berarti "tepat sasaran" -- titik itu akan PERSIS menimpa garis
+ // putus-putus "Target (100%)" scr visual, gampang disalahartikan capaian sempurna padahal
+ // sebenarnya tidak ada baseline sama sekali. `noPlanFlags` melacak elemen mana yg begini,
+ // dipakai tooltip di bawah supaya hover menunjukkan "N/A (Plan belum ada)", bukan "100%".
+ const noPlanFlags = elements.map(e => (parseFloat(r[e.key + '_plan']) || 0) <= 0);
  const ratios = elements.map(e => {
   const planVal = parseFloat(r[e.key + '_plan']) || 0;
   const aktualVal = parseFloat(r[e.key + '_aktual']) || 0;
@@ -552,7 +577,14 @@
    legend: { position: 'bottom', labels: { color: 'rgba(226, 232, 240, 0.85)', font: { size: 10 }, boxWidth: 12 } },
    tooltip: {
    callbacks: {
-    label: (ctxItem) => `${ctxItem.dataset.label}: ${ctxItem.formattedValue}%`
+    // BARU (v90.2.124): elemen tanpa Plan tampil "N/A (Plan belum ada)" di tooltip,
+    // bukan "100%" yg bisa disalahartikan sbg capaian tepat sasaran.
+    label: (ctxItem) => {
+    if (ctxItem.datasetIndex === 1 && noPlanFlags[ctxItem.dataIndex]) {
+     return `${ctxItem.dataset.label}: N/A (${currentLang === 'en' ? 'no Plan data' : 'Plan belum ada'})`;
+    }
+    return `${ctxItem.dataset.label}: ${ctxItem.formattedValue}%`;
+    }
    }
    }
   }
@@ -936,4 +968,3 @@
  // ============================================================
  let kpiFormulaWeightsCache = { A: null, B: null, C: null };
  let kpiFormulaActiveOption = 'A';
-
