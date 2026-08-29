@@ -5302,6 +5302,11 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   digging_form_total_sampel: "Total Sampel (Karung)",
   digging_form_tonase: "Tonase (Otomatis)",
   digging_form_tonase_note: "Total Sampel x Bucket per Sampel x WMT per Bucket (Settings > Bucket & Sampel).",
+  digging_form_ni: "Ni %",
+  digging_form_fe: "Fe %",
+  digging_form_co: "Co %",
+  digging_form_tujuan: "Tujuan",
+  update_tujuan_cancel_btn: "Batal",
   digging_form_mgo: "MgO %",
   digging_form_sio2: "SiO2 %",
   digging_form_sm: "SM %",
@@ -5680,6 +5685,7 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   rekon_view_pending: "Unassigned",
   rekon_view_blockmodel: "Block Model",
   rekon_view_matrix: "Matrix F1-F4",
+  rekon_view_rca: "RCA Log",
   guide_title: "Reconciliation Guide (Developer)",
   guide_open_btn: "View Guide",
   guide_subtitle: "Input order from upstream to downstream -- a reminder in case you forget how to use this dashboard.",
@@ -5962,6 +5968,11 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   digging_form_total_sampel: "Total Samples (Sacks)",
   digging_form_tonase: "Tonnage (Automatic)",
   digging_form_tonase_note: "Total Samples x Buckets per Sample x WMT per Bucket (Settings > Bucket & Sample).",
+  digging_form_ni: "Ni %",
+  digging_form_fe: "Fe %",
+  digging_form_co: "Co %",
+  digging_form_tujuan: "Destination",
+  update_tujuan_cancel_btn: "Cancel",
   digging_form_mgo: "MgO %",
   digging_form_sio2: "SiO2 %",
   digging_form_sm: "SM %",
@@ -13781,6 +13792,7 @@ async function postCentralAuthenticated(source, options) {
     <div class="flex justify-between"><span class="text-slate-400">${translations[currentLang].modal_bench_insp}:</span> <span class="font-semibold text-emerald-400">${inspeksiVal}</span></div>
     <div class="flex justify-between"><span class="text-slate-400">${translations[currentLang].modal_curr_accuracy}:</span> <span class="font-semibold text-blue-400">${accuracyVal}</span></div>
     ${jsaBadgeHtml}
+    <div class="pt-2 mt-1.5 border-t border-slate-700/40 text-[9px] font-bold text-violet-400 tracking-wide uppercase">${currentLang === 'en' ? '5-Pillar KPI Engine (New)' : 'Engine KPI 5 Pilar (Baru)'}</div>
     ${kpiLaporanBadgeHtml}
     ${kpiKehadiranBadgeHtml}
     ${kpiSafetyBadgeHtml}
