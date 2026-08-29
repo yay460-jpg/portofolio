@@ -14,13 +14,19 @@ function markSecurityUserActivity() {
   document.addEventListener(type, markSecurityUserActivity, { passive: true });
 });
 
-// v90.2.64: tab visibility is a polling concern, not an idle signal.
-// When the user returns to the application, that return is itself a real user
-// interaction point; re-validate/rotate the existing session. If the server has
-// already expired it, normal explicit-expiry handling remains authoritative.
+// v90.2.131 FIX (temuan audit -- security/session-behavior): SEBELUMNYA
+// visibilitychange memanggil markSecurityUserActivity() -- kembali ke tab (alt-tab, OS
+// auto-restore fokus, atau notifikasi mobile yg sekilas membawa app ke depan) DIANGGAP
+// aktivitas user nyata, padahal TIDAK ADA pointer/keyboard/touch event sungguhan.
+// Akibatnya: begitu rotateActiveSecurityTokens() dipanggil tepat sesudahnya, jendela
+// idle-check-nya baru saja di-reset oleh visibility itu sendiri -- kontradiksi langsung
+// dgn komentar v90.2.64 di bawah ("idle tetap ditentukan oleh aktivitas user nyata").
+// SEKARANG: kembali ke tab TETAP memicu cek ulang sesi/rotasi (kalau memang masih valid
+// & belum idle timeout), TAPI TIDAK LAGI mereset jam aktivitas -- kalau user genuinely
+// sudah idle lama sebelum tab disembunyikan, kembali ke tab TIDAK diam-diam
+// memperpanjang idle window-nya.
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState !== 'visible') return;
-  markSecurityUserActivity();
   setTimeout(function() {
     if (localStorage.getItem('mine_member_token') || localStorage.getItem('mine_dev_token')) {
       rotateActiveSecurityTokens().catch(function(err) { console.warn('Session resume check skipped:', err); });
@@ -166,4 +172,3 @@ async function loadCredentialProvisionCandidates() {
  select.classList.add('opacity-80', 'cursor-not-allowed');
  if (identity.sender) localStorage.setItem('mine_chat_sender', identity.sender);
  }
-
