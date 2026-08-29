@@ -6830,29 +6830,35 @@ async function cleanupGeneralSheet(sheetName) {
  document.getElementById('sync-status').innerHTML = '<span class="text-red-400 font-bold">' + msg + '</span>';
  }
 
- // BARU (v90.2.121, temuan audit): pengganti `new Date().toISOString().slice(0,7)` yg
- // dipakai KPI preview & Attitude periode -- toISOString() SELALU konversi ke UTC, bukan
- // timezone lokal browser. Bug boundary: di WIB (UTC+7), jam 00:00-06:59 tanggal 1 bulan
- // baru, toISOString() masih menunjuk BULAN LALU (krn di UTC belum lewat tengah malam) --
- // periode yg dikirim ke endpoint kpiscore/Attitude jadi salah 1 bulan tepat di awal bulan.
- // Fungsi ini pakai getFullYear()/getMonth() (getter LOKAL browser, ikut timezone sistem
- // user -- WIB kalau HP/PC diset benar), bukan getter UTC.
- function getLocalPeriodeYyyyMm(dateObj) {
+ // v90.2.138 FIX (temuan audit #4 -- "2 sumber waktu"): SEBELUMNYA getLocalPeriodeYyyyMm/
+ // getLocalDateYyyyMmDd pakai getter LOKAL BROWSER (getFullYear/getMonth/getDate) -- kalau
+ // timezone PC/HP user beda dari APP_TIMEZONE yg dikonfigurasi backend (jarang di Indonesia,
+ // tapi bukan mustahil -- laptop disetel UTC, VPN, dll), "bulan berjalan" versi
+ // frontend & backend bisa beda tepat di sekitar pergantian bulan/hari. Sekarang KEDUANYA
+ // format tanggal berdasarkan `regionalTimeSettings.timezone` (di-cache dari APP_TIMEZONE
+ // backend via loadRegionalTimeSettings() saat app dibuka) -- 1 sumber kebenaran waktu yg
+ // SAMA dgn backend, bukan lagi 2 sumber terpisah. Fallback ke getter browser HANYA kalau
+ // regionalTimeSettings belum sempat termuat (race sangat awal) atau timezone string rusak.
+ function formatDateInAppTimezone_(dateObj) {
   const d = dateObj || new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  return y + '-' + m;
+  const tz = (typeof regionalTimeSettings !== 'undefined' && regionalTimeSettings && regionalTimeSettings.timezone) || 'Asia/Jakarta';
+  try {
+   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
+   const map = {};
+   parts.forEach(p => { map[p.type] = p.value; });
+   if (map.year && map.month && map.day) return { year: map.year, month: map.month, day: map.day };
+  } catch (e) { /* fallback di bawah kalau timezone string invalid/regionalTimeSettings blm siap */ }
+  return { year: String(d.getFullYear()), month: String(d.getMonth() + 1).padStart(2, '0'), day: String(d.getDate()).padStart(2, '0') };
  }
 
- // BARU (v90.2.122, temuan audit): sama alasannya dgn getLocalPeriodeYyyyMm() -- pengganti
- // `new Date().toISOString().slice(0,10)` yg dipakai default tanggal form (Digging/Validasi/
- // KPI Event/Issue) & nama file unduhan. Pakai getter tanggal LOKAL, bukan UTC.
+ function getLocalPeriodeYyyyMm(dateObj) {
+  const p = formatDateInAppTimezone_(dateObj);
+  return p.year + '-' + p.month;
+ }
+
  function getLocalDateYyyyMmDd(dateObj) {
-  const d = dateObj || new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return y + '-' + m + '-' + day;
+  const p = formatDateInAppTimezone_(dateObj);
+  return p.year + '-' + p.month + '-' + p.day;
  }
 
  function cleanNumber(val) {
