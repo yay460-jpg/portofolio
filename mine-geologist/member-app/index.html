@@ -50,6 +50,16 @@ let currentTab = 'ringkasan';
 let globalCOGConfig = null;
 let globalDiggingToday = [];
 let globalValidasiToday = [];
+// v90.2.113 BARU (Peta): dataset UTUH (tanpa limit 100) khusus utk Peta -- lihat catatan
+// di loadRingkasanData(). globalValidasiToday TETAP dipakai apa adanya utk tab Validasi,
+// TIDAK diubah -- 2 dataset terpisah, sengaja tidak saling mewarisi filter/limit.
+let globalValidasiFullForMap = [];
+
+// ==== PETA (Mine Grid) -- v90.2.113 BARU ====
+// State panel/interaksi peta -- terpisah dari state tab lain, tidak saling pengaruh.
+let mapZoom = 1;             // 1 = fit-semua-titik (default), >1 memperbesar
+let mapDetailIdTp = null;    // ID TP yg sedang dibuka detailnya, null = tidak ada modal terbuka
+const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 4, MAP_ZOOM_STEP = 0.5;
 let sessionInfo = null; // {token, userName, loginId, roleId, avatarUrl}
 let loginInFlight = false;
 let diggingFormState = { tanggal:'', shift:'Pagi', cuaca:'Cerah', pit:'', blok:'', tipe_ore:'Sapro', id_sampel:'', total_sampel:'', ni:'', fe:'', co:'', mgo:'', sio2:'', tujuan:'', ship:'' };
@@ -309,6 +319,9 @@ async function loadRingkasanData() {
         }
         // else: baris benar-benar kosong -- dilewati.
       });
+      globalValidasiFullForMap = filled.slice(); // v90.2.113 (Peta): SALINAN UTUH, sengaja TIDAK
+      // ikut .slice(-100) di bawah -- Peta butuh SEMUA titik TP, bukan cuma 100 baris terakhir
+      // yg ditampilkan tab Validasi. "Filter Peta jangan warisi limit tab lain" (poin desain #5).
       globalValidasiToday = filled.slice(-100).reverse();
     }
   } catch (err) {
@@ -925,7 +938,7 @@ function groupValidasiByTp(rows) {
     const maxDepth = depthValues.length ? Math.max(...depthValues) : 0;
     return {
       idTp, depths,
-      area: pickStatic('Area'), bench: pickStatic('Bench'), timur: pickStatic('Timur'), utara: pickStatic('Utara'),
+      blok: pickStatic('Blok'), area: pickStatic('Area'), bench: pickStatic('Bench'), timur: pickStatic('Timur'), utara: pickStatic('Utara'),
       warna: pickStatic('Warna'), struktur: pickStatic('Struktur'), tipeLaterit: pickStatic('Tipe_Laterit'),
       tanggal: pickStatic('Tanggal'), pelapor: pickStatic('Pelapor'),
       avgNi, avgFe: avgOf(feArr), avgCo: avgOf(coArr), avgMgo: avgOf(mgoArr), avgSio2: avgOf(sio2Arr), avgSm,
@@ -933,6 +946,227 @@ function groupValidasiByTp(rows) {
     };
   });
 }
+
+// v90.2.113 BARU (Peta -- kontrak mapData): dibangun dari dataset UTUH globalValidasiFullForMap
+// (bukan globalValidasiToday yg sudah kepotong 100), lalu disaring hanya field yg genuinely
+// dibutuhkan Peta (poin desain #1 "field minimum") -- BUKAN seluruh baris Validasi mentah.
+// Detail assay/kedalaman tetap ada (via `depths` dari groupValidasiByTp), tapi field lain yg
+// tidak relevan utk visualisasi lokasi (Pelapor dkk) sengaja tidak dibawa ke object akhir ini.
+function buildMapData() {
+  const grouped = groupValidasiByTp(globalValidasiFullForMap);
+  return grouped.map(g => ({
+    idTp: g.idTp,
+    blok: g.blok,
+    area: g.area,
+    bench: g.bench,
+    timur: g.timur,
+    utara: g.utara,
+    tanggal: g.tanggal,
+    tipeLaterit: g.tipeLaterit,
+    classGrade: g.classGrade,
+    avgNi: g.avgNi,
+    depthCount: g.depthCount,
+    maxDepth: g.maxDepth,
+    depths: g.depths, // dipakai kalau marker diklik utk detail kedalaman
+    // Koordinat invalid (poin desain #7/#9) -- ditandai eksplisit di sini, BUKAN di renderer,
+    // supaya 1 sumber kebenaran "titik ini bisa diplot atau tidak".
+    hasValidCoord: !!(String(g.timur||'').trim() && String(g.utara||'').trim() && !isNaN(parseFloat(g.timur)) && !isNaN(parseFloat(g.utara)))
+  }));
+}
+
+// ==== Mine Grid: geometri auto-scale (poin desain #4) ====
+// Timur/Utara itu koordinat GRID tambang (Easting/Northing lokal, spt contoh PDF ArcGIS
+// "Timur 428200-428300, Utara 101900-102000"), BUKAN Latitude/Longitude -- sengaja TIDAK
+// dipakai di Leaflet/Google Maps. Diplot sbg scatter-plot SVG custom, auto-scale ke area
+// yg tersedia berapa pun rentang koordinatnya (tidak hardcode skala tertentu).
+function computeMineGridBounds(points) {
+  const valid = points.filter(p => p.hasValidCoord);
+  if (!valid.length) return null;
+  const timurs = valid.map(p => parseFloat(p.timur));
+  const utaras = valid.map(p => parseFloat(p.utara));
+  let minT = Math.min(...timurs), maxT = Math.max(...timurs);
+  let minU = Math.min(...utaras), maxU = Math.max(...utaras);
+  // Jaga-jaga: kalau semua titik kebetulan segaris (rentang 0), beri buffer artifisial
+  // supaya SVG tidak collapse jadi 1 titik/garis tak terlihat.
+  if (maxT - minT < 1) { minT -= 5; maxT += 5; }
+  if (maxU - minU < 1) { minU -= 5; maxU += 5; }
+  // Padding 10% di tiap sisi supaya marker di tepi rentang tidak mepet ke batas SVG.
+  const padT = (maxT - minT) * 0.1, padU = (maxU - minU) * 0.1;
+  return { minT: minT - padT, maxT: maxT + padT, minU: minU - padU, maxU: maxU + padU };
+}
+
+// Konversi 1 titik Timur/Utara -> koordinat SVG (x,y). SVG y-axis terbalik dari Utara
+// (Utara makin besar = "ke atas" secara peta, tapi SVG y makin besar = "ke bawah") --
+// makanya utara di-flip di rumus y.
+function projectToSvg(timur, utara, bounds, viewW, viewH) {
+  const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+  const x = ((timur - bounds.minT) / rangeT) * viewW;
+  const y = viewH - (((utara - bounds.minU) / rangeU) * viewH);
+  return { x, y };
+}
+
+// v90.2.114 BARU: skala batang GENUINELY hidup -- dihitung ulang tiap kali mapZoom berubah
+// (BUKAN angka/panjang tetap). Timur/Utara sudah dikonfirmasi satuan METER (sama seperti
+// contoh peta ArcGIS PKS1E). Aim ~25% lebar tampilan, dibulatkan ke angka "bersih" (1/2/5/10/
+// 20/25/50/100/...) terdekat yg TIDAK melebihi target -- supaya batang selalu menunjukkan
+// jarak asli yg benar pada zoom berapapun, bukan dekorasi statis.
+const NICE_SCALE_METERS = [1,2,5,10,20,25,50,100,200,250,500,1000,2000,5000];
+function renderMapScaleBar(bounds) {
+  if (!bounds) return '';
+  const viewW = 320;
+  // Total meter yg terlihat di LEBAR PENUH viewBox saat ini (viewBox menyempit saat zoom,
+  // jadi meter yg terlihat pun ikut menyempit -- inilah yg bikin skala "hidup").
+  const totalMetersVisible = (bounds.maxT - bounds.minT) / mapZoom;
+  const target = totalMetersVisible * 0.25;
+  let niceMeters = NICE_SCALE_METERS[0];
+  for (const m of NICE_SCALE_METERS) { if (m <= target) niceMeters = m; else break; }
+  const barWidthPercent = Math.min(60, (niceMeters / totalMetersVisible) * 100);
+  return '<div class="absolute left-3 bottom-3 flex flex-col items-start gap-1">' +
+    '<div class="h-[3px] rounded-full bg-white/70" style="width:' + barWidthPercent.toFixed(1) + '%; min-width:20px;"></div>' +
+    '<div class="text-[9px] text-white/60 font-semibold">' + niceMeters + ' m</div>' +
+  '</div>';
+}
+
+function renderMineGridSvg(points) {
+  const bounds = computeMineGridBounds(points);
+  const viewW = 320, viewH = 320;
+  if (!bounds) return '';
+  // Zoom diterapkan lewat viewBox SVG (bukan transform per-titik) -- viewBox lebih kecil
+  // = area yg sama ditampilkan lebih besar (efek perbesar), digeser ke tengah supaya
+  // titik yg terlihat tetap proporsional terhadap pusat, bukan menempel pojok kiri-atas.
+  const zoomedW = viewW / mapZoom, zoomedH = viewH / mapZoom;
+  const offX = (viewW - zoomedW) / 2, offY = (viewH - zoomedH) / 2;
+  const valid = points.filter(p => p.hasValidCoord);
+  let svg = '<svg viewBox="' + offX + ' ' + offY + ' ' + zoomedW + ' ' + zoomedH + '" class="w-full h-full" style="touch-action:none;">';
+  // Grid garis bantu tipis (visual saja, bukan data) -- membantu orientasi skala.
+  for (let i = 1; i < 4; i++) {
+    const gx = (viewW / 4) * i, gy = (viewH / 4) * i;
+    svg += '<line x1="' + gx + '" y1="0" x2="' + gx + '" y2="' + viewH + '" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';
+    svg += '<line x1="0" y1="' + gy + '" x2="' + viewW + '" y2="' + gy + '" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';
+  }
+  valid.forEach(p => {
+    const raw = projectToSvg(parseFloat(p.timur), parseFloat(p.utara), bounds, viewW, viewH);
+    const preset = getGradeColorPreset(p.classGrade);
+    const fillColor = { merah:'#f43f5e', abu:'#94a3b8', kuning:'#f59e0b', biru:'#3b82f6', hijau:'#22c55e' }[
+      (globalCOGConfig && globalCOGConfig['Warna_' + p.classGrade]) || GRADE_COLOR_DEFAULTS[p.classGrade] || 'abu'
+    ];
+    svg += '<g onclick="openMapDetail(\'' + p.idTp.replace(/'/g,"\\'") + '\')" style="cursor:pointer;">' +
+      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="7" fill="' + fillColor + '" fill-opacity="0.25" stroke="' + fillColor + '" stroke-width="2"/>' +
+      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="2.5" fill="' + fillColor + '"/>' +
+      '</g>';
+  });
+  svg += '</svg>';
+  return svg;
+}
+
+function zoomMapIn() { mapZoom = Math.min(MAP_ZOOM_MAX, mapZoom + MAP_ZOOM_STEP); render(); }
+function zoomMapOut() { mapZoom = Math.max(MAP_ZOOM_MIN, mapZoom - MAP_ZOOM_STEP); render(); }
+// "Crosshair" = reset tampilan ke fit-semua-titik -- BUKAN GPS lokasi user (poin desain #4,
+// GPS Generic sengaja tidak dikerjakan krn tidak ada sumber Lat/Long sama sekali).
+function resetMapView() { mapZoom = 1; render(); }
+
+function openMapDetail(idTp) { mapDetailIdTp = idTp; render(); }
+function closeMapDetail() { mapDetailIdTp = null; render(); }
+
+function renderMapDetailModal(mapData) {
+  if (!mapDetailIdTp) return '';
+  const p = mapData.find(m => m.idTp === mapDetailIdTp);
+  if (!p) return ''; // TP hilang dari dataset (mis. re-fetch di tengah modal terbuka) -- tutup diam2, bukan error
+  const depthRows = (p.depths || []).slice().sort((a,b) => (parseFloat(getField(a,'Meter'))||0) - (parseFloat(getField(b,'Meter'))||0))
+    .map(d => '<div class="flex items-center justify-between py-1.5 border-b border-white/[0.06] text-[11px]">' +
+      '<span class="text-white/50">' + (getField(d,'Meter')||'-') + ' m</span>' +
+      '<span class="text-white font-semibold">Ni ' + fmt2(parseFloat(getField(d,'Ni %')||getField(d,'Ni'))) + '%</span>' +
+      '</div>').join('');
+  return '<div class="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onclick="closeMapDetail()">' +
+    '<div class="w-full max-w-md bg-[#0b1329] border-t border-white/10 rounded-t-[20px] p-5 max-h-[75vh] overflow-y-auto" onclick="event.stopPropagation()">' +
+      '<div class="flex items-center justify-between mb-3">' +
+        '<div class="text-white font-bold text-base">' + p.idTp + '</div>' +
+        renderClassGradeBadge(p.classGrade) +
+      '</div>' +
+      '<div class="grid grid-cols-2 gap-2 mb-3 text-[11px]">' +
+        '<div><span class="text-white/40">Blok</span><div class="text-white font-semibold">' + (p.blok||'-') + '</div></div>' +
+        '<div><span class="text-white/40">Area</span><div class="text-white font-semibold">' + (p.area||'-') + '</div></div>' +
+        '<div><span class="text-white/40">Bench</span><div class="text-white font-semibold">' + (p.bench||'-') + '</div></div>' +
+        '<div><span class="text-white/40">Tipe</span><div class="text-white font-semibold">' + (p.tipeLaterit||'-') + '</div></div>' +
+        '<div><span class="text-white/40">Timur</span><div class="text-white font-semibold">' + (p.timur||'-') + '</div></div>' +
+        '<div><span class="text-white/40">Utara</span><div class="text-white font-semibold">' + (p.utara||'-') + '</div></div>' +
+      '</div>' +
+      '<div class="text-[10px] font-bold text-white/40 tracking-wide mb-1">KEDALAMAN (' + p.depthCount + '/' + p.maxDepth + ' m)</div>' +
+      depthRows +
+      '<button onclick="closeMapDetail()" class="w-full mt-4 py-2.5 rounded-xl bg-white/[0.06] text-white text-xs font-bold">Tutup</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderPeta() {
+  let html = renderHeader();
+  html += '<main class="app-main flex-1 min-h-0 flex flex-col gap-[10px] px-4 pt-3 pb-3">';
+
+  // v90.2.113: state ERROR (poin desain #7) -- pakai dataLoadErrorMsg yg SAMA dgn tab
+  // lain (1 fetch yg sama mengisi globalValidasiFullForMap), + tombol retry KHUSUS di sini
+  // (app ini blm py tombol retry global manapun -- ditambahkan scoped ke Peta dulu).
+  if (dataLoadErrorMsg) {
+    html += renderSectionTitle('PETA LOKASI', 'gagal memuat');
+    html += '<div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-[12px] bg-[#0b1329] border border-rose-500/20 p-8 text-center">' +
+      icon('alert-triangle','w-10 h-10 text-rose-400') +
+      '<div class="text-white font-bold text-sm">Gagal Memuat Data Peta</div>' +
+      '<div class="text-[11px] text-white/40 max-w-[260px]">' + dataLoadErrorMsg + '</div>' +
+      '<button onclick="loadRingkasanData()" class="mt-1 px-4 py-2 rounded-xl bg-[#2563eb] text-white text-xs font-bold active:scale-95 transition-transform">Coba Lagi</button>' +
+    '</div>';
+    html += '</main>' + renderBottomNav();
+    return html;
+  }
+
+  const mapData = buildMapData();
+  const validPoints = mapData.filter(p => p.hasValidCoord);
+  const invalidCount = mapData.length - validPoints.length;
+
+  html += renderSectionTitle('PETA LOKASI', mapData.length + ' titik TP');
+
+  // v90.2.113: state EMPTY (poin desain #7) -- 0 TP sama sekali (bukan krn error, genuinely
+  // belum ada data Validasi).
+  if (mapData.length === 0) {
+    html += '<div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-8 text-center">' +
+      icon('map','w-10 h-10 text-white/20') +
+      '<div class="text-white font-bold text-sm">Belum Ada Titik TP</div>' +
+      '<div class="text-[11px] text-white/40 max-w-[260px]">Data Validasi/Test Pit belum ada utk periode ini.</div>' +
+    '</div>';
+    html += '</main>' + renderBottomNav();
+    return html;
+  }
+
+  // Semua TP ADA tapi TIDAK SATUPUN punya koordinat valid -- beda dari "benar2 kosong",
+  // jadi pesan & state-nya juga dibedakan (poin desain #9, "TP tanpa koordinat").
+  if (validPoints.length === 0) {
+    html += '<div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-[12px] bg-[#0b1329] border border-amber-500/20 p-8 text-center">' +
+      icon('map-pin-off','w-10 h-10 text-amber-400/60') +
+      '<div class="text-white font-bold text-sm">Koordinat Belum Tersedia</div>' +
+      '<div class="text-[11px] text-white/40 max-w-[260px]">' + mapData.length + ' titik TP ada, tapi belum satupun punya Timur/Utara terisi dari Plan/Head.</div>' +
+    '</div>';
+    html += '</main>' + renderBottomNav();
+    return html;
+  }
+
+  // ==== SUCCESS: render Mine Grid ====
+  html += '<div class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden">' +
+    renderMineGridSvg(validPoints) +
+    // Kontrol zoom + crosshair (reset view) -- poin desain #2 (MAP-02): sekarang BENAR2
+    // py handler, bukan sekadar elemen visual.
+    '<div class="absolute right-3 top-3 flex flex-col gap-2">' +
+      '<button onclick="zoomMapIn()" aria-label="Perbesar" class="w-9 h-9 rounded-full bg-[#0b1329]/90 border border-white/10 flex items-center justify-center active:scale-95 transition-transform">' + icon('plus','w-4 h-4 text-white') + '</button>' +
+      '<button onclick="zoomMapOut()" aria-label="Perkecil" class="w-9 h-9 rounded-full bg-[#0b1329]/90 border border-white/10 flex items-center justify-center active:scale-95 transition-transform">' + icon('minus','w-4 h-4 text-white') + '</button>' +
+      '<button onclick="resetMapView()" aria-label="Reset tampilan" class="w-9 h-9 rounded-full bg-[#0b1329]/90 border border-white/10 flex items-center justify-center active:scale-95 transition-transform">' + icon('crosshair','w-4 h-4 text-white') + '</button>' +
+    '</div>' +
+    (invalidCount > 0 ? '<div class="absolute left-3 bottom-11 px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-300 font-semibold">' + invalidCount + ' TP tanpa koordinat</div>' : '') +
+    renderMapScaleBar(computeMineGridBounds(validPoints)) +
+  '</div>';
+  html += '<div class="text-[10px] text-white/30 text-center shrink-0">Koordinat grid tambang (Timur/Utara) -- bukan GPS. Tap titik utk detail.</div>';
+  html += '</main>';
+  html += renderBottomNav();
+  html += renderMapDetailModal(mapData);
+  return html;
+}
+
 // ==== Class Grade badge -- sistem IDENTIK dgn dashboard web (renderClassGradeBadge()):
 // 5 preset warna translucent+border, dibaca dari globalCOGConfig.Warna_<Grade> kalau
 // Developer sudah kustomisasi lewat Settings, fallback ke default sama persis dgn master.
@@ -1140,22 +1374,8 @@ function renderValidasiFormModal() {
   return renderSimpleModal('Input Validasi', 'Data assay Test Pit', body, 'closeValidasiForm()');
 }
 
-// ==== RENDER: PETA (Coming Soon -- belum ada data GPS/koordinat di backend) ====
-function renderPeta() {
-  let html = renderHeader();
-  html += '<main class="app-main flex-1 min-h-0 flex flex-col gap-[10px] px-4 pt-3 pb-3">';
-  html += renderSectionTitle('PETA LOKASI', 'coming soon');
-  html += '<div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-8 text-center">' +
-    '<div class="w-16 h-16 rounded-full bg-[#2563eb]/10 border-2 border-[#2563eb]/30 flex items-center justify-center">' +
-      icon('map','w-7 h-7 text-[#2563eb]') +
-    '</div>' +
-    '<div class="text-white font-bold text-sm">Peta Lokasi -- Segera Hadir</div>' +
-    '<div class="text-[11px] text-white/40 max-w-[260px]">Fitur peta GPS pit &amp; area sampling masih dalam pengembangan. Data koordinat belum tersedia di backend saat ini.</div>' +
-  '</div>';
-  html += '</main>';
-  html += renderBottomNav();
-  return html;
-}
+// ==== renderPeta() lama (placeholder "Segera Hadir") sudah DIHAPUS v90.2.113 --
+// digantikan versi Mine Grid nyata di atas (dekat buildMapData()). ====
 
 // ==== MODAL: REPORT DATA (dulu tab "Laporan", sekarang dipindah ke menu avatar) ====
 let reportModalOpen = false;
