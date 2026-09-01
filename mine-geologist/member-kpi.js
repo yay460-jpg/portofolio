@@ -1269,9 +1269,17 @@ async function decideKpiEvent(eventId, decision) {
 
    const namaVal = member['nama'] || member['name'] || 'Tanpa Nama';
    const jabatanVal = member['jabatan'] || member['role'] || '-';
-   const targetVal = member['target'] || '-';
-   const inspeksiVal = member['inspeksi'] || '-';
-   const accuracyVal = member['accuracy'] || '-';
+   // v90.2.140 FIX (keputusan user 30 Agu -- alih fungsi Accuracy Grade lama): backend
+   // sekarang kirim field BARU (total_tonase/avg_ni_total/waste_tonase/avg_ni_waste/
+   // tonase_murni/avg_ni_murni) menggantikan target/inspeksi/accuracy statis lama.
+   const fmt1 = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toLocaleString('id-ID', {minimumFractionDigits:1, maximumFractionDigits:1});
+   const fmtPct2 = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toFixed(2) + '%';
+   const totalTonaseVal = fmt1(member['total_tonase']);
+   const avgNiTotalVal = fmtPct2(member['avg_ni_total']);
+   const wasteTonaseVal = fmt1(member['waste_tonase']);
+   const avgNiWasteVal = fmtPct2(member['avg_ni_waste']);
+   const tonaseMurniVal = fmt1(member['tonase_murni']);
+   const avgNiMurniVal = fmtPct2(member['avg_ni_murni']);
    const statusVal = member['status'] || '-';
    const gradeVal = member['grade'] || '-';
 
@@ -1340,9 +1348,22 @@ async function decideKpiEvent(eventId, decision) {
     </div>
     </div>
     <div class="space-y-1.5 mb-3.5 font-medium">
-    <div class="flex justify-between"><span class="text-slate-400">${translations[currentLang].modal_blending_target}:</span> <span class="font-semibold text-title">${targetVal}</span></div>
-    <div class="flex justify-between"><span class="text-slate-400">${translations[currentLang].modal_bench_insp}:</span> <span class="font-semibold text-emerald-400">${inspeksiVal}</span></div>
-    <div class="flex justify-between"><span class="text-slate-400">${translations[currentLang].modal_curr_accuracy}:</span> <span class="font-semibold text-blue-400">${accuracyVal}</span></div>
+    <div class="pt-1 pb-1.5">
+     <div class="text-[9px] font-bold text-slate-500 tracking-wide uppercase mb-1">${currentLang === 'en' ? 'Total Excavation' : 'Total Penggalian'}</div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Tonnage' : 'Tonase'}</span><span class="font-semibold text-title">${totalTonaseVal} ${totalTonaseVal !== '-' ? 'ton' : ''}</span></div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Average Ni' : 'Average Ni'}</span><span class="font-semibold text-title">${avgNiTotalVal}</span></div>
+    </div>
+    <div class="pt-1.5 pb-1.5 border-t border-slate-700/40">
+     <div class="text-[9px] font-bold text-amber-400/80 tracking-wide uppercase mb-1">${currentLang === 'en' ? 'Waste Non COG' : 'Waste Non COG'}</div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Tonnage' : 'Tonase'}</span><span class="font-semibold text-title">${wasteTonaseVal} ${wasteTonaseVal !== '-' ? 'ton' : ''}</span></div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Average Ni' : 'Average Ni'}</span><span class="font-semibold text-title">${avgNiWasteVal}</span></div>
+    </div>
+    <div class="pt-1.5 pb-1 border-t border-slate-700/40">
+     <div class="text-[9px] font-bold text-emerald-400/80 tracking-wide uppercase mb-1">${currentLang === 'en' ? 'Net Result' : 'Hasil Bersih'}</div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Tonnage' : 'Tonase'}</span><span class="font-semibold text-emerald-400">${tonaseMurniVal} ${tonaseMurniVal !== '-' ? 'ton' : ''}</span></div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Average Ni' : 'Average Ni'}</span><span class="font-semibold text-emerald-400">${avgNiMurniVal}</span></div>
+    </div>
+    ${member['anomaly_waste_exceeds_total'] ? `<div class="text-[9px] text-rose-400 font-semibold">⚠ ${currentLang === 'en' ? 'Data anomaly: Waste exceeds Total' : 'Anomali data: Waste melebihi Total'}</div>` : ''}
     ${jsaBadgeHtml}
     <div class="pt-2 mt-1.5 border-t border-slate-700/40 text-[9px] font-bold text-violet-400 tracking-wide uppercase">${currentLang === 'en' ? '5-Pillar KPI Engine (New)' : 'Engine KPI 5 Pilar (Baru)'}</div>
     ${kpiLaporanBadgeHtml}
@@ -1411,12 +1432,19 @@ async function decideKpiEvent(eventId, decision) {
  document.getElementById('modal-hadir').innerText = member['absensi_hadir'] || '-';
  document.getElementById('modal-izin').innerText = member['absensi_izin'] || '-';
  document.getElementById('modal-cuti').innerText = member['absensi_cuti'] || '-';
- document.getElementById('modal-target').innerText = member['target'] || '-';
- document.getElementById('modal-inspeksi').innerText = member['inspeksi'] || '-';
+ // v90.2.140 FIX: field lama target/inspeksi/accuracy diganti hasil hitung Produksi_GC.
+ const fmt1M = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toLocaleString('id-ID', {minimumFractionDigits:1, maximumFractionDigits:1}) + (isNaN(parseFloat(v)) ? '' : ' ton');
+ const fmtPct2M = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toFixed(2) + '%';
+ document.getElementById('modal-target').innerText = fmt1M(member['total_tonase']);
+ document.getElementById('modal-inspeksi').innerText = fmtPct2M(member['avg_ni_total']);
  document.getElementById('modal-catatan').innerText = member['catatan_kinerja'] || '-';
  document.getElementById('modal-detail').innerText = member['detail'] || '-';
- document.getElementById('modal-accuracy').innerText = member['accuracy'] || '-';
+ document.getElementById('modal-accuracy').innerText = fmt1M(member['waste_tonase']) + (member['waste_tonase'] ? ' @ ' + fmtPct2M(member['avg_ni_waste']) : '');
  document.getElementById('modal-grade').innerText = member['grade'] || '-';
+ // v90.2.140 BARU: "Hasil Bersih" (Tonase Murni + Avg Ni Murni) -- elemen id="modal-hasil-bersih"
+ // ditambahkan ke index.html, diisi di sini kalau elemennya ada (aman kalau markup blm diupdate).
+ var hasilBersihEl = document.getElementById('modal-hasil-bersih');
+ if (hasilBersihEl) hasilBersihEl.innerText = fmt1M(member['tonase_murni']) + ' @ ' + fmtPct2M(member['avg_ni_murni']);
 
  const modal = document.getElementById('member-modal');
  showModalAnimated(modal);
