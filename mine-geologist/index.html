@@ -4397,8 +4397,11 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
 
   <div>
   <h4 class="text-[11px] font-bold text-blue-400 uppercase tracking-wider mb-2" data-i18n="modal_field_perf">Kinerja Lapangan</h4>
-  <div class="flex justify-between mb-1"><span class="text-slate-400" data-i18n="modal_blending_target">Target Blending</span><span id="modal-target" class="font-semibold text-title"></span></div>
-  <div class="flex justify-between"><span class="text-slate-400" data-i18n="modal_bench_insp">Inspeksi Bench</span><span id="modal-inspeksi" class="font-semibold text-emerald-400"></span></div>
+  <!-- v90.2.140 (keputusan user 30 Agu -- alih fungsi Target Blending/Inspeksi Bench/
+       Accuracy Grade/Absensi): label & isi diganti hasil hitung LIVE dari Produksi_GC,
+       menggantikan sistem lama berbasis input form manual statis. -->
+  <div class="flex justify-between mb-1"><span class="text-slate-400" data-i18n="modal_total_tonase">Total Tonase</span><span id="modal-target" class="font-semibold text-title"></span></div>
+  <div class="flex justify-between"><span class="text-slate-400" data-i18n="modal_avg_ni_total">Average Ni</span><span id="modal-inspeksi" class="font-semibold text-emerald-400"></span></div>
   </div>
 
   <div>
@@ -4408,14 +4411,22 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
   </div>
 
   <div class="border-t border-slate-700/40 pt-4">
-  <h4 class="text-[11px] font-bold text-blue-400 uppercase tracking-wider mb-2" data-i18n="modal_grading_standard">Standar Penilaian Accuracy Grade</h4>
+  <h4 class="text-[11px] font-bold text-blue-400 uppercase tracking-wider mb-2" data-i18n="modal_grading_standard">Waste Non COG</h4>
   <p class="text-slate-400 text-xs leading-relaxed mb-3 font-medium" data-i18n="modal_grading_desc">
-   Nilai Accuracy Grade dihitung dari bobot: <b class="text-slate-200">40% Target Blending</b> + <b class="text-slate-200">40% Inspeksi Bench</b> + <b class="text-slate-200">20% Absensi</b>.
+   Tonase &amp; Average Ni dari baris Produksi_GC Member ini yang terklasifikasi <b class="text-slate-200">Waste</b> (di bawah batas COG minimum di Settings).
   </p>
-  <div class="flex justify-between items-center bg-blue-500/10 border border-blue-500/30 rounded-xl p-3">
-   <span class="text-slate-300 font-medium" data-i18n="modal_curr_accuracy">Accuracy Grade Saat Ini</span>
+  <div class="flex justify-between items-center bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 mb-3">
+   <span class="text-slate-300 font-medium" data-i18n="modal_curr_accuracy">Waste Tonase @ Avg Ni</span>
+   <span id="modal-accuracy" class="font-bold text-amber-400"></span>
+  </div>
+  <h4 class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider mb-2">Hasil Bersih</h4>
+  <p class="text-slate-400 text-xs leading-relaxed mb-3 font-medium">
+   Tonase &amp; Average Ni murni setelah Waste Non COG dipisahkan dari Total.
+  </p>
+  <div class="flex justify-between items-center bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3">
+   <span class="text-slate-300 font-medium">Tonase Murni @ Avg Ni Murni</span>
    <div class="flex items-center gap-2">
-   <span id="modal-accuracy" class="font-bold text-blue-400"></span>
+   <span id="modal-hasil-bersih" class="font-bold text-emerald-400"></span>
    <span id="modal-grade" class="px-2 py-0.5 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold"></span>
    </div>
   </div>
