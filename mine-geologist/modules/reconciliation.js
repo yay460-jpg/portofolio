@@ -1897,7 +1897,7 @@ window.submitCOGConfigForm = submitCOGConfigForm;
   fetchBlockModelData();
 
   titleText.innerText = currentLang === 'en' ? 'Block Model vs Actual' : 'Block Model vs Aktual';
-  activeDesc.innerText = currentLang === 'en' ? 'Comparison of geological model estimates (Surpac) against actual mined tonnage per Block & Pit.' : 'Perbandingan estimasi model geologi (Surpac) dengan realisasi tonase hasil gali per Blok & Pit.';
+  activeDesc.innerText = currentLang === 'en' ? 'Comparison of geological model estimates (Surpac) against actual mined tonnage per Block & Pit.' : 'Estimasi sumbernya (Surpac) vs realisasi tonase galian per Blok & Pit.';
   activeIcon.setAttribute('data-lucide', 'layers-3');
  } else if (viewType === 'matrix') {
   btnMatrix.className = activeClass('bg-indigo-600');
@@ -1966,14 +1966,14 @@ window.submitCOGConfigForm = submitCOGConfigForm;
   wrapNi.classList.remove('hidden');
 
   titleText.innerText = currentLang === 'en' ? 'Ni Grade Fluctuation Trend (Daily)' : 'Tren Fluktuasi Kadar Ni % (Harian)';
-  activeDesc.innerText = currentLang === 'en' ? 'Daily nickel grade trend analysis compared with minimum cut-off limit line (1.30%).' : 'Analisis tren kadar nikel harian dibandingkan dengan garis batas cut-off minimum (1.30%).';
+  activeDesc.innerText = currentLang === 'en' ? 'Daily nickel grade trend analysis compared with minimum cut-off limit line (1.30%).' : 'Analisis kadar nikel harian, dengan garis batas cut-off minimum 1.30%.';
   activeIcon.setAttribute('data-lucide', 'activity');
  } else if (viewType === 'sm') {
   btnSm.className = activeClass('bg-amber-600');
   wrapSm.classList.remove('hidden');
 
   titleText.innerText = currentLang === 'en' ? 'SM (SiO2/MgO) Distribution per Pit' : 'Distribusi SM (SiO2/MgO) per Pit';
-  activeDesc.innerText = currentLang === 'en' ? 'SiO2/MgO ratio (Silica Modulus) per pit, used to monitor slag/smelting characteristics.' : 'Rasio SiO2/MgO (Silica Modulus) per pit, untuk memantau karakteristik slag/peleburan.';
+  activeDesc.innerText = currentLang === 'en' ? 'SiO2/MgO ratio (Silica Modulus) per pit, used to monitor slag/smelting characteristics.' : 'Rasio (Silica Modulus), untuk memantau karakteristik slag/peleburan.';
   activeIcon.setAttribute('data-lucide', 'bar-chart-3');
  } else if (viewType === 'breakdown') {
   btnBreakdown.className = activeClass('bg-purple-600');
@@ -1981,7 +1981,7 @@ window.submitCOGConfigForm = submitCOGConfigForm;
   if (globalRawData && globalRawData.length > 0) renderReconciliation();
 
   titleText.innerText = currentLang === 'en' ? 'Breakdown Chart by Pit' : 'Grafik Breakdown per Pit';
-  activeDesc.innerText = currentLang === 'en' ? 'Shipment destination breakdown per Pit, following the date & Pit filter on the Reconciliation tab.' : 'Breakdown tujuan pengapalan per Pit, mengikuti filter tanggal & Pit di tab Rekonsiliasi.';
+  activeDesc.innerText = currentLang === 'en' ? 'Shipment destination breakdown per Pit, following the date & Pit filter on the Reconciliation tab.' : 'Tujuan pengapalan, mengikuti filter tanggal & Pit di tab Rekonsiliasi.';
   activeIcon.setAttribute('data-lucide', 'layers');
  } else if (viewType === 'blockmodel') {
   btnBlockmodel.className = activeClass('bg-rose-600');
@@ -1989,7 +1989,7 @@ window.submitCOGConfigForm = submitCOGConfigForm;
   fetchBlockModelData();
 
   titleText.innerText = currentLang === 'en' ? 'Block Model vs Actual' : 'Block Model vs Aktual';
-  activeDesc.innerText = currentLang === 'en' ? 'Comparison of geological model estimates (Surpac) against actual mined tonnage per Block & Pit.' : 'Perbandingan estimasi model geologi (Surpac) dengan realisasi tonase hasil gali per Blok & Pit.';
+  activeDesc.innerText = currentLang === 'en' ? 'Comparison of geological model estimates (Surpac) against actual mined tonnage per Block & Pit.' : 'Estimasi sumbernya (Surpac) vs realisasi tonase galian per Blok & Pit.';
   activeIcon.setAttribute('data-lucide', 'layers-3');
  } else if (viewType === 'monthly') {
   btnMonthly.className = activeClass('bg-cyan-600');
