@@ -320,12 +320,46 @@
  hideModalAnimated(document.getElementById('professional-report-modal'));
  }
 
+// [FIX -- export KPI Member, 3 Sep] Fetch skor 5 pilar KPI untuk SEMUA member yang akan
+// di-export, sekaligus/paralel (bukan 1-per-1 berurutan, biar tidak lambat). Hasil disimpan
+// di memberKpiScoreCache (key = nama member lowercase), dibaca oleh getExportColumns.
+async function fetchMemberKpiScoresForExport(requestId) {
+  const periode = typeof getLocalPeriodeYyyyMm === 'function' ? getLocalPeriodeYyyyMm() : '';
+  const members = (globalMemberData || []).slice();
+  const results = await Promise.all(members.map(async function(item) {
+    const nama = item['nama'] || item['Nama'] || '';
+    if (!nama) return null;
+    try {
+      const url = window.GOOGLE_SCRIPT_READ_URL + '?sheet=kpiscore&member_id=' + encodeURIComponent(nama) + '&periode=' + periode + '&t=' + Date.now();
+      const response = await fetchWithTimeout(url);
+      const result = await response.json();
+      if (result.status !== 'success' || !result.data) return { nama: nama, ok: false };
+      return { nama: nama, ok: true, data: result.data };
+    } catch (e) {
+      return { nama: nama, ok: false };
+    }
+  }));
+  if (requestId !== memberKpiExportRequestId) return false;
+  memberKpiScoreCache = {};
+  results.forEach(function(r) {
+    if (r) memberKpiScoreCache[r.nama.trim().toLowerCase()] = r.ok ? r.data : null;
+  });
+  return true;
+}
+
 // [RESTORED from baseline/core.js] executeConfirmedExport
  async function executeConfirmedExport() {
  if (pendingExportSource === 'rca' && rcaExportLoading) {
   showNoticeModal(
    currentLang === 'en' ? 'RCA Data Still Loading' : 'Data RCA Masih Dimuat',
    currentLang === 'en' ? 'Please wait until RCA data finishes loading before exporting.' : 'Tunggu sampai data RCA selesai dimuat sebelum melakukan export.'
+  );
+  return;
+ }
+ if (pendingExportSource === 'member' && memberKpiExportLoading) {
+  showNoticeModal(
+   currentLang === 'en' ? 'KPI Scores Still Loading' : 'Skor KPI Masih Dimuat',
+   currentLang === 'en' ? 'Please wait until KPI scores finish loading before exporting.' : 'Tunggu sampai skor KPI selesai dimuat sebelum melakukan export.'
   );
   return;
  }
@@ -577,13 +611,42 @@ function exportToWord() {
   };
  }
  if (source === 'member') {
+  const fmt1 = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toLocaleString('id-ID', {minimumFractionDigits:1, maximumFractionDigits:1});
+  const fmtPct = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toFixed(2) + '%';
+  // [FIX -- export KPI Member, 3 Sep] kolom lama (Target Blending/Inspeksi Bench/Accuracy)
+  // sudah tidak dipakai sejak alih fungsi 30 Agu -- diganti 3 pasang tonase (sama dgn kartu
+  // Member) + 5 pilar KPI + Skor Gabungan (dari memberKpiScoreCache, lihat
+  // fetchMemberKpiScoresForExport). Kalau skor belum sempat termuat (cache kosong utk nama
+  // itu), tampil '-' -- tidak pernah crash.
+  const kpiScoreFor = function(item) {
+   return memberKpiScoreCache[(item.nama || '').trim().toLowerCase()] || null;
+  };
+  const pilarScore = function(item, key) {
+   const d = kpiScoreFor(item);
+   if (!d || !d[key] || d[key].score === null || d[key].score === undefined) return '-';
+   return Math.round(d[key].score);
+  };
+  const finalScore = function(item) {
+   const d = kpiScoreFor(item);
+   if (!d || d.final_score === null || d.final_score === undefined) return '-';
+   return Math.round(d.final_score);
+  };
   return {
   heads: [
    { key: 'th_nama_export', i18n: 'export_th_nama', fallback: 'Nama' },
    { key: 'th_jabatan_export', i18n: 'export_th_jabatan', fallback: 'Jabatan' },
-   { key: 'th_target_export', i18n: 'modal_blending_target', fallback: 'Target Blending' },
-   { key: 'th_inspeksi_export', i18n: 'export_th_inspeksi', fallback: 'Inspeksi Bench' },
-   { key: 'th_accuracy_export', i18n: 'export_th_accuracy', fallback: 'Accuracy' },
+   { key: 'th_total_tonase_export', i18n: 'export_th_total_tonase', fallback: 'Total Tonase' },
+   { key: 'th_total_ni_export', i18n: 'export_th_total_ni', fallback: 'Avg Ni' },
+   { key: 'th_waste_tonase_export', i18n: 'export_th_waste_tonase', fallback: 'Waste Tonase' },
+   { key: 'th_waste_ni_export', i18n: 'export_th_waste_ni', fallback: 'Waste Ni' },
+   { key: 'th_bersih_tonase_export', i18n: 'export_th_bersih_tonase', fallback: 'Tonase Murni' },
+   { key: 'th_bersih_ni_export', i18n: 'export_th_bersih_ni', fallback: 'Ni Murni' },
+   { key: 'th_pilar_laporan_export', i18n: 'export_th_pilar_laporan', fallback: 'Laporan Tepat Waktu' },
+   { key: 'th_pilar_kehadiran_export', i18n: 'export_th_pilar_kehadiran', fallback: 'Kehadiran' },
+   { key: 'th_pilar_safety_export', i18n: 'export_th_pilar_safety', fallback: 'Safety' },
+   { key: 'th_pilar_sampling_export', i18n: 'export_th_pilar_sampling', fallback: 'Sampling' },
+   { key: 'th_pilar_attitude_export', i18n: 'export_th_pilar_attitude', fallback: 'Attitude' },
+   { key: 'th_final_score_export', i18n: 'export_th_final_score', fallback: 'Skor Gabungan' },
    { key: 'th_status_export', i18n: 'export_th_status', fallback: 'Status' },
    { key: 'th_grade_export', i18n: 'export_th_grade', fallback: 'Grade' }
   ],
@@ -591,15 +654,28 @@ function exportToWord() {
    return `
    <td class="p-2.5 font-medium text-title">${item.nama || '-'}</td>
    <td class="p-2.5">${item.jabatan || '-'}</td>
-   <td class="p-2.5 text-center">${item.target || '-'}</td>
-   <td class="p-2.5 text-center">${item.inspeksi || '-'}</td>
-   <td class="p-2.5 text-center">${item.accuracy || '-'}</td>
+   <td class="p-2.5 text-center">${fmt1(item.total_tonase)}</td>
+   <td class="p-2.5 text-center">${fmtPct(item.avg_ni_total)}</td>
+   <td class="p-2.5 text-center">${fmt1(item.waste_tonase)}</td>
+   <td class="p-2.5 text-center">${fmtPct(item.avg_ni_waste)}</td>
+   <td class="p-2.5 text-center">${fmt1(item.tonase_murni)}</td>
+   <td class="p-2.5 text-center">${fmtPct(item.avg_ni_murni)}</td>
+   <td class="p-2.5 text-center">${pilarScore(item, 'pilar_laporan_tepat_waktu')}</td>
+   <td class="p-2.5 text-center">${pilarScore(item, 'pilar_kehadiran')}</td>
+   <td class="p-2.5 text-center">${pilarScore(item, 'pilar_safety')}</td>
+   <td class="p-2.5 text-center">${pilarScore(item, 'pilar_kelengkapan_sampling')}</td>
+   <td class="p-2.5 text-center">${pilarScore(item, 'pilar_attitude')}</td>
+   <td class="p-2.5 text-center font-semibold">${finalScore(item)}</td>
    <td class="p-2.5">${item.status || '-'}</td>
    <td class="p-2.5 text-center font-semibold">${item.grade || '-'}</td>
    `;
   },
   rowPrint: function(item) {
-   return [item.nama || '-', item.jabatan || '-', item.target || '-', item.inspeksi || '-', item.accuracy || '-', item.status || '-', item.grade || '-'];
+   return [item.nama || '-', item.jabatan || '-', fmt1(item.total_tonase), fmtPct(item.avg_ni_total),
+    fmt1(item.waste_tonase), fmtPct(item.avg_ni_waste), fmt1(item.tonase_murni), fmtPct(item.avg_ni_murni),
+    pilarScore(item, 'pilar_laporan_tepat_waktu'), pilarScore(item, 'pilar_kehadiran'), pilarScore(item, 'pilar_safety'),
+    pilarScore(item, 'pilar_kelengkapan_sampling'), pilarScore(item, 'pilar_attitude'), finalScore(item),
+    item.status || '-', item.grade || '-'];
   }
   };
  }
@@ -851,6 +927,8 @@ function exportToWord() {
  function renderExportPreview() {
  const cols = getExportColumns(pendingExportSource);
  const isRcaLoading = pendingExportSource === 'rca' && rcaExportLoading;
+ const isMemberLoading = pendingExportSource === 'member' && memberKpiExportLoading;
+ const isPreviewLoading = isRcaLoading || isMemberLoading;
 
  if (pendingExportSource === 'member') {
   filteredExportData = globalMemberData.slice();
@@ -872,7 +950,7 @@ function exportToWord() {
  }
 
  document.getElementById('preview-format-val').innerText = pendingExportType.toUpperCase();
- document.getElementById('preview-rows-val').innerText = isRcaLoading
+ document.getElementById('preview-rows-val').innerText = isPreviewLoading
   ? (currentLang === 'en' ? 'Loading...' : 'Memuat...')
   : filteredExportData.length + (currentLang === 'en' ? ' Rows' : ' Baris');
  if (pendingExportSource === 'digging') {
@@ -905,11 +983,11 @@ function exportToWord() {
 
  const tbody = document.getElementById('preview-table-body');
  tbody.innerHTML = '';
- if (isRcaLoading) {
+ if (isPreviewLoading) {
   const tr = document.createElement('tr');
   tr.innerHTML = `<td colspan="${cols.heads.length}" class="p-6 text-center text-slate-400 font-medium">` +
    `<span class="inline-flex items-center gap-2"><i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i>` +
-   `${currentLang === 'en' ? 'Loading RCA data...' : 'Memuat data RCA...'}</span></td>`;
+   `${isMemberLoading ? (currentLang === 'en' ? 'Loading KPI scores...' : 'Memuat skor KPI...') : (currentLang === 'en' ? 'Loading RCA data...' : 'Memuat data RCA...')}</span></td>`;
   tbody.appendChild(tr);
  } else {
   const sampleData = filteredExportData.slice(0, 5);
@@ -994,9 +1072,28 @@ function exportToWord() {
   return;
  }
 
+ // [FIX -- export KPI Member, 3 Sep] sama pola dengan RCA: tunggu fetch skor 5 pilar semua
+ // member selesai dulu sebelum tombol konfirmasi export boleh dipakai.
+ if (source === 'member') {
+  const requestId = ++memberKpiExportRequestId;
+  memberKpiExportLoading = true;
+  renderExportPreview();
+  setExportConfirmLoadingState(true);
+  fetchMemberKpiScoresForExport(requestId).then(ok => {
+   if (requestId !== memberKpiExportRequestId || pendingExportSource !== 'member') return;
+   memberKpiExportLoading = false;
+   renderExportPreview();
+   setExportConfirmLoadingState(!ok);
+  });
+  return;
+ }
+
  // Membatalkan state loading RCA yang mungkin masih berjalan ketika user berpindah sumber.
  rcaExportRequestId++;
  rcaExportLoading = false;
+ // Sama untuk state loading KPI Member.
+ memberKpiExportRequestId++;
+ memberKpiExportLoading = false;
  renderExportPreview();
  }
 
