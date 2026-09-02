@@ -39,6 +39,7 @@ async function deleteIssueByRow(rowNumber) {
   }
 
   globalIssueRawData = result.data || [];
+  window.globalIssueRawData = globalIssueRawData; // [FIX] sinkronisasi window.X manual
   renderIssueTable(globalIssueRawData);
   issueAutoRetryCount = 0;
   markDataFresh_('Issue');
