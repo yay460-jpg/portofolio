@@ -2,6 +2,16 @@
 // SETTINGS.JS -- Modul Settings & Developer Console
 // ============================================================
 
+// [FIX -- ditemukan 2 Sep] activeMemberSessions & activeMemberIndicatorRequestSeq dipakai
+// di loadActiveMemberSessions()/renderActiveSessionsIndicator() TAPI tidak pernah
+// dideklarasikan di manapun. activeMemberIndicatorRequestSeq khususnya WAJIB dideklarasikan
+// karena dipakai dengan `++` (pre-increment) -- JS wajib bisa membaca nilai lama dulu sebelum
+// menaikkan, jadi kalau belum pernah di-declare ini melempar ReferenceError dan
+// menghentikan seluruh fungsi lebih awal (makanya avatar member/SPV aktif tidak pernah
+// muncul di header, walau HTML/render/backend-nya semua benar).
+let activeMemberSessions = [];
+let activeMemberIndicatorRequestSeq = 0;
+
 // ============================================================
 // CREDENTIAL MANAGER (Developer)
 // ============================================================
