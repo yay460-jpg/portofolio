@@ -1017,9 +1017,6 @@ function openMemberEdit(rowNumber) {
   }
   setField('nama', member.nama || '');
   setField('jabatan', member.jabatan || '');
-  setField('target', member.target || '');
-  setField('inspeksi', member.inspeksi || '');
-  setField('accuracy', member.accuracy || '');
   setField('grade', member.grade || 'Grade A');
   setField('status', member.status || 'Achieved');
   setField('nomor_hp', member.nomor_hp || '');
@@ -1070,9 +1067,6 @@ async function submitMemberForm(event) {
         row_number: form.dataset.editRow,
         nama: nama,
         jabatan: (form.elements.jabatan?.value || '').trim(),
-        target: (form.elements.target?.value || '').trim(),
-        inspeksi: (form.elements.inspeksi?.value || '').trim(),
-        accuracy: (form.elements.accuracy?.value || '').trim(),
         status: (form.elements.status?.value || '').trim(),
         grade: (form.elements.grade?.value || '').trim(),
         nomor_hp: (form.elements.nomor_hp?.value || '').trim()
