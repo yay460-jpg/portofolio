@@ -225,7 +225,10 @@ async function unlockDeveloperAccess() {
       input.value = '';
       errorMsg.classList.add('hidden');
       updateDeveloperAccessUI();
-      openDeveloperConsoleModal();
+      // [PERMINTAAN USER 2 Sep] Modal Console TIDAK lagi otomatis terbuka setelah login --
+      // sebelumnya baseline langsung panggil openDeveloperConsoleModal() di sini. Sekarang
+      // login cuma unlock akses (tombol Sistem/Technical di panel Akses Developer jadi aktif),
+      // user yang pilih sendiri mau buka console yang mana.
       loadMembersFromSheet().catch(function(err){
         console.warn('Refresh Member grid setelah Developer login ditunda/gagal:', err);
       });
