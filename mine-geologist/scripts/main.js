@@ -1076,6 +1076,7 @@ async function deleteChatMessage(rowNumber) {
   const hadNewMessages = nextLastRow > previousLastRow;
 
   globalChatData = result.data;
+  window.globalChatData = globalChatData; // [FIX] sinkronisasi window.X manual, sama pola dgn fetchIssueData/loadMembersFromSheet
   renderChatMessages();
   updateChatUnreadBadge();
 
