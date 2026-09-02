@@ -904,3 +904,46 @@ function initResetProjectControls() {
   updateResetProjectButton();
   loadRetentionPolicy();
 }
+
+// [MIGRASI User_ID -- Tahap 1] Jalankan backfill User_ID member lama (dry-run atau eksekusi)
+async function runBackfillMemberUserIds(dryRun) {
+  const resultEl = document.getElementById('backfill-user-id-result');
+  const execBtn = document.getElementById('backfill-execute-btn');
+  if (resultEl) resultEl.innerHTML = '<span class="text-slate-500">Memproses...</span>';
+  try {
+    const result = await postDeveloperAdmin('backfillMemberUserIds', { dry_run: dryRun ? 'true' : 'false' });
+    if (!result || result.ok === false) {
+      if (resultEl) resultEl.innerHTML = '<span class="text-rose-400">' + escapeHtml((result && result.message) || 'Gagal menjalankan backfill.') + '</span>';
+      return;
+    }
+    const s = result.summary || {};
+    const mode = result.dry_run ? '<span class="text-amber-400 font-semibold">[DRY-RUN -- belum ada yang ditulis ke sheet]</span>' : '<span class="text-emerald-400 font-semibold">[DIEKSEKUSI -- sudah ditulis ke sheet]</span>';
+    let html = mode + '<div class="mt-2 grid grid-cols-2 gap-2">'
+      + '<div>Total baris Member: <b>' + (s.total_rows || 0) + '</b></div>'
+      + '<div>Disambung ke akun existing: <b class="text-blue-400">' + (s.linked_existing || 0) + '</b></div>'
+      + '<div>ID baru dibuat: <b class="text-emerald-400">' + (s.generated_new || 0) + '</b></div>'
+      + '<div>Sudah punya User_ID: <b class="text-slate-400">' + (s.skipped_already_has_id || 0) + '</b></div>'
+      + '<div>Dilewati (nama ambigu): <b class="text-rose-400">' + (s.skipped_ambiguous || 0) + '</b></div>'
+      + '<div>Nama kosong: <b class="text-slate-400">' + (s.skipped_empty_name || 0) + '</b></div>'
+      + '</div>';
+    if (s.skipped_ambiguous > 0 && result.detail && result.detail.skipped_ambiguous) {
+      html += '<div class="mt-2 text-rose-400">Perlu diselesaikan manual (nama ambigu):</div><ul class="list-disc list-inside text-slate-400">';
+      result.detail.skipped_ambiguous.forEach(function(item) {
+        html += '<li>Baris ' + item.row + ': ' + escapeHtml(item.name) + ' -- ' + escapeHtml(item.reason) + '</li>';
+      });
+      html += '</ul>';
+    }
+    if (resultEl) resultEl.innerHTML = html;
+    if (dryRun && execBtn) {
+      execBtn.disabled = false;
+      execBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+    if (!dryRun && execBtn) {
+      execBtn.disabled = true;
+      execBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+  } catch (err) {
+    if (resultEl) resultEl.innerHTML = '<span class="text-rose-400">' + escapeHtml(err.message || String(err)) + '</span>';
+  }
+}
+window.runBackfillMemberUserIds = runBackfillMemberUserIds;
