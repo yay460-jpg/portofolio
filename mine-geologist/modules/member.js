@@ -673,161 +673,163 @@ async function fetchJsaLogData() {
 // LOAD MEMBERS FROM SHEET (Fungsi utama)
 // ============================================================
 
-async function loadMembersFromSheet() {
-  const container = document.getElementById('member-grid-container');
-  try {
-    const response = await fetchWithTimeout(window.GOOGLE_SCRIPT_READ_URL);
-    const result = await response.json();
+// [UPDATED dari baseline -- alih fungsi Accuracy Grade lama v90.2.140, keputusan user 30 Agu]
+ async function loadMembersFromSheet() {
+ const container = document.getElementById('member-grid-container');
+ try {
+  const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL);
+  const result = await response.json();
 
-    if (result.status === 'success' && result.data.length > 0) {
-      container.innerHTML = '';
-      window.globalMemberData = result.data;
-      if (typeof populateReporterDropdown === 'function') populateReporterDropdown();
+  if (result.status === 'success' && result.data.length > 0) {
+  container.innerHTML = '';
+  globalMemberData = result.data;
+  populateReporterDropdown();
 
-      result.data.forEach(function(item, index) {
-        const member = {};
-        Object.keys(item).forEach(function(k) {
-          member[k.trim().toLowerCase()] = item[k];
-        });
+  result.data.forEach((item, index) => {
+   const member = {};
+   Object.keys(item).forEach(k => member[k.trim().toLowerCase()] = item[k]);
 
-        const namaVal = member['nama'] || member['name'] || 'Tanpa Nama';
-        const jabatanVal = member['jabatan'] || member['role'] || '-';
-        const targetVal = member['target'] || '-';
-        const inspeksiVal = member['inspeksi'] || '-';
-        const accuracyVal = member['accuracy'] || '-';
-        const statusVal = member['status'] || '-';
-        const gradeVal = member['grade'] || '-';
+   const namaVal = member['nama'] || member['name'] || 'Tanpa Nama';
+   const jabatanVal = member['jabatan'] || member['role'] || '-';
+   // v90.2.140 FIX (keputusan user 30 Agu -- alih fungsi Accuracy Grade lama): backend
+   // sekarang kirim field BARU (total_tonase/avg_ni_total/waste_tonase/avg_ni_waste/
+   // tonase_murni/avg_ni_murni) menggantikan target/inspeksi/accuracy statis lama.
+   const fmt1 = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toLocaleString('id-ID', {minimumFractionDigits:1, maximumFractionDigits:1});
+   const fmtPct2 = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toFixed(2) + '%';
+   const totalTonaseVal = fmt1(member['total_tonase']);
+   const avgNiTotalVal = fmtPct2(member['avg_ni_total']);
+   const wasteTonaseVal = fmt1(member['waste_tonase']);
+   const avgNiWasteVal = fmtPct2(member['avg_ni_waste']);
+   const tonaseMurniVal = fmt1(member['tonase_murni']);
+   const avgNiMurniVal = fmtPct2(member['avg_ni_murni']);
+   const statusVal = member['status'] || '-';
+   const gradeVal = member['grade'] || '-';
 
-        // JSA Badge
-        const jsaLogsForMember = (window.globalJsaLogData || []).filter(function(l) {
-          const namaLog = (l.nama_member || '').toString().trim().toLowerCase();
-          return namaLog === namaVal.toString().trim().toLowerCase();
-        });
-        const jsaTtdCount = jsaLogsForMember.length;
-        const jsaToolboxCount = jsaLogsForMember.filter(function(l) {
-          return (l.toolbox_hadir || '').toString().trim().toUpperCase() === 'Y';
-        }).length;
-        const jsaBadgeHtml = jsaTtdCount > 0 ?
-          '<div class="flex justify-between"><span class="text-slate-400">JSA <span class="text-slate-600 font-normal">(' +
-          (window.currentLang === 'en' ? 'all-time' : 'sepanjang waktu') +
-          '):</span> <span class="font-semibold text-cyan-400">' + jsaTtdCount + 'x ' +
-          (window.currentLang === 'en' ? 'signed' : 'TTD') + ' &middot; ' + jsaToolboxCount + 'x Toolbox</span></div>' :
-          '<div class="flex justify-between"><span class="text-slate-400">JSA:</span> <span class="font-semibold text-slate-500">' +
-          (window.currentLang === 'en' ? 'No record yet' : 'Belum ada catatan') + '</span></div>';
+   // BARU: badge Compliance JSA -- hitung dari globalJsaLogData yang Nama_Member-nya
+   // cocok (case-insensitive, trim) dengan kartu member ini. Versi awal cuma hitung
+   // jumlah TTD & jumlah kehadiran toolbox, BELUM ada skor Competency (kuis ditahan).
+   const jsaLogsForMember = (globalJsaLogData || []).filter(l => {
+   const namaLog = (l.nama_member || '').toString().trim().toLowerCase();
+   return namaLog === namaVal.toString().trim().toLowerCase();
+   });
+   const jsaTtdCount = jsaLogsForMember.length;
+   const jsaToolboxCount = jsaLogsForMember.filter(l => (l.toolbox_hadir || '').toString().trim().toUpperCase() === 'Y').length;
+   const jsaBadgeHtml = jsaTtdCount > 0
+   ? `<div class="flex justify-between"><span class="text-slate-400">JSA <span class="text-slate-600 font-normal">(${currentLang === 'en' ? 'all-time' : 'sepanjang waktu'})</span>:</span> <span class="font-semibold text-cyan-400">${jsaTtdCount}x ${currentLang === 'en' ? 'signed' : 'TTD'} &middot; ${jsaToolboxCount}x Toolbox</span></div>`
+   : `<div class="flex justify-between"><span class="text-slate-400">JSA:</span> <span class="font-semibold text-slate-500">${currentLang === 'en' ? 'No record yet' : 'Belum ada catatan'}</span></div>`;
 
-        // KPI Badges
-        const kpiLaporanBadgeId = 'kpi-laporan-badge-' + index;
-        const kpiKehadiranBadgeId = 'kpi-kehadiran-badge-' + index;
-        const kpiSafetyBadgeId = 'kpi-safety-badge-' + index;
-        const kpiSamplingBadgeId = 'kpi-sampling-badge-' + index;
-        const kpiAttitudeBadgeId = 'kpi-attitude-badge-' + index;
-        const kpiFinalScoreId = 'kpi-final-score-' + index;
-        const kpiFinalScoreGateId = 'kpi-final-score-gate-' + index;
-        const kpiContextId = 'kpi-context-' + index;
+   // BARU (v90.2.110): badge pilar KPI "Laporan Tepat Waktu" -- baru pilar INI yang punya
+   // engine skor (4 pilar lain masih menyusul, lihat Kerangka_Engine_KPI_5_Pilar.md).
+   // Diisi placeholder dulu, di-update async setelah endpoint kpiscore selesai dipanggil
+   // (per-kartu, TIDAK memblokir render grid member yg lain).
+   const kpiLaporanBadgeId = `kpi-laporan-badge-${index}`;
+   const kpiLaporanBadgeHtml = `<div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'On-Time Reporting' : 'Laporan Tepat Waktu'}:</span> <span id="${kpiLaporanBadgeId}" class="font-semibold text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span></div>`;
+   // BARU (v90.2.111): badge pilar KPI "Kehadiran" -- sama pola, 1 elemen id unik, diisi
+   // dari response endpoint kpiscore yg SAMA dgn Laporan (field pilar_kehadiran), TIDAK
+   // nambah panggilan fetch terpisah.
+   const kpiKehadiranBadgeId = `kpi-kehadiran-badge-${index}`;
+   const kpiKehadiranBadgeHtml = `<div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Attendance' : 'Kehadiran'}:</span> <span id="${kpiKehadiranBadgeId}" class="font-semibold text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span></div>`;
+   // BARU (v90.2.112): badge pilar "Safety (APD)".
+   const kpiSafetyBadgeId = `kpi-safety-badge-${index}`;
+   const kpiSafetyBadgeHtml = `<div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Safety (PPE)' : 'Safety (APD)'}:</span> <span id="${kpiSafetyBadgeId}" class="font-semibold text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span></div>`;
+   // BARU (v90.2.113): badge pilar "Kelengkapan Sampling".
+   const kpiSamplingBadgeId = `kpi-sampling-badge-${index}`;
+   const kpiSamplingBadgeHtml = `<div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Sampling Completeness' : 'Kelengkapan Sampling'}:</span> <span id="${kpiSamplingBadgeId}" class="font-semibold text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span></div>`;
+   // BARU (v90.2.114): badge pilar "Attitude" -- pilar KE-5 DAN TERAKHIR, engine 5 pilar
+   // KPI kini lengkap semua (Kehadiran/Safety/Sampling/Laporan/Attitude).
+   const kpiAttitudeBadgeId = `kpi-attitude-badge-${index}`;
+   const kpiAttitudeBadgeHtml = `<div class="flex justify-between"><span class="text-slate-400">Attitude:</span> <span id="${kpiAttitudeBadgeId}" class="font-semibold text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span></div>`;
+   // BARU (v90.2.116): Skor KPI Gabungan Final -- 5 pilar x bobot mode aktif + Safety Gate.
+   // Ditaruh terpisah dari 5 badge pilar (styling lebih menonjol), karena ini "hasil akhir"
+   // yg paling relevan dilihat sekilas, bukan cuma 1 dari sekian badge biasa.
+   const kpiFinalScoreId = `kpi-final-score-${index}`;
+   const kpiFinalScoreGateId = `kpi-final-score-gate-${index}`;
+   const kpiFinalScoreHtml = `<div class="flex justify-between items-center pt-2 mt-1.5 border-t border-slate-700/40">
+    <span class="text-slate-300 font-bold text-[11px]">${currentLang === 'en' ? 'Final KPI Score' : 'Skor KPI Gabungan'}:</span>
+    <span class="flex items-center gap-1.5">
+    <span id="${kpiFinalScoreId}" class="font-bold text-sm text-slate-500">${currentLang === 'en' ? 'Loading...' : 'Memuat...'}</span>
+    <span id="${kpiFinalScoreGateId}" class="hidden px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[9px] font-bold" title="${currentLang === 'en' ? 'Capped by Safety Gate' : 'Dipotong Safety Gate'}">GATE</span>
+    </span>
+   </div>`;
+   // BARU (v90.2.136, keputusan user -- "Konteks Periode Ini"): gabungan KPIEvent+Issue&
+   // Action+RCA utk periode yg sama, MURNI INFORMASI PENDUKUNG audit -- TIDAK mengubah skor
+   // apapun (lihat prinsip locked di catatan proyek). Ringkas di kartu, klik utk detail.
+   const kpiContextId = `kpi-context-${index}`;
+   const kpiContextHtml = `<div id="${kpiContextId}" class="pt-2 mt-1.5 border-t border-slate-700/40 text-[10px]"></div>`;
 
-        const kpiLaporanBadgeHtml = '<div class="flex justify-between"><span class="text-slate-400">' +
-          (window.currentLang === 'en' ? 'On-Time Reporting' : 'Laporan Tepat Waktu') +
-          ':</span> <span id="' + kpiLaporanBadgeId + '" class="font-semibold text-slate-500">' +
-          (window.currentLang === 'en' ? 'Loading...' : 'Memuat...') + '</span></div>';
-
-        const kpiKehadiranBadgeHtml = '<div class="flex justify-between"><span class="text-slate-400">' +
-          (window.currentLang === 'en' ? 'Attendance' : 'Kehadiran') +
-          ':</span> <span id="' + kpiKehadiranBadgeId + '" class="font-semibold text-slate-500">' +
-          (window.currentLang === 'en' ? 'Loading...' : 'Memuat...') + '</span></div>';
-
-        const kpiSafetyBadgeHtml = '<div class="flex justify-between"><span class="text-slate-400">' +
-          (window.currentLang === 'en' ? 'Safety (PPE)' : 'Safety (APD)') +
-          ':</span> <span id="' + kpiSafetyBadgeId + '" class="font-semibold text-slate-500">' +
-          (window.currentLang === 'en' ? 'Loading...' : 'Memuat...') + '</span></div>';
-
-        const kpiSamplingBadgeHtml = '<div class="flex justify-between"><span class="text-slate-400">' +
-          (window.currentLang === 'en' ? 'Sampling Completeness' : 'Kelengkapan Sampling') +
-          ':</span> <span id="' + kpiSamplingBadgeId + '" class="font-semibold text-slate-500">' +
-          (window.currentLang === 'en' ? 'Loading...' : 'Memuat...') + '</span></div>';
-
-        const kpiAttitudeBadgeHtml = '<div class="flex justify-between"><span class="text-slate-400">Attitude:</span> <span id="' +
-          kpiAttitudeBadgeId + '" class="font-semibold text-slate-500">' +
-          (window.currentLang === 'en' ? 'Loading...' : 'Memuat...') + '</span></div>';
-
-        const kpiFinalScoreHtml = '<div class="flex justify-between items-center pt-2 mt-1.5 border-t border-slate-700/40">' +
-          '<span class="text-slate-300 font-bold text-[11px]">' +
-          (window.currentLang === 'en' ? 'Final KPI Score' : 'Skor KPI Gabungan') +
-          ':</span>' +
-          '<span class="flex items-center gap-1.5">' +
-          '<span id="' + kpiFinalScoreId + '" class="font-bold text-sm text-slate-500">' +
-          (window.currentLang === 'en' ? 'Loading...' : 'Memuat...') + '</span>' +
-          '<span id="' + kpiFinalScoreGateId + '" class="hidden px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[9px] font-bold" title="' +
-          (window.currentLang === 'en' ? 'Capped by Safety Gate' : 'Dipotong Safety Gate') + '">GATE</span>' +
-          '</span></div>';
-
-        const kpiContextHtml = '<div id="' + kpiContextId + '" class="pt-2 mt-1.5 border-t border-slate-700/40 text-[10px]"></div>';
-
-        const card = document.createElement('div');
-        card.className = "glass-card p-4.5 rounded-xl border border-slate-700/40 flex flex-col justify-between hover:border-blue-500/50 transition-all cursor-pointer text-xs";
-        card.onclick = function() {
-          if (typeof openMemberModal === 'function') openMemberModal(index);
-        };
-        card.innerHTML = `
-          <div>
-            <div class="flex items-center gap-3 mb-3.5">
-              <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(namaVal)}&background=2563eb&color=fff&bold=true" class="w-10 h-10 rounded-full border-2 border-blue-500 shadow-sm" alt="Avatar">
-              <div>
-                <h4 class="font-bold text-title tracking-tight">${namaVal}</h4>
-                <p class="text-[11px] text-slate-400 font-medium">${jabatanVal}</p>
-              </div>
-            </div>
-            <div class="space-y-1.5 mb-3.5 font-medium">
-              <div class="flex justify-between"><span class="text-slate-400">${window.translations && window.translations[window.currentLang] ? window.translations[window.currentLang].modal_blending_target : 'Target Blending'}:</span> <span class="font-semibold text-title">${targetVal}</span></div>
-              <div class="flex justify-between"><span class="text-slate-400">${window.translations && window.translations[window.currentLang] ? window.translations[window.currentLang].modal_bench_insp : 'Inspeksi Bench'}:</span> <span class="font-semibold text-emerald-400">${inspeksiVal}</span></div>
-              <div class="flex justify-between"><span class="text-slate-400">${window.translations && window.translations[window.currentLang] ? window.translations[window.currentLang].modal_curr_accuracy : 'Accuracy Grade'}:</span> <span class="font-semibold text-blue-400">${accuracyVal}</span></div>
-              ${jsaBadgeHtml}
-              <div class="pt-2 mt-1.5 border-t border-slate-700/40 text-[9px] font-bold text-violet-400 tracking-wide uppercase">${window.currentLang === 'en' ? '5-Pillar KPI Engine (New)' : 'Engine KPI 5 Pilar (Baru)'}</div>
-              ${kpiLaporanBadgeHtml}
-              ${kpiKehadiranBadgeHtml}
-              ${kpiSafetyBadgeHtml}
-              ${kpiSamplingBadgeHtml}
-              ${kpiAttitudeBadgeHtml}
-              ${kpiFinalScoreHtml}
-              ${kpiContextHtml}
-            </div>
-          </div>
-          <div class="pt-3 border-t border-slate-700/40 flex justify-between items-center text-[11px]">
-            <span class="text-slate-400 font-medium">${window.translations && window.translations[window.currentLang] ? window.translations[window.currentLang].form_status : 'Status'}: <strong class="${statusVal.toLowerCase() === 'achieved' ? 'text-emerald-400' : 'text-amber-400'}">${statusVal}</strong></span>
-            <span class="px-2 py-0.5 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold">${gradeVal}</span>
-          </div>
-          ${isDeveloperUnlocked() ? `<div class="pt-2 mt-2 flex gap-1.5" onclick="event.stopPropagation()">
-            <button type="button" onclick="openMemberEdit(${item['_row'] || index + 2})" class="flex-1 px-2 py-1.5 rounded-lg bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-blue-300 text-[10px] font-bold">Edit</button>
-            <button type="button" onclick="deleteMemberByRow(${item['_row'] || index + 2})" class="flex-1 px-2 py-1.5 rounded-lg bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 text-[10px] font-bold">Delete</button>
-          </div>` : ''}
-        `;
-        container.appendChild(card);
-
-        // Fetch KPI badges asynchronously
-        fetchKpiBadgesForMember_(namaVal, kpiLaporanBadgeId, kpiKehadiranBadgeId, kpiSafetyBadgeId, kpiSamplingBadgeId, kpiAttitudeBadgeId, kpiFinalScoreId, kpiFinalScoreGateId);
-        fetchKpiContextForMember_(namaVal, kpiContextId);
-      });
-      if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-    } else {
-      container.innerHTML = '<div class="col-span-full text-center py-8 text-slate-400 text-xs font-medium">' +
-        (window.translations && window.translations[window.currentLang] ? window.translations[window.currentLang].member_empty : 'Belum ada data member.') +
-        '</div>';
-    }
-    if (typeof renderLeaderboard === 'function') renderLeaderboard();
-    if (typeof markDataFresh_ === 'function') markDataFresh_('Member');
-  } catch (error) {
-    console.error('Error fetching member data:', error);
-    if (typeof markDataStale_ === 'function') markDataStale_('Member');
-    const isTimeout = error.name === 'AbortError';
-    container.innerHTML = `
-      <div class="col-span-full text-center py-8 text-rose-400 text-xs space-y-3 font-medium">
-        <p>${isTimeout ? (window.currentLang === 'en' ? 'Server did not respond within 20 seconds (timeout).' : 'Server tidak merespons dalam 20 detik (timeout).') :
-          (window.translations && window.translations[window.currentLang] ? window.translations[window.currentLang].member_load_error : 'Gagal memuat data member.')}</p>
-        <button onclick="loadMembersFromSheet()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all">
-          ${window.translations && window.translations[window.currentLang] ? window.translations[window.currentLang].retry : 'Coba Lagi'}
-        </button>
-      </div>`;
+   const card = document.createElement('div');
+   card.className = "glass-card p-4.5 rounded-xl border border-slate-700/40 flex flex-col justify-between hover:border-blue-500/50 transition-all cursor-pointer text-xs";
+   card.onclick = () => openMemberModal(index);
+   card.innerHTML = `
+   <div>
+    <div class="flex items-center gap-3 mb-3.5">
+    <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(namaVal)}&background=2563eb&color=fff&bold=true" class="w-10 h-10 rounded-full border-2 border-blue-500 shadow-sm" alt="Avatar">
+    <div>
+     <h4 class="font-bold text-title tracking-tight">${namaVal}</h4>
+     <p class="text-[11px] text-slate-400 font-medium">${jabatanVal}</p>
+    </div>
+    </div>
+    <div class="space-y-1.5 mb-3.5 font-medium">
+    <div class="pt-1 pb-1.5">
+     <div class="text-[9px] font-bold text-slate-500 tracking-wide uppercase mb-1">${currentLang === 'en' ? 'Total Excavation' : 'Total Penggalian'}</div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Tonnage' : 'Tonase'}</span><span class="font-semibold text-title">${totalTonaseVal} ${totalTonaseVal !== '-' ? 'ton' : ''}</span></div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Average Ni' : 'Average Ni'}</span><span class="font-semibold text-title">${avgNiTotalVal}</span></div>
+    </div>
+    <div class="pt-1.5 pb-1.5 border-t border-slate-700/40">
+     <div class="text-[9px] font-bold text-amber-400/80 tracking-wide uppercase mb-1">${currentLang === 'en' ? 'Waste Non COG' : 'Waste Non COG'}</div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Tonnage' : 'Tonase'}</span><span class="font-semibold text-title">${wasteTonaseVal} ${wasteTonaseVal !== '-' ? 'ton' : ''}</span></div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Average Ni' : 'Average Ni'}</span><span class="font-semibold text-title">${avgNiWasteVal}</span></div>
+    </div>
+    <div class="pt-1.5 pb-1 border-t border-slate-700/40">
+     <div class="text-[9px] font-bold text-emerald-400/80 tracking-wide uppercase mb-1">${currentLang === 'en' ? 'Net Result' : 'Hasil Bersih'}</div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Tonnage' : 'Tonase'}</span><span class="font-semibold text-emerald-400">${tonaseMurniVal} ${tonaseMurniVal !== '-' ? 'ton' : ''}</span></div>
+     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Average Ni' : 'Average Ni'}</span><span class="font-semibold text-emerald-400">${avgNiMurniVal}</span></div>
+    </div>
+    ${member['anomaly_waste_exceeds_total'] ? `<div class="text-[9px] text-rose-400 font-semibold">⚠ ${currentLang === 'en' ? 'Data anomaly: Waste exceeds Total' : 'Anomali data: Waste melebihi Total'}</div>` : ''}
+    ${jsaBadgeHtml}
+    <div class="pt-2 mt-1.5 border-t border-slate-700/40 text-[9px] font-bold text-violet-400 tracking-wide uppercase">${currentLang === 'en' ? '5-Pillar KPI Engine (New)' : 'Engine KPI 5 Pilar (Baru)'}</div>
+    ${kpiLaporanBadgeHtml}
+    ${kpiKehadiranBadgeHtml}
+    ${kpiSafetyBadgeHtml}
+    ${kpiSamplingBadgeHtml}
+    ${kpiAttitudeBadgeHtml}
+    ${kpiFinalScoreHtml}
+    ${kpiContextHtml}
+    </div>
+   </div>
+   <div class="pt-3 border-t border-slate-700/40 flex justify-between items-center text-[11px]">
+    <span class="text-slate-400 font-medium">${translations[currentLang].form_status}: <strong class="${statusVal.toLowerCase() === 'achieved' ? 'text-emerald-400' : 'text-amber-400'}">${statusVal}</strong></span>
+    <span class="px-2 py-0.5 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold">${gradeVal}</span>
+   </div>
+   ${isDeveloperUnlocked() ? `<div class="pt-2 mt-2 flex gap-1.5" onclick="event.stopPropagation()">
+    <button type="button" onclick="openMemberEdit(${item['_row'] || index + 2})" class="flex-1 px-2 py-1.5 rounded-lg bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-blue-300 text-[10px] font-bold">Edit</button>
+    <button type="button" onclick="deleteMemberByRow(${item['_row'] || index + 2})" class="flex-1 px-2 py-1.5 rounded-lg bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 text-[10px] font-bold">Delete</button>
+   </div>` : ''}
+   `;
+   container.appendChild(card);
+   fetchKpiBadgesForMember_(namaVal, kpiLaporanBadgeId, kpiKehadiranBadgeId, kpiSafetyBadgeId, kpiSamplingBadgeId, kpiAttitudeBadgeId, kpiFinalScoreId, kpiFinalScoreGateId);
+   fetchKpiContextForMember_(namaVal, kpiContextId);
+  });
+  lucide.createIcons();
+  } else {
+  container.innerHTML = `<div class="col-span-full text-center py-8 text-slate-400 text-xs font-medium">${translations[currentLang].member_empty}</div>`;
   }
-}
+  renderLeaderboard();
+  markDataFresh_('Member');
+ } catch (error) {
+  console.error('Error fetching member data:', error);
+  markDataStale_('Member');
+  const isTimeout = error.name === 'AbortError';
+  container.innerHTML = `
+  <div class="col-span-full text-center py-8 text-rose-400 text-xs space-y-3 font-medium">
+   <p>${isTimeout ? (currentLang === 'en' ? 'Server did not respond within 20 seconds (timeout).' : 'Server tidak merespons dalam 20 detik (timeout).') : translations[currentLang].member_load_error}</p>
+   <button onclick="loadMembersFromSheet()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all">
+   ${translations[currentLang].retry}
+   </button>
+  </div>`;
+ }
+ }
+
 
 // ============================================================
 // LEADERBOARD
@@ -890,34 +892,50 @@ function renderLeaderboard() {
 // MEMBER MODAL (Detail Klik Kartu)
 // ============================================================
 
-function openMemberModal(index) {
-  const item = window.globalMemberData[index];
-  if (!item) return;
+// [UPDATED dari baseline -- alih fungsi Accuracy Grade lama v90.2.140, keputusan user 30 Agu]
+ // BARU (Sidequest #4): Leaderboard Geologist -- ranking murni turunan dari globalMemberData
+ // (field Accuracy) yang sudah di-fetch bareng loadMembersFromSheet() di atas. TIDAK ada
+ // endpoint/data baru, TIDAK mengubah sheet Member sama sekali -- cuma diurutkan & ditampilkan
+ // ulang di frontend. Accuracy sengaja dipilih sbg basis ranking (bukan Target/Inspeksi) karena
+ // field ini paling merepresentasikan akurasi kerja individu, sementara Target format bervariasi
+ // per member (ada yg "98%", ada yg "3 Hari / Segera" -- tidak konsisten numerik).
+ // Accuracy adalah free-text field (placeholder cth. "96.5%") -- diparse defensif dgn regex,
+ // member yang nilainya tidak mengandung angka sama sekali DIKELUARKAN dari ranking (bukan
+ // ditaruh di posisi terakhir dgn nilai 0, supaya tidak menyesatkan seolah performanya buruk).
+ function openMemberModal(index) {
+ const item = globalMemberData[index];
+ if (!item) return;
 
-  const member = {};
-  Object.keys(item).forEach(function(k) {
-    member[k.trim().toLowerCase()] = item[k];
-  });
+ const member = {};
+ Object.keys(item).forEach(k => member[k.trim().toLowerCase()] = item[k]);
 
-  const nama = member['nama'] || 'Tanpa Nama';
-  document.getElementById('modal-avatar').src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(nama) + '&background=2563eb&color=fff&bold=true';
-  document.getElementById('modal-nama').innerText = nama;
-  document.getElementById('modal-jabatan').innerText = member['jabatan'] || '-';
-  document.getElementById('modal-hp').innerText = member['nomor_hp'] || '-';
-  document.getElementById('modal-hadir').innerText = member['absensi_hadir'] || '-';
-  document.getElementById('modal-izin').innerText = member['absensi_izin'] || '-';
-  document.getElementById('modal-cuti').innerText = member['absensi_cuti'] || '-';
-  document.getElementById('modal-target').innerText = member['target'] || '-';
-  document.getElementById('modal-inspeksi').innerText = member['inspeksi'] || '-';
-  document.getElementById('modal-catatan').innerText = member['catatan_kinerja'] || '-';
-  document.getElementById('modal-detail').innerText = member['detail'] || '-';
-  document.getElementById('modal-accuracy').innerText = member['accuracy'] || '-';
-  document.getElementById('modal-grade').innerText = member['grade'] || '-';
+ const nama = member['nama'] || 'Tanpa Nama';
+ document.getElementById('modal-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nama)}&background=2563eb&color=fff&bold=true`;
+ document.getElementById('modal-nama').innerText = nama;
+ document.getElementById('modal-jabatan').innerText = member['jabatan'] || '-';
+ document.getElementById('modal-hp').innerText = member['nomor_hp'] || '-';
+ document.getElementById('modal-hadir').innerText = member['absensi_hadir'] || '-';
+ document.getElementById('modal-izin').innerText = member['absensi_izin'] || '-';
+ document.getElementById('modal-cuti').innerText = member['absensi_cuti'] || '-';
+ // v90.2.140 FIX: field lama target/inspeksi/accuracy diganti hasil hitung Produksi_GC.
+ const fmt1M = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toLocaleString('id-ID', {minimumFractionDigits:1, maximumFractionDigits:1}) + (isNaN(parseFloat(v)) ? '' : ' ton');
+ const fmtPct2M = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toFixed(2) + '%';
+ document.getElementById('modal-target').innerText = fmt1M(member['total_tonase']);
+ document.getElementById('modal-inspeksi').innerText = fmtPct2M(member['avg_ni_total']);
+ document.getElementById('modal-catatan').innerText = member['catatan_kinerja'] || '-';
+ document.getElementById('modal-detail').innerText = member['detail'] || '-';
+ document.getElementById('modal-accuracy').innerText = fmt1M(member['waste_tonase']) + (member['waste_tonase'] ? ' @ ' + fmtPct2M(member['avg_ni_waste']) : '');
+ document.getElementById('modal-grade').innerText = member['grade'] || '-';
+ // v90.2.140 BARU: "Hasil Bersih" (Tonase Murni + Avg Ni Murni) -- elemen id="modal-hasil-bersih"
+ // ditambahkan ke index.html, diisi di sini kalau elemennya ada (aman kalau markup blm diupdate).
+ var hasilBersihEl = document.getElementById('modal-hasil-bersih');
+ if (hasilBersihEl) hasilBersihEl.innerText = fmt1M(member['tonase_murni']) + ' @ ' + fmtPct2M(member['avg_ni_murni']);
 
-  const modal = document.getElementById('member-modal');
-  showModalAnimated(modal);
-  if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-}
+ const modal = document.getElementById('member-modal');
+ showModalAnimated(modal);
+ lucide.createIcons();
+ }
+
 
 function closeMemberModal() {
   const modal = document.getElementById('member-modal');
