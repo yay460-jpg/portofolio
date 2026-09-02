@@ -357,7 +357,7 @@ window.translations = {
   trend_box_status: "Stabil",
   trend_box_3: "Indeks Kestabilan Kadar Grade",
   trend_1_title: "Tren Tonase Digging (Harian)",
-  trend_1_desc: "Grafik pergerakan kapasitas produksi pemindahan material harian aktual di front penambangan.",
+  trend_1_desc: "Aktual kapasitas produksi material harian di front penambangan.",
   btn_trend_tonase: "Tonase Digging",
   btn_trend_ni: "Fluktuasi Ni %",
   btn_trend_sm: "Distribusi SM",
