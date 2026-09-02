@@ -19,7 +19,7 @@ window.MEMBER_SESSION_CHECK_INTERVAL_MS = 30000;          // 30 detik
 window.SESSION_IDLE_WARNING_MINUTES = 5;
 
 // ------ VERSI APLIKASI ------
-window.APP_VERSION = 'v90.2.140';
+window.APP_VERSION = 'v90.2.150';
 
 // ------ REGIONAL & TIME (Default) ------
 window.REGIONAL_TIME_DEFAULTS = {
