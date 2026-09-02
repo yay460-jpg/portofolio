@@ -1,0 +1,808 @@
+/* ============================================================
+   THEME.CSS -- Mine Geologist Dashboard
+   Semua gaya (Dark/White mode, modal, print, komponen)
+   ============================================================ */
+
+/* FIX (27 Agu, diperkuat lagi): scrollbar disembunyikan TOTAL di seluruh app (horizontal
+   & vertical), termasuk di dalam modal/tabel manapun. Dipasang !important supaya PASTI
+   menang lawan aturan CSS lain manapun di file ini (mis. class .overflow-x-auto, modal
+   manapun) -- tidak peduli urutan/spesifisitas selector lain. Scroll TETAP berfungsi normal
+   (roda mouse/trackpad/sentuh/keyboard) -- ini murni menyembunyikan indikator visualnya. */
+html, body, * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+  background: transparent !important;
+}
+
+/* APP LOADING OVERLAY -- dipakai untuk operasi autentikasi non-login; login memakai spinner di tombol. */
+#app-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+#app-loading-overlay.is-visible {
+  display: flex;
+}
+#app-loading-card {
+  min-width: 220px;
+  max-width: min(90vw, 360px);
+  padding: 22px 24px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(71, 85, 105, 0.8);
+  box-shadow: 0 24px 60px rgba(0,0,0,.4);
+  text-align: center;
+}
+body.theme-white #app-loading-card {
+  background: rgba(255,255,255,.98);
+  border-color: #cbd5e1;
+}
+#app-loading-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(96,165,250,.25);
+  border-top-color: #60a5fa;
+  border-radius: 9999px;
+  animation: appLoadingSpin .8s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes appLoadingSpin {
+  to { transform: rotate(360deg); }
+}
+.login-btn-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: appLoadingSpin .7s linear infinite;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+.login-btn-spinner.hidden {
+  display: none !important;
+}
+#app-loading-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+#app-loading-message {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+body.theme-white #app-loading-title {
+  color: #0f172a;
+}
+body.theme-white #app-loading-message {
+  color: #475569;
+}
+
+/* Developer Console: fitur developer dikumpulkan dalam satu application modal. */
+#developer-console-modal .developer-console-card {
+  width: 100%;
+  max-width: 1080px;
+  max-height: 90vh;
+}
+#developer-console-modal .developer-console-scroll {
+  overflow-y: auto;
+  max-height: calc(90vh - 150px);
+  padding-right: 4px;
+}
+#developer-console-technical-modal .developer-console-technical-card {
+  width: 100%;
+  max-width: 1080px;
+  max-height: 90vh;
+}
+#developer-console-technical-modal .developer-console-scroll {
+  overflow-y: auto;
+  max-height: calc(90vh - 150px);
+  padding-right: 4px;
+}
+
+/* Base Theme Dark Enterprise */
+body.theme-dark {
+  background-color: #0b1329;
+  color: #f8fafc;
+  font-size: 0.875rem;
+  letter-spacing: -0.01em;
+}
+body.theme-dark .glass-card {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
+body.theme-dark .nav-item-active {
+  background-color: rgba(37, 99, 235, 0.25);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  font-weight: 600;
+}
+body.theme-dark .nav-item-inactive {
+  color: #94a3b8;
+  border: 1px solid transparent;
+  font-weight: 500;
+}
+body.theme-dark .nav-item-inactive:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+}
+body.theme-dark .text-title {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Styling Dropdown Filter & Option (Dark Mode) */
+body.theme-dark select.custom-select {
+  background-color: #0f172a;
+  color: #f8fafc;
+  border-color: #334155;
+}
+body.theme-dark select.custom-select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+/* Theme White Enterprise */
+body.theme-white {
+  background-color: #f8fafc;
+  color: #1e293b;
+  font-size: 0.875rem;
+  letter-spacing: -0.01em;
+}
+body.theme-white .glass-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+}
+body.theme-white .nav-item-active {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+body.theme-white .nav-item-inactive {
+  color: #64748b;
+  border: 1px solid transparent;
+  font-weight: 500;
+}
+body.theme-white .nav-item-inactive:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+body.theme-white .text-title {
+  color: #0f172a;
+  font-weight: 600;
+}
+body.theme-white table thead {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+/* Perbaikan kontras White Theme -- fix global (bukan per-komponen).
+   Warna text-slate-200/300/400/500 dirancang untuk latar gelap; dipakai
+   ratusan kali di seluruh dashboard (tabel, badge, subteks) sebagai teks
+   sekunder, tapi hampir tidak terbaca di atas latar putih/glass-card
+   terang. Selector di bawah menimpa SEMUA pemakaiannya sekaligus. */
+body.theme-white .text-slate-200 { color: #334155; }
+body.theme-white .text-slate-300 { color: #334155; }
+body.theme-white .text-slate-400 { color: #475569; }
+body.theme-white .text-slate-500 { color: #334155; }
+body.theme-white .text-slate-600 { color: #1e293b; }
+
+/* PERBAIKAN REGRESI: 3 baris di atas menimpa text-slate-200/300/400 jadi
+   gelap dengan asumsi selalu di atas kartu putih -- tapi puluhan tombol
+   (Reset, panah pagination, tombol X modal, Batal, dll) memakai teks itu
+   DI ATAS latar solid gelap (bg-slate-700/800/900) yang sengaja dipertahankan
+   gelap di kedua tema. Hasilnya teks gelap di atas tombol gelap = nyaris
+   tak terlihat. Selector gabungan di bawah (spesifisitas lebih tinggi)
+   mengembalikan teks jadi terang lagi khusus untuk kombinasi ini. */
+body.theme-white .bg-slate-700.text-slate-200,
+body.theme-white .bg-slate-800.text-slate-200,
+body.theme-white .bg-slate-900.text-slate-200,
+body.theme-white .bg-slate-700.text-slate-300,
+body.theme-white .bg-slate-800.text-slate-300,
+body.theme-white .bg-slate-900.text-slate-300,
+body.theme-white .bg-slate-700.text-slate-400,
+body.theme-white .bg-slate-800.text-slate-400,
+body.theme-white .bg-slate-900.text-slate-400 {
+  color: #e2e8f0;
+}
+
+/* Badge "N/A" / "Menunggu Data" / "Waste" -- latar transparan gelap
+   (bg-slate-700/40) nyaris tidak terlihat di atas kartu putih, jadi
+   diganti jadi badge abu-abu terang yang jelas kontrasnya. */
+body.theme-white .bg-slate-700\/40 { background-color: #e2e8f0; }
+body.theme-white .bg-slate-700\/30 { background-color: #e2e8f0; }
+body.theme-white .border-slate-600\/40 { border-color: #cbd5e1; }
+body.theme-white .border-slate-600\/30 { border-color: #cbd5e1; }
+
+/* Styling Dropdown Filter & Option (White Mode) */
+body.theme-white select.custom-select {
+  background-color: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+body.theme-white select.custom-select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Perbaikan kontras White Theme -- komponen ini sebelumnya tetap gelap
+   padahal teks di dalamnya (.text-title) ikut berubah gelap juga,
+   jadi teks gelap di atas latar gelap = nyaris tidak terbaca. */
+body.theme-white .pit-filter-box {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+}
+body.theme-white .theme-toggle-pill {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+body.theme-white #btn-manual-refresh {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+/* Perbaikan kontras White Theme -- nilai di kartu "Pratinjau Ekspor Laporan"
+   (Total Baris Data & Filter Pit Aktif) pakai warna aksen (blue-400/emerald-400)
+   yang terlalu terang/washed-out di atas kartu abu-abu, jadi dipertegas jadi
+   gelap pekat khusus tema White supaya mudah terbaca. */
+body.theme-white #preview-rows-val,
+body.theme-white #preview-pit-val {
+  color: #0f172a;
+}
+
+/* PERBAIKAN KRITIS White Theme -- BUG SISTEMIK: puluhan <input> & <textarea>
+   di seluruh form (Validasi, Digging, Member, Issue, Update Tujuan, PIN
+   Developer, Chat Tim, kotak pencarian, dll) memakai latar gelap permanen
+   (bg-slate-900, termasuk varian /40 /60) yang TIDAK ikut berubah di Tema
+   White, tapi warna tulisannya pakai .text-title yang JUSTRU ikut berubah
+   gelap di Tema White. Hasilnya: teks gelap di atas kotak gelap = tidak
+   kelihatan sama sekali saat mengetik. <select class="custom-select"> sudah
+   aman (background-nya sendiri di-override putih di atas), tapi <input> &
+   <textarea> tidak -- disamakan di sini: background putih + teks navy gelap,
+   konsisten dengan gaya dropdown. */
+body.theme-white input[class*="bg-slate-900"],
+body.theme-white textarea[class*="bg-slate-900"] {
+  background-color: #ffffff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+body.theme-white input[class*="bg-slate-900"]::placeholder,
+body.theme-white textarea[class*="bg-slate-900"]::placeholder {
+  color: #94a3b8;
+}
+
+body.theme-white #btn-manual-refresh:hover {
+  background-color: #f1f5f9;
+}
+body.theme-white .header-info-row {
+  color: #64748b;
+}
+body.theme-white .header-info-row .text-slate-300 {
+  color: #334155;
+}
+body.theme-white .header-info-row .text-slate-600 {
+  color: #cbd5e1;
+}
+body.theme-white .trend-toggle-box {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+body.theme-white .trend-toggle-box .text-slate-300 {
+  color: #475569;
+}
+body.theme-white .trend-toggle-box .text-slate-300:hover {
+  color: #0f172a;
+}
+body.theme-white .search-input-box {
+  background-color: #ffffff;
+  border-color: #cbd5e1;
+}
+body.theme-white .search-input-box::placeholder {
+  color: #94a3b8;
+}
+
+/* RCA WHITE THEME: kartu RCA memakai bg-slate-900/40 agar tetap cocok di Dark Theme.
+   Di White Theme latar ini menjadi abu-abu gelap/transparan, sementara text-title/text-slate
+   ikut menjadi gelap sehingga beberapa label/status tampak pudar seperti screenshot audit.
+   Override khusus RCA menjaga kartu tetap terang dan seluruh teks/status tetap terbaca. */
+body.theme-white #rca-log-list .bg-slate-900\/40 {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+}
+body.theme-white #rca-log-list .text-slate-300 { color: #334155; }
+body.theme-white #rca-log-list .text-slate-400 { color: #475569; }
+body.theme-white #rca-log-list .text-slate-500 { color: #64748b; }
+body.theme-white #rca-log-list .text-slate-600 { color: #64748b; }
+body.theme-white #rca-log-list .text-title { color: #0f172a; }
+body.theme-white #rca-log-list .border-slate-800\/70 { border-color: #e2e8f0; }
+body.theme-white #rca-log-list .text-emerald-400\/80 { color: #047857; }
+body.theme-white #rca-log-list .bg-rose-500\/20.text-rose-400 {
+  background-color: #fff1f2;
+  color: #be123c;
+  border-color: #fecdd3;
+}
+body.theme-white #rca-log-list .bg-amber-500\/20.text-amber-400 {
+  background-color: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+body.theme-white #rca-log-list .bg-emerald-500\/20.text-emerald-400 {
+  background-color: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+body.theme-white #rca-log-list .bg-blue-500\/15.text-blue-400 {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+/* Custom application dialogs: override .modal-mobile's broad mobile width so
+   notice/confirm dialogs stay compact and centered instead of expanding to 95vw. */
+.notice-modal-card, .confirm-modal-card {
+  width: min(92vw, 420px) !important;
+  max-width: 420px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+.notice-modal-action {
+  width: auto !important;
+  min-width: 96px;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* PENGATURAN CETAK / EKSPOR PDF PROFESIONAL */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 1cm;
+  }
+  body {
+    background: white !important;
+    color: #0f172a !important;
+    font-family: Arial, sans-serif !important;
+  }
+  aside, header button, .no-print, #export-preview-modal, #member-modal, #form-popup-modal, #form-issue-popup-modal {
+    display: none !important;
+  }
+  #print-report-container {
+    display: none;
+  }
+  body.printing-report main {
+    display: none !important;
+  }
+  body.printing-report #print-report-container {
+    display: block !important;
+  }
+  /* Laporan Berkala pakai body class TERPISAH (printing-periodic-report) dari mekanisme
+     Cetak Tampilan/Ekspor PDF di atas (printing-report) -- supaya 2 fitur print yang beda
+     tidak bentrok saling menampilkan container satu sama lain kalau kebetulan dipicu. */
+  #print-periodic-report-container {
+    display: none;
+  }
+  body.printing-periodic-report main,
+  body.printing-periodic-report #print-report-container {
+    display: none !important;
+  }
+  body.printing-periodic-report #print-periodic-report-container {
+    display: block !important;
+  }
+  /* BARU: Laporan Rekonsiliasi Profesional -- body class TERPISAH lagi (printing-professional-
+     report), pola sama dengan Laporan Berkala di atas, supaya 3 fitur print (Cetak Tampilan,
+     Laporan Berkala, Laporan Profesional) tidak saling tabrakan container. */
+  #print-professional-report-container {
+    display: none;
+  }
+  body.printing-professional-report main,
+  body.printing-professional-report #print-report-container,
+  body.printing-professional-report #print-periodic-report-container {
+    display: none !important;
+  }
+  body.printing-professional-report #print-professional-report-container {
+    display: block !important;
+  }
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+  }
+  /* Perbaikan cetak: 5 kartu ringkasan (Total Tonase, Total Ore, Rata-rata Ni, Ni Tanpa
+     Waste, Strip Ratio) sebelumnya ikut breakpoint layar responsif (lg:grid-cols-5), yang
+     saat proses cetak/print preview sering jatuh ke tingkat 2-kolom -- kartu ke-5 jadi
+     sendirian di baris terakhir dengan ruang kosong lebar di sebelahnya. Dipaksa 5 kolom
+     tetap saat mode print, terlepas dari breakpoint layar. */
+  #kpi-summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 10px !important;
+  }
+  .glass-card {
+    background: white !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    color: #0f172a !important;
+    margin-bottom: 15px !important;
+    border-radius: 8px !important;
+    page-break-inside: avoid;
+  }
+  .text-title {
+    color: #0f172a !important;
+  }
+  header::before {
+    content: "PT.GEOBANK MINERALS — LAPORAN OPERASIONAL TAMBANG";
+    display: block;
+    font-size: 10pt;
+    font-weight: bold;
+    color: #475569;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    letter-spacing: 0.5px;
+  }
+  header {
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+  }
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9pt !important;
+  }
+  th, td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px !important;
+    color: #0f172a !important;
+  }
+  th {
+    background-color: #f1f5f9 !important;
+    font-weight: bold !important;
+  }
+}
+
+/* ==========================================================
+  v90 RESPONSIVE 320px - 4K FULL - MINE GEOLOGIST
+  ========================================================== */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+/* Safe area iPhone SE / notch */
+:root {
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
+  --safe-right: env(safe-area-inset-right);
+}
+
+/* Fluid base */
+body {
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* 4K scaling - jangan pecah di layar besar */
+@media (min-width: 1920px) {
+  main { max-width: 1600px; margin-left: auto; margin-right: auto; }
+}
+@media (min-width: 2560px) {
+  main { max-width: 1800px; }
+  html { font-size: 16px; }
+}
+@media (min-width: 3840px) {
+  main { max-width: 2200px; }
+  html { font-size: 18px; }
+}
+
+/* Laptop: judul/deskripsi menjadi footer, tetap di dalam kartu grafik. */
+@media (max-width: 1440px) {
+  .trend-chart-card { display: flex; flex-direction: column; }
+  .trend-chart-card .trend-chart-header { display: contents !important; }
+  .trend-chart-card .trend-toggle-box { order: 1; width: 100%; max-width: 100%; margin-bottom: 1.5rem; }
+  .trend-chart-card > [id^="wrapper-trend-"] { order: 2; }
+  .trend-chart-card .trend-heading { order: 3; width: 100%; margin-top: 1.5rem; display: flex; align-items: baseline; gap: 0.65rem; min-width: 0; }
+  .trend-chart-card .trend-heading #trend-active-title { flex: 0 0 auto; white-space: nowrap; }
+  .trend-chart-card .trend-heading #trend-active-desc { margin-top: 0 !important; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .rekon-view-card { display: flex; flex-direction: column; }
+  .rekon-view-card .rekon-view-header { display: contents !important; }
+  .rekon-view-card .trend-toggle-box { order: 1; width: 100%; max-width: 100%; margin-bottom: 1rem; }
+  .rekon-view-card > [id^="wrapper-rekon-"] { order: 2; }
+  .rekon-view-card .rekon-view-heading { order: 3; width: 100%; margin-top: 1rem; display: flex; align-items: baseline; gap: 0.65rem; min-width: 0; }
+  .rekon-view-card .rekon-view-heading #rekon-active-title { flex: 0 0 auto; white-space: nowrap; }
+  .rekon-view-card .rekon-view-heading #rekon-active-desc { margin-top: 0 !important; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* Tablet & Mobile Sidebar */
+@media (max-width: 768px) {
+  #main-sidebar { width: 84vw !important; max-width: 300px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  #mobile-sidebar-overlay { backdrop-filter: blur(4px); }
+}
+
+/* BARU (23 Agu): Sidebar Collapse (desktop only) -- ciutkan ke ikon saja, semua
+   fungsi navigasi tetap utuh, cuma teks labelnya yang disembunyikan. Class tunggal
+   di-toggle via JS, sisanya cascade CSS -- lebih gampang dirawat drpd toggle
+   banyak class Tailwind satu-satu tiap elemen. */
+#main-sidebar {
+  transition: width 0.25s ease, transform 0.3s ease-in-out;
+}
+#main-sidebar.sidebar-collapsed {
+  width: 5rem !important;
+}
+#main-sidebar.sidebar-collapsed .sidebar-label {
+  display: none !important;
+}
+#main-sidebar.sidebar-collapsed .sidebar-header-row {
+  justify-content: center;
+}
+#main-sidebar.sidebar-collapsed nav button {
+  justify-content: center;
+}
+#main-sidebar.sidebar-collapsed #sidebar-dev-identity-card {
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* 320px - 375px iPhone SE 4 inch specific */
+@media (max-width: 375px) {
+  .glass-card { padding: 0.875rem !important; border-radius: 14px !important; }
+  header { gap: 0.75rem !important; margin-bottom: 1rem !important; }
+  #page-title { font-size: 1.05rem !important; line-height: 1.2; }
+  #page-subtitle { font-size: 0.70rem !important; }
+  /* Semua grid 2+ kolom paksa 1 kolom di 320-359 */
+  .grid { gap: 0.75rem !important; }
+  .chart-grid { grid-template-columns: 1fr !important; }
+  .force-1col { grid-template-columns: repeat(1, minmax(0,1fr)) !important; }
+}
+@media (max-width: 320px) {
+  main { padding: 0.6rem !important; }
+  .glass-card { padding: 0.75rem !important; }
+  button, select { font-size: 0.78rem !important; }
+  canvas { min-height: 180px !important; }
+}
+
+/* Touch target 44px untuk tambang */
+@media (max-width: 480px) {
+  button, select, [role="button"], .nav-item-active, .nav-item-inactive { min-height: 42px; }
+  .pit-filter-box, #btn-manual-refresh, #export-dropdown { min-height: 40px; }
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .overflow-x-auto::-webkit-scrollbar { display: none; }
+  table { font-size: 0.75rem; }
+  table th, table td { padding: 0.5rem 0.6rem !important; white-space: nowrap; }
+}
+
+/* RCA history scrollbar: keep mouse/wheel scrolling, hide visual scrollbar */
+#rca-log-list {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#rca-log-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+/* Chart responsive */
+canvas {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+}
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Modal 4 inch fix */
+/* FIX (27 Agu): max-height 90vh TANPA overflow-y sebelumnya bikin konten yg melebihi
+   tinggi itu cuma terpotong visual, TIDAK BISA di-scroll -- kasus nyata: modal Update
+   Tujuan, tombol "Simpan Perubahan" jadi tak terjangkau begitu "Buka Dome Baru" diklik
+   (form baru menambah tinggi konten). overflow-y:auto aman utk SEMUA modal yg pakai
+   class ini -- cuma aktif kalau konten benar2 melebihi 90vh, modal pendek tidak berubah. */
+.modal-mobile {
+  width: 95vw !important;
+  max-width: 95vw !important;
+  margin: 0 auto !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  border-radius: 18px !important;
+}
+@media (max-width: 480px) {
+  .modal-mobile {
+    width: 92vw !important;
+    padding: 1rem !important;
+  }
+}
+
+/* JSA modal: desktop tetap satu baris, Android portrait menjadi header 2 tingkat.
+   Tujuannya mencegah judul terjepit di antara tombol RCA/TTD dan tombol X. */
+#jsa-modal { padding: 0.75rem !important; }
+#jsa-modal .jsa-modal-card {
+  min-height: 0;
+  height: min(92vh, calc(100dvh - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: hidden;
+}
+#jsa-modal .jsa-modal-header { min-height: 44px; flex-shrink: 0; }
+#jsa-modal .jsa-modal-title { min-width: 0; line-height: 1.25; }
+#jsa-modal .jsa-modal-actions { min-width: 0; flex-shrink: 0; }
+#jsa-modal .jsa-modal-actions button { min-height: 40px; }
+#jsa-modal #jsa-iframe { min-height: 0; display: block; }
+
+@media (max-width: 640px) {
+  #jsa-modal { padding: 0.5rem !important; }
+  #jsa-modal .jsa-modal-card {
+    width: 96vw !important;
+    max-width: 96vw !important;
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+    padding: 0.65rem !important;
+    border-radius: 16px !important;
+  }
+  #jsa-modal .jsa-modal-header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.55rem !important;
+    padding: 0 0.1rem !important;
+  }
+  #jsa-modal .jsa-modal-title {
+    grid-column: 1;
+    grid-row: 1;
+    font-size: 0.9rem !important;
+    white-space: normal;
+  }
+  #jsa-modal .jsa-modal-close {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 40px;
+    width: 40px;
+    height: 40px;
+    padding: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #jsa-modal .jsa-modal-actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  #jsa-modal .jsa-modal-actions button:not(.jsa-modal-close) {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    padding: 0.55rem 0.6rem !important;
+    white-space: normal !important;
+    line-height: 1.15;
+  }
+  #jsa-modal #jsa-iframe {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  #jsa-modal .jsa-modal-actions { grid-template-columns: 1fr; }
+  #jsa-modal .jsa-modal-actions button:not(.jsa-modal-close) { min-height: 42px; }
+}
+
+/* Animasi buka/tutup modal: slide dari bawah (bottom-sheet style). Class "modal-anim-in"
+   ditambahkan ke container modal (lewat showModalAnimated/hideModalAnimated di JS) sesaat
+   setelah modal ditampilkan, memicu transisi ini. Berlaku otomatis untuk semua modal karena
+   semuanya memakai kartu ".modal-mobile" yang sama -- ganti gaya animasi cukup di sini saja,
+   tidak perlu sentuh 12 fungsi buka/tutup modal satu-satu. (Sebelumnya fade+scale di v89.16.14,
+   diganti ke slide sesuai permintaan.) */
+.modal-mobile {
+  transform: translateY(48px);
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+.modal-anim-in .modal-mobile {
+  transform: translateY(0);
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-mobile { transition: none; }
+}
+
+/* Prevent horizontal overflow from fixed widths */
+[class*="w-full sm:w-[150px]"], [class*="min-w-0 sm:min-w-[220px]"] {
+  max-width: 100%;
+}
+
+/* v90.2.82 UI FIX: hide native Edge/Chromium password reveal so PIN fields show only one eye control. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+/* BARU (27 Agu, Active User Indicator): avatar bulat kecil di header Developer,
+   menampilkan session Member+Supervisor yang sedang aktif. */
+.active-member-avatar {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 9999px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(52, 211, 153, .72);
+  background: #0f172a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(16,185,129,.10);
+}
+.active-member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (max-width: 480px) {
+  .active-member-avatar {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+}
+
+/* v90.2.120: stale-data-toast (banner data usang) */
+.stale-toast-anchor {
+  left: 76px;
+  bottom: 76px;
+  transform: translateX(-24px);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.stale-toast-anchor.stale-toast-show {
+  transform: translateX(0);
+  opacity: 1;
+}
+.stale-toast-anchor.stale-toast-hide {
+  transform: translateX(-24px);
+  opacity: 0;
+}
