@@ -11,7 +11,7 @@
  * CACHE_NAME harus diubah setiap deploy versi baru agar browser mendownload ulang.
  * ============================================================ */
 
-const CACHE_NAME = 'mine-geologist-build-20260902c';
+const CACHE_NAME = 'mine-geologist-build-20260903a';
 
 const APP_SHELL = [
   './',
@@ -74,9 +74,7 @@ self.addEventListener('activate', (event) => {
     caches.keys()
       .then((keys) =>
         Promise.all(
-          keys
-            .filter((k) => k !== CACHE_NAME)
-            .map((k) => caches.delete(k))
+          keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
         )
       )
       .then(() => self.clients.claim())
@@ -91,12 +89,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
 
   let url;
-  try {
-    url = new URL(req.url);
-  } catch (e) {
-    return;
-  }
-
+  try { url = new URL(req.url); } catch (e) { return; }
   if (url.origin !== self.location.origin) return;
 
   // ====== NAVIGASI (HTML) ======
@@ -108,11 +101,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
           return res;
         })
-        .catch(() =>
-          caches.match(req).then(
-            (cached) => cached || caches.match('./index.html')
-          )
-        )
+        .catch(() => caches.match(req).then((cached) => cached || caches.match('./index.html')))
     );
     return;
   }
@@ -135,9 +124,7 @@ self.addEventListener('fetch', (event) => {
   // ====== FILE STATIS LAINNYA (CSS, gambar, manifest) ======
   // Cache-first untuk kecepatan
   event.respondWith(
-    caches.match(req).then(
-      (cached) => cached || fetch(req)
-    )
+    caches.match(req).then((cached) => cached || fetch(req))
   );
 });
 
