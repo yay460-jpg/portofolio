@@ -546,28 +546,160 @@ window.getLoggedInChatIdentity = function() {
   return { sender: sender || 'Guest', role: role };
 };
 
-window.updateDeveloperAccessUI = function() {
-  const unlocked = typeof isDeveloperUnlocked === 'function' ? isDeveloperUnlocked() : false;
-  const devBtn = document.getElementById('dev-access-unlock-btn');
-  const devStatus = document.getElementById('dev-access-status');
-  if (devBtn) {
-    devBtn.textContent = unlocked ? (window.currentLang === 'en' ? 'Lock' : 'Kunci') : (window.currentLang === 'en' ? 'Unlock' : 'Buka');
-  }
-  if (devStatus) {
-    devStatus.textContent = unlocked ? (window.currentLang === 'en' ? 'Active' : 'Aktif') : (window.currentLang === 'en' ? 'Inactive' : 'Tidak Aktif');
-    devStatus.className = unlocked ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold';
-  }
-  document.querySelectorAll('.dev-only').forEach(function(el) {
-    el.classList.toggle('hidden', !unlocked);
-  });
-  const sidebarCard = document.getElementById('sidebar-dev-identity-card');
-  if (sidebarCard) sidebarCard.classList.toggle('hidden', !unlocked);
-};
+// [UPDATED dari baseline -- versi lama pakai ID elemen HTML yang sudah tidak dipakai index.html]
+ // Kontrol akses fitur Dome -- sengaja 2 fungsi terpisah (assign vs lihat riwayat), bukan 1
+ // pengecekan yang dipakai berulang -- supaya kalau nanti mau diubah (misal riwayat dibuka
+ // untuk semua member tapi assign tetap dikunci developer), cukup ubah DI SINI SAJA, tidak
+ // perlu bongkar ulang semua tempat yang memakainya. Saat ini keduanya sama: developer-only.
+ // v90.2.104: Update Tujuan EFO/ETO/Disposal -- dibuka utk Developer+Supervisor,
+ // sama pola dengan canCreateRca(). Matching permission granular server-side
+ // 'digging.destination.update' (updatediggingids sudah dikeluarkan dari daftar
+ // isDeveloperProtectedAction_ di backend). Server-side tetap otoritas akhir.
+ function updateDeveloperAccessUI() {
+ const lockedView = document.getElementById('dev-locked-view');
+ const unlockedView = document.getElementById('dev-unlocked-view');
+ const btnFormMember = document.getElementById('btn-open-form-member');
+ const csvOption = document.getElementById('export-csv-option');
+ const btnPrintView = document.getElementById('btn-print-view');
+ const btnChatDeleteAll = document.getElementById('btn-chat-delete-all');
+ const btnIssueDeleteAll = document.getElementById('btn-issue-delete-all');
+ const devCleanupPanel = document.getElementById('dev-cleanup-panel');
+ const panelResetProject = document.getElementById('panel-reset-project');
+ const panelResetMemberPin = document.getElementById('panel-reset-member-pin'); // BARU (27 Agu)
+ const sidebarDevIdentityCard = document.getElementById('sidebar-dev-identity-card');
+ const unlocked = isDeveloperUnlocked();
 
-window.openDeveloperConsoleModal = function() {
+ // BARU (22 Agu): kartu identitas Developer di sidebar bawah -- muncul HANYA saat
+ // Developer Access ter-unlock (PIN benar), hilang total saat locked/logout. Pakai
+ // pola add/remove 'flex' eksplisit (bukan cuma toggle 'hidden') -- konsisten dgn
+ // showModalAnimated/hideModalAnimated di file ini, krn elemen ini butuh display:flex
+ // (items-center) begitu ditampilkan, bukan display default div.
+ if (sidebarDevIdentityCard) {
+  if (unlocked) {
+   sidebarDevIdentityCard.classList.remove('hidden');
+   sidebarDevIdentityCard.classList.add('flex');
+  } else {
+   sidebarDevIdentityCard.classList.add('hidden');
+   sidebarDevIdentityCard.classList.remove('flex');
+  }
+ }
+
+ if (panelResetProject) {
+  panelResetProject.classList.toggle('hidden', !unlocked);
+ }
+
+ if (panelResetMemberPin) {
+  panelResetMemberPin.classList.toggle('hidden', !unlocked);
+ }
+
+ // BARU (28 Agu)
+ const panelKpiEventApproval = document.getElementById('panel-kpi-event-approval');
+ if (panelKpiEventApproval) {
+  panelKpiEventApproval.classList.toggle('hidden', !unlocked);
+  if (unlocked) loadKpiEventApprovalList();
+ }
+
+ // BARU (v90.2.117)
+ const panelFormulaKpi = document.getElementById('panel-formula-kpi');
+ if (panelFormulaKpi) {
+  panelFormulaKpi.classList.toggle('hidden', !unlocked);
+  if (unlocked && panelFormulaKpi.dataset.kpiFormulaLoaded !== '1') {
+   panelFormulaKpi.dataset.kpiFormulaLoaded = '1';
+   loadKpiFormulaConfig();
+  }
+  if (!unlocked) panelFormulaKpi.dataset.kpiFormulaLoaded = '';
+ }
+
+ if (devCleanupPanel) {
+   devCleanupPanel.classList.toggle('hidden', !unlocked);
+   if (unlocked && devCleanupPanel.dataset.retentionLoaded !== '1') {
+    devCleanupPanel.dataset.retentionLoaded = '1';
+    loadRetentionPolicy();
+    loadSessionCachePolicy();
+    loadApiAbuseGuardPolicy();
+   }
+   if (!unlocked) devCleanupPanel.dataset.retentionLoaded = '';
+  }
+
+ if (btnChatDeleteAll) {
+  btnChatDeleteAll.classList.toggle('hidden', !unlocked);
+  btnChatDeleteAll.classList.toggle('flex', unlocked);
+ }
+ if (btnIssueDeleteAll) {
+  btnIssueDeleteAll.classList.toggle('hidden', !unlocked);
+  btnIssueDeleteAll.classList.toggle('flex', unlocked);
+ }
+
+ if (btnPrintView) {
+  btnPrintView.classList.toggle('hidden', !unlocked);
+  btnPrintView.classList.toggle('flex', unlocked);
+ }
+
+ if (csvOption) {
+  csvOption.innerText = unlocked
+  ? ((translations[currentLang] && translations[currentLang].opt_csv) || '📊 Ekspor CSV')
+  : '🔒 ' + (currentLang === 'en' ? 'Export CSV' : 'Ekspor CSV');
+ }
+
+ if (lockedView && unlockedView) {
+  lockedView.classList.toggle('hidden', unlocked);
+  unlockedView.classList.toggle('hidden', !unlocked);
+  unlockedView.classList.toggle('flex', unlocked);
+ }
+ if (btnFormMember) {
+  btnFormMember.classList.toggle('opacity-50', !unlocked);
+  btnFormMember.title = unlocked ? '' : (currentLang === 'en' ? 'Locked -- unlock Developer Access in Settings first.' : 'Terkunci -- buka Akses Developer di Settings terlebih dahulu.');
+ }
+ var btnUpdateTujuan = document.getElementById('btn-open-update-tujuan');
+ if (btnUpdateTujuan) {
+  btnUpdateTujuan.classList.toggle('hidden', !canAssignDome());
+ }
+ var btnBargeShipment = document.getElementById('btn-open-form-barge-shipment');
+ if (btnBargeShipment) {
+  btnBargeShipment.classList.toggle('hidden', !canManageBarge());
+  btnBargeShipment.classList.toggle('flex', canManageBarge());
+ }
+ var btnRca = document.getElementById('btn-open-form-rca');
+ if (btnRca) {
+  btnRca.classList.toggle('hidden', !canManageRca());
+  btnRca.classList.toggle('flex', canManageRca());
+ }
+ var btnPitActual = document.getElementById('btn-open-form-pitactual');
+ if (btnPitActual) {
+  btnPitActual.classList.toggle('hidden', !canManagePitActual());
+  btnPitActual.classList.toggle('inline-flex', canManagePitActual());
+ }
+ var panelGuide = document.getElementById('panel-guide-rekonsiliasi');
+ if (panelGuide) {
+  panelGuide.classList.toggle('hidden', !isDeveloperUnlocked());
+ }
+ // BARU: panel Parameter Global (gabungan 3 kartu: COG/Flag/Bucket & Sampel), sama pola
+ // dengan panel Panduan Rekonsiliasi.
+ var panelParameterGlobal = document.getElementById('panel-parameter-global');
+ if (panelParameterGlobal) {
+  panelParameterGlobal.classList.toggle('hidden', !isDeveloperUnlocked());
+ }
+ // v90.2.100: panel Padatkan Baris Kosong, sama pola dengan panel Developer lain.
+ var devCompactPanel = document.getElementById('dev-compact-panel');
+ if (devCompactPanel) {
+  devCompactPanel.classList.toggle('hidden', !isDeveloperUnlocked());
+ }
+ }
+
+// [UPDATED dari baseline -- tambah pengecekan unlock + isi identity]
+ function openDeveloperConsoleModal() {
+  if (!isDeveloperUnlocked()) {
+   showNoticeModal(currentLang === 'en' ? 'Developer Access Locked' : 'Akses Developer Terkunci', currentLang === 'en' ? 'Unlock Developer Access first.' : 'Buka Akses Developer terlebih dahulu.');
+   return;
+  }
   const modal = document.getElementById('developer-console-modal');
-  if (modal) showModalAnimated(modal);
-};
+  const identity = document.getElementById('developer-console-identity');
+  const name = (localStorage.getItem('mine_user_name') || localStorage.getItem('mine_user_id') || 'Developer').trim();
+  if (identity) identity.textContent = (currentLang === 'en' ? 'Access active as: ' : 'Akses aktif sebagai: ') + name;
+  updateDeveloperAccessUI();
+  showModalAnimated(modal);
+  if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+ }
 
 window.closeDeveloperConsoleModal = function() {
   const modal = document.getElementById('developer-console-modal');
