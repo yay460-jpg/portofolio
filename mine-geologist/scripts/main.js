@@ -87,7 +87,9 @@ function syncGlobalStateToWindow() {
 
 function updateDashboard(data) {
   // Gunakan data yang diberikan, atau fallback ke globalFilteredTableData
-  const sourceData = data || globalFilteredTableData || globalRawData;
+  // [FIX -- ditemukan 2 Sep] sama seperti di applyFetchedProductionData: baca window.X, bukan
+  // variabel bare yang permanen [] (lihat catatan lengkap di pemanggil applyFetchedProductionData).
+  const sourceData = data || window.globalFilteredTableData || globalRawData;
   if (!sourceData || sourceData.length === 0) {
     // Jika tidak ada data, reset KPI cards ke 0
     document.getElementById('kpi-total-tonase').innerHTML = '0 <span class="text-xs font-semibold text-slate-400 ml-1.5" data-i18n="unit_ton">Ton</span>';
@@ -744,8 +746,17 @@ function applyFetchedProductionData(dataArray) {
   if (typeof applyGlobalFilter === 'function') applyGlobalFilter();
 
   // 🔥 FIX BLOCKER #2: Update dashboard dengan data terbaru
+  // [FIX -- ditemukan 2 Sep] Baris ini sebelumnya baca variabel BARE `globalFilteredTableData`
+  // (bukan `window.globalFilteredTableData`), padahal applyGlobalFilter() di digging.js CUMA
+  // menulis ke window.globalFilteredTableData -- variabel bare di atas jadi PERMANEN [] sejak
+  // deklarasi awal (let globalFilteredTableData = [];), tidak pernah ke-update. Karena [] itu
+  // truthy di JS, `globalFilteredTableData || globalRawData` SELALU jatuh ke [] -- jadi baris
+  // ini SELALU memanggil updateDashboard([]), menimpa hasil benar dari applyGlobalFilter()
+  // yang baru saja jalan tepat di atas. Ini akar bug "KPI dashboard balik ke 0 beberapa detik
+  // setelah data benar sempat tampil", muncul tiap kali fetchDataFromGoogleSheets() jalan
+  // (termasuk auto-refresh tiap 60 detik).
   if (typeof updateDashboard === 'function') {
-    updateDashboard(globalFilteredTableData || globalRawData);
+    updateDashboard(window.globalFilteredTableData || globalRawData);
   }
 
   if (currentActiveTab === 'rekonsiliasi' && typeof renderReconciliation === 'function') {
