@@ -4451,6 +4451,12 @@ dibaca dari dashboard, jadi bukti valid kalau ada penyimpangan yang perlu diaudi
  </div>
  </div>
 </div>
+</div>
+<!-- FIX -- ditemukan 3 Sep, live debugging: 1 </div> hilang di sini, bikin form-popup-modal
+     (dan semua modal setelahnya sampai penutup yang salah) ikut BERSARANG di dalam
+     member-modal -- kalau member-modal display:none (tertutup), form-popup-modal ikut
+     collapse walau class-nya sendiri sudah benar "flex" (terbuka). Ini akar masalah tombol
+     "Form Member"/"Edit" yang kelihatan tidak berfungsi. -->
 
 <!-- MODAL FORM TAMBAH MEMBER -->
 <div id="form-popup-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
