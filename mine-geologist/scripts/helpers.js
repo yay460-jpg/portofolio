@@ -488,6 +488,37 @@ function setLoginButtonLoading(buttonId, spinnerId, loading, labelId, loadingLab
 // Catatan: window.updateDashboard TIDAK lagi dideklarasikan di sini.
 // Implementasi asli ada di main.js. Hapus fallback untuk mencegah timpa.
 
+// [MIGRASI User_ID -- Tahap 3] Isi dropdown pilih member (dipakai Attitude & KPI Event),
+// menggantikan input teks manual yang rawan typo. valueField menentukan apa yang dikirim
+// ke backend saat submit: 'user_id' (GEO-XXX, dipakai Attitude) atau 'nama' (dipakai
+// KPI Event, karena backend-nya masih cocokkan berdasar Nama persis -- lihat catatan
+// migrasi, belum diubah ke User_ID di tahap ini).
+window.populateMemberSelectOptions = function(selectId, valueField, includeBlank) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  select.innerHTML = '';
+  if (includeBlank !== false) {
+    const blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = currentLang === 'en' ? '-- Select member --' : '-- Pilih member --';
+    select.appendChild(blank);
+  }
+  const members = window.globalMemberData || [];
+  members.forEach(function(item) {
+    const m = {};
+    Object.keys(item).forEach(function(k) { m[k.trim().toLowerCase()] = item[k]; });
+    const nama = m['nama'] || m['name'] || '';
+    const userId = m['user_id'] || '';
+    if (!nama) return;
+    const val = (valueField === 'user_id') ? userId : nama;
+    if (!val) return; // skip member yang belum punya User_ID kalau valueField='user_id'
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = userId ? (nama + ' (' + userId + ')') : nama;
+    select.appendChild(opt);
+  });
+};
+
 window.populateReporterDropdown = function() {
   const select = document.getElementById('reporter-dropdown');
   if (!select) return;
