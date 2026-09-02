@@ -2552,6 +2552,23 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
   </div>
  </div>
 
+ <!-- [MIGRASI User_ID -- Tahap 1] Panel sementara untuk backfill User_ID member lama.
+      Dev-only, dipindah ke modal Technical Console via mounting di DOMContentLoaded. -->
+ <div id="panel-backfill-user-id" class="hidden glass-card p-3.5 rounded-2xl">
+  <div class="flex items-center gap-3 mb-3">
+   <div class="p-2.5 bg-amber-600/15 border border-amber-500/30 rounded-xl text-amber-400"><i data-lucide="user-cog" class="w-4 h-4"></i></div>
+   <div>
+    <h4 class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Migrasi User_ID -- Backfill Member Lama</h4>
+    <p class="text-[10px] text-slate-500">Isi User_ID (GEO-XXX) untuk member yang dibuat sebelum kolom ini ada. Selalu jalankan Dry-Run dulu sebelum eksekusi sungguhan.</p>
+   </div>
+  </div>
+  <div class="flex gap-2 mb-3">
+   <button onclick="runBackfillMemberUserIds(true)" class="flex-1 px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-semibold text-title transition-all">Jalankan Dry-Run (Cek Dulu)</button>
+   <button id="backfill-execute-btn" onclick="runBackfillMemberUserIds(false)" disabled class="flex-1 px-3 py-2 bg-amber-600/30 border border-amber-500/30 rounded-xl text-xs font-semibold text-amber-300 opacity-50 cursor-not-allowed transition-all">Eksekusi Sungguhan</button>
+  </div>
+  <div id="backfill-user-id-result" class="text-xs text-slate-400"></div>
+ </div>
+
  <!-- PANEL AKSES DEVELOPER -->
  <div class="glass-card p-3.5 rounded-2xl border-l-4 border-l-amber-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
   <div class="flex items-center gap-3 flex-1 min-w-0 sm:min-w-[220px]">
