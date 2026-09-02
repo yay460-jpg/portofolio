@@ -10,6 +10,11 @@ let lastMemberTokenRotationAt = 0;
 let lastDeveloperTokenRotationAt = 0;
 let lastSecurityUserActivityAt = Date.now();
 let memberLoginInFlight = false;
+// [FIX -- ditemukan 2 Sep] deklarasi yang sebelumnya tidak ada sama sekali -- dipakai lintas
+// file (auth.js & member.js) untuk fitur countdown lockout login member. Sama pola dengan
+// beberapa variabel global lain yang ditemukan tidak dideklarasikan sebelumnya.
+let memberLoginCountdownTimer = null;
+let memberLoginCountdownUntil = 0;
 let sessionIdleWarningEl = null;
 let memberSessionValidationSeq = 0;
 
@@ -66,8 +71,24 @@ function getClientIdleLimitMinutes() {
   return 30;
 }
 
+// [FIX -- ditemukan 2 Sep] versi lama cuma stub kosong (tidak melakukan apa-apa) -- diganti
+// implementasi asli dari baseline: cek apakah login_id+email yang sedang diketik masih dalam
+// masa lockout (tersimpan di localStorage), kalau ya langsung tampilkan countdown-nya lagi
+// tanpa perlu submit ulang ke server.
 function resumeMemberLoginCountdown() {
-  // Placeholder: jika ada fitur countdown di masa depan
+  const li = document.getElementById('member-login-id-input'), em = document.getElementById('member-login-email-input');
+  const loginId = (li ? li.value : '').trim(), email = (em ? em.value : '').trim();
+  if (!loginId || !email) return false;
+  try {
+    const until = parseInt(localStorage.getItem(memberLoginCountdownStorageKey(loginId, email)) || '0', 10) || 0;
+    if (until > Date.now()) {
+      memberLoginCountdownUntil = until;
+      startMemberLoginCountdown(Math.ceil((until - Date.now()) / 1000), window.currentLang === 'en' ? 'Too many login attempts.' : 'Terlalu banyak percobaan login.');
+      return true;
+    }
+    localStorage.removeItem(memberLoginCountdownStorageKey(loginId, email));
+  } catch (e) {}
+  return false;
 }
 
 function invalidateSessionCache(token) {
@@ -321,6 +342,18 @@ async function submitMemberLogin(event) {
       'Login_ID, email terdaftar, dan PIN 6 digit wajib diisi.',
       false
     );
+    return;
+  }
+
+  // [FIX -- ditemukan 2 Sep, audit dead-code] MG1 kehilangan pengecekan rate-limit LOKAL
+  // ini (sudah ada di baseline) -- fungsi checkMemberLoginLocalRateLimit/resumeMember-
+  // LoginCountdown sendiri sudah pernah direstorasi tapi TIDAK PERNAH dipanggil dari sini.
+  // Tanpa ini, retry cepat berulang langsung tembus ke server tiap kali (kontribusi ke
+  // masalah antrian doPost menumpuk yang pernah kita perbaiki di backend).
+  if (resumeMemberLoginCountdown()) return;
+  const localRate = checkMemberLoginLocalRateLimit(login_id, email);
+  if (!localRate.allowed) {
+    startMemberLoginCountdown(localRate.retrySeconds, window.currentLang === 'en' ? 'Too many login attempts.' : 'Terlalu banyak percobaan login.');
     return;
   }
 
