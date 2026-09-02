@@ -949,7 +949,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (el && mountSistem) mountSistem.appendChild(el);
     });
     const mountTechnical = document.getElementById('developer-console-technical-panels');
-    ['panel-guide-rekonsiliasi', 'panel-parameter-global', 'panel-kpi-event-approval', 'panel-formula-kpi'].forEach(function(id) {
+    ['panel-guide-rekonsiliasi', 'panel-parameter-global', 'panel-kpi-event-approval', 'panel-formula-kpi', 'panel-backfill-user-id'].forEach(function(id) {
       const el = document.getElementById(id);
       if (el && mountTechnical) mountTechnical.appendChild(el);
     });
