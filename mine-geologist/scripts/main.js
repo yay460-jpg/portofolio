@@ -39,6 +39,12 @@ let ewsAlertNotified = false;
 window.chatLastSeenRow = 0;
 let rcaExportRequestId = 0;
 let rcaExportLoading = false;
+// [FIX -- export KPI Member, 3 Sep] state serupa RCA, untuk fetch skor 5 pilar KPI semua
+// member sekaligus sebelum preview export dibangun (data ini TIDAK ada di globalMemberData,
+// beda dari 3 tonase yang sudah tersedia langsung -- KPI score selalu per-member terpisah).
+let memberKpiExportRequestId = 0;
+let memberKpiExportLoading = false;
+let memberKpiScoreCache = {};
 let pendingExportType = '';
 let pendingExportSource = 'digging';
 let pendingExportOrientation = 'portrait';
