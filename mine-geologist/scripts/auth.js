@@ -211,7 +211,7 @@ async function unlockDeveloperAccess() {
     const response = await fetchWithTimeout(window.GOOGLE_SCRIPT_READ_URL, {
       method: 'POST',
       body: payload
-    }, 20000);
+    }, window.FETCH_TIMEOUT_MS);
     const result = await response.json();
 
     if (result.success && result.token) {
@@ -336,7 +336,7 @@ async function submitMemberLogin(event) {
     const response = await fetchWithTimeout(window.GOOGLE_SCRIPT_READ_URL, {
       method: 'POST',
       body: payload
-    }, 20000);
+    }, window.FETCH_TIMEOUT_MS);
     const result = await response.json();
 
     if (result.success && result.token) {
