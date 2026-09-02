@@ -683,6 +683,11 @@ async function fetchJsaLogData() {
   if (result.status === 'success' && result.data.length > 0) {
   container.innerHTML = '';
   globalMemberData = result.data;
+  window.globalMemberData = globalMemberData; // [FIX] MG1 sinkronisasi window.X manual (lihat
+  // syncGlobalStateToWindow di main.js) -- fungsi ini direstorasi dari baseline yang memakai
+  // variabel bare langsung, jadi window.globalMemberData WAJIB disamakan manual di sini juga,
+  // supaya kode lain (leaderboard, dev console, dll) yang baca window.globalMemberData tidak
+  // ketinggalan data basi.
   populateReporterDropdown();
 
   result.data.forEach((item, index) => {
