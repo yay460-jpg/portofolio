@@ -770,111 +770,7 @@ window.applyRegionalTimeSettings = function(settings) {
  * atau menggunakan nilai dari elemen dengan id #issue-status-filter.
  * Jika tidak ada, tampilkan semua.
  */
-window.renderIssueList = function() {
-  const container = document.getElementById('issue-list');
-  if (!container) return;
-
-  // Cari status filter yang aktif
-  let statusFilter = 'all';
-  const btnOpen = document.getElementById('issue-filter-open');
-  const btnProgress = document.getElementById('issue-filter-progress');
-  const btnClose = document.getElementById('issue-filter-close');
-  if (btnOpen && btnOpen.classList.contains('active')) statusFilter = 'open';
-  else if (btnProgress && btnProgress.classList.contains('active')) statusFilter = 'progress';
-  else if (btnClose && btnClose.classList.contains('active')) statusFilter = 'close';
-
-  const data = window.globalIssueRawData || [];
-  const filtered = data.filter(item => {
-    const status = (item.status || '').toLowerCase();
-    if (statusFilter === 'all') return true;
-    if (statusFilter === 'open') return status === 'open' || status === '';
-    if (statusFilter === 'progress') return status === 'progress' || status === 'in progress';
-    if (statusFilter === 'close') return status === 'close' || status === 'closed';
-    return true;
-  });
-
-  if (filtered.length === 0) {
-    container.innerHTML = '<p class="text-center text-slate-500 text-xs py-6">' +
-      (window.currentLang === 'en' ? 'No issues found.' : 'Tidak ada issue.') +
-    '</p>';
-    return;
-  }
-
-  // Urutkan berdasarkan tanggal terbaru
-  filtered.sort((a, b) => (b.tanggal || '').localeCompare(a.tanggal || ''));
-
-  const statusColors = {
-    'open': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-    'progress': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    'close': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-  };
-
-  container.innerHTML = filtered.map(item => {
-    const statusLower = (item.status || 'open').toLowerCase();
-    const statusClass = statusColors[statusLower] || 'bg-slate-700/40 text-slate-400 border-slate-600/40';
-    const statusDisplay = item.status || (window.currentLang === 'en' ? 'Open' : 'Terbuka');
-    return `<div class="bg-slate-900/40 border border-slate-700/60 rounded-xl p-3 hover:border-blue-500/40 transition-all">
-      <div class="flex items-start justify-between gap-2 flex-wrap">
-        <div class="flex items-center gap-2">
-          <span class="font-bold text-title text-xs">${escapeHtml(item.masalah || '-')}</span>
-          <span class="text-[10px] text-slate-500">${escapeHtml(item.lokasi || '')}</span>
-        </div>
-        <span class="px-2 py-0.5 rounded-md text-[10px] font-semibold border ${statusClass} whitespace-nowrap">${statusDisplay}</span>
-      </div>
-      <div class="mt-1 text-[11px] text-slate-400">${escapeHtml(item.dampak || '')}</div>
-      <div class="mt-1 text-[11px] text-slate-300">${window.currentLang === 'en' ? 'Recommendation' : 'Rekomendasi'}: ${escapeHtml(item.rekomendasi || '-')}</div>
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-[10px] text-slate-500">
-        <span>${window.currentLang === 'en' ? 'Date' : 'Tanggal'}: ${item.tanggal || '-'} ${item.waktu || ''}</span>
-        <span>${window.currentLang === 'en' ? 'Reporter' : 'Pelapor'}: ${escapeHtml(item.pelapor || '-')}</span>
-        <span>PIC: ${escapeHtml(item.pic || '-')}</span>
-        <span>${window.currentLang === 'en' ? 'Target' : 'Target'}: ${escapeHtml(item.target || '-')}</span>
-      </div>
-      ${isDeveloperUnlocked() ? `<div class="mt-2 flex gap-1.5" onclick="event.stopPropagation()">
-        <button onclick="deleteIssueRow(${item._row})" class="px-2 py-1 rounded-lg bg-rose-600/15 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 text-[10px] font-bold">${window.currentLang === 'en' ? 'Delete' : 'Hapus'}</button>
-      </div>` : ''}
-    </div>`;
-  }).join('');
-
-  if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-};
-
-/**
- * Set filter status issue.
- */
-window.setIssueFilter = function(filter) {
-  ['open', 'progress', 'close'].forEach(f => {
-    const btn = document.getElementById('issue-filter-' + f);
-    if (btn) btn.classList.toggle('active', f === filter);
-  });
-  renderIssueList();
-};
-
-/**
- * Delete issue row (Developer only)
- */
-window.deleteIssueRow = async function(rowNumber) {
-  if (!isDeveloperUnlocked()) {
-    showNoticeModal(
-      window.currentLang === 'en' ? 'Developer Access Required' : 'Akses Developer Diperlukan',
-      window.currentLang === 'en' ? 'Please unlock Developer Access in Settings.' : 'Buka Akses Developer di Settings.'
-    );
-    return;
-  }
-  if (!await showConfirmModal(
-    window.currentLang === 'en' ? 'Delete Issue' : 'Hapus Issue',
-    window.currentLang === 'en' ? 'Delete this issue row?' : 'Hapus baris issue ini?'
-  )) return;
-  try {
-    await postDeveloperAdmin('developerDeleteIssue', { row_number: String(rowNumber) });
-    await fetchIssueData();
-  } catch (e) {
-    showNoticeModal(
-      window.currentLang === 'en' ? 'Delete Failed' : 'Hapus Gagal',
-      e.message
-    );
-  }
-};
-
+// (renderIssueList/setIssueFilter/deleteIssueRow dihapus 2 Sep -- kode mati, target elemen 'issue-list' yang sudah tidak ada; versi aktif & benar: renderIssueTable/deleteIssueByRow di modules/issue.js)
 // [DIHAPUS -- kode mati, versi aktif yang benar ada di modules/issue.js yang dimuat setelah file ini]
 
 /**
@@ -1043,12 +939,9 @@ window.memberInitials = memberInitials;
 window.setLoginButtonLoading = setLoginButtonLoading;
 window.showCogFallbackWarning_ = showCogFallbackWarning_;
 
-// Issue
-window.fetchIssueData = window.fetchIssueData;
-window.renderIssueList = window.renderIssueList;
-window.setIssueFilter = window.setIssueFilter;
-window.deleteIssueRow = window.deleteIssueRow;
-window.deleteAllIssues = window.deleteAllIssues;
+// Issue -- window.X = window.X untuk fetchIssueData/renderIssueList/setIssueFilter/
+// deleteIssueRow/deleteAllIssues DIHAPUS (2 Sep, audit dead-code) -- semua sumbernya
+// sudah tidak ada di file ini (dihapus krn basi/digantikan modules/issue.js).
 window.openFormIssuePopup = window.openFormIssuePopup;
 window.closeFormIssuePopup = window.closeFormIssuePopup;
 window.submitIssueForm = window.submitIssueForm;
@@ -1110,16 +1003,7 @@ function memberLoginThrottleKey(loginId, email) {
  }
  }
 
-// [RESTORED from baseline/core.js] parseAccuracyValue_
- function parseAccuracyValue_(raw) {
- if (raw === null || raw === undefined) return null;
- const s = String(raw).trim();
- if (!s || s === '-') return null;
- const m = s.match(/-?\d+(?:[.,]\d+)?/);
- if (!m) return null;
- const n = parseFloat(m[0].replace(',', '.'));
- return isNaN(n) ? null : n;
- }
+// (parseAccuracyValue_ dihapus 2 Sep -- kode mati, parseAccuracyValue tanpa underscore di file ini sudah jadi versi aktif yang dipakai renderLeaderboard)
 
 // [RESTORED from baseline/core.js] resetCompactPreviewState
 function resetCompactPreviewState() {
@@ -1165,12 +1049,7 @@ async function resetProjectData() {
   }
 }
 
-// [RESTORED from baseline/produksi.js] setOnceGlobal_
-function setOnceGlobal_(fieldName, value) {
-  if (alreadySetFields.has(fieldName)) return;
-  alreadySetFields.add(fieldName);
-  cfg[fieldName] = value;
-  }
+// (setOnceGlobal_ dihapus 2 Sep -- kode mati DAN rusak: pakai cfg/alreadySetFields yang tidak ada di scope-nya; modules/reconciliation.js sudah punya versi lokal yang benar & jalan)
 
 // (tick tidak direstorasi berdiri sendiri -- sudah ikut terbawa sebagai fungsi
 // bersarang di dalam startMemberLoginCountdown() pada modules/member.js)
