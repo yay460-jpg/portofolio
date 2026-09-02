@@ -828,3 +828,42 @@ input[type="password"]::-ms-clear {
   white-space: nowrap !important;
   flex-shrink: 0 !important;
 }
+
+/* [FIX -- ditemukan 2 Sep, ronde ke-2] Paksa judul+baris tombol SELALU sejajar 1 baris,
+   apa pun lebar jendela/DPI-scaling/status sidebar -- override aturan responsive lama
+   (@media max-width:1440px di atas) yang kadang masih memaksa susun bertingkat. Judul
+   dipersempit (boleh terpotong dgn ellipsis) supaya baris tombol tetap dapat ruang & tetap
+   scroll horizontal kalau kurang muat -- TIDAK PERNAH pindah ke baris baru. */
+.trend-chart-card .trend-chart-header {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.75rem !important;
+}
+.trend-chart-card .trend-heading {
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  order: initial !important;
+  width: auto !important;
+  margin-top: 0 !important;
+}
+.trend-chart-card .trend-heading #trend-active-title {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.trend-chart-card .trend-heading #trend-active-desc {
+  display: none !important;
+}
+.trend-chart-card .trend-toggle-box {
+  order: initial !important;
+  width: auto !important;
+  max-width: 60% !important;
+  flex: 0 1 auto !important;
+  margin-bottom: 0 !important;
+}
+.trend-chart-card > [id^="wrapper-trend-"] {
+  order: initial !important;
+}
