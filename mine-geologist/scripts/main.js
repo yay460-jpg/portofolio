@@ -944,12 +944,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // tidak lagi tampil menempel di tab Settings/Member. updateDeveloperAccessUI() tetap 1
     // fungsi yang sama, toggle SEMUA panel berdasarkan ID tanpa peduli mount ke modal yang mana.
     const mountSistem = document.getElementById('developer-console-panels');
-    ['dev-cleanup-panel', 'dev-compact-panel', 'panel-reset-project', 'panel-reset-member-pin'].forEach(function(id) {
+    ['dev-cleanup-panel', 'dev-compact-panel', 'panel-reset-project', 'panel-reset-member-pin', 'panel-backfill-user-id'].forEach(function(id) {
       const el = document.getElementById(id);
       if (el && mountSistem) mountSistem.appendChild(el);
     });
     const mountTechnical = document.getElementById('developer-console-technical-panels');
-    ['panel-guide-rekonsiliasi', 'panel-parameter-global', 'panel-kpi-event-approval', 'panel-formula-kpi', 'panel-backfill-user-id'].forEach(function(id) {
+    ['panel-guide-rekonsiliasi', 'panel-parameter-global', 'panel-kpi-event-approval', 'panel-formula-kpi'].forEach(function(id) {
       const el = document.getElementById(id);
       if (el && mountTechnical) mountTechnical.appendChild(el);
     });
