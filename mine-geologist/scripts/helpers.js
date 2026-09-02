@@ -1035,45 +1035,54 @@ window.fetchChatData = async function() {
 /**
  * Render pesan chat ke dalam #chat-messages.
  */
+// [UPDATED dari baseline -- versi lama pakai container ID 'chat-messages' yang tidak ada di HTML (harusnya 'chat-messages-area'), jadi loading spinner tidak pernah hilang]
 window.renderChatMessages = function() {
-  const container = document.getElementById('chat-messages');
-  if (!container) return;
+ const area = document.getElementById('chat-messages-area');
+ if (!area) return;
 
-  const data = window.globalChatData || [];
-  if (data.length === 0) {
-    container.innerHTML = '<div class="text-center text-slate-500 text-xs py-6">' +
-      (window.currentLang === 'en' ? 'No messages yet.' : 'Belum ada pesan.') +
-    '</div>';
-    return;
+ if (globalChatData.length === 0) {
+  area.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs font-medium">${currentLang === 'en' ? 'No messages yet. Start the conversation!' : 'Belum ada pesan. Mulai obrolan!'}</div>`;
+  return;
+ }
+
+ const chatIdentity = getLoggedInChatIdentity();
+ const mySender = chatIdentity.sender || '';
+
+ area.innerHTML = globalChatData.map(msg => {
+  const isMine = msg.sender === mySender;
+  const initials = (msg.sender || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+
+  if (isMine) {
+  return `
+   <div class="flex items-start justify-end gap-2.5">
+   <div class="max-w-[75%]">
+    <div class="flex items-baseline gap-1.5 justify-end">
+    ${msg.role ? `<span class="text-[10px] text-slate-500 font-medium">${escapeHtml(msg.role)}</span>` : ''}
+    <span class="text-xs font-bold text-title">${escapeHtml(msg.sender)}</span>
+    </div>
+    <div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-3.5 py-2 text-sm font-medium shadow-md mt-0.5">${escapeHtml(msg.message)}</div>
+    <p class="text-[10px] text-slate-500 font-medium mt-1 text-right">${msg.timestamp}</p>
+    ${isDeveloperUnlocked() && msg._row ? `<button type="button" onclick="deleteChatMessage(${msg._row})" class="mt-1 text-[9px] text-rose-300 hover:text-rose-200 font-semibold">Hapus</button>` : ''}
+   </div>
+   <div class="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">${initials}</div>
+   </div>`;
+  } else {
+  return `
+   <div class="flex items-start gap-2.5">
+   <div class="w-7 h-7 rounded-full bg-slate-700 text-slate-200 flex items-center justify-center text-[10px] font-bold shrink-0">${initials}</div>
+   <div class="max-w-[75%]">
+    <div class="flex items-baseline gap-1.5">
+    <span class="text-xs font-bold text-title">${escapeHtml(msg.sender)}</span>
+    ${msg.role ? `<span class="text-[10px] text-slate-500 font-medium">${escapeHtml(msg.role)}</span>` : ''}
+    </div>
+    <div class="bg-slate-800 text-slate-200 rounded-2xl rounded-tl-sm px-3.5 py-2 text-sm font-medium mt-0.5">${escapeHtml(msg.message)}</div>
+    <p class="text-[10px] text-slate-500 font-medium mt-1">${msg.timestamp}</p>
+    ${isDeveloperUnlocked() && msg._row ? `<button type="button" onclick="deleteChatMessage(${msg._row})" class="mt-1 text-[9px] text-rose-300 hover:text-rose-200 font-semibold">Hapus</button>` : ''}
+   </div>
+   </div>`;
   }
-
-  // Urutkan berdasarkan _row ascending (pesan lama ke baru)
-  const sorted = [...data].sort((a, b) => (a._row || 0) - (b._row || 0));
-
-  // Dapatkan identitas pengirim dari localStorage (untuk penandaan pesan sendiri)
-  const identity = typeof getLoggedInChatIdentity === 'function' ? getLoggedInChatIdentity() : { sender: '' };
-  const currentSender = identity.sender || '';
-
-  const html = sorted.map(msg => {
-    const isOwn = msg.sender === currentSender;
-    const senderClass = isOwn ? 'text-blue-400' : 'text-emerald-400';
-    const alignClass = isOwn ? 'justify-end' : 'justify-start';
-    const bubbleClass = isOwn ? 'bg-blue-600/20 border-blue-500/30' : 'bg-slate-800/60 border-slate-700/40';
-    return `<div class="flex ${alignClass} mb-2">
-      <div class="max-w-[80%] ${bubbleClass} border rounded-xl px-3 py-2 text-xs">
-        <div class="flex items-center gap-2 mb-0.5">
-          <span class="${senderClass} font-bold">${escapeHtml(msg.sender || 'Unknown')}</span>
-          <span class="text-[9px] text-slate-500">${escapeHtml(msg.role || '')}</span>
-          <span class="text-[9px] text-slate-500">${escapeHtml(msg.timestamp || '')}</span>
-        </div>
-        <div class="text-slate-200 break-words">${escapeHtml(msg.message || '')}</div>
-      </div>
-    </div>`;
-  }).join('');
-
-  container.innerHTML = html;
-  if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-};
+ }).join('');
+ };
 
 /**
  * Update badge jumlah pesan belum terbaca di tab Chat.
@@ -1101,7 +1110,7 @@ window.updateChatUnreadBadge = function() {
  * Scroll container chat ke bawah.
  */
 window.scrollChatToBottom = function() {
-  const container = document.getElementById('chat-messages');
+  const container = document.getElementById('chat-messages-area');
   if (container) {
     container.scrollTop = container.scrollHeight;
   }
