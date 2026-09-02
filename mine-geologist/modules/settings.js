@@ -376,13 +376,7 @@ async function cleanupGeneralSheet(sheetName) {
   } catch(e){ showNoticeModal('Cleanup Gagal',e.message); }
 }
 
-// [RESTORED from baseline/core.js] clearDeveloperSessionStorageIfCurrent
-function clearDeveloperSessionStorageIfCurrent(token) {
-   if (token && (localStorage.getItem('mine_dev_token') || '').trim() !== token) return false;
-   ['mine_dev_token','mine_dev_session_id','mine_dev_expires_at','mine_user_id','mine_role_id','mine_user_name'].forEach(function(key){localStorage.removeItem(key);});
-   return true;
-  }
-
+// (clearDeveloperSessionStorageIfCurrent dihapus 2 Sep -- kode mati, refreshSecuritySession sudah punya logika clear-storage yang sama persis secara inline)
 // [RESTORED from baseline/core.js] closeChangelogModal
  function closeChangelogModal() {
  const modal = document.getElementById('changelog-modal');
@@ -423,27 +417,7 @@ async function executeCompactBlankRows() {
  }
 }
 
-// [RESTORED from baseline/core.js] formatDateInAppTimezone_
- // v90.2.138 FIX (temuan audit #4 -- "2 sumber waktu"): SEBELUMNYA getLocalPeriodeYyyyMm/
- // getLocalDateYyyyMmDd pakai getter LOKAL BROWSER (getFullYear/getMonth/getDate) -- kalau
- // timezone PC/HP user beda dari APP_TIMEZONE yg dikonfigurasi backend (jarang di Indonesia,
- // tapi bukan mustahil -- laptop disetel UTC, VPN, dll), "bulan berjalan" versi
- // frontend & backend bisa beda tepat di sekitar pergantian bulan/hari. Sekarang KEDUANYA
- // format tanggal berdasarkan `regionalTimeSettings.timezone` (di-cache dari APP_TIMEZONE
- // backend via loadRegionalTimeSettings() saat app dibuka) -- 1 sumber kebenaran waktu yg
- // SAMA dgn backend, bukan lagi 2 sumber terpisah. Fallback ke getter browser HANYA kalau
- // regionalTimeSettings belum sempat termuat (race sangat awal) atau timezone string rusak.
- function formatDateInAppTimezone_(dateObj) {
-  const d = dateObj || new Date();
-  const tz = (typeof regionalTimeSettings !== 'undefined' && regionalTimeSettings && regionalTimeSettings.timezone) || 'Asia/Jakarta';
-  try {
-   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
-   const map = {};
-   parts.forEach(p => { map[p.type] = p.value; });
-   if (map.year && map.month && map.day) return { year: map.year, month: map.month, day: map.day };
-  } catch (e) { /* fallback di bawah kalau timezone string invalid/regionalTimeSettings blm siap */ }
-  return { year: String(d.getFullYear()), month: String(d.getMonth() + 1).padStart(2, '0'), day: String(d.getDate()).padStart(2, '0') };
- }
+// (formatDateInAppTimezone_ dihapus 2 Sep -- kode mati, getLocalPeriodeYyyyMm/getLocalDateYyyyMmDd di scripts/helpers.js sudah punya logika timezone yang sama persis secara inline)
 
 // [RESTORED from baseline/core.js] loadApiAbuseGuardPolicy
 async function loadApiAbuseGuardPolicy() {
@@ -528,39 +502,7 @@ async function previewCompactBlankRows() {
  }
 }
 
-// [RESTORED from baseline/produksi.js] provisionExistingCredential
-async function provisionExistingCredential(index, userId) {
- const loginEl = document.getElementById('cred-login-' + index);
- const pinEl = document.getElementById('cred-pin-' + index);
- const loginId = (loginEl?.value || '').trim();
- const pin = String(pinEl?.value || '').replace(/\D/g, '').slice(0, 6);
- if (!/^[A-Za-z0-9._-]{3,40}$/.test(loginId)) {
-  setCredentialManagerStatus(currentLang === 'en' ? 'Login_ID must be 3-40 characters and use only letters, numbers, dot, underscore, or hyphen.' : 'Login_ID harus 3-40 karakter dan hanya huruf, angka, titik, garis bawah, atau tanda minus.', false);
-  loginEl?.focus();
-  return;
- }
- if (!/^\d{6}$/.test(pin)) {
-  setCredentialManagerStatus(currentLang === 'en' ? 'PIN must be exactly 6 digits.' : 'PIN harus tepat 6 digit angka.', false);
-  pinEl?.focus();
-  return;
- }
- try {
-  const result = await postCentralAuthenticated({
-   action: 'provisionExistingCredential',
-   user_id: userId,
-   login_id: loginId,
-   pin: pin
-  }, { developerOnly: true });
-  if (result.status !== 'success') throw new Error(result.message || (currentLang === 'en' ? 'Credential creation failed.' : 'Credential gagal dibuat.'));
-  setCredentialManagerStatus((currentLang === 'en' ? 'Credential created for ' : 'Credential berhasil dibuat untuk ') + userId + ' (' + result.credential_id + ').', true);
-  await loadCredentialProvisionCandidates();
- } catch (err) {
-  console.error('Provision credential:', err);
-  setCredentialManagerStatus(err.message || (currentLang === 'en' ? 'Credential creation failed.' : 'Credential gagal dibuat.'), false);
- } finally {
-  if (pinEl) pinEl.value = '';
- }
-}
+// (provisionExistingCredential duplikat dihapus 2 Sep -- versi asli MG1 di atas file ini sudah cukup, lihat window.provisionExistingCredential)
 
 // [RESTORED from baseline/core.js] readCachedRegionalTimeSettings
  function readCachedRegionalTimeSettings() {
