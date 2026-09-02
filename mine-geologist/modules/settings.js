@@ -819,18 +819,22 @@ async function loadActiveMemberSessions() {
   const result = await response.json();
   if (requestSeq !== activeMemberIndicatorRequestSeq) return false;
   if (!result || !result.success) {
-   console.warn('Active Member indicator skipped:', result && result.message ? result.message : result);
-   activeMemberSessions = [];
-   renderActiveSessionsIndicator([]);
+   // [FIX -- ditemukan 3 Sep] SEBELUMNYA: response gagal/tidak sukses langsung mengosongkan
+   // avatar (activeMemberSessions = []), padahal member yang sebenarnya masih login -- ini
+   // cuma kegagalan transient (timeout/error jaringan sesaat, PERSIS pola AbortError yang
+   // pernah kita temui langsung waktu debugging). Sekarang: kegagalan TIDAK menghapus avatar,
+   // cukup pertahankan tampilan terakhir yang diketahui benar -- avatar cuma hilang kalau
+   // server SECARA VALID membalas sukses TANPA member itu di daftarnya.
+   console.warn('Active Member indicator skipped (mempertahankan tampilan terakhir):', result && result.message ? result.message : result);
    return false;
   }
   renderActiveSessionsIndicator(result.sessions || []);
   return true;
  } catch (error) {
   if (requestSeq !== activeMemberIndicatorRequestSeq) return false;
-  console.warn('Active Member indicator request failed:', error);
-  activeMemberSessions = [];
-  renderActiveSessionsIndicator([]);
+  // [FIX -- ditemukan 3 Sep] sama seperti di atas -- error jaringan/timeout TIDAK menghapus
+  // avatar yang sudah tampil, cuma di-skip update-nya siklus ini.
+  console.warn('Active Member indicator request failed (mempertahankan tampilan terakhir):', error);
   return false;
  }
 }
