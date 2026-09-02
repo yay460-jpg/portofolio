@@ -727,44 +727,7 @@ window.applyRegionalTimeSettings = function(settings) {
 
 // --- ISSUE ---
 
-/**
- * Ambil data Issue & Action dari sheet 'Masalah & Rekomendasi'
- * Simpan ke window.globalIssueRawData, lalu render daftar issue.
- */
-window.fetchIssueData = async function() {
-  const container = document.getElementById('issue-list');
-  if (container) {
-    container.innerHTML = '<div class="text-center py-4 text-slate-500 text-xs">' +
-      (window.currentLang === 'en' ? 'Loading issues...' : 'Memuat issue...') +
-    '</div>';
-  }
-  try {
-    const response = await fetchWithTimeout(
-      window.GOOGLE_SCRIPT_READ_URL + '?sheet=issue&t=' + new Date().getTime()
-    );
-    const result = await response.json();
-    if (result.status !== 'success') {
-      throw new Error(result.message || (window.currentLang === 'en' ? 'Failed to load issues.' : 'Gagal memuat data issue.'));
-    }
-    window.globalIssueRawData = result.data || [];
-    if (typeof markDataFresh_ === 'function') markDataFresh_('Issue');
-    renderIssueList();
-  } catch (err) {
-    console.error('fetchIssueData error:', err);
-    if (typeof markDataStale_ === 'function') markDataStale_('Issue');
-    const isTimeout = err.name === 'AbortError';
-    if (container) {
-      container.innerHTML = `<div class="text-center py-4 text-rose-400 text-xs space-y-2">
-        <p>${isTimeout ?
-          (window.currentLang === 'en' ? 'Server timeout.' : 'Timeout server.') :
-          (window.currentLang === 'en' ? 'Failed to load issues.' : 'Gagal memuat issue.')}</p>
-        <button onclick="fetchIssueData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all">
-          ${window.currentLang === 'en' ? 'Retry' : 'Coba Lagi'}
-        </button>
-      </div>`;
-    }
-  }
-};
+// [DIHAPUS -- kode mati, versi aktif yang benar ada di modules/issue.js yang dimuat setelah file ini]
 
 /**
  * Render daftar issue berdasarkan filter status yang aktif.
@@ -877,31 +840,7 @@ window.deleteIssueRow = async function(rowNumber) {
   }
 };
 
-/**
- * Delete all issues (Developer only)
- */
-window.deleteAllIssues = async function() {
-  if (!isDeveloperUnlocked()) {
-    showNoticeModal(
-      window.currentLang === 'en' ? 'Developer Access Required' : 'Akses Developer Diperlukan',
-      window.currentLang === 'en' ? 'Please unlock Developer Access in Settings.' : 'Buka Akses Developer di Settings.'
-    );
-    return;
-  }
-  if (!await showConfirmModal(
-    window.currentLang === 'en' ? 'Delete All Issues' : 'Hapus Semua Issue',
-    window.currentLang === 'en' ? 'Delete ALL issue rows? This cannot be undone.' : 'Hapus SEMUA baris issue? Tindakan ini tidak bisa dibatalkan.'
-  )) return;
-  try {
-    await postDeveloperAdmin('developerDeleteAllIssues', {});
-    await fetchIssueData();
-  } catch (e) {
-    showNoticeModal(
-      window.currentLang === 'en' ? 'Delete Failed' : 'Hapus Gagal',
-      e.message
-    );
-  }
-};
+// [DIHAPUS -- kode mati, versi aktif yang benar ada di modules/issue.js yang dimuat setelah file ini]
 
 /**
  * Buka form Issue baru (memanggil popup yang sudah ada di HTML).
@@ -932,105 +871,11 @@ window.closeFormIssuePopup = function() {
   if (modal) hideModalAnimated(modal);
 };
 
-/**
- * Submit issue form (dipanggil dari form onsubmit)
- */
-window.submitIssueForm = async function(event) {
-  event.preventDefault();
-  const form = document.getElementById('issueManagerForm');
-  const submitBtn = document.getElementById('btn-submit-issue');
-  const statusMsg = document.getElementById('issue-form-status-msg');
-  const originalBtnHtml = submitBtn.innerHTML;
-
-  // Validasi dasar
-  const lokasi = form.lokasi.value.trim();
-  const masalah = form.masalah.value.trim();
-  const dampak = form.dampak.value.trim();
-  const rekomendasi = form.rekomendasi.value.trim();
-  if (!lokasi || !masalah || !dampak || !rekomendasi) {
-    statusMsg.className = 'text-xs text-rose-400';
-    statusMsg.innerText = window.currentLang === 'en' ? 'Please fill in all required fields.' : 'Isi semua field yang wajib.';
-    statusMsg.classList.remove('hidden');
-    return;
-  }
-
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> ' +
-    (window.currentLang === 'en' ? 'Saving...' : 'Menyimpan...');
-  statusMsg.classList.add('hidden');
-
-  try {
-    const payload = buildAuthenticatedPayload(form);
-    const response = await fetch(window.GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload });
-    const result = await response.json();
-    if (result.status !== 'success') {
-      throw new Error(result.message || (window.currentLang === 'en' ? 'Failed to save issue.' : 'Gagal menyimpan issue.'));
-    }
-    statusMsg.className = 'text-xs text-emerald-400';
-    statusMsg.innerText = window.currentLang === 'en' ? 'Issue saved successfully!' : 'Issue berhasil disimpan!';
-    statusMsg.classList.remove('hidden');
-    form.reset();
-    setTimeout(() => {
-      closeFormIssuePopup();
-      statusMsg.classList.add('hidden');
-      if (typeof fetchIssueData === 'function') fetchIssueData();
-    }, 800);
-  } catch (error) {
-    console.error('Error submitting issue:', error);
-    statusMsg.className = 'text-xs text-rose-400';
-    statusMsg.innerText = error.message || (window.currentLang === 'en' ? 'An error occurred.' : 'Terjadi kesalahan.');
-    statusMsg.classList.remove('hidden');
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = originalBtnHtml;
-    if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
-  }
-};
+// [DIHAPUS -- kode mati, versi aktif yang benar ada di modules/issue.js yang dimuat setelah file ini]
 
 // --- CHAT ---
 
-/**
- * Ambil data ChatLog dari server.
- * Simpan ke window.globalChatData, render, update badge, scroll.
- */
-window.fetchChatData = async function() {
-  const container = document.getElementById('chat-messages');
-  if (container && !container.innerHTML) {
-    container.innerHTML = '<div class="text-center text-slate-500 text-xs py-4">' +
-      (window.currentLang === 'en' ? 'Loading messages...' : 'Memuat pesan...') +
-    '</div>';
-  }
-  try {
-    const response = await fetchWithTimeout(
-      window.GOOGLE_SCRIPT_READ_URL + '?sheet=chat&t=' + new Date().getTime() + '&limit=100'
-    );
-    const result = await response.json();
-    if (result.status !== 'success') {
-      throw new Error(result.message || (window.currentLang === 'en' ? 'Failed to load chat.' : 'Gagal memuat chat.'));
-    }
-    window.globalChatData = result.data || [];
-    if (typeof markDataFresh_ === 'function') markDataFresh_('Chat');
-    renderChatMessages();
-    updateChatUnreadBadge();
-    if (window.currentActiveTab === 'chat') {
-      scrollChatToBottom();
-    }
-  } catch (err) {
-    console.error('fetchChatData error:', err);
-    if (typeof markDataStale_ === 'function') markDataStale_('Chat');
-    const isTimeout = err.name === 'AbortError';
-    if (container) {
-      container.innerHTML = `<div class="text-center py-4 text-rose-400 text-xs space-y-2">
-        <p>${isTimeout ?
-          (window.currentLang === 'en' ? 'Server timeout.' : 'Timeout server.') :
-          (window.currentLang === 'en' ? 'Failed to load chat.' : 'Gagal memuat chat.')}</p>
-        <button onclick="fetchChatData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition-all">
-          ${window.currentLang === 'en' ? 'Retry' : 'Coba Lagi'}
-        </button>
-      </div>`;
-    }
-  }
-};
+// [DIHAPUS -- kode mati, versi aktif yang benar ada di scripts/main.js yang dimuat setelah file ini]
 
 /**
  * Render pesan chat ke dalam #chat-messages.
@@ -1116,77 +961,9 @@ window.scrollChatToBottom = function() {
   }
 };
 
-/**
- * Kirim pesan chat (dari form).
- */
-window.submitChatMessage = async function(event) {
-  event.preventDefault();
-  const input = document.getElementById('chat-message-input');
-  const statusMsg = document.getElementById('chat-status-msg');
-  if (!input) return;
-  const message = input.value.trim();
-  if (!message) return;
+// [DIHAPUS -- kode mati, versi aktif yang benar ada di scripts/main.js yang dimuat setelah file ini]
 
-  const identity = typeof getLoggedInChatIdentity === 'function' ? getLoggedInChatIdentity() : { sender: '', role: '' };
-  if (!identity.sender) {
-    if (statusMsg) {
-      statusMsg.className = 'text-rose-400 text-[10px] font-medium';
-      statusMsg.innerText = window.currentLang === 'en' ? 'Please login first.' : 'Login terlebih dahulu.';
-      statusMsg.classList.remove('hidden');
-      setTimeout(() => statusMsg.classList.add('hidden'), 3000);
-    }
-    return;
-  }
-
-  try {
-    const payload = buildAuthenticatedPayload({
-      sheet_name: 'ChatLog',
-      message: message
-    });
-    const response = await fetch(window.GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload });
-    const result = await response.json();
-    if (result.status !== 'success') {
-      throw new Error(result.message || (window.currentLang === 'en' ? 'Failed to send message.' : 'Gagal mengirim pesan.'));
-    }
-    input.value = '';
-    await fetchChatData();
-    scrollChatToBottom();
-  } catch (err) {
-    console.error('submitChatMessage error:', err);
-    if (statusMsg) {
-      statusMsg.className = 'text-rose-400 text-[10px] font-medium';
-      statusMsg.innerText = err.message || (window.currentLang === 'en' ? 'Failed to send.' : 'Gagal mengirim.');
-      statusMsg.classList.remove('hidden');
-      setTimeout(() => statusMsg.classList.add('hidden'), 3000);
-    }
-  }
-};
-
-/**
- * Delete all chat messages (Developer only)
- */
-window.deleteAllChatMessages = async function() {
-  if (!isDeveloperUnlocked()) {
-    showNoticeModal(
-      window.currentLang === 'en' ? 'Developer Access Required' : 'Akses Developer Diperlukan',
-      window.currentLang === 'en' ? 'Please unlock Developer Access in Settings.' : 'Buka Akses Developer di Settings.'
-    );
-    return;
-  }
-  if (!await showConfirmModal(
-    window.currentLang === 'en' ? 'Delete All Chat' : 'Hapus Semua Chat',
-    window.currentLang === 'en' ? 'Delete ALL chat messages? This cannot be undone.' : 'Hapus SEMUA pesan chat? Tindakan ini tidak bisa dibatalkan.'
-  )) return;
-  try {
-    await postDeveloperAdmin('developerDeleteAllChat', {});
-    await fetchChatData();
-  } catch (e) {
-    showNoticeModal(
-      window.currentLang === 'en' ? 'Delete Failed' : 'Hapus Gagal',
-      e.message
-    );
-  }
-};
+// [DIHAPUS -- kode mati, versi aktif yang benar ada di scripts/main.js yang dimuat setelah file ini]
 
 // ============================================================
 // SESSION IDLE WARNING (diambil dari auth.js, ditaruh di sini
