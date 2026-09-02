@@ -696,6 +696,9 @@ async function fetchJsaLogData() {
 
    const namaVal = member['nama'] || member['name'] || 'Tanpa Nama';
    const jabatanVal = member['jabatan'] || member['role'] || '-';
+   // [MIGRASI User_ID -- Tahap 2] Tampilkan User_ID resmi (GEO-XXX) di kartu, kalau sudah
+   // terisi (member lama sebelum kolom ini ada mungkin masih kosong sampai backfill jalan).
+   const userIdVal = member['user_id'] || '';
    // v90.2.140 FIX (keputusan user 30 Agu -- alih fungsi Accuracy Grade lama): backend
    // sekarang kirim field BARU (total_tonase/avg_ni_total/waste_tonase/avg_ni_waste/
    // tonase_murni/avg_ni_murni) menggantikan target/inspeksi/accuracy statis lama.
@@ -772,6 +775,7 @@ async function fetchJsaLogData() {
     <div>
      <h4 class="font-bold text-title tracking-tight">${namaVal}</h4>
      <p class="text-[11px] text-slate-400 font-medium">${jabatanVal}</p>
+     ${userIdVal ? `<p class="text-[9px] text-blue-400 font-mono font-semibold mt-0.5">${userIdVal}</p>` : ''}
     </div>
     </div>
     <div class="space-y-1.5 mb-3.5 font-medium">
@@ -918,6 +922,9 @@ function renderLeaderboard() {
  document.getElementById('modal-avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nama)}&background=2563eb&color=fff&bold=true`;
  document.getElementById('modal-nama').innerText = nama;
  document.getElementById('modal-jabatan').innerText = member['jabatan'] || '-';
+ // [MIGRASI User_ID -- Tahap 2] Tampilkan User_ID resmi di modal detail juga.
+ var modalUserIdEl = document.getElementById('modal-user-id');
+ if (modalUserIdEl) modalUserIdEl.innerText = member['user_id'] || '';
  document.getElementById('modal-hp').innerText = member['nomor_hp'] || '-';
  document.getElementById('modal-hadir').innerText = member['absensi_hadir'] || '-';
  document.getElementById('modal-izin').innerText = member['absensi_izin'] || '-';
@@ -1261,7 +1268,7 @@ function onKpiEventJenisChange() {
  function openAttitudeModal() {
  const now = new Date();
  document.getElementById('attitude-periode').value = getLocalPeriodeYyyyMm(now);
- document.getElementById('attitude-member-id').value = '';
+ populateMemberSelectOptions('attitude-member-id', 'user_id');
  document.getElementById('attitude-disiplin').value = '';
  document.getElementById('attitude-kerjasama').value = '';
  document.getElementById('attitude-inisiatif').value = '';
@@ -1279,7 +1286,7 @@ function onKpiEventJenisChange() {
  document.getElementById('kpi-event-jenis').value = 'Full Exclusion';
  document.getElementById('kpi-event-tanggal').value = getLocalDateYyyyMmDd();
  document.getElementById('kpi-event-pit-area').value = '';
- document.getElementById('kpi-event-target-member').value = '';
+ populateMemberSelectOptions('kpi-event-target-member', 'nama');
  document.getElementById('kpi-event-jam-normal').value = '';
  document.getElementById('kpi-event-jam-hilang').value = '';
  document.getElementById('kpi-event-jam-recovery').value = '';
