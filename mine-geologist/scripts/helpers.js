@@ -610,6 +610,10 @@ window.getLoggedInChatIdentity = function() {
   if (!unlocked) panelFormulaKpi.dataset.kpiFormulaLoaded = '';
  }
 
+ // [MIGRASI User_ID -- Tahap 1] Panel backfill User_ID member lama
+ const panelBackfillUserId = document.getElementById('panel-backfill-user-id');
+ if (panelBackfillUserId) panelBackfillUserId.classList.toggle('hidden', !unlocked);
+
  if (devCleanupPanel) {
    devCleanupPanel.classList.toggle('hidden', !unlocked);
    if (unlocked && devCleanupPanel.dataset.retentionLoaded !== '1') {
