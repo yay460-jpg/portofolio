@@ -476,6 +476,29 @@ function renderMemberSessionAvatar() {
 }
 
 // ============================================================
+// SECURITY 90V: Toggle visibility PIN Member / Konfirmasi PIN.
+// [RESTORED dari baseline/produksi.js -- listener global, bukan fungsi bernama, jadi
+// tidak pernah ke-tangkap audit restorasi berbasis nama fungsi sebelumnya]
+// ============================================================
+document.addEventListener('click', function (event) {
+  const btn = event.target.closest('[data-toggle-pin]');
+  if (!btn) return;
+  const form = btn.closest('form');
+  const fieldName = btn.getAttribute('data-toggle-pin');
+  let input = form ? form.querySelector('input[name="' + fieldName + '"]') : null;
+  if (!input) input = document.getElementById(fieldName);
+  if (!input) return;
+
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.setAttribute('aria-label', show ? (window.currentLang === 'en' ? 'Hide PIN' : 'Sembunyikan PIN') : (window.currentLang === 'en' ? 'Show PIN' : 'Tampilkan PIN'));
+  btn.setAttribute('title', show ? (window.currentLang === 'en' ? 'Hide PIN' : 'Sembunyikan PIN') : (window.currentLang === 'en' ? 'Show PIN' : 'Tampilkan PIN'));
+  btn.innerHTML = '<i data-lucide="' + (show ? 'eye-off' : 'eye') + '" class="w-4 h-4 pointer-events-none"></i>';
+  if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+  input.focus();
+});
+
+// ============================================================
 // SESSION VALIDATION (Refresh & Heartbeat)
 // ============================================================
 
