@@ -1388,39 +1388,7 @@ async function submitKpiEvent() {
  }
  }
 
-// [RESTORED from baseline/core.js] submitResetMemberPin
- // SECURITY 90V: Developer-only Credential Provisioning.
-// Tujuan: membuat Credential untuk User yang SUDAH ADA tetapi belum punya Credential.
-// Tidak membuat User/Member baru dan tidak mengubah Role/Permission.
-async function submitResetMemberPin() {
- const elUserId = document.getElementById('reset-member-pin-userid');
- const elPin = document.getElementById('reset-member-pin-new');
- const elConfirm = document.getElementById('reset-member-pin-confirm');
- const elStatus = document.getElementById('reset-member-pin-status');
- if (!elUserId || !elPin || !elConfirm || !elStatus) return;
- const userId = elUserId.value.trim();
- const pin = elPin.value.trim();
- const confirmPin = elConfirm.value.trim();
- function setStatus(msg, ok) {
-  elStatus.textContent = msg;
-  elStatus.className = 'text-[10px] font-medium mt-2 ' + (ok ? 'text-emerald-400' : 'text-rose-400');
- }
- if (!userId) { setStatus(currentLang === 'en' ? 'User_ID is required.' : 'User_ID wajib diisi.', false); return; }
- if (!/^[0-9]{6}$/.test(pin)) { setStatus(currentLang === 'en' ? 'PIN must be 6 digits.' : 'PIN harus 6 digit angka.', false); return; }
- if (pin !== confirmPin) { setStatus(currentLang === 'en' ? 'PIN confirmation does not match.' : 'Ulangi PIN tidak cocok.', false); return; }
- setStatus(currentLang === 'en' ? 'Saving...' : 'Menyimpan...', true);
- try {
-  const result = await postCentralAuthenticated({ action: 'setMemberPin', user_id: userId, pin: pin }, { developerOnly: true });
-  if (result.success) {
-   setStatus((currentLang === 'en' ? 'PIN saved for ' : 'PIN tersimpan utk ') + userId + '.', true);
-   elPin.value = ''; elConfirm.value = '';
-  } else {
-   setStatus(result.message || (currentLang === 'en' ? 'Failed to save PIN.' : 'Gagal menyimpan PIN.'), false);
-  }
- } catch (err) {
-  setStatus((currentLang === 'en' ? 'Server error: ' : 'Error server: ') + (err && err.message ? err.message : String(err)), false);
- }
-}
+// [DIHAPUS -- kode duplikat, versi aktif yang benar ada di modules/settings.js]
 
 // [RESTORED from baseline/core.js] syncMemberPinConfirmation
  function syncMemberPinConfirmation() {
