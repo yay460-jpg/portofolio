@@ -522,16 +522,11 @@ body {
   html { font-size: 18px; }
 }
 
-/* Laptop: judul/deskripsi menjadi footer, tetap di dalam kartu grafik. */
+/* Laptop: rekon-view-header (Rekonsiliasi) tetap pakai pola order lama di lebar sempit.
+   NOTE: bagian .trend-chart-card/.trend-chart-header/.trend-toggle-box/.trend-heading
+   SUDAH PINDAH ke 1 aturan permanen non-media-query di bawah (cari ".trend-chart-header
+   -- always inline, 1 baris"), supaya konsisten di semua lebar jendela, tidak cuma <1440px. */
 @media (max-width: 1440px) {
-  .trend-chart-card { display: flex; flex-direction: column; }
-  .trend-chart-card .trend-chart-header { display: contents !important; }
-  .trend-chart-card .trend-toggle-box { order: 1; width: 100%; max-width: 100%; margin-bottom: 1.5rem; }
-  .trend-chart-card > [id^="wrapper-trend-"] { order: 2; }
-  .trend-chart-card .trend-heading { order: 3; width: 100%; margin-top: 1.5rem; display: flex; align-items: baseline; gap: 0.65rem; min-width: 0; }
-  .trend-chart-card .trend-heading #trend-active-title { flex: 0 0 auto; white-space: nowrap; }
-  .trend-chart-card .trend-heading #trend-active-desc { margin-top: 0 !important; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
   .rekon-view-card { display: flex; flex-direction: column; }
   .rekon-view-card .rekon-view-header { display: contents !important; }
   .rekon-view-card .trend-toggle-box { order: 1; width: 100%; max-width: 100%; margin-bottom: 1rem; }
@@ -807,33 +802,10 @@ input[type="password"]::-ms-clear {
   opacity: 0;
 }
 
-/* [FIX -- ditemukan 2 Sep] .trend-toggle-box (baris tombol Tonase Digging/Fluktuasi Ni%/dst)
-   sebelumnya cuma dijaga tetap 1 baris via @media (max-width: 1440px) -- itu merespons lebar
-   JENDELA/viewport, bukan seberapa banyak ruang yang dimakan sidebar. Kalau jendela lebar
-   (>1440px) tapi sidebar sedang expand, kartu chart-nya menyempit tapi aturan responsive itu
-   tidak ikut aktif, jadi tombol-tombol jadi berebut ruang dan teksnya wrap 2 baris (jelek).
-   Aturan ini SELALU aktif (tidak terikat media query) supaya baris tombol tetap ramping &
-   scroll horizontal, di kondisi sidebar/lebar jendela manapun. */
-.trend-toggle-box,
-.rekon-view-header .trend-toggle-box {
-  flex-wrap: nowrap !important;
-  overflow-x: auto !important;
-  scrollbar-width: none; /* Firefox: scroll tetap jalan, cuma track-nya disembunyikan */
-  -ms-overflow-style: none; /* IE/Edge lama */
-}
-.trend-toggle-box::-webkit-scrollbar {
-  display: none; /* Chrome/Safari/Edge baru: scroll tetap jalan, cuma track-nya disembunyikan */
-}
-.trend-toggle-box button {
-  white-space: nowrap !important;
-  flex-shrink: 0 !important;
-}
-
-/* [FIX -- ditemukan 2 Sep, ronde ke-2] Paksa judul+baris tombol SELALU sejajar 1 baris,
-   apa pun lebar jendela/DPI-scaling/status sidebar -- override aturan responsive lama
-   (@media max-width:1440px di atas) yang kadang masih memaksa susun bertingkat. Judul
-   dipersempit (boleh terpotong dgn ellipsis) supaya baris tombol tetap dapat ruang & tetap
-   scroll horizontal kalau kurang muat -- TIDAK PERNAH pindah ke baris baru. */
+/* .trend-chart-header -- always inline, 1 baris, apa pun lebar jendela/sidebar (2 Sep,
+   konsolidasi dari beberapa revisi jadi 1 aturan final -- lihat catatan di @media 1440px
+   di atas). Judul boleh terpotong ellipsis, deskripsi disembunyikan (paling makan tempat),
+   baris tombol scroll horizontal (scrollbar disembunyikan) kalau kurang muat. */
 .trend-chart-card .trend-chart-header {
   display: flex !important;
   flex-direction: row !important;
@@ -845,7 +817,6 @@ input[type="password"]::-ms-clear {
 .trend-chart-card .trend-heading {
   min-width: 0 !important;
   flex: 1 1 auto !important;
-  order: initial !important;
   width: auto !important;
   margin-top: 0 !important;
 }
@@ -858,12 +829,19 @@ input[type="password"]::-ms-clear {
   display: none !important;
 }
 .trend-chart-card .trend-toggle-box {
-  order: initial !important;
   width: auto !important;
   max-width: 60% !important;
   flex: 0 1 auto !important;
   margin-bottom: 0 !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-.trend-chart-card > [id^="wrapper-trend-"] {
-  order: initial !important;
+.trend-chart-card .trend-toggle-box::-webkit-scrollbar {
+  display: none;
+}
+.trend-chart-card .trend-toggle-box button {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
