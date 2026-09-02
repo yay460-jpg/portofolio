@@ -704,10 +704,6 @@ async function fetchJsaLogData() {
    // tonase_murni/avg_ni_murni) menggantikan target/inspeksi/accuracy statis lama.
    const fmt1 = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toLocaleString('id-ID', {minimumFractionDigits:1, maximumFractionDigits:1});
    const fmtPct2 = (v) => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? '-' : Number(v).toFixed(2) + '%';
-   const totalTonaseVal = fmt1(member['total_tonase']);
-   const avgNiTotalVal = fmtPct2(member['avg_ni_total']);
-   const wasteTonaseVal = fmt1(member['waste_tonase']);
-   const avgNiWasteVal = fmtPct2(member['avg_ni_waste']);
    const tonaseMurniVal = fmt1(member['tonase_murni']);
    const avgNiMurniVal = fmtPct2(member['avg_ni_murni']);
    const statusVal = member['status'] || '-';
@@ -779,17 +775,7 @@ async function fetchJsaLogData() {
     </div>
     </div>
     <div class="space-y-1.5 mb-3.5 font-medium">
-    <div class="pt-1 pb-1.5">
-     <div class="text-[9px] font-bold text-slate-500 tracking-wide uppercase mb-1">${currentLang === 'en' ? 'Total Excavation' : 'Total Penggalian'}</div>
-     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Tonnage' : 'Tonase'}</span><span class="font-semibold text-title">${totalTonaseVal} ${totalTonaseVal !== '-' ? 'ton' : ''}</span></div>
-     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Average Ni' : 'Average Ni'}</span><span class="font-semibold text-title">${avgNiTotalVal}</span></div>
-    </div>
-    <div class="pt-1.5 pb-1.5 border-t border-slate-700/40">
-     <div class="text-[9px] font-bold text-amber-400/80 tracking-wide uppercase mb-1">${currentLang === 'en' ? 'Waste Non COG' : 'Waste Non COG'}</div>
-     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Tonnage' : 'Tonase'}</span><span class="font-semibold text-title">${wasteTonaseVal} ${wasteTonaseVal !== '-' ? 'ton' : ''}</span></div>
-     <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Average Ni' : 'Average Ni'}</span><span class="font-semibold text-title">${avgNiWasteVal}</span></div>
-    </div>
-    <div class="pt-1.5 pb-1 border-t border-slate-700/40">
+    <div class="pt-1 pb-1">
      <div class="text-[9px] font-bold text-emerald-400/80 tracking-wide uppercase mb-1">${currentLang === 'en' ? 'Net Result' : 'Hasil Bersih'}</div>
      <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Tonnage' : 'Tonase'}</span><span class="font-semibold text-emerald-400">${tonaseMurniVal} ${tonaseMurniVal !== '-' ? 'ton' : ''}</span></div>
      <div class="flex justify-between"><span class="text-slate-400">${currentLang === 'en' ? 'Average Ni' : 'Average Ni'}</span><span class="font-semibold text-emerald-400">${avgNiMurniVal}</span></div>
