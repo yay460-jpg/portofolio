@@ -7,7 +7,7 @@
 window.GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbwVeP2inU_-Cm4aazxiaTfulb_ta3OalMdKk9icwqRUNVF-Rz8n9cnhylQuWOspYh2Ztw/exec';
 
 // ------ TIMEOUT & PERFORMANCE ------
-window.FETCH_TIMEOUT_MS = 20000;          // 20 detik
+window.FETCH_TIMEOUT_MS = 35000;          // 35 detik (naik dari 20 detik -- diagnosa 2 Sep: doPost bisa 20-70+ detik saat sesi menumpuk, lihat fix cleanupSessions_ di backend)
 window.CHAT_POLL_INTERVAL = 15000;        // 15 detik (chat polling)
 window.ROWS_PER_PAGE = 100;               // Pagination Tabel Digging
 window.ISSUE_MAX_AUTO_RETRY = 2;          // Maks retry Issue data
