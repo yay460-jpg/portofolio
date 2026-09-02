@@ -683,6 +683,10 @@ window.getLoggedInChatIdentity = function() {
  }
  if (btnFormMember) {
   btnFormMember.classList.toggle('opacity-50', !unlocked);
+  // [FIX -- ditemukan 3 Sep] sebelumnya tombol tetap terlihat aktif (cuma redup dikit) walau
+  // masih terkunci -- ditambah cursor-not-allowed supaya jelas secara visual, bukan cuma
+  // ketahuan lewat notice popup setelah diklik.
+  btnFormMember.classList.toggle('cursor-not-allowed', !unlocked);
   btnFormMember.title = unlocked ? '' : (currentLang === 'en' ? 'Locked -- unlock Developer Access in Settings first.' : 'Terkunci -- buka Akses Developer di Settings terlebih dahulu.');
  }
  var btnUpdateTujuan = document.getElementById('btn-open-update-tujuan');
