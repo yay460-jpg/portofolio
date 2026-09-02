@@ -939,6 +939,21 @@ document.addEventListener('DOMContentLoaded', function() {
   try {
     if (typeof initResetProjectControls === 'function') initResetProjectControls();
     if (typeof initCompactBlankRowsControls === 'function') initCompactBlankRowsControls();
+    // [RESTORED dari baseline -- BARU (27 Agu): pindahkan panel developer-only dari posisi
+    // inline-nya di halaman ke dalam 2 modal Developer Console (Sistem vs Technical), supaya
+    // tidak lagi tampil menempel di tab Settings/Member. updateDeveloperAccessUI() tetap 1
+    // fungsi yang sama, toggle SEMUA panel berdasarkan ID tanpa peduli mount ke modal yang mana.
+    const mountSistem = document.getElementById('developer-console-panels');
+    ['dev-cleanup-panel', 'dev-compact-panel', 'panel-reset-project', 'panel-reset-member-pin'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el && mountSistem) mountSistem.appendChild(el);
+    });
+    const mountTechnical = document.getElementById('developer-console-technical-panels');
+    ['panel-guide-rekonsiliasi', 'panel-parameter-global', 'panel-kpi-event-approval', 'panel-formula-kpi'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el && mountTechnical) mountTechnical.appendChild(el);
+    });
+    if (typeof updateDeveloperAccessUI === 'function') updateDeveloperAccessUI();
   } catch(e) { console.warn('Developer controls init skipped:', e); }
 
   // 10. Init PWA update watcher
