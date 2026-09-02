@@ -806,3 +806,25 @@ input[type="password"]::-ms-clear {
   transform: translateX(-24px);
   opacity: 0;
 }
+
+/* [FIX -- ditemukan 2 Sep] .trend-toggle-box (baris tombol Tonase Digging/Fluktuasi Ni%/dst)
+   sebelumnya cuma dijaga tetap 1 baris via @media (max-width: 1440px) -- itu merespons lebar
+   JENDELA/viewport, bukan seberapa banyak ruang yang dimakan sidebar. Kalau jendela lebar
+   (>1440px) tapi sidebar sedang expand, kartu chart-nya menyempit tapi aturan responsive itu
+   tidak ikut aktif, jadi tombol-tombol jadi berebut ruang dan teksnya wrap 2 baris (jelek).
+   Aturan ini SELALU aktif (tidak terikat media query) supaya baris tombol tetap ramping &
+   scroll horizontal, di kondisi sidebar/lebar jendela manapun. */
+.trend-toggle-box,
+.rekon-view-header .trend-toggle-box {
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  scrollbar-width: none; /* Firefox: scroll tetap jalan, cuma track-nya disembunyikan */
+  -ms-overflow-style: none; /* IE/Edge lama */
+}
+.trend-toggle-box::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge baru: scroll tetap jalan, cuma track-nya disembunyikan */
+}
+.trend-toggle-box button {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
