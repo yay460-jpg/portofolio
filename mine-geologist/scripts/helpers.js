@@ -659,13 +659,6 @@ window.getLoggedInChatIdentity = function() {
   if (unlocked && typeof syncSplashPanelControls === 'function') syncSplashPanelControls();
  }
 
- // [FITUR TRIAL -- 4 Sep] Panel percobaan Expand View kartu Member
- const panelMemberKpiExpandStyle = document.getElementById('panel-member-kpi-expand-style');
- if (panelMemberKpiExpandStyle) {
-  panelMemberKpiExpandStyle.classList.toggle('hidden', !unlocked);
-  if (unlocked && typeof syncMemberKpiExpandStyleControls === 'function') syncMemberKpiExpandStyleControls();
- }
-
  if (devCleanupPanel) {
    devCleanupPanel.classList.toggle('hidden', !unlocked);
    if (unlocked && devCleanupPanel.dataset.retentionLoaded !== '1') {
