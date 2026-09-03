@@ -652,6 +652,13 @@ window.getLoggedInChatIdentity = function() {
   if (unlocked && typeof syncBgParticlesPanelControls === 'function') syncBgParticlesPanelControls();
  }
 
+ // [FITUR BARU -- 3 Sep] Panel kontrol Splash Screen
+ const panelSplashScreen = document.getElementById('panel-splash-screen');
+ if (panelSplashScreen) {
+  panelSplashScreen.classList.toggle('hidden', !unlocked);
+  if (unlocked && typeof syncSplashPanelControls === 'function') syncSplashPanelControls();
+ }
+
  if (devCleanupPanel) {
    devCleanupPanel.classList.toggle('hidden', !unlocked);
    if (unlocked && devCleanupPanel.dataset.retentionLoaded !== '1') {
