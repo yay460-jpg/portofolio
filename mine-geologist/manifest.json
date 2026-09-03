@@ -1,7 +1,7 @@
 {
   "name": "Mine Geologist",
   "short_name": "Mine Geologist",
-  "description": "Dashboard operasional tambang nikel laterit - Geobank Minerals",
+  "description": "Dashboard operasional tambang nikel laterit - Lithosite",
   "start_url": "./index.html",
   "scope": "./",
   "id": "https://yay460-jpg.github.io/portofolio/mine-geologist/index.html",
