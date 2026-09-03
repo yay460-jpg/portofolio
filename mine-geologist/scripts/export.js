@@ -242,7 +242,7 @@
  <div style="font-family:Arial,sans-serif;color:#0f172a;">
   <div style="border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:16px;">
   <p style="font-size:10px;color:#64748b;margin:0 0 2px;letter-spacing:1px;">LAPORAN REKONSILIASI PROFESIONAL</p>
-  <h2 style="font-size:18px;font-weight:700;margin:0;">Geobank Minerals -- Rekonsiliasi Produksi & Cadangan</h2>
+  <h2 style="font-size:18px;font-weight:700;margin:0;">Lithosite -- Rekonsiliasi Produksi & Cadangan</h2>
   <p style="font-size:10px;color:#64748b;margin:4px 0 0;">Dokumen ini dihasilkan otomatis oleh Dashboard Mine Geologist, dicetak ${genDate}. Data live dari Google Sheets (globalBlockModelData, globalRcaLogData).</p>
   </div>
 
