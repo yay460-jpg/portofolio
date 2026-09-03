@@ -645,6 +645,13 @@ window.getLoggedInChatIdentity = function() {
  const panelBackfillUserId = document.getElementById('panel-backfill-user-id');
  if (panelBackfillUserId) panelBackfillUserId.classList.toggle('hidden', !unlocked);
 
+ // [FITUR BARU -- 3 Sep] Panel kontrol Background Animasi
+ const panelBgParticles = document.getElementById('panel-bg-particles');
+ if (panelBgParticles) {
+  panelBgParticles.classList.toggle('hidden', !unlocked);
+  if (unlocked && typeof syncBgParticlesPanelControls === 'function') syncBgParticlesPanelControls();
+ }
+
  if (devCleanupPanel) {
    devCleanupPanel.classList.toggle('hidden', !unlocked);
    if (unlocked && devCleanupPanel.dataset.retentionLoaded !== '1') {
