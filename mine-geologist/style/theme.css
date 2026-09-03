@@ -454,7 +454,7 @@ body.theme-white #rca-log-list .bg-blue-500\/15.text-blue-400 {
     color: #0f172a !important;
   }
   header::before {
-    content: "PT.GEOBANK MINERALS — LAPORAN OPERASIONAL TAMBANG";
+    content: "PT.LITHOSITE — LAPORAN OPERASIONAL TAMBANG";
     display: block;
     font-size: 10pt;
     font-weight: bold;
@@ -844,4 +844,9 @@ input[type="password"]::-ms-clear {
 .trend-chart-card .trend-toggle-box button {
   white-space: nowrap !important;
   flex-shrink: 0 !important;
+}
+
+/* [FITUR BARU -- 3 Sep] Splash screen -- fade-out halus sebelum elemen dihapus dari DOM. */
+#splash-screen-overlay.splash-fade-out {
+  opacity: 0;
 }
