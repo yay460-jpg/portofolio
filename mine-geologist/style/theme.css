@@ -846,11 +846,12 @@ input[type="password"]::-ms-clear {
   flex-shrink: 0 !important;
 }
 
-/* [FITUR TRIAL -- 4 Sep] Expand view kartu Member (Engine KPI 5 Pilar) -- 3 opsi UI,
-   BUKAN fitur final, dipasang bersamaan utk dicoba & dipilih via Developer Console >
-   Technical. Lihat scripts/member-card-expand.js utk logikanya. */
+/* [FINAL -- 4 Sep, keputusan user] Expand view kartu Member (Engine KPI 5 Pilar) --
+   Opsi 2 (card memanjang ke bawah) dipilih permanen dari 3 opsi trial. Opsi 1 (sidebar)
+   & Opsi 3 (overlay) DIHAPUS. Lihat scripts/member-card-expand.js utk logikanya. */
 
-/* Blok konten yang di-collapse/expand (badge 5 pilar + skor gabungan + konteks periode). */
+/* Blok konten yang di-collapse/expand (badge 5 pilar + skor gabungan + konteks periode).
+   Card mendorong konten lain secara alami (grid) -- tidak butuh CSS posisi tambahan. */
 .member-kpi-expand-block {
   max-height: 0;
   overflow: hidden;
@@ -859,48 +860,6 @@ input[type="password"]::-ms-clear {
 .member-kpi-expand-block.expanded {
   max-height: 640px;
 }
-
-/* Opsi 1 -- panel geser dari kanan, menutupi sebagian card. */
-.mkce-style-sidebar {
-  position: relative;
-  overflow: hidden;
-}
-.mkce-style-sidebar .member-kpi-expand-block {
-  position: absolute;
-  top: 0;
-  right: 0;
-  height: 100%;
-  width: 82%;
-  max-height: none;
-  overflow-y: auto;
-  z-index: 5;
-  padding: 1rem;
-  border-radius: 0 0.75rem 0.75rem 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: -10px 0 20px -6px rgba(0, 0, 0, 0.45);
-  transform: translateX(105%);
-  transition: transform 0.3s ease;
-}
-body.theme-dark .mkce-style-sidebar .member-kpi-expand-block {
-  background: rgba(15, 23, 42, 0.97);
-}
-.mkce-style-sidebar .member-kpi-expand-block.expanded {
-  transform: translateX(0);
-}
-
-/* Opsi 3 -- card membesar sedikit & melayang di atas card lain saat expand. */
-.mkce-style-overlay {
-  position: relative;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-.mkce-style-overlay.mkce-overlay-active {
-  transform: scale(1.05);
-  z-index: 20;
-  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.55);
-}
-
-/* Opsi 2 (inline) sengaja tidak butuh CSS tambahan -- .member-kpi-expand-block dasar
-   (max-height + overflow) sudah cukup, card mendorong konten lain secara alami (grid). */
 
 /* Tombol trigger kecil di kartu Member. */
 .member-kpi-expand-trigger {
