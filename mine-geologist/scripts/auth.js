@@ -305,6 +305,8 @@ function openMemberLoginModal() {
     status.textContent = '';
   }
   showModalAnimated(modal);
+  // [FITUR BARU -- 3 Sep] Background Animasi: cek ulang visibilitas (relevan utk cakupan "Login saja").
+  if (typeof refreshBgParticlesVisibility === 'function') refreshBgParticlesVisibility();
   if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
   const login = document.getElementById('member-login-id-input');
   if (login) setTimeout(() => { login.focus(); resumeMemberLoginCountdown(); }, 50);
@@ -313,6 +315,7 @@ function openMemberLoginModal() {
 function closeMemberLoginModal() {
   const modal = document.getElementById('member-login-modal');
   hideModalAnimated(modal);
+  if (typeof refreshBgParticlesVisibility === 'function') refreshBgParticlesVisibility();
 }
 
 function setMemberLoginStatus(message, ok) {
