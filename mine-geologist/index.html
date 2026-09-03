@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;900&display=swap" rel="stylesheet">
 <!-- Tailwind CSS -->
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Chart.js -->
@@ -585,17 +585,23 @@ input[type="password"]::-ms-clear {
      Kontrol on/off + cakupan tampil ada di Developer Console > Technical. -->
 <canvas id="bg-particles-canvas" class="hidden fixed inset-0 w-full h-full pointer-events-none" style="z-index:0;" aria-hidden="true"></canvas>
 
-<!-- [FITUR BARU -- 3 Sep] Splash screen loading awal (opsional, default OFF, durasi 1-7 detik
-     diatur dari Developer Console > Technical). Dihapus dari DOM begitu selesai/dinonaktifkan. -->
-<div id="splash-screen-overlay" class="hidden fixed inset-0 bg-[#0f172a] flex flex-col items-center justify-center transition-opacity duration-400" style="z-index:9999;">
- <img src="assets/lithosite-logo.png" alt="Lithosite" class="w-20 h-20 mb-6 drop-shadow-[0_0_24px_rgba(56,189,248,0.35)]">
- <div class="w-64 max-w-[70vw]">
-  <div class="h-1 bg-slate-800 rounded-full overflow-hidden">
-   <div id="splash-progress-bar" class="h-full bg-sky-400 rounded-full transition-all" style="width:0%;"></div>
+<!-- [DIGANTI -- 4 Sep] Splash screen "Pixel Boot": wordmark LITHOSITE jatuh huruf per
+     huruf (2 "I" jadi ikon pensil/bor, "O" jadi logo gem dgn efek glow), lalu loader
+     shimmer + 4 titik. Latar navy gelap (#0f172a, sama dgn glass-card app -- BUKAN hitam
+     pekat spt referensi visual asli). Badge label kecil di bawah wordmark SENGAJA
+     dihapus (permintaan user 4 Sep). Opsional, default OFF, durasi 1-7 detik diatur dari
+     Developer Console > Technical. Dihapus dari DOM begitu selesai/dinonaktifkan. -->
+<div id="splash-screen-overlay" class="hidden fixed inset-0 bg-[#0f172a] flex flex-col items-center justify-center transition-opacity duration-400 overflow-hidden" style="z-index:9999;">
+ <div id="splash-wordmark" class="flex items-end justify-center gap-[2px] md:gap-[3px] select-none"></div>
+ <div id="splash-loader-row" class="mt-12 flex flex-col items-center gap-6 opacity-0" style="transition:opacity .3s ease;">
+  <div class="relative w-[160px] md:w-[200px] h-[2px] bg-slate-700/60 overflow-hidden rounded-full">
+   <div id="splash-shimmer-bar" class="absolute inset-y-0 left-0 w-[70px] md:w-[90px] bg-sky-400 rounded-full"></div>
   </div>
-  <div class="flex items-center justify-between mt-2.5">
-   <span id="splash-stage-text" class="text-[11px] text-slate-400 font-medium">Memuat data situs...</span>
-   <span id="splash-progress-pct" class="text-[11px] text-sky-400 font-semibold">0%</span>
+  <div class="flex items-center gap-[10px]">
+   <div class="w-[6px] h-[6px] md:w-[7px] md:h-[7px] rounded-full bg-sky-400 splash-dot" style="animation-delay:0s"></div>
+   <div class="w-[6px] h-[6px] md:w-[7px] md:h-[7px] rounded-full bg-sky-400 splash-dot" style="animation-delay:.14s"></div>
+   <div class="w-[6px] h-[6px] md:w-[7px] md:h-[7px] rounded-full bg-sky-400 splash-dot" style="animation-delay:.28s"></div>
+   <div class="w-[6px] h-[6px] md:w-[7px] md:h-[7px] rounded-full bg-sky-400 splash-dot" style="animation-delay:.42s"></div>
   </div>
  </div>
 </div>
