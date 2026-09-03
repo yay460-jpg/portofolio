@@ -11,7 +11,7 @@
  * CACHE_NAME harus diubah setiap deploy versi baru agar browser mendownload ulang.
  * ============================================================ */
 
-const CACHE_NAME = 'mine-geologist-build-20260903b';
+const CACHE_NAME = 'mine-geologist-build-20260903c';
 
 const APP_SHELL = [
   './',
@@ -30,6 +30,7 @@ const APP_SHELL = [
   './scripts/export.js',
   './scripts/main.js',
   './scripts/bg-particles.js',
+  './scripts/splash.js',
 
   // ====== MODULES (Fitur per halaman) ======
   './modules/settings.js',
@@ -47,7 +48,8 @@ const APP_SHELL = [
   './assets/apple-touch-icon.png',
   './assets/icon-192.png',
   './assets/icon-512.png',
-  './assets/avatar-yaya.png'
+  './assets/avatar-yaya.png',
+  './assets/lithosite-logo.png'
 ];
 
 // ============================================================
