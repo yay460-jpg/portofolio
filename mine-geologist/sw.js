@@ -11,7 +11,7 @@
  * CACHE_NAME harus diubah setiap deploy versi baru agar browser mendownload ulang.
  * ============================================================ */
 
-const CACHE_NAME = 'mine-geologist-build-20260903a';
+const CACHE_NAME = 'mine-geologist-build-20260903b';
 
 const APP_SHELL = [
   './',
@@ -29,6 +29,7 @@ const APP_SHELL = [
   './scripts/auth.js',
   './scripts/export.js',
   './scripts/main.js',
+  './scripts/bg-particles.js',
 
   // ====== MODULES (Fitur per halaman) ======
   './modules/settings.js',
