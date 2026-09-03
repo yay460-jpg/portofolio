@@ -973,7 +973,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (el && mountSistem) mountSistem.appendChild(el);
     });
     const mountTechnical = document.getElementById('developer-console-technical-panels');
-    ['panel-guide-rekonsiliasi', 'panel-parameter-global', 'panel-kpi-event-approval', 'panel-formula-kpi', 'panel-bg-particles', 'panel-splash-screen', 'panel-member-kpi-expand-style'].forEach(function(id) {
+    ['panel-guide-rekonsiliasi', 'panel-parameter-global', 'panel-kpi-event-approval', 'panel-formula-kpi', 'panel-bg-particles', 'panel-splash-screen'].forEach(function(id) {
       const el = document.getElementById(id);
       if (el && mountTechnical) mountTechnical.appendChild(el);
     });
