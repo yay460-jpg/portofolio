@@ -278,6 +278,9 @@ function updateDashboard(data) {
 function switchTab(tabName) {
   if (window.innerWidth < 768) { closeMobileSidebar(); }
   currentActiveTab = tabName;
+  // [FITUR BARU -- 3 Sep] Background Animasi: cek ulang visibilitas tiap ganti tab
+  // (relevan utk cakupan "Login + Settings").
+  if (typeof refreshBgParticlesVisibility === 'function') refreshBgParticlesVisibility();
   const tabs = ['ringkasan', 'trend', 'tabel', 'rekonsiliasi', 'validasi', 'barging', 'issue', 'kpimember', 'chat', 'settings'];
 
   tabs.forEach(t => {
@@ -966,7 +969,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (el && mountSistem) mountSistem.appendChild(el);
     });
     const mountTechnical = document.getElementById('developer-console-technical-panels');
-    ['panel-guide-rekonsiliasi', 'panel-parameter-global', 'panel-kpi-event-approval', 'panel-formula-kpi'].forEach(function(id) {
+    ['panel-guide-rekonsiliasi', 'panel-parameter-global', 'panel-kpi-event-approval', 'panel-formula-kpi', 'panel-bg-particles'].forEach(function(id) {
       const el = document.getElementById(id);
       if (el && mountTechnical) mountTechnical.appendChild(el);
     });
@@ -1003,6 +1006,10 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
     }
   }, { passive: false });
+
+  // 15. [FITUR BARU -- 3 Sep] Background Animasi: cek visibilitas awal (relevan utk cakupan
+  // "Semua Halaman" -- supaya langsung jalan begitu halaman dimuat, tanpa perlu ganti tab dulu).
+  if (typeof refreshBgParticlesVisibility === 'function') refreshBgParticlesVisibility();
 
   console.log('Mine Geologist Dashboard v' + window.APP_VERSION + ' loaded successfully.');
 });
