@@ -766,7 +766,8 @@ async function fetchJsaLogData() {
    // Console. Trial dihapus -- lihat scripts/member-card-expand.js (disederhanakan).
    const kpiExpandBlockId = `member-kpi-expand-${index}`;
    const kpiExpandIconId = `member-kpi-expand-icon-${index}`;
-   const kpiExpandTriggerHtml = `<button type="button" class="member-kpi-expand-trigger" onclick="event.stopPropagation(); toggleMemberKpiExpand(${index})" aria-label="${currentLang === 'en' ? 'Show 5-Pillar KPI details' : 'Lihat detail KPI 5 Pilar'}"><i data-lucide="chevron-down" id="${kpiExpandIconId}" class="w-3.5 h-3.5"></i><span>${currentLang === 'en' ? 'View details' : 'Lihat selengkapnya'}</span></button>`;
+   const kpiExpandLabelId = `member-kpi-expand-label-${index}`;
+   const kpiExpandTriggerHtml = `<button type="button" class="member-kpi-expand-trigger" onclick="event.stopPropagation(); toggleMemberKpiExpand(${index})" aria-label="${currentLang === 'en' ? 'Show 5-Pillar KPI details' : 'Lihat detail KPI 5 Pilar'}"><i data-lucide="chevron-down" id="${kpiExpandIconId}" class="w-3.5 h-3.5"></i><span id="${kpiExpandLabelId}">${currentLang === 'en' ? 'View details' : 'Lihat selengkapnya'}</span></button>`;
 
    const card = document.createElement('div');
    card.id = `member-card-${index}`;
