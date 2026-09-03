@@ -616,7 +616,7 @@ window.translations = {
   dev_profile_role: "Head Mine Geologist / Developer",
   dev_profile_desc: "Merancang & mengembangkan dashboard operasional tambang ini.",
   dev_profile_view_full: "Lihat Selengkapnya",
-  dev_profile_app_info: "Mine Geologist · Geobank Minerals",
+  dev_profile_app_info: "Mine Geologist · Lithosite",
   preview_modal_title: "Pratinjau Ekspor Laporan",
   preview_modal_subtitle: "Periksa ringkasan data sebelum file diunduh.",
   preview_format: "Format File",
@@ -1282,7 +1282,7 @@ window.translations = {
   dev_profile_role: "Head Mine Geologist / Developer",
   dev_profile_desc: "Designed & developed this mining operations dashboard.",
   dev_profile_view_full: "View More",
-  dev_profile_app_info: "Mine Geologist · Geobank Minerals",
+  dev_profile_app_info: "Mine Geologist · Lithosite",
   preview_modal_title: "Report Export Preview",
   preview_modal_subtitle: "Check data summary before downloading file.",
   preview_format: "File Format",
@@ -1632,7 +1632,7 @@ window.JSA_HTML_CONTENT = `<!DOCTYPE html>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-neutral-300">HAL 3/3 - JSA MINE GEOLOGIST</span>
-        <span class="border border-white px-1.5 py-0.5 font-bold">JSA-MINEGEO-2026-REV02 · PT GEOBANK MINERALS</span>
+        <span class="border border-white px-1.5 py-0.5 font-bold">JSA-MINEGEO-2026-REV02 · PT LITHOSITE</span>
       </div>
     </div>
 
