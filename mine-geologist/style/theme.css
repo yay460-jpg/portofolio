@@ -846,10 +846,6 @@ input[type="password"]::-ms-clear {
   flex-shrink: 0 !important;
 }
 
-/* [FITUR BARU -- 3 Sep] Splash screen -- fade-out halus sebelum elemen dihapus dari DOM. */
-#splash-screen-overlay.splash-fade-out {
-  opacity: 0;
-}
 /* [FITUR TRIAL -- 4 Sep] Expand view kartu Member (Engine KPI 5 Pilar) -- 3 opsi UI,
    BUKAN fitur final, dipasang bersamaan utk dicoba & dipilih via Developer Console >
    Technical. Lihat scripts/member-card-expand.js utk logikanya. */
@@ -924,4 +920,62 @@ body.theme-dark .mkce-style-sidebar .member-kpi-expand-block {
 }
 .member-kpi-expand-trigger:hover {
   color: #cbd5e1;
+}
+
+/* [DIGANTI -- 4 Sep] Splash "Pixel Boot" -- ganti total dari versi progress-bar lama.
+   Wordmark LITHOSITE jatuh huruf per huruf + logo gem glow + loader shimmer/dots. */
+.litho-letter {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 900;
+  font-size: 40px;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  color: #fff;
+  display: inline-block;
+  will-change: transform, opacity;
+  transform-origin: center bottom;
+}
+@media (min-width: 768px) {
+  .litho-letter { font-size: 84px; }
+}
+.splash-pre-drop {
+  opacity: 0;
+  transform: translateY(80px) scale(0.6);
+  transform-origin: center bottom;
+}
+.splash-animate-drop {
+  animation: splashLetterDrop 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.splash-dot {
+  opacity: 0.25;
+}
+@keyframes splashLetterDrop {
+  0%   { transform: translateY(80px) scale(0.6); opacity: 0; }
+  55%  { transform: translateY(-10px) scale(1.12); opacity: 1; }
+  75%  { transform: translateY(6px) scale(0.96); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes wavePop {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-14px); }
+  60% { transform: translateY(3px); }
+}
+@keyframes rockGlow {
+  0%, 100% { filter: drop-shadow(0 0 0px rgba(255,255,255,0)) drop-shadow(0 0 10px rgba(255,120,0,0)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 18px rgba(255,255,255,0.75)) drop-shadow(0 0 30px rgba(255,108,0,0.95)); transform: scale(1.06); }
+}
+.rock-glow {
+  animation: rockGlow 0.62s ease-in-out both;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(220%); }
+}
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.25; }
+  40% { transform: translateY(-10px); opacity: 1; }
+}
+@keyframes bootExit {
+  0% { transform: scale(1); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1.18); opacity: 0; filter: blur(12px); }
 }
