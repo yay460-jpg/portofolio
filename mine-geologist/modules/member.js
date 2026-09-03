@@ -761,17 +761,16 @@ async function fetchJsaLogData() {
    const kpiContextId = `kpi-context-${index}`;
    const kpiContextHtml = `<div id="${kpiContextId}" class="pt-2 mt-1.5 border-t border-slate-700/40 text-[10px]"></div>`;
 
-   // [FITUR TRIAL -- 4 Sep] Expand view kartu Member: style dibaca dari localStorage
-   // (Developer Console > Technical), 3 opsi 'sidebar'/'inline'/'overlay'. Lihat
-   // scripts/member-card-expand.js + style/theme.css (.mkce-style-*).
-   const kpiExpandStyle = (typeof getMemberKpiExpandStyle_ === 'function') ? getMemberKpiExpandStyle_() : 'inline';
+   // [FINAL -- 4 Sep, keputusan user] Expand view kartu Member: Opsi 2 (card memanjang
+   // ke bawah) dipilih permanen dari 3 opsi trial yang sempat dipasang di Developer
+   // Console. Trial dihapus -- lihat scripts/member-card-expand.js (disederhanakan).
    const kpiExpandBlockId = `member-kpi-expand-${index}`;
    const kpiExpandIconId = `member-kpi-expand-icon-${index}`;
    const kpiExpandTriggerHtml = `<button type="button" class="member-kpi-expand-trigger" onclick="event.stopPropagation(); toggleMemberKpiExpand(${index})" aria-label="${currentLang === 'en' ? 'Show 5-Pillar KPI details' : 'Lihat detail KPI 5 Pilar'}"><i data-lucide="chevron-down" id="${kpiExpandIconId}" class="w-3.5 h-3.5"></i><span>${currentLang === 'en' ? 'View details' : 'Lihat selengkapnya'}</span></button>`;
 
    const card = document.createElement('div');
    card.id = `member-card-${index}`;
-   card.className = `glass-card p-4.5 rounded-xl border border-slate-700/40 flex flex-col justify-between hover:border-blue-500/50 transition-all cursor-pointer text-xs mkce-style-${kpiExpandStyle}`;
+   card.className = "glass-card p-4.5 rounded-xl border border-slate-700/40 flex flex-col justify-between hover:border-blue-500/50 transition-all cursor-pointer text-xs";
    card.onclick = () => openMemberModal(index);
    card.innerHTML = `
    <div>
