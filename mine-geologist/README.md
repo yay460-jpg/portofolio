@@ -32,7 +32,10 @@ mine-geologist/
 │   ├── helpers.js              <- fungsi utilitas umum (format tanggal, modal, dll)
 │   ├── auth.js                 <- login Developer & Member, validasi sesi, rotasi token
 │   ├── export.js               <- semua fitur Export/Cetak PDF/CSV
-│   └── main.js                 <- DOMContentLoaded, state global, dashboard utama
+│   ├── main.js                 <- DOMContentLoaded, state global, dashboard utama
+│   ├── bg-particles.js         <- Background Animasi opsional (kanvas titik terkoneksi)
+│   ├── splash.js                <- Splash Screen "Pixel Boot" opsional (loading awal)
+│   └── member-card-expand.js    <- toggle collapse/expand kartu Member (Engine KPI 5 Pilar)
 ├── modules/                  <- fungsi PER-FITUR/PER-HALAMAN
 │   ├── barging.js              <- tab Barging (Shipment, Loading, Dome)
 │   ├── digging.js              <- tab Tabel Digging (input Produksi_GC)
@@ -43,6 +46,21 @@ mine-geologist/
 │   └── issue.js                <- tab Issue & Action
 └── assets/                   <- favicon, ikon PWA, avatar
 ```
+
+**Backend (Google Apps Script, repo terpisah di Apps Script Editor):**
+
+```
+01_Config.gs           <- konstanta, koneksi spreadsheet, utilitas generik (hash, headerMap_, dll)
+02_Auth.gs              <- login, session, credential, RBAC, API Abuse Guard
+03_DeveloperTools.gs     <- fungsi Developer Console (hapus/reset baris, backfill User_ID)
+04_PostEndpoints.gs      <- doPost -- router SEMUA endpoint tulis (1 fungsi besar, ~2800 baris)
+05_GetEndpoints.gs       <- doGet -- router SEMUA endpoint baca (1 fungsi besar, ~1200 baris)
+06_DataHelpers.gs        <- validasi tanggal, auto-routing Dome, format tampilan, ChatLog
+07_Maintenance.gs        <- migrasi timestamp historis, retensi & archive terjadwal
+08_KPIEngine.gs          <- Engine KPI 5 Pilar lengkap + statistik produksi member
+```
+
+Dipecah dari 1 file `Code.gs` (7000+ baris) murni untuk kerapian editor Apps Script — **tanpa restrukturisasi logika apapun**, `doPost`/`doGet` masih 1 fungsi monolitik masing-masing (rencana dipecah lebih dalam jadi dispatcher + handler per-sheet, belum dikerjakan). Semua file berbagi 1 global scope yang sama (Apps Script menggabungkan semua `.gs` sebelum eksekusi), jadi urutan nama file TIDAK memengaruhi fungsi lintas-file.
 
 **Aturan penempatan kode baru:** kalau fiturnya dipakai di banyak halaman (format tanggal, modal, auth) → `scripts/`. Kalau fiturnya spesifik 1 tab/halaman → `modules/` sesuai nama tabnya.
 
@@ -90,6 +108,12 @@ Urutan cek paling sering menyelesaikan masalah, dari yang paling murah:
 3. **Session/token kadaluarsa** — coba logout-login ulang
 4. Baru curigai bug kode kalau 3 hal di atas sudah dipastikan bukan penyebabnya
 
+## 7. Dokumentasi Tambahan
+
+Panduan teknis lebih detail untuk topik spesifik ada di folder [`docs/`](docs/):
+
+- [Panduan Split Backend 8-File](docs/panduan-split-backend-8file.md) — cara pindahkan 8 file backend ke Apps Script editor, jebakan umum (boilerplate `myFunction` belum dihapus), checklist verifikasi.
+
 ---
 
-*Dokumen ini disusun berdasarkan sesi kerja pengembangan MG1 baseline v90.2.150 — untuk riwayat perubahan lengkap per versi, lihat tombol "Lihat Riwayat Update" di dalam Settings dashboard.*
+*Dokumen ini disusun berdasarkan sesi kerja pengembangan MG1 baseline v90.2.170 — untuk riwayat perubahan lengkap per versi, lihat tombol "Lihat Riwayat Update" di dalam Settings dashboard.*
