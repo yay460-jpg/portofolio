@@ -1,5 +1,5 @@
 /* ============================================================
- * GEOBANK MINERALS -- MEMBER APP (Android Prototype) SERVICE WORKER
+ * LITHOSITE -- MEMBER APP (Android Prototype) SERVICE WORKER
  *
  * Terpisah TOTAL dari sw.js dashboard utama (index.html/member.html/supervisor.html)
  * -- CACHE_NAME beda, daftar precache beda -- supaya update salah satu tidak pernah
@@ -10,7 +10,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'geobank-member-app-build-20260830a';
+const CACHE_NAME = 'lithosite-member-app-build-20260904a';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
@@ -23,7 +23,8 @@ const APP_SHELL = [
   '../assets/favicon-16.png',
   '../assets/apple-touch-icon.png',
   '../assets/icon-192.png',
-  '../assets/icon-512.png'
+  '../assets/icon-512.png',
+  '../assets/lithosite-logo.png'
 ];
 
 self.addEventListener('install', (event) => {
