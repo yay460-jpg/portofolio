@@ -32,7 +32,32 @@ const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 4, MAP_ZOOM_STEP = 0.5;
 // (rumus UTM standar) -- sengaja TIDAK diketik manual, mengurangi risiko typo kalibrasi.
 // Sumber: Layer Properties > Source project ArcGIS "Maps_TP" (dikonfirmasi user 4 Sep
 // sbg CRS yg sama dipakai utk data tambang aktif MG1).
-const MG1_CRS_CONFIG = { datum: 'WGS84', zone: 52, hemisphere: 'N' };
+// [DIUBAH -- 4 Sep] const -> let: sekarang bisa di-update runtime dari backend (lihat
+// fetchCrsConfig() di bawah), bukan cuma hardcode tetap. Nilai di sini TETAP jadi fallback
+// kalau fetch gagal (mis. offline) -- app tidak pernah "kosong" config, selalu ada nilai
+// yg valid dipakai (sama persis nilai lama sebelum fitur config-dari-backend ini ada).
+let MG1_CRS_CONFIG = { datum: 'WGS84', zone: 52, hemisphere: 'N', presetLabel: 'Halmahera (Tengah + Timur)' };
+
+// [BARU -- 4 Sep] Ambil config CRS dari backend (SecurityConfig, via sheet=crsconfig) --
+// dipanggil sekali saat boot app. Kalau gagal (network/dll), MG1_CRS_CONFIG TETAP pakai
+// nilai fallback di atas -- North Arrow tidak pernah crash gara2 config CRS gagal dimuat,
+// paling buruk convergence dihitung dari asumsi Halmahera (default lama).
+async function fetchCrsConfig() {
+  try {
+    const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=crsconfig&t=' + Date.now(), {}, 10000);
+    const result = await response.json();
+    if (result.status === 'success' && result.data) {
+      MG1_CRS_CONFIG = {
+        datum: 'WGS84',
+        zone: result.data.zone,
+        hemisphere: result.data.hemisphere,
+        presetLabel: result.data.presetLabel || MG1_CRS_CONFIG.presetLabel
+      };
+    }
+  } catch (e) {
+    console.warn('Gagal ambil config CRS dari server, pakai fallback lokal:', e);
+  }
+}
 
 // Mode North Arrow: 'grid' (default, 0 kalkulasi) | 'true' (dihitung dari convergence) |
 // 'compass' (BELUM AKTIF -- guard eksplisit di setNorthMode_, bukan cuma disabled visual).
@@ -285,6 +310,7 @@ function renderNorthInfoPanel_(convergenceInfo) {
   rows.push(['Mode', northMode === 'grid' ? 'GRID NORTH' : (northMode === 'true' ? 'TRUE NORTH' : 'COMPASS')]);
   if (northMode === 'true') {
     rows.push(['CRS', 'WGS84 / UTM ' + MG1_CRS_CONFIG.zone + MG1_CRS_CONFIG.hemisphere]);
+    rows.push(['Situs', MG1_CRS_CONFIG.presetLabel || '-']);
     rows.push(['Grid Conv.', (convergenceInfo && convergenceInfo.ok) ? ((convergenceInfo.convergenceDeg >= 0 ? '+' : '') + convergenceInfo.convergenceDeg.toFixed(4) + '\u00b0') : '-']);
     rows.push(['Status', (convergenceInfo && convergenceInfo.ok) ? 'CALCULATED' : 'ERROR']);
   } else if (northMode === 'grid') {
