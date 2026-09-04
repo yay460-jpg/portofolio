@@ -23,6 +23,144 @@ function focusMapFromValidasi(idTp) {
 }
 const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 4, MAP_ZOOM_STEP = 0.5;
 
+// ==== PETA BACKGROUND (foto udara/hasil olah ArcGIS) -- BARU 5 Sep ====
+// Bukan baca GeoPDF/GeoTIFF asli (butuh mesin libproj+libgdal spt Avenza, mustahil di
+// browser PWA) -- pendekatan lebih ringan: gambar biasa (PNG/JPG) + 2 titik referensi
+// (Timur/Utara pojok kiri-atas & kanan-bawah gambar). Posisi & skala gambar dihitung
+// otomatis pakai projectToSvg() yg SUDAH ADA (fungsi yg sama dipakai utk plot titik TP)
+// -- 0 logic proyeksi baru perlu ditulis.
+// Disimpan di IndexedDB (bukan localStorage -- gambar bisa besar, localStorage limitnya
+// cuma ~5-10MB & síncron/blocking). SEMUA Member boleh upload, TAPI cuma LOKAL per-HP
+// (keputusan disadari: tiap HP bisa beda peta background, belum otomatis seragam se-tim
+// -- kalau nanti perlu diseragamkan, itu perlu versi backend terpisah, BUKAN sekarang).
+const MAP_DB_NAME_ = 'mg1_background_maps';
+const MAP_DB_STORE_ = 'maps';
+let backgroundMapsList = []; // cache in-memory dari IndexedDB, direfresh tiap ada perubahan
+let activeBackgroundMapId = null;
+let mapManagePanelOpen = false;
+let mapUploadFormOpen = false;
+let mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '' };
+let mapUploadStatusMsg = '', mapUploadStatusOk = true, mapUploadBusy = false;
+
+function openMapDb_() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(MAP_DB_NAME_, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(MAP_DB_STORE_)) db.createObjectStore(MAP_DB_STORE_, { keyPath: 'id' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbGetAllMaps_() {
+  const db = await openMapDb_();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MAP_DB_STORE_, 'readonly');
+    const req = tx.objectStore(MAP_DB_STORE_).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbPutMap_(entry) {
+  const db = await openMapDb_();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MAP_DB_STORE_, 'readwrite');
+    tx.objectStore(MAP_DB_STORE_).put(entry);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function dbDeleteMap_(id) {
+  const db = await openMapDb_();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MAP_DB_STORE_, 'readwrite');
+    tx.objectStore(MAP_DB_STORE_).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+// Dipanggil sekali saat boot (lihat pemanggilan di index.html) -- gagal (mis. browser
+// lama tanpa IndexedDB) TIDAK BOLEH bikin app crash, Peta tetap jalan tanpa background.
+async function loadBackgroundMapsFromDb_() {
+  try {
+    backgroundMapsList = await dbGetAllMaps_();
+    const stored = localStorage.getItem('mg1_active_bg_map_id');
+    if (stored && backgroundMapsList.find(m => m.id === stored)) activeBackgroundMapId = stored;
+  } catch (e) {
+    console.warn('Gagal muat daftar peta background (IndexedDB mungkin tidak didukung):', e);
+    backgroundMapsList = [];
+  }
+}
+function openMapManagePanel_() { mapManagePanelOpen = true; render(); }
+function closeMapManagePanel_() { mapManagePanelOpen = false; mapUploadFormOpen = false; render(); }
+function openMapUploadForm_() {
+  mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '' };
+  mapUploadStatusMsg = ''; mapUploadFormOpen = true; render();
+}
+function closeMapUploadForm_() { mapUploadFormOpen = false; render(); }
+function updateMapUploadField_(field, value) { mapUploadFormState[field] = value; }
+function handleMapImageFileSelected_(inputEl) {
+  const file = inputEl.files && inputEl.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { mapUploadStatusMsg = 'File harus berupa gambar (PNG/JPG).'; mapUploadStatusOk = false; render(); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    mapUploadFormState.fileDataUrl = reader.result;
+    mapUploadFormState.fileName = file.name;
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+async function submitMapUpload_() {
+  if (mapUploadBusy) return;
+  const f = mapUploadFormState;
+  if (!f.fileDataUrl) { mapUploadStatusMsg = 'Pilih gambar peta dulu.'; mapUploadStatusOk = false; render(); return; }
+  if (!f.name.trim()) { mapUploadStatusMsg = 'Nama peta wajib diisi.'; mapUploadStatusOk = false; render(); return; }
+  if (!isStrictNumeric(f.tlTimur) || !isStrictNumeric(f.tlUtara) || !isStrictNumeric(f.brTimur) || !isStrictNumeric(f.brUtara)) {
+    mapUploadStatusMsg = 'Ke-4 angka Timur/Utara wajib angka valid (bukan kosong/teks).'; mapUploadStatusOk = false; render(); return;
+  }
+  mapUploadBusy = true; mapUploadStatusMsg = 'Menyimpan ke HP...'; mapUploadStatusOk = true; render();
+  try {
+    const id = 'bgmap_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    await dbPutMap_({
+      id: id,
+      name: f.name.trim(),
+      imageDataUrl: f.fileDataUrl,
+      cornerTL: { timur: parseFloat(f.tlTimur), utara: parseFloat(f.tlUtara) },
+      cornerBR: { timur: parseFloat(f.brTimur), utara: parseFloat(f.brUtara) },
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: sessionInfo ? sessionInfo.userName : 'unknown'
+    });
+    await loadBackgroundMapsFromDb_();
+    activeBackgroundMapId = id; // peta baru diupload langsung diaktifkan
+    localStorage.setItem('mg1_active_bg_map_id', id);
+    mapUploadFormOpen = false;
+  } catch (e) {
+    mapUploadStatusMsg = 'Gagal menyimpan (HP mungkin kehabisan ruang penyimpanan).'; mapUploadStatusOk = false;
+  } finally {
+    mapUploadBusy = false; render();
+  }
+}
+function activateBackgroundMap_(id) {
+  activeBackgroundMapId = id;
+  localStorage.setItem('mg1_active_bg_map_id', id);
+  render();
+}
+async function deactivateBackgroundMap_() {
+  activeBackgroundMapId = null;
+  localStorage.removeItem('mg1_active_bg_map_id');
+  render();
+}
+async function deleteBackgroundMapEntry_(id) {
+  try {
+    await dbDeleteMap_(id);
+    if (activeBackgroundMapId === id) { activeBackgroundMapId = null; localStorage.removeItem('mg1_active_bg_map_id'); }
+    await loadBackgroundMapsFromDb_();
+  } catch (e) { console.warn('Gagal hapus peta:', e); }
+  render();
+}
+
 // ==== NORTH ARROW / CRS CONFIG -- v90.2.117 BARU (4 Sep, desain LOCKED sesi audit
 // Avenza+ArcGIS, lihat memori proyek utk histori lengkap). Config CRS DISENGAJA disimpan
 // sbg 1 objek terpisah di sini (bukan ditanam ke dalam logic kalkulasi) -- kalau situs
@@ -190,6 +328,20 @@ function renderMineGridSvg(points) {
   const offX = (viewW - zoomedW) / 2, offY = (viewH - zoomedH) / 2;
   const valid = points.filter(p => p.hasValidCoord);
   let svg = '<svg viewBox="' + offX + ' ' + offY + ' ' + zoomedW + ' ' + zoomedH + '" class="w-full h-full" style="touch-action:none;">';
+  // [BARU -- 5 Sep] Peta background (foto udara/olah ArcGIS) -- digambar PALING BAWAH
+  // (sebelum grid helper & marker) supaya tidak menutupi apa pun. Posisi & ukuran dihitung
+  // dari 2 sudut referensi pakai projectToSvg() yg SAMA dgn yg plot titik TP -- kalau titik
+  // TP di posisi X benar, gambar background otomatis ikut benar juga (logic sama).
+  if (activeBackgroundMapId) {
+    const activeMap = backgroundMapsList.find(m => m.id === activeBackgroundMapId);
+    if (activeMap) {
+      const tl = projectToSvg(activeMap.cornerTL.timur, activeMap.cornerTL.utara, bounds, viewW, viewH);
+      const br = projectToSvg(activeMap.cornerBR.timur, activeMap.cornerBR.utara, bounds, viewW, viewH);
+      const imgX = Math.min(tl.x, br.x), imgY = Math.min(tl.y, br.y);
+      const imgW = Math.abs(br.x - tl.x), imgH = Math.abs(br.y - tl.y);
+      svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" preserveAspectRatio="none" opacity="0.9"/>';
+    }
+  }
   // Grid garis bantu tipis (visual saja, bukan data) -- membantu orientasi skala.
   for (let i = 1; i < 4; i++) {
     const gx = (viewW / 4) * i, gy = (viewH / 4) * i;
@@ -463,6 +615,7 @@ function renderPeta() {
       '<button onclick="zoomMapOut()" aria-label="Perkecil" class="w-9 h-9 rounded-full bg-[#0b1329]/90 border border-white/10 flex items-center justify-center active:scale-95 transition-transform">' + icon('minus','w-4 h-4 text-white') + '</button>' +
       '<button onclick="resetMapView()" aria-label="Reset tampilan" class="w-9 h-9 rounded-full bg-[#0b1329]/90 border border-white/10 flex items-center justify-center active:scale-95 transition-transform">' + icon('crosshair','w-4 h-4 text-white') + '</button>' +
       '<button onclick="toggleMeasureMode_()" aria-label="Mode Ukur" class="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ' + (measureModeActive ? 'bg-amber-500 border border-amber-400' : 'bg-[#0b1329]/90 border border-white/10') + '">' + icon('ruler','w-4 h-4 ' + (measureModeActive ? 'text-[#0b1329]' : 'text-white')) + '</button>' +
+      '<button onclick="openMapManagePanel_()" aria-label="Kelola Peta Background" class="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ' + (activeBackgroundMapId ? 'bg-emerald-500 border border-emerald-400' : 'bg-[#0b1329]/90 border border-white/10') + '">' + icon('layers','w-4 h-4 ' + (activeBackgroundMapId ? 'text-[#0b1329]' : 'text-white')) + '</button>' +
     '</div>' +
     (invalidCount > 0 ? '<div class="absolute left-3 bottom-11 px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-300 font-semibold">' + invalidCount + ' TP tanpa koordinat</div>' : '') +
     renderMapScaleBar(computeMineGridBounds(validPoints)) +
@@ -471,5 +624,62 @@ function renderPeta() {
   html += '</main>';
   html += renderBottomNav();
   html += renderMapDetailModal(mapData);
+  html += renderMapManagePanel_();
+  html += renderMapUploadForm_();
   return html;
+}
+
+// ==== RENDER: Panel Kelola Peta Background ====
+function renderMapManagePanel_() {
+  if (!mapManagePanelOpen) return '';
+  const listHtml = backgroundMapsList.length === 0
+    ? '<p class="text-[11px] text-white/30 text-center py-4">Belum ada peta background tersimpan.</p>'
+    : backgroundMapsList.map(function(m) {
+        const active = m.id === activeBackgroundMapId;
+        return '<div class="flex items-center gap-2.5 rounded-xl p-2.5 mb-1.5 ' + (active ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-white/[0.04]') + '">' +
+          '<img src="' + m.imageDataUrl + '" class="w-11 h-11 rounded-lg object-cover shrink-0">' +
+          '<div class="flex-1 min-w-0" onclick="activateBackgroundMap_(\'' + m.id + '\')">' +
+            '<div class="text-[12px] font-semibold text-white truncate">' + m.name + (active ? ' <span class="text-emerald-400 text-[9px] font-bold">&bull; AKTIF</span>' : '') + '</div>' +
+            '<div class="text-[9px] text-white/30">oleh ' + (m.uploadedBy || '-') + '</div>' +
+          '</div>' +
+          '<button onclick="event.stopPropagation(); deleteBackgroundMapEntry_(\'' + m.id + '\')" class="w-7 h-7 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">' + icon('trash-2','w-3.5 h-3.5 text-rose-400') + '</button>' +
+        '</div>';
+      }).join('');
+  const body = listHtml +
+    (activeBackgroundMapId ? '<button onclick="deactivateBackgroundMap_()" class="w-full mt-1 mb-2 py-2 rounded-xl bg-white/[0.04] text-white/50 text-[11px] font-semibold">Nonaktifkan Background</button>' : '') +
+    '<button onclick="openMapUploadForm_()" class="w-full mt-2 flex items-center justify-center gap-2 bg-[#2563eb]/15 border border-[#2563eb]/30 text-blue-300 font-bold text-xs py-2.5 rounded-xl">' + icon('plus','w-4 h-4') + '<span>Tambah Peta Baru</span></button>' +
+    '<p class="text-[9px] text-white/25 mt-2 leading-relaxed">Peta background cuma tersimpan di HP ini (lokal) -- HP lain tidak otomatis ikut lihat peta yang sama.</p>';
+  return renderSimpleModal('Kelola Peta Background', backgroundMapsList.length + ' peta tersimpan', body, 'closeMapManagePanel_()');
+}
+
+// ==== RENDER: Form Upload Peta Background ====
+function renderMapUploadForm_() {
+  if (!mapUploadFormOpen) return '';
+  const f = mapUploadFormState;
+  function inputRow(label, field, placeholder) {
+    return '<div><label class="block text-[10px] text-white/40 mb-1 font-medium">' + label + '</label>' +
+      '<input type="text" inputmode="decimal" value="' + (f[field]||'') + '" oninput="updateMapUploadField_(\'' + field + '\', this.value)" placeholder="' + placeholder + '" class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60"></div>';
+  }
+  const body =
+    '<div class="mb-3">' +
+      '<label class="block text-[10px] text-white/40 mb-1 font-medium">Nama Peta</label>' +
+      '<input type="text" value="' + f.name + '" oninput="updateMapUploadField_(\'name\', this.value)" placeholder="cth. Foto Udara Avanza Sep 2026" class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60">' +
+    '</div>' +
+    '<div class="mb-3">' +
+      '<label class="block text-[10px] text-white/40 mb-1 font-medium">Gambar Peta (PNG/JPG)</label>' +
+      '<input type="file" accept="image/*" onchange="handleMapImageFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
+      (f.fileDataUrl ? '<img src="' + f.fileDataUrl + '" class="w-full h-24 object-cover rounded-lg mt-2">' : '') +
+    '</div>' +
+    '<p class="text-[10px] text-white/40 mb-2 leading-relaxed">Masukkan Timur/Utara pojok KIRI-ATAS dan KANAN-BAWAH gambar (dari ArcGIS/data survey) -- ini yang dipakai app utk menempel gambar ke posisi yang benar.</p>' +
+    '<div class="grid grid-cols-2 gap-2 mb-2">' +
+      inputRow('Kiri-Atas: Timur', 'tlTimur', '397000') +
+      inputRow('Kiri-Atas: Utara', 'tlUtara', '53500') +
+      inputRow('Kanan-Bawah: Timur', 'brTimur', '397300') +
+      inputRow('Kanan-Bawah: Utara', 'brUtara', '53100') +
+    '</div>' +
+    (mapUploadStatusMsg ? '<p class="text-[10px] mt-1 mb-1 font-medium ' + (mapUploadStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + mapUploadStatusMsg + '</p>' : '') +
+    '<button onclick="submitMapUpload_()" ' + (mapUploadBusy ? 'disabled' : '') + ' class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs py-2.5 rounded-xl disabled:opacity-60">' +
+      (mapUploadBusy ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>' : icon('upload','w-4 h-4')) + '<span>' + (mapUploadBusy ? 'Menyimpan...' : 'Simpan Peta') + '</span>' +
+    '</button>';
+  return renderSimpleModal('Tambah Peta Baru', 'Upload gambar + 2 titik referensi', body, 'closeMapUploadForm_()');
 }
