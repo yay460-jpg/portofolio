@@ -71,8 +71,78 @@ function renderSettingsModal(justOpened) {
       '<div><div class="text-[13px] font-bold text-white">Akun</div><div class="text-[11px] text-white/40">' + (sessionInfo ? sessionInfo.userName + ' &bull; ' + sessionInfo.roleId : 'Belum login') + '</div></div>' +
       icon('user','w-4 h-4 text-white/30') +
     '</div>' +
+    renderCrsConfigSection_() +
     '<p class="text-[10px] text-white/25 text-center mt-3">Pengaturan lain (tema, bahasa, notifikasi) menyusul di versi berikutnya.</p>';
   return renderSimpleModal('Pengaturan', 'Setting sederhana', body, 'closeSettingsModal()', undefined, justOpened);
+}
+
+// [BARU -- 4 Sep] Config CRS Peta (zona UTM North Arrow) -- HANYA muncul utk role
+// DEVELOPER (Member biasa TIDAK PERNAH lihat bagian ini sama sekali, sesuai keputusan:
+// "koordinat yang sudah di-lock oleh developer, tidak boleh Member ubah"). Preset TIDAK
+// bisa diketik bebas (bukan dropdown zona 1-60) -- cuma pilih dari daftar yg sudah
+// diverifikasi manual (server juga validasi ulang preset_key di saveCrsConfig_, jadi
+// tetap aman walau JS di HP di-modif paksa).
+const CRS_PRESET_OPTIONS_ = [
+  { key: 'halmahera', label: 'Halmahera (Tengah + Timur)', zone: 52, hemisphere: 'N' },
+  { key: 'morowali', label: 'Morowali (Kab. Morowali)', zone: 51, hemisphere: 'S' },
+  { key: 'kendari', label: 'Kendari (Kolaka + Konawe)', zone: 51, hemisphere: 'S' },
+  { key: 'ambon_papua', label: 'Ambon & Papua Barat Daya (Raja Ampat)', zone: 52, hemisphere: 'S' }
+];
+// Placeholder visual doang (disabled) -- kerangka TERBUKA utk komoditas lain nanti,
+// BUKAN daftar tertutup. Timika/Freeport komoditasnya Tembaga-Emas (bukan Nikel, di luar
+// fokus MG1 skrg) -- koordinatnya sudah diriset (136.89 BT, 4.55 LS -> Zone 53S) tapi
+// sengaja belum diaktifkan sampai MG1 benar2 melayani komoditas itu.
+const CRS_PRESET_COMING_SOON_ = [
+  { label: 'Timika (Freeport)', note: 'Tembaga-Emas' },
+  { label: 'Area lain sesuai perkembangan MG1', note: 'Bauksit, Batubara, dll' }
+];
+let crsConfigStatusMsg = '', crsConfigStatusOk = true, crsConfigBusy = false;
+async function submitCrsPreset(presetKey) {
+  if (crsConfigBusy) return;
+  crsConfigBusy = true; crsConfigStatusMsg = 'Menyimpan...'; crsConfigStatusOk = true; render();
+  try {
+    const payload = buildAuthenticatedPayload({ action: 'saveCrsConfig', preset_key: presetKey });
+    const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL, { method: 'POST', body: payload }, 20000);
+    const result = await response.json();
+    if (result.ok && result.data) {
+      MG1_CRS_CONFIG = { datum: 'WGS84', zone: result.data.zone, hemisphere: result.data.hemisphere, presetLabel: result.data.presetLabel };
+      crsConfigStatusMsg = 'Tersimpan: ' + result.data.presetLabel + '.';
+      crsConfigStatusOk = true;
+    } else {
+      crsConfigStatusMsg = result.message || 'Gagal menyimpan config CRS.';
+      crsConfigStatusOk = false;
+    }
+  } catch (err) {
+    crsConfigStatusMsg = 'Tidak bisa menghubungi server.';
+    crsConfigStatusOk = false;
+  } finally {
+    crsConfigBusy = false;
+    render();
+  }
+}
+function renderCrsConfigSection_() {
+  if (!sessionInfo || sessionInfo.roleId !== 'DEVELOPER') return '';
+  const optionsHtml = CRS_PRESET_OPTIONS_.map(function(p) {
+    const active = MG1_CRS_CONFIG.presetLabel === p.label;
+    return '<button onclick="submitCrsPreset(\'' + p.key + '\')" ' + (crsConfigBusy ? 'disabled' : '') + ' class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left mb-1.5 ' + (active ? 'bg-blue-600 text-white' : 'bg-white/[0.04] text-white/70') + ' disabled:opacity-50">' +
+      '<span class="text-[12px] font-semibold">' + p.label + '</span>' +
+      '<span class="text-[9px] font-bold opacity-70">UTM ' + p.zone + p.hemisphere + '</span>' +
+    '</button>';
+  }).join('');
+  const comingSoonHtml = CRS_PRESET_COMING_SOON_.map(function(c) {
+    return '<div class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl mb-1.5 bg-white/[0.02] opacity-40 cursor-not-allowed">' +
+      '<span class="text-[12px] font-semibold text-white/50">' + c.label + '<span class="block text-[9px] font-normal text-white/30">' + c.note + '</span></span>' +
+      '<span class="text-[8px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/40">SOON</span>' +
+    '</div>';
+  }).join('');
+  return '<div class="rounded-[12px] bg-[#0b1329] border border-amber-500/20 p-4 mt-2.5">' +
+    '<div class="flex items-center gap-2 mb-1">' + icon('map-pin','w-3.5 h-3.5 text-amber-400') + '<div class="text-[13px] font-bold text-white">Config CRS Peta (Developer)</div></div>' +
+    '<div class="text-[10px] text-white/40 mb-3">Situs aktif sekarang: <span class="text-amber-300 font-semibold">' + (MG1_CRS_CONFIG.presetLabel || '-') + '</span> (UTM ' + MG1_CRS_CONFIG.zone + MG1_CRS_CONFIG.hemisphere + ')</div>' +
+    optionsHtml +
+    comingSoonHtml +
+    (crsConfigStatusMsg ? '<p class="text-[10px] mt-2 font-medium ' + (crsConfigStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + crsConfigStatusMsg + '</p>' : '') +
+    '<p class="text-[9px] text-white/25 mt-2 leading-relaxed">Mengubah situs mempengaruhi perhitungan North Arrow utk SEMUA member, bukan cuma HP ini. Pilih dgn hati-hati.</p>' +
+  '</div>';
 }
 
 // [PARTISI -- 4 Sep, Tahap 4] Modal Issue & Action dipindah ke scripts/issue.js.
@@ -160,4 +230,3 @@ function renderAccountMenu() {
     '</div>' +
   '</div>';
 }
-
