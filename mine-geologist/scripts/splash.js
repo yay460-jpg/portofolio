@@ -128,6 +128,12 @@ function runSplashScreen() {
   const T_LOADER = 2500 * scale;
   const T_FADE_START = 3850 * scale;
   const T_REMOVE = totalMs + 100;
+  // [PATCH -- 4 Sep, crosscheck timing] Entrance (drop+wave) selesai sekitar T_GLOW+0.6s.
+  // Setelah itu, wordmark & gem WAJIB tetap "hidup" (bukan diam) sampai fade-out mulai --
+  // berapa pun sisa durasinya (durasi pendek 1-2 detik: idle nyaris tidak kebagian waktu,
+  // itu wajar; durasi 3-7 detik: idle mengisi seluruh jeda yg sebelumnya diam total).
+  // Diklem supaya tidak pernah negatif/tumpang tindih dgn fade-out.
+  const T_IDLE_START = Math.min(T_GLOW + 650, Math.max(T_FADE_START - 200, T_GLOW));
 
   const timers = [];
 
@@ -161,7 +167,21 @@ function runSplashScreen() {
     });
   }, T_LOADER));
 
+  // [PATCH -- 4 Sep] Mulai fase idle: wordmark napas halus terus-menerus, gem ganti dari
+  // glow sekali-tembak (rock-glow) ke glow berdenyut berulang (rock-glow-idle).
   timers.push(setTimeout(() => {
+    if (wordmark) wordmark.classList.add('splash-idle-breathe');
+    const gemWrap = document.getElementById('splash-gem-wrap');
+    if (gemWrap) {
+      gemWrap.classList.remove('rock-glow');
+      gemWrap.classList.add('rock-glow-idle');
+    }
+  }, T_IDLE_START));
+
+  timers.push(setTimeout(() => {
+    if (wordmark) wordmark.classList.remove('splash-idle-breathe');
+    const gemWrap = document.getElementById('splash-gem-wrap');
+    if (gemWrap) gemWrap.classList.remove('rock-glow-idle');
     overlay.style.animation = 'bootExit 0.7s cubic-bezier(0.7,0,0.84,0) forwards';
   }, T_FADE_START));
 
