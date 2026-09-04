@@ -324,6 +324,10 @@ window.addEventListener('DOMContentLoaded', () => {
   setTimeout(async () => {
     const stored = loadStoredSession();
     if (stored) sessionInfo = stored; // kalau kebetulan ada sesi lama tersimpan, tetap dipakai
+    // [BARU -- 4 Sep] fetchCrsConfig() dipanggil PARALEL (bukan di-await), TIDAK menunda
+    // transisi splash->konten -- North Arrow baru benar2 dipakai saat user buka tab Peta,
+    // jauh sesudah boot ini selesai, jadi tidak perlu jadi bagian critical-path splash.
+    fetchCrsConfig();
     // FIX (27 Agu): splash TIDAK boleh langsung diganti Ringkasan sebelum data beneran
     // siap -- sebelumnya render() dipanggil DULUAN di sini, jadi user sempat lihat
     // Ringkasan kosong (0 Ton dkk) sesaat sebelum data asli masuk, dikira error/rusak.
