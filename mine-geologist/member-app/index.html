@@ -16,9 +16,23 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
   * { -webkit-tap-highlight-color: transparent; }
-  body { font-family: 'Inter', -apple-system, sans-serif; background:#070b1c; overscroll-behavior:none; }
-  .app-shell { max-width: 480px; margin: 0 auto; height: 100dvh; position: relative; background: #070b1c; display: flex; flex-direction: column; overflow: hidden; }
-  .app-main { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: #070b1c; }
+  /* FIX (4 Sep, revisi ke-2): Fix pertama (overscroll-behavior di html/.app-main) TERNYATA
+  BELUM CUKUP -- gestur pull-to-refresh browser masih bisa "menarik" dokumen di level
+  html/body itu sendiri (blm dikunci posisinya), DAN .app-shell pakai 100dvh (tinggi yg
+  berubah2 ikut address bar browser muncul/hilang saat gestur berlangsung) -- kombinasi
+  keduanya bikin nav bar bawah kelihatan "terdorong turun" sesaat. Fix sekarang: html/body
+  DIKUNCI TOTAL (position:fixed + inset:0 + overflow:hidden) supaya dokumen level luar
+  TIDAK PERNAH bisa digeser/melenting sama sekali oleh gestur apa pun -- satu2nya yg boleh
+  scroll cuma .app-main di dalamnya (scroll internal, tidak memengaruhi dokumen luar).
+  100dvh diganti 100svh (stable viewport height, TIDAK ikut berubah pas address bar
+  muncul/hilang) supaya app-shell tidak "loncat" ukurannya di tengah gestur. */
+  html, body {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    overflow: hidden; overscroll-behavior: none;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background:#070b1c; }
+  .app-shell { max-width: 480px; margin: 0 auto; height: 100svh; position: relative; background: #070b1c; display: flex; flex-direction: column; overflow: hidden; }
+  .app-main { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: #070b1c; overscroll-behavior: contain; }
   ::-webkit-scrollbar { width: 0; height: 0; }
   .card { background: rgba(15,23,42,0.55); border: 1px solid rgba(255,255,255,0.06); }
   .glow-gold { box-shadow: 0 0 24px rgba(37,99,235,0.18); }
@@ -43,7 +57,7 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
 
 // ==== KONFIGURASI -- WAJIB SAMA PERSIS DENGAN index.html/member.html web ====
 const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbwVeP2inU_-Cm4aazxiaTfulb_ta3OalMdKk9icwqRUNVF-Rz8n9cnhylQuWOspYh2Ztw/exec';
-const APP_VERSION = 'v90.2.100';
+const APP_VERSION = 'v90.2.118';
 
 // ==== STATE GLOBAL ====
 let currentTab = 'ringkasan';
@@ -463,7 +477,7 @@ function openUpdateAssayModal() {
 function closeUpdateAssayModal() { updateAssayModalOpen = false; render(); }
 function updateAssayField(name, val) { updateAssayForm[name] = val; render(); }
 
-function renderUpdateAssayModal() {
+function renderUpdateAssayModal(justOpened) {
   if (!updateAssayModalOpen) return '';
   const r = diggingDisplayedRows[diggingDetailIndex];
   if (!r) return '';
@@ -490,7 +504,7 @@ function renderUpdateAssayModal() {
       (updateAssayBusy ? '<span class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full spin"></span>' : icon('save','w-4 h-4')) +
       '<span>' + (updateAssayBusy?'Menyimpan...':'Simpan Hasil Assay') + '</span>' +
     '</button>';
-  return renderSimpleModal('Update Hasil Assay', getField(r,'ID Sampel') || '-', body, 'closeUpdateAssayModal()');
+  return renderSimpleModal('Update Hasil Assay', getField(r,'ID Sampel') || '-', body, 'closeUpdateAssayModal()', undefined, justOpened);
 }
 
 async function handleSubmitUpdateAssay() {
@@ -551,10 +565,11 @@ function renderSplash() {
 // ==== RENDER: LOGIN (modal, dipicu dari avatar header) ====
 let loginModalOpen = false;
 let loginStatusMsg = '', loginStatusOk = true, loginBusy = false;
-function renderLoginModal() {
+function renderLoginModal(justOpened) {
   if (!loginModalOpen) return '';
+  const animClass = (justOpened === false) ? '' : ' fade-in';
   return '' +
-  '<div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-center justify-center px-6 fade-in" onclick="if(event.target===this)closeLoginModal()">' +
+  '<div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-center justify-center px-6' + animClass + '" onclick="if(event.target===this)closeLoginModal()">' +
     '<div class="w-full max-w-sm bg-[#0e1933] rounded-[26px] border border-white/10 p-6 relative">' +
       '<button onclick="closeLoginModal()" class="absolute right-4 top-4 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center">' + icon('x','w-3.5 h-3.5 text-white/50') + '</button>' +
       '<div class="flex flex-col items-center mb-6">' +
@@ -686,8 +701,9 @@ async function submitChatMessage() {
   chatSendBusy = false;
   render();
 }
-function renderChatModal() {
+function renderChatModal(justOpened) {
   if (!chatModalOpen) return '';
+  const animClass = (justOpened === false) ? '' : ' fade-in';
   let list;
   if (chatLoading) {
     list = '<div class="flex items-center justify-center py-10"><span class="w-6 h-6 border-2 border-white/20 border-t-[#2563eb] rounded-full spin"></span></div>';
@@ -708,7 +724,7 @@ function renderChatModal() {
     }).join('');
   }
   return '' +
-  '<div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-end fade-in" onclick="if(event.target===this)closeChatModal()">' +
+  '<div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-end' + animClass + '" onclick="if(event.target===this)closeChatModal()">' +
     '<div class="w-full max-w-[480px] mx-auto bg-[#0e1933] rounded-t-[24px] h-[80vh] flex flex-col border-t border-white/10">' +
       '<div class="shrink-0 px-5 pt-5 pb-3 border-b border-white/[0.06] flex items-center justify-between">' +
         '<div><div class="text-sm font-bold text-white">Chat Tim</div><div class="text-[10px] text-white/35">' + chatMessages.length + ' pesan terbaru</div></div>' +
@@ -914,7 +930,7 @@ let diggingDetailOpen = false;
 let diggingDetailIndex = -1;
 function openDiggingDetail(idx) { diggingDetailIndex = idx; diggingDetailOpen = true; render(); }
 function closeDiggingDetail() { diggingDetailOpen = false; render(); }
-function renderDiggingDetailModal() {
+function renderDiggingDetailModal(justOpened) {
   if (!diggingDetailOpen) return '';
   const r = diggingDisplayedRows[diggingDetailIndex];
   if (!r) return '';
@@ -968,7 +984,7 @@ function renderDiggingDetailModal() {
   const actionBtn = isPending
     ? '<button onclick="openUpdateAssayModal()" class="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md animate-pulse">' + icon('flask-conical','w-3.5 h-3.5') + '<span>Update Hasil Assay</span></button>'
     : '';
-  return renderSimpleModal('Detail Digging', getField(r,'ID Sampel') || (getField(r,'Pit')||'-'), body + actionBtn, 'closeDiggingDetail()');
+  return renderSimpleModal('Detail Digging', getField(r,'ID Sampel') || (getField(r,'Pit')||'-'), body + actionBtn, 'closeDiggingDetail()', undefined, justOpened);
 }
 
 // ==== RENDER: VALIDASI ====
@@ -1601,7 +1617,7 @@ let validasiDetailOpen = false;
 let validasiDetailIndex = -1;
 function openValidasiDetail(idx) { validasiDetailIndex = idx; validasiDetailOpen = true; render(); }
 function closeValidasiDetail() { validasiDetailOpen = false; render(); }
-function renderValidasiDetailModal() {
+function renderValidasiDetailModal(justOpened) {
   if (!validasiDetailOpen) return '';
   const g = validasiDisplayedGroups[validasiDetailIndex];
   if (!g) return '';
@@ -1634,7 +1650,7 @@ function renderValidasiDetailModal() {
     '<div class="text-[10px] font-bold text-blue-300 mb-1 flex items-center gap-1.5">Rata-rata (1-' + g.maxDepth + 'm) &bull; Grade ' + renderClassGradeBadge(g.classGrade) + '</div>' +
     '<div class="text-[11px] text-white font-medium">Ni ' + fmt2(g.avgNi) + '% | Fe ' + fmt2(g.avgFe) + '% | Co ' + fmt2(g.avgCo) + '% | MgO ' + fmt2(g.avgMgo) + '% | SiO2 ' + fmt2(g.avgSio2) + '% | SM ' + fmt2(g.avgSm) + '</div>' +
   '</div>';
-  return renderSimpleModal('Detail Test Pit', g.idTp, body, 'closeValidasiDetail()');
+  return renderSimpleModal('Detail Test Pit', g.idTp, body, 'closeValidasiDetail()', undefined, justOpened);
 }
 
 // ==== MODAL: TAMBAH VALIDASI (input assay utk TP yang SUDAH ADA -- Member tidak
@@ -1691,7 +1707,7 @@ async function submitValidasiEntry() {
   render();
 }
 
-function renderValidasiFormModal() {
+function renderValidasiFormModal(justOpened) {
   if (!validasiFormOpen) return '';
   const f = validasiFormState;
   const body = '<div class="space-y-3">' +
@@ -1724,7 +1740,7 @@ function renderValidasiFormModal() {
       '<span>' + (validasiSubmitBusy?'Menyimpan...':'Simpan Validasi') + '</span>' +
     '</button>' +
   '</div>';
-  return renderSimpleModal('Input Validasi', 'Data assay Test Pit', body, 'closeValidasiForm()');
+  return renderSimpleModal('Input Validasi', 'Data assay Test Pit', body, 'closeValidasiForm()', undefined, justOpened);
 }
 
 // ==== renderPeta() lama (placeholder "Segera Hadir") sudah DIHAPUS v90.2.113 --
@@ -1734,7 +1750,7 @@ function renderValidasiFormModal() {
 let reportModalOpen = false;
 function openReportModal() { reportModalOpen = true; accountMenuOpen = false; render(); }
 function closeReportModal() { reportModalOpen = false; render(); }
-function renderReportModal() {
+function renderReportModal(justOpened) {
   if (!reportModalOpen) return '';
   let body = '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4 flex gap-3">' +
     '<div class="flex-1 text-center"><div class="text-lg font-bold text-white">' + sumField(globalDiggingToday,'Tonase').toFixed(0) + '</div><div class="text-[9px] text-white/40">TON DIG</div></div>' +
@@ -1748,7 +1764,7 @@ function renderReportModal() {
     '</div>';
   });
   body += '<p class="text-[10px] text-white/25 text-center mt-3">Export belum tersambung di versi ini -- pakai dashboard web utk export laporan.</p>';
-  return renderSimpleModal('Report Data', 'Ringkasan &amp; unduh laporan', body, 'closeReportModal()');
+  return renderSimpleModal('Report Data', 'Ringkasan &amp; unduh laporan', body, 'closeReportModal()', undefined, justOpened);
 }
 
 // ==== MODAL: KPI 5 PILAR (ROMBAK TOTAL -- 4 Sep, align dgn Engine KPI 5 Pilar Master) ====
@@ -1840,7 +1856,7 @@ async function refreshKpiOnly() {
   } catch (err) { console.error('Gagal refresh KPI:', err); }
   render();
 }
-function renderKpiModal() {
+function renderKpiModal(justOpened) {
   if (!kpiModalOpen) return '';
   let body;
   const jsaTriggerBtn = '<button onclick="openJsaModal()" title="Job Safety Analysis" class="w-8 h-8 rounded-full bg-[#2563eb]/15 border border-[#2563eb]/30 flex items-center justify-center">' + icon('shield-alert','w-4 h-4 text-[#2563eb]') + '</button>';
@@ -1902,7 +1918,7 @@ function renderKpiModal() {
   } else {
     body = '<div class="text-center text-white/40 text-xs py-6">Tidak ada data.</div>';
   }
-  return renderSimpleModal('KPI &amp; Absensi', 'Data kehadiran &amp; performa Anda', body, 'closeKpiModal()', jsaTriggerBtn);
+  return renderSimpleModal('KPI &amp; Absensi', 'Data kehadiran &amp; performa Anda', body, 'closeKpiModal()', jsaTriggerBtn, justOpened);
 }
 
 // ==== MODAL: JOB SAFETY ANALYSIS & KONFIRMASI KEHADIRAN ====
@@ -1971,7 +1987,7 @@ async function submitJsaConfirm(status) {
   render();
 }
 
-function renderJsaModal() {
+function renderJsaModal(justOpened) {
   if (!jsaModalOpen) return '';
   function apdItem(label) {
     return '<div class="flex items-center gap-2 px-3 py-2 rounded-[8px] bg-white/[0.03] border border-white/[0.06]"><span class="w-1.5 h-1.5 rounded-full bg-[#2563eb] shrink-0"></span><span class="text-[11px] text-white/70">' + label + '</span></div>';
@@ -2015,7 +2031,7 @@ function renderJsaModal() {
     '</div>';
     if (jsaSubmitBusy) body += '<div class="flex items-center justify-center mt-3"><span class="w-5 h-5 border-2 border-white/20 border-t-[#2563eb] rounded-full spin"></span></div>';
   }
-  return renderSimpleModal('Job Safety Analysis', 'Mine Geologist', body, 'closeJsaModal()');
+  return renderSimpleModal('Job Safety Analysis', 'Mine Geologist', body, 'closeJsaModal()', undefined, justOpened);
 }
 
 
@@ -2023,7 +2039,7 @@ function renderJsaModal() {
 let settingsModalOpen = false;
 function openSettingsModal() { settingsModalOpen = true; accountMenuOpen = false; render(); }
 function closeSettingsModal() { settingsModalOpen = false; render(); }
-function renderSettingsModal() {
+function renderSettingsModal(justOpened) {
   if (!settingsModalOpen) return '';
   const hasCustomAvatar = !!getCustomAvatarDataUrl();
   const body = '' +
@@ -2058,7 +2074,7 @@ function renderSettingsModal() {
       icon('user','w-4 h-4 text-white/30') +
     '</div>' +
     '<p class="text-[10px] text-white/25 text-center mt-3">Pengaturan lain (tema, bahasa, notifikasi) menyusul di versi berikutnya.</p>';
-  return renderSimpleModal('Pengaturan', 'Setting sederhana', body, 'closeSettingsModal()');
+  return renderSimpleModal('Pengaturan', 'Setting sederhana', body, 'closeSettingsModal()', undefined, justOpened);
 }
 
 // ==== MODAL: ISSUE & ACTION (data ASLI dari sheet "Masalah & Rekomendasi") ====
@@ -2136,7 +2152,7 @@ function statusBadgeColor(status) {
   return 'bg-amber-500'; // Open
 }
 
-function renderIssueModal() {
+function renderIssueModal(justOpened) {
   if (!issueModalOpen) return '';
   let body;
   if (issueFormOpen) {
@@ -2176,7 +2192,7 @@ function renderIssueModal() {
       });
     }
   }
-  return renderSimpleModal(issueFormOpen ? 'Tambah Issue' : 'Issue &amp; Action', issueFormOpen ? 'Masalah &amp; Rekomendasi' : (issueListData.length + ' issue tercatat'), body, issueFormOpen ? 'closeIssueForm()' : 'closeIssueModal()');
+  return renderSimpleModal(issueFormOpen ? 'Tambah Issue' : 'Issue &amp; Action', issueFormOpen ? 'Masalah &amp; Rekomendasi' : (issueListData.length + ' issue tercatat'), body, issueFormOpen ? 'closeIssueForm()' : 'closeIssueModal()', undefined, justOpened);
 }
 
 // ==== MENU AKUN (dipicu dari avatar header) ====
@@ -2264,9 +2280,13 @@ function renderAccountMenu() {
 }
 
 // ==== HELPER: modal bottom-sheet generik (dipakai Report/KPI/Settings) ====
-function renderSimpleModal(title, subtitle, bodyHtml, closeFn, extraHeaderBtn) {
+function renderSimpleModal(title, subtitle, bodyHtml, closeFn, extraHeaderBtn, justOpened) {
+  // justOpened default true (kalau parameter tidak diisi) supaya perilaku lama TIDAK
+  // berubah di titik manapun yang lupa di-update -- animasi tetap main spt sebelumnya,
+  // aman/fail-safe, cuma kehilangan optimisasi anti-kedip di titik yg terlewat itu saja.
+  const animClass = (justOpened === false) ? '' : ' fade-in';
   return '' +
-  '<div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-end fade-in" onclick="if(event.target===this)' + closeFn + '">' +
+  '<div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-end' + animClass + '" onclick="if(event.target===this)' + closeFn + '">' +
     '<div class="w-full max-w-[480px] mx-auto bg-[#0e1933] rounded-t-[24px] max-h-[85vh] overflow-y-auto border-t border-white/10">' +
       '<div class="sticky top-0 bg-[#0e1933] px-5 pt-5 pb-3 border-b border-white/[0.06] flex items-center justify-between">' +
         '<div><div class="text-sm font-bold text-white">' + title + '</div><div class="text-[10px] text-white/35">' + subtitle + '</div></div>' +
@@ -2283,13 +2303,14 @@ function renderSimpleModal(title, subtitle, bodyHtml, closeFn, extraHeaderBtn) {
 // ==== RENDER: MODAL INPUT DIGGING ====
 let diggingModalOpen = false;
 let diggingStatusMsg = '', diggingStatusOk = true, diggingBusy = false;
-function renderDiggingModal() {
+function renderDiggingModal(justOpened) {
   if (!diggingModalOpen) return '';
+  const animClass = (justOpened === false) ? '' : ' fade-in';
   const f = diggingFormState;
   const smPreview = computeSM(f.mgo, f.sio2);
   const tonasePreview = computeTonase(f.total_sampel, f.tipe_ore, parseFloat(smPreview));
   return '' +
-  '<div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-end fade-in" onclick="if(event.target===this)closeDiggingForm()">' +
+  '<div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-end' + animClass + '" onclick="if(event.target===this)closeDiggingForm()">' +
     '<div class="w-full max-w-[480px] mx-auto bg-[#0e1933] rounded-t-[28px] max-h-[92vh] overflow-y-auto border-t border-white/10">' +
       '<div class="sticky top-0 bg-[#0e1933] px-5 pt-5 pb-3 border-b border-white/[0.06] flex items-center justify-between">' +
         '<div><div class="text-sm font-bold text-white">Input Data Digging</div><div class="text-[10px] text-white/35">Produksi_GC &bull; ' + todayDateStr() + '</div></div>' +
@@ -2398,28 +2419,58 @@ async function handleLogout() {
 }
 
 // ==== MAIN RENDER ====
+// [FIX -- 4 Sep] Kedipan popup: app.innerHTML diganti TOTAL tiap render() dipanggil,
+// termasuk saat cuma status loading DALAM modal yang berubah (mis. KPI selesai fetch data)
+// -- akibatnya elemen modal dianggap browser sbg elemen BARU tiap kali, animasi masuknya
+// (class 'fade-in') ikut main ulang dari nol, kelihatan seperti kedip. Fix: lacak modal
+// mana yg BENAR2 baru dibuka (beda dari render sebelumnya) vs yg cuma kontennya berubah
+// selagi tetap terbuka -- animasi 'fade-in' cuma dipasang utk kasus pertama.
+let _prevModalSnapshot = {};
+function _computeJustOpenedModals() {
+  const snap = {
+    updateAssay: !!updateAssayModalOpen,
+    login: !!loginModalOpen,
+    chat: !!chatModalOpen,
+    diggingDetail: !!diggingDetailOpen,
+    validasiDetail: !!validasiDetailOpen,
+    validasiForm: !!validasiFormOpen,
+    report: !!reportModalOpen,
+    kpi: !!kpiModalOpen,
+    jsa: !!jsaModalOpen,
+    settings: !!settingsModalOpen,
+    issue: !!issueModalOpen,
+    digging: !!diggingModalOpen,
+    mapDetail: !!mapDetailIdTp
+  };
+  const justOpened = {};
+  for (const key in snap) justOpened[key] = snap[key] && !_prevModalSnapshot[key];
+  _prevModalSnapshot = snap;
+  return justOpened;
+}
+
 function render() {
   const app = document.getElementById('app');
+  const justOpened = _computeJustOpenedModals();
   // Gerbang Login WAJIB tidak dipasang di sini (app tetap langsung buka ke shell utama) --
   // Login sekarang jadi OPSIONAL lewat avatar di header (renderLoginModal), sesuai arahan.
   let html;
   if (currentTab === 'tabel') html = renderTabel();
   else if (currentTab === 'validasi') html = renderValidasi();
-  else if (currentTab === 'peta') html = renderPeta();
+  else if (currentTab === 'peta') html = renderPeta(justOpened);
   else html = renderRingkasan();
-  html += renderDiggingModal();
-  html += renderLoginModal();
+  html += renderDiggingModal(justOpened.digging);
+  html += renderLoginModal(justOpened.login);
   html += renderAccountMenu();
-  html += renderKpiModal();
-  html += renderJsaModal();
-  html += renderIssueModal();
-  html += renderChatModal();
-  html += renderValidasiDetailModal();
-  html += renderDiggingDetailModal();
-  html += renderUpdateAssayModal();
-  html += renderValidasiFormModal();
-  html += renderReportModal();
-  html += renderSettingsModal();
+  html += renderKpiModal(justOpened.kpi);
+  html += renderJsaModal(justOpened.jsa);
+  html += renderIssueModal(justOpened.issue);
+  html += renderChatModal(justOpened.chat);
+  html += renderValidasiDetailModal(justOpened.validasiDetail);
+  html += renderDiggingDetailModal(justOpened.diggingDetail);
+  html += renderUpdateAssayModal(justOpened.updateAssay);
+  html += renderValidasiFormModal(justOpened.validasiForm);
+  html += renderReportModal(justOpened.report);
+  html += renderSettingsModal(justOpened.settings);
   app.innerHTML = html;
   if (window.lucide) lucide.createIcons();
 
