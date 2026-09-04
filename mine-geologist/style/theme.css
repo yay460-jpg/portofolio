@@ -926,6 +926,25 @@ input[type="password"]::-ms-clear {
 .rock-glow {
   animation: rockGlow 0.62s ease-in-out both;
 }
+/* [PATCH -- 4 Sep, crosscheck timing] Setelah entrance (drop+wave) selesai, wordmark
+   & gem TIDAK BOLEH diam sampai fade-out -- WAJIB tetap "hidup" mengisi sisa durasi
+   berapa pun panjangnya (1-7 detik). splash-idle-breathe = napas halus di seluruh
+   wordmark; rock-glow-idle = denyut glow berulang di gem (beda dari rock-glow yg cuma
+   sekali tembak di entrance). Keduanya infinite loop, dihentikan pas fade-out mulai. */
+@keyframes splashIdleBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.018); }
+}
+.splash-idle-breathe {
+  animation: splashIdleBreathe 2.4s ease-in-out infinite;
+}
+@keyframes rockGlowIdle {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(255,255,255,0.28)) drop-shadow(0 0 14px rgba(255,108,0,0.4)); }
+  50% { filter: drop-shadow(0 0 16px rgba(255,255,255,0.65)) drop-shadow(0 0 28px rgba(255,108,0,0.8)); }
+}
+.rock-glow-idle {
+  animation: rockGlowIdle 1.9s ease-in-out infinite;
+}
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(220%); }
