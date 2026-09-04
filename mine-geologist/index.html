@@ -575,6 +575,118 @@ input[type="password"]::-ms-clear {
 @media (max-width: 480px) {
   .active-member-avatar { width: 32px; height: 32px; flex-basis: 32px; }
 }
+
+/* [FINAL -- 4 Sep, keputusan user] Expand view kartu Member (Engine KPI 5 Pilar) --
+   Opsi 2 (card memanjang ke bawah) dipilih permanen dari 3 opsi trial. Opsi 1 (sidebar)
+   & Opsi 3 (overlay) DIHAPUS. Lihat scripts/member-card-expand.js utk logikanya. */
+
+/* Blok konten yang di-collapse/expand (badge 5 pilar + skor gabungan + konteks periode).
+   Card mendorong konten lain secara alami (grid) -- tidak butuh CSS posisi tambahan. */
+.member-kpi-expand-block {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.member-kpi-expand-block.expanded {
+  max-height: 640px;
+}
+
+/* Tombol trigger kecil di kartu Member. */
+.member-kpi-expand-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  padding: 4px 0;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.member-kpi-expand-trigger:hover {
+  color: #cbd5e1;
+}
+
+/* [DIGANTI -- 4 Sep] Splash "Pixel Boot" -- ganti total dari versi progress-bar lama.
+   Wordmark LITHOSITE jatuh huruf per huruf + logo gem glow + loader shimmer/dots. */
+.litho-letter {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 900;
+  font-size: 40px;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  color: #fff;
+  display: inline-block;
+  will-change: transform, opacity;
+  transform-origin: center bottom;
+}
+@media (min-width: 768px) {
+  .litho-letter { font-size: 84px; }
+}
+.splash-pre-drop {
+  opacity: 0;
+  transform: translateY(80px) scale(0.6);
+  transform-origin: center bottom;
+}
+.splash-animate-drop {
+  animation: splashLetterDrop 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.splash-dot {
+  opacity: 0.25;
+}
+@keyframes splashLetterDrop {
+  0%   { transform: translateY(80px) scale(0.6); opacity: 0; }
+  55%  { transform: translateY(-10px) scale(1.12); opacity: 1; }
+  75%  { transform: translateY(6px) scale(0.96); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes wavePop {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-14px); }
+  60% { transform: translateY(3px); }
+}
+@keyframes rockGlow {
+  0%, 100% { filter: drop-shadow(0 0 0px rgba(255,255,255,0)) drop-shadow(0 0 10px rgba(255,120,0,0)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 18px rgba(255,255,255,0.75)) drop-shadow(0 0 30px rgba(255,108,0,0.95)); transform: scale(1.06); }
+}
+.rock-glow {
+  animation: rockGlow 0.62s ease-in-out both;
+}
+/* [PATCH -- 4 Sep, crosscheck timing] Setelah entrance (drop+wave) selesai, wordmark
+   & gem TIDAK BOLEH diam sampai fade-out -- WAJIB tetap "hidup" mengisi sisa durasi
+   berapa pun panjangnya (1-7 detik). splash-idle-breathe = napas halus di seluruh
+   wordmark; rock-glow-idle = denyut glow berulang di gem (beda dari rock-glow yg cuma
+   sekali tembak di entrance). Keduanya infinite loop, dihentikan pas fade-out mulai. */
+@keyframes splashIdleBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.018); }
+}
+.splash-idle-breathe {
+  animation: splashIdleBreathe 2.4s ease-in-out infinite;
+}
+@keyframes rockGlowIdle {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(255,255,255,0.28)) drop-shadow(0 0 14px rgba(255,108,0,0.4)); }
+  50% { filter: drop-shadow(0 0 16px rgba(255,255,255,0.65)) drop-shadow(0 0 28px rgba(255,108,0,0.8)); }
+}
+.rock-glow-idle {
+  animation: rockGlowIdle 1.9s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(220%); }
+}
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.25; }
+  40% { transform: translateY(-10px); opacity: 1; }
+}
+@keyframes bootExit {
+  0% { transform: scale(1); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1.18); opacity: 0; filter: blur(12px); }
+}
 </style>
 </head>
 <body class="min-h-screen flex flex-col md:flex-row theme-dark font-sans transition-colors duration-300" oncontextmenu="return false;">
