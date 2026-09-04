@@ -9,7 +9,7 @@
  * ============================================================ */
 
 const GOOGLE_SCRIPT_READ_URL = 'https://script.google.com/macros/s/AKfycbwVeP2inU_-Cm4aazxiaTfulb_ta3OalMdKk9icwqRUNVF-Rz8n9cnhylQuWOspYh2Ztw/exec';
-const APP_VERSION = 'v90.2.118';
+const APP_VERSION = 'v90.2.119';
 
 // sessionInfo dibaca sbg variabel global (didefinisikan di file lain -- auth-related state,
 // belum dipartisi terpisah di Tahap 2 ini) -- withReadAuthToken aman dipanggil sebelum

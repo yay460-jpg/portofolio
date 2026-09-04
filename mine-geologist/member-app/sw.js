@@ -10,11 +10,14 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'lithosite-member-app-build-20260904b';
+const CACHE_NAME = 'lithosite-member-app-build-20260904c';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
 // produksi/chat/KPI dsb WAJIB selalu diambil segar dari network, tidak boleh basi.
+// [PARTISI -- 4 Sep, Tahap 6] index.html Tahap 5 dipecah jadi 10 file (1 shared/ +
+// 9 scripts/) -- SEMUA WAJIB masuk sini, pelajaran lama (member-card-expand.js
+// Master sempat kelewat 1x) jangan terulang di sini.
 const APP_SHELL = [
   './',
   './index.html',
@@ -24,7 +27,17 @@ const APP_SHELL = [
   '../assets/apple-touch-icon.png',
   '../assets/icon-192.png',
   '../assets/icon-512.png',
-  '../assets/lithosite-logo.png'
+  '../assets/lithosite-logo.png',
+  '../shared/geo-engine.js',
+  './scripts/config.js',
+  './scripts/auth.js',
+  './scripts/kpi.js',
+  './scripts/digging.js',
+  './scripts/validasi.js',
+  './scripts/peta.js',
+  './scripts/chat.js',
+  './scripts/issue.js',
+  './scripts/settings.js'
 ];
 
 self.addEventListener('install', (event) => {
