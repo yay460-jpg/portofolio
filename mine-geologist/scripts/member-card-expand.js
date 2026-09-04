@@ -10,11 +10,20 @@
 function toggleMemberKpiExpand(index) {
  const block = document.getElementById('member-kpi-expand-' + index);
  const icon = document.getElementById('member-kpi-expand-icon-' + index);
+ const label = document.getElementById('member-kpi-expand-label-' + index);
  if (!block) return;
  const willExpand = !block.classList.contains('expanded');
  block.classList.toggle('expanded', willExpand);
  if (icon) {
   icon.setAttribute('data-lucide', willExpand ? 'chevron-up' : 'chevron-down');
   if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+ }
+ if (label) {
+  const lang = window.currentLang || 'id';
+  if (willExpand) {
+   label.textContent = (lang === 'en') ? 'Hide' : 'Sembunyikan';
+  } else {
+   label.textContent = (lang === 'en') ? 'View details' : 'Lihat selengkapnya';
+  }
  }
 }
