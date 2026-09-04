@@ -44,7 +44,24 @@ mine-geologist/
 │   ├── member.js               <- tab KPI Member (Engine KPI 5 Pilar, Attitude, JSA)
 │   ├── settings.js             <- tab Settings (Developer Console, Regional, dll)
 │   └── issue.js                <- tab Issue & Action
-└── assets/                   <- favicon, ikon PWA, avatar
+├── assets/                   <- favicon, ikon PWA, avatar (dipakai BERSAMA index.html & member-app/)
+├── shared/                    <- logic MURNI MATEMATIKA dipakai Master DAN member-app/ sekaligus
+│   └── geo-engine.js            (Inverse UTM, Grid Convergence, Bearing/Distance -- 1 salinan,
+│                                  bukan duplikat; Master belum pakai, disiapkan utk fitur geospasial nanti)
+├── member-app/                <- Companion app Android (PWA terpisah, 1 shell + 9 file scripts)
+│   ├── index.html               <- shell tipis: render()/switchTab()/header/nav/boot init
+│   ├── manifest.json, sw.js      <- PWA sendiri, CACHE_NAME terpisah dari index.html root
+│   └── scripts/
+│       ├── config.js              <- URL backend, APP_VERSION, fetchWithTimeout, getField, dll
+│       ├── auth.js                 <- login PIN, session, logout
+│       ├── kpi.js                   <- Modal KPI & Absensi + JSA
+│       ├── digging.js                <- fetch data utama, Ringkasan, Tab Digging
+│       ├── validasi.js                <- grouping per-TP, Tab Validasi
+│       ├── peta.js                     <- Mine Grid SVG, North Arrow, Mode Ukur (pakai shared/geo-engine.js)
+│       ├── chat.js                      <- Modal Chat Tim
+│       ├── issue.js                      <- Modal Issue & Action
+│       └── settings.js                    <- Report, Pengaturan, Menu Akun
+└── docs/                     <- dokumentasi tambahan (panduan split backend, partisi member-app, dll)
 ```
 
 **Backend (Google Apps Script, repo terpisah di Apps Script Editor):**
@@ -113,6 +130,7 @@ Urutan cek paling sering menyelesaikan masalah, dari yang paling murah:
 Panduan teknis lebih detail untuk topik spesifik ada di folder [`docs/`](docs/):
 
 - [Panduan Split Backend 8-File](docs/panduan-split-backend-8file.md) — cara pindahkan 8 file backend ke Apps Script editor, jebakan umum (boilerplate `myFunction` belum dihapus), checklist verifikasi.
+- [Panduan Partisi Member Android](docs/panduan-partisi-member-android.md) — struktur `member-app/` + `shared/`, cara kerja arsitektur berbagi logic geospasial dengan Master, checklist precache PWA.
 
 ---
 
