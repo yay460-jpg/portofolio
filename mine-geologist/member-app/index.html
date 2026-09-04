@@ -328,6 +328,11 @@ window.addEventListener('DOMContentLoaded', () => {
     // transisi splash->konten -- North Arrow baru benar2 dipakai saat user buka tab Peta,
     // jauh sesudah boot ini selesai, jadi tidak perlu jadi bagian critical-path splash.
     fetchCrsConfig();
+    // [BARU -- 5 Sep] Muat daftar peta background dari IndexedDB (lokal HP) -- diikuti
+    // render() manual krn fungsi ini TIDAK otomatis panggil render() sendiri (beda dari
+    // loadRingkasanData yg sudah dijelaskan di bawah). IndexedDB lokal, biasanya cepat
+    // (milidetik), tapi tetap tidak di-await supaya tidak menunda splash->konten.
+    loadBackgroundMapsFromDb_().then(() => render());
     // FIX (27 Agu): splash TIDAK boleh langsung diganti Ringkasan sebelum data beneran
     // siap -- sebelumnya render() dipanggil DULUAN di sini, jadi user sempat lihat
     // Ringkasan kosong (0 Ton dkk) sesaat sebelum data asli masuk, dikira error/rusak.
