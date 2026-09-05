@@ -244,7 +244,16 @@ function renderSimpleModal(title, subtitle, bodyHtml, closeFn, extraHeaderBtn, j
 }
 
 // [PARTISI -- 4 Sep, susulan] Form Input Digging utama dipindah ke scripts/digging.js.
-function switchTab(id) { currentTab = id; render(); }
+function switchTab(id) {
+  currentTab = id;
+  render();
+  // [BARU] Peta standalone: fetch data sendiri, lazy, hanya sekali (fungsi ini sendiri
+  // sudah cek mapDataFetchAttempted/mapDataBusy, jadi aman dipanggil tiap switchTab('peta')
+  // tanpa efek fetch berulang).
+  if (id === 'peta' && typeof loadValidasiDataForMapStandalone_ === 'function') {
+    loadValidasiDataForMapStandalone_();
+  }
+}
 // [PARTISI -- 4 Sep, Tahap 3] handleLogout dipindah ke scripts/auth.js.
 
 // ==== MAIN RENDER ====
