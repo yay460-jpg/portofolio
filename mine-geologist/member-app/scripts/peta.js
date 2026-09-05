@@ -165,7 +165,14 @@ async function handleMapImageFileSelected_(inputEl) {
     // fallback-nya WAJIB minta user export ulang sbg gambar, bukan diam2 coba tampilkan
     // PDF sbg gambar (pasti gagal/kosong).
     mapUploadStatusMsg = 'Membaca koordinat dari GeoPDF...'; mapUploadStatusOk = true; render();
-    const geoResult = await tryParseGeoPdf_(file);
+    // [BARU -- 5 Sep, temuan bug nyata: pdf.js bisa MENGGANTUNG tanpa pernah resolve/reject
+    // kalau Worker gagal merespons -- BUKAN error biasa, jadi try/catch di dalam
+    // tryParseGeoPdf_ TIDAK CUKUP, perlu batas waktu di LUAR fungsi itu. 0 perubahan logika
+    // di dalam tryParseGeoPdf_ sendiri -- ini cuma pengaman tambahan di titik panggil.
+    const geoResult = await Promise.race([
+      tryParseGeoPdf_(file),
+      new Promise(resolve => setTimeout(() => resolve({ ok: false, reason: 'Waktu tunggu habis (20 detik) -- proses baca GeoPDF menggantung, kemungkinan masalah render pdf.js di HP ini.' }), 20000))
+    ]);
     if (geoResult.ok) {
       mapUploadFormState.fileDataUrl = geoResult.imageDataUrl;
       mapUploadFormState.fileName = file.name;
