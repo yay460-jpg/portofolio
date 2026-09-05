@@ -642,7 +642,7 @@ function handleMapTap_(event) {
   try {
     if (!event || !event.currentTarget) return;
     const svgEl = event.currentTarget;
-    const bounds = computeMineGridBounds(buildMapData());
+    const bounds = computeMapViewBounds(buildMapData());
     if (!bounds) return;
     const rect = svgEl.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
@@ -2218,13 +2218,23 @@ function buildMapData() {
 // "Timur 428200-428300, Utara 101900-102000"), BUKAN Latitude/Longitude -- sengaja TIDAK
 // dipakai di Leaflet/Google Maps. Diplot sbg scatter-plot SVG custom, auto-scale ke area
 // yg tersedia berapa pun rentang koordinatnya (tidak hardcode skala tertentu).
-function computeMineGridBounds(points) {
+function computeMineGridBounds(points, extraBounds) {
   const valid = points.filter(p => p.hasValidCoord);
-  if (!valid.length) return null;
+  if (!valid.length && (!Array.isArray(extraBounds) || extraBounds.length === 0)) return null;
   const timurs = valid.map(p => parseFloat(p.timur));
   const utaras = valid.map(p => parseFloat(p.utara));
-  let minT = Math.min(...timurs), maxT = Math.max(...timurs);
-  let minU = Math.min(...utaras), maxU = Math.max(...utaras);
+  const extras = Array.isArray(extraBounds) ? extraBounds.filter(b =>
+    b && Number.isFinite(b.minT) && Number.isFinite(b.maxT) &&
+    Number.isFinite(b.minU) && Number.isFinite(b.maxU)
+  ) : [];
+  let minT = timurs.length ? Math.min(...timurs) : Infinity;
+  let maxT = timurs.length ? Math.max(...timurs) : -Infinity;
+  let minU = utaras.length ? Math.min(...utaras) : Infinity;
+  let maxU = utaras.length ? Math.max(...utaras) : -Infinity;
+  extras.forEach(b => {
+    minT = Math.min(minT, b.minT); maxT = Math.max(maxT, b.maxT);
+    minU = Math.min(minU, b.minU); maxU = Math.max(maxU, b.maxU);
+  });
   // Jaga-jaga: kalau semua titik kebetulan segaris (rentang 0), beri buffer artifisial
   // supaya SVG tidak collapse jadi 1 titik/garis tak terlihat.
   if (maxT - minT < 1) { minT -= 5; maxT += 5; }
@@ -2248,6 +2258,44 @@ function computeMineGridBounds(points) {
     effMinT -= extra; effMaxT += extra;
   }
   return { minT: effMinT, maxT: effMaxT, minU: effMinU, maxU: effMaxU };
+}
+
+// Bounds untuk DEFAULT VIEW: seluruh area yang benar-benar sedang ditampilkan.
+// Selain TP, ikut memasukkan extent background map aktif dan seluruh KML aktif.
+// mapZoom=1 tetap berarti FIT-ALL; zoom +/- hanya memperbesar/memperkecil hasil fit ini.
+function computeMapViewBounds(points) {
+  const extras = [];
+
+  const activeMap = activeBackgroundMapId
+    ? backgroundMapsList.find(m => m.id === activeBackgroundMapId)
+    : null;
+  if (activeMap) {
+    const extent = activeMap.geoReference && activeMap.geoReference.extent
+      ? activeMap.geoReference.extent
+      : { cornerTL: activeMap.cornerTL, cornerBR: activeMap.cornerBR };
+    if (extent && extent.cornerTL && extent.cornerBR) {
+      const e1 = parseFloat(extent.cornerTL.timur), n1 = parseFloat(extent.cornerTL.utara);
+      const e2 = parseFloat(extent.cornerBR.timur), n2 = parseFloat(extent.cornerBR.utara);
+      if ([e1,n1,e2,n2].every(Number.isFinite)) {
+        extras.push({ minT: Math.min(e1,e2), maxT: Math.max(e1,e2), minU: Math.min(n1,n2), maxU: Math.max(n1,n2) });
+      }
+    }
+  }
+
+  activeKmlOverlayIds.forEach(id => {
+    const kml = kmlOverlaysList.find(k => k.id === id);
+    if (!kml) return;
+    const coords = [];
+    (kml.points || []).forEach(pt => coords.push(pt));
+    (kml.lines || []).forEach(line => (line.path || []).forEach(pt => coords.push(pt)));
+    const valid = coords.filter(pt => Number.isFinite(parseFloat(pt.timur)) && Number.isFinite(parseFloat(pt.utara)));
+    if (!valid.length) return;
+    const ts = valid.map(pt => parseFloat(pt.timur));
+    const ns = valid.map(pt => parseFloat(pt.utara));
+    extras.push({ minT: Math.min(...ts), maxT: Math.max(...ts), minU: Math.min(...ns), maxU: Math.max(...ns) });
+  });
+
+  return computeMineGridBounds(points, extras);
 }
 
 // Konversi 1 titik Timur/Utara -> koordinat SVG (x,y). SVG y-axis terbalik dari Utara
@@ -2292,7 +2340,7 @@ function renderMapScaleBar(bounds) {
 }
 
 function renderMineGridSvg(points) {
-  const bounds = computeMineGridBounds(points);
+  const bounds = computeMapViewBounds(points);
   const viewW = 320, viewH = 320;
   if (!bounds) return '';
   // Zoom diterapkan lewat viewBox SVG (bukan transform per-titik) -- viewBox lebih kecil
@@ -2641,7 +2689,7 @@ function renderPeta() {
   // ==== SUCCESS: render Mine Grid ====
   html += '<div class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden">' +
     renderMineGridSvg(validPoints) +
-    renderNorthArrow_(computeMineGridBounds(validPoints)) +
+    renderNorthArrow_(computeMapViewBounds(validPoints)) +
     renderMeasureBanner_(mapData) +
     // Kontrol zoom + crosshair (reset view) -- poin desain #2 (MAP-02): sekarang BENAR2
     // py handler, bukan sekadar elemen visual. [BONUS -- 4 Sep] Tombol Mode Ukur ditambah
@@ -2657,7 +2705,7 @@ function renderPeta() {
     '</div>' +
     (invalidCount > 0 ? '<div class="absolute left-3 bottom-11 px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-300 font-semibold">' + invalidCount + ' TP tanpa koordinat</div>' : '') +
     (mapTapState_.active ? renderMapTapInfo_() : '') +
-    renderMapScaleBar(computeMineGridBounds(validPoints)) +
+    renderMapScaleBar(computeMapViewBounds(validPoints)) +
   '</div>';
   if (gpsState_.active) {
     const gpsText = gpsState_.status === 'ok'
