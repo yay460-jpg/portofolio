@@ -10,7 +10,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'lithosite-member-app-build-20260905a';
+const CACHE_NAME = 'lithosite-member-app-build-20260906a';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
@@ -37,7 +37,9 @@ const APP_SHELL = [
   './scripts/peta.js',
   './scripts/chat.js',
   './scripts/issue.js',
-  './scripts/settings.js'
+  './scripts/settings.js',
+  './vendor/pdfjs/pdf.min.js',
+  './vendor/pdfjs/pdf.worker.min.js'
 ];
 
 self.addEventListener('install', (event) => {
