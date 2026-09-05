@@ -159,8 +159,29 @@ async function handleMapImageFileSelected_(inputEl) {
     // temuan sebelumnya -- file "Export Map/Print" ArcGIS, bukan "Export Data").
     mapUploadStatusMsg = 'File .tif ini tidak punya koordinat tertanam (mungkin hasil "Export Map/Print", bukan "Export Data" dari ArcGIS) -- lanjut isi 2 sudut manual di bawah.';
     mapUploadStatusOk = false;
+  } else if (/\.pdf$/i.test(file.name)) {
+    // [BARU -- 5 Sep] GeoPDF -- BEDA dari GeoTIFF: kalau gagal, TIDAK bisa "lanjut ke alur
+    // gambar biasa" (PDF mentah tidak bisa ditampilkan lewat <image> SVG spt PNG/JPG) --
+    // fallback-nya WAJIB minta user export ulang sbg gambar, bukan diam2 coba tampilkan
+    // PDF sbg gambar (pasti gagal/kosong).
+    mapUploadStatusMsg = 'Membaca koordinat dari GeoPDF...'; mapUploadStatusOk = true; render();
+    const geoResult = await tryParseGeoPdf_(file);
+    if (geoResult) {
+      mapUploadFormState.fileDataUrl = geoResult.imageDataUrl;
+      mapUploadFormState.fileName = file.name;
+      mapUploadFormState.tlTimur = String(geoResult.cornerTL.timur);
+      mapUploadFormState.tlUtara = String(geoResult.cornerTL.utara);
+      mapUploadFormState.brTimur = String(geoResult.cornerBR.timur);
+      mapUploadFormState.brUtara = String(geoResult.cornerBR.utara);
+      mapUploadStatusMsg = '✓ Koordinat & gambar berhasil dibaca otomatis dari GeoPDF -- cek angkanya, lalu Simpan.';
+      mapUploadStatusOk = true;
+    } else {
+      mapUploadStatusMsg = 'File PDF ini bukan GeoPDF yang dikenali (standarnya beda/lama, atau bukan hasil export georeferensi ArcGIS). PDF tidak bisa ditampilkan langsung di Peta -- silakan export ulang sbg gambar PNG/JPG, lalu upload gambar itu (bisa dgn crop manual + isi 2 sudut).';
+      mapUploadStatusOk = false;
+    }
+    render(); return;
   } else if (!file.type.startsWith('image/')) {
-    mapUploadStatusMsg = 'File harus berupa gambar (PNG/JPG) atau GeoTIFF (.tif).'; mapUploadStatusOk = false; render(); return;
+    mapUploadStatusMsg = 'File harus berupa gambar (PNG/JPG), GeoTIFF (.tif), atau GeoPDF (.pdf).'; mapUploadStatusOk = false; render(); return;
   }
 
   const reader = new FileReader();
@@ -215,6 +236,100 @@ async function tryParseGeoTiff_(file) {
     };
   } catch (e) {
     console.warn('Gagal parse GeoTIFF:', e);
+    return null;
+  }
+}
+
+// [BARU -- 5 Sep] Baca koordinat tertanam GeoPDF (standar OGC/ISO modern -- Viewport/
+// Measure/GPTS/LPTS -- BUKAN standar TerraGo lama "LGIDict", itu di luar jangkauan
+// SENGAJA, akan fallback ke manual kalau ketemu). Ekstraksi via REGEX teks mentah pada
+// byte PDF, BUKAN lewat API resmi pdf.js (yg tidak expose dictionary internal scr rapi)
+// -- pendekatan ini DIVALIDASI dulu manual terhadap 4 file GeoPDF ArcMap asli sebelum
+// kode ini ditulis (semua berhasil, termasuk 1 file yg metadatanya SENGAJA rusak/salah
+// label, lihat catatan heuristik di bawah).
+async function tryParseGeoPdf_(file) {
+  if (typeof pdfjsLib === 'undefined') { console.warn('pdf.js belum termuat.'); return null; }
+  try {
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    // Decode latin1 manual (byte-safe, 1 byte = 1 char code) -- BUKAN TextDecoder utf-8,
+    // krn sebagian besar file PDF berisi byte biner yg bukan UTF-8 valid (data gambar dkk),
+    // kita cuma perlu regex di BAGIAN TEKS-nya (dictionary), sisanya byte biner diabaikan.
+    let text = '';
+    for (let i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
+
+    const measureMatch = text.match(/\/Measure\/Subtype\/GEO\/Bounds\[([^\]]*)\]\/GPTS\[([^\]]*)\]\/LPTS\[([^\]]*)\]\/GCS (\d+) 0 R/);
+    if (!measureMatch) return null; // bukan GeoPDF standar OGC yg kita kenali -- fallback manual
+    const gpts = measureMatch[2].trim().split(/\s+/).map(Number);
+    const gcsObjNum = measureMatch[4];
+
+    const vpMatch = text.match(/\/VP\[<<\/Type\/Viewport\/BBox\[([^\]]*)\]/);
+    if (!vpMatch) return null;
+    const vpBBox = vpMatch[1].trim().split(/\s+/).map(Number); // [x0,y0,x1,y1] satuan PDF point
+
+    // [PENTING -- temuan validasi 5 Sep, 1 dari 4 file nyata metadatanya SALAH LABEL]
+    // JANGAN percaya field /Type GCS mentah2 -- cek besaran angka GPTS sendiri sbg sumber
+    // kebenaran: kalau semua nilai masuk akal sbg Lat/Lon (-180..180), anggap Lat/Lon;
+    // kalau tidak (angka ribuan+), anggap SUDAH grid Easting/Northing mentah, PAKAI APA
+    // ADANYA tanpa konversi (0 perlu tahu zona sama sekali utk kasus ini).
+    const looksLikeLatLon = gpts.every(v => Math.abs(v) <= 180);
+
+    // Coba ambil zona+hemisphere dari teks WKT (kalau GCS type PROJCS & WKT terbaca) --
+    // fallback ke config CRS situs AKTIF SEKARANG kalau WKT rusak/tidak ketemu (spt file
+    // yg WKT-nya cuma placeholder GUID kosong, ditemukan nyata saat validasi).
+    let zone = MG1_CRS_CONFIG.zone, hemisphere = MG1_CRS_CONFIG.hemisphere;
+    const gcsObjMatch = text.match(new RegExp(gcsObjNum + ' 0 obj([\\s\\S]*?)endobj'));
+    if (gcsObjMatch) {
+      const utmMatch = gcsObjMatch[1].match(/UTM_Zone_(\d+)([NS])/);
+      if (utmMatch) { zone = parseInt(utmMatch[1], 10); hemisphere = utmMatch[2]; }
+    }
+
+    // Hitung Easting/Northing tiap titik GPTS -- 0 ASUMSI urutan sudut (kiri-atas/kanan-
+    // bawah dkk, sesuai pelajaran validasi: urutan itu TIDAK BISA diandalkan/konsisten).
+    // Cukup ambil bounding box (min/max) dari SEMUA titik yg ada -- aman utk berapa pun
+    // jumlah titiknya, kalaupun ada rotasi kecil (pernah ditemukan ~1km di 1 file) hasilnya
+    // tetap valid, cuma sedikit lebih lebar dari kotak presisi (dampak diabaikan, kecil).
+    const points = [];
+    for (let i = 0; i < gpts.length; i += 2) {
+      const v1 = gpts[i], v2 = gpts[i+1]; // urutan (Y,X) = (Lat,Lon) ATAU (Northing,Easting)
+      if (looksLikeLatLon) {
+        const utm = forwardUtm_(v1, v2, zone, hemisphere);
+        points.push({ timur: utm.easting, utara: utm.northing });
+      } else {
+        points.push({ timur: v2, utara: v1 });
+      }
+    }
+    const eastings = points.map(p => p.timur), northings = points.map(p => p.utara);
+    const cornerTL = { timur: Math.min(...eastings), utara: Math.max(...northings) };
+    const cornerBR = { timur: Math.max(...eastings), utara: Math.min(...northings) };
+
+    // Render halaman 1 via pdf.js, lalu CROP ke area VP BBox saja -- itu SUBAREA peta,
+    // biasanya ada judul/legenda DI LUAR area itu (persis kasus crop manual JPEG
+    // sebelumnya, sekarang dilakukan OTOMATIS dari metadata, bukan potong manual).
+    const loadingTask = pdfjsLib.getDocument({ data: bytes });
+    const pdf = await loadingTask.promise;
+    const page = await pdf.getPage(1);
+    const scale = 2; // render agak besar spy hasil crop tetap tajam
+    const viewport = page.getViewport({ scale });
+    const fullCanvas = document.createElement('canvas');
+    fullCanvas.width = viewport.width; fullCanvas.height = viewport.height;
+    await page.render({ canvasContext: fullCanvas.getContext('2d'), viewport }).promise;
+
+    const bx0 = Math.min(vpBBox[0], vpBBox[2]) * scale;
+    const bx1 = Math.max(vpBBox[0], vpBBox[2]) * scale;
+    // Flip Y: PDF origin kiri-BAWAH (Y naik ke atas), canvas origin kiri-ATAS (Y naik ke bawah).
+    const by0 = fullCanvas.height - Math.max(vpBBox[1], vpBBox[3]) * scale;
+    const by1 = fullCanvas.height - Math.min(vpBBox[1], vpBBox[3]) * scale;
+    const cropW = bx1 - bx0, cropH = by1 - by0;
+    if (cropW <= 0 || cropH <= 0) return null; // BBox tidak masuk akal, fallback manual
+
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = cropW; cropCanvas.height = cropH;
+    cropCanvas.getContext('2d').drawImage(fullCanvas, bx0, by0, cropW, cropH, 0, 0, cropW, cropH);
+
+    return { imageDataUrl: cropCanvas.toDataURL('image/png'), cornerTL: cornerTL, cornerBR: cornerBR };
+  } catch (e) {
+    console.warn('Gagal parse GeoPDF:', e);
     return null;
   }
 }
@@ -794,8 +909,8 @@ function renderMapUploadForm_() {
       '<input type="text" value="' + f.name + '" oninput="updateMapUploadField_(\'name\', this.value)" placeholder="cth. Foto Udara Avanza Sep 2026" class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60">' +
     '</div>' +
     '<div class="mb-3">' +
-      '<label class="block text-[10px] text-white/40 mb-1 font-medium">Gambar Peta (PNG/JPG, atau GeoTIFF -- koordinat auto-terisi kalau ada)</label>' +
-      '<input type="file" accept="image/*,.tif,.tiff" onchange="handleMapImageFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
+      '<label class="block text-[10px] text-white/40 mb-1 font-medium">Gambar Peta (PNG/JPG, GeoTIFF, atau GeoPDF -- koordinat auto-terisi kalau ada)</label>' +
+      '<input type="file" accept="image/*,.tif,.tiff,.pdf" onchange="handleMapImageFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
       (f.fileDataUrl ? '<img src="' + f.fileDataUrl + '" class="w-full h-24 object-cover rounded-lg mt-2">' : '') +
     '</div>' +
     '<p class="text-[10px] text-white/40 mb-2 leading-relaxed">Masukkan Timur/Utara pojok KIRI-ATAS dan KANAN-BAWAH gambar (dari ArcGIS/data survey) -- ini yang dipakai app utk menempel gambar ke posisi yang benar.</p>' +
