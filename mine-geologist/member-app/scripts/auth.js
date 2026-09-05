@@ -120,6 +120,19 @@ async function handleLogout() {
 // ==== RENDER: LOGIN (modal, dipicu dari avatar header) ====
 let loginModalOpen = false;
 let loginStatusMsg = '', loginStatusOk = true, loginBusy = false;
+// Toggle show/hide PIN login -- manipulasi DOM langsung (bukan lewat render()) supaya
+// PIN yg sudah diketik user TIDAK HILANG (render() bikin ulang <input> dari string HTML,
+// yg akan reset isinya krn value tidak di-bind ke state JS manapun).
+function toggleLoginPinVisibility_() {
+  const input = document.getElementById('login-pin-input');
+  const iconEl = document.getElementById('login-pin-eye-icon');
+  if (!input || !iconEl) return;
+  const showing = input.type === 'text';
+  input.type = showing ? 'password' : 'text';
+  iconEl.setAttribute('data-lucide', showing ? 'eye' : 'eye-off');
+  if (typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+}
+
 function renderLoginModal(justOpened) {
   if (!loginModalOpen) return '';
   const animClass = (justOpened === false) ? '' : ' fade-in';
@@ -143,7 +156,12 @@ function renderLoginModal(justOpened) {
         '</div>' +
         '<div>' +
           '<label class="block text-[11px] text-white/50 mb-1.5 font-medium">PIN (6 digit)</label>' +
-          '<input id="login-pin-input" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" placeholder="******" class="w-full bg-[#0b1329] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white tracking-[0.3em] focus:outline-none focus:border-blue-400/60">' +
+          '<div class="relative">' +
+            '<input id="login-pin-input" type="password" inputmode="numeric" maxlength="6" autocomplete="current-password" placeholder="******" class="w-full bg-[#0b1329] border border-white/10 rounded-xl px-3.5 py-2.5 pr-11 text-sm text-white tracking-[0.3em] focus:outline-none focus:border-blue-400/60">' +
+            '<button type="button" onclick="toggleLoginPinVisibility_()" aria-label="Tampilkan/sembunyikan PIN" class="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-white/40 active:text-white/70">' +
+              '<i id="login-pin-eye-icon" data-lucide="eye" class="w-4 h-4"></i>' +
+            '</button>' +
+          '</div>' +
         '</div>' +
         (loginStatusMsg ? '<p class="text-xs font-medium ' + (loginStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + loginStatusMsg + '</p>' : '') +
         '<button id="login-submit-btn" type="submit" class="w-full mt-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-bold text-sm py-3 rounded-xl transition-all shadow-[0_4px_16px_rgba(37,99,235,0.25)] disabled:opacity-60">' +
