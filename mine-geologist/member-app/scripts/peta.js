@@ -166,7 +166,7 @@ async function handleMapImageFileSelected_(inputEl) {
     // PDF sbg gambar (pasti gagal/kosong).
     mapUploadStatusMsg = 'Membaca koordinat dari GeoPDF...'; mapUploadStatusOk = true; render();
     const geoResult = await tryParseGeoPdf_(file);
-    if (geoResult) {
+    if (geoResult.ok) {
       mapUploadFormState.fileDataUrl = geoResult.imageDataUrl;
       mapUploadFormState.fileName = file.name;
       mapUploadFormState.tlTimur = String(geoResult.cornerTL.timur);
@@ -175,8 +175,19 @@ async function handleMapImageFileSelected_(inputEl) {
       mapUploadFormState.brUtara = String(geoResult.cornerBR.utara);
       mapUploadStatusMsg = '✓ Koordinat & gambar berhasil dibaca otomatis dari GeoPDF -- cek angkanya, lalu Simpan.';
       mapUploadStatusOk = true;
+    } else if (geoResult.cornerTL) {
+      // [BARU -- 5 Sep] Kasus SEBAGIAN berhasil: koordinat ketemu, tapi render gambar
+      // gagal (mis. pdf.js/CDN bermasalah di HP ini) -- isi angkanya SAJA, biar user
+      // tidak perlu ketik ulang manual, tapi minta upload gambar terpisah (PNG/JPG hasil
+      // export ArcGIS lain) krn gambarnya sendiri gagal dibuat dari PDF ini.
+      mapUploadFormState.tlTimur = String(geoResult.cornerTL.timur);
+      mapUploadFormState.tlUtara = String(geoResult.cornerTL.utara);
+      mapUploadFormState.brTimur = String(geoResult.cornerBR.timur);
+      mapUploadFormState.brUtara = String(geoResult.cornerBR.utara);
+      mapUploadStatusMsg = geoResult.reason;
+      mapUploadStatusOk = false;
     } else {
-      mapUploadStatusMsg = 'File PDF ini bukan GeoPDF yang dikenali (standarnya beda/lama, atau bukan hasil export georeferensi ArcGIS). PDF tidak bisa ditampilkan langsung di Peta -- silakan export ulang sbg gambar PNG/JPG, lalu upload gambar itu (bisa dgn crop manual + isi 2 sudut).';
+      mapUploadStatusMsg = geoResult.reason + ' PDF tidak bisa ditampilkan langsung di Peta -- silakan export ulang sbg gambar PNG/JPG.';
       mapUploadStatusOk = false;
     }
     render(); return;
@@ -247,69 +258,59 @@ async function tryParseGeoTiff_(file) {
 // -- pendekatan ini DIVALIDASI dulu manual terhadap 4 file GeoPDF ArcMap asli sebelum
 // kode ini ditulis (semua berhasil, termasuk 1 file yg metadatanya SENGAJA rusak/salah
 // label, lihat catatan heuristik di bawah).
+// [DIPERBAIKI -- 5 Sep, temuan bug nyata di HP] SEBELUMNYA semua kegagalan (metadata tidak
+// ketemu, ATAU pdf.js gagal muat/render) ditangkap 1 try/catch besar -> semua tampil pesan
+// generik "bukan GeoPDF dikenali", padahal PENYEBABNYA BISA BEDA SAMA SEKALI (mis. pdf.js
+// gagal render krn CDN diblok/worker gagal/file terlalu berat) -- MENYESATKAN saat debug.
+// Sekarang kembalikan {ok:false, reason:'...'} spesifik per-tahap, bukan null generik.
 async function tryParseGeoPdf_(file) {
-  if (typeof pdfjsLib === 'undefined') { console.warn('pdf.js belum termuat.'); return null; }
+  if (typeof pdfjsLib === 'undefined') return { ok: false, reason: 'pdf.js belum termuat (kemungkinan CDN diblok jaringan HP ini).' };
+
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let text = '';
+  for (let i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
+
+  const measureMatch = text.match(/\/Measure\/Subtype\/GEO\/Bounds\[([^\]]*)\]\/GPTS\[([^\]]*)\]\/LPTS\[([^\]]*)\]\/GCS (\d+) 0 R/);
+  if (!measureMatch) return { ok: false, reason: 'Tidak ketemu metadata georeferensi standar OGC di file ini (bukan GeoPDF, atau pakai standar lama/beda).' };
+  const gpts = measureMatch[2].trim().split(/\s+/).map(Number);
+  const gcsObjNum = measureMatch[4];
+
+  const vpMatch = text.match(/\/VP\[<<\/Type\/Viewport\/BBox\[([^\]]*)\]/);
+  if (!vpMatch) return { ok: false, reason: 'Metadata koordinat ketemu, tapi area Viewport (VP) tidak ketemu -- struktur file tidak lengkap.' };
+  const vpBBox = vpMatch[1].trim().split(/\s+/).map(Number);
+
+  const looksLikeLatLon = gpts.every(v => Math.abs(v) <= 180);
+  let zone = MG1_CRS_CONFIG.zone, hemisphere = MG1_CRS_CONFIG.hemisphere;
+  const gcsObjMatch = text.match(new RegExp(gcsObjNum + ' 0 obj([\\s\\S]*?)endobj'));
+  if (gcsObjMatch) {
+    const utmMatch = gcsObjMatch[1].match(/UTM_Zone_(\d+)([NS])/);
+    if (utmMatch) { zone = parseInt(utmMatch[1], 10); hemisphere = utmMatch[2]; }
+  }
+
+  const points = [];
+  for (let i = 0; i < gpts.length; i += 2) {
+    const v1 = gpts[i], v2 = gpts[i+1];
+    if (looksLikeLatLon) {
+      const utm = forwardUtm_(v1, v2, zone, hemisphere);
+      points.push({ timur: utm.easting, utara: utm.northing });
+    } else {
+      points.push({ timur: v2, utara: v1 });
+    }
+  }
+  const eastings = points.map(p => p.timur), northings = points.map(p => p.utara);
+  const cornerTL = { timur: Math.min(...eastings), utara: Math.max(...northings) };
+  const cornerBR = { timur: Math.max(...eastings), utara: Math.min(...northings) };
+
+  // Bagian render pdf.js DIPISAH try/catch-nya sendiri -- ini yg PALING MUNGKIN gagal
+  // di HP nyata (CDN worker script, memori, file besar) TIDAK ADA HUBUNGANNYA dgn
+  // metadata yg sudah berhasil dibaca di atas. Kalau gagal di sini, koordinat SUDAH
+  // BENAR ketemu -- cuma gambarnya yg gagal dibikin, jadi pesannya harus bilang itu.
   try {
-    const buffer = await file.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    // Decode latin1 manual (byte-safe, 1 byte = 1 char code) -- BUKAN TextDecoder utf-8,
-    // krn sebagian besar file PDF berisi byte biner yg bukan UTF-8 valid (data gambar dkk),
-    // kita cuma perlu regex di BAGIAN TEKS-nya (dictionary), sisanya byte biner diabaikan.
-    let text = '';
-    for (let i = 0; i < bytes.length; i++) text += String.fromCharCode(bytes[i]);
-
-    const measureMatch = text.match(/\/Measure\/Subtype\/GEO\/Bounds\[([^\]]*)\]\/GPTS\[([^\]]*)\]\/LPTS\[([^\]]*)\]\/GCS (\d+) 0 R/);
-    if (!measureMatch) return null; // bukan GeoPDF standar OGC yg kita kenali -- fallback manual
-    const gpts = measureMatch[2].trim().split(/\s+/).map(Number);
-    const gcsObjNum = measureMatch[4];
-
-    const vpMatch = text.match(/\/VP\[<<\/Type\/Viewport\/BBox\[([^\]]*)\]/);
-    if (!vpMatch) return null;
-    const vpBBox = vpMatch[1].trim().split(/\s+/).map(Number); // [x0,y0,x1,y1] satuan PDF point
-
-    // [PENTING -- temuan validasi 5 Sep, 1 dari 4 file nyata metadatanya SALAH LABEL]
-    // JANGAN percaya field /Type GCS mentah2 -- cek besaran angka GPTS sendiri sbg sumber
-    // kebenaran: kalau semua nilai masuk akal sbg Lat/Lon (-180..180), anggap Lat/Lon;
-    // kalau tidak (angka ribuan+), anggap SUDAH grid Easting/Northing mentah, PAKAI APA
-    // ADANYA tanpa konversi (0 perlu tahu zona sama sekali utk kasus ini).
-    const looksLikeLatLon = gpts.every(v => Math.abs(v) <= 180);
-
-    // Coba ambil zona+hemisphere dari teks WKT (kalau GCS type PROJCS & WKT terbaca) --
-    // fallback ke config CRS situs AKTIF SEKARANG kalau WKT rusak/tidak ketemu (spt file
-    // yg WKT-nya cuma placeholder GUID kosong, ditemukan nyata saat validasi).
-    let zone = MG1_CRS_CONFIG.zone, hemisphere = MG1_CRS_CONFIG.hemisphere;
-    const gcsObjMatch = text.match(new RegExp(gcsObjNum + ' 0 obj([\\s\\S]*?)endobj'));
-    if (gcsObjMatch) {
-      const utmMatch = gcsObjMatch[1].match(/UTM_Zone_(\d+)([NS])/);
-      if (utmMatch) { zone = parseInt(utmMatch[1], 10); hemisphere = utmMatch[2]; }
-    }
-
-    // Hitung Easting/Northing tiap titik GPTS -- 0 ASUMSI urutan sudut (kiri-atas/kanan-
-    // bawah dkk, sesuai pelajaran validasi: urutan itu TIDAK BISA diandalkan/konsisten).
-    // Cukup ambil bounding box (min/max) dari SEMUA titik yg ada -- aman utk berapa pun
-    // jumlah titiknya, kalaupun ada rotasi kecil (pernah ditemukan ~1km di 1 file) hasilnya
-    // tetap valid, cuma sedikit lebih lebar dari kotak presisi (dampak diabaikan, kecil).
-    const points = [];
-    for (let i = 0; i < gpts.length; i += 2) {
-      const v1 = gpts[i], v2 = gpts[i+1]; // urutan (Y,X) = (Lat,Lon) ATAU (Northing,Easting)
-      if (looksLikeLatLon) {
-        const utm = forwardUtm_(v1, v2, zone, hemisphere);
-        points.push({ timur: utm.easting, utara: utm.northing });
-      } else {
-        points.push({ timur: v2, utara: v1 });
-      }
-    }
-    const eastings = points.map(p => p.timur), northings = points.map(p => p.utara);
-    const cornerTL = { timur: Math.min(...eastings), utara: Math.max(...northings) };
-    const cornerBR = { timur: Math.max(...eastings), utara: Math.min(...northings) };
-
-    // Render halaman 1 via pdf.js, lalu CROP ke area VP BBox saja -- itu SUBAREA peta,
-    // biasanya ada judul/legenda DI LUAR area itu (persis kasus crop manual JPEG
-    // sebelumnya, sekarang dilakukan OTOMATIS dari metadata, bukan potong manual).
     const loadingTask = pdfjsLib.getDocument({ data: bytes });
     const pdf = await loadingTask.promise;
     const page = await pdf.getPage(1);
-    const scale = 2; // render agak besar spy hasil crop tetap tajam
+    const scale = 2;
     const viewport = page.getViewport({ scale });
     const fullCanvas = document.createElement('canvas');
     fullCanvas.width = viewport.width; fullCanvas.height = viewport.height;
@@ -317,20 +318,19 @@ async function tryParseGeoPdf_(file) {
 
     const bx0 = Math.min(vpBBox[0], vpBBox[2]) * scale;
     const bx1 = Math.max(vpBBox[0], vpBBox[2]) * scale;
-    // Flip Y: PDF origin kiri-BAWAH (Y naik ke atas), canvas origin kiri-ATAS (Y naik ke bawah).
     const by0 = fullCanvas.height - Math.max(vpBBox[1], vpBBox[3]) * scale;
     const by1 = fullCanvas.height - Math.min(vpBBox[1], vpBBox[3]) * scale;
     const cropW = bx1 - bx0, cropH = by1 - by0;
-    if (cropW <= 0 || cropH <= 0) return null; // BBox tidak masuk akal, fallback manual
+    if (cropW <= 0 || cropH <= 0) return { ok: false, reason: 'Koordinat berhasil dibaca, tapi area gambar (VP BBox) tidak masuk akal -- dicoba lagi dgn file lain.', cornerTL, cornerBR };
 
     const cropCanvas = document.createElement('canvas');
     cropCanvas.width = cropW; cropCanvas.height = cropH;
     cropCanvas.getContext('2d').drawImage(fullCanvas, bx0, by0, cropW, cropH, 0, 0, cropW, cropH);
 
-    return { imageDataUrl: cropCanvas.toDataURL('image/png'), cornerTL: cornerTL, cornerBR: cornerBR };
+    return { ok: true, imageDataUrl: cropCanvas.toDataURL('image/png'), cornerTL, cornerBR };
   } catch (e) {
-    console.warn('Gagal parse GeoPDF:', e);
-    return null;
+    console.warn('Koordinat GeoPDF berhasil dibaca, TAPI render halaman via pdf.js gagal:', e);
+    return { ok: false, reason: 'Koordinat berhasil dibaca (' + JSON.stringify(cornerTL) + ' / ' + JSON.stringify(cornerBR) + '), TAPI gagal render gambar halamannya: ' + (e.message || e) + '. Coba isi manual pakai angka di atas, upload gambar PNG/JPG terpisah.', cornerTL, cornerBR };
   }
 }
 async function submitMapUpload_() {
