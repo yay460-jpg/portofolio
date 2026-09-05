@@ -40,7 +40,7 @@ let backgroundMapsList = []; // cache in-memory dari IndexedDB, direfresh tiap a
 let activeBackgroundMapId = null;
 let mapManagePanelOpen = false;
 let mapUploadFormOpen = false;
-let mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '' };
+let mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null };
 let mapUploadStatusMsg = '', mapUploadStatusOk = true, mapUploadBusy = false;
 
 // [BARU -- 5 Sep] KML overlay (titik + garis batas) -- BEDA dari peta background: KML
@@ -125,7 +125,7 @@ async function loadBackgroundMapsFromDb_() {
 function openMapManagePanel_() { mapManagePanelOpen = true; render(); }
 function closeMapManagePanel_() { mapManagePanelOpen = false; mapUploadFormOpen = false; render(); }
 function openMapUploadForm_() {
-  mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '' };
+  mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null };
   mapUploadStatusMsg = ''; mapUploadFormOpen = true; render();
 }
 function closeMapUploadForm_() { mapUploadFormOpen = false; render(); }
@@ -145,6 +145,7 @@ async function handleMapImageFileSelected_(inputEl) {
     mapUploadStatusMsg = 'Membaca koordinat dari GeoTIFF...'; mapUploadStatusOk = true; render();
     const geoResult = await tryParseGeoTiff_(file);
     if (geoResult) {
+      mapUploadFormState.geoReference = null;
       mapUploadFormState.fileDataUrl = geoResult.imageDataUrl;
       mapUploadFormState.fileName = file.name;
       mapUploadFormState.tlTimur = String(geoResult.cornerTL.timur);
@@ -174,6 +175,7 @@ async function handleMapImageFileSelected_(inputEl) {
       new Promise(resolve => setTimeout(() => resolve({ ok: false, reason: 'Waktu tunggu habis (20 detik) -- proses baca GeoPDF menggantung, kemungkinan masalah render pdf.js di HP ini.' }), 20000))
     ]);
     if (geoResult.ok) {
+      mapUploadFormState.geoReference = geoResult.geoReference || null;
       mapUploadFormState.fileDataUrl = geoResult.imageDataUrl;
       mapUploadFormState.fileName = file.name;
       mapUploadFormState.tlTimur = String(geoResult.cornerTL.timur);
@@ -183,6 +185,7 @@ async function handleMapImageFileSelected_(inputEl) {
       mapUploadStatusMsg = '✓ Koordinat & gambar berhasil dibaca otomatis dari GeoPDF -- cek angkanya, lalu Simpan.';
       mapUploadStatusOk = true;
     } else if (geoResult.cornerTL) {
+      mapUploadFormState.geoReference = geoResult.geoReference || null;
       // [BARU -- 5 Sep] Kasus SEBAGIAN berhasil: koordinat ketemu, tapi render gambar
       // gagal (mis. pdf.js/CDN bermasalah di HP ini) -- isi angkanya SAJA, biar user
       // tidak perlu ketik ulang manual, tapi minta upload gambar terpisah (PNG/JPG hasil
@@ -202,6 +205,9 @@ async function handleMapImageFileSelected_(inputEl) {
     mapUploadStatusMsg = 'File harus berupa gambar (PNG/JPG), GeoTIFF (.tif), atau GeoPDF (.pdf).'; mapUploadStatusOk = false; render(); return;
   }
 
+  // STEP 6: ordinary PNG/JPG import has no GeoReference Object of its own.
+  // Jangan membawa object GeoPDF dari pemilihan file sebelumnya ke raster lain.
+  mapUploadFormState.geoReference = null;
   const reader = new FileReader();
   reader.onload = () => {
     mapUploadFormState.fileDataUrl = reader.result;
@@ -274,6 +280,97 @@ async function tryParseGeoTiff_(file) {
 // inti sama sekali. Tujuannya: supaya kalau macet lagi, kita tahu PERSIS di tahap mana
 // (baca file? cari metadata? muat pdf.js? buka dokumen? render halaman?) -- tanpa ini,
 // "macet" cuma 1 titik buta besar, tidak bisa didiagnosis lebih lanjut dari jauh.
+function solveAffineTransform2D_(src, dst) {
+  if (!src || !dst || src.length !== dst.length || src.length < 3) return null;
+  // Pilih tiga titik non-kolinear untuk menyelesaikan enam parameter affine.
+  for (let i = 0; i < src.length - 2; i++) {
+    for (let j = i + 1; j < src.length - 1; j++) {
+      for (let k = j + 1; k < src.length; k++) {
+        const x1=src[i].x,y1=src[i].y,x2=src[j].x,y2=src[j].y,x3=src[k].x,y3=src[k].y;
+        const det = x1*(y2-y3) + x2*(y3-y1) + x3*(y1-y2);
+        if (Math.abs(det) < 1e-9) continue;
+        const d1=dst[i],d2=dst[j],d3=dst[k];
+        const solve=(v1,v2,v3)=>({
+          a:(v1*(y2-y3)+v2*(y3-y1)+v3*(y1-y2))/det,
+          b:(x1*(v2-v3)+x2*(v3-v1)+x3*(v1-v2))/det,
+          c:(x1*(y2*v3-y3*v2)+x2*(y3*v1-y1*v3)+x3*(y1*v2-y2*v1))/det
+        });
+        const tx=solve(d1.x,d2.x,d3.x), ty=solve(d1.y,d2.y,d3.y);
+        return { ax:tx.a,bx:tx.b,cx:tx.c, ay:ty.a,by:ty.b,cy:ty.c };
+      }
+    }
+  }
+  return null;
+}
+function applyAffineTransform2D_(t, p) {
+  return { x:t.ax*p.x+t.bx*p.y+t.cx, y:t.ay*p.x+t.by*p.y+t.cy };
+}
+function validateAffineTransform2D_(t, src, dst) {
+  let maxError = 0;
+  for (let i=0;i<src.length;i++) {
+    const p=applyAffineTransform2D_(t,src[i]);
+    const e=Math.hypot(p.x-dst[i].x,p.y-dst[i].y);
+    if (e>maxError) maxError=e;
+  }
+  // GeoPDF tie points dari export raster normal harus konsisten sangat dekat; ambang 2 m
+  // menjaga file dengan pembulatan metadata tetap diterima tanpa menerima transformasi rusak.
+  return { ok:maxError <= 2, maxError };
+}
+
+// STEP 5: Satu kontrak standar untuk seluruh hasil georeferensi GeoPDF.
+// Object ini sengaja murni data (tanpa fungsi/runtime state), supaya STEP 6 cukup
+// menerima SATU object dan tidak perlu tahu bagaimana metadata, transform, dan CRS ditemukan.
+function buildGeoReferenceObject_(args) {
+  const {
+    sourceFileName, measureSubtype, gcsObjectNumber, vpBBox, gpts, lpts,
+    coordinateType, crs, crsSource, transform, residualM, extent
+  } = args;
+
+  return {
+    schema: 'MG1-GeoReference',
+    version: 1,
+    source: {
+      type: 'GeoPDF',
+      fileName: sourceFileName || '',
+      measureSubtype: measureSubtype || 'GEO',
+      gcsObjectNumber: gcsObjectNumber || null
+    },
+    metadata: {
+      gpts: gpts.slice(),
+      lpts: lpts.slice(),
+      vpBBox: vpBBox.slice(),
+      coordinateType: coordinateType || 'projected'
+    },
+    transform: {
+      type: 'affine-2d',
+      direction: 'page-to-native',
+      coefficients: {
+        ax: transform.ax, bx: transform.bx, cx: transform.cx,
+        ay: transform.ay, by: transform.by, cy: transform.cy
+      },
+      validation: {
+        maxResidualMeters: residualM
+      }
+    },
+    crs: {
+      datum: crs.datum || 'UNKNOWN',
+      zone: crs.zone ?? null,
+      hemisphere: crs.hemisphere || null,
+      epsg: crs.epsg ?? null,
+      name: crs.name || '',
+      centralMeridian: crs.centralMeridian ?? null,
+      falseEasting: crs.falseEasting ?? null,
+      falseNorthing: crs.falseNorthing ?? null,
+      scaleFactor: crs.scaleFactor ?? null,
+      source: crsSource
+    },
+    extent: {
+      cornerTL: { timur: extent.cornerTL.timur, utara: extent.cornerTL.utara },
+      cornerBR: { timur: extent.cornerBR.timur, utara: extent.cornerBR.utara }
+    }
+  };
+}
+
 async function tryParseGeoPdf_(file, onProgress) {
   const report = (msg) => { if (onProgress) onProgress(msg); };
   report('Cek pdf.js...');
@@ -294,34 +391,136 @@ async function tryParseGeoPdf_(file, onProgress) {
   const measureMatch = text.match(/\/Measure\/Subtype\/GEO\/Bounds\[([^\]]*)\]\/GPTS\[([^\]]*)\]\/LPTS\[([^\]]*)\]\/GCS (\d+) 0 R/);
   if (!measureMatch) return { ok: false, reason: 'Tidak ketemu metadata georeferensi standar OGC di file ini (bukan GeoPDF, atau pakai standar lama/beda).' };
   const gpts = measureMatch[2].trim().split(/\s+/).map(Number);
+  const lpts = measureMatch[3].trim().split(/\s+/).map(Number);
   const gcsObjNum = measureMatch[4];
 
   const vpMatch = text.match(/\/VP\[<<\/Type\/Viewport\/BBox\[([^\]]*)\]/);
   if (!vpMatch) return { ok: false, reason: 'Metadata koordinat ketemu, tapi area Viewport (VP) tidak ketemu -- struktur file tidak lengkap.' };
   const vpBBox = vpMatch[1].trim().split(/\s+/).map(Number);
+  if (gpts.length < 6 || lpts.length < 6 || gpts.length % 2 !== 0 || lpts.length % 2 !== 0 || gpts.length !== lpts.length) {
+    return { ok: false, reason: 'GPTS/LPTS ditemukan, tetapi jumlah pasangan titik tidak cocok -- transformasi GeoPDF tidak dapat dihitung aman.' };
+  }
 
   const looksLikeLatLon = gpts.every(v => Math.abs(v) <= 180);
-  let zone = MG1_CRS_CONFIG.zone, hemisphere = MG1_CRS_CONFIG.hemisphere;
+
+  // STEP 3: deteksi CRS dari objek GCS/PROJCS GeoPDF sebelum memakai fallback situs.
+  // Prioritas: nama UTM eksplisit -> fallback Central_Meridian/False_Northing -> situs aktif.
+  // Tidak mengubah MG1_CRS_CONFIG global; hasil ini cuma berlaku utk GeoPDF yg sedang dibaca.
+  let geoPdfCrs = null;
   const gcsObjMatch = text.match(new RegExp(gcsObjNum + ' 0 obj([\\s\\S]*?)endobj'));
   if (gcsObjMatch) {
-    const utmMatch = gcsObjMatch[1].match(/UTM_Zone_(\d+)([NS])/);
-    if (utmMatch) { zone = parseInt(utmMatch[1], 10); hemisphere = utmMatch[2]; }
-  }
-
-  const points = [];
-  for (let i = 0; i < gpts.length; i += 2) {
-    const v1 = gpts[i], v2 = gpts[i+1];
-    if (looksLikeLatLon) {
-      const utm = forwardUtm_(v1, v2, zone, hemisphere);
-      points.push({ timur: utm.easting, utara: utm.northing });
-    } else {
-      points.push({ timur: v2, utara: v1 });
+    const gcsText = gcsObjMatch[1];
+    const epsgMatch = gcsText.match(/(?:EPSG\s*[:=]\s*|AUTHORITY\s*\[\s*["']EPSG["']\s*,\s*["'])(\d{4,6})/i);
+    const utmNameMatch = gcsText.match(/(?:WGS[_\s-]*1984[_\s-]*UTM[_\s-]*Zone[_\s-]*|UTM[_\s-]*Zone[_\s-]*)(\d{1,2})\s*([NS])/i);
+    const cmMatch = gcsText.match(/Central_Meridian"?\s*,?\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))/i);
+    const feMatch = gcsText.match(/False_Easting"?\s*,?\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))/i);
+    const fnMatch = gcsText.match(/False_Northing"?\s*,?\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))/i);
+    const k0Match = gcsText.match(/Scale_Factor"?\s*,?\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))/i);
+    const nameMatch = gcsText.match(/(?:PROJCS|GEOGCS)\["([^"]+)/i);
+    let zoneD = null, hemisphereD = null, epsg = epsgMatch ? parseInt(epsgMatch[1], 10) : null;
+    if (utmNameMatch) { zoneD = parseInt(utmNameMatch[1], 10); hemisphereD = utmNameMatch[2].toUpperCase(); }
+    // ArcGIS WKT kadang tidak menulis UTM_Zone_N/S, tapi parameternya lengkap -- utk UTM
+    // WGS84 standar, central meridian = zone*6-183.
+    if (!zoneD && cmMatch) {
+      const cm = Number(cmMatch[1]);
+      const inferredZone = Math.round((cm + 183) / 6);
+      const standardCm = inferredZone * 6 - 183;
+      if (inferredZone >= 1 && inferredZone <= 60 && Math.abs(cm - standardCm) < 0.001) {
+        zoneD = inferredZone;
+        const fn = fnMatch ? Number(fnMatch[1]) : 0;
+        hemisphereD = fn >= 10000000 ? 'S' : 'N';
+      }
+    }
+    if (zoneD && hemisphereD) {
+      if (!epsg && /^N$/i.test(hemisphereD) && zoneD >= 1 && zoneD <= 60) epsg = 32600 + zoneD;
+      if (!epsg && /^S$/i.test(hemisphereD) && zoneD >= 1 && zoneD <= 60) epsg = 32700 + zoneD;
+      geoPdfCrs = {
+        datum: /WGS[_\s-]*1984|D_WGS_1984/i.test(gcsText) ? 'WGS84' : 'UNKNOWN',
+        zone: zoneD, hemisphere: hemisphereD, epsg,
+        name: nameMatch ? nameMatch[1] : '',
+        centralMeridian: cmMatch ? Number(cmMatch[1]) : null,
+        falseEasting: feMatch ? Number(feMatch[1]) : null,
+        falseNorthing: fnMatch ? Number(fnMatch[1]) : null,
+        scaleFactor: k0Match ? Number(k0Match[1]) : null,
+        source: 'GEOPDF_GCS_WKT'
+      };
     }
   }
-  const eastings = points.map(p => p.timur), northings = points.map(p => p.utara);
+  const zone = geoPdfCrs ? geoPdfCrs.zone : MG1_CRS_CONFIG.zone;
+  const hemisphere = geoPdfCrs ? geoPdfCrs.hemisphere : MG1_CRS_CONFIG.hemisphere;
+  report(geoPdfCrs
+    ? 'CRS GeoPDF terdeteksi: ' + (geoPdfCrs.name || ('UTM ' + zone + hemisphere)) + (geoPdfCrs.epsg ? ' / EPSG:' + geoPdfCrs.epsg : '')
+    : 'CRS GeoPDF tidak eksplisit; memakai CRS situs sbg fallback: UTM ' + zone + hemisphere);
+
+  // STEP 2: GPTS dan LPTS dipakai sebagai pasangan titik, bukan sekadar membaca GPTS
+  // sebagai bounding box. LPTS berada pada koordinat lokal viewport PDF; kita ubah ke
+  // koordinat page menggunakan VP BBox, lalu hitung affine transform 2D page -> geo.
+  // Ini menangani rotasi/skew yang tidak bisa ditangkap oleh min/max GPTS saja.
+  const pagePts = [];
+  for (let i = 0; i < lpts.length; i += 2) {
+    pagePts.push({
+      x: vpBBox[0] + lpts[i] * (vpBBox[2] - vpBBox[0]),
+      y: vpBBox[1] + lpts[i + 1] * (vpBBox[3] - vpBBox[1])
+    });
+  }
+  const geoPts = [];
+  for (let i = 0; i < gpts.length; i += 2) {
+    const v1 = gpts[i], v2 = gpts[i + 1];
+    if (looksLikeLatLon) {
+      const utm = forwardUtm_(v1, v2, zone, hemisphere);
+      geoPts.push({ x: utm.easting, y: utm.northing });
+    } else {
+      geoPts.push({ x: v2, y: v1 });
+    }
+  }
+
+  const affine = solveAffineTransform2D_(pagePts, geoPts);
+  if (!affine) return { ok: false, reason: 'GPTS/LPTS ditemukan, tetapi transformasi page-to-geo tidak dapat dihitung (titik kolinear/degenerat).' };
+  const residual = validateAffineTransform2D_(affine, pagePts, geoPts);
+  if (!residual.ok) return { ok: false, reason: 'GPTS/LPTS ditemukan, tetapi transformasi tidak konsisten (error maksimum ' + residual.maxError.toFixed(2) + ' m).' };
+
+  // Hitung extent dari seluruh viewport melalui transform, bukan min/max GPTS yang bisa
+  // salah ketika map diputar. Format penyimpanan Member masih axis-aligned TL/BR.
+  const pageCorners = [
+    { x: vpBBox[0], y: vpBBox[1] },
+    { x: vpBBox[2], y: vpBBox[1] },
+    { x: vpBBox[2], y: vpBBox[3] },
+    { x: vpBBox[0], y: vpBBox[3] }
+  ];
+  const geoCorners = pageCorners.map(p => applyAffineTransform2D_(affine, p));
+  const eastings = geoCorners.map(p => p.x), northings = geoCorners.map(p => p.y);
   const cornerTL = { timur: Math.min(...eastings), utara: Math.max(...northings) };
   const cornerBR = { timur: Math.max(...eastings), utara: Math.min(...northings) };
-  report('Koordinat ketemu: ' + cornerTL.timur.toFixed(0) + '/' + cornerTL.utara.toFixed(0) + ' -- ' + cornerBR.timur.toFixed(0) + '/' + cornerBR.utara.toFixed(0));
+
+  // STEP 5: gabungkan hasil metadata + transform + CRS menjadi satu object standar.
+  // CRS efektif harus sama dengan CRS yang benar-benar dipakai membentuk geoPts:
+  // GeoPDF WKT bila terdeteksi, atau MG1 site CRS bila metadata CRS tidak eksplisit.
+  const effectiveCrs = geoPdfCrs || {
+    datum: MG1_CRS_CONFIG.datum || 'UNKNOWN',
+    zone,
+    hemisphere,
+    epsg: null,
+    name: MG1_CRS_CONFIG.presetLabel || '',
+    centralMeridian: null,
+    falseEasting: null,
+    falseNorthing: null,
+    scaleFactor: null
+  };
+  const geoReference = buildGeoReferenceObject_({
+    sourceFileName: file && file.name,
+    measureSubtype: 'GEO',
+    gcsObjectNumber: gcsObjNum,
+    vpBBox,
+    gpts,
+    lpts,
+    coordinateType: looksLikeLatLon ? 'geographic-latlon' : 'projected',
+    crs: effectiveCrs,
+    crsSource: geoPdfCrs ? 'GEOPDF_GCS_WKT' : 'MG1_SITE_FALLBACK',
+    transform: affine,
+    residualM: residual.maxError,
+    extent: { cornerTL, cornerBR }
+  });
+  report('GeoReference Object siap (' + cornerTL.timur.toFixed(0) + '/' + cornerTL.utara.toFixed(0) + ' -- ' + cornerBR.timur.toFixed(0) + '/' + cornerBR.utara.toFixed(0) + '): metadata + transform + CRS tersatukan.');
 
   try {
     report('Membuka dokumen PDF (pdfjsLib.getDocument)...');
@@ -329,30 +528,44 @@ async function tryParseGeoPdf_(file, onProgress) {
     const pdf = await loadingTask.promise;
     report('Dokumen terbuka. Memuat halaman 1 (getPage)...');
     const page = await pdf.getPage(1);
-    report('Halaman dimuat. Menyiapkan kanvas render...');
+    report('Halaman dimuat. Menentukan area render dari VP BBox...');
     const scale = 2;
     const viewport = page.getViewport({ scale });
-    const fullCanvas = document.createElement('canvas');
-    fullCanvas.width = viewport.width; fullCanvas.height = viewport.height;
-    report('Merender halaman ke kanvas (' + viewport.width.toFixed(0) + 'x' + viewport.height.toFixed(0) + 'px)...');
-    await page.render({ canvasContext: fullCanvas.getContext('2d'), viewport }).promise;
-    report('Render selesai. Memotong area peta...');
+    const pageWidth = viewport.width, pageHeight = viewport.height;
 
-    const bx0 = Math.min(vpBBox[0], vpBBox[2]) * scale;
-    const bx1 = Math.max(vpBBox[0], vpBBox[2]) * scale;
-    const by0 = fullCanvas.height - Math.max(vpBBox[1], vpBBox[3]) * scale;
-    const by1 = fullCanvas.height - Math.min(vpBBox[1], vpBBox[3]) * scale;
-    const cropW = bx1 - bx0, cropH = by1 - by0;
-    if (cropW <= 0 || cropH <= 0) return { ok: false, reason: 'Koordinat berhasil dibaca, tapi area gambar (VP BBox) tidak masuk akal -- dicoba lagi dgn file lain.', cornerTL, cornerBR };
+    // STEP 4: render LANGSUNG ke kanvas seukuran VP BBox saja (pakai parameter `transform`
+    // resmi pdf.js utk geser origin render) -- SEBELUMNYA seluruh halaman diraster dulu ke
+    // fullCanvas baru di-crop belakangan (2x alokasi memori: penuh + crop). Area di luar VP
+    // TIDAK PERNAH ditulis ke kanvas sama sekali sekarang -- lebih ringan utk Android.
+    const rawX0 = Math.min(vpBBox[0], vpBBox[2]) * scale;
+    const rawX1 = Math.max(vpBBox[0], vpBBox[2]) * scale;
+    const rawY0 = pageHeight - Math.max(vpBBox[1], vpBBox[3]) * scale;
+    const rawY1 = pageHeight - Math.min(vpBBox[1], vpBBox[3]) * scale;
+    // Clamp ke batas halaman -- pengaman kalau VP BBox kebetulan sedikit melebihi MediaBox.
+    const bx0 = Math.max(0, Math.min(pageWidth, rawX0));
+    const bx1 = Math.max(0, Math.min(pageWidth, rawX1));
+    const by0 = Math.max(0, Math.min(pageHeight, rawY0));
+    const by1 = Math.max(0, Math.min(pageHeight, rawY1));
+    const cropW = Math.ceil(bx1 - bx0), cropH = Math.ceil(by1 - by0);
+    if (cropW <= 0 || cropH <= 0) return { ok: false, reason: 'Koordinat berhasil dibaca, tapi area gambar (VP BBox) tidak masuk akal -- dicoba lagi dgn file lain.', cornerTL, cornerBR, geoReference };
 
     const cropCanvas = document.createElement('canvas');
     cropCanvas.width = cropW; cropCanvas.height = cropH;
-    cropCanvas.getContext('2d').drawImage(fullCanvas, bx0, by0, cropW, cropH, 0, 0, cropW, cropH);
+    const cropCtx = cropCanvas.getContext('2d', { alpha: false });
+    if (!cropCtx) return { ok: false, reason: 'Kanvas render tidak tersedia pada perangkat ini.', cornerTL, cornerBR, geoReference };
 
-    return { ok: true, imageDataUrl: cropCanvas.toDataURL('image/png'), cornerTL, cornerBR };
+    report('Merender hanya area peta (' + cropW + 'x' + cropH + 'px), bukan seluruh halaman...');
+    await page.render({
+      canvasContext: cropCtx,
+      viewport,
+      transform: [1, 0, 0, 1, -bx0, -by0]
+    }).promise;
+    report('Render area peta selesai.');
+
+    return { ok: true, imageDataUrl: cropCanvas.toDataURL('image/png'), cornerTL, cornerBR, geoReference };
   } catch (e) {
     console.warn('Koordinat GeoPDF berhasil dibaca, TAPI render halaman via pdf.js gagal:', e);
-    return { ok: false, reason: 'Koordinat berhasil dibaca (' + JSON.stringify(cornerTL) + ' / ' + JSON.stringify(cornerBR) + '), TAPI gagal render gambar halamannya: ' + (e.message || e) + '. Coba isi manual pakai angka di atas, upload gambar PNG/JPG terpisah.', cornerTL, cornerBR };
+    return { ok: false, reason: 'Koordinat berhasil dibaca (' + JSON.stringify(cornerTL) + ' / ' + JSON.stringify(cornerBR) + '), TAPI gagal render gambar halamannya: ' + (e.message || e) + '. Coba isi manual pakai angka di atas, upload gambar PNG/JPG terpisah.', cornerTL, cornerBR, geoReference };
   }
 }
 async function submitMapUpload_() {
@@ -370,8 +583,9 @@ async function submitMapUpload_() {
       id: id,
       name: f.name.trim(),
       imageDataUrl: f.fileDataUrl,
-      cornerTL: { timur: parseFloat(f.tlTimur), utara: parseFloat(f.tlUtara) },
-      cornerBR: { timur: parseFloat(f.brTimur), utara: parseFloat(f.brUtara) },
+      cornerTL: f.geoReference && f.geoReference.extent ? { ...f.geoReference.extent.cornerTL } : { timur: parseFloat(f.tlTimur), utara: parseFloat(f.tlUtara) },
+      cornerBR: f.geoReference && f.geoReference.extent ? { ...f.geoReference.extent.cornerBR } : { timur: parseFloat(f.brTimur), utara: parseFloat(f.brUtara) },
+      geoReference: f.geoReference || null,
       uploadedAt: new Date().toISOString(),
       uploadedBy: sessionInfo ? sessionInfo.userName : 'unknown'
     });
@@ -578,8 +792,13 @@ function renderMineGridSvg(points) {
   if (activeBackgroundMapId) {
     const activeMap = backgroundMapsList.find(m => m.id === activeBackgroundMapId);
     if (activeMap) {
-      const tl = projectToSvg(activeMap.cornerTL.timur, activeMap.cornerTL.utara, bounds, viewW, viewH);
-      const br = projectToSvg(activeMap.cornerBR.timur, activeMap.cornerBR.utara, bounds, viewW, viewH);
+      // STEP 6: Map Import memakai GeoReference Object sebagai sumber extent utama.
+      // Entry lama tetap kompatibel lewat fallback cornerTL/cornerBR.
+      const mapExtent = activeMap.geoReference && activeMap.geoReference.extent
+        ? activeMap.geoReference.extent
+        : { cornerTL: activeMap.cornerTL, cornerBR: activeMap.cornerBR };
+      const tl = projectToSvg(mapExtent.cornerTL.timur, mapExtent.cornerTL.utara, bounds, viewW, viewH);
+      const br = projectToSvg(mapExtent.cornerBR.timur, mapExtent.cornerBR.utara, bounds, viewW, viewH);
       const imgX = Math.min(tl.x, br.x), imgY = Math.min(tl.y, br.y);
       const imgW = Math.abs(br.x - tl.x), imgH = Math.abs(br.y - tl.y);
       svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" preserveAspectRatio="none" opacity="0.9"/>';
