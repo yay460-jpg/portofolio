@@ -105,12 +105,42 @@ let dataLoadErrorMsg = ''; // ditampilkan di UI kalau fetch Produksi gagal/ditol
 // Peta -- 2 fetch berbeda, 1 variabel error dicampur. Sekarang error Peta py variabel
 // SENDIRI, terisi/dikosongkan HANYA oleh fetch Validasi.
 let mapDataErrorMsg = '';
+// [BARU] Peta sekarang bisa fetch data SENDIRI (lazy, saat tab dibuka pertama kali) --
+// tidak lagi WAJIB menunggu loadRingkasanData() (Digging+Validasi) selesai dulu saat boot.
+// Flag ini "diklaim" oleh SIAPAPUN yang fetch validasi DULUAN (baik loadRingkasanData()
+// normal saat app dibuka, ATAU loadValidasiDataForMapStandalone_() saat tab Peta dibuka
+// duluan) -- siapa pun yg lebih dulu selesai, yg satunya tidak fetch ulang redundan.
+let mapDataFetchAttempted = false;
+let mapDataBusy = false;
 let diggingViewMode = 'today'; // 'today' kalau ada data hari ini, 'recent' kalau fallback ke entri terbaru
 // v90.2.115 FIX (temuan audit #6 -- race condition): SEBELUMNYA tidak ada sequence guard --
 // 2 panggilan loadRingkasanData() tumpang tindih (mis. submit form cepat berturut-turut)
 // bisa membuat response LEBIH LAMA menimpa hasil response LEBIH BARU, tergantung urutan
 // selesai (bukan urutan mulai). Pola sama persis dgn produksiFetchRequestSeq di dashboard.
 let ringkasanFetchSeq = 0;
+
+// [BARU] Diekstrak dari loadRingkasanData() -- forward-fill ID_TP baris kedalaman lanjutan
+// (2m/3m/4m/5m yg ID_TP-nya sengaja kosong di sheet asli). Dipakai BERSAMA oleh
+// loadRingkasanData() (jalur normal boot) DAN loadValidasiDataForMapStandalone_() (jalur
+// lazy tab Peta) -- supaya logikanya SATU sumber kebenaran, tidak dobel/berisiko beda.
+function forwardFillValidasiRows_(rawRows) {
+  let lastTp = '';
+  const filled = [];
+  rawRows.forEach(r => {
+    const idTp = String(getField(r,'ID_TP')||'').trim();
+    const meterVal = String(getField(r,'Meter')||'').trim();
+    if (idTp) {
+      lastTp = idTp;
+      filled.push(r);
+    } else if (meterVal && lastTp) {
+      const merged = Object.assign({}, r);
+      setField(merged, 'ID_TP', lastTp);
+      filled.push(merged);
+    }
+    // else: baris benar-benar kosong -- dilewati.
+  });
+  return filled;
+}
 async function loadRingkasanData() {
   const mySeq = ++ringkasanFetchSeq;
   dataLoadErrorMsg = '';
@@ -162,34 +192,13 @@ async function loadRingkasanData() {
       globalValidasiFullForMap = []; // v90.2.115 FIX #1: dataset Peta ikut dikosongkan, jangan nyangkut data lama
       mapDataErrorMsg = result.message || 'Server menolak permintaan data Validasi.';
     } else {
-      // FIX (27 Agu): baris kedalaman lanjutan (2m/3m/4m/5m) SENGAJA punya ID_TP kosong
-      // di sheet asli -- cuma kedalaman pertama yang diisi ID_TP/Area/Bench/dst, baris
-      // berikutnya cuma punya Meter+assay. Filter lama ("wajib ID_TP terisi") salah buang
-      // baris-baris ini. Sekarang pakai forward-fill: baris kosong ID_TP tapi PUNYA nilai
-      // Meter mewarisi ID_TP dari baris TP terakhir di atasnya (urutan sheet asli, SEBELUM
-      // dibalik/reverse). Baris yang benar-benar kosong (tanpa ID_TP maupun Meter) tetap
-      // dibuang -- itu baris sampah formula/formatting leftover yang sudah difilter sejak awal.
-      const rawRows = result.data || [];
-      let lastTp = '';
-      const filled = [];
-      rawRows.forEach(r => {
-        const idTp = String(getField(r,'ID_TP')||'').trim();
-        const meterVal = String(getField(r,'Meter')||'').trim();
-        if (idTp) {
-          lastTp = idTp;
-          filled.push(r);
-        } else if (meterVal && lastTp) {
-          const merged = Object.assign({}, r);
-          setField(merged, 'ID_TP', lastTp);
-          filled.push(merged);
-        }
-        // else: baris benar-benar kosong -- dilewati.
-      });
+      const filled = forwardFillValidasiRows_(result.data || []);
       globalValidasiFullForMap = filled.slice(); // v90.2.113 (Peta): SALINAN UTUH, sengaja TIDAK
       // ikut .slice(-100) di bawah -- Peta butuh SEMUA titik TP, bukan cuma 100 baris terakhir
       // yg ditampilkan tab Validasi. "Filter Peta jangan warisi limit tab lain" (poin desain #5).
       globalValidasiToday = filled.slice(-100).reverse();
     }
+    mapDataFetchAttempted = true; // [BARU] tandai -- lazy loader Peta tidak perlu fetch ulang
   } catch (err) {
     if (mySeq !== ringkasanFetchSeq) return;
     console.error('Gagal memuat data Validasi:', err);
