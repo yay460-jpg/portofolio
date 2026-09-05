@@ -170,7 +170,7 @@ async function handleMapImageFileSelected_(inputEl) {
     // tryParseGeoPdf_ TIDAK CUKUP, perlu batas waktu di LUAR fungsi itu. 0 perubahan logika
     // di dalam tryParseGeoPdf_ sendiri -- ini cuma pengaman tambahan di titik panggil.
     const geoResult = await Promise.race([
-      tryParseGeoPdf_(file),
+      tryParseGeoPdf_(file, (stageMsg) => { mapUploadStatusMsg = stageMsg; render(); }),
       new Promise(resolve => setTimeout(() => resolve({ ok: false, reason: 'Waktu tunggu habis (20 detik) -- proses baca GeoPDF menggantung, kemungkinan masalah render pdf.js di HP ini.' }), 20000))
     ]);
     if (geoResult.ok) {
@@ -270,20 +270,19 @@ async function tryParseGeoTiff_(file) {
 // generik "bukan GeoPDF dikenali", padahal PENYEBABNYA BISA BEDA SAMA SEKALI (mis. pdf.js
 // gagal render krn CDN diblok/worker gagal/file terlalu berat) -- MENYESATKAN saat debug.
 // Sekarang kembalikan {ok:false, reason:'...'} spesifik per-tahap, bukan null generik.
-async function tryParseGeoPdf_(file) {
+// [BARU -- 5 Sep] Parameter onProgress OPSIONAL -- PURE INSTRUMENTASI, 0 mengubah logika
+// inti sama sekali. Tujuannya: supaya kalau macet lagi, kita tahu PERSIS di tahap mana
+// (baca file? cari metadata? muat pdf.js? buka dokumen? render halaman?) -- tanpa ini,
+// "macet" cuma 1 titik buta besar, tidak bisa didiagnosis lebih lanjut dari jauh.
+async function tryParseGeoPdf_(file, onProgress) {
+  const report = (msg) => { if (onProgress) onProgress(msg); };
+  report('Cek pdf.js...');
   if (typeof pdfjsLib === 'undefined') return { ok: false, reason: 'pdf.js belum termuat (kemungkinan CDN diblok jaringan HP ini).' };
 
+  report('Membaca isi file...');
   const buffer = await file.arrayBuffer();
   const bytes = new Uint8Array(buffer);
-  // [DIPERBAIKI -- 5 Sep, bug nyata ditemukan] SEBELUMNYA: `text += String.fromCharCode(bytes[i])`
-  // per-byte dalam loop -- pola O(n^2) KLASIK (tiap `+=` bikin string BARU seutuhnya, makin
-  // panjang makin lambat). Utk file ~4.7MB, ini makan >1 detik bahkan di server KUAT --
-  // di HP (CPU jauh lebih lemah), bisa puluhan detik/lebih, DAN krn ini loop SINKRON
-  // (blocking), TIDAK ADA timer/timeout yg bisa menyela (JS single-thread, timer nunggu
-  // thread utama nganggur dulu) -- INI penyebab app tampak "macet total" walau sudah
-  // dipasang timeout 20 detik sebelumnya (timeout-nya sendiri ikut ke-block).
-  // Perbaikan: proses per-CHUNK (8192 byte), bukan per-byte -- diverifikasi hasil IDENTIK
-  // 100% dgn kode lama (0 perubahan perilaku), cuma jauh lebih cepat (~30x di tes nyata).
+  report('Mengubah ke teks (' + (bytes.length/1024/1024).toFixed(1) + ' MB)...');
   let text = '';
   const CHUNK_SIZE = 8192;
   for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
@@ -291,6 +290,7 @@ async function tryParseGeoPdf_(file) {
     text += String.fromCharCode.apply(null, chunk);
   }
 
+  report('Mencari metadata koordinat (GPTS/LPTS)...');
   const measureMatch = text.match(/\/Measure\/Subtype\/GEO\/Bounds\[([^\]]*)\]\/GPTS\[([^\]]*)\]\/LPTS\[([^\]]*)\]\/GCS (\d+) 0 R/);
   if (!measureMatch) return { ok: false, reason: 'Tidak ketemu metadata georeferensi standar OGC di file ini (bukan GeoPDF, atau pakai standar lama/beda).' };
   const gpts = measureMatch[2].trim().split(/\s+/).map(Number);
@@ -321,20 +321,22 @@ async function tryParseGeoPdf_(file) {
   const eastings = points.map(p => p.timur), northings = points.map(p => p.utara);
   const cornerTL = { timur: Math.min(...eastings), utara: Math.max(...northings) };
   const cornerBR = { timur: Math.max(...eastings), utara: Math.min(...northings) };
+  report('Koordinat ketemu: ' + cornerTL.timur.toFixed(0) + '/' + cornerTL.utara.toFixed(0) + ' -- ' + cornerBR.timur.toFixed(0) + '/' + cornerBR.utara.toFixed(0));
 
-  // Bagian render pdf.js DIPISAH try/catch-nya sendiri -- ini yg PALING MUNGKIN gagal
-  // di HP nyata (CDN worker script, memori, file besar) TIDAK ADA HUBUNGANNYA dgn
-  // metadata yg sudah berhasil dibaca di atas. Kalau gagal di sini, koordinat SUDAH
-  // BENAR ketemu -- cuma gambarnya yg gagal dibikin, jadi pesannya harus bilang itu.
   try {
+    report('Membuka dokumen PDF (pdfjsLib.getDocument)...');
     const loadingTask = pdfjsLib.getDocument({ data: bytes });
     const pdf = await loadingTask.promise;
+    report('Dokumen terbuka. Memuat halaman 1 (getPage)...');
     const page = await pdf.getPage(1);
+    report('Halaman dimuat. Menyiapkan kanvas render...');
     const scale = 2;
     const viewport = page.getViewport({ scale });
     const fullCanvas = document.createElement('canvas');
     fullCanvas.width = viewport.width; fullCanvas.height = viewport.height;
+    report('Merender halaman ke kanvas (' + viewport.width.toFixed(0) + 'x' + viewport.height.toFixed(0) + 'px)...');
     await page.render({ canvasContext: fullCanvas.getContext('2d'), viewport }).promise;
+    report('Render selesai. Memotong area peta...');
 
     const bx0 = Math.min(vpBBox[0], vpBBox[2]) * scale;
     const bx1 = Math.max(vpBBox[0], vpBBox[2]) * scale;
