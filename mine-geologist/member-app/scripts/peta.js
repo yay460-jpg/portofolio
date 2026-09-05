@@ -2188,6 +2188,36 @@ function toggleMeasureMode_() {
 }
 
 // ==== FUNGSI UTAMA PETA (data, SVG, North Arrow, Mode Ukur, Detail Modal) ====
+// [BARU] Peta STANDALONE -- fetch data validasi SENDIRI, lazy (cuma dipanggil saat tab
+// Peta pertama kali dibuka), TIDAK bergantung ke loadRingkasanData() (yg juga fetch
+// Produksi utk tab Digging, tidak relevan bagi Peta). Kalau `mapDataFetchAttempted` sudah
+// true (mis. loadRingkasanData() normal sudah selesai lebih dulu, atau tab Peta sudah
+// pernah dibuka sebelumnya), fungsi ini SKIP -- 0 fetch redundan ke server.
+async function loadValidasiDataForMapStandalone_() {
+  if (mapDataFetchAttempted || mapDataBusy) return;
+  mapDataBusy = true;
+  mapDataErrorMsg = '';
+  render();
+  if (!globalCOGConfig) await fetchCOGConfig(); // grade/warna TP butuh ini, lazy juga kalau blm ada
+  try {
+    const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=validasi&t=' + Date.now());
+    const result = await response.json();
+    if (result.status === 'error') {
+      globalValidasiFullForMap = [];
+      mapDataErrorMsg = result.message || 'Server menolak permintaan data Validasi.';
+    } else {
+      globalValidasiFullForMap = forwardFillValidasiRows_(result.data || []).slice();
+      mapDataFetchAttempted = true;
+    }
+  } catch (err) {
+    console.error('Gagal memuat data Peta (standalone):', err);
+    globalValidasiFullForMap = [];
+    mapDataErrorMsg = 'Tidak bisa menghubungi server: ' + (err && err.message ? err.message : String(err));
+  }
+  mapDataBusy = false;
+  render();
+}
+
 function buildMapData() {
   const grouped = groupValidasiByTp(globalValidasiFullForMap);
   // [PARTISI -- 4 Sep, Tahap 2] isStrictNumeric dipindah jadi fungsi umum di
@@ -2632,6 +2662,18 @@ function renderPeta() {
   let html = renderHeader();
   html += '<main class="app-main flex-1 min-h-0 flex flex-col gap-[10px] px-4 pt-3 pb-3">';
 
+  // [BARU] State loading -- muncul singkat saat tab Peta pertama kali dibuka & fetch
+  // mandirinya (loadValidasiDataForMapStandalone_) masih berjalan.
+  if (mapDataBusy) {
+    html += renderSectionTitle('PETA LOKASI', 'memuat...');
+    html += '<div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-8 text-center">' +
+      '<span class="w-8 h-8 border-2 border-white/20 border-t-blue-400 rounded-full spin"></span>' +
+      '<div class="text-white/50 text-xs">Memuat data Peta...</div>' +
+    '</div>';
+    html += '</main>' + renderBottomNav();
+    return html;
+  }
+
   // v90.2.115 FIX (temuan audit #2): SEKARANG pakai mapDataErrorMsg yg KHUSUS terisi dari
   // fetch Validasi -- SEBELUMNYA salah pakai dataLoadErrorMsg (punya Produksi), bikin Peta
   // ikut "error" saat Produksi gagal padahal Validasi sukses, ATAU sebaliknya Validasi
@@ -2642,7 +2684,7 @@ function renderPeta() {
       icon('alert-triangle','w-10 h-10 text-rose-400') +
       '<div class="text-white font-bold text-sm">Gagal Memuat Data Peta</div>' +
       '<div class="text-[11px] text-white/40 max-w-[260px]">' + mapDataErrorMsg + '</div>' +
-      '<button onclick="loadRingkasanData()" class="mt-1 px-4 py-2 rounded-xl bg-[#2563eb] text-white text-xs font-bold active:scale-95 transition-transform">Coba Lagi</button>' +
+      '<button onclick="mapDataFetchAttempted=false; loadValidasiDataForMapStandalone_()" class="mt-1 px-4 py-2 rounded-xl bg-[#2563eb] text-white text-xs font-bold active:scale-95 transition-transform">Coba Lagi</button>' +
     '</div>';
     html += '</main>' + renderBottomNav();
     return html;
