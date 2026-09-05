@@ -19,10 +19,13 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
 <script src="https://cdn.jsdelivr.net/npm/geotiff"></script>
 <!-- [BARU -- 5 Sep] pdf.js: render halaman GeoPDF jadi gambar (khusus dipakai baca
      koordinat tertanam GeoPDF -- lihat peta.js tryParseGeoPdf_). Versi dipin biar stabil. -->
-<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<!-- [EKSPERIMEN A/B -- 5 Sep] CDN -> lokal (vendor/pdfjs/), 0 perubahan logika lain sama
+     sekali -- murni tes hipotesis "worker cross-origin CDN" sbg penyebab gagal render
+     GeoPDF di HP. Kalau PASS, baru dipertimbangkan masuk precache sw.js (belum sekarang). -->
+<script src="vendor/pdfjs/pdf.min.js"></script>
 <script>
   if (typeof pdfjsLib !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js';
   }
 </script>
 <!-- [PARTISI -- 4 Sep, Tahap 1] Engine geospasial (Inverse UTM/Convergence/Bearing) --
