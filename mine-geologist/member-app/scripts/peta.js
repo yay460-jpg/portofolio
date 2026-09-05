@@ -35,6 +35,7 @@ const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 4, MAP_ZOOM_STEP = 0.5;
 // -- kalau nanti perlu diseragamkan, itu perlu versi backend terpisah, BUKAN sekarang).
 const MAP_DB_NAME_ = 'mg1_background_maps';
 const MAP_DB_STORE_ = 'maps';
+const KML_DB_STORE_ = 'kmlOverlays'; // [BARU -- 5 Sep] store baru, DB version dinaikkan
 let backgroundMapsList = []; // cache in-memory dari IndexedDB, direfresh tiap ada perubahan
 let activeBackgroundMapId = null;
 let mapManagePanelOpen = false;
@@ -42,12 +43,23 @@ let mapUploadFormOpen = false;
 let mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '' };
 let mapUploadStatusMsg = '', mapUploadStatusOk = true, mapUploadBusy = false;
 
+// [BARU -- 5 Sep] KML overlay (titik + garis batas) -- BEDA dari peta background: KML
+// bisa BEBERAPA aktif SEKALIGUS (checkbox, bukan pilih 1 spt background image) krn cuma
+// data vektor ringan (titik/garis), tidak saling menutupi spt gambar raster.
+let kmlOverlaysList = [];
+let activeKmlOverlayIds = []; // array id, bisa >1 aktif bersamaan
+let kmlManagePanelOpen = false;
+let kmlUploadFormOpen = false;
+let kmlUploadFileName = '', kmlUploadParsedName = '', kmlUploadParsedPoints = [], kmlUploadParsedLines = [];
+let kmlUploadStatusMsg = '', kmlUploadStatusOk = true, kmlUploadBusy = false;
+
 function openMapDb_() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(MAP_DB_NAME_, 1);
+    const req = indexedDB.open(MAP_DB_NAME_, 2); // [BARU -- 5 Sep] versi 1->2, tambah store KML
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(MAP_DB_STORE_)) db.createObjectStore(MAP_DB_STORE_, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(KML_DB_STORE_)) db.createObjectStore(KML_DB_STORE_, { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -91,6 +103,24 @@ async function loadBackgroundMapsFromDb_() {
     console.warn('Gagal muat daftar peta background (IndexedDB mungkin tidak didukung):', e);
     backgroundMapsList = [];
   }
+  // [BARU -- 5 Sep] Muat juga daftar KML overlay + status aktif mana saja (bisa >1).
+  try {
+    const db = await openMapDb_();
+    kmlOverlaysList = await new Promise((resolve, reject) => {
+      const tx = db.transaction(KML_DB_STORE_, 'readonly');
+      const req = tx.objectStore(KML_DB_STORE_).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+    const storedActive = localStorage.getItem('mg1_active_kml_ids');
+    if (storedActive) {
+      const parsed = JSON.parse(storedActive);
+      activeKmlOverlayIds = parsed.filter(id => kmlOverlaysList.find(k => k.id === id));
+    }
+  } catch (e) {
+    console.warn('Gagal muat daftar KML overlay:', e);
+    kmlOverlaysList = [];
+  }
 }
 function openMapManagePanel_() { mapManagePanelOpen = true; render(); }
 function closeMapManagePanel_() { mapManagePanelOpen = false; mapUploadFormOpen = false; render(); }
@@ -100,10 +130,39 @@ function openMapUploadForm_() {
 }
 function closeMapUploadForm_() { mapUploadFormOpen = false; render(); }
 function updateMapUploadField_(field, value) { mapUploadFormState[field] = value; }
-function handleMapImageFileSelected_(inputEl) {
+// [BARU -- 5 Sep] Deteksi GeoTIFF: cek EKSTENSI file (bukan cuma MIME type -- browser
+// kadang kasih MIME kosong/salah utk .tif). Kalau .tif/.tiff, coba baca koordinat
+// tertanam via geotiff.js DULU -- kalau GAGAL/tidak ada tag geo (spt file biasa yg
+// diekspor "Export Map/Print" bukan "Export Data", lihat histori diskusi), otomatis
+// JATUH KE alur manual (isi 2 sudut sendiri) -- TIDAK PERNAH bikin form macet/error total
+// gara2 GeoTIFF gagal dibaca.
+async function handleMapImageFileSelected_(inputEl) {
   const file = inputEl.files && inputEl.files[0];
   if (!file) return;
-  if (!file.type.startsWith('image/')) { mapUploadStatusMsg = 'File harus berupa gambar (PNG/JPG).'; mapUploadStatusOk = false; render(); return; }
+  const isTiff = /\.(tif|tiff)$/i.test(file.name);
+
+  if (isTiff) {
+    mapUploadStatusMsg = 'Membaca koordinat dari GeoTIFF...'; mapUploadStatusOk = true; render();
+    const geoResult = await tryParseGeoTiff_(file);
+    if (geoResult) {
+      mapUploadFormState.fileDataUrl = geoResult.imageDataUrl;
+      mapUploadFormState.fileName = file.name;
+      mapUploadFormState.tlTimur = String(geoResult.cornerTL.timur);
+      mapUploadFormState.tlUtara = String(geoResult.cornerTL.utara);
+      mapUploadFormState.brTimur = String(geoResult.cornerBR.timur);
+      mapUploadFormState.brUtara = String(geoResult.cornerBR.utara);
+      mapUploadStatusMsg = '✓ Koordinat berhasil dibaca otomatis dari GeoTIFF -- cek angkanya, lalu Simpan.';
+      mapUploadStatusOk = true; render(); return;
+    }
+    // GeoTIFF gagal/tidak ada tag koordinat -- lanjut ke alur gambar biasa di bawah
+    // (banyak file .tif ternyata cuma gambar biasa yg disimpan ekstensi .tif, spt
+    // temuan sebelumnya -- file "Export Map/Print" ArcGIS, bukan "Export Data").
+    mapUploadStatusMsg = 'File .tif ini tidak punya koordinat tertanam (mungkin hasil "Export Map/Print", bukan "Export Data" dari ArcGIS) -- lanjut isi 2 sudut manual di bawah.';
+    mapUploadStatusOk = false;
+  } else if (!file.type.startsWith('image/')) {
+    mapUploadStatusMsg = 'File harus berupa gambar (PNG/JPG) atau GeoTIFF (.tif).'; mapUploadStatusOk = false; render(); return;
+  }
+
   const reader = new FileReader();
   reader.onload = () => {
     mapUploadFormState.fileDataUrl = reader.result;
@@ -111,6 +170,53 @@ function handleMapImageFileSelected_(inputEl) {
     render();
   };
   reader.readAsDataURL(file);
+}
+
+// Kembalikan null kalau file BUKAN GeoTIFF bergeoreferensi (fallback aman, tidak throw
+// ke pemanggil) -- kalau berhasil, kembalikan { imageDataUrl (PNG data-URL siap pakai di
+// <img>/SVG <image>), cornerTL, cornerBR } dlm Timur/Utara (Easting/Northing native file,
+// TIDAK dikonversi -- asumsi file UTM, konsisten dgn semua data proyek yg sudah dicek).
+async function tryParseGeoTiff_(file) {
+  if (typeof GeoTIFF === 'undefined') { console.warn('geotiff.js belum termuat.'); return null; }
+  try {
+    const buffer = await file.arrayBuffer();
+    const tiff = await GeoTIFF.fromArrayBuffer(buffer);
+    const image = await tiff.getImage();
+    const bbox = image.getBoundingBox(); // [minX, minY, maxX, maxY]
+    const isValidBbox = bbox && bbox.length === 4 && bbox.every(v => typeof v === 'number' && isFinite(v));
+    // Tolak bbox default [0,0,width,height] (pola umum file TANPA geo tag sungguhan --
+    // geotiff.js kadang isi bbox pixel-space apa adanya, bukan error/exception).
+    const w = image.getWidth(), h = image.getHeight();
+    const looksLikePixelSpaceFallback = isValidBbox && bbox[0] === 0 && bbox[1] === 0 && bbox[2] === w && bbox[3] === h;
+    if (!isValidBbox || looksLikePixelSpaceFallback) return null;
+
+    const raster = await image.readRasters({ interleave: true });
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(w, h);
+    const samplesPerPixel = image.getSamplesPerPixel();
+    for (let i = 0, p = 0; i < w * h; i++, p += 4) {
+      if (samplesPerPixel >= 3) {
+        imgData.data[p] = raster[i * samplesPerPixel];
+        imgData.data[p+1] = raster[i * samplesPerPixel + 1];
+        imgData.data[p+2] = raster[i * samplesPerPixel + 2];
+      } else { // grayscale/1-band -- ulang ke 3 channel spy tetap kelihatan normal
+        imgData.data[p] = imgData.data[p+1] = imgData.data[p+2] = raster[i];
+      }
+      imgData.data[p+3] = 255;
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    return {
+      imageDataUrl: canvas.toDataURL('image/png'),
+      cornerTL: { timur: bbox[0], utara: bbox[3] }, // minX, maxY
+      cornerBR: { timur: bbox[2], utara: bbox[1] }  // maxX, minY
+    };
+  } catch (e) {
+    console.warn('Gagal parse GeoTIFF:', e);
+    return null;
+  }
 }
 async function submitMapUpload_() {
   if (mapUploadBusy) return;
@@ -348,6 +454,25 @@ function renderMineGridSvg(points) {
     svg += '<line x1="' + gx + '" y1="0" x2="' + gx + '" y2="' + viewH + '" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';
     svg += '<line x1="0" y1="' + gy + '" x2="' + viewW + '" y2="' + gy + '" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>';
   }
+  // [BARU -- 5 Sep] KML overlay -- garis/batas dulu (di bawah titik KML & TP marker),
+  // bisa BEBERAPA file aktif sekaligus (beda dari peta background yg cuma 1 aktif).
+  activeKmlOverlayIds.forEach(id => {
+    const kml = kmlOverlaysList.find(k => k.id === id);
+    if (!kml) return;
+    (kml.lines || []).forEach(line => {
+      const pathStr = line.path.map(pt => {
+        const proj = projectToSvg(pt.timur, pt.utara, bounds, viewW, viewH);
+        return proj.x + ',' + proj.y;
+      }).join(' ');
+      svg += '<polyline points="' + pathStr + '" fill="none" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="2,2" opacity="0.85"/>';
+    });
+    (kml.points || []).forEach(pt => {
+      const proj = projectToSvg(pt.timur, pt.utara, bounds, viewW, viewH);
+      // Marker beda bentuk (kotak) & warna (ungu) dari titik TP (lingkaran) -- supaya
+      // tidak ketuker sumbernya sekilas dilihat.
+      svg += '<rect x="' + (proj.x-3.5) + '" y="' + (proj.y-3.5) + '" width="7" height="7" fill="#c084fc" fill-opacity="0.3" stroke="#c084fc" stroke-width="1.5"/>';
+    });
+  });
   // [BONUS -- 4 Sep] Mode Ukur: garis putus-putus penghubung 2 titik terpilih, digambar
   // SEBELUM marker supaya marker tetap di atas garis (klik tetap kena marker, bukan garis).
   if (measureModeActive && measureFromIdTp && measureToIdTp) {
@@ -616,6 +741,7 @@ function renderPeta() {
       '<button onclick="resetMapView()" aria-label="Reset tampilan" class="w-9 h-9 rounded-full bg-[#0b1329]/90 border border-white/10 flex items-center justify-center active:scale-95 transition-transform">' + icon('crosshair','w-4 h-4 text-white') + '</button>' +
       '<button onclick="toggleMeasureMode_()" aria-label="Mode Ukur" class="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ' + (measureModeActive ? 'bg-amber-500 border border-amber-400' : 'bg-[#0b1329]/90 border border-white/10') + '">' + icon('ruler','w-4 h-4 ' + (measureModeActive ? 'text-[#0b1329]' : 'text-white')) + '</button>' +
       '<button onclick="openMapManagePanel_()" aria-label="Kelola Peta Background" class="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ' + (activeBackgroundMapId ? 'bg-emerald-500 border border-emerald-400' : 'bg-[#0b1329]/90 border border-white/10') + '">' + icon('layers','w-4 h-4 ' + (activeBackgroundMapId ? 'text-[#0b1329]' : 'text-white')) + '</button>' +
+      '<button onclick="openKmlManagePanel_()" aria-label="Kelola KML" class="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ' + (activeKmlOverlayIds.length > 0 ? 'bg-purple-500 border border-purple-400' : 'bg-[#0b1329]/90 border border-white/10') + '">' + icon('shapes','w-4 h-4 ' + (activeKmlOverlayIds.length > 0 ? 'text-white' : 'text-white')) + '</button>' +
     '</div>' +
     (invalidCount > 0 ? '<div class="absolute left-3 bottom-11 px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-300 font-semibold">' + invalidCount + ' TP tanpa koordinat</div>' : '') +
     renderMapScaleBar(computeMineGridBounds(validPoints)) +
@@ -626,6 +752,8 @@ function renderPeta() {
   html += renderMapDetailModal(mapData);
   html += renderMapManagePanel_();
   html += renderMapUploadForm_();
+  html += renderKmlManagePanel_();
+  html += renderKmlUploadForm_();
   return html;
 }
 
@@ -666,8 +794,8 @@ function renderMapUploadForm_() {
       '<input type="text" value="' + f.name + '" oninput="updateMapUploadField_(\'name\', this.value)" placeholder="cth. Foto Udara Avanza Sep 2026" class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60">' +
     '</div>' +
     '<div class="mb-3">' +
-      '<label class="block text-[10px] text-white/40 mb-1 font-medium">Gambar Peta (PNG/JPG)</label>' +
-      '<input type="file" accept="image/*" onchange="handleMapImageFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
+      '<label class="block text-[10px] text-white/40 mb-1 font-medium">Gambar Peta (PNG/JPG, atau GeoTIFF -- koordinat auto-terisi kalau ada)</label>' +
+      '<input type="file" accept="image/*,.tif,.tiff" onchange="handleMapImageFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
       (f.fileDataUrl ? '<img src="' + f.fileDataUrl + '" class="w-full h-24 object-cover rounded-lg mt-2">' : '') +
     '</div>' +
     '<p class="text-[10px] text-white/40 mb-2 leading-relaxed">Masukkan Timur/Utara pojok KIRI-ATAS dan KANAN-BAWAH gambar (dari ArcGIS/data survey) -- ini yang dipakai app utk menempel gambar ke posisi yang benar.</p>' +
@@ -682,4 +810,165 @@ function renderMapUploadForm_() {
       (mapUploadBusy ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>' : icon('upload','w-4 h-4')) + '<span>' + (mapUploadBusy ? 'Menyimpan...' : 'Simpan Peta') + '</span>' +
     '</button>';
   return renderSimpleModal('Tambah Peta Baru', 'Upload gambar + 2 titik referensi', body, 'closeMapUploadForm_()');
+}
+
+// ==== KML OVERLAY -- BARU 5 Sep ====
+// Parsing pakai DOMParser BAWAAN BROWSER (0 library tambahan, beda dari GeoTIFF yg
+// butuh geotiff.js) -- KML itu XML biasa, dan SELALU simpan koordinat sbg Lat/Lon
+// (standar KML, bukan pilihan) -- makanya forwardUtm_ (shared/geo-engine.js) WAJIB
+// dipakai di sini utk konversi ke Easting/Northing sblm bisa diplot di sistem Peta MG1.
+function parseKmlText_(xmlText) {
+  const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+  if (doc.querySelector('parsererror')) throw new Error('File KML tidak valid/rusak.');
+  const points = [];
+  const lines = [];
+  const placemarks = doc.querySelectorAll('Placemark');
+  placemarks.forEach(pm => {
+    const nameEl = pm.querySelector('name');
+    const name = nameEl ? nameEl.textContent.trim() : '(tanpa nama)';
+
+    const pointEl = pm.querySelector('Point > coordinates');
+    if (pointEl) {
+      const parts = pointEl.textContent.trim().split(',');
+      const lon = parseFloat(parts[0]), lat = parseFloat(parts[1]);
+      if (isFinite(lon) && isFinite(lat)) {
+        const utm = forwardUtm_(lat, lon, MG1_CRS_CONFIG.zone, MG1_CRS_CONFIG.hemisphere);
+        points.push({ name: name, timur: utm.easting, utara: utm.northing });
+      }
+    }
+    // LineString ATAU Polygon (outerBoundaryIs) -- keduanya sama-sama "garis" utk ditampilkan,
+    // Polygon cuma LineString yg baliknya nyambung ke titik awal.
+    const coordsEl = pm.querySelector('LineString > coordinates, Polygon coordinates');
+    if (coordsEl) {
+      const path = coordsEl.textContent.trim().split(/\s+/).map(triplet => {
+        const parts = triplet.split(',');
+        const lon = parseFloat(parts[0]), lat = parseFloat(parts[1]);
+        if (!isFinite(lon) || !isFinite(lat)) return null;
+        const utm = forwardUtm_(lat, lon, MG1_CRS_CONFIG.zone, MG1_CRS_CONFIG.hemisphere);
+        return { timur: utm.easting, utara: utm.northing };
+      }).filter(p => p !== null);
+      if (path.length >= 2) lines.push({ name: name, path: path });
+    }
+  });
+  return { points, lines };
+}
+function openKmlManagePanel_() { kmlManagePanelOpen = true; render(); }
+function closeKmlManagePanel_() { kmlManagePanelOpen = false; kmlUploadFormOpen = false; render(); }
+function openKmlUploadForm_() {
+  kmlUploadFileName = ''; kmlUploadParsedName = ''; kmlUploadParsedPoints = []; kmlUploadParsedLines = [];
+  kmlUploadStatusMsg = ''; kmlUploadFormOpen = true; render();
+}
+function closeKmlUploadForm_() { kmlUploadFormOpen = false; render(); }
+function handleKmlFileSelected_(inputEl) {
+  const file = inputEl.files && inputEl.files[0];
+  if (!file) return;
+  if (!/\.kml$/i.test(file.name)) { kmlUploadStatusMsg = 'File harus berekstensi .kml.'; kmlUploadStatusOk = false; render(); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const result = parseKmlText_(reader.result);
+      if (result.points.length === 0 && result.lines.length === 0) {
+        kmlUploadStatusMsg = 'Tidak ada titik/garis yang bisa dibaca dari file ini.'; kmlUploadStatusOk = false;
+      } else {
+        kmlUploadParsedPoints = result.points;
+        kmlUploadParsedLines = result.lines;
+        kmlUploadParsedName = file.name.replace(/\.kml$/i, '');
+        kmlUploadFileName = file.name;
+        kmlUploadStatusMsg = '✓ Ditemukan ' + result.points.length + ' titik & ' + result.lines.length + ' garis/batas.';
+        kmlUploadStatusOk = true;
+      }
+    } catch (e) {
+      kmlUploadStatusMsg = 'Gagal baca file: ' + e.message; kmlUploadStatusOk = false;
+    }
+    render();
+  };
+  reader.readAsText(file);
+}
+async function submitKmlUpload_() {
+  if (kmlUploadBusy) return;
+  if (kmlUploadParsedPoints.length === 0 && kmlUploadParsedLines.length === 0) {
+    kmlUploadStatusMsg = 'Pilih file KML yang valid dulu.'; kmlUploadStatusOk = false; render(); return;
+  }
+  kmlUploadBusy = true; render();
+  try {
+    const id = 'kml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const db = await openMapDb_();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(KML_DB_STORE_, 'readwrite');
+      tx.objectStore(KML_DB_STORE_).put({
+        id: id, name: kmlUploadParsedName, points: kmlUploadParsedPoints, lines: kmlUploadParsedLines,
+        uploadedAt: new Date().toISOString(), uploadedBy: sessionInfo ? sessionInfo.userName : 'unknown'
+      });
+      tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+    });
+    await loadBackgroundMapsFromDb_();
+    if (activeKmlOverlayIds.indexOf(id) < 0) activeKmlOverlayIds.push(id);
+    localStorage.setItem('mg1_active_kml_ids', JSON.stringify(activeKmlOverlayIds));
+    kmlUploadFormOpen = false;
+  } catch (e) {
+    kmlUploadStatusMsg = 'Gagal menyimpan.'; kmlUploadStatusOk = false;
+  } finally {
+    kmlUploadBusy = false; render();
+  }
+}
+function toggleKmlOverlayActive_(id) {
+  const idx = activeKmlOverlayIds.indexOf(id);
+  if (idx >= 0) activeKmlOverlayIds.splice(idx, 1); else activeKmlOverlayIds.push(id);
+  localStorage.setItem('mg1_active_kml_ids', JSON.stringify(activeKmlOverlayIds));
+  render();
+}
+async function deleteKmlOverlayEntry_(id) {
+  try {
+    const db = await openMapDb_();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(KML_DB_STORE_, 'readwrite');
+      tx.objectStore(KML_DB_STORE_).delete(id);
+      tx.oncomplete = resolve; tx.onerror = () => reject(tx.error);
+    });
+    activeKmlOverlayIds = activeKmlOverlayIds.filter(x => x !== id);
+    localStorage.setItem('mg1_active_kml_ids', JSON.stringify(activeKmlOverlayIds));
+    await loadBackgroundMapsFromDb_();
+  } catch (e) { console.warn('Gagal hapus KML:', e); }
+  render();
+}
+
+// ==== RENDER: Panel Kelola KML Overlay ====
+function renderKmlManagePanel_() {
+  if (!kmlManagePanelOpen) return '';
+  const listHtml = kmlOverlaysList.length === 0
+    ? '<p class="text-[11px] text-white/30 text-center py-4">Belum ada KML tersimpan.</p>'
+    : kmlOverlaysList.map(function(k) {
+        const active = activeKmlOverlayIds.indexOf(k.id) >= 0;
+        return '<div class="flex items-center gap-2.5 rounded-xl p-2.5 mb-1.5 ' + (active ? 'bg-purple-500/10 border border-purple-500/30' : 'bg-white/[0.04]') + '">' +
+          '<div class="w-9 h-9 rounded-lg bg-purple-500/15 flex items-center justify-center shrink-0">' + icon('shapes','w-4 h-4 text-purple-400') + '</div>' +
+          '<div class="flex-1 min-w-0" onclick="toggleKmlOverlayActive_(\'' + k.id + '\')">' +
+            '<div class="text-[12px] font-semibold text-white truncate">' + k.name + '</div>' +
+            '<div class="text-[9px] text-white/30">' + k.points.length + ' titik &bull; ' + k.lines.length + ' garis</div>' +
+          '</div>' +
+          '<button onclick="toggleKmlOverlayActive_(\'' + k.id + '\')" class="text-[9px] font-bold px-2 py-1 rounded-full ' + (active ? 'bg-purple-500 text-white' : 'bg-white/10 text-white/40') + '">' + (active ? 'TAMPIL' : 'SEMBUNYI') + '</button>' +
+          '<button onclick="event.stopPropagation(); deleteKmlOverlayEntry_(\'' + k.id + '\')" class="w-7 h-7 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">' + icon('trash-2','w-3.5 h-3.5 text-rose-400') + '</button>' +
+        '</div>';
+      }).join('');
+  const body = listHtml +
+    '<button onclick="openKmlUploadForm_()" class="w-full mt-2 flex items-center justify-center gap-2 bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold text-xs py-2.5 rounded-xl">' + icon('plus','w-4 h-4') + '<span>Import KML Baru</span></button>' +
+    '<p class="text-[9px] text-white/25 mt-2 leading-relaxed">Bisa aktifkan beberapa KML sekaligus. Titik &amp; garis dikonversi otomatis dari Lat/Lon ke grid Timur/Utara pakai CRS situs aktif (' + (MG1_CRS_CONFIG.presetLabel||'-') + ').</p>';
+  return renderSimpleModal('Kelola KML', kmlOverlaysList.length + ' file tersimpan', body, 'closeKmlManagePanel_()');
+}
+
+// ==== RENDER: Form Upload KML ====
+function renderKmlUploadForm_() {
+  if (!kmlUploadFormOpen) return '';
+  const body =
+    '<div class="mb-3">' +
+      '<label class="block text-[10px] text-white/40 mb-1 font-medium">File KML</label>' +
+      '<input type="file" accept=".kml" onchange="handleKmlFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
+    '</div>' +
+    (kmlUploadStatusMsg ? '<p class="text-[11px] mb-2 font-medium ' + (kmlUploadStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + kmlUploadStatusMsg + '</p>' : '') +
+    (kmlUploadParsedPoints.length > 0 || kmlUploadParsedLines.length > 0
+      ? '<p class="text-[9px] text-white/30 mb-2">Koordinat KML (Lat/Lon) otomatis dikonversi ke Timur/Utara pakai CRS situs aktif sekarang: <span class="text-white/50 font-semibold">' + (MG1_CRS_CONFIG.presetLabel||'-') + '</span>.</p>'
+      : '') +
+    '<button onclick="submitKmlUpload_()" ' + (kmlUploadBusy ? 'disabled' : '') + ' class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold text-xs py-2.5 rounded-xl disabled:opacity-60">' +
+      (kmlUploadBusy ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>' : icon('upload','w-4 h-4')) + '<span>' + (kmlUploadBusy ? 'Menyimpan...' : 'Simpan KML') + '</span>' +
+    '</button>';
+  return renderSimpleModal('Import KML', 'Titik &amp; garis batas', body, 'closeKmlUploadForm_()');
 }
