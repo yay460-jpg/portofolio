@@ -12,6 +12,49 @@
 // ==== PETA (Mine Grid) -- v90.2.113 BARU ====
 // State panel/interaksi peta -- terpisah dari state tab lain, tidak saling pengaruh.
 let mapZoom = 1;             // 1 = fit-semua-titik (default), >1 memperbesar
+let mapViewportRatio_ = 1;
+let mapViewportSyncScheduled_ = false;
+
+function getMapViewportRatio_() {
+  const el = document.getElementById('mg1-map-viewport');
+  if (!el) return 1;
+  const w = el.clientWidth, h = el.clientHeight;
+  if (!(w > 0 && h > 0)) return 1;
+  return w / h;
+}
+
+function syncMapViewportFit_() {
+  const ratio = getMapViewportRatio_();
+  if (!(ratio > 0) || !Number.isFinite(ratio)) return;
+  if (Math.abs(ratio - mapViewportRatio_) < 0.01) return;
+  mapViewportRatio_ = ratio;
+  if (!mapViewportSyncScheduled_) {
+    mapViewportSyncScheduled_ = true;
+    requestAnimationFrame(() => {
+      mapViewportSyncScheduled_ = false;
+      render();
+    });
+  }
+}
+
+function scheduleMapViewportFit_() {
+  if (mapViewportSyncScheduled_) return;
+  mapViewportSyncScheduled_ = true;
+  requestAnimationFrame(() => {
+    mapViewportSyncScheduled_ = false;
+    const ratio = getMapViewportRatio_();
+    if (ratio > 0 && Math.abs(ratio - mapViewportRatio_) >= 0.01) {
+      mapViewportRatio_ = ratio;
+      render();
+    }
+  });
+}
+
+if (!window.__mg1MapViewportResizeBound) {
+  window.__mg1MapViewportResizeBound = true;
+  window.addEventListener('resize', scheduleMapViewportFit_, { passive: true });
+}
+
 let mapDetailIdTp = null;    // ID TP yg sedang dibuka detailnya, null = tidak ada modal terbuka
 // v90.2.116 BARU (permintaan user -- lompat dari Validasi ke lokasi Peta): TP yg harus
 // otomatis dibuka detailnya begitu tab Peta aktif -- dipicu dari tombol pin di kartu
@@ -642,7 +685,7 @@ function handleMapTap_(event) {
   try {
     if (!event || !event.currentTarget) return;
     const svgEl = event.currentTarget;
-    const bounds = computeMapViewBounds(buildMapData());
+    const bounds = computeResponsiveDisplayBounds_(buildMapData());
     if (!bounds) return;
     const rect = svgEl.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
@@ -2029,8 +2072,22 @@ async function tryParseGeoPdf_(file, onProgress) {
 
     // STEP 9C: preflight RAM sebelum canvas allocation. Ini mencegah OOM Android akibat
     // satu canvas RGBA besar, tanpa mengubah GeoReference/koordinat.
+    // [DIPERBAIKI -- 6 Sep, bug nyata ditemukan di HP: hasil crop ternyata masih
+    // menampilkan SELURUH halaman (header+peta+legenda), bukan cuma area VP BBox]
+    // Render `page.render({canvasContext: kanvas KECIL, transform:[...]})` langsung ke
+    // kanvas seukuran crop TERNYATA tidak berperilaku seperti diasumsikan di HP nyata --
+    // kemungkinan pdf.js menyesuaikan/scale konten ke ukuran kanvas yg diberikan, BUKAN
+    // cuma menggeser origin sambil membiarkan sisanya ter-clip natural spt asumsi awal
+    // (ini TIDAK bisa saya validasi visual sebelumnya, sandbox saya tidak punya Canvas
+    // asli -- cuma tervalidasi ANGKA koordinat, bukan hasil gambar sesungguhnya).
+    // Kembali ke pendekatan standar: render HALAMAN PENUH dulu (kanvas biasa, tanpa
+    // transform khusus), BARU potong pakai drawImage() -- operasi jauh lebih umum &
+    // predictable, dipakai luas, 0 ambiguitas soal scaling. Konsekuensi: butuh memori
+    // utk kanvas HALAMAN PENUH sesaat (bukan cuma ukuran crop) -- preflight disesuaikan.
     const memoryProfile = getGeoPdfMemoryProfile_();
-    const estimatedBytes = estimateGeoPdfRenderMemoryBytes_(cropW, cropH);
+    const estimatedFullPageBytes = estimateGeoPdfRenderMemoryBytes_(pageWidth, pageHeight);
+    const estimatedCropBytes = estimateGeoPdfRenderMemoryBytes_(cropW, cropH);
+    const estimatedBytes = Math.max(estimatedFullPageBytes, estimatedCropBytes);
     geoReference.render.memory = {
       estimatedBytes, maxCanvasBytes: memoryProfile.maxCanvasBytes,
       deviceMemoryGB: Number.isFinite(memoryProfile.deviceMemory) ? memoryProfile.deviceMemory : null
@@ -2038,6 +2095,11 @@ async function tryParseGeoPdf_(file, onProgress) {
     if (estimatedBytes > memoryProfile.maxCanvasBytes) {
       return { ok: false, reason: 'Area GeoPDF terlalu besar untuk diraster aman pada memori perangkat ini. Metadata koordinat tetap berhasil dibaca; gunakan file/area yang lebih kecil.', cornerTL, cornerBR, geoReference };
     }
+
+    const fullCanvas = document.createElement('canvas');
+    fullCanvas.width = pageWidth; fullCanvas.height = pageHeight;
+    const fullCtx = fullCanvas.getContext('2d', { alpha: false, willReadFrequently: false });
+    if (!fullCtx) return { ok: false, reason: 'Kanvas render tidak tersedia pada perangkat ini.', cornerTL, cornerBR, geoReference };
 
     cropCanvas = document.createElement('canvas');
     cropCanvas.width = cropW; cropCanvas.height = cropH;
@@ -2049,14 +2111,16 @@ async function tryParseGeoPdf_(file, onProgress) {
     // memblokir UI Android terlalu lama dalam satu burst. Timing disimpan untuk diagnosis
     // performa lapangan tanpa mengubah hasil koordinat/render.
     const renderStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    report('Merender hanya area peta (' + cropW + 'x' + cropH + 'px), bukan seluruh halaman...');
+    report('Merender halaman penuh (' + pageWidth.toFixed(0) + 'x' + pageHeight.toFixed(0) + 'px)...');
     await page.render({
-      canvasContext: cropCtx,
+      canvasContext: fullCtx,
       viewport,
-      transform: [1, 0, 0, 1, -bx0, -by0],
       intent: 'display',
       useRequestAnimationFrame: true
     }).promise;
+    report('Memotong ke area peta (' + cropW + 'x' + cropH + 'px)...');
+    cropCtx.drawImage(fullCanvas, bx0, by0, cropW, cropH, 0, 0, cropW, cropH);
+    releaseGeoPdfCanvas_(fullCanvas); // lepas kanvas halaman-penuh SEGERA, tidak dibutuhkan lagi setelah di-crop
     const renderFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     const renderMs = Math.max(0, renderFinishedAt - renderStartedAt);
     geoReference.render.performance = {
@@ -2328,6 +2392,35 @@ function computeMapViewBounds(points) {
   return computeMineGridBounds(points, extras);
 }
 
+// STEP 04: display-only bounds mengikuti aspect ratio viewport.
+// Tidak mengubah GeoReference/native bounds; hanya menambah ruang pada sumbu pendek.
+function computeResponsiveDisplayBounds_(points) {
+  const base = computeMapViewBounds(points);
+  if (!base) return null;
+
+  const ratio = mapViewportRatio_ > 0 ? mapViewportRatio_ : 1;
+  const w = base.maxT - base.minT;
+  const h = base.maxU - base.minU;
+  if (!(w > 0) || !(h > 0)) return base;
+
+  const currentRatio = w / h;
+  let minT = base.minT, maxT = base.maxT;
+  let minU = base.minU, maxU = base.maxU;
+
+  if (currentRatio > ratio) {
+    // World terlalu lebar dibanding viewport: tambah range Utara.
+    const targetH = w / ratio;
+    const extra = (targetH - h) / 2;
+    minU -= extra; maxU += extra;
+  } else if (currentRatio < ratio) {
+    // World terlalu tinggi dibanding viewport: tambah range Timur.
+    const targetW = h * ratio;
+    const extra = (targetW - w) / 2;
+    minT -= extra; maxT += extra;
+  }
+  return { minT, maxT, minU, maxU };
+}
+
 // Konversi 1 titik Timur/Utara -> koordinat SVG (x,y). SVG y-axis terbalik dari Utara
 // (Utara makin besar = "ke atas" secara peta, tapi SVG y makin besar = "ke bawah") --
 // makanya utara di-flip di rumus y.
@@ -2370,7 +2463,7 @@ function renderMapScaleBar(bounds) {
 }
 
 function renderMineGridSvg(points) {
-  const bounds = computeMapViewBounds(points);
+  const bounds = computeResponsiveDisplayBounds_(points);
   const viewW = 320, viewH = 320;
   if (!bounds) return '';
   // Zoom diterapkan lewat viewBox SVG (bukan transform per-titik) -- viewBox lebih kecil
@@ -2490,7 +2583,7 @@ function renderMineGridSvg(points) {
 
 function zoomMapIn() { mapZoom = Math.min(MAP_ZOOM_MAX, mapZoom + MAP_ZOOM_STEP); render(); }
 function zoomMapOut() { mapZoom = Math.max(MAP_ZOOM_MIN, mapZoom - MAP_ZOOM_STEP); render(); }
-// "Crosshair" = reset tampilan ke fit-semua-titik -- BUKAN GPS lokasi user (poin desain #4,
+// "Crosshair" = reset tampilan ke fit area peta/responsive viewport -- BUKAN GPS lokasi user (poin desain #4,
 // GPS Generic sengaja tidak dikerjakan krn tidak ada sumber Lat/Long sama sekali).
 function resetMapView() { mapZoom = 1; render(); }
 
@@ -2729,9 +2822,9 @@ function renderPeta() {
   }
 
   // ==== SUCCESS: render Mine Grid ====
-  html += '<div class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden">' +
+  html += '<div id="mg1-map-viewport" class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden">' +
     renderMineGridSvg(validPoints) +
-    renderNorthArrow_(computeMapViewBounds(validPoints)) +
+    renderNorthArrow_(computeResponsiveDisplayBounds_(validPoints)) +
     renderMeasureBanner_(mapData) +
     // Kontrol zoom + crosshair (reset view) -- poin desain #2 (MAP-02): sekarang BENAR2
     // py handler, bukan sekadar elemen visual. [BONUS -- 4 Sep] Tombol Mode Ukur ditambah
@@ -2747,7 +2840,7 @@ function renderPeta() {
     '</div>' +
     (invalidCount > 0 ? '<div class="absolute left-3 bottom-11 px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-300 font-semibold">' + invalidCount + ' TP tanpa koordinat</div>' : '') +
     (mapTapState_.active ? renderMapTapInfo_() : '') +
-    renderMapScaleBar(computeMapViewBounds(validPoints)) +
+    renderMapScaleBar(computeResponsiveDisplayBounds_(validPoints)) +
   '</div>';
   if (gpsState_.active) {
     const gpsText = gpsState_.status === 'ok'
@@ -2763,6 +2856,9 @@ function renderPeta() {
   html += renderMapUploadForm_();
   html += renderKmlManagePanel_();
   html += renderKmlUploadForm_();
+  // STEP 04: setelah DOM dipasang oleh render(), ukur container aktual agar FIT
+  // mengikuti portrait/landscape tanpa mengubah GeoReference.
+  scheduleMapViewportFit_();
   return html;
 }
 
