@@ -1617,7 +1617,7 @@ function isNativeCoordinateInsideGeoPdfBoundary_(geoReference, x, y, epsilonMete
 function buildGeoReferenceObject_(args) {
   const {
     sourceFileName, measureSubtype, gcsObjectNumber, vpBBox, gpts, lpts,
-    coordinateType, crs, crsSource, transform, residualM, extent, mapFrame, boundary, datumTransform
+    coordinateType, crs, crsSource, transform, residualM, extent, mapFrame, boundary, datumTransform, datumDetection
   } = args;
 
   return {
@@ -1896,9 +1896,9 @@ async function tryParseGeoPdf_(file, onProgress) {
     }
   }
 
-  const affine = solveAffineTransform2D_(pagePts, geoPts);
+  affine = solveAffineTransform2D_(pagePts, geoPts);
   if (!affine) return { ok: false, reason: 'GPTS/LPTS ditemukan, tetapi transformasi page-to-geo tidak dapat dihitung (titik kolinear/degenerat).' };
-  const residual = validateAffineTransform2D_(affine, pagePts, geoPts);
+  residual = validateAffineTransform2D_(affine, pagePts, geoPts);
   if (!residual.ok) return { ok: false, reason: 'GPTS/LPTS ditemukan, tetapi transformasi tidak konsisten (error maksimum ' + residual.maxError.toFixed(2) + ' m).' };
 
   }
