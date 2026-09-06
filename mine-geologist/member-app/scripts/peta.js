@@ -216,7 +216,7 @@ async function handleMapImageFileSelected_(inputEl) {
     // tryParseGeoPdf_ TIDAK CUKUP, perlu batas waktu di LUAR fungsi itu. 0 perubahan logika
     // di dalam tryParseGeoPdf_ sendiri -- ini cuma pengaman tambahan di titik panggil.
     const geoResult = await Promise.race([
-      tryParseGeoPdf_(file, (stageMsg) => { mapUploadStatusMsg = stageMsg; render(); }),
+      tryParseGeoPdf_(file, (stageMsg) => { mapUploadStatusMsg = stageMsg; mapUploadStatusOk = true; render(); }),
       new Promise(resolve => setTimeout(() => resolve({ ok: false, reason: 'Waktu tunggu habis (20 detik) -- proses baca GeoPDF menggantung, kemungkinan masalah render pdf.js di HP ini.' }), 20000))
     ]);
     if (geoResult.ok) {
