@@ -14,7 +14,8 @@
 // State panel/interaksi peta -- terpisah dari state tab lain, tidak saling pengaruh.
 let mapZoom = 1;             // 1 = fit-semua-titik (default), >1 memperbesar
 // STEP 5.6: state gesture pinch-to-zoom 2 jari.
-let mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0 };
+let mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null };
+let mapPinchRenderScheduled_ = false;
 let mapViewportRatio_ = 1;
 let mapViewportSyncScheduled_ = false;
 
@@ -53,7 +54,9 @@ function focusMapFromValidasi(idTp) {
   mapFocusIdTp = idTp;
   switchTab('peta');
 }
-const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 4, MAP_ZOOM_STEP = 0.5;
+// STEP 7.5.1: 50m sebelumnya menjadi batas karena zoom maksimum = 4.
+// Naik ke 8 agar target 25m dapat dicapai; tile pyramid tetap menjadi sumber detail.
+const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 8, MAP_ZOOM_STEP = 0.5;
 
 // STEP 7.5: tile pyramid generated from the already-rendered GeoPDF crop.
 const GEOPDF_TILE_SIZE_ = 256;
@@ -194,15 +197,17 @@ function syncMapUploadGeoReferenceDom_() {
     for (const [id, value] of pairs) {
       const el = document.getElementById(id);
       if (!el) continue;
-      // Guard: state kosong tidak boleh menghapus nilai DOM yang sudah valid.
       const strVal = value == null ? '' : String(value);
+      // GUARD: state kosong tidak pernah menghapus nilai DOM valid yang sudah tampil.
       if (strVal !== '' && el.value !== strVal) el.value = strVal;
       if (f.geoReference) {
-        // S7 Edge/WebView: value harus sudah terpasang sebelum disabled.
+        // S7 Edge/WebView: paint value/readOnly lebih dulu, disabled pada frame berikutnya.
         el.readOnly = true;
-        requestAnimationFrame(() => {
-          if (document.getElementById(id) === el) el.disabled = true;
-        });
+        if (!el.disabled) {
+          requestAnimationFrame(() => {
+            if (document.getElementById(id) === el) el.disabled = true;
+          });
+        }
       } else {
         el.readOnly = false;
         el.disabled = false;
@@ -211,23 +216,45 @@ function syncMapUploadGeoReferenceDom_() {
   } catch (e) { console.warn('sync GeoReference DOM gagal:', e); }
 }
 
+
 function makeGeoPdfProgressReporter_() {
-  let lastMsg = '';
-  return (stageMsg) => {
-    if (!stageMsg || stageMsg === lastMsg) return;
-    lastMsg = stageMsg;
-    mapUploadStatusMsg = stageMsg;
-    mapUploadStatusOk = true;
+  // HOT PATH: dipanggil ratusan kali. Jangan render() modal di sini.
+  // Semua update visual digabung ke 1 animation frame: status text + progress line.
+  let pendingMsg = '';
+  let pendingPercent = 0;
+  let rafPending = false;
+  let lastPercent = -1;
+
+  const paint_ = () => {
+    rafPending = false;
     const statusEl = document.getElementById('map-upload-status');
-    if (statusEl) {
-      statusEl.textContent = stageMsg;
-    } else {
-      render();
-      syncMapUploadGeoReferenceDom_();
+    const fillEl = document.getElementById('map-upload-progress-fill');
+    const percent = Math.max(0, Math.min(100, Number(pendingPercent) || 0));
+    const whole = Math.round(percent);
+
+    if (statusEl && pendingMsg) statusEl.textContent = pendingMsg;
+    if (fillEl && whole !== lastPercent) {
+      fillEl.style.width = whole + '%';
+      lastPercent = whole;
     }
+  };
+
+  return (stageMsg, percent = 0) => {
+    pendingMsg = String(stageMsg || pendingMsg || 'Memproses GeoPDF...');
+    pendingPercent = Math.max(0, Math.min(100, Number(percent) || 0));
+    mapUploadStatusMsg = pendingMsg;
+    mapUploadStatusOk = true;
+
+    // Sinkronisasi koordinat tetap ringan; tidak membangun ulang modal.
     syncMapUploadGeoReferenceDom_();
+
+    if (!rafPending) {
+      rafPending = true;
+      requestAnimationFrame(paint_);
+    }
   };
 }
+
 
 async function handleMapImageFileSelected_(inputEl) {
   const file = inputEl.files && inputEl.files[0];
@@ -588,17 +615,32 @@ async function buildTilePyramidFromGeoPdfPage_(page, vpBBox, baseScale, onProgre
     maxLevel: factors.length - 1
   };
 
+  // Hitung total tile seluruh level sekali supaya progress bar menunjukkan 0..100%
+  // untuk keseluruhan pyramid, bukan reset 0% setiap ganti level.
+  const levelPlan = factors.map((factor) => {
+    const scale = baseScale * Number(factor);
+    const width = Math.max(1, Math.round(vpWPt * scale));
+    const height = Math.max(1, Math.round(vpHPt * scale));
+    const tilesX = Math.ceil(width / tileSize);
+    const tilesY = Math.ceil(height / tileSize);
+    return { factor: Number(factor), scale, width, height, tilesX, tilesY, total: tilesX * tilesY };
+  });
+  const grandTotalTiles = Math.max(1, levelPlan.reduce((sum, item) => sum + item.total, 0));
+  let globalDone = 0;
+  if (onProgress) onProgress('Menyiapkan tile pyramid: 0/' + grandTotalTiles + ' (0%)', 0);
+
   // PDF.js tetap menjadi renderer sumber. Setiap tile dirender langsung dari halaman PDF
   // pada resolusi levelnya; kita tidak meng-upscale satu PNG crop yang sudah ter-raster.
   // Ini mempertahankan detail vector/text pada deep zoom dan lebih dekat ke pola quadrant
   // renderer Avenza yang sudah kita audit.
   for (let li = 0; li < factors.length; li++) {
-    const factor = Number(factors[li]);
-    const scale = baseScale * factor;
-    const width = Math.max(1, Math.round(vpWPt * scale));
-    const height = Math.max(1, Math.round(vpHPt * scale));
-    const tilesX = Math.ceil(width / tileSize);
-    const tilesY = Math.ceil(height / tileSize);
+    const plan = levelPlan[li];
+    const factor = plan.factor;
+    const scale = plan.scale;
+    const width = plan.width;
+    const height = plan.height;
+    const tilesX = plan.tilesX;
+    const tilesY = plan.tilesY;
     const tiles = [];
     const total = tilesX * tilesY;
     let done = 0;
@@ -646,7 +688,14 @@ async function buildTilePyramidFromGeoPdfPage_(page, vpBBox, baseScale, onProgre
         releaseGeoPdfCanvas_(canvas);
         tiles.push({ x: tx, y: ty, width: tw, height: th, dataUrl });
         done++;
-        if (onProgress) onProgress('Render tile PDF level ' + li + '/' + (factors.length - 1) + ': ' + done + '/' + total);
+        globalDone++;
+        if (onProgress) {
+          const percent = (globalDone / grandTotalTiles) * 100;
+          onProgress(
+            'Memproses tile PDF: ' + globalDone + '/' + grandTotalTiles + ' (' + Math.round(percent) + '%)',
+            percent
+          );
+        }
         // Give older Android/WebView devices a small scheduling window every few tiles.
         // This keeps the UI responsive and lets released canvases become collectible.
         if (done % 5 === 0) {
@@ -2601,6 +2650,24 @@ function nativeFromClientPoint_(event, bounds, rect) {
     y: bounds.minU + ((viewH - sy) / viewH) * rangeU
   };
 }
+function scheduleMapPinchRender_() {
+  if (mapPinchRenderScheduled_) return;
+  mapPinchRenderScheduled_ = true;
+  requestAnimationFrame(() => {
+    mapPinchRenderScheduled_ = false;
+    if (mapPinchState_.active) render();
+  });
+}
+function applyPinchVisualTransform_(zoom) {
+  const svg = mapPinchState_.visualSvg;
+  if (!svg || !mapPinchState_.active) return false;
+  const baseZoom = Math.max(0.0001, mapPinchState_.startZoom);
+  const visualScale = Math.max(0.1, zoom / baseZoom);
+  svg.style.transformOrigin = (mapPinchState_.midX * 100).toFixed(2) + '% ' + (mapPinchState_.midY * 100).toFixed(2) + '%';
+  svg.style.transform = 'scale(' + visualScale.toFixed(4) + ')';
+  svg.style.willChange = 'transform';
+  return true;
+}
 function handleMapTouchStart_(event) {
   if (!event || !event.touches || event.touches.length !== 2 || !event.currentTarget) return;
   event.preventDefault();
@@ -2613,7 +2680,12 @@ function handleMapTouchStart_(event) {
   if (!(distance > 0)) return;
   const midpoint = pinchMidpoint_(a, b, rect);
   const anchor = nativeFromClientPoint_({ clientX: (a.clientX + b.clientX) / 2, clientY: (a.clientY + b.clientY) / 2 }, bounds, rect);
-  mapPinchState_ = { active: true, startDistance: distance, startZoom: mapZoom, anchorNative: anchor, midX: midpoint.x, midY: midpoint.y, suppressTapUntil: Date.now() + 500 };
+  const svg = event.currentTarget.querySelector('svg');
+  mapPinchState_ = { active: true, startDistance: distance, startZoom: mapZoom, anchorNative: anchor, midX: midpoint.x, midY: midpoint.y, suppressTapUntil: Date.now() + 500, visualSvg: svg || null };
+  if (svg) {
+    svg.style.transform = 'none';
+    svg.style.willChange = 'transform';
+  }
 }
 function handleMapTouchMove_(event) {
   if (!mapPinchState_.active || !event || !event.touches || event.touches.length !== 2 || !event.currentTarget) return;
@@ -2626,16 +2698,26 @@ function handleMapTouchMove_(event) {
   const nextZoom = Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, mapPinchState_.startZoom * (distance / mapPinchState_.startDistance)));
   mapPinchState_.midX = midpoint.x;
   mapPinchState_.midY = midpoint.y;
-  if (Math.abs(nextZoom - mapZoom) >= 0.01) {
-    mapZoom = nextZoom;
-    render();
-  }
+  mapZoom = nextZoom;
+
+  // STEP 7.5.1: selama jari bergerak, pakai CSS transform pada SVG yang SUDAH tampil.
+  // Ini menghindari rebuild DOM + seluruh <image tile> pada setiap touchmove. Render
+  // sebenarnya dilakukan terjadwal dan final render dilakukan saat jari dilepas.
+  const visualApplied = applyPinchVisualTransform_(nextZoom);
+  if (!visualApplied) scheduleMapPinchRender_();
 }
 function handleMapTouchEnd_(event) {
   if (!mapPinchState_.active) return;
   if (event) event.preventDefault();
   mapPinchState_.active = false;
   mapPinchState_.suppressTapUntil = Date.now() + 350;
+  const svg = mapPinchState_.visualSvg;
+  if (svg) {
+    svg.style.transform = 'none';
+    svg.style.willChange = '';
+  }
+  mapPinchState_.visualSvg = null;
+  mapPinchRenderScheduled_ = false;
   render();
 }
 
@@ -2826,7 +2908,7 @@ function zoomMapIn() { mapZoom = Math.min(MAP_ZOOM_MAX, mapZoom + MAP_ZOOM_STEP)
 function zoomMapOut() { mapZoom = Math.max(MAP_ZOOM_MIN, mapZoom - MAP_ZOOM_STEP); render(); }
 // "Crosshair" = reset tampilan ke fit area peta/responsive viewport -- BUKAN GPS lokasi user (poin desain #4,
 // GPS Generic sengaja tidak dikerjakan krn tidak ada sumber Lat/Long sama sekali).
-function resetMapView() { mapZoom = 1; mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0 }; render(); }
+function resetMapView() { mapZoom = 1; mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
 
 // [BONUS -- 4 Sep] Dispatcher tap marker: rute ke Mode Ukur ATAU buka detail seperti biasa,
 // tergantung measureModeActive. Perilaku detail TP normal (openMapDetail) TIDAK diubah sama
@@ -3135,8 +3217,12 @@ function renderMapUploadForm_() {
     // human error -- angka GeoPDF sudah tervalidasi otomatis, tidak perlu/boleh diubah
     // manual). GeoTIFF & upload manual TETAP bisa diedit seperti biasa (0 geoReference).
     const locked = !!f.geoReference;
+    const domFieldId = {
+      tlTimur: 'tl-timur', tlUtara: 'tl-utara',
+      brTimur: 'br-timur', brUtara: 'br-utara'
+    }[field] || field;
     return '<div><label class="block text-[10px] text-white/40 mb-1 font-medium">' + label + '</label>' +
-      '<input id="map-upload-' + field + '" type="text" inputmode="decimal" value="' + (f[field]||'') + '" oninput="updateMapUploadField_(\'' + field + '\', this.value)" placeholder="' + placeholder + '" ' + (locked ? 'disabled readonly' : '') + ' class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60' + (locked ? ' opacity-50 cursor-not-allowed' : '') + '"></div>';
+      '<input id="map-upload-' + domFieldId + '" type="text" inputmode="decimal" value="' + (f[field]||'') + '" oninput="updateMapUploadField_(\'' + field + '\', this.value)" placeholder="' + placeholder + '" ' + (locked ? 'disabled readonly' : '') + ' class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60' + (locked ? ' opacity-50 cursor-not-allowed' : '') + '"></div>';
   }
   const body =
     '<div class="mb-3">' +
@@ -3156,7 +3242,12 @@ function renderMapUploadForm_() {
       inputRow('Kanan-Bawah: Timur', 'brTimur', '397300') +
       inputRow('Kanan-Bawah: Utara', 'brUtara', '53100') +
     '</div>' +
-    (mapUploadStatusMsg ? '<p id="map-upload-status" class="text-[10px] mt-1 mb-1 font-medium ' + (mapUploadStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + mapUploadStatusMsg + '</p>' : '') +
+    '<div class="mt-2">' +
+      '<p id="map-upload-status" class="text-[10px] mt-1 mb-1 font-medium ' + (mapUploadStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + (mapUploadStatusMsg || 'Siap memproses file...') + '</p>' +
+      '<div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden" role="progressbar" aria-label="Proses tile GeoPDF">' +
+        '<div id="map-upload-progress-fill" class="h-full rounded-full bg-blue-500" style="width: 0%; transition: width 120ms ease-out;"></div>' +
+      '</div>' +
+    '</div>' +
     '<button onclick="submitMapUpload_()" ' + ((mapUploadBusy || mapUploadProcessing) ? 'disabled' : '') + ' class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs py-2.5 rounded-xl disabled:opacity-60">' +
       ((mapUploadBusy || mapUploadProcessing) ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>' : icon('upload','w-4 h-4')) + '<span>' + (mapUploadBusy ? 'Menyimpan...' : (mapUploadProcessing ? 'Memproses GeoPDF...' : 'Simpan Peta')) + '</span>' +
     '</button>';
