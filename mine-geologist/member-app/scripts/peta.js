@@ -13,7 +13,9 @@
 // ==== PETA (Mine Grid) -- v90.2.113 BARU ====
 // State panel/interaksi peta -- terpisah dari state tab lain, tidak saling pengaruh.
 let mapZoom = 1;             // 1 = fit-all murni; default background map memakai 1.25x agar layout lebih padat
-let mapViewportState_ = { centerNative: null }; // posisi viewport persisten; tap tidak pernah mengubahnya
+let mapViewportState_ = { centerNative: null }
+let mapPanVelocity_ = { x:0, y:0, lastX:0, lastY:0, lastT:0 };
+let mapPanInertiaRaf_ = null;; // posisi viewport persisten; tap tidak pernah mengubahnya
 // STEP 5.6: state gesture pinch-to-zoom 2 jari.
 let mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null };
 let mapPinchRenderScheduled_ = false;
@@ -42,6 +44,34 @@ if (typeof document !== 'undefined') {
 let mapPointerState_ = new Map();
 let mapViewportRatio_ = 1;
 let mapViewportSyncScheduled_ = false;
+
+function blockMapContextMenu_() {
+  try {
+    const vp = document.getElementById('mg1-map-viewport');
+    if (!vp || vp.__mg1CtxBlocked) return;
+    vp.__mg1CtxBlocked = true;
+    const stop = (e) => { e.preventDefault(); e.stopPropagation(); return false; };
+    vp.addEventListener('contextmenu', stop, { capture: true, passive: false });
+    vp.addEventListener('selectstart', stop, { capture: true, passive: false });
+    vp.addEventListener('dragstart', stop, { capture: true, passive: false });
+    vp.addEventListener('mousedown', (e) => { if (e.button===2) stop(e); }, { capture: true });
+    let longPressTimer = null;
+    vp.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        clearTimeout(longPressTimer);
+        longPressTimer = setTimeout(() => { try{ e.preventDefault(); }catch(_){} }, 400);
+      }
+    }, { passive: false, capture: true });
+    vp.addEventListener('touchend', () => { clearTimeout(longPressTimer); }, { passive: true });
+    vp.addEventListener('touchmove', () => { clearTimeout(longPressTimer); }, { passive: false });
+  } catch(e){}
+}
+// STEP 7.6B-ROOT-2: activate scoped map touch/context ownership after DOM creation.
+function ensureMapContextBlocker_() {
+  try {
+    if (typeof blockMapContextMenu_ === 'function') blockMapContextMenu_();
+  } catch (_) {}
+}
 
 function getMapViewportRatio_() {
   const el = document.getElementById('mg1-map-viewport');
@@ -2748,7 +2778,28 @@ function scheduleMapPanVisual_() {
     mapPanRenderScheduled_ = false;
     const svg = mapPanState_.visualSvg;
     if (!svg || !mapPanState_.active) return;
+    // Gunakan translate3d biar GPU - ini yang bikin smooth di video Avenza
     svg.style.transform = 'translate3d(' + mapPanState_.dx.toFixed(2) + 'px,' + mapPanState_.dy.toFixed(2) + 'px,0)';
+    svg.style.willChange = 'transform';
+    // Update koordinat bawah realtime kayak video 397191,53353
+    try {
+      const bounds = computeResponsiveDisplayBounds_(buildMapData());
+      if (bounds) {
+        const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+        const zoomedW = 320 / Math.max(0.0001, mapZoom), zoomedH = 320 / Math.max(0.0001, mapZoom);
+        const dxView = mapPanState_.dx / Math.max(1, svg.getBoundingClientRect().width);
+        const dyView = mapPanState_.dy / Math.max(1, svg.getBoundingClientRect().height);
+        const deltaNativeX = -(dxView * zoomedW / 320) * rangeT;
+        const deltaNativeY = (dyView * zoomedH / 320) * rangeU;
+        if (mapPanState_.baseCenterNative) {
+          const cx = mapPanState_.baseCenterNative.x + deltaNativeX;
+          const cy = mapPanState_.baseCenterNative.y + deltaNativeY;
+          // Update display koordinat di bawah (seperti video 3972xx, 53xx)
+          const coordEl = document.getElementById('mg1-map-coord-live');
+          if (coordEl) coordEl.textContent = Math.round(cx) + ',' + Math.round(cy);
+        }
+      }
+    } catch(e){}
   });
 }
 function applyPanVisual_(svg, dx, dy) {
@@ -3035,6 +3086,7 @@ function renderMapScaleBar(bounds) {
 }
 
 function renderMineGridSvg(points) {
+  ensureMapContextBlocker_();
   const bounds = computeResponsiveDisplayBounds_(points);
   const viewW = 320, viewH = 320;
   if (!bounds) return '';
@@ -3043,7 +3095,7 @@ function renderMineGridSvg(points) {
   // mengikuti persistent viewport state; titik tap tidak pernah menjadi anchor.
   const viewBox = getMapViewBox_(bounds);
   const valid = points.filter(p => p.hasValidCoord);
-  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="touch-action:none; overflow:hidden; will-change:transform; transition:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
+  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="pointer-events:auto; touch-action:none; overflow:hidden; will-change:transform; transition:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
   // [BARU -- 5 Sep] Peta background (foto udara/olah ArcGIS) -- digambar PALING BAWAH
   // (sebelum grid helper & marker) supaya tidak menutupi apa pun. Posisi & ukuran dihitung
   // dari 2 sudut referensi pakai projectToSvg() yg SAMA dgn yg plot titik TP -- kalau titik
@@ -3090,7 +3142,7 @@ function renderMineGridSvg(points) {
           svg += '<image href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
         }
       } else {
-        svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
+        svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + ' pointer-events="none" draggable="false" oncontextmenu="return false;"/>';
       }
     }
   }
