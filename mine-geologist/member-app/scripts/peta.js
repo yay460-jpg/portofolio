@@ -12,7 +12,8 @@
 
 // ==== PETA (Mine Grid) -- v90.2.113 BARU ====
 // State panel/interaksi peta -- terpisah dari state tab lain, tidak saling pengaruh.
-let mapZoom = 1;             // 1 = fit-semua-titik (default), >1 memperbesar
+const MAP_FIT_ZOOM = 1.25; // FIT layout: sedikit diperbesar agar viewport lebih padat (~200 m pada peta uji)
+let mapZoom = MAP_FIT_ZOOM; // FIT default; >1 memperbesar
 // STEP 5.6: state gesture pinch-to-zoom 2 jari.
 let mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null };
 let mapPinchRenderScheduled_ = false;
@@ -2602,7 +2603,8 @@ function computeResponsiveDisplayBounds_(points) {
 }
 
 // STEP 5.3/5.6: viewBox zoom memakai native coordinate sebagai sumber kebenaran.
-// Tap anchor dipakai untuk tombol +/-; pinch anchor dipakai selama gesture 2-jari.
+// Pinch anchor dipakai selama gesture 2-jari. TAP TIDAK PERNAH menjadi anchor
+// viewport: tap hanya membuat marker/info, sehingga posisi peta tetap stabil.
 function getMapViewBox_(bounds) {
   const viewW = 320, viewH = 320;
   const zoomedW = viewW / mapZoom, zoomedH = viewH / mapZoom;
@@ -2611,7 +2613,7 @@ function getMapViewBox_(bounds) {
   if (rangeT > 0 && rangeU > 0) {
     const anchor = mapPinchState_.active && mapPinchState_.anchorNative
       ? mapPinchState_.anchorNative
-      : (mapZoom > MAP_ZOOM_MIN && mapTapState_.active && mapTapState_.native ? mapTapState_.native : null);
+      : null;
     if (anchor) {
       const anchorX = ((anchor.x - bounds.minT) / rangeT) * viewW;
       const anchorY = viewH - ((anchor.y - bounds.minU) / rangeU) * viewH;
@@ -2908,7 +2910,7 @@ function zoomMapIn() { mapZoom = Math.min(MAP_ZOOM_MAX, mapZoom + MAP_ZOOM_STEP)
 function zoomMapOut() { mapZoom = Math.max(MAP_ZOOM_MIN, mapZoom - MAP_ZOOM_STEP); render(); }
 // "Crosshair" = reset tampilan ke fit area peta/responsive viewport -- BUKAN GPS lokasi user (poin desain #4,
 // GPS Generic sengaja tidak dikerjakan krn tidak ada sumber Lat/Long sama sekali).
-function resetMapView() { mapZoom = 1; mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
+function resetMapView() { mapZoom = MAP_FIT_ZOOM; mapPinchState_ = { active: false, startDistance: 0, startZoom: MAP_FIT_ZOOM, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
 
 // [BONUS -- 4 Sep] Dispatcher tap marker: rute ke Mode Ukur ATAU buka detail seperti biasa,
 // tergantung measureModeActive. Perilaku detail TP normal (openMapDetail) TIDAK diubah sama
