@@ -210,21 +210,30 @@ async function handleMapImageFileSelected_(inputEl) {
     // segera setelah metadata+transform tervalidasi; user tidak perlu menunggu seluruh
     // pyramid selesai.
     mapUploadStatusMsg = 'Membaca koordinat dari GeoPDF...'; mapUploadStatusOk = true; mapUploadProcessing = true; render();
-    const geoResult = await Promise.race([
-      tryParseGeoPdf_(file, (stageMsg) => { mapUploadStatusMsg = stageMsg; mapUploadStatusOk = true; render(); },
-        ({ geoReference, cornerTL, cornerBR }) => {
-          mapUploadFormState.geoReference = geoReference || null;
-          mapUploadFormState.fileName = file.name;
-          mapUploadFormState.tlTimur = String(cornerTL.timur);
-          mapUploadFormState.tlUtara = String(cornerTL.utara);
-          mapUploadFormState.brTimur = String(cornerBR.timur);
-          mapUploadFormState.brUtara = String(cornerBR.utara);
-          mapUploadStatusMsg = '✓ GeoReference/koordinat berhasil dibaca. Tile pyramid sedang diproses...';
-          mapUploadStatusOk = true;
-          render();
-        }),
-      new Promise(resolve => setTimeout(() => resolve({ ok: false, reason: 'Waktu tunggu habis (20 detik) -- proses baca GeoPDF menggantung, kemungkinan masalah render pdf.js di HP ini.' }), 20000))
-    ]);
+    // STEP 7.5.3C: jangan gunakan Promise.race/timeout untuk lifecycle GeoPDF.
+    // Tile pyramid pada Android lama memang dapat >20 detik. Timeout sebelumnya membuat
+    // handler upload selesai lebih dulu sementara tryParseGeoPdf_ masih berjalan, sehingga
+    // state form dan callback GeoReference bisa terlihat tidak sinkron. Satu promise menjadi
+    // satu-satunya owner lifecycle sampai GeoReference + tilePyramid selesai.
+    let geoReferenceReady = false;
+    const applyGeoReferenceEarly_ = ({ geoReference, cornerTL, cornerBR }) => {
+      if (!cornerTL || !cornerBR) return;
+      geoReferenceReady = true;
+      mapUploadFormState.geoReference = geoReference || null;
+      mapUploadFormState.fileName = file.name;
+      mapUploadFormState.tlTimur = String(cornerTL.timur);
+      mapUploadFormState.tlUtara = String(cornerTL.utara);
+      mapUploadFormState.brTimur = String(cornerBR.timur);
+      mapUploadFormState.brUtara = String(cornerBR.utara);
+      mapUploadStatusMsg = '✓ GeoReference/koordinat berhasil dibaca. Tile pyramid sedang diproses...';
+      mapUploadStatusOk = true;
+      render();
+    };
+    const geoResult = await tryParseGeoPdf_(file, (stageMsg) => {
+      mapUploadStatusMsg = stageMsg;
+      mapUploadStatusOk = true;
+      render();
+    }, applyGeoReferenceEarly_);
     if (geoResult.ok) {
       mapUploadFormState.geoReference = geoResult.geoReference || null;
       mapUploadFormState.tilePyramid = geoResult.tilePyramid || null;
