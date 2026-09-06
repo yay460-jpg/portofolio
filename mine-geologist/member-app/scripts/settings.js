@@ -23,7 +23,7 @@ function renderReportModal(justOpened) {
   ['Export PDF Report','Export CSV Data','Export Word Doc'].forEach(label => {
     body += '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4 flex items-center justify-between opacity-60 mt-2.5">' +
       '<div class="flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center">' + icon('file-text','w-4 h-4 text-white/50') + '</div>' +
-      '<div class="text-sm font-semibold text-white">' + label + '</div></div>' + icon('download','w-4 h-4 text-white/30') +
+      '<div class="flex items-center gap-2"><span class="text-sm font-semibold text-white">' + label + '</span><span class="text-[9px] font-bold text-amber-300/80 bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5">Coming Soon</span></div></div>' + icon('download','w-4 h-4 text-white/30') +
     '</div>';
   });
   body += '<p class="text-[10px] text-white/25 text-center mt-3">Export belum tersambung di versi ini -- pakai dashboard web utk export laporan.</p>';
@@ -96,6 +96,40 @@ const CRS_PRESET_COMING_SOON_ = [
   { label: 'Timika (Freeport)', note: 'Tembaga-Emas' },
   { label: 'Area lain sesuai perkembangan MG1', note: 'Bauksit, Batubara, dll' }
 ];
+
+// [BARU -- 5 Sep] Auto-saran preset -- BUKAN "auto-detect ajaib dari angka mentah" (itu
+// mustahil scr matematis, sudah dijelaskan ke user: 2 lokasi geografis beda bisa punya
+// Easting/Northing mentah yg mirip, UTM sengaja dibikin gitu). Ini cuma MEMPERSEMPIT dari
+// 4 preset yg SUDAH dikunci -- ambil 1 titik TP nyata yg sudah ada datanya, coba hitung
+// lewat ke-4 preset, buang yg hasilnya mustahil (di luar rentang Indonesia), sisanya
+// disorot sbg saran. Developer TETAP yang klik pilih final, ini cuma bantuan visual.
+// KETERBATASAN JUJUR (diomongkan ke user sebelum dikerjakan): kalau 2+ preset punya
+// zona+hemisphere PERSIS SAMA (spt Morowali & Kendari, sama2 51S), keduanya AKAN
+// menghasilkan Lat/Lon IDENTIK -- tidak ada cara matematis membedakan lebih jauh, jadi
+// bisa saja saran ini menyorot 2 preset sekaligus (bukan bug, itu batas matematisnya).
+const INDONESIA_BOUNDS_ = { latMin: -11, latMax: 6, lonMin: 94, lonMax: 141 };
+function computeCrsPresetSuggestion_() {
+  // Ambil 1 titik TP nyata yg punya koordinat valid -- pakai globalValidasiFullForMap
+  // (dari digging.js, via global scope) krn itu dataset PALING LENGKAP (bukan globalValidasiToday
+  // yg dibatasi 100 baris terakhir).
+  if (typeof globalValidasiFullForMap === 'undefined' || !globalValidasiFullForMap || !globalValidasiFullForMap.length) return null;
+  let sampleRow = null;
+  for (let i = 0; i < globalValidasiFullForMap.length; i++) {
+    const r = globalValidasiFullForMap[i];
+    const t = parseFloat(getField(r, 'Timur')), u = parseFloat(getField(r, 'Utara'));
+    if (isStrictNumeric(getField(r, 'Timur')) && isStrictNumeric(getField(r, 'Utara'))) { sampleRow = { timur: t, utara: u }; break; }
+  }
+  if (!sampleRow) return null; // 0 titik valid ditemukan -- tidak ada dasar utk saran, diam saja (bukan error)
+
+  const matches = [];
+  CRS_PRESET_OPTIONS_.forEach(function(p) {
+    const geo = inverseUtm_(sampleRow.timur, sampleRow.utara, p.zone, p.hemisphere);
+    const plausible = geo.lat >= INDONESIA_BOUNDS_.latMin && geo.lat <= INDONESIA_BOUNDS_.latMax &&
+                       geo.lon >= INDONESIA_BOUNDS_.lonMin && geo.lon <= INDONESIA_BOUNDS_.lonMax;
+    if (plausible) matches.push(p.key);
+  });
+  return matches; // bisa kosong (0 preset masuk akal -- data mencurigakan), 1 (jelas), atau 2+ (zona sama, lihat catatan di atas)
+}
 let crsConfigStatusMsg = '', crsConfigStatusOk = true, crsConfigBusy = false;
 async function submitCrsPreset(presetKey) {
   if (crsConfigBusy) return;
@@ -122,10 +156,13 @@ async function submitCrsPreset(presetKey) {
 }
 function renderCrsConfigSection_() {
   if (!sessionInfo || sessionInfo.roleId !== 'DEVELOPER') return '';
+  const suggestion = computeCrsPresetSuggestion_(); // null (0 data), [] (0 cocok), atau [key,...] (>=1 cocok)
   const optionsHtml = CRS_PRESET_OPTIONS_.map(function(p) {
     const active = MG1_CRS_CONFIG.presetLabel === p.label;
-    return '<button onclick="submitCrsPreset(\'' + p.key + '\')" ' + (crsConfigBusy ? 'disabled' : '') + ' class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left mb-1.5 ' + (active ? 'bg-blue-600 text-white' : 'bg-white/[0.04] text-white/70') + ' disabled:opacity-50">' +
-      '<span class="text-[12px] font-semibold">' + p.label + '</span>' +
+    const suggested = suggestion && suggestion.indexOf(p.key) >= 0 && !active;
+    const badge = suggested ? '<span class="text-[8px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 ml-1.5">SARAN</span>' : '';
+    return '<button onclick="submitCrsPreset(\'' + p.key + '\')" ' + (crsConfigBusy ? 'disabled' : '') + ' class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left mb-1.5 ' + (active ? 'bg-blue-600 text-white' : (suggested ? 'bg-emerald-500/10 border border-emerald-500/30 text-white/80' : 'bg-white/[0.04] text-white/70')) + ' disabled:opacity-50">' +
+      '<span class="text-[12px] font-semibold">' + p.label + badge + '</span>' +
       '<span class="text-[9px] font-bold opacity-70">UTM ' + p.zone + p.hemisphere + '</span>' +
     '</button>';
   }).join('');
@@ -135,9 +172,19 @@ function renderCrsConfigSection_() {
       '<span class="text-[8px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/40">SOON</span>' +
     '</div>';
   }).join('');
+  // Catatan saran: null = tidak ada data TP sama sekali (diam, tidak menuduh apa2).
+  // [] = ADA data TP, tapi 0 dari 4 preset menghasilkan Lat/Lon masuk akal utk Indonesia
+  // -- ini justru sinyal penting (data mungkin salah/situs benar2 di luar 4 preset yg ada),
+  // ditampilkan sbg peringatan, bukan disembunyikan diam2.
+  const suggestionNote = (suggestion && suggestion.length === 0)
+    ? '<p class="text-[9px] text-amber-400 mb-2 leading-relaxed">&#9888; Tidak ada preset yang cocok dengan data TP yang ada -- kemungkinan situs ini di luar 4 preset di bawah, atau ada data koordinat yang keliru.</p>'
+    : (suggestion && suggestion.length >= 2
+        ? '<p class="text-[9px] text-white/30 mb-2 leading-relaxed">Beberapa preset bertanda SARAN punya zona UTM yang sama -- pilih sesuai lokasi asli situs.</p>'
+        : '');
   return '<div class="rounded-[12px] bg-[#0b1329] border border-amber-500/20 p-4 mt-2.5">' +
     '<div class="flex items-center gap-2 mb-1">' + icon('map-pin','w-3.5 h-3.5 text-amber-400') + '<div class="text-[13px] font-bold text-white">Config CRS Peta (Developer)</div></div>' +
     '<div class="text-[10px] text-white/40 mb-3">Situs aktif sekarang: <span class="text-amber-300 font-semibold">' + (MG1_CRS_CONFIG.presetLabel || '-') + '</span> (UTM ' + MG1_CRS_CONFIG.zone + MG1_CRS_CONFIG.hemisphere + ')</div>' +
+    suggestionNote +
     optionsHtml +
     comingSoonHtml +
     (crsConfigStatusMsg ? '<p class="text-[10px] mt-2 font-medium ' + (crsConfigStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + crsConfigStatusMsg + '</p>' : '') +
