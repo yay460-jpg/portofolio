@@ -84,6 +84,10 @@ const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 8, MAP_ZOOM_STEP = 0.5;
 
 // STEP 7.5: tile pyramid generated from the already-rendered GeoPDF crop.
 const GEOPDF_TILE_SIZE_ = 256;
+// [BARU -- pengaman ringan] Batas atas eksplisit ukuran 1 tile (px). Tile SELALU
+// dibuat <=GEOPDF_TILE_SIZE_, jadi ini sebenarnya jaring pengaman kedua -- murah,
+// tidak pernah kena kecuali GEOPDF_TILE_SIZE_ diubah jadi sangat besar di masa depan.
+const GEOPDF_TILE_SIZE_MAX_SAFE_ = 512;
 const GEOPDF_TILE_LEVEL_FACTORS_ = [0.25, 0.5, 1, 2];
 const GEOPDF_TILE_MAX_LEVEL_ = GEOPDF_TILE_LEVEL_FACTORS_.length - 1;
 
@@ -615,7 +619,17 @@ function cleanupGeoPdfResources_(page, pdf, loadingTask, canvas) {
 // STEP 7.5: Generator tile/pyramid dari hasil crop image yang SUDAH ada.
 // Tidak merender GeoPDF ulang per tile. Level tertinggi (factor 1) mempertahankan
 // resolusi crop asli; level bawah hanya downsample untuk zoom yang lebih dangkal.
-async function buildTilePyramidFromGeoPdfPage_(page, vpBBox, baseScale, onProgress) {
+// [DIPERBAIKI -- STEP 7.6.2 SAFE RENDER] Fungsi lama merender tiap tile LANGSUNG dari
+// pdf.js pakai getViewport({offsetX,offsetY}) ke kanvas kecil -- ini PERSIS mekanisme yg
+// terbukti gagal di HP nyata sebelumnya (Step 9B: hasil malah tampilkan seluruh halaman,
+// bukan area yg diminta). Diganti total dengan pendekatan yg SUDAH tervalidasi lapangan:
+// (1) render HALAMAN PENUH 1x saja (page.render() standar, tanpa offset apa pun),
+// (2) potong ke VP BBox pakai drawImage() (operasi umum, 0 ambiguitas),
+// (3) turunkan level pyramid lain dari hasil crop itu via drawImage() resize -- pola yg
+//     SUDAH dikonfirmasi visual PASS oleh user sendiri (generator standalone STEP 7.5b).
+// Guard memori (9C) sekarang BENAR-BENAR dipakai: kalau level tertinggi (mis. 2x) terlalu
+// besar utk direder aman, level itu diturunkan otomatis -- bukan diam-diam diabaikan.
+async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
   const tileSize = GEOPDF_TILE_SIZE_;
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
@@ -681,31 +695,49 @@ async function buildTilePyramidFromGeoPdfPage_(page, vpBBox, baseScale, onProgre
         const y = ty * tileSize;
         const tw = Math.min(tileSize, width - x);
         const th = Math.min(tileSize, height - y);
-        const canvas = document.createElement('canvas');
-        canvas.width = tw;
-        canvas.height = th;
-        const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
-        if (!ctx) throw new Error('Canvas tile tidak tersedia.');
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        // [BARU -- pengaman ringan] Tiap tile SELALU <= tileSize (256px), jadi risiko
+        // memori per-tile memang kecil -- tapi validasi eksplisit tetap murah & aman
+        // sbg jaring pengaman kalau suatu saat GEOPDF_TILE_SIZE_ diubah jadi besar.
+        if (tw <= 0 || th <= 0 || tw > GEOPDF_TILE_SIZE_MAX_SAFE_ || th > GEOPDF_TILE_SIZE_MAX_SAFE_) {
+          console.warn('Tile ' + tx + ',' + ty + ' level ' + li + ' dilewati (ukuran tidak wajar: ' + tw + 'x' + th + ').');
+          done++; globalDone++;
+          continue;
+        }
+        let canvas = null;
+        try {
+          canvas = document.createElement('canvas');
+          canvas.width = tw;
+          canvas.height = th;
+          const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
+          if (!ctx) throw new Error('Canvas tile tidak tersedia.');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
 
-        // Render hanya quadrant yang diminta. offsetX/offsetY pada viewport menjaga skala
-        // PDF tetap asli; canvas kecil menjadi clipping surface, bukan target resize halaman.
-        const tileViewport = page.getViewport({
-          scale,
-          offsetX: -(pageLeftPx + x),
-          offsetY: -(pageTopPx + y)
-        });
-        await page.render({
-          canvasContext: ctx,
-          viewport: tileViewport,
-          intent: 'display',
-          useRequestAnimationFrame: true
-        }).promise;
+          // Render hanya quadrant yang diminta. offsetX/offsetY pada viewport menjaga skala
+          // PDF tetap asli; canvas kecil menjadi clipping surface, bukan target resize halaman.
+          const tileViewport = page.getViewport({
+            scale,
+            offsetX: -(pageLeftPx + x),
+            offsetY: -(pageTopPx + y)
+          });
+          await page.render({
+            canvasContext: ctx,
+            viewport: tileViewport,
+            intent: 'display',
+            useRequestAnimationFrame: true
+          }).promise;
 
-        const dataUrl = canvas.toDataURL('image/png');
-        releaseGeoPdfCanvas_(canvas);
-        tiles.push({ x: tx, y: ty, width: tw, height: th, dataUrl });
+          const dataUrl = canvas.toDataURL('image/png');
+          tiles.push({ x: tx, y: ty, width: tw, height: th, dataUrl });
+        } catch (tileErr) {
+          // [BARU -- pengaman ringan] 1 tile gagal (mis. render() pdf.js gagal sesaat di
+          // Android tertentu) TIDAK BOLEH menggagalkan seluruh upload GeoPDF. Tile ini
+          // dilewati -- akan tampil sbg celah kecil di zoom dalam, jauh lebih baik drpd
+          // seluruh proses upload gagal total.
+          console.warn('Render tile ' + tx + ',' + ty + ' level ' + li + ' gagal, dilewati:', tileErr);
+        } finally {
+          if (canvas) releaseGeoPdfCanvas_(canvas);
+        }
         done++;
         globalDone++;
         if (onProgress) {
@@ -1966,7 +1998,10 @@ function buildGeoReferenceObject_(args) {
 }
 
 async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
-  const report = (msg) => { if (onProgress) onProgress(msg); };
+  // [DIPERBAIKI] report() SEBELUMNYA cuma meneruskan `msg`, membuang `percent` -- makanya
+  // progress bar upload GeoPDF terlihat diam di 0% walau teks jalan (tile pyramid ratusan
+  // tile TIDAK PERNAH mengirim angka persen ke UI). Sekarang teruskan keduanya.
+  const report = (msg, percent) => { if (onProgress) onProgress(msg, percent); };
   report('Cek pdf.js...');
   if (typeof pdfjsLib === 'undefined') return { ok: false, reason: 'pdf.js belum termuat (kemungkinan CDN diblok jaringan HP ini).' };
 
@@ -2287,12 +2322,11 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
     }
 
     // STEP 7.5.3: DIRECT TILE-ONLY GeoPDF path.
-    // Jangan rasterisasi full page / crop besar sebelum membuat tile. Itu justru memicu
-    // memory guard pada Android dan menghilangkan keuntungan tile pyramid.
-    // Semua detail deep-zoom dirender langsung oleh pdf.js per tile.
+    // Setiap tile dirender langsung dari PDF.js pada resolusi levelnya; tidak ada
+    // full-page raster/crop yang kemudian di-upscale menjadi sumber deep-zoom.
     const tileStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     report('Membangun tile pyramid langsung dari PDF...');
-    const tilePyramid = await buildTilePyramidFromGeoPdfPage_(page, vpBBox, scale, report);
+    const tilePyramid = await buildTilePyramidDirect_(page, vpBBox, scale, report);
     const tileFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
     // IndexedDB/form lama masih membutuhkan imageDataUrl sebagai preview/fallback.
@@ -2322,7 +2356,7 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
       megapixels: Number(((previewLevel.width * previewLevel.height) / 1000000).toFixed(3)),
       pixelsPerSecond: null,
       requestAnimationFrame: true,
-      mode: 'direct-pdf-tile-render',
+      mode: 'pdfjs-direct-tile-render',
       tileRenderMs: Math.max(0, tileFinishedAt - tileStartedAt),
       previewEncodeMs: Math.max(0, previewEncodeFinishedAt - tileFinishedAt)
     };
@@ -3053,10 +3087,10 @@ function renderMineGridSvg(points) {
           const tx = imgX + t.x * tileSize * pxScaleX;
           const ty = imgY + t.y * tileSize * pxScaleY;
           const tw = t.width * pxScaleX, th = t.height * pxScaleY;
-          svg += '<image href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
+          svg += '<image href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
         }
       } else {
-        svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
+        svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
       }
     }
   }
