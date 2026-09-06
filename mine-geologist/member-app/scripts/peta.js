@@ -181,6 +181,20 @@ function updateMapUploadField_(field, value) { mapUploadFormState[field] = value
 // diekspor "Export Map/Print" bukan "Export Data", lihat histori diskusi), otomatis
 // JATUH KE alur manual (isi 2 sudut sendiri) -- TIDAK PERNAH bikin form macet/error total
 // gara2 GeoTIFF gagal dibaca.
+function syncMapUploadGeoReferenceDom_() {
+  const f = mapUploadFormState;
+  const pairs = [
+    ['map-upload-tl-timur', f.tlTimur],
+    ['map-upload-tl-utara', f.tlUtara],
+    ['map-upload-br-timur', f.brTimur],
+    ['map-upload-br-utara', f.brUtara]
+  ];
+  for (const [id, value] of pairs) {
+    const el = document.getElementById(id);
+    if (el) { el.value = value == null ? '' : String(value); el.disabled = !!f.geoReference; el.readOnly = !!f.geoReference; }
+  }
+}
+
 async function handleMapImageFileSelected_(inputEl) {
   const file = inputEl.files && inputEl.files[0];
   if (!file) return;
@@ -227,7 +241,11 @@ async function handleMapImageFileSelected_(inputEl) {
       mapUploadFormState.brUtara = String(cornerBR.utara);
       mapUploadStatusMsg = '✓ GeoReference/koordinat berhasil dibaca. Tile pyramid sedang diproses...';
       mapUploadStatusOk = true;
+      // Update the live form immediately; render() below may recreate the modal DOM.
+      syncMapUploadGeoReferenceDom_();
       render();
+      // Re-apply after render so a freshly recreated modal cannot show stale defaults.
+      syncMapUploadGeoReferenceDom_();
     };
     const geoResult = await tryParseGeoPdf_(file, (stageMsg) => {
       mapUploadStatusMsg = stageMsg;
@@ -3081,7 +3099,7 @@ function renderMapUploadForm_() {
     // manual). GeoTIFF & upload manual TETAP bisa diedit seperti biasa (0 geoReference).
     const locked = !!f.geoReference;
     return '<div><label class="block text-[10px] text-white/40 mb-1 font-medium">' + label + '</label>' +
-      '<input type="text" inputmode="decimal" value="' + (f[field]||'') + '" oninput="updateMapUploadField_(\'' + field + '\', this.value)" placeholder="' + placeholder + '" ' + (locked ? 'disabled readonly' : '') + ' class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60' + (locked ? ' opacity-50 cursor-not-allowed' : '') + '"></div>';
+      '<input id="map-upload-' + field + '" type="text" inputmode="decimal" value="' + (f[field]||'') + '" oninput="updateMapUploadField_(\'' + field + '\', this.value)" placeholder="' + placeholder + '" ' + (locked ? 'disabled readonly' : '') + ' class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60' + (locked ? ' opacity-50 cursor-not-allowed' : '') + '"></div>';
   }
   const body =
     '<div class="mb-3">' +
