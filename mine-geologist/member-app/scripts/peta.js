@@ -1,4 +1,4 @@
-/* STEP 7.6 V10.4 POINTER/COMPOSITOR BUILD: direct PDF.js tile path; logic unchanged from V4. */
+/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path; logic unchanged from V4. */
 /* ============================================================
  * MINE GEOLOGIST / LITHOSITE -- member-app/scripts/peta.js
  * [PARTISI -- 4 Sep, Tahap 4] Tab Peta -- Mine Grid SVG, North Arrow (3-mode
@@ -21,6 +21,23 @@ let mapPinchRenderScheduled_ = false;
 // digerakkan oleh compositor (CSS transform); DOM/tile tidak dibangun ulang per touchmove.
 let mapPanState_ = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, baseCenterNative: null, baseRectW: 0, baseRectH: 0, baseBounds: null, visualSvg: null, moved: false, suppressTapUntil: 0, velocityX: 0, velocityY: 0, lastX: 0, lastY: 0, lastT: 0 };
 let mapPanRenderScheduled_ = false;
+
+// STEP 7.6 gesture ownership: cegah long-press Android/Chrome mengambil alih
+// map image (context menu / save image / share). Hanya berlaku di area map.
+function isMapGestureTarget_(target) {
+  try { return !!(target && target.closest && target.closest('svg[data-map-gesture=\"true\"]')); } catch (_) { return false; }
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('contextmenu', function(event) {
+    if (isMapGestureTarget_(event.target)) event.preventDefault();
+  }, true);
+  document.addEventListener('selectstart', function(event) {
+    if (isMapGestureTarget_(event.target)) event.preventDefault();
+  }, true);
+  document.addEventListener('dragstart', function(event) {
+    if (isMapGestureTarget_(event.target)) event.preventDefault();
+  }, true);
+}
 // STEP 7.6 V10.4: unified Pointer Events state. Visual movement stays on compositor.
 let mapPointerState_ = new Map();
 let mapViewportRatio_ = 1;
@@ -2835,6 +2852,10 @@ function handleMapPointerDown_(event) {
   if (!event || !event.currentTarget) return;
   const svg = getMapPointerSvg_(event);
   if (!svg) return;
+  // Touch ownership ditentukan oleh touch-action:none + blocker contextmenu/select/drag.
+  // JANGAN preventDefault() pada pointerdown: Android/WebView dapat menekan compatibility
+  // click sehingga tap cepat tidak lagi masuk ke handleMapTap_. Pointermove akan dibatalkan
+  // saat gesture benar-benar bergerak.
   try { svg.setPointerCapture(event.pointerId); } catch (_) {}
   mapPointerState_.set(event.pointerId, { x: event.clientX, y: event.clientY });
   const points = Array.from(mapPointerState_.entries());
@@ -2988,7 +3009,7 @@ function renderMineGridSvg(points) {
   // mengikuti persistent viewport state; titik tap tidak pernah menjadi anchor.
   const viewBox = getMapViewBox_(bounds);
   const valid = points.filter(p => p.hasValidCoord);
-  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" style="touch-action:none; overflow:hidden; will-change:transform; transition:none;" onclick="handleMapTap_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
+  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="touch-action:none; overflow:hidden; will-change:transform; transition:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
   // [BARU -- 5 Sep] Peta background (foto udara/olah ArcGIS) -- digambar PALING BAWAH
   // (sebelum grid helper & marker) supaya tidak menutupi apa pun. Posisi & ukuran dihitung
   // dari 2 sudut referensi pakai projectToSvg() yg SAMA dgn yg plot titik TP -- kalau titik
@@ -3032,10 +3053,10 @@ function renderMineGridSvg(points) {
           const tx = imgX + t.x * tileSize * pxScaleX;
           const ty = imgY + t.y * tileSize * pxScaleY;
           const tw = t.width * pxScaleX, th = t.height * pxScaleY;
-          svg += '<image href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" preserveAspectRatio="none" opacity="0.9"' + clipAttr + '/>';
+          svg += '<image href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
         }
       } else {
-        svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" preserveAspectRatio="none" opacity="0.9"' + clipAttr + '/>';
+        svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
       }
     }
   }
@@ -3373,7 +3394,7 @@ function renderPeta() {
   }
 
   // ==== SUCCESS: render Mine Grid ====
-  html += '<div id="mg1-map-viewport" class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden">' +
+  html += '<div id="mg1-map-viewport" class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden select-none" style="touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;" oncontextmenu="return false" onselectstart="return false" ondragstart="return false">' +
     renderMineGridSvg(validPoints) +
     renderNorthArrow_(computeResponsiveDisplayBounds_(validPoints)) +
     renderMeasureBanner_(mapData) +
