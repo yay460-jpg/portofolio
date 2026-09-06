@@ -2894,37 +2894,19 @@ function handleMapTouchEnd_(event) {
   }
 }
 
-function scheduleMapPanVisual__OLD() {
+function scheduleMapPanVisual_() {
   if (mapPanRenderScheduled_) return;
   mapPanRenderScheduled_ = true;
   requestAnimationFrame(() => {
     mapPanRenderScheduled_ = false;
     const svg = mapPanState_.visualSvg;
     if (!svg || !mapPanState_.active) return;
-    // Gunakan translate3d biar GPU - ini yang bikin smooth di video Avenza
-    svg.style.transform = 'translate3d(' + mapPanState_.dx.toFixed(2) + 'px,' + mapPanState_.dy.toFixed(2) + 'px,0)';
-    svg.style.willChange = 'transform';
-    // Update koordinat bawah realtime kayak video 397191,53353
-    try {
-      const bounds = computeResponsiveDisplayBounds_(buildMapData());
-      if (bounds) {
-        const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
-        const zoomedW = 320 / Math.max(0.0001, mapZoom), zoomedH = 320 / Math.max(0.0001, mapZoom);
-        const dxView = mapPanState_.dx / Math.max(1, svg.getBoundingClientRect().width);
-        const dyView = mapPanState_.dy / Math.max(1, svg.getBoundingClientRect().height);
-        const deltaNativeX = -(dxView * zoomedW / 320) * rangeT;
-        const deltaNativeY = (dyView * zoomedH / 320) * rangeU;
-        if (mapPanState_.baseCenterNative) {
-          const cx = mapPanState_.baseCenterNative.x + deltaNativeX;
-          const cy = mapPanState_.baseCenterNative.y + deltaNativeY;
-          // Update display koordinat di bawah (seperti video 3972xx, 53xx)
-          const coordEl = document.getElementById('mg1-map-coord-live');
-          if (coordEl) coordEl.textContent = Math.round(cx) + ',' + Math.round(cy);
-        }
-      }
-    } catch(e){}
+    // STEP 7.6C: compositor-only pan. Jangan lakukan layout/DOM coordinate work
+    // di setiap frame; posisi visual harus mengikuti jari secepat mungkin.
+    applyPanVisual_(svg, mapPanState_.dx, mapPanState_.dy);
   });
 }
+
 function applyPanVisual_(svg, dx, dy) {
   if (!svg) return;
   svg.style.transform = 'translate3d(' + Number(dx || 0).toFixed(2) + 'px,' + Number(dy || 0).toFixed(2) + 'px,0)';
