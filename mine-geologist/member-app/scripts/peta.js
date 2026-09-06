@@ -78,7 +78,7 @@ let activeBackgroundMapId = null;
 let mapManagePanelOpen = false;
 let mapUploadFormOpen = false;
 let mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null, tilePyramid: null };
-let mapUploadStatusMsg = '', mapUploadStatusOk = true, mapUploadBusy = false;
+let mapUploadStatusMsg = '', mapUploadStatusOk = true, mapUploadBusy = false, mapUploadProcessing = false;
 // STEP 8D: GPS realtime state -- hanya aktif saat user menyalakan GPS.
 let gpsWatchId_ = null;
 let gpsState_ = {
@@ -171,9 +171,9 @@ function openMapManagePanel_() { mapManagePanelOpen = true; render(); }
 function closeMapManagePanel_() { mapManagePanelOpen = false; mapUploadFormOpen = false; render(); }
 function openMapUploadForm_() {
   mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null, tilePyramid: null };
-  mapUploadStatusMsg = ''; mapUploadFormOpen = true; render();
+  mapUploadStatusMsg = ''; mapUploadStatusOk = true; mapUploadBusy = false; mapUploadProcessing = false; mapUploadFormOpen = true; render();
 }
-function closeMapUploadForm_() { mapUploadFormOpen = false; render(); }
+function closeMapUploadForm_() { mapUploadFormOpen = false; mapUploadProcessing = false; render(); }
 function updateMapUploadField_(field, value) { mapUploadFormState[field] = value; }
 // [BARU -- 5 Sep] Deteksi GeoTIFF: cek EKSTENSI file (bukan cuma MIME type -- browser
 // kadang kasih MIME kosong/salah utk .tif). Kalau .tif/.tiff, coba baca koordinat
@@ -206,17 +206,23 @@ async function handleMapImageFileSelected_(inputEl) {
     mapUploadStatusMsg = 'File .tif ini tidak punya koordinat tertanam (mungkin hasil "Export Map/Print", bukan "Export Data" dari ArcGIS) -- lanjut isi 2 sudut manual di bawah.';
     mapUploadStatusOk = false;
   } else if (/\.pdf$/i.test(file.name)) {
-    // [BARU -- 5 Sep] GeoPDF -- BEDA dari GeoTIFF: kalau gagal, TIDAK bisa "lanjut ke alur
-    // gambar biasa" (PDF mentah tidak bisa ditampilkan lewat <image> SVG spt PNG/JPG) --
-    // fallback-nya WAJIB minta user export ulang sbg gambar, bukan diam2 coba tampilkan
-    // PDF sbg gambar (pasti gagal/kosong).
-    mapUploadStatusMsg = 'Membaca koordinat dari GeoPDF...'; mapUploadStatusOk = true; render();
-    // [BARU -- 5 Sep, temuan bug nyata: pdf.js bisa MENGGANTUNG tanpa pernah resolve/reject
-    // kalau Worker gagal merespons -- BUKAN error biasa, jadi try/catch di dalam
-    // tryParseGeoPdf_ TIDAK CUKUP, perlu batas waktu di LUAR fungsi itu. 0 perubahan logika
-    // di dalam tryParseGeoPdf_ sendiri -- ini cuma pengaman tambahan di titik panggil.
+    // GeoPDF: pisahkan status GeoReference dari proses tile. Koordinat dikirim ke form
+    // segera setelah metadata+transform tervalidasi; user tidak perlu menunggu seluruh
+    // pyramid selesai.
+    mapUploadStatusMsg = 'Membaca koordinat dari GeoPDF...'; mapUploadStatusOk = true; mapUploadProcessing = true; render();
     const geoResult = await Promise.race([
-      tryParseGeoPdf_(file, (stageMsg) => { mapUploadStatusMsg = stageMsg; mapUploadStatusOk = true; render(); }),
+      tryParseGeoPdf_(file, (stageMsg) => { mapUploadStatusMsg = stageMsg; mapUploadStatusOk = true; render(); },
+        ({ geoReference, cornerTL, cornerBR }) => {
+          mapUploadFormState.geoReference = geoReference || null;
+          mapUploadFormState.fileName = file.name;
+          mapUploadFormState.tlTimur = String(cornerTL.timur);
+          mapUploadFormState.tlUtara = String(cornerTL.utara);
+          mapUploadFormState.brTimur = String(cornerBR.timur);
+          mapUploadFormState.brUtara = String(cornerBR.utara);
+          mapUploadStatusMsg = '✓ GeoReference/koordinat berhasil dibaca. Tile pyramid sedang diproses...';
+          mapUploadStatusOk = true;
+          render();
+        }),
       new Promise(resolve => setTimeout(() => resolve({ ok: false, reason: 'Waktu tunggu habis (20 detik) -- proses baca GeoPDF menggantung, kemungkinan masalah render pdf.js di HP ini.' }), 20000))
     ]);
     if (geoResult.ok) {
@@ -246,6 +252,7 @@ async function handleMapImageFileSelected_(inputEl) {
       mapUploadStatusMsg = geoResult.reason + ' PDF tidak bisa ditampilkan langsung di Peta -- silakan export ulang sbg gambar PNG/JPG.';
       mapUploadStatusOk = false;
     }
+    mapUploadProcessing = false;
     render(); return;
   } else if (!file.type.startsWith('image/')) {
     mapUploadStatusMsg = 'File harus berupa gambar (PNG/JPG), GeoTIFF (.tif), atau GeoPDF (.pdf).'; mapUploadStatusOk = false; render(); return;
@@ -1826,7 +1833,7 @@ function buildGeoReferenceObject_(args) {
   };
 }
 
-async function tryParseGeoPdf_(file, onProgress) {
+async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
   const report = (msg) => { if (onProgress) onProgress(msg); };
   report('Cek pdf.js...');
   if (typeof pdfjsLib === 'undefined') return { ok: false, reason: 'pdf.js belum termuat (kemungkinan CDN diblok jaringan HP ini).' };
@@ -2096,6 +2103,13 @@ async function tryParseGeoPdf_(file, onProgress) {
     boundary: geoPdfBoundary
   });
   report('GeoReference Object siap (' + cornerTL.timur.toFixed(0) + '/' + cornerTL.utara.toFixed(0) + ' -- ' + cornerBR.timur.toFixed(0) + '/' + cornerBR.utara.toFixed(0) + '): metadata + transform + CRS tersatukan.');
+  // STEP 7.5.3B: GeoReference harus dikembalikan ke form SEBELUM tile processing.
+  // Tile generation boleh memakan waktu, tetapi koordinat/CRS sudah valid dan tidak
+  // boleh menunggu seluruh pyramid selesai. Callback ini hanya mengirim GeoReference
+  // + extent; tidak mengubah transformasi/proyeksi.
+  if (typeof onGeoReferenceReady === 'function') {
+    try { onGeoReferenceReady({ geoReference, cornerTL, cornerBR }); } catch (callbackError) { console.warn('GeoReference early callback gagal:', callbackError); }
+  }
 
   let loadingTask = null, pdf = null, page = null, cropCanvas = null;
   try {
@@ -2202,7 +2216,7 @@ async function tryParseGeoPdf_(file, onProgress) {
   }
 }
 async function submitMapUpload_() {
-  if (mapUploadBusy) return;
+  if (mapUploadBusy || mapUploadProcessing) return;
   const f = mapUploadFormState;
   if (!f.fileDataUrl) { mapUploadStatusMsg = 'Pilih gambar peta dulu.'; mapUploadStatusOk = false; render(); return; }
   if (!f.name.trim()) { mapUploadStatusMsg = 'Nama peta wajib diisi.'; mapUploadStatusOk = false; render(); return; }
@@ -3079,8 +3093,8 @@ function renderMapUploadForm_() {
       inputRow('Kanan-Bawah: Utara', 'brUtara', '53100') +
     '</div>' +
     (mapUploadStatusMsg ? '<p class="text-[10px] mt-1 mb-1 font-medium ' + (mapUploadStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + mapUploadStatusMsg + '</p>' : '') +
-    '<button onclick="submitMapUpload_()" ' + (mapUploadBusy ? 'disabled' : '') + ' class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs py-2.5 rounded-xl disabled:opacity-60">' +
-      (mapUploadBusy ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>' : icon('upload','w-4 h-4')) + '<span>' + (mapUploadBusy ? 'Menyimpan...' : 'Simpan Peta') + '</span>' +
+    '<button onclick="submitMapUpload_()" ' + ((mapUploadBusy || mapUploadProcessing) ? 'disabled' : '') + ' class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs py-2.5 rounded-xl disabled:opacity-60">' +
+      ((mapUploadBusy || mapUploadProcessing) ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>' : icon('upload','w-4 h-4')) + '<span>' + (mapUploadBusy ? 'Menyimpan...' : (mapUploadProcessing ? 'Memproses GeoPDF...' : 'Simpan Peta')) + '</span>' +
     '</button>';
   return renderSimpleModal('Tambah Peta Baru', 'Upload gambar + 2 titik referensi', body, 'closeMapUploadForm_()');
 }
