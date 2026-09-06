@@ -247,10 +247,19 @@ async function handleMapImageFileSelected_(inputEl) {
       // Re-apply after render so a freshly recreated modal cannot show stale defaults.
       syncMapUploadGeoReferenceDom_();
     };
+    let lastProgressUpdate = 0;
     const geoResult = await tryParseGeoPdf_(file, (stageMsg) => {
       mapUploadStatusMsg = stageMsg;
       mapUploadStatusOk = true;
-      render();
+      // Throttle DOM rebuilds on older Android/WebView. Rendering every tile can
+      // recreate the modal hundreds of times and overwrite the live coordinate inputs.
+      const now = Date.now();
+      if (now - lastProgressUpdate > 150 || /selesai/i.test(stageMsg)) {
+        lastProgressUpdate = now;
+        render();
+        // render() recreates the modal DOM; restore the GeoPDF coordinates afterward.
+        syncMapUploadGeoReferenceDom_();
+      }
     }, applyGeoReferenceEarly_);
     if (geoResult.ok) {
       mapUploadFormState.geoReference = geoResult.geoReference || null;
@@ -616,7 +625,13 @@ async function buildTilePyramidFromGeoPdfPage_(page, vpBBox, baseScale, onProgre
         tiles.push({ x: tx, y: ty, width: tw, height: th, dataUrl });
         done++;
         if (onProgress) onProgress('Render tile PDF level ' + li + '/' + (factors.length - 1) + ': ' + done + '/' + total);
-        await new Promise(r => setTimeout(r, 0));
+        // Give older Android/WebView devices a small scheduling window every few tiles.
+        // This keeps the UI responsive and lets released canvases become collectible.
+        if (done % 5 === 0) {
+          await new Promise(r => setTimeout(r, 15));
+        } else {
+          await new Promise(r => setTimeout(r, 0));
+        }
       }
     }
     out.levels.push({ level: li, factor, scale, width, height, tilesX, tilesY, tiles });
