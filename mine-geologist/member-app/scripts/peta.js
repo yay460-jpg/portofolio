@@ -12,8 +12,8 @@
 
 // ==== PETA (Mine Grid) -- v90.2.113 BARU ====
 // State panel/interaksi peta -- terpisah dari state tab lain, tidak saling pengaruh.
-const MAP_FIT_ZOOM = 1.25; // FIT layout: sedikit diperbesar agar viewport lebih padat (~200 m pada peta uji)
-let mapZoom = MAP_FIT_ZOOM; // FIT default; >1 memperbesar
+let mapZoom = 1;             // 1 = fit-all murni; default background map memakai 1.25x agar layout lebih padat
+let mapViewportState_ = { centerNative: null }; // posisi viewport persisten; tap tidak pernah mengubahnya
 // STEP 5.6: state gesture pinch-to-zoom 2 jari.
 let mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null };
 let mapPinchRenderScheduled_ = false;
@@ -147,7 +147,7 @@ async function loadBackgroundMapsFromDb_() {
   try {
     backgroundMapsList = await dbGetAllMaps_();
     const stored = localStorage.getItem('mg1_active_bg_map_id');
-    if (stored && backgroundMapsList.find(m => m.id === stored)) activeBackgroundMapId = stored;
+    if (stored && backgroundMapsList.find(m => m.id === stored)) { activeBackgroundMapId = stored; mapZoom = 1.25; mapViewportState_.centerNative = null; }
   } catch (e) {
     console.warn('Gagal muat daftar peta background (IndexedDB mungkin tidak didukung):', e);
     backgroundMapsList = [];
@@ -187,7 +187,7 @@ function updateMapUploadField_(field, value) { mapUploadFormState[field] = value
 // gara2 GeoTIFF gagal dibaca.
 function syncMapUploadGeoReferenceDom_() {
   try {
-    const f = mapUploadFormState;
+    const f = typeof mapUploadFormState !== 'undefined' ? mapUploadFormState : (window.mapUploadFormState||null);
     if (!f) return;
     const pairs = [
       ['map-upload-tl-timur', f.tlTimur],
@@ -199,22 +199,17 @@ function syncMapUploadGeoReferenceDom_() {
       const el = document.getElementById(id);
       if (!el) continue;
       const strVal = value == null ? '' : String(value);
-      // GUARD: state kosong tidak pernah menghapus nilai DOM valid yang sudah tampil.
-      if (strVal !== '' && el.value !== strVal) el.value = strVal;
+      if (strVal && el.value !== strVal) el.value = strVal;
       if (f.geoReference) {
-        // S7 Edge/WebView: paint value/readOnly lebih dulu, disabled pada frame berikutnya.
-        el.readOnly = true;
-        if (!el.disabled) {
-          requestAnimationFrame(() => {
-            if (document.getElementById(id) === el) el.disabled = true;
-          });
-        }
+        if (!el.readOnly) el.readOnly = true;
+        requestAnimationFrame(()=>{ const e=document.getElementById(id); if(e) e.disabled=true; });
       } else {
-        el.readOnly = false;
-        el.disabled = false;
+        el.readOnly = false; el.disabled = false;
       }
     }
-  } catch (e) { console.warn('sync GeoReference DOM gagal:', e); }
+    const progText = document.getElementById('map-upload-progress-text');
+    if (progText && typeof mapUploadStatusMsg === 'string') progText.textContent = mapUploadStatusMsg;
+  } catch(e){ console.warn('sync DOM fail', e); }
 }
 
 
@@ -2353,6 +2348,8 @@ async function submitMapUpload_() {
     });
     await loadBackgroundMapsFromDb_();
     activeBackgroundMapId = id; // peta baru diupload langsung diaktifkan
+    mapZoom = 1.25;
+    mapViewportState_.centerNative = null;
     localStorage.setItem('mg1_active_bg_map_id', id);
     mapUploadFormOpen = false;
   } catch (e) {
@@ -2363,11 +2360,15 @@ async function submitMapUpload_() {
 }
 function activateBackgroundMap_(id) {
   activeBackgroundMapId = id;
+  mapZoom = 1.25;
+  mapViewportState_.centerNative = null;
   localStorage.setItem('mg1_active_bg_map_id', id);
   render();
 }
 async function deactivateBackgroundMap_() {
   activeBackgroundMapId = null;
+  mapZoom = 1;
+  mapViewportState_.centerNative = null;
   localStorage.removeItem('mg1_active_bg_map_id');
   render();
 }
@@ -2514,8 +2515,10 @@ function computeMineGridBounds(points, extraBounds) {
   // supaya SVG tidak collapse jadi 1 titik/garis tak terlihat.
   if (maxT - minT < 1) { minT -= 5; maxT += 5; }
   if (maxU - minU < 1) { minU -= 5; maxU += 5; }
-  // Padding 10% di tiap sisi supaya marker di tepi rentang tidak mepet ke batas SVG.
-  const padT = (maxT - minT) * 0.1, padU = (maxU - minU) * 0.1;
+  // V10.1: padding adaptif - 2% kalau ada background map (biar fit 150-200m padat, bukan 250m)
+  const hasBackgroundMap = extras.length > 0;
+  const padFactor = hasBackgroundMap ? 0.02 : 0.08;
+  const padT = (maxT - minT) * padFactor, padU = (maxU - minU) * padFactor;
   let effMinT = minT - padT, effMaxT = maxT + padT;
   let effMinU = minU - padU, effMaxU = maxU + padU;
   // v90.2.115 FIX (temuan audit #3 -- distorsi geometri): SEBELUMNYA rentang Timur & Utara
@@ -2537,7 +2540,7 @@ function computeMineGridBounds(points, extraBounds) {
 
 // Bounds untuk DEFAULT VIEW: seluruh area yang benar-benar sedang ditampilkan.
 // Selain TP, ikut memasukkan extent background map aktif dan seluruh KML aktif.
-// mapZoom=1 tetap berarti FIT-ALL; zoom +/- hanya memperbesar/memperkecil hasil fit ini.
+// mapZoom=1 adalah FIT-ALL murni; background map memakai default presentation zoom 1.25x agar viewport lebih padat.
 function computeMapViewBounds(points) {
   const extras = [];
 
@@ -2603,14 +2606,15 @@ function computeResponsiveDisplayBounds_(points) {
 }
 
 // STEP 5.3/5.6: viewBox zoom memakai native coordinate sebagai sumber kebenaran.
-// Pinch anchor dipakai selama gesture 2-jari. TAP TIDAK PERNAH menjadi anchor
-// viewport: tap hanya membuat marker/info, sehingga posisi peta tetap stabil.
+// Tap anchor dipakai untuk tombol +/-; pinch anchor dipakai selama gesture 2-jari.
 function getMapViewBox_(bounds) {
   const viewW = 320, viewH = 320;
   const zoomedW = viewW / mapZoom, zoomedH = viewH / mapZoom;
   let centerX = viewW / 2, centerY = viewH / 2;
   const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
   if (rangeT > 0 && rangeU > 0) {
+    // V10.2: pinch anchor hanya berlaku selama gesture. Setelah gesture selesai,
+    // pusat hasil pinch disimpan di mapViewportState_ agar render berikutnya tidak reset.
     const anchor = mapPinchState_.active && mapPinchState_.anchorNative
       ? mapPinchState_.anchorNative
       : null;
@@ -2622,12 +2626,32 @@ function getMapViewBox_(bounds) {
         const fy = Math.max(0, Math.min(1, mapPinchState_.midY));
         return { x: anchorX - fx * zoomedW, y: anchorY - fy * zoomedH, w: zoomedW, h: zoomedH };
       }
-      centerX = anchorX; centerY = anchorY;
+    }
+    // Persistent center adalah satu-satunya sumber pan setelah pinch selesai.
+    // mapTapState_ SENGAJA tidak pernah dipakai di sini.
+    const saved = mapViewportState_ && mapViewportState_.centerNative;
+    if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+      centerX = ((saved.x - bounds.minT) / rangeT) * viewW;
+      centerY = viewH - ((saved.y - bounds.minU) / rangeU) * viewH;
       if (!Number.isFinite(centerX)) centerX = viewW / 2;
       if (!Number.isFinite(centerY)) centerY = viewH / 2;
     }
   }
   return { x: centerX - zoomedW / 2, y: centerY - zoomedH / 2, w: zoomedW, h: zoomedH };
+}
+
+function captureMapViewportCenter_(bounds) {
+  if (!bounds) return;
+  const viewBox = getMapViewBox_(bounds);
+  const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+  if (!(rangeT > 0) || !(rangeU > 0)) return;
+  const centerSvgX = viewBox.x + viewBox.w / 2;
+  const centerSvgY = viewBox.y + viewBox.h / 2;
+  const nativeX = bounds.minT + (centerSvgX / 320) * rangeT;
+  const nativeY = bounds.minU + ((320 - centerSvgY) / 320) * rangeU;
+  if (Number.isFinite(nativeX) && Number.isFinite(nativeY)) {
+    mapViewportState_.centerNative = { x: nativeX, y: nativeY };
+  }
 }
 
 // STEP 5.6: helper geometri pinch-to-zoom.
@@ -2711,6 +2735,28 @@ function handleMapTouchMove_(event) {
 function handleMapTouchEnd_(event) {
   if (!mapPinchState_.active) return;
   if (event) event.preventDefault();
+  // Bekukan posisi akhir pinch sebelum anchor gesture dibuang.
+  const bounds = computeResponsiveDisplayBounds_(buildMapData());
+  if (bounds) {
+    const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+    const zoomedW = 320 / mapZoom, zoomedH = 320 / mapZoom;
+    const anchor = mapPinchState_.anchorNative;
+    if (anchor && rangeT > 0 && rangeU > 0) {
+      const anchorX = ((anchor.x - bounds.minT) / rangeT) * 320;
+      const anchorY = 320 - ((anchor.y - bounds.minU) / rangeU) * 320;
+      const fx = Math.max(0, Math.min(1, mapPinchState_.midX));
+      const fy = Math.max(0, Math.min(1, mapPinchState_.midY));
+      const finalViewX = anchorX - fx * zoomedW;
+      const finalViewY = anchorY - fy * zoomedH;
+      const centerSvgX = finalViewX + zoomedW / 2;
+      const centerSvgY = finalViewY + zoomedH / 2;
+      const centerNativeX = bounds.minT + (centerSvgX / 320) * rangeT;
+      const centerNativeY = bounds.minU + ((320 - centerSvgY) / 320) * rangeU;
+      if (Number.isFinite(centerNativeX) && Number.isFinite(centerNativeY)) {
+        mapViewportState_.centerNative = { x: centerNativeX, y: centerNativeY };
+      }
+    }
+  }
   mapPinchState_.active = false;
   mapPinchState_.suppressTapUntil = Date.now() + 350;
   const svg = mapPinchState_.visualSvg;
@@ -2906,11 +2952,22 @@ function renderMineGridSvg(points) {
   return svg;
 }
 
-function zoomMapIn() { mapZoom = Math.min(MAP_ZOOM_MAX, mapZoom + MAP_ZOOM_STEP); render(); }
-function zoomMapOut() { mapZoom = Math.max(MAP_ZOOM_MIN, mapZoom - MAP_ZOOM_STEP); render(); }
+function zoomMapIn() {
+  const bounds = computeResponsiveDisplayBounds_(buildMapData());
+  if (bounds) captureMapViewportCenter_(bounds);
+  mapZoom = Math.min(MAP_ZOOM_MAX, mapZoom + MAP_ZOOM_STEP);
+  render();
+}
+function zoomMapOut() {
+  const bounds = computeResponsiveDisplayBounds_(buildMapData());
+  if (bounds) captureMapViewportCenter_(bounds);
+  mapZoom = Math.max(MAP_ZOOM_MIN, mapZoom - MAP_ZOOM_STEP);
+  if (mapZoom === MAP_ZOOM_MIN) mapViewportState_.centerNative = null;
+  render();
+}
 // "Crosshair" = reset tampilan ke fit area peta/responsive viewport -- BUKAN GPS lokasi user (poin desain #4,
 // GPS Generic sengaja tidak dikerjakan krn tidak ada sumber Lat/Long sama sekali).
-function resetMapView() { mapZoom = MAP_FIT_ZOOM; mapPinchState_ = { active: false, startDistance: 0, startZoom: MAP_FIT_ZOOM, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
+function resetMapView() { mapZoom = activeBackgroundMapId ? 1.25 : 1; mapViewportState_.centerNative = null; mapPinchState_ = { active: false, startDistance: 0, startZoom: mapZoom, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
 
 // [BONUS -- 4 Sep] Dispatcher tap marker: rute ke Mode Ukur ATAU buka detail seperti biasa,
 // tergantung measureModeActive. Perilaku detail TP normal (openMapDetail) TIDAK diubah sama
