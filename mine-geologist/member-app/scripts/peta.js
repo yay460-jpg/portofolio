@@ -52,7 +52,12 @@ function focusMapFromValidasi(idTp) {
   mapFocusIdTp = idTp;
   switchTab('peta');
 }
-const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 8, MAP_ZOOM_STEP = 0.5;
+const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 4, MAP_ZOOM_STEP = 0.5;
+
+// STEP 7.5: tile pyramid generated from the already-rendered GeoPDF crop.
+const GEOPDF_TILE_SIZE_ = 256;
+const GEOPDF_TILE_LEVEL_FACTORS_ = [0.25, 0.5, 1];
+const GEOPDF_TILE_MAX_LEVEL_ = GEOPDF_TILE_LEVEL_FACTORS_.length - 1;
 
 // ==== PETA BACKGROUND (foto udara/hasil olah ArcGIS) -- BARU 5 Sep ====
 // Bukan baca GeoPDF/GeoTIFF asli (butuh mesin libproj+libgdal spt Avenza, mustahil di
@@ -71,7 +76,7 @@ let backgroundMapsList = []; // cache in-memory dari IndexedDB, direfresh tiap a
 let activeBackgroundMapId = null;
 let mapManagePanelOpen = false;
 let mapUploadFormOpen = false;
-let mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null };
+let mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null, tilePyramid: null };
 let mapUploadStatusMsg = '', mapUploadStatusOk = true, mapUploadBusy = false;
 // STEP 8D: GPS realtime state -- hanya aktif saat user menyalakan GPS.
 let gpsWatchId_ = null;
@@ -164,7 +169,7 @@ async function loadBackgroundMapsFromDb_() {
 function openMapManagePanel_() { mapManagePanelOpen = true; render(); }
 function closeMapManagePanel_() { mapManagePanelOpen = false; mapUploadFormOpen = false; render(); }
 function openMapUploadForm_() {
-  mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null };
+  mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null, tilePyramid: null };
   mapUploadStatusMsg = ''; mapUploadFormOpen = true; render();
 }
 function closeMapUploadForm_() { mapUploadFormOpen = false; render(); }
@@ -215,6 +220,7 @@ async function handleMapImageFileSelected_(inputEl) {
     ]);
     if (geoResult.ok) {
       mapUploadFormState.geoReference = geoResult.geoReference || null;
+      mapUploadFormState.tilePyramid = geoResult.tilePyramid || null;
       mapUploadFormState.fileDataUrl = geoResult.imageDataUrl;
       mapUploadFormState.fileName = file.name;
       mapUploadFormState.tlTimur = String(geoResult.cornerTL.timur);
@@ -449,7 +455,7 @@ function validateAffineTransform2D_(t, src, dst) {
 
 // STEP 8D: PDF page <-> rendered VP-crop pixel coordinates.
 // tryParseGeoPdf_() renders the VP area at the selected render scale, with PDF Y inverted by pdf.js.
-const GEOPDF_RENDER_SCALE_ = 2.5; // STEP 7.4: dinaikkan dari 2 -- kurangi downsampling dini raster GeoPDF sblm di-crop PNG, kualitas lebih tajam saat deep-zoom. Guard memori (9C) & batas piksel/dimensi tetap menyesuaikan otomatis.
+const GEOPDF_RENDER_SCALE_ = 3.5; // STEP 7.4: dinaikkan dari 2 -- kurangi downsampling dini raster GeoPDF sblm di-crop PNG, kualitas lebih tajam saat deep-zoom. Guard memori (9C) & batas piksel/dimensi tetap menyesuaikan otomatis.
 // STEP 9B: adaptive render guard for very large GeoPDF/VP areas.
 const GEOPDF_MAX_RENDER_PIXELS_ = 12000000;
 const GEOPDF_MAX_RENDER_DIMENSION_ = 4096;
@@ -494,6 +500,54 @@ function cleanupGeoPdfResources_(page, pdf, loadingTask, canvas) {
   try { if (!pdf && loadingTask && typeof loadingTask.destroy === 'function') loadingTask.destroy(); } catch (_) {}
   releaseGeoPdfCanvas_(canvas);
 }
+// STEP 7.5: Generator tile/pyramid dari hasil crop image yang SUDAH ada.
+// Tidak merender GeoPDF ulang per tile. Level tertinggi (factor 1) mempertahankan
+// resolusi crop asli; level bawah hanya downsample untuk zoom yang lebih dangkal.
+async function buildTilePyramidFromImage_(imageDataUrl, onProgress) {
+  if (!imageDataUrl) throw new Error('Hasil crop GeoPDF kosong.');
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = imageDataUrl;
+  await new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = () => reject(new Error('Gagal memuat hasil crop GeoPDF untuk tile pyramid.'));
+  });
+  const sourceW = Math.max(1, img.naturalWidth || img.width);
+  const sourceH = Math.max(1, img.naturalHeight || img.height);
+  const out = { version: 1, tileSize: GEOPDF_TILE_SIZE_, sourceWidth: sourceW, sourceHeight: sourceH, levels: [], maxLevel: GEOPDF_TILE_MAX_LEVEL_ };
+  for (let li = 0; li < GEOPDF_TILE_LEVEL_FACTORS_.length; li++) {
+    const factor = GEOPDF_TILE_LEVEL_FACTORS_[li];
+    const width = Math.max(1, Math.round(sourceW * factor));
+    const height = Math.max(1, Math.round(sourceH * factor));
+    const tilesX = Math.ceil(width / GEOPDF_TILE_SIZE_);
+    const tilesY = Math.ceil(height / GEOPDF_TILE_SIZE_);
+    const tiles = [];
+    const total = tilesX * tilesY;
+    let done = 0;
+    for (let ty = 0; ty < tilesY; ty++) {
+      for (let tx = 0; tx < tilesX; tx++) {
+        const x = tx * GEOPDF_TILE_SIZE_, y = ty * GEOPDF_TILE_SIZE_;
+        const tw = Math.min(GEOPDF_TILE_SIZE_, width - x), th = Math.min(GEOPDF_TILE_SIZE_, height - y);
+        const canvas = document.createElement('canvas');
+        canvas.width = tw; canvas.height = th;
+        const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
+        if (!ctx) throw new Error('Canvas tile tidak tersedia.');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, x / factor, y / factor, tw / factor, th / factor, 0, 0, tw, th);
+        const dataUrl = canvas.toDataURL('image/png');
+        releaseGeoPdfCanvas_(canvas);
+        tiles.push({ x: tx, y: ty, width: tw, height: th, dataUrl });
+        done++;
+        if (onProgress) onProgress('Membuat tile level ' + li + '/' + GEOPDF_TILE_MAX_LEVEL_ + ': ' + done + '/' + total);
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+    out.levels.push({ level: li, factor, width, height, tilesX, tilesY, tiles });
+  }
+  return out;
+}
+
 function getGeoPdfRenderScale_(geoReference) {
   const s = geoReference && Number(geoReference.renderScale);
   return Number.isFinite(s) && s > 0 ? s : GEOPDF_RENDER_SCALE_;
@@ -2123,12 +2177,13 @@ async function tryParseGeoPdf_(file, onProgress) {
     report('Render area peta selesai (' + Math.round(renderMs) + ' ms).');
     const encodeStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     const imageDataUrl = cropCanvas.toDataURL('image/png');
+    const tilePyramid = await buildTilePyramidFromImage_(imageDataUrl, report);
     const encodeFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     geoReference.render.performance.encodeMs = Math.max(0, encodeFinishedAt - encodeStartedAt);
     // Data-URL sudah menjadi hasil akhir; kanvas RGBA tidak boleh tetap menahan bitmap besar.
     releaseGeoPdfCanvas_(cropCanvas);
     cropCanvas = null;
-    return { ok: true, imageDataUrl, cornerTL, cornerBR, geoReference };
+    return { ok: true, imageDataUrl, tilePyramid, cornerTL, cornerBR, geoReference };
   } catch (e) {
     console.warn('Koordinat GeoPDF berhasil dibaca, TAPI render halaman via pdf.js gagal:', e);
     return { ok: false, reason: 'Koordinat berhasil dibaca (' + JSON.stringify(cornerTL) + ' / ' + JSON.stringify(cornerBR) + '), TAPI gagal render gambar halamannya: ' + (e.message || e) + '. Coba isi manual pakai angka di atas, upload gambar PNG/JPG terpisah.', cornerTL, cornerBR, geoReference };
@@ -2157,6 +2212,7 @@ async function submitMapUpload_() {
       cornerTL: f.geoReference && f.geoReference.extent ? { ...f.geoReference.extent.cornerTL } : { timur: parseFloat(f.tlTimur), utara: parseFloat(f.tlUtara) },
       cornerBR: f.geoReference && f.geoReference.extent ? { ...f.geoReference.extent.cornerBR } : { timur: parseFloat(f.brTimur), utara: parseFloat(f.brUtara) },
       geoReference: f.geoReference || null,
+      tilePyramid: f.tilePyramid || null,
       uploadedAt: new Date().toISOString(),
       uploadedBy: sessionInfo ? sessionInfo.userName : 'unknown'
     });
@@ -2574,7 +2630,27 @@ function renderMineGridSvg(points) {
           clipPts.map(p => p.x + ',' + p.y).join(' ') + '"/></clipPath></defs>';
         clipAttr = ' clip-path="url(#' + clipId + ')"';
       }
-      svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" preserveAspectRatio="none" opacity="0.9"' + clipAttr + '/>';
+      const pyramid = activeMap.tilePyramid;
+      if (pyramid && Array.isArray(pyramid.levels) && pyramid.levels.length) {
+        // Level 2/1/0 = native/half/quarter. Deep zoom selalu memakai native crop.
+        let targetFactor = 1;
+        if (mapZoom <= 1.5) targetFactor = 0.25;
+        else if (mapZoom <= 2.5) targetFactor = 0.5;
+        let level = pyramid.levels[0];
+        for (const candidate of pyramid.levels) {
+          if (Number(candidate.factor) <= targetFactor) level = candidate;
+        }
+        const tileSize = Number(pyramid.tileSize) || GEOPDF_TILE_SIZE_;
+        const pxScaleX = imgW / level.width, pxScaleY = imgH / level.height;
+        for (const t of (level.tiles || [])) {
+          const tx = imgX + t.x * tileSize * pxScaleX;
+          const ty = imgY + t.y * tileSize * pxScaleY;
+          const tw = t.width * pxScaleX, th = t.height * pxScaleY;
+          svg += '<image href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" preserveAspectRatio="none" opacity="0.9"' + clipAttr + '/>';
+        }
+      } else {
+        svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" preserveAspectRatio="none" opacity="0.9"' + clipAttr + '/>';
+      }
     }
   }
   // Grid garis bantu tipis (visual saja, bukan data) -- membantu orientasi skala.
