@@ -57,6 +57,17 @@ function flushMapGestureRender_() {
   mapGestureRenderPending_ = false;
   render();
 }
+// STEP 7.6B-V13.2: clear stale transient input state before a new gesture.
+function resetMapGestureTransientState_() {
+  mapGestureOwner_ = null;
+  mapPointerState_.clear();
+  mapPanState_.active = false; mapPanState_.visualSvg = null;
+  mapPanState_.dx = 0; mapPanState_.dy = 0;
+  mapPanState_.velocityX = 0; mapPanState_.velocityY = 0; mapPanState_.moved = false;
+  mapPinchState_.active = false; mapPinchState_.visualSvg = null;
+  mapPinchRenderScheduled_ = false; mapPanRenderScheduled_ = false;
+  if (mapPanInertiaRaf_) { try { cancelAnimationFrame(mapPanInertiaRaf_); } catch (_) {} mapPanInertiaRaf_ = null; }
+}
 let mapViewportRatio_ = 1;
 let mapViewportSyncScheduled_ = false;
 
@@ -2790,7 +2801,10 @@ function scheduleMapPinchRender_() {
 
 function handleMapTouchStart_(event) {
   if (mapGestureOwner_ === 'pointer') return;
-  if (mapGestureOwner_ === null) mapGestureOwner_ = 'touch';
+  if (mapGestureOwner_ === null) {
+    if (mapPointerState_.size || mapPanState_.active || mapPinchState_.active || mapPanInertiaRaf_) resetMapGestureTransientState_();
+    mapGestureOwner_ = 'touch';
+  }
   console.log('[TRACE] touchstart owner=touch', event.touches.length);
   if (!event || !event.touches || event.touches.length!==1) {
     if (event.touches && event.touches.length===2) {
@@ -2850,24 +2864,33 @@ function handleMapTouchMove_(event) {
 }
 function handleMapTouchEnd_(event) {
   if (mapGestureOwner_ !== 'touch') return;
-  console.log('[TRACE] touchend owner=touch moved', mapPanState_.moved);
-  if (!mapPanState_.active && !mapPinchState_.active) return;
-  if (event) { try{event.preventDefault();}catch(_){} }
+  const touches = event && event.touches ? event.touches : null;
+  console.log('[TRACE] touchend owner=touch moved', mapPanState_.moved, 'remaining', touches ? touches.length : 0);
+  if (touches && touches.length === 1 && mapPinchState_.active) {
+    try { event.preventDefault(); event.stopPropagation(); } catch (_) {}
+    const bounds = computeResponsiveDisplayBounds_(buildMapData());
+    if (bounds) commitMapPinchViewport_(bounds);
+    const visual = mapPinchState_.visualSvg;
+    mapPinchState_.active = false; mapPinchState_.suppressTapUntil = Date.now()+350;
+    if (visual) { visual.style.transform='none'; visual.style.willChange=''; }
+    mapPinchState_.visualSvg = null; mapPinchRenderScheduled_ = false;
+    const svg = event.currentTarget.querySelector('svg') || event.currentTarget;
+    if (bounds) beginMapPanPointer_(event, svg, bounds, touches[0].clientX, touches[0].clientY);
+    return;
+  }
+  if (touches && touches.length > 0) return;
+  if (!mapPanState_.active && !mapPinchState_.active) { mapGestureOwner_=null; return; }
+  try { event.preventDefault(); event.stopPropagation(); } catch (_) {}
   if (mapPinchState_.active) {
-    const bounds=computeResponsiveDisplayBounds_(buildMapData());
-    if(bounds) commitMapPinchViewport_(bounds);
+    const bounds=computeResponsiveDisplayBounds_(buildMapData()); if(bounds) commitMapPinchViewport_(bounds);
     mapPinchState_.active=false; mapPinchState_.suppressTapUntil=Date.now()+350;
-    const visual=mapPinchState_.visualSvg;
-    if(visual){visual.style.transform='none';visual.style.willChange='';}
-    mapPinchState_.visualSvg=null; mapPinchRenderScheduled_=false;
-    mapGestureOwner_=null;
-    requestAnimationFrame(()=>{ render(); flushMapGestureRender_(); }); return;
+    const visual=mapPinchState_.visualSvg; if(visual){visual.style.transform='none';visual.style.willChange='';}
+    mapPinchState_.visualSvg=null; mapPinchRenderScheduled_=false; mapGestureOwner_=null;
+    requestAnimationFrame(()=>{render();flushMapGestureRender_();}); return;
   }
   if (mapPanState_.active) {
     if (mapPanState_.moved && startMapPanInertia_()) { mapPanState_.suppressTapUntil=Date.now()+500; mapGestureOwner_=null; return; }
-    commitMapPan_(0,0); mapPanState_.suppressTapUntil=mapPanState_.moved?Date.now()+350:0;
-    mapGestureOwner_=null;
-    flushMapGestureRender_();
+    commitMapPan_(0,0); mapPanState_.suppressTapUntil=mapPanState_.moved?Date.now()+350:0; mapGestureOwner_=null; flushMapGestureRender_();
   }
 }
 
@@ -3035,7 +3058,10 @@ function commitMapPinchViewport_(bounds) {
 }
 function handleMapPointerDown_(event) {
   if (mapGestureOwner_ === 'touch') return;
-  if (mapGestureOwner_ === null) mapGestureOwner_ = 'pointer';
+  if (mapGestureOwner_ === null) {
+    if (mapPointerState_.size || mapPanState_.active || mapPinchState_.active || mapPanInertiaRaf_) resetMapGestureTransientState_();
+    mapGestureOwner_ = 'pointer';
+  }
   if (!event || !event.currentTarget) { mapGestureOwner_=null; return; }
   const svg = getMapPointerSvg_(event);
   if (!svg) return;
@@ -3105,50 +3131,33 @@ function handleMapPointerMove_(event) {
 }
 function handleMapPointerUp_(event) {
   if (mapGestureOwner_ !== 'pointer') return;
-  if (!event) { mapGestureOwner_=null; return; }
-  const svg = getMapPointerSvg_(event);
-  const wasPinching = mapPinchState_.active;
-  const wasPanning = mapPanState_.active;
-  const moved = mapPanState_.moved;
+  if (!event) { resetMapGestureTransientState_(); return; }
+  const svg=getMapPointerSvg_(event); const wasPinching=mapPinchState_.active; const wasPanning=mapPanState_.active; const moved=mapPanState_.moved;
   mapPointerState_.delete(event.pointerId);
-  try { if (svg && svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId); } catch (_) {}
-
-  if (wasPinching) {
-    const bounds = computeResponsiveDisplayBounds_(buildMapData());
-    if (bounds) commitMapPinchViewport_(bounds);
-    mapPinchState_.active = false;
-    mapPinchState_.suppressTapUntil = Date.now() + 350;
-    const visual = mapPinchState_.visualSvg;
-    if (visual) { visual.style.transform = 'none'; visual.style.willChange = ''; }
-    mapPinchState_.visualSvg = null;
-    mapPinchRenderScheduled_ = false;
-    const remaining = Array.from(mapPointerState_.entries());
-    if (remaining.length === 1 && visual) {
-      const p = remaining[0][1];
-      beginMapPanPointer_(event, visual, bounds, p.x, p.y);
-      mapPanState_.suppressTapUntil = Date.now() + 350;
-    } else {
-      requestAnimationFrame(() => { render(); flushMapGestureRender_(); });
-    }
-    mapGestureOwner_=null;
+  try { if(svg && svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId); } catch(_) {}
+  const remaining=Array.from(mapPointerState_.entries());
+  if (wasPinching && remaining.length===1) {
+    const bounds=computeResponsiveDisplayBounds_(buildMapData()); if(bounds) commitMapPinchViewport_(bounds);
+    mapPinchState_.active=false; mapPinchState_.suppressTapUntil=Date.now()+350;
+    const visual=mapPinchState_.visualSvg || svg; if(visual){visual.style.transform='none';visual.style.willChange='';}
+    mapPinchState_.visualSvg=null; mapPinchRenderScheduled_=false;
+    if(bounds && visual){const q=remaining[0][1]; beginMapPanPointer_(event,visual,bounds,q.x,q.y);}
     return;
   }
-
-  if (wasPanning) {
-    if (moved && startMapPanInertia_()) {
-      mapPanState_.suppressTapUntil = Date.now() + 500;
-      mapGestureOwner_=null;
-      return;
-    }
-    commitMapPan_(0, 0);
-    mapPanState_.suppressTapUntil = moved ? Date.now() + 350 : 0;
-    mapGestureOwner_=null;
-    flushMapGestureRender_();
-  } else {
-    mapGestureOwner_=null;
-    flushMapGestureRender_();
+  if (remaining.length>0) return;
+  if (wasPinching) {
+    const bounds=computeResponsiveDisplayBounds_(buildMapData()); if(bounds) commitMapPinchViewport_(bounds);
+    mapPinchState_.active=false; mapPinchState_.suppressTapUntil=Date.now()+350;
+    const visual=mapPinchState_.visualSvg; if(visual){visual.style.transform='none';visual.style.willChange='';}
+    mapPinchState_.visualSvg=null; mapPinchRenderScheduled_=false; mapGestureOwner_=null;
+    requestAnimationFrame(()=>{render();flushMapGestureRender_();}); return;
   }
+  if (wasPanning) {
+    if(moved && startMapPanInertia_()){mapPanState_.suppressTapUntil=Date.now()+500;mapGestureOwner_=null;return;}
+    commitMapPan_(0,0); mapPanState_.suppressTapUntil=moved?Date.now()+350:0; mapGestureOwner_=null; flushMapGestureRender_();
+  } else { mapGestureOwner_=null; flushMapGestureRender_(); }
 }
+
 function handleMapPointerCancel_(event) {
   handleMapPointerUp_(event);
 }
