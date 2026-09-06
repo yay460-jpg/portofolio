@@ -10,7 +10,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'lithosite-member-app-build-20260906f';
+const CACHE_NAME = 'lithosite-member-app-build-20260906g';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
@@ -51,9 +51,9 @@ self.addEventListener('install', (event) => {
         APP_SHELL.map((url) => cache.add(url).catch(() => {}))
       )
     )
-    // SENGAJA TIDAK memanggil self.skipWaiting() di sini -- SW baru dibiarkan
-    // "waiting" sampai user pilih reload sendiri (kalau nanti toast update ditambahkan
-    // ke Member App -- untuk sekarang app langsung reload manual saat user buka lagi).
+    // STEP 7.5 V9: activate build baru segera agar peta.js terbaru tidak tertahan
+    // oleh Service Worker lama yang masih waiting.
+    .then(() => self.skipWaiting())
   );
 });
 
