@@ -12,6 +12,8 @@
 // ==== PETA (Mine Grid) -- v90.2.113 BARU ====
 // State panel/interaksi peta -- terpisah dari state tab lain, tidak saling pengaruh.
 let mapZoom = 1;             // 1 = fit-semua-titik (default), >1 memperbesar
+// STEP 5.6: state gesture pinch-to-zoom 2 jari.
+let mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0 };
 let mapViewportRatio_ = 1;
 let mapViewportSyncScheduled_ = false;
 
@@ -21,20 +23,6 @@ function getMapViewportRatio_() {
   const w = el.clientWidth, h = el.clientHeight;
   if (!(w > 0 && h > 0)) return 1;
   return w / h;
-}
-
-function syncMapViewportFit_() {
-  const ratio = getMapViewportRatio_();
-  if (!(ratio > 0) || !Number.isFinite(ratio)) return;
-  if (Math.abs(ratio - mapViewportRatio_) < 0.01) return;
-  mapViewportRatio_ = ratio;
-  if (!mapViewportSyncScheduled_) {
-    mapViewportSyncScheduled_ = true;
-    requestAnimationFrame(() => {
-      mapViewportSyncScheduled_ = false;
-      render();
-    });
-  }
 }
 
 function scheduleMapViewportFit_() {
@@ -684,16 +672,18 @@ function startGpsTracking_() {
 function handleMapTap_(event) {
   try {
     if (!event || !event.currentTarget) return;
+    // STEP 5.6: tap yg dipicu di tengah/tepat sesudah gesture pinch diabaikan -- browser
+    // kadang tetap sintesis 1 event klik dari sisa sentuhan multi-jari.
+    if (mapPinchState_.active || Date.now() < mapPinchState_.suppressTapUntil) return;
     const svgEl = event.currentTarget;
     const bounds = computeResponsiveDisplayBounds_(buildMapData());
     if (!bounds) return;
     const rect = svgEl.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const viewW = 320, viewH = 320;
-    const zoomedW = viewW / mapZoom, zoomedH = viewH / mapZoom;
-    const offX = (viewW - zoomedW) / 2, offY = (viewH - zoomedH) / 2;
-    const svgX = offX + ((event.clientX - rect.left) / rect.width) * zoomedW;
-    const svgY = offY + ((event.clientY - rect.top) / rect.height) * zoomedH;
+    const viewBox = getMapViewBox_(bounds);
+    const svgX = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.w;
+    const svgY = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.h;
     if (!Number.isFinite(svgX) || !Number.isFinite(svgY)) return;
     const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
     const nativeX = bounds.minT + (svgX / viewW) * rangeT;
@@ -2421,6 +2411,93 @@ function computeResponsiveDisplayBounds_(points) {
   return { minT, maxT, minU, maxU };
 }
 
+// STEP 5.3/5.6: viewBox zoom memakai native coordinate sebagai sumber kebenaran.
+// Tap anchor dipakai untuk tombol +/-; pinch anchor dipakai selama gesture 2-jari.
+function getMapViewBox_(bounds) {
+  const viewW = 320, viewH = 320;
+  const zoomedW = viewW / mapZoom, zoomedH = viewH / mapZoom;
+  let centerX = viewW / 2, centerY = viewH / 2;
+  const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+  if (rangeT > 0 && rangeU > 0) {
+    const anchor = mapPinchState_.active && mapPinchState_.anchorNative
+      ? mapPinchState_.anchorNative
+      : (mapZoom > MAP_ZOOM_MIN && mapTapState_.active && mapTapState_.native ? mapTapState_.native : null);
+    if (anchor) {
+      const anchorX = ((anchor.x - bounds.minT) / rangeT) * viewW;
+      const anchorY = viewH - ((anchor.y - bounds.minU) / rangeU) * viewH;
+      if (mapPinchState_.active) {
+        const fx = Math.max(0, Math.min(1, mapPinchState_.midX));
+        const fy = Math.max(0, Math.min(1, mapPinchState_.midY));
+        return { x: anchorX - fx * zoomedW, y: anchorY - fy * zoomedH, w: zoomedW, h: zoomedH };
+      }
+      centerX = anchorX; centerY = anchorY;
+      if (!Number.isFinite(centerX)) centerX = viewW / 2;
+      if (!Number.isFinite(centerY)) centerY = viewH / 2;
+    }
+  }
+  return { x: centerX - zoomedW / 2, y: centerY - zoomedH / 2, w: zoomedW, h: zoomedH };
+}
+
+// STEP 5.6: helper geometri pinch-to-zoom.
+function pinchDistance_(a, b) {
+  const dx = b.clientX - a.clientX, dy = b.clientY - a.clientY;
+  return Math.hypot(dx, dy);
+}
+function pinchMidpoint_(a, b, rect) {
+  return {
+    x: ((a.clientX + b.clientX) / 2 - rect.left) / rect.width,
+    y: ((a.clientY + b.clientY) / 2 - rect.top) / rect.height
+  };
+}
+function nativeFromClientPoint_(event, bounds, rect) {
+  const viewW = 320, viewH = 320;
+  const viewBox = getMapViewBox_(bounds);
+  const sx = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.w;
+  const sy = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.h;
+  const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+  return {
+    x: bounds.minT + (sx / viewW) * rangeT,
+    y: bounds.minU + ((viewH - sy) / viewH) * rangeU
+  };
+}
+function handleMapTouchStart_(event) {
+  if (!event || !event.touches || event.touches.length !== 2 || !event.currentTarget) return;
+  event.preventDefault();
+  const rect = event.currentTarget.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const bounds = computeResponsiveDisplayBounds_(buildMapData());
+  if (!bounds) return;
+  const a = event.touches[0], b = event.touches[1];
+  const distance = pinchDistance_(a, b);
+  if (!(distance > 0)) return;
+  const midpoint = pinchMidpoint_(a, b, rect);
+  const anchor = nativeFromClientPoint_({ clientX: (a.clientX + b.clientX) / 2, clientY: (a.clientY + b.clientY) / 2 }, bounds, rect);
+  mapPinchState_ = { active: true, startDistance: distance, startZoom: mapZoom, anchorNative: anchor, midX: midpoint.x, midY: midpoint.y, suppressTapUntil: Date.now() + 500 };
+}
+function handleMapTouchMove_(event) {
+  if (!mapPinchState_.active || !event || !event.touches || event.touches.length !== 2 || !event.currentTarget) return;
+  event.preventDefault();
+  const rect = event.currentTarget.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  const distance = pinchDistance_(event.touches[0], event.touches[1]);
+  if (!(distance > 0) || !(mapPinchState_.startDistance > 0)) return;
+  const midpoint = pinchMidpoint_(event.touches[0], event.touches[1], rect);
+  const nextZoom = Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, mapPinchState_.startZoom * (distance / mapPinchState_.startDistance)));
+  mapPinchState_.midX = midpoint.x;
+  mapPinchState_.midY = midpoint.y;
+  if (Math.abs(nextZoom - mapZoom) >= 0.01) {
+    mapZoom = nextZoom;
+    render();
+  }
+}
+function handleMapTouchEnd_(event) {
+  if (!mapPinchState_.active) return;
+  if (event) event.preventDefault();
+  mapPinchState_.active = false;
+  mapPinchState_.suppressTapUntil = Date.now() + 350;
+  render();
+}
+
 // Konversi 1 titik Timur/Utara -> koordinat SVG (x,y). SVG y-axis terbalik dari Utara
 // (Utara makin besar = "ke atas" secara peta, tapi SVG y makin besar = "ke bawah") --
 // makanya utara di-flip di rumus y.
@@ -2467,12 +2544,11 @@ function renderMineGridSvg(points) {
   const viewW = 320, viewH = 320;
   if (!bounds) return '';
   // Zoom diterapkan lewat viewBox SVG (bukan transform per-titik) -- viewBox lebih kecil
-  // = area yg sama ditampilkan lebih besar (efek perbesar), digeser ke tengah supaya
-  // titik yg terlihat tetap proporsional terhadap pusat, bukan menempel pojok kiri-atas.
-  const zoomedW = viewW / mapZoom, zoomedH = viewH / mapZoom;
-  const offX = (viewW - zoomedW) / 2, offY = (viewH - zoomedH) / 2;
+  // = area yg sama ditampilkan lebih besar (efek perbesar). STEP 5.3: pusat viewBox
+  // mengikuti titik tap terakhir (anchor) kalau ada & sedang di-zoom, bukan selalu tengah.
+  const viewBox = getMapViewBox_(bounds);
   const valid = points.filter(p => p.hasValidCoord);
-  let svg = '<svg viewBox="' + offX + ' ' + offY + ' ' + zoomedW + ' ' + zoomedH + '" class="w-full h-full" style="touch-action:none;" onclick="handleMapTap_(event)">';
+  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" style="touch-action:none;" onclick="handleMapTap_(event)" ontouchstart="handleMapTouchStart_(event)" ontouchmove="handleMapTouchMove_(event)" ontouchend="handleMapTouchEnd_(event)" ontouchcancel="handleMapTouchEnd_(event)">';
   // [BARU -- 5 Sep] Peta background (foto udara/olah ArcGIS) -- digambar PALING BAWAH
   // (sebelum grid helper & marker) supaya tidak menutupi apa pun. Posisi & ukuran dihitung
   // dari 2 sudut referensi pakai projectToSvg() yg SAMA dgn yg plot titik TP -- kalau titik
@@ -2546,8 +2622,10 @@ function renderMineGridSvg(points) {
       '</g>';
   }
   // STEP 8E: marker hasil tap. Pointer-events none agar tidak mengganggu tap berikutnya.
-  if (mapTapState_.active && mapTapState_.svg) {
-    const tp = mapTapState_.svg;
+  // STEP 5.3: posisi dihitung ULANG tiap render dari native (bukan svg statis) -- kalau
+  // tidak, posisi marker jadi USANG begitu viewBox berpindah (mis. saat zoom-anchor aktif).
+  if (mapTapState_.active && mapTapState_.native) {
+    const tp = projectToSvg(mapTapState_.native.x, mapTapState_.native.y, bounds, viewW, viewH);
     svg += '<g aria-label="Koordinat tap" pointer-events="none">' +
       '<circle cx="' + tp.x + '" cy="' + tp.y + '" r="7" fill="none" stroke="#facc15" stroke-width="2"/>' +
       '<line x1="' + (tp.x-10) + '" y1="' + tp.y + '" x2="' + (tp.x+10) + '" y2="' + tp.y + '" stroke="#facc15" stroke-width="1"/>' +
@@ -2585,7 +2663,7 @@ function zoomMapIn() { mapZoom = Math.min(MAP_ZOOM_MAX, mapZoom + MAP_ZOOM_STEP)
 function zoomMapOut() { mapZoom = Math.max(MAP_ZOOM_MIN, mapZoom - MAP_ZOOM_STEP); render(); }
 // "Crosshair" = reset tampilan ke fit area peta/responsive viewport -- BUKAN GPS lokasi user (poin desain #4,
 // GPS Generic sengaja tidak dikerjakan krn tidak ada sumber Lat/Long sama sekali).
-function resetMapView() { mapZoom = 1; render(); }
+function resetMapView() { mapZoom = 1; mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0 }; render(); }
 
 // [BONUS -- 4 Sep] Dispatcher tap marker: rute ke Mode Ukur ATAU buka detail seperti biasa,
 // tergantung measureModeActive. Perilaku detail TP normal (openMapDetail) TIDAK diubah sama
@@ -2890,8 +2968,12 @@ function renderMapUploadForm_() {
   if (!mapUploadFormOpen) return '';
   const f = mapUploadFormState;
   function inputRow(label, field, placeholder) {
+    // [BARU] Kunci 4 kolom ini kalau koordinat berasal dari GeoPDF auto-detect (jaga-jaga
+    // human error -- angka GeoPDF sudah tervalidasi otomatis, tidak perlu/boleh diubah
+    // manual). GeoTIFF & upload manual TETAP bisa diedit seperti biasa (0 geoReference).
+    const locked = !!f.geoReference;
     return '<div><label class="block text-[10px] text-white/40 mb-1 font-medium">' + label + '</label>' +
-      '<input type="text" inputmode="decimal" value="' + (f[field]||'') + '" oninput="updateMapUploadField_(\'' + field + '\', this.value)" placeholder="' + placeholder + '" class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60"></div>';
+      '<input type="text" inputmode="decimal" value="' + (f[field]||'') + '" oninput="updateMapUploadField_(\'' + field + '\', this.value)" placeholder="' + placeholder + '" ' + (locked ? 'disabled readonly' : '') + ' class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60' + (locked ? ' opacity-50 cursor-not-allowed' : '') + '"></div>';
   }
   const body =
     '<div class="mb-3">' +
@@ -2904,6 +2986,7 @@ function renderMapUploadForm_() {
       (f.fileDataUrl ? '<img src="' + f.fileDataUrl + '" class="w-full h-24 object-cover rounded-lg mt-2">' : '') +
     '</div>' +
     '<p class="text-[10px] text-white/40 mb-2 leading-relaxed">Masukkan Timur/Utara pojok KIRI-ATAS dan KANAN-BAWAH gambar (dari ArcGIS/data survey) -- ini yang dipakai app utk menempel gambar ke posisi yang benar.</p>' +
+    (f.geoReference ? '<p class="text-[10px] text-emerald-400/80 mb-2 leading-relaxed">🔒 Terkunci -- koordinat ini hasil auto-detect GeoPDF, tidak bisa diedit manual (jaga-jaga salah ketik). Ganti file kalau perlu koordinat berbeda.</p>' : '') +
     '<div class="grid grid-cols-2 gap-2 mb-2">' +
       inputRow('Kiri-Atas: Timur', 'tlTimur', '397000') +
       inputRow('Kiri-Atas: Utara', 'tlUtara', '53500') +
