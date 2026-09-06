@@ -42,6 +42,21 @@ if (typeof document !== 'undefined') {
 }
 // STEP 7.6 V10.4: unified Pointer Events state. Visual movement stays on compositor.
 let mapPointerState_ = new Map();
+// STEP 7.6B-V13.1: one gesture = one input owner.
+let mapGestureOwner_ = null; // 'touch' | 'pointer' | null
+let mapGestureRenderPending_ = false;
+function requestMapRender_() {
+  if (mapPanState_.active || mapPinchState_.active || mapPanInertiaRaf_) {
+    mapGestureRenderPending_ = true;
+    return;
+  }
+  render();
+}
+function flushMapGestureRender_() {
+  if (!mapGestureRenderPending_) return;
+  mapGestureRenderPending_ = false;
+  render();
+}
 let mapViewportRatio_ = 1;
 let mapViewportSyncScheduled_ = false;
 
@@ -59,9 +74,10 @@ function blockMapContextMenu_() {
     vp.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         clearTimeout(longPressTimer);
-        longPressTimer = setTimeout(() => { try{ e.preventDefault(); }catch(_){} }, 400);
+        // TRACE: jangan preventDefault di sini dengan stale event, cegah menu via CSS saja
+        longPressTimer = setTimeout(() => { console.log('[TRACE] longPress 400ms would trigger menu - blocked by CSS'); }, 400);
       }
-    }, { passive: false, capture: true });
+    }, { passive: true, capture: true });
     vp.addEventListener('touchend', () => { clearTimeout(longPressTimer); }, { passive: true });
     vp.addEventListener('touchmove', () => { clearTimeout(longPressTimer); }, { passive: false });
   } catch(e){}
@@ -953,7 +969,7 @@ function startGpsTracking_() {
         page: mapped ? mapped.page : null, pixel: mapped ? mapped.pixel : null,
         error: mapped ? (insideBoundary ? null : 'Posisi GPS berada di luar Neatline GeoPDF.') : 'Koordinat GPS tidak dapat diproyeksikan ke GeoPDF.'
       };
-      render();
+      requestMapRender_();
     },
     err => {
       gpsState_ = { ...gpsState_, active: true, status: 'error', error: 'GPS error (' + err.code + '): ' + (err.message || 'lokasi tidak tersedia') };
@@ -2771,7 +2787,91 @@ function scheduleMapPinchRender_() {
     if (mapPinchState_.active) render();
   });
 }
-function scheduleMapPanVisual_() {
+
+function handleMapTouchStart_(event) {
+  if (mapGestureOwner_ === 'pointer') return;
+  if (mapGestureOwner_ === null) mapGestureOwner_ = 'touch';
+  console.log('[TRACE] touchstart owner=touch', event.touches.length);
+  if (!event || !event.touches || event.touches.length!==1) {
+    if (event.touches && event.touches.length===2) {
+      // 2 finger -> pinch
+      const a=event.touches[0], b=event.touches[1];
+      const rect=event.currentTarget.getBoundingClientRect();
+      const bounds=computeResponsiveDisplayBounds_(buildMapData());
+      if (!bounds) return;
+      const distance=Math.hypot(b.clientX-a.clientX, b.clientY-a.clientY);
+      const midpoint={x:((a.clientX+b.clientX)/2-rect.left)/rect.width, y:((a.clientY+b.clientY)/2-rect.top)/rect.height};
+      const anchor=nativeFromClientPoint_({clientX:(a.clientX+b.clientX)/2, clientY:(a.clientY+b.clientY)/2}, bounds, rect);
+      mapPanState_.active=false;
+      if (mapPanInertiaRaf_) { cancelAnimationFrame(mapPanInertiaRaf_); mapPanInertiaRaf_=null; }
+      const svg=event.currentTarget.querySelector('svg');
+      mapPinchState_={active:true,startDistance:distance,startZoom:mapZoom,anchorNative:anchor,midX:midpoint.x,midY:midpoint.y,suppressTapUntil:Date.now()+500,visualSvg:svg};
+      if(svg){svg.style.transform='none';svg.style.willChange='transform';}
+      event.preventDefault();event.stopPropagation();
+    }
+    return;
+  }
+  event.preventDefault();event.stopPropagation();
+  const svg=event.currentTarget.querySelector('svg')||event.currentTarget;
+  const bounds=computeResponsiveDisplayBounds_(buildMapData());
+  if(!bounds) { console.log('[TRACE] no bounds'); return; }
+  const startX=event.touches[0].clientX, startY=event.touches[0].clientY;
+  beginMapPanPointer_(event, svg, bounds, startX, startY);
+  console.log('[TRACE] pan started', startX, startY, 'center', mapPanState_.baseCenterNative);
+}
+function handleMapTouchMove_(event) {
+  if (!mapPanState_.active || !event.touches || event.touches.length!==1) {
+    if (mapPinchState_.active && event.touches && event.touches.length===2) {
+      event.preventDefault();
+      const a=event.touches[0], b=event.touches[1];
+      const distance=Math.hypot(b.clientX-a.clientX, b.clientY-a.clientY);
+      if(!(distance>0)||!(mapPinchState_.startDistance>0)) return;
+      const rect=event.currentTarget.getBoundingClientRect();
+      const midpoint={x:((a.clientX+b.clientX)/2-rect.left)/rect.width, y:((a.clientY+b.clientY)/2-rect.top)/rect.height};
+      mapPinchState_.midX=midpoint.x; mapPinchState_.midY=midpoint.y;
+      mapZoom=Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, mapPinchState_.startZoom*(distance/mapPinchState_.startDistance)));
+      applyPinchVisualTransform_(mapZoom);
+    }
+    return;
+  }
+  event.preventDefault();event.stopPropagation();
+  const curX=event.touches[0].clientX, curY=event.touches[0].clientY;
+  const dx=curX-mapPanState_.startX, dy=curY-mapPanState_.startY;
+  const now=performance.now();
+  const dt=Math.max(1,now-mapPanState_.lastT);
+  const sample=Math.max(0.001, Math.min(1,16/dt));
+  const vx=(curX-mapPanState_.lastX)/dt, vy=(curY-mapPanState_.lastY)/dt;
+  mapPanState_.velocityX=mapPanState_.velocityX*(1-sample)+vx*sample;
+  mapPanState_.velocityY=mapPanState_.velocityY*(1-sample)+vy*sample;
+  mapPanState_.lastX=curX;mapPanState_.lastY=curY;mapPanState_.lastT=now;
+  mapPanState_.dx=dx;mapPanState_.dy=dy;
+  if(Math.hypot(dx,dy)>=4) mapPanState_.moved=true;
+  scheduleMapPanVisual_();
+}
+function handleMapTouchEnd_(event) {
+  if (mapGestureOwner_ !== 'touch') return;
+  console.log('[TRACE] touchend owner=touch moved', mapPanState_.moved);
+  if (!mapPanState_.active && !mapPinchState_.active) return;
+  if (event) { try{event.preventDefault();}catch(_){} }
+  if (mapPinchState_.active) {
+    const bounds=computeResponsiveDisplayBounds_(buildMapData());
+    if(bounds) commitMapPinchViewport_(bounds);
+    mapPinchState_.active=false; mapPinchState_.suppressTapUntil=Date.now()+350;
+    const visual=mapPinchState_.visualSvg;
+    if(visual){visual.style.transform='none';visual.style.willChange='';}
+    mapPinchState_.visualSvg=null; mapPinchRenderScheduled_=false;
+    mapGestureOwner_=null;
+    requestAnimationFrame(()=>{ render(); flushMapGestureRender_(); }); return;
+  }
+  if (mapPanState_.active) {
+    if (mapPanState_.moved && startMapPanInertia_()) { mapPanState_.suppressTapUntil=Date.now()+500; mapGestureOwner_=null; return; }
+    commitMapPan_(0,0); mapPanState_.suppressTapUntil=mapPanState_.moved?Date.now()+350:0;
+    mapGestureOwner_=null;
+    flushMapGestureRender_();
+  }
+}
+
+function scheduleMapPanVisual__OLD() {
   if (mapPanRenderScheduled_) return;
   mapPanRenderScheduled_ = true;
   requestAnimationFrame(() => {
@@ -2934,13 +3034,13 @@ function commitMapPinchViewport_(bounds) {
   }
 }
 function handleMapPointerDown_(event) {
-  if (!event || !event.currentTarget) return;
+  if (mapGestureOwner_ === 'touch') return;
+  if (mapGestureOwner_ === null) mapGestureOwner_ = 'pointer';
+  if (!event || !event.currentTarget) { mapGestureOwner_=null; return; }
   const svg = getMapPointerSvg_(event);
   if (!svg) return;
-  // Touch ownership ditentukan oleh touch-action:none + blocker contextmenu/select/drag.
-  // JANGAN preventDefault() pada pointerdown: Android/WebView dapat menekan compatibility
-  // click sehingga tap cepat tidak lagi masuk ke handleMapTap_. Pointermove akan dibatalkan
-  // saat gesture benar-benar bergerak.
+  // V13 TRACE FIX: di S7 Edge, pointerdown HARUS preventDefault untuk dapat pointermove, tap tetap masuk via suppressTapUntil
+  try{ event.preventDefault(); }catch(_){}
   try { svg.setPointerCapture(event.pointerId); } catch (_) {}
   mapPointerState_.set(event.pointerId, { x: event.clientX, y: event.clientY });
   const points = Array.from(mapPointerState_.entries());
@@ -2967,6 +3067,7 @@ function handleMapPointerDown_(event) {
   }
 }
 function handleMapPointerMove_(event) {
+  if (mapGestureOwner_ !== 'pointer') return;
   if (!event || !event.currentTarget || !mapPointerState_.has(event.pointerId)) return;
   mapPointerState_.set(event.pointerId, { x: event.clientX, y: event.clientY });
   const svg = getMapPointerSvg_(event);
@@ -3003,7 +3104,8 @@ function handleMapPointerMove_(event) {
   }
 }
 function handleMapPointerUp_(event) {
-  if (!event) return;
+  if (mapGestureOwner_ !== 'pointer') return;
+  if (!event) { mapGestureOwner_=null; return; }
   const svg = getMapPointerSvg_(event);
   const wasPinching = mapPinchState_.active;
   const wasPanning = mapPanState_.active;
@@ -3026,18 +3128,25 @@ function handleMapPointerUp_(event) {
       beginMapPanPointer_(event, visual, bounds, p.x, p.y);
       mapPanState_.suppressTapUntil = Date.now() + 350;
     } else {
-      requestAnimationFrame(() => render());
+      requestAnimationFrame(() => { render(); flushMapGestureRender_(); });
     }
+    mapGestureOwner_=null;
     return;
   }
 
   if (wasPanning) {
     if (moved && startMapPanInertia_()) {
       mapPanState_.suppressTapUntil = Date.now() + 500;
+      mapGestureOwner_=null;
       return;
     }
     commitMapPan_(0, 0);
     mapPanState_.suppressTapUntil = moved ? Date.now() + 350 : 0;
+    mapGestureOwner_=null;
+    flushMapGestureRender_();
+  } else {
+    mapGestureOwner_=null;
+    flushMapGestureRender_();
   }
 }
 function handleMapPointerCancel_(event) {
@@ -3095,7 +3204,7 @@ function renderMineGridSvg(points) {
   // mengikuti persistent viewport state; titik tap tidak pernah menjadi anchor.
   const viewBox = getMapViewBox_(bounds);
   const valid = points.filter(p => p.hasValidCoord);
-  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="pointer-events:auto; touch-action:none; overflow:hidden; will-change:transform; transition:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
+  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="pointer-events:auto; touch-action:none; overflow:hidden; will-change:transform; transition:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" ontouchstart="handleMapTouchStart_(event)" ontouchmove="handleMapTouchMove_(event)" ontouchend="handleMapTouchEnd_(event)" ontouchcancel="handleMapTouchEnd_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
   // [BARU -- 5 Sep] Peta background (foto udara/olah ArcGIS) -- digambar PALING BAWAH
   // (sebelum grid helper & marker) supaya tidak menutupi apa pun. Posisi & ukuran dihitung
   // dari 2 sudut referensi pakai projectToSvg() yg SAMA dgn yg plot titik TP -- kalau titik
