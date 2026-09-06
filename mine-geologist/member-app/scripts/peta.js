@@ -56,7 +56,7 @@ const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 4, MAP_ZOOM_STEP = 0.5;
 
 // STEP 7.5: tile pyramid generated from the already-rendered GeoPDF crop.
 const GEOPDF_TILE_SIZE_ = 256;
-const GEOPDF_TILE_LEVEL_FACTORS_ = [0.25, 0.5, 1];
+const GEOPDF_TILE_LEVEL_FACTORS_ = [0.25, 0.5, 1, 2];
 const GEOPDF_TILE_MAX_LEVEL_ = GEOPDF_TILE_LEVEL_FACTORS_.length - 1;
 
 // ==== PETA BACKGROUND (foto udara/hasil olah ArcGIS) -- BARU 5 Sep ====
@@ -2139,92 +2139,56 @@ async function tryParseGeoPdf_(file, onProgress) {
       report('Render scale GeoPDF: ' + scale + 'x.');
     }
 
-    // STEP 4: render LANGSUNG ke kanvas seukuran VP BBox saja (pakai parameter `transform`
-    // resmi pdf.js utk geser origin render) -- SEBELUMNYA seluruh halaman diraster dulu ke
-    // fullCanvas baru di-crop belakangan (2x alokasi memori: penuh + crop). Area di luar VP
-    // TIDAK PERNAH ditulis ke kanvas sama sekali sekarang -- lebih ringan utk Android.
-    const rawX0 = Math.min(vpBBox[0], vpBBox[2]) * scale;
-    const rawX1 = Math.max(vpBBox[0], vpBBox[2]) * scale;
-    const rawY0 = pageHeight - Math.max(vpBBox[1], vpBBox[3]) * scale;
-    const rawY1 = pageHeight - Math.min(vpBBox[1], vpBBox[3]) * scale;
-    // Clamp ke batas halaman -- pengaman kalau VP BBox kebetulan sedikit melebihi MediaBox.
-    const bx0 = Math.max(0, Math.min(pageWidth, rawX0));
-    const bx1 = Math.max(0, Math.min(pageWidth, rawX1));
-    const by0 = Math.max(0, Math.min(pageHeight, rawY0));
-    const by1 = Math.max(0, Math.min(pageHeight, rawY1));
-    const cropW = Math.ceil(bx1 - bx0), cropH = Math.ceil(by1 - by0);
-    if (cropW <= 0 || cropH <= 0) return { ok: false, reason: 'Koordinat berhasil dibaca, tapi area gambar (VP BBox) tidak masuk akal -- dicoba lagi dgn file lain.', cornerTL, cornerBR, geoReference };
-
-    // STEP 9C: preflight RAM sebelum canvas allocation. Ini mencegah OOM Android akibat
-    // satu canvas RGBA besar, tanpa mengubah GeoReference/koordinat.
-    // [DIPERBAIKI -- 6 Sep, bug nyata ditemukan di HP: hasil crop ternyata masih
-    // menampilkan SELURUH halaman (header+peta+legenda), bukan cuma area VP BBox]
-    // Render `page.render({canvasContext: kanvas KECIL, transform:[...]})` langsung ke
-    // kanvas seukuran crop TERNYATA tidak berperilaku seperti diasumsikan di HP nyata --
-    // kemungkinan pdf.js menyesuaikan/scale konten ke ukuran kanvas yg diberikan, BUKAN
-    // cuma menggeser origin sambil membiarkan sisanya ter-clip natural spt asumsi awal
-    // (ini TIDAK bisa saya validasi visual sebelumnya, sandbox saya tidak punya Canvas
-    // asli -- cuma tervalidasi ANGKA koordinat, bukan hasil gambar sesungguhnya).
-    // Kembali ke pendekatan standar: render HALAMAN PENUH dulu (kanvas biasa, tanpa
-    // transform khusus), BARU potong pakai drawImage() -- operasi jauh lebih umum &
-    // predictable, dipakai luas, 0 ambiguitas soal scaling. Konsekuensi: butuh memori
-    // utk kanvas HALAMAN PENUH sesaat (bukan cuma ukuran crop) -- preflight disesuaikan.
-    const memoryProfile = getGeoPdfMemoryProfile_();
-    const estimatedFullPageBytes = estimateGeoPdfRenderMemoryBytes_(pageWidth, pageHeight);
-    const estimatedCropBytes = estimateGeoPdfRenderMemoryBytes_(cropW, cropH);
-    const estimatedBytes = Math.max(estimatedFullPageBytes, estimatedCropBytes);
-    geoReference.render.memory = {
-      estimatedBytes, maxCanvasBytes: memoryProfile.maxCanvasBytes,
-      deviceMemoryGB: Number.isFinite(memoryProfile.deviceMemory) ? memoryProfile.deviceMemory : null
-    };
-    if (estimatedBytes > memoryProfile.maxCanvasBytes) {
-      return { ok: false, reason: 'Area GeoPDF terlalu besar untuk diraster aman pada memori perangkat ini. Metadata koordinat tetap berhasil dibaca; gunakan file/area yang lebih kecil.', cornerTL, cornerBR, geoReference };
-    }
-
-    const fullCanvas = document.createElement('canvas');
-    fullCanvas.width = pageWidth; fullCanvas.height = pageHeight;
-    const fullCtx = fullCanvas.getContext('2d', { alpha: false, willReadFrequently: false });
-    if (!fullCtx) return { ok: false, reason: 'Kanvas render tidak tersedia pada perangkat ini.', cornerTL, cornerBR, geoReference };
-
-    cropCanvas = document.createElement('canvas');
-    cropCanvas.width = cropW; cropCanvas.height = cropH;
-    const cropCtx = cropCanvas.getContext('2d', { alpha: false, willReadFrequently: false });
-    if (!cropCtx) return { ok: false, reason: 'Kanvas render tidak tersedia pada perangkat ini.', cornerTL, cornerBR, geoReference };
-
-    // STEP 9D: rendering performance. pdf.js tetap menjadi renderer utama; kita hanya
-    // memberi hint display/requestAnimationFrame agar operator-list yang panjang tidak
-    // memblokir UI Android terlalu lama dalam satu burst. Timing disimpan untuk diagnosis
-    // performa lapangan tanpa mengubah hasil koordinat/render.
-    const renderStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    report('Merender halaman penuh (' + pageWidth.toFixed(0) + 'x' + pageHeight.toFixed(0) + 'px)...');
-    await page.render({
-      canvasContext: fullCtx,
-      viewport,
-      intent: 'display',
-      useRequestAnimationFrame: true
-    }).promise;
-    report('Memotong ke area peta (' + cropW + 'x' + cropH + 'px)...');
-    cropCtx.drawImage(fullCanvas, bx0, by0, cropW, cropH, 0, 0, cropW, cropH);
-    releaseGeoPdfCanvas_(fullCanvas); // lepas kanvas halaman-penuh SEGERA, tidak dibutuhkan lagi setelah di-crop
-    const renderFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    const renderMs = Math.max(0, renderFinishedAt - renderStartedAt);
-    geoReference.render.performance = {
-      renderMs,
-      renderedPixels: cropW * cropH,
-      megapixels: Number(((cropW * cropH) / 1000000).toFixed(3)),
-      pixelsPerSecond: renderMs > 0 ? Math.round((cropW * cropH) / (renderMs / 1000)) : null,
-      requestAnimationFrame: true
-    };
-    report('Render area peta selesai (' + Math.round(renderMs) + ' ms).');
-    const encodeStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    const imageDataUrl = cropCanvas.toDataURL('image/png');
+    // STEP 7.5.3: DIRECT TILE-ONLY GeoPDF path.
+    // Jangan rasterisasi full page / crop besar sebelum membuat tile. Itu justru memicu
+    // memory guard pada Android dan menghilangkan keuntungan tile pyramid.
+    // Semua detail deep-zoom dirender langsung oleh pdf.js per tile.
+    const tileStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    report('Membangun tile pyramid langsung dari PDF...');
     const tilePyramid = await buildTilePyramidFromGeoPdfPage_(page, vpBBox, scale, report);
-    const encodeFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    geoReference.render.performance.encodeMs = Math.max(0, encodeFinishedAt - encodeStartedAt);
-    geoReference.render.tilePyramid = { mode: 'pdfjs-direct-tile-render', tileSize: GEOPDF_TILE_SIZE_, levels: GEOPDF_TILE_LEVEL_FACTORS_.slice(), baseScale: scale };
-    // Data-URL sudah menjadi hasil akhir; kanvas RGBA tidak boleh tetap menahan bitmap besar.
-    releaseGeoPdfCanvas_(cropCanvas);
-    cropCanvas = null;
+    const tileFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+
+    // IndexedDB/form lama masih membutuhkan imageDataUrl sebagai preview/fallback.
+    // Preview dibuat dari level terendah tile pyramid, sehingga canvas yang dialokasikan
+    // kecil dan tidak lagi memicu OOM. Ini BUKAN sumber deep-zoom.
+    const previewLevel = tilePyramid.levels[0];
+    const previewCanvas = document.createElement('canvas');
+    previewCanvas.width = previewLevel.width;
+    previewCanvas.height = previewLevel.height;
+    const previewCtx = previewCanvas.getContext('2d', { alpha: false, willReadFrequently: false });
+    if (!previewCtx) throw new Error('Canvas preview tidak tersedia.');
+    for (const t of (previewLevel.tiles || [])) {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = t.dataUrl;
+      });
+      previewCtx.drawImage(img, t.x * tilePyramid.tileSize, t.y * tilePyramid.tileSize, t.width, t.height);
+      try { img.src = ''; } catch (_) {}
+    }
+    const imageDataUrl = previewCanvas.toDataURL('image/png');
+    const previewEncodeFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    geoReference.render.performance = {
+      renderMs: Math.max(0, tileFinishedAt - tileStartedAt),
+      renderedPixels: previewLevel.width * previewLevel.height,
+      megapixels: Number(((previewLevel.width * previewLevel.height) / 1000000).toFixed(3)),
+      pixelsPerSecond: null,
+      requestAnimationFrame: true,
+      mode: 'direct-pdf-tile-render',
+      tileRenderMs: Math.max(0, tileFinishedAt - tileStartedAt),
+      previewEncodeMs: Math.max(0, previewEncodeFinishedAt - tileFinishedAt)
+    };
+    geoReference.render.tilePyramid = {
+      mode: 'pdfjs-direct-tile-render',
+      tileSize: GEOPDF_TILE_SIZE_,
+      levels: GEOPDF_TILE_LEVEL_FACTORS_.slice(),
+      baseScale: scale,
+      source: 'GeoPDF direct PDF.js tile render',
+      deepZoomUsesTiles: true
+    };
+    releaseGeoPdfCanvas_(previewCanvas);
+    // Tidak ada fullCanvas/cropCanvas pada jalur GeoPDF ini.
     return { ok: true, imageDataUrl, tilePyramid, cornerTL, cornerBR, geoReference };
   } catch (e) {
     console.warn('Koordinat GeoPDF berhasil dibaca, TAPI render halaman via pdf.js gagal:', e);
