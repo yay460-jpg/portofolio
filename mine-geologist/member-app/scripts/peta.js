@@ -182,17 +182,51 @@ function updateMapUploadField_(field, value) { mapUploadFormState[field] = value
 // JATUH KE alur manual (isi 2 sudut sendiri) -- TIDAK PERNAH bikin form macet/error total
 // gara2 GeoTIFF gagal dibaca.
 function syncMapUploadGeoReferenceDom_() {
-  const f = mapUploadFormState;
-  const pairs = [
-    ['map-upload-tl-timur', f.tlTimur],
-    ['map-upload-tl-utara', f.tlUtara],
-    ['map-upload-br-timur', f.brTimur],
-    ['map-upload-br-utara', f.brUtara]
-  ];
-  for (const [id, value] of pairs) {
-    const el = document.getElementById(id);
-    if (el) { el.value = value == null ? '' : String(value); el.disabled = !!f.geoReference; el.readOnly = !!f.geoReference; }
-  }
+  try {
+    const f = mapUploadFormState;
+    if (!f) return;
+    const pairs = [
+      ['map-upload-tl-timur', f.tlTimur],
+      ['map-upload-tl-utara', f.tlUtara],
+      ['map-upload-br-timur', f.brTimur],
+      ['map-upload-br-utara', f.brUtara]
+    ];
+    for (const [id, value] of pairs) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      // Guard: state kosong tidak boleh menghapus nilai DOM yang sudah valid.
+      const strVal = value == null ? '' : String(value);
+      if (strVal !== '' && el.value !== strVal) el.value = strVal;
+      if (f.geoReference) {
+        // S7 Edge/WebView: value harus sudah terpasang sebelum disabled.
+        el.readOnly = true;
+        requestAnimationFrame(() => {
+          if (document.getElementById(id) === el) el.disabled = true;
+        });
+      } else {
+        el.readOnly = false;
+        el.disabled = false;
+      }
+    }
+  } catch (e) { console.warn('sync GeoReference DOM gagal:', e); }
+}
+
+function makeGeoPdfProgressReporter_() {
+  let lastMsg = '';
+  return (stageMsg) => {
+    if (!stageMsg || stageMsg === lastMsg) return;
+    lastMsg = stageMsg;
+    mapUploadStatusMsg = stageMsg;
+    mapUploadStatusOk = true;
+    const statusEl = document.getElementById('map-upload-status');
+    if (statusEl) {
+      statusEl.textContent = stageMsg;
+    } else {
+      render();
+      syncMapUploadGeoReferenceDom_();
+    }
+    syncMapUploadGeoReferenceDom_();
+  };
 }
 
 async function handleMapImageFileSelected_(inputEl) {
@@ -245,22 +279,10 @@ async function handleMapImageFileSelected_(inputEl) {
       syncMapUploadGeoReferenceDom_();
       render();
       // Re-apply after render so a freshly recreated modal cannot show stale defaults.
-      syncMapUploadGeoReferenceDom_();
+      requestAnimationFrame(() => syncMapUploadGeoReferenceDom_());
     };
-    let lastProgressUpdate = 0;
-    const geoResult = await tryParseGeoPdf_(file, (stageMsg) => {
-      mapUploadStatusMsg = stageMsg;
-      mapUploadStatusOk = true;
-      // Throttle DOM rebuilds on older Android/WebView. Rendering every tile can
-      // recreate the modal hundreds of times and overwrite the live coordinate inputs.
-      const now = Date.now();
-      if (now - lastProgressUpdate > 150 || /selesai/i.test(stageMsg)) {
-        lastProgressUpdate = now;
-        render();
-        // render() recreates the modal DOM; restore the GeoPDF coordinates afterward.
-        syncMapUploadGeoReferenceDom_();
-      }
-    }, applyGeoReferenceEarly_);
+    const progressReporter = makeGeoPdfProgressReporter_();
+    const geoResult = await tryParseGeoPdf_(file, progressReporter, applyGeoReferenceEarly_);
     if (geoResult.ok) {
       mapUploadFormState.geoReference = geoResult.geoReference || null;
       mapUploadFormState.tilePyramid = geoResult.tilePyramid || null;
@@ -3134,7 +3156,7 @@ function renderMapUploadForm_() {
       inputRow('Kanan-Bawah: Timur', 'brTimur', '397300') +
       inputRow('Kanan-Bawah: Utara', 'brUtara', '53100') +
     '</div>' +
-    (mapUploadStatusMsg ? '<p class="text-[10px] mt-1 mb-1 font-medium ' + (mapUploadStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + mapUploadStatusMsg + '</p>' : '') +
+    (mapUploadStatusMsg ? '<p id="map-upload-status" class="text-[10px] mt-1 mb-1 font-medium ' + (mapUploadStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + mapUploadStatusMsg + '</p>' : '') +
     '<button onclick="submitMapUpload_()" ' + ((mapUploadBusy || mapUploadProcessing) ? 'disabled' : '') + ' class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs py-2.5 rounded-xl disabled:opacity-60">' +
       ((mapUploadBusy || mapUploadProcessing) ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>' : icon('upload','w-4 h-4')) + '<span>' + (mapUploadBusy ? 'Menyimpan...' : (mapUploadProcessing ? 'Memproses GeoPDF...' : 'Simpan Peta')) + '</span>' +
     '</button>';
