@@ -503,47 +503,88 @@ function cleanupGeoPdfResources_(page, pdf, loadingTask, canvas) {
 // STEP 7.5: Generator tile/pyramid dari hasil crop image yang SUDAH ada.
 // Tidak merender GeoPDF ulang per tile. Level tertinggi (factor 1) mempertahankan
 // resolusi crop asli; level bawah hanya downsample untuk zoom yang lebih dangkal.
-async function buildTilePyramidFromImage_(imageDataUrl, onProgress) {
-  if (!imageDataUrl) throw new Error('Hasil crop GeoPDF kosong.');
-  const img = new Image();
-  img.decoding = 'async';
-  img.src = imageDataUrl;
-  await new Promise((resolve, reject) => {
-    img.onload = resolve;
-    img.onerror = () => reject(new Error('Gagal memuat hasil crop GeoPDF untuk tile pyramid.'));
-  });
-  const sourceW = Math.max(1, img.naturalWidth || img.width);
-  const sourceH = Math.max(1, img.naturalHeight || img.height);
-  const out = { version: 1, tileSize: GEOPDF_TILE_SIZE_, sourceWidth: sourceW, sourceHeight: sourceH, levels: [], maxLevel: GEOPDF_TILE_MAX_LEVEL_ };
-  for (let li = 0; li < GEOPDF_TILE_LEVEL_FACTORS_.length; li++) {
-    const factor = GEOPDF_TILE_LEVEL_FACTORS_[li];
-    const width = Math.max(1, Math.round(sourceW * factor));
-    const height = Math.max(1, Math.round(sourceH * factor));
-    const tilesX = Math.ceil(width / GEOPDF_TILE_SIZE_);
-    const tilesY = Math.ceil(height / GEOPDF_TILE_SIZE_);
+async function buildTilePyramidFromGeoPdfPage_(page, vpBBox, baseScale, onProgress) {
+  if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
+  const tileSize = GEOPDF_TILE_SIZE_;
+  const factors = GEOPDF_TILE_LEVEL_FACTORS_;
+  const vpWPt = Math.abs(vpBBox[2] - vpBBox[0]);
+  const vpHPt = Math.abs(vpBBox[3] - vpBBox[1]);
+  if (!(vpWPt > 0) || !(vpHPt > 0)) throw new Error('VP BBox GeoPDF tidak valid untuk tile pyramid.');
+
+  const out = {
+    version: 2,
+    mode: 'pdfjs-direct-tile-render',
+    tileSize,
+    baseScale,
+    sourceWidth: Math.max(1, Math.round(vpWPt * baseScale)),
+    sourceHeight: Math.max(1, Math.round(vpHPt * baseScale)),
+    levels: [],
+    maxLevel: factors.length - 1
+  };
+
+  // PDF.js tetap menjadi renderer sumber. Setiap tile dirender langsung dari halaman PDF
+  // pada resolusi levelnya; kita tidak meng-upscale satu PNG crop yang sudah ter-raster.
+  // Ini mempertahankan detail vector/text pada deep zoom dan lebih dekat ke pola quadrant
+  // renderer Avenza yang sudah kita audit.
+  for (let li = 0; li < factors.length; li++) {
+    const factor = Number(factors[li]);
+    const scale = baseScale * factor;
+    const width = Math.max(1, Math.round(vpWPt * scale));
+    const height = Math.max(1, Math.round(vpHPt * scale));
+    const tilesX = Math.ceil(width / tileSize);
+    const tilesY = Math.ceil(height / tileSize);
     const tiles = [];
     const total = tilesX * tilesY;
     let done = 0;
+    const viewport = page.getViewport({ scale });
+
+    // PDF page coordinates: origin bottom-left. Convert VP crop top edge into viewport
+    // (canvas) coordinates before building the tile offsets.
+    const leftPt = Math.min(vpBBox[0], vpBBox[2]);
+    const bottomPt = Math.min(vpBBox[1], vpBBox[3]);
+    const topPt = Math.max(vpBBox[1], vpBBox[3]);
+    const cropLeftPx = leftPt * scale;
+    const cropTopPx = viewport.height - (topPt * scale);
+    const pageLeftPx = cropLeftPx;
+    const pageTopPx = cropTopPx;
+
     for (let ty = 0; ty < tilesY; ty++) {
       for (let tx = 0; tx < tilesX; tx++) {
-        const x = tx * GEOPDF_TILE_SIZE_, y = ty * GEOPDF_TILE_SIZE_;
-        const tw = Math.min(GEOPDF_TILE_SIZE_, width - x), th = Math.min(GEOPDF_TILE_SIZE_, height - y);
+        const x = tx * tileSize;
+        const y = ty * tileSize;
+        const tw = Math.min(tileSize, width - x);
+        const th = Math.min(tileSize, height - y);
         const canvas = document.createElement('canvas');
-        canvas.width = tw; canvas.height = th;
+        canvas.width = tw;
+        canvas.height = th;
         const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
         if (!ctx) throw new Error('Canvas tile tidak tersedia.');
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, x / factor, y / factor, tw / factor, th / factor, 0, 0, tw, th);
+
+        // Render hanya quadrant yang diminta. offsetX/offsetY pada viewport menjaga skala
+        // PDF tetap asli; canvas kecil menjadi clipping surface, bukan target resize halaman.
+        const tileViewport = page.getViewport({
+          scale,
+          offsetX: -(pageLeftPx + x),
+          offsetY: -(pageTopPx + y)
+        });
+        await page.render({
+          canvasContext: ctx,
+          viewport: tileViewport,
+          intent: 'display',
+          useRequestAnimationFrame: true
+        }).promise;
+
         const dataUrl = canvas.toDataURL('image/png');
         releaseGeoPdfCanvas_(canvas);
         tiles.push({ x: tx, y: ty, width: tw, height: th, dataUrl });
         done++;
-        if (onProgress) onProgress('Membuat tile level ' + li + '/' + GEOPDF_TILE_MAX_LEVEL_ + ': ' + done + '/' + total);
+        if (onProgress) onProgress('Render tile PDF level ' + li + '/' + (factors.length - 1) + ': ' + done + '/' + total);
         await new Promise(r => setTimeout(r, 0));
       }
     }
-    out.levels.push({ level: li, factor, width, height, tilesX, tilesY, tiles });
+    out.levels.push({ level: li, factor, scale, width, height, tilesX, tilesY, tiles });
   }
   return out;
 }
@@ -2177,9 +2218,10 @@ async function tryParseGeoPdf_(file, onProgress) {
     report('Render area peta selesai (' + Math.round(renderMs) + ' ms).');
     const encodeStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     const imageDataUrl = cropCanvas.toDataURL('image/png');
-    const tilePyramid = await buildTilePyramidFromImage_(imageDataUrl, report);
+    const tilePyramid = await buildTilePyramidFromGeoPdfPage_(page, vpBBox, scale, report);
     const encodeFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     geoReference.render.performance.encodeMs = Math.max(0, encodeFinishedAt - encodeStartedAt);
+    geoReference.render.tilePyramid = { mode: 'pdfjs-direct-tile-render', tileSize: GEOPDF_TILE_SIZE_, levels: GEOPDF_TILE_LEVEL_FACTORS_.slice(), baseScale: scale };
     // Data-URL sudah menjadi hasil akhir; kanvas RGBA tidak boleh tetap menahan bitmap besar.
     releaseGeoPdfCanvas_(cropCanvas);
     cropCanvas = null;
@@ -2632,10 +2674,12 @@ function renderMineGridSvg(points) {
       }
       const pyramid = activeMap.tilePyramid;
       if (pyramid && Array.isArray(pyramid.levels) && pyramid.levels.length) {
-        // Level 2/1/0 = native/half/quarter. Deep zoom selalu memakai native crop.
-        let targetFactor = 1;
-        if (mapZoom <= 1.5) targetFactor = 0.25;
-        else if (mapZoom <= 2.5) targetFactor = 0.5;
+        // Pilih level resolusi yang paling dekat di bawah kebutuhan zoom. Deep zoom
+        // memakai level native hasil render langsung dari PDF, bukan upscale crop PNG.
+        const maxFactor = Math.max(...pyramid.levels.map(l => Number(l.factor) || 0));
+        let targetFactor = maxFactor;
+        if (mapZoom <= 1.5) targetFactor = Math.min(0.25, maxFactor);
+        else if (mapZoom <= 2.5) targetFactor = Math.min(0.5, maxFactor);
         let level = pyramid.levels[0];
         for (const candidate of pyramid.levels) {
           if (Number(candidate.factor) <= targetFactor) level = candidate;
