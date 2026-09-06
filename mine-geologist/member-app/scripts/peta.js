@@ -52,7 +52,7 @@ function focusMapFromValidasi(idTp) {
   mapFocusIdTp = idTp;
   switchTab('peta');
 }
-const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 4, MAP_ZOOM_STEP = 0.5;
+const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 8, MAP_ZOOM_STEP = 0.5;
 
 // ==== PETA BACKGROUND (foto udara/hasil olah ArcGIS) -- BARU 5 Sep ====
 // Bukan baca GeoPDF/GeoTIFF asli (butuh mesin libproj+libgdal spt Avenza, mustahil di
@@ -449,7 +449,7 @@ function validateAffineTransform2D_(t, src, dst) {
 
 // STEP 8D: PDF page <-> rendered VP-crop pixel coordinates.
 // tryParseGeoPdf_() renders the VP area at the selected render scale, with PDF Y inverted by pdf.js.
-const GEOPDF_RENDER_SCALE_ = 4.0; // STEP 7.4: dinaikkan dari 2 -- kurangi downsampling dini raster GeoPDF sblm di-crop PNG, kualitas lebih tajam saat deep-zoom. Guard memori (9C) & batas piksel/dimensi tetap menyesuaikan otomatis.
+const GEOPDF_RENDER_SCALE_ = 2.5; // STEP 7.4: dinaikkan dari 2 -- kurangi downsampling dini raster GeoPDF sblm di-crop PNG, kualitas lebih tajam saat deep-zoom. Guard memori (9C) & batas piksel/dimensi tetap menyesuaikan otomatis.
 // STEP 9B: adaptive render guard for very large GeoPDF/VP areas.
 const GEOPDF_MAX_RENDER_PIXELS_ = 12000000;
 const GEOPDF_MAX_RENDER_DIMENSION_ = 4096;
