@@ -1,3 +1,4 @@
+/* STEP 7.5 V4 CACHE-BUSTED BUILD: direct PDF.js tile path; logic unchanged from V4. */
 /* ============================================================
  * MINE GEOLOGIST / LITHOSITE -- member-app/scripts/peta.js
  * [PARTISI -- 4 Sep, Tahap 4] Tab Peta -- Mine Grid SVG, North Arrow (3-mode
