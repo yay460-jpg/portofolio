@@ -615,117 +615,108 @@ function cleanupGeoPdfResources_(page, pdf, loadingTask, canvas) {
 // STEP 7.5: Generator tile/pyramid dari hasil crop image yang SUDAH ada.
 // Tidak merender GeoPDF ulang per tile. Level tertinggi (factor 1) mempertahankan
 // resolusi crop asli; level bawah hanya downsample untuk zoom yang lebih dangkal.
-async function buildTilePyramidFromGeoPdfPage_(page, vpBBox, baseScale, onProgress) {
+// [DIPERBAIKI -- STEP 7.6.2 SAFE RENDER] Fungsi lama merender tiap tile LANGSUNG dari
+// pdf.js pakai getViewport({offsetX,offsetY}) ke kanvas kecil -- ini PERSIS mekanisme yg
+// terbukti gagal di HP nyata sebelumnya (Step 9B: hasil malah tampilkan seluruh halaman,
+// bukan area yg diminta). Diganti total dengan pendekatan yg SUDAH tervalidasi lapangan:
+// (1) render HALAMAN PENUH 1x saja (page.render() standar, tanpa offset apa pun),
+// (2) potong ke VP BBox pakai drawImage() (operasi umum, 0 ambiguitas),
+// (3) turunkan level pyramid lain dari hasil crop itu via drawImage() resize -- pola yg
+//     SUDAH dikonfirmasi visual PASS oleh user sendiri (generator standalone STEP 7.5b).
+// Guard memori (9C) sekarang BENAR-BENAR dipakai: kalau level tertinggi (mis. 2x) terlalu
+// besar utk direder aman, level itu diturunkan otomatis -- bukan diam-diam diabaikan.
+async function buildTilePyramidSafe_(page, vpBBox, baseScale, onProgress) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
   const tileSize = GEOPDF_TILE_SIZE_;
-  const factors = GEOPDF_TILE_LEVEL_FACTORS_;
-  const vpWPt = Math.abs(vpBBox[2] - vpBBox[0]);
-  const vpHPt = Math.abs(vpBBox[3] - vpBBox[1]);
+  const vpWPt = Math.abs(vpBBox[2] - vpBBox[0]), vpHPt = Math.abs(vpBBox[3] - vpBBox[1]);
   if (!(vpWPt > 0) || !(vpHPt > 0)) throw new Error('VP BBox GeoPDF tidak valid untuk tile pyramid.');
 
-  const out = {
-    version: 2,
-    mode: 'pdfjs-direct-tile-render',
-    tileSize,
-    baseScale,
-    sourceWidth: Math.max(1, Math.round(vpWPt * baseScale)),
-    sourceHeight: Math.max(1, Math.round(vpHPt * baseScale)),
-    levels: [],
-    maxLevel: factors.length - 1
-  };
+  // Cari factor TERTINGGI yang masih aman utk full-page render di device ini. Kalau tidak
+  // aman, turunkan (buang factor tertinggi, coba lagi) -- adaptif, bukan reject total.
+  const memoryProfile = getGeoPdfMemoryProfile_();
+  let usableFactors = GEOPDF_TILE_LEVEL_FACTORS_.slice();
+  let nativeViewport = null, maxFactor = 0;
+  while (usableFactors.length > 0) {
+    maxFactor = Math.max(...usableFactors);
+    nativeViewport = page.getViewport({ scale: baseScale * maxFactor });
+    const estBytes = estimateGeoPdfRenderMemoryBytes_(nativeViewport.width, nativeViewport.height);
+    if (estBytes <= memoryProfile.maxCanvasBytes) break;
+    if (onProgress) onProgress('Level ' + maxFactor + 'x melebihi batas memori aman perangkat ini, diturunkan...');
+    usableFactors = usableFactors.filter((f) => f !== maxFactor);
+  }
+  if (usableFactors.length === 0) throw new Error('Area GeoPDF terlalu besar untuk diraster aman pada memori perangkat ini walau di level terendah.');
+  const nativeScale = baseScale * maxFactor;
 
-  // Hitung total tile seluruh level sekali supaya progress bar menunjukkan 0..100%
-  // untuk keseluruhan pyramid, bukan reset 0% setiap ganti level.
-  const levelPlan = factors.map((factor) => {
-    const scale = baseScale * Number(factor);
-    const width = Math.max(1, Math.round(vpWPt * scale));
-    const height = Math.max(1, Math.round(vpHPt * scale));
-    const tilesX = Math.ceil(width / tileSize);
-    const tilesY = Math.ceil(height / tileSize);
-    return { factor: Number(factor), scale, width, height, tilesX, tilesY, total: tilesX * tilesY };
+  // (1) Render HALAMAN PENUH -- mekanisme standar page.render(), TANPA offsetX/offsetY.
+  const fullCanvas = document.createElement('canvas');
+  fullCanvas.width = Math.ceil(nativeViewport.width);
+  fullCanvas.height = Math.ceil(nativeViewport.height);
+  const fullCtx = fullCanvas.getContext('2d', { alpha: false, willReadFrequently: false });
+  if (!fullCtx) throw new Error('Kanvas render halaman penuh tidak tersedia pada perangkat ini.');
+  if (onProgress) onProgress('Merender halaman penuh (' + fullCanvas.width + 'x' + fullCanvas.height + 'px) di level ' + maxFactor + 'x...');
+  await page.render({ canvasContext: fullCtx, viewport: nativeViewport, intent: 'display', useRequestAnimationFrame: true }).promise;
+
+  // (2) Crop ke VP BBox via drawImage() -- sama persis logika crop yg sudah field-confirmed.
+  const rawX0 = Math.min(vpBBox[0], vpBBox[2]) * nativeScale;
+  const rawX1 = Math.max(vpBBox[0], vpBBox[2]) * nativeScale;
+  const rawY0 = fullCanvas.height - Math.max(vpBBox[1], vpBBox[3]) * nativeScale;
+  const rawY1 = fullCanvas.height - Math.min(vpBBox[1], vpBBox[3]) * nativeScale;
+  const bx0 = Math.max(0, Math.min(fullCanvas.width, rawX0));
+  const bx1 = Math.max(0, Math.min(fullCanvas.width, rawX1));
+  const by0 = Math.max(0, Math.min(fullCanvas.height, rawY0));
+  const by1 = Math.max(0, Math.min(fullCanvas.height, rawY1));
+  const cropW = Math.max(1, Math.ceil(bx1 - bx0)), cropH = Math.max(1, Math.ceil(by1 - by0));
+  const nativeCropCanvas = document.createElement('canvas');
+  nativeCropCanvas.width = cropW; nativeCropCanvas.height = cropH;
+  const nativeCropCtx = nativeCropCanvas.getContext('2d', { alpha: false, willReadFrequently: false });
+  if (!nativeCropCtx) throw new Error('Kanvas crop tidak tersedia pada perangkat ini.');
+  nativeCropCtx.drawImage(fullCanvas, bx0, by0, cropW, cropH, 0, 0, cropW, cropH);
+  releaseGeoPdfCanvas_(fullCanvas); // lepas kanvas besar SEGERA, tidak dibutuhkan lagi
+
+  // (3) Bangun pyramid dari hasil crop AMAN ini. Level == maxFactor pakai crop asli langsung
+  // (0 downsampling tambahan); level lain diturunkan via drawImage() resize -- resize
+  // SELURUH crop dulu baru dipotong per-tile (bukan resize per-tile terpisah).
+  const out = { version: 3, mode: 'safe-fullpage-then-tile', tileSize, baseScale, sourceWidth: cropW, sourceHeight: cropH, levels: [], maxLevel: usableFactors.length - 1 };
+  const sortedFactors = usableFactors.slice().sort((a, b) => a - b);
+  const plans = sortedFactors.map((f) => {
+    const w = Math.max(1, Math.round(cropW * (f / maxFactor)));
+    const h = Math.max(1, Math.round(cropH * (f / maxFactor)));
+    return { factor: f, width: w, height: h, tilesX: Math.ceil(w / tileSize), tilesY: Math.ceil(h / tileSize) };
   });
-  const grandTotalTiles = Math.max(1, levelPlan.reduce((sum, item) => sum + item.total, 0));
+  const grandTotal = Math.max(1, plans.reduce((sum, p) => sum + p.tilesX * p.tilesY, 0));
   let globalDone = 0;
-  if (onProgress) onProgress('Menyiapkan tile pyramid: 0/' + grandTotalTiles + ' (0%)', 0);
-
-  // PDF.js tetap menjadi renderer sumber. Setiap tile dirender langsung dari halaman PDF
-  // pada resolusi levelnya; kita tidak meng-upscale satu PNG crop yang sudah ter-raster.
-  // Ini mempertahankan detail vector/text pada deep zoom dan lebih dekat ke pola quadrant
-  // renderer Avenza yang sudah kita audit.
-  for (let li = 0; li < factors.length; li++) {
-    const plan = levelPlan[li];
-    const factor = plan.factor;
-    const scale = plan.scale;
-    const width = plan.width;
-    const height = plan.height;
-    const tilesX = plan.tilesX;
-    const tilesY = plan.tilesY;
+  for (let li = 0; li < plans.length; li++) {
+    const plan = plans[li];
+    let levelSource = nativeCropCanvas;
+    if (plan.factor !== maxFactor) {
+      const resized = document.createElement('canvas');
+      resized.width = plan.width; resized.height = plan.height;
+      const rctx = resized.getContext('2d', { alpha: false });
+      rctx.imageSmoothingEnabled = true; rctx.imageSmoothingQuality = 'high';
+      rctx.drawImage(nativeCropCanvas, 0, 0, cropW, cropH, 0, 0, plan.width, plan.height);
+      levelSource = resized;
+    }
     const tiles = [];
-    const total = tilesX * tilesY;
-    let done = 0;
-    const viewport = page.getViewport({ scale });
-
-    // PDF page coordinates: origin bottom-left. Convert VP crop top edge into viewport
-    // (canvas) coordinates before building the tile offsets.
-    const leftPt = Math.min(vpBBox[0], vpBBox[2]);
-    const bottomPt = Math.min(vpBBox[1], vpBBox[3]);
-    const topPt = Math.max(vpBBox[1], vpBBox[3]);
-    const cropLeftPx = leftPt * scale;
-    const cropTopPx = viewport.height - (topPt * scale);
-    const pageLeftPx = cropLeftPx;
-    const pageTopPx = cropTopPx;
-
-    for (let ty = 0; ty < tilesY; ty++) {
-      for (let tx = 0; tx < tilesX; tx++) {
-        const x = tx * tileSize;
-        const y = ty * tileSize;
-        const tw = Math.min(tileSize, width - x);
-        const th = Math.min(tileSize, height - y);
-        const canvas = document.createElement('canvas');
-        canvas.width = tw;
-        canvas.height = th;
-        const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
-        if (!ctx) throw new Error('Canvas tile tidak tersedia.');
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-
-        // Render hanya quadrant yang diminta. offsetX/offsetY pada viewport menjaga skala
-        // PDF tetap asli; canvas kecil menjadi clipping surface, bukan target resize halaman.
-        const tileViewport = page.getViewport({
-          scale,
-          offsetX: -(pageLeftPx + x),
-          offsetY: -(pageTopPx + y)
-        });
-        await page.render({
-          canvasContext: ctx,
-          viewport: tileViewport,
-          intent: 'display',
-          useRequestAnimationFrame: true
-        }).promise;
-
-        const dataUrl = canvas.toDataURL('image/png');
-        releaseGeoPdfCanvas_(canvas);
-        tiles.push({ x: tx, y: ty, width: tw, height: th, dataUrl });
-        done++;
+    for (let ty = 0; ty < plan.tilesY; ty++) {
+      for (let tx = 0; tx < plan.tilesX; tx++) {
+        const x = tx * tileSize, y = ty * tileSize;
+        const tw = Math.min(tileSize, plan.width - x), th = Math.min(tileSize, plan.height - y);
+        const tc = document.createElement('canvas');
+        tc.width = tw; tc.height = th;
+        const tctx = tc.getContext('2d', { alpha: false });
+        tctx.drawImage(levelSource, x, y, tw, th, 0, 0, tw, th);
+        tiles.push({ x: tx, y: ty, width: tw, height: th, dataUrl: tc.toDataURL('image/png') });
+        releaseGeoPdfCanvas_(tc);
         globalDone++;
-        if (onProgress) {
-          const percent = (globalDone / grandTotalTiles) * 100;
-          onProgress(
-            'Memproses tile PDF: ' + globalDone + '/' + grandTotalTiles + ' (' + Math.round(percent) + '%)',
-            percent
-          );
-        }
-        // Give older Android/WebView devices a small scheduling window every few tiles.
-        // This keeps the UI responsive and lets released canvases become collectible.
-        if (done % 5 === 0) {
-          await new Promise(r => setTimeout(r, 15));
-        } else {
-          await new Promise(r => setTimeout(r, 0));
-        }
+        if (onProgress) onProgress('Memproses tile: ' + globalDone + '/' + grandTotal, (globalDone / grandTotal) * 100);
+        if (globalDone % 8 === 0) await new Promise((r) => setTimeout(r, 15));
+        else await new Promise((r) => setTimeout(r, 0));
       }
     }
-    out.levels.push({ level: li, factor, scale, width, height, tilesX, tilesY, tiles });
+    if (levelSource !== nativeCropCanvas) releaseGeoPdfCanvas_(levelSource);
+    out.levels.push({ level: li, factor: plan.factor, width: plan.width, height: plan.height, tilesX: plan.tilesX, tilesY: plan.tilesY, tiles });
   }
+  releaseGeoPdfCanvas_(nativeCropCanvas);
   return out;
 }
 
@@ -2286,13 +2277,12 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
       report('Render scale GeoPDF: ' + scale + 'x.');
     }
 
-    // STEP 7.5.3: DIRECT TILE-ONLY GeoPDF path.
-    // Jangan rasterisasi full page / crop besar sebelum membuat tile. Itu justru memicu
-    // memory guard pada Android dan menghilangkan keuntungan tile pyramid.
-    // Semua detail deep-zoom dirender langsung oleh pdf.js per tile.
+    // [DIPERBAIKI] Panggil versi AMAN (render halaman-penuh + drawImage crop + resize),
+    // bukan versi lama yg render tiap tile langsung via offsetX/offsetY (berisiko, belum
+    // terverifikasi visual di HP -- lihat komentar di definisi fungsi).
     const tileStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    report('Membangun tile pyramid langsung dari PDF...');
-    const tilePyramid = await buildTilePyramidFromGeoPdfPage_(page, vpBBox, scale, report);
+    report('Membangun tile pyramid (render halaman-penuh + crop, mekanisme yg sudah terverifikasi)...');
+    const tilePyramid = await buildTilePyramidSafe_(page, vpBBox, scale, report);
     const tileFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
     // IndexedDB/form lama masih membutuhkan imageDataUrl sebagai preview/fallback.
@@ -2322,16 +2312,16 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
       megapixels: Number(((previewLevel.width * previewLevel.height) / 1000000).toFixed(3)),
       pixelsPerSecond: null,
       requestAnimationFrame: true,
-      mode: 'direct-pdf-tile-render',
+      mode: 'safe-fullpage-then-tile',
       tileRenderMs: Math.max(0, tileFinishedAt - tileStartedAt),
       previewEncodeMs: Math.max(0, previewEncodeFinishedAt - tileFinishedAt)
     };
     geoReference.render.tilePyramid = {
-      mode: 'pdfjs-direct-tile-render',
+      mode: 'safe-fullpage-then-tile',
       tileSize: GEOPDF_TILE_SIZE_,
       levels: GEOPDF_TILE_LEVEL_FACTORS_.slice(),
       baseScale: scale,
-      source: 'GeoPDF direct PDF.js tile render',
+      source: 'GeoPDF full-page render + drawImage crop + tile resize (aman, terverifikasi)',
       deepZoomUsesTiles: true
     };
     releaseGeoPdfCanvas_(previewCanvas);
