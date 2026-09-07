@@ -214,9 +214,9 @@ function openValidasiForm() {
 }
 function closeValidasiForm() { validasiFormOpen = false; render(); }
 function updateValidasiField(name, val) {
-  // Jangan rebuild DOM saat user mengetik. State cukup diperbarui; render()
-  // per karakter membuat node input baru, menghilangkan focus, dan menutup
-  // keyboard Android.
+  // Keyboard/focus fix: input state diperbarui tanpa full render().
+  // Re-render setiap karakter mengganti node <input> dan membuat keyboard Android
+  // menutup setelah satu karakter.
   validasiFormState[name] = val;
 }
 

@@ -118,6 +118,7 @@ let diggingViewMode = 'today'; // 'today' kalau ada data hari ini, 'recent' kala
 // bisa membuat response LEBIH LAMA menimpa hasil response LEBIH BARU, tergantung urutan
 // selesai (bukan urutan mulai). Pola sama persis dgn produksiFetchRequestSeq di dashboard.
 let ringkasanFetchSeq = 0;
+
 // [BARU] Diekstrak dari loadRingkasanData() -- forward-fill ID_TP baris kedalaman lanjutan
 // (2m/3m/4m/5m yg ID_TP-nya sengaja kosong di sheet asli). Dipakai BERSAMA oleh
 // loadRingkasanData() (jalur normal boot) DAN loadValidasiDataForMapStandalone_() (jalur
@@ -280,12 +281,7 @@ function openUpdateAssayModal() {
   render();
 }
 function closeUpdateAssayModal() { updateAssayModalOpen = false; render(); }
-function updateAssayField(name, val) {
-  updateAssayForm[name] = val;
-  // Text/number input: jangan rebuild DOM saat setiap karakter diketik; rebuild hanya
-  // untuk select yang memang mengubah struktur form (mis. Tujuan=Direct).
-  if (name === 'tujuan' || name === 'tipe_ore') render();
-}
+function updateAssayField(name, val) { updateAssayForm[name] = val; render(); }
 
 function renderUpdateAssayModal(justOpened) {
   if (!updateAssayModalOpen) return '';
@@ -356,78 +352,6 @@ async function handleSubmitUpdateAssay() {
   render();
 }
 
-function getDiggingAssayValue_(row, names) {
-  for (const name of names) {
-    const v = getField(row, name);
-    if (v !== undefined && v !== null && String(v).trim() !== '') return v;
-  }
-  return '';
-}
-function isFilledAssayValue_(value) {
-  const text = String(value == null ? '' : value).trim();
-  if (!text || text === '-') return false;
-  return Number.isFinite(Number(text));
-}
-function isDiggingDataComplete_(row) {
-  const requiredAssay = [
-    getDiggingAssayValue_(row, ['Ni %','Ni']),
-    getDiggingAssayValue_(row, ['Fe %','Fe']),
-    getDiggingAssayValue_(row, ['Co %','Co']),
-    getDiggingAssayValue_(row, ['MgO %','MgO']),
-    getDiggingAssayValue_(row, ['SiO %','SiO2 %','SiO2'])
-  ];
-  const tujuan = String(getField(row, 'Tujuan') || '').trim();
-  return requiredAssay.every(isFilledAssayValue_) && !!tujuan && tujuan !== '-';
-}
-function getDiggingCompletenessSignature_(rows) {
-  try {
-    return (Array.isArray(rows) ? rows : []).map((r) => JSON.stringify([
-      getField(r,'ID Sampel'),
-      getDiggingAssayValue_(r,['Ni %','Ni']),
-      getDiggingAssayValue_(r,['Fe %','Fe']),
-      getDiggingAssayValue_(r,['Co %','Co']),
-      getDiggingAssayValue_(r,['MgO %','MgO']),
-      getDiggingAssayValue_(r,['SiO %','SiO2 %','SiO2']),
-      getField(r,'Tujuan'),
-      isDiggingDataComplete_(r)
-    ])).join('|');
-  } catch (e) { return String(Date.now()); }
-}
-// AN-03/AN-05 policy: angka + progress dianimasikan SATU KALI saat dashboard pertama kali
-// tampil setelah splash. Tidak dipanggil lagi saat pindah tab atau refresh data.
-let mg1MetricAnimationRaf_ = null;
-function animateDashboardMetrics_() {
-  try {
-    if (mg1MetricAnimationRaf_) cancelAnimationFrame(mg1MetricAnimationRaf_);
-    const start = performance.now();
-    const duration = 720;
-    const ease = t => 1 - Math.pow(1 - t, 3);
-    const values = Array.from(document.querySelectorAll('[data-mg1-target-value]')).map(el => ({
-      el,
-      target: Number(el.getAttribute('data-mg1-target-value')) || 0,
-      decimals: Number(el.getAttribute('data-mg1-decimals')) || 0,
-      suffix: el.getAttribute('data-mg1-suffix') || ''
-    }));
-    const bars = Array.from(document.querySelectorAll('[data-mg1-progress]')).map(el => ({
-      el, target: Math.max(0, Math.min(100, Number(el.getAttribute('data-mg1-progress')) || 0))
-    }));
-    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) {
-      values.forEach(item => { item.el.textContent = item.target.toFixed(item.decimals) + item.suffix; });
-      bars.forEach(item => { item.el.style.width = item.target + '%'; });
-      return;
-    }
-    const tick = now => {
-      const t = Math.min(1, (now - start) / duration);
-      const e = ease(t);
-      values.forEach(item => { item.el.textContent = (item.target * e).toFixed(item.decimals) + item.suffix; });
-      bars.forEach(item => { item.el.style.width = (item.target * e) + '%'; });
-      if (t < 1) mg1MetricAnimationRaf_ = requestAnimationFrame(tick);
-      else mg1MetricAnimationRaf_ = null;
-    };
-    mg1MetricAnimationRaf_ = requestAnimationFrame(tick);
-  } catch (e) { console.warn('AN-03 one-shot metric animation skipped:', e); }
-}
 
 // ==== RINGKASAN & TABEL DIGGING ====
 function renderRingkasan() {
@@ -443,10 +367,8 @@ function renderRingkasan() {
   const oreTypes = new Set(oreRows.map(r => r['Material']).filter(Boolean));
   const dominantOre = oreRows.length ? (oreRows[0]['Material'] || '-') : '-';
 
-  function card(iconName, borderColor, badgeBg, badge, label, value, unit, sub, barPct, delayMs) {
-    const cardDelay = Number(delayMs) || 0;
-    const entranceClass = !mg1DashboardEntranceDone_ ? ' mg1-enter' : '';
-    return '<div class="mg1-dashboard-card' + entranceClass + ' flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[12px] flex flex-col justify-between gap-[8px]" style="--mg1-enter-delay:' + cardDelay + 'ms">' +
+  function card(iconName, borderColor, badgeBg, badge, label, value, unit, sub, barPct) {
+    return '<div class="flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[12px] flex flex-col justify-between gap-[8px]">' +
       '<div class="flex justify-end leading-none shrink-0">' +
         (badge ? '<span class="text-[9px] font-bold rounded-full px-[8px] py-[3px] tracking-wide leading-none ' + badgeBg + ' text-white">' + badge + '</span>' : '') +
       '</div>' +
@@ -457,14 +379,14 @@ function renderRingkasan() {
         '<div class="flex-1 min-w-0 flex flex-col justify-center gap-[2px]">' +
           '<span class="text-[10px] font-bold tracking-[0.12em] text-white/60 leading-[1.1]">' + label + '</span>' +
           '<div class="flex items-baseline gap-1">' +
-            '<span class="text-[24px] font-black leading-none text-white tracking-tight mg1-metric-value" data-mg1-target-value="' + (String(value).replace('%','')) + '" data-mg1-decimals="' + (String(value).includes('.') ? (String(value).split('.')[1].replace('%','').length) : '0') + '" data-mg1-suffix="' + (String(value).endsWith('%') ? '%' : '') + '">' + (String(value).endsWith('%') ? '0.00%' : '0') + '</span>' +
+            '<span class="text-[24px] font-black leading-none text-white tracking-tight">' + value + '</span>' +
             (unit ? '<span class="text-[11px] font-bold text-white/50 leading-none">' + unit + '</span>' : '') +
           '</div>' +
           '<div class="text-[9px] font-medium text-white/50 leading-[1.2] truncate">' + sub + '</div>' +
         '</div>' +
       '</div>' +
       '<div class="shrink-0"><div class="h-[2px] w-full rounded-full bg-white/[0.08] overflow-hidden">' +
-        '<div class="h-full rounded-full bg-gradient-to-r from-[#2563eb] to-[#22c55e] mg1-progress-fill" data-mg1-progress="' + Math.min(100,barPct||0) + '" style="width:0%"></div>' +
+        '<div class="h-full rounded-full bg-gradient-to-r from-[#2563eb] to-[#22c55e]" style="width:' + Math.min(100,barPct||0) + '%"></div>' +
       '</div></div>' +
     '</div>';
   }
@@ -478,14 +400,14 @@ function renderRingkasan() {
     html += '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-6 text-center text-white/40 text-xs">Belum ada data Digging tercatat sama sekali. Tekan tombol + di Digging utk mulai input.</div>';
   } else {
     html += '<div class="flex-1 min-h-0 flex flex-col gap-[10px] justify-between">';
-    html += card('pickaxe', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL DIGGING', totalTonase.toFixed(0), 'Ton', rows.length + ' baris data ' + modeLabel, 100, 0);
-    html += card('layers', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL ORE', totalOre.toFixed(0), 'Ton', dominantOre + ' &bull; ' + oreTypes.size + ' jenis ore', totalTonase ? (totalOre/totalTonase*100) : 0, 70);
-    html += card('flask-conical', 'border-[#2563eb]', 'bg-[#2563eb]', 'VALID', 'RATA-RATA NI', avgNi.toFixed(2) + '%', '', 'Dari ' + rows.length + ' entri rata-rata sampel', Math.min(100, avgNi/2.5*100), 140);
-    html += card('gem', 'border-[#22c55e]', 'bg-[#22c55e]', 'CLEAN', 'RATA-RATA NI TANPA WASTE', avgNiClean.toFixed(2) + '%', '', 'Clean ore grade tanpa impurities', Math.min(100, avgNiClean/2.5*100), 210);
+    html += card('pickaxe', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL DIGGING', totalTonase.toFixed(0), 'Ton', rows.length + ' baris data ' + modeLabel, 100);
+    html += card('layers', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL ORE', totalOre.toFixed(0), 'Ton', dominantOre + ' &bull; ' + oreTypes.size + ' jenis ore', totalTonase ? (totalOre/totalTonase*100) : 0);
+    html += card('flask-conical', 'border-[#2563eb]', 'bg-[#2563eb]', 'VALID', 'RATA-RATA NI', avgNi.toFixed(2) + '%', '', 'Dari ' + rows.length + ' entri rata-rata sampel', Math.min(100, avgNi/2.5*100));
+    html += card('gem', 'border-[#22c55e]', 'bg-[#22c55e]', 'CLEAN', 'RATA-RATA NI TANPA WASTE', avgNiClean.toFixed(2) + '%', '', 'Clean ore grade tanpa impurities', Math.min(100, avgNiClean/2.5*100));
     html += '</div>';
     // Kartu Issue & Rekomendasi: sekarang AKTIF -- klik buka daftar issue asli
     // (sheet "Masalah & Rekomendasi"), bukan cuma titik hijau dekoratif.
-    html += '<button onclick="openIssueModal()" class="' + (!mg1DashboardEntranceDone_ ? 'mg1-enter ' : '') + 'shrink-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[14px] flex items-center justify-between gap-2 w-full text-left " style="--mg1-enter-delay:280ms">' +
+    html += '<button onclick="openIssueModal()" class="shrink-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[14px] flex items-center justify-between gap-2 w-full text-left active:scale-[0.99] transition-transform">' +
       '<div class="flex items-center gap-[8px] min-w-0 flex-1">' +
         '<div class="w-[28px] h-[28px] rounded-[8px] bg-[#2563eb]/15 border border-[#2563eb]/20 flex items-center justify-center shrink-0">' +
           icon('clipboard-list','w-[18px] h-[18px] text-[#2563eb]') +
@@ -524,7 +446,7 @@ function renderTabel() {
       icon('search','w-[16px] h-[16px] text-white/40 shrink-0') +
       '<input value="' + diggingSearchQuery.replace(/"/g,'&quot;') + '" oninput="updateDiggingSearch(this.value)" placeholder="Cari ID Sampel / Pit / Blok..." class="flex-1 bg-transparent outline-none text-[12px] font-medium text-white placeholder:text-white/35 min-w-0">' +
     '</div>' +
-    '<button aria-label="Input Digging" onclick="openDiggingForm()" class="shrink-0 w-9 h-9 rounded-full bg-[#2563eb] border border-white/10 flex items-center justify-center">' +
+    '<button aria-label="Input Digging" onclick="openDiggingForm()" class="shrink-0 w-9 h-9 rounded-full bg-[#2563eb] border border-white/10 flex items-center justify-center active:scale-95 transition-transform">' +
       icon('plus','w-[20px] h-[20px] text-white') +
     '</button>' +
   '</div>';
@@ -543,9 +465,7 @@ function renderTabel() {
       const statusBadgeHtml = isPendingAssay
         ? '<span class="px-2 py-0.5 rounded-md text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>Menunggu Lab</span>'
         : renderClassGradeBadge(material);
-      const isIncomplete = !isDiggingDataComplete_(r);
-      const incompleteDotHtml = isIncomplete ? '<span class="mg1-missing-dot shrink-0 mr-1.5" aria-label="Data belum lengkap" title="Data assay atau Tujuan belum lengkap"></span>' : '';
-      html += '<button onclick="openDiggingDetail(' + i + ')" class="text-left min-h-[62px] rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-3.5 flex items-center justify-between shrink-0">' +
+      html += '<button onclick="openDiggingDetail(' + i + ')" class="text-left min-h-[62px] rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-3.5 flex items-center justify-between shrink-0 active:scale-[0.99] transition-transform">' +
         '<div class="flex items-center gap-3 min-w-0">' +
           '<div class="w-10 h-10 rounded-[10px] bg-white/[0.06] border border-white/10 flex items-center justify-center text-[11px] font-black text-white/70 shrink-0">' + numLabel + '</div>' +
           '<div class="min-w-0">' +
@@ -553,7 +473,7 @@ function renderTabel() {
             '<div class="text-[11px] text-white/45 mt-1 font-medium truncate">Ni ' + ni.toFixed(2) + '%' + (sm ? (' &bull; SM ' + sm.toFixed(2)) : '') + '</div>' +
           '</div>' +
         '</div>' +
-        '<div class="shrink-0 ml-2 flex items-center">' + incompleteDotHtml + statusBadgeHtml + '</div>' +
+        '<div class="shrink-0 ml-2">' + statusBadgeHtml + '</div>' +
       '</button>';
     });
     html += '</div>';
@@ -622,7 +542,7 @@ function renderDiggingDetailModal(justOpened) {
   // "Menunggu Assay" -- sama persis pola web.
   const isPending = getField(r,'Material') === 'Menunggu Assay';
   const actionBtn = isPending
-    ? '<button onclick="openUpdateAssayModal()" class="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md">' + icon('flask-conical','w-3.5 h-3.5') + '<span>Update Hasil Assay</span></button>'
+    ? '<button onclick="openUpdateAssayModal()" class="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md animate-pulse">' + icon('flask-conical','w-3.5 h-3.5') + '<span>Update Hasil Assay</span></button>'
     : '';
   return renderSimpleModal('Detail Digging', getField(r,'ID Sampel') || (getField(r,'Pit')||'-'), body + actionBtn, 'closeDiggingDetail()', undefined, justOpened);
 }
@@ -660,7 +580,7 @@ function renderDiggingModal(justOpened) {
           fieldRow('ID Sampel *', textField('id_sampel', f.id_sampel, 'cth. DM01.L.05')) +
           fieldRow('Total Sampel (Karung) *', numField('total_sampel', f.total_sampel, 'cth. 25')) +
         '</div>' +
-        fieldRow('Tonase (Otomatis)', '<div class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (tonasePreview || '-') + ' Ton</div>') +
+        fieldRow('Tonase (Otomatis)', '<div id="digging-tonase-preview" class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (tonasePreview || '-') + ' Ton</div>') +
         '<div class="rounded-[10px] bg-amber-500/10 border border-amber-500/25 px-3 py-2.5 text-[10px] text-amber-300 leading-relaxed">Ni % dan Tujuan boleh dikosongkan dulu kalau hasil lab belum keluar -- lengkapi belakangan lewat "Update Hasil Assay" di detail baris.</div>' +
         '<div class="grid grid-cols-3 gap-2.5">' +
           fieldRow('Ni %', numField('ni', f.ni, '1.85')) +
@@ -671,7 +591,7 @@ function renderDiggingModal(justOpened) {
           fieldRow('MgO %', numField('mgo', f.mgo, '28.50')) +
           fieldRow('SiO2 %', numField('sio2', f.sio2, '38.20')) +
         '</div>' +
-        fieldRow('SM % (otomatis)', '<div class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (smPreview || '-') + '</div>') +
+        fieldRow('SM % (otomatis)', '<div id="digging-sm-preview" class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (smPreview || '-') + '</div>') +
         fieldRow('Tujuan', selectField('tujuan', ['','EFO','ETO','Direct','Disposal'], f.tujuan)) +
         (f.tujuan === 'Direct' ? fieldRow('Nama Ship', textField('ship', f.ship, 'cth. MV Ocean Star')) : '') +
         (diggingStatusMsg ? '<p class="text-xs font-medium ' + (diggingStatusOk?'text-emerald-400':'text-rose-400') + '">' + diggingStatusMsg + '</p>' : '') +
@@ -701,11 +621,22 @@ function selectField(name, options, val) {
   return html;
 }
 function updateDiggingField(name, val) {
+  // Keyboard/focus fix: jangan rebuild seluruh app saat setiap karakter diketik.
+  // Full render() akan mengganti node <input>, sehingga Android kehilangan focus
+  // dan keyboard menutup setelah satu karakter.
   diggingFormState[name] = val;
-  // Text/number input tidak boleh memanggil render() per karakter karena itu
-  // mengganti node <input>, menghilangkan focus, dan menutup keyboard Android.
-  // Hanya select yang dapat mengubah struktur form yang perlu rebuild.
-  if (name === 'tujuan' || name === 'tipe_ore') render();
+
+  // Tetap perbarui preview turunan tanpa menyentuh DOM input.
+  const smPreview = computeSM(diggingFormState.mgo, diggingFormState.sio2);
+  const tonasePreview = computeTonase(
+    diggingFormState.total_sampel,
+    diggingFormState.tipe_ore,
+    parseFloat(smPreview)
+  );
+  const smEl = document.getElementById('digging-sm-preview');
+  const tonaseEl = document.getElementById('digging-tonase-preview');
+  if (smEl) smEl.textContent = smPreview || '-';
+  if (tonaseEl) tonaseEl.textContent = (tonasePreview || '-') + ' Ton';
 }
 
 // ==== ACTIONS ====
@@ -726,4 +657,3 @@ async function handleSubmitDigging() {
     render();
   }
 }
-
