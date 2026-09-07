@@ -439,12 +439,9 @@ let diggingDisplayedRows = [];
 function renderTabel() {
   const allRows = globalDiggingToday;
   const q = diggingSearchQuery.trim().toLowerCase();
-  const rows = q ? allRows.filter(r => {
-    const idSampel = String(r['ID Sampel'] || '').toLowerCase();
-    const pit = String(r['Pit'] || '').toLowerCase();
-    const blok = String(r['Blok'] || '').toLowerCase();
-    return idSampel.includes(q) || pit.includes(q) || blok.includes(q);
-  }) : allRows;
+  // Search difilter langsung di DOM agar mengetik tidak membongkar input/keyboard.
+  // Semua row tetap dirender; query hanya mengatur visibility row.
+  const rows = allRows;
   diggingDisplayedRows = rows;
   const countLabel = diggingViewMode === 'today' ? (allRows.length + ' entri &bull; live') : (allRows.length + ' entri terbaru');
 
@@ -462,9 +459,9 @@ function renderTabel() {
     '</button>' +
   '</div>';
   if (!rows.length) {
-    html += '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-6 text-center text-white/40 text-xs">' + (q ? 'Tidak ada entri yang cocok dgn pencarian.' : 'Belum ada entri.') + '</div>';
+    html += '<div id="digging-search-empty" class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-6 text-center text-white/40 text-xs">Belum ada entri.</div>';
   } else {
-    html += '<div class="flex-1 min-h-0 flex flex-col gap-[10px] overflow-y-auto overflow-x-hidden">';
+    html += '<div id="digging-search-list" class="flex-1 min-h-0 flex flex-col gap-[10px] overflow-y-auto overflow-x-hidden">';
     rows.forEach((r, i) => {
       const ni = parseFloat(r['Ni %'] ?? r['Ni']) || 0;
       const fe = parseFloat(r['Fe %'] ?? r['Fe']) || 0;
@@ -478,7 +475,8 @@ function renderTabel() {
       const statusBadgeHtml = isPendingAssay
         ? '<span class="px-2 py-0.5 rounded-md text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>Menunggu Lab</span>'
         : renderClassGradeBadge(material);
-      html += '<button onclick="openDiggingDetail(' + i + ')" class="text-left min-h-[62px] rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-3.5 flex items-center justify-between shrink-0 active:scale-[0.99] transition-transform">' +
+      const searchText = [r['ID Sampel'], r['Pit'], r['Blok']].map(v => String(v || '').toLowerCase()).join(' ');
+      html += '<button data-digging-search-text="' + searchText.replace(/&/g,'&amp;').replace(/\"/g,'&quot;') + '" data-digging-row-index="' + i + '" onclick="openDiggingDetail(' + i + ')" class="text-left min-h-[62px] rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-3.5 flex items-center justify-between shrink-0 active:scale-[0.99] transition-transform">' +
         '<div class="flex items-center gap-3 min-w-0">' +
           '<div class="w-10 h-10 rounded-[10px] bg-white/[0.06] border border-white/10 flex items-center justify-center text-[11px] font-black text-white/70 shrink-0">' + numLabel + '</div>' +
           '<div class="min-w-0">' +
@@ -489,14 +487,37 @@ function renderTabel() {
         '<div class="shrink-0 ml-2">' + statusBadgeHtml + '</div>' +
       '</button>';
     });
+    html += '<div id="digging-search-empty" style="display:none;" class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-6 text-center text-white/40 text-xs">Tidak ada entri yang cocok dgn pencarian.</div>';
     html += '</div>';
   }
   html += '</main>';
   html += renderBottomNav();
   return html;
 }
-function updateDiggingSearch(val) { diggingSearchQuery = val; render(); }
-function updateValidasiSearch(val) { validasiSearchQuery = val; render(); }
+function applyDiggingSearchDom_() {
+  const q = diggingSearchQuery.trim().toLowerCase();
+  const list = document.getElementById('digging-search-list');
+  const empty = document.getElementById('digging-search-empty');
+  if (!list) return;
+  let visible = 0;
+  list.querySelectorAll('[data-digging-search-text]').forEach(el => {
+    const hit = !q || String(el.getAttribute('data-digging-search-text') || '').includes(q);
+    el.style.display = hit ? '' : 'none';
+    if (hit) visible++;
+  });
+  if (empty) {
+    empty.textContent = q ? 'Tidak ada entri yang cocok dgn pencarian.' : 'Belum ada entri.';
+    empty.style.display = visible ? 'none' : '';
+  }
+}
+function updateDiggingSearch(val) {
+  diggingSearchQuery = val;
+  applyDiggingSearchDom_();
+}
+function updateValidasiSearch(val) {
+  validasiSearchQuery = val;
+  applyValidasiSearchDom_();
+}
 
 // ==== MODAL: DETAIL DIGGING (klik item di daftar Digging) ====
 let diggingDetailOpen = false;

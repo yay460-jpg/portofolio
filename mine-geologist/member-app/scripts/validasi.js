@@ -107,7 +107,8 @@ let validasiDisplayedGroups = [];
 function renderValidasi() {
   const allGroups = groupValidasiByTp(globalValidasiToday);
   const q = validasiSearchQuery.trim().toLowerCase();
-  const groups = q ? allGroups.filter(g => g.idTp.toLowerCase().includes(q) || String(g.area||'').toLowerCase().includes(q)) : allGroups;
+  // Search difilter langsung di DOM agar mengetik tidak membongkar input/keyboard.
+  const groups = allGroups;
   validasiDisplayedGroups = groups;
 
   let html = renderHeader();
@@ -123,15 +124,16 @@ function renderValidasi() {
     '</button>' +
   '</div>';
   if (!groups.length) {
-    html += '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-6 text-center text-white/40 text-xs">' + (q ? 'Tidak ada TP yang cocok dgn pencarian.' : 'Belum ada data Validasi.') + '</div>';
+    html += '<div id="validasi-search-empty" class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-6 text-center text-white/40 text-xs">Belum ada data Validasi.</div>';
   } else {
-    html += '<div class="flex-1 min-h-0 flex flex-col gap-[10px] overflow-y-auto overflow-x-hidden">';
+    html += '<div id="validasi-search-list" class="flex-1 min-h-0 flex flex-col gap-[10px] overflow-y-auto overflow-x-hidden">';
     groups.forEach((g, i) => {
       const headerLine = g.idTp + ' &bull; ' + g.depthCount + '/' + g.maxDepth + ' m &bull; ' + (g.area||'-') + ' &bull; Bench ' + (g.bench||'-');
       function assayStat(label, val, accent) {
         return '<div class="flex-1 min-w-0"><div class="text-[9px] font-bold text-white/35 tracking-wide">' + label + '</div><div class="text-[13px] font-bold ' + (accent ? 'text-[#2563eb]' : 'text-white') + ' mt-0.5">' + val + '</div></div>';
       }
-      html += '<div onclick="openValidasiDetail(' + i + ')" class="text-left rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4 shrink-0 active:scale-[0.99] transition-transform cursor-pointer">' +
+      const searchText = [g.idTp, g.area].map(v => String(v || '').toLowerCase()).join(' ');
+      html += '<div data-validasi-search-text="' + searchText.replace(/&/g,'&amp;').replace(/\"/g,'&quot;') + '" onclick="openValidasiDetail(' + i + ')" class="text-left rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4 shrink-0 active:scale-[0.99] transition-transform cursor-pointer">' +
         '<div class="flex items-start justify-between gap-2 mb-3">' +
           '<div class="text-sm font-bold text-white leading-tight">' + headerLine + '</div>' +
           '<div class="shrink-0 flex items-center gap-1.5">' +
@@ -150,6 +152,7 @@ function renderValidasi() {
         '</div>' +
       '</div>';
     });
+    html += '<div id="validasi-search-empty" style="display:none;" class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-6 text-center text-white/40 text-xs">Tidak ada TP yang cocok dgn pencarian.</div>';
     html += '</div>';
   }
   html += '</main>';
@@ -291,4 +294,23 @@ function renderValidasiFormModal(justOpened) {
     '</button>' +
   '</div>';
   return renderSimpleModal('Input Validasi', 'Data assay Test Pit', body, 'closeValidasiForm()', undefined, justOpened);
+}
+
+
+// AN keyboard/search fix: filter existing Validasi cards without rebuilding the app DOM.
+function applyValidasiSearchDom_() {
+  const q = validasiSearchQuery.trim().toLowerCase();
+  const list = document.getElementById('validasi-search-list');
+  const empty = document.getElementById('validasi-search-empty');
+  if (!list) return;
+  let visible = 0;
+  list.querySelectorAll('[data-validasi-search-text]').forEach(el => {
+    const hit = !q || String(el.getAttribute('data-validasi-search-text') || '').includes(q);
+    el.style.display = hit ? '' : 'none';
+    if (hit) visible++;
+  });
+  if (empty) {
+    empty.textContent = q ? 'Tidak ada TP yang cocok dgn pencarian.' : 'Belum ada data Validasi.';
+    empty.style.display = visible ? 'none' : '';
+  }
 }
