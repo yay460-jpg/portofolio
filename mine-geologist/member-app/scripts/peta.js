@@ -115,10 +115,19 @@ function getMapViewportRatio_() {
 }
 
 function scheduleMapViewportFit_() {
+  // KEYBOARD FIX: Android visual viewport resize fires while a form input is focused.
+  // The map-fit listener must never rebuild the whole app during keyboard activity,
+  // otherwise Digging/Validasi inputs lose focus and the keyboard closes.
+  const active = document.activeElement;
+  const keyboardInputActive = !!(active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA'));
+  if (keyboardInputActive || currentTab !== 'peta') return;
   if (mapViewportSyncScheduled_) return;
   mapViewportSyncScheduled_ = true;
   requestAnimationFrame(() => {
     mapViewportSyncScheduled_ = false;
+    const activeNow = document.activeElement;
+    const keyboardStillActive = !!(activeNow && (activeNow.tagName === 'INPUT' || activeNow.tagName === 'TEXTAREA'));
+    if (keyboardStillActive || currentTab !== 'peta') return;
     const ratio = getMapViewportRatio_();
     if (ratio > 0 && Math.abs(ratio - mapViewportRatio_) >= 0.01) {
       mapViewportRatio_ = ratio;

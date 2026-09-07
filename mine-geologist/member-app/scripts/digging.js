@@ -281,7 +281,12 @@ function openUpdateAssayModal() {
   render();
 }
 function closeUpdateAssayModal() { updateAssayModalOpen = false; render(); }
-function updateAssayField(name, val) { updateAssayForm[name] = val; render(); }
+function updateAssayField(name, val) {
+  updateAssayForm[name] = val;
+  // Keyboard fix: typing must not rebuild the modal DOM. Re-rendering replaces
+  // the focused <input>, which makes Android close the keyboard after one key.
+  // Only update state here; submit/select actions are responsible for render().
+}
 
 function renderUpdateAssayModal(justOpened) {
   if (!updateAssayModalOpen) return '';
@@ -588,7 +593,7 @@ function renderDiggingModal(justOpened) {
           fieldRow('ID Sampel *', textField('id_sampel', f.id_sampel, 'cth. DM01.L.05')) +
           fieldRow('Total Sampel (Karung) *', numField('total_sampel', f.total_sampel, 'cth. 25')) +
         '</div>' +
-        fieldRow('Tonase (Otomatis)', '<div class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (tonasePreview || '-') + ' Ton</div>') +
+        fieldRow('Tonase (Otomatis)', '<div data-digging-tonase-preview class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (tonasePreview || '-') + ' Ton</div>') +
         '<div class="rounded-[10px] bg-amber-500/10 border border-amber-500/25 px-3 py-2.5 text-[10px] text-amber-300 leading-relaxed">Ni % dan Tujuan boleh dikosongkan dulu kalau hasil lab belum keluar -- lengkapi belakangan lewat "Update Hasil Assay" di detail baris.</div>' +
         '<div class="grid grid-cols-3 gap-2.5">' +
           fieldRow('Ni %', numField('ni', f.ni, '1.85')) +
@@ -599,7 +604,7 @@ function renderDiggingModal(justOpened) {
           fieldRow('MgO %', numField('mgo', f.mgo, '28.50')) +
           fieldRow('SiO2 %', numField('sio2', f.sio2, '38.20')) +
         '</div>' +
-        fieldRow('SM % (otomatis)', '<div class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (smPreview || '-') + '</div>') +
+        fieldRow('SM % (otomatis)', '<div data-digging-sm-preview class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (smPreview || '-') + '</div>') +
         fieldRow('Tujuan', selectField('tujuan', ['','EFO','ETO','Direct','Disposal'], f.tujuan)) +
         (f.tujuan === 'Direct' ? fieldRow('Nama Ship', textField('ship', f.ship, 'cth. MV Ocean Star')) : '') +
         (diggingStatusMsg ? '<p class="text-xs font-medium ' + (diggingStatusOk?'text-emerald-400':'text-rose-400') + '">' + diggingStatusMsg + '</p>' : '') +
@@ -630,8 +635,23 @@ function selectField(name, options, val) {
 }
 function updateDiggingField(name, val) {
   diggingFormState[name] = val;
-  render();
-  requestAnimationFrame(() => { const el = document.querySelector('[data-focus-guard]'); });
+  // Keyboard fix: do not call render() on every keystroke. Rebuilding the app
+  // replaces the focused input and Android closes the keyboard.
+  // Derived previews are refreshed in-place without touching the input DOM.
+  try {
+    if (name === 'mgo' || name === 'sio2') {
+      const smEl = document.querySelector('[data-digging-sm-preview]');
+      if (smEl) smEl.textContent = computeSM(diggingFormState.mgo, diggingFormState.sio2) || '-';
+    }
+    if (name === 'mgo' || name === 'sio2' || name === 'total_sampel' || name === 'tipe_ore') {
+      const sm = computeSM(diggingFormState.mgo, diggingFormState.sio2);
+      const tonase = computeTonase(diggingFormState.total_sampel, diggingFormState.tipe_ore, parseFloat(sm));
+      const tonaseEl = document.querySelector('[data-digging-tonase-preview]');
+      if (tonaseEl) tonaseEl.textContent = (tonase || '-') + ' Ton';
+    }
+  } catch (e) {
+    console.warn('Digging preview update failed:', e);
+  }
 }
 
 // ==== ACTIONS ====

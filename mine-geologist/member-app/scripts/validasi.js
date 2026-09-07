@@ -213,7 +213,12 @@ function openValidasiForm() {
   render();
 }
 function closeValidasiForm() { validasiFormOpen = false; render(); }
-function updateValidasiField(name, val) { validasiFormState[name] = val; render(); }
+function updateValidasiField(name, val) {
+  validasiFormState[name] = val;
+  // Keyboard fix: typing must not rebuild the modal DOM. Re-rendering replaces
+  // the focused <input>, which makes Android close the keyboard after one key.
+  // Keep the current input/focus untouched until an explicit action needs render().
+}
 
 async function submitValidasiEntry() {
   const f = validasiFormState;
