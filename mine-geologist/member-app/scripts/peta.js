@@ -13,11 +13,12 @@
 // ==== PETA (Mine Grid) -- v90.2.113 BARU ====
 // State panel/interaksi peta -- terpisah dari state tab lain, tidak saling pengaruh.
 let mapZoom = 1;             // 1 = fit-all murni; default background map memakai 1.25x agar layout lebih padat
+let mapRotationDeg_ = 0;     // STEP 7.6F: persistent map rotation, driven only by dual-finger gesture.
 let mapViewportState_ = { centerNative: null }
 let mapPanVelocity_ = { x:0, y:0, lastX:0, lastY:0, lastT:0 };
 let mapPanInertiaRaf_ = null;; // posisi viewport persisten; tap tidak pernah mengubahnya
 // STEP 5.6: state gesture pinch-to-zoom 2 jari.
-let mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null };
+let mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, startAngle: 0, startRotation: 0, currentRotation: 0, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null };
 let mapPinchRenderScheduled_ = false;
 // STEP 7.6: single-finger pan state. Selama gesture aktif, SVG yang sudah tampil
 // digerakkan oleh compositor (CSS transform); DOM/tile tidak dibangun ulang per touchmove.
@@ -69,7 +70,7 @@ function resetMapGestureTransientState_() {
   mapPanState_.active = false; mapPanState_.visualSvg = null;
   mapPanState_.dx = 0; mapPanState_.dy = 0;
   mapPanState_.velocityX = 0; mapPanState_.velocityY = 0; mapPanState_.moved = false;
-  mapPinchState_.active = false; mapPinchState_.visualSvg = null;
+  mapPinchState_.active = false; if (mapPinchState_.visualSvg) { mapPinchState_.visualSvg.style.transform = composeMapTransform_(1, mapRotationDeg_, 0, 0); mapPinchState_.visualSvg.style.transformOrigin='50% 50%'; } mapPinchState_.visualSvg = null;
   mapPinchRenderScheduled_ = false; mapPanRenderScheduled_ = false;
   if (mapPanInertiaRaf_) { try { cancelAnimationFrame(mapPanInertiaRaf_); } catch (_) {} mapPanInertiaRaf_ = null; }
 }
@@ -1007,13 +1008,21 @@ function handleMapTap_(event) {
     const svgEl = event.currentTarget;
     const bounds = computeResponsiveDisplayBounds_(buildMapData());
     if (!bounds) return;
-    const rect = svgEl.getBoundingClientRect();
+    const rect = (svgEl.parentElement || svgEl).getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const viewW = 320, viewH = 320;
     const viewBox = getMapViewBox_(bounds);
-    const svgX = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.w;
-    const svgY = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.h;
+    let svgX = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.w;
+    let svgY = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.h;
     if (!Number.isFinite(svgX) || !Number.isFinite(svgY)) return;
+    // STEP 7.6F: undo persistent screen rotation before converting tap to native coordinates.
+    if (Math.abs(mapRotationDeg_) > 0.0001) {
+      const rad = -mapRotationDeg_ * Math.PI / 180;
+      const cx = viewW / 2, cy = viewH / 2;
+      const dx = svgX - cx, dy = svgY - cy;
+      svgX = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
+      svgY = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
+    }
     const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
     const nativeX = bounds.minT + (svgX / viewW) * rangeT;
     const nativeY = bounds.minU + ((viewH - svgY) / viewH) * rangeU;
@@ -2468,6 +2477,7 @@ async function submitMapUpload_() {
     await loadBackgroundMapsFromDb_();
     activeBackgroundMapId = id; // peta baru diupload langsung diaktifkan
     mapZoom = 1.25;
+    mapRotationDeg_ = 0;
     mapViewportState_.centerNative = null;
     localStorage.setItem('mg1_active_bg_map_id', id);
     mapUploadFormOpen = false;
@@ -2480,6 +2490,7 @@ async function submitMapUpload_() {
 function activateBackgroundMap_(id) {
   activeBackgroundMapId = id;
   mapZoom = 1.25;
+  mapRotationDeg_ = 0;
   mapViewportState_.centerNative = null;
   localStorage.setItem('mg1_active_bg_map_id', id);
   render();
@@ -2487,6 +2498,7 @@ function activateBackgroundMap_(id) {
 async function deactivateBackgroundMap_() {
   activeBackgroundMapId = null;
   mapZoom = 1;
+  mapRotationDeg_ = 0;
   mapViewportState_.centerNative = null;
   localStorage.removeItem('mg1_active_bg_map_id');
   render();
@@ -2784,6 +2796,22 @@ function pinchMidpoint_(a, b, rect) {
     y: ((a.clientY + b.clientY) / 2 - rect.top) / rect.height
   };
 }
+function pinchAngle_(a, b) {
+  return Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) * 180 / Math.PI;
+}
+function normalizeAngleDelta_(deg) {
+  let d = deg % 360;
+  if (d > 180) d -= 360;
+  if (d < -180) d += 360;
+  return d;
+}
+function composeMapTransform_(scale, rotationDeg, dx, dy) {
+  const s = Number.isFinite(scale) ? scale : 1;
+  const r = Number.isFinite(rotationDeg) ? rotationDeg : 0;
+  const x = Number.isFinite(dx) ? dx : 0;
+  const y = Number.isFinite(dy) ? dy : 0;
+  return 'translate3d(' + x.toFixed(3) + 'px,' + y.toFixed(3) + 'px,0) scale(' + s.toFixed(5) + ') rotate(' + r.toFixed(4) + 'deg)';
+}
 function nativeFromClientPoint_(event, bounds, rect) {
   const viewW = 320, viewH = 320;
   const viewBox = getMapViewBox_(bounds);
@@ -2815,17 +2843,18 @@ function handleMapTouchStart_(event) {
     if (event.touches && event.touches.length===2) {
       // 2 finger -> pinch
       const a=event.touches[0], b=event.touches[1];
-      const rect=event.currentTarget.getBoundingClientRect();
+      const rect=(event.currentTarget.parentElement || event.currentTarget).getBoundingClientRect();
       const bounds=computeResponsiveDisplayBounds_(buildMapData());
       if (!bounds) return;
       const distance=Math.hypot(b.clientX-a.clientX, b.clientY-a.clientY);
       const midpoint={x:((a.clientX+b.clientX)/2-rect.left)/rect.width, y:((a.clientY+b.clientY)/2-rect.top)/rect.height};
+      const angle=pinchAngle_(a,b);
       const anchor=nativeFromClientPoint_({clientX:(a.clientX+b.clientX)/2, clientY:(a.clientY+b.clientY)/2}, bounds, rect);
       mapPanState_.active=false;
       if (mapPanInertiaRaf_) { cancelAnimationFrame(mapPanInertiaRaf_); mapPanInertiaRaf_=null; }
       const svg=event.currentTarget.querySelector('svg');
-      mapPinchState_={active:true,startDistance:distance,startZoom:mapZoom,anchorNative:anchor,midX:midpoint.x,midY:midpoint.y,suppressTapUntil:Date.now()+500,visualSvg:svg};
-      if(svg){svg.style.transform='none';svg.style.willChange='transform';}
+      mapPinchState_={active:true,startDistance:distance,startZoom:mapZoom,startAngle:angle,startRotation:mapRotationDeg_,currentRotation:mapRotationDeg_,anchorNative:anchor,midX:midpoint.x,midY:midpoint.y,suppressTapUntil:Date.now()+500,visualSvg:svg};
+      if(svg){svg.style.transform=composeMapTransform_(1, mapRotationDeg_, 0, 0);svg.style.transformOrigin='50% 50%';svg.style.willChange='transform';}
       event.preventDefault();event.stopPropagation();
     }
     return;
@@ -2845,7 +2874,9 @@ function handleMapTouchMove_(event) {
       const a=event.touches[0], b=event.touches[1];
       const distance=Math.hypot(b.clientX-a.clientX, b.clientY-a.clientY);
       if(!(distance>0)||!(mapPinchState_.startDistance>0)) return;
-      const rect=event.currentTarget.getBoundingClientRect();
+      const angle=pinchAngle_(a,b);
+      mapPinchState_.currentRotation = mapPinchState_.startRotation + normalizeAngleDelta_(angle - mapPinchState_.startAngle);
+      const rect=(event.currentTarget.parentElement || event.currentTarget).getBoundingClientRect();
       const midpoint={x:((a.clientX+b.clientX)/2-rect.left)/rect.width, y:((a.clientY+b.clientY)/2-rect.top)/rect.height};
       mapPinchState_.midX=midpoint.x; mapPinchState_.midY=midpoint.y;
       mapZoom=Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, mapPinchState_.startZoom*(distance/mapPinchState_.startDistance)));
@@ -2877,7 +2908,7 @@ function handleMapTouchEnd_(event) {
     if (bounds) commitMapPinchViewport_(bounds);
     const visual = mapPinchState_.visualSvg;
     mapPinchState_.active = false; mapPinchState_.suppressTapUntil = Date.now()+350;
-    if (visual) { visual.style.transform='none'; visual.style.willChange=''; }
+    if (visual) { visual.style.transform=composeMapTransform_(1, mapRotationDeg_, 0, 0); visual.style.transformOrigin='50% 50%'; visual.style.willChange=''; }
     mapPinchState_.visualSvg = null; mapPinchRenderScheduled_ = false;
     const svg = event.currentTarget.querySelector('svg') || event.currentTarget;
     if (bounds) beginMapPanPointer_(event, svg, bounds, touches[0].clientX, touches[0].clientY);
@@ -2889,7 +2920,7 @@ function handleMapTouchEnd_(event) {
   if (mapPinchState_.active) {
     const bounds=computeResponsiveDisplayBounds_(buildMapData()); if(bounds) commitMapPinchViewport_(bounds);
     mapPinchState_.active=false; mapPinchState_.suppressTapUntil=Date.now()+350;
-    const visual=mapPinchState_.visualSvg; if(visual){visual.style.transform='none';visual.style.willChange='';}
+    const visual=mapPinchState_.visualSvg; if(visual){visual.style.transform=composeMapTransform_(1, mapRotationDeg_, 0, 0);visual.style.transformOrigin='50% 50%';visual.style.willChange='';}
     mapPinchState_.visualSvg=null; mapPinchRenderScheduled_=false; mapGestureOwner_=null;
     requestAnimationFrame(()=>{render();flushMapGestureRender_();}); return;
   }
@@ -2912,7 +2943,7 @@ function applyPanVisual_(svg, dx, dy) {
   if (!svg) return;
   const x = Number.isFinite(dx) ? dx : 0;
   const y = Number.isFinite(dy) ? dy : 0;
-  svg.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
+  svg.style.transform = composeMapTransform_(1, mapRotationDeg_, x, y);
   svg.style.willChange = 'transform';
 }
 function applyPinchVisualTransform_(zoom) {
@@ -2921,7 +2952,7 @@ function applyPinchVisualTransform_(zoom) {
   const baseZoom = Math.max(0.0001, mapPinchState_.startZoom);
   const visualScale = Math.max(0.1, zoom / baseZoom);
   svg.style.transformOrigin = (mapPinchState_.midX * 100).toFixed(2) + '% ' + (mapPinchState_.midY * 100).toFixed(2) + '%';
-  svg.style.transform = 'scale(' + visualScale.toFixed(4) + ')';
+  svg.style.transform = composeMapTransform_(visualScale, mapPinchState_.currentRotation, 0, 0);
   svg.style.willChange = 'transform';
   return true;
 }
@@ -2932,7 +2963,7 @@ function getMapPointerSvg_(event) {
 }
 function getMapPointerRect_(svg) {
   if (!svg) return null;
-  const r = svg.getBoundingClientRect();
+  const r = (svg.parentElement || svg).getBoundingClientRect();
   return r && r.width > 0 && r.height > 0 ? r : null;
 }
 function getMapCenterNative_(bounds) {
@@ -3026,6 +3057,7 @@ function startMapPanInertia_() {
 }
 function commitMapPinchViewport_(bounds) {
   if (!bounds || !mapPinchState_.anchorNative) return;
+  mapRotationDeg_ = Number.isFinite(mapPinchState_.currentRotation) ? mapPinchState_.currentRotation : mapRotationDeg_;
   const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
   const zoomedW = 320 / Math.max(0.0001, mapZoom), zoomedH = 320 / Math.max(0.0001, mapZoom);
   if (!(rangeT > 0) || !(rangeU > 0)) return;
@@ -3034,14 +3066,21 @@ function commitMapPinchViewport_(bounds) {
   const anchorY = 320 - ((anchor.y - bounds.minU) / rangeU) * 320;
   const fx = Math.max(0, Math.min(1, mapPinchState_.midX));
   const fy = Math.max(0, Math.min(1, mapPinchState_.midY));
-  const centerSvgX = anchorX - fx * zoomedW + zoomedW / 2;
-  const centerSvgY = anchorY - fy * zoomedH + zoomedH / 2;
+  const pX = fx * 320, pY = fy * 320;
+  const cX = 160, cY = 160;
+  const rad = -mapRotationDeg_ * Math.PI / 180;
+  const dx = pX - cX, dy = pY - cY;
+  const qX = cX + (dx * Math.cos(rad) - dy * Math.sin(rad));
+  const qY = cY + (dx * Math.sin(rad) + dy * Math.cos(rad));
+  const centerSvgX = anchorX - (qX - cX) * (zoomedW / 320);
+  const centerSvgY = anchorY - (qY - cY) * (zoomedH / 320);
   const centerNativeX = bounds.minT + (centerSvgX / 320) * rangeT;
   const centerNativeY = bounds.minU + ((320 - centerSvgY) / 320) * rangeU;
   if (Number.isFinite(centerNativeX) && Number.isFinite(centerNativeY)) {
     mapViewportState_.centerNative = { x: centerNativeX, y: centerNativeY };
   }
 }
+
 function handleMapPointerDown_(event) {
   if (mapGestureOwner_ === 'touch') return;
   if (mapGestureOwner_ === null) {
@@ -3068,12 +3107,14 @@ function handleMapPointerDown_(event) {
     if (!rect) return;
     const distance = Math.hypot(b.x - a.x, b.y - a.y);
     if (!(distance > 0)) return;
+    const angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
     const midpoint = { x: ((a.x + b.x) / 2 - rect.left) / rect.width, y: ((a.y + b.y) / 2 - rect.top) / rect.height };
     const anchor = nativeFromClientPoint_({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 }, bounds, rect);
     mapPanState_.active = false;
     if (mapPanInertiaRaf_) { cancelAnimationFrame(mapPanInertiaRaf_); mapPanInertiaRaf_ = null; }
-    mapPinchState_ = { active: true, startDistance: distance, startZoom: mapZoom, anchorNative: anchor, midX: midpoint.x, midY: midpoint.y, suppressTapUntil: Date.now() + 500, visualSvg: svg };
-    svg.style.transform = 'none';
+    mapPinchState_ = { active: true, startDistance: distance, startZoom: mapZoom, startAngle: angle, startRotation: mapRotationDeg_, currentRotation: mapRotationDeg_, anchorNative: anchor, midX: midpoint.x, midY: midpoint.y, suppressTapUntil: Date.now() + 500, visualSvg: svg };
+    svg.style.transform = composeMapTransform_(1, mapRotationDeg_, 0, 0);
+    svg.style.transformOrigin = '50% 50%';
     svg.style.willChange = 'transform';
     event.preventDefault();
   }
@@ -3089,6 +3130,8 @@ function handleMapPointerMove_(event) {
     const a = points[0][1], b = points[1][1];
     const distance = Math.hypot(b.x - a.x, b.y - a.y);
     if (!(distance > 0) || !(mapPinchState_.startDistance > 0)) return;
+    const angle = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+    mapPinchState_.currentRotation = mapPinchState_.startRotation + normalizeAngleDelta_(angle - mapPinchState_.startAngle);
     const rect = getMapPointerRect_(svg);
     if (!rect) return;
     mapPinchState_.midX = ((a.x + b.x) / 2 - rect.left) / rect.width;
@@ -3125,7 +3168,7 @@ function handleMapPointerUp_(event) {
   if (wasPinching && remaining.length===1) {
     const bounds=computeResponsiveDisplayBounds_(buildMapData()); if(bounds) commitMapPinchViewport_(bounds);
     mapPinchState_.active=false; mapPinchState_.suppressTapUntil=Date.now()+350;
-    const visual=mapPinchState_.visualSvg || svg; if(visual){visual.style.transform='none';visual.style.willChange='';}
+    const visual=mapPinchState_.visualSvg || svg; if(visual){visual.style.transform=composeMapTransform_(1, mapRotationDeg_, 0, 0);visual.style.transformOrigin='50% 50%';visual.style.willChange='';}
     mapPinchState_.visualSvg=null; mapPinchRenderScheduled_=false;
     if(bounds && visual){const q=remaining[0][1]; beginMapPanPointer_(event,visual,bounds,q.x,q.y);}
     return;
@@ -3134,7 +3177,7 @@ function handleMapPointerUp_(event) {
   if (wasPinching) {
     const bounds=computeResponsiveDisplayBounds_(buildMapData()); if(bounds) commitMapPinchViewport_(bounds);
     mapPinchState_.active=false; mapPinchState_.suppressTapUntil=Date.now()+350;
-    const visual=mapPinchState_.visualSvg; if(visual){visual.style.transform='none';visual.style.willChange='';}
+    const visual=mapPinchState_.visualSvg; if(visual){visual.style.transform=composeMapTransform_(1, mapRotationDeg_, 0, 0);visual.style.transformOrigin='50% 50%';visual.style.willChange='';}
     mapPinchState_.visualSvg=null; mapPinchRenderScheduled_=false; mapGestureOwner_=null;
     requestAnimationFrame(()=>{render();flushMapGestureRender_();}); return;
   }
@@ -3199,7 +3242,7 @@ function renderMineGridSvg(points) {
   // mengikuti persistent viewport state; titik tap tidak pernah menjadi anchor.
   const viewBox = getMapViewBox_(bounds);
   const valid = points.filter(p => p.hasValidCoord);
-  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="pointer-events:auto; touch-action:none; overflow:hidden; will-change:transform; transition:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" ontouchstart="handleMapTouchStart_(event)" ontouchmove="handleMapTouchMove_(event)" ontouchend="handleMapTouchEnd_(event)" ontouchcancel="handleMapTouchEnd_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
+  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="pointer-events:auto; touch-action:none; overflow:hidden; will-change:transform; transition:none; transform-origin:50% 50%; transform:rotate(' + mapRotationDeg_.toFixed(4) + 'deg); -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" ontouchstart="handleMapTouchStart_(event)" ontouchmove="handleMapTouchMove_(event)" ontouchend="handleMapTouchEnd_(event)" ontouchcancel="handleMapTouchEnd_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
   // [BARU -- 5 Sep] Peta background (foto udara/olah ArcGIS) -- digambar PALING BAWAH
   // (sebelum grid helper & marker) supaya tidak menutupi apa pun. Posisi & ukuran dihitung
   // dari 2 sudut referensi pakai projectToSvg() yg SAMA dgn yg plot titik TP -- kalau titik
@@ -3353,7 +3396,7 @@ function cancelMapButtonZoom_(commitVisual) {
     mapZoom = Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, visual));
   }
   const svg = getMapButtonZoomSvg_();
-  if (svg) { svg.style.transform = 'none'; svg.style.transformOrigin = ''; svg.style.willChange = ''; }
+  if (svg) { svg.style.transform = composeMapTransform_(1, mapRotationDeg_, 0, 0); svg.style.transformOrigin = '50% 50%'; svg.style.willChange = ''; }
 }
 function animateMapButtonZoom_(targetZoom) {
   const target = Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, targetZoom));
@@ -3383,7 +3426,7 @@ function animateMapButtonZoom_(targetZoom) {
     const visualZoom = start + (liveTarget - start) * eased;
     mapButtonZoomVisual_ = visualZoom;
     const scale = Math.max(0.1, visualZoom / Math.max(0.0001, mapZoom));
-    svg.style.transform = 'scale(' + scale.toFixed(5) + ')';
+    svg.style.transform = composeMapTransform_(scale, mapRotationDeg_, 0, 0);
     if (t < 1) {
       mapButtonZoomRaf_ = requestAnimationFrame(tick);
       return;
@@ -3415,7 +3458,7 @@ function zoomMapOut() {
 }
 // "Crosshair" = reset tampilan ke fit area peta/responsive viewport -- BUKAN GPS lokasi user (poin desain #4,
 // GPS Generic sengaja tidak dikerjakan krn tidak ada sumber Lat/Long sama sekali).
-function resetMapView() { cancelMapButtonZoom_(false); mapZoom = activeBackgroundMapId ? 1.25 : 1; mapViewportState_.centerNative = null; mapPanState_ = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, baseCenterNative: null, baseRectW: 0, baseRectH: 0, baseBounds: null, visualSvg: null, moved: false, suppressTapUntil: 0, velocityX: 0, velocityY: 0, lastX: 0, lastY: 0, lastT: 0 }; mapPinchState_ = { active: false, startDistance: 0, startZoom: mapZoom, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
+function resetMapView() { cancelMapButtonZoom_(false); mapZoom = activeBackgroundMapId ? 1.25 : 1; mapRotationDeg_ = 0; mapViewportState_.centerNative = null; mapPanState_ = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, baseCenterNative: null, baseRectW: 0, baseRectH: 0, baseBounds: null, visualSvg: null, moved: false, suppressTapUntil: 0, velocityX: 0, velocityY: 0, lastX: 0, lastY: 0, lastT: 0 }; mapPinchState_ = { active: false, startDistance: 0, startZoom: mapZoom, startAngle: 0, startRotation: mapRotationDeg_, currentRotation: mapRotationDeg_, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
 
 // [BONUS -- 4 Sep] Dispatcher tap marker: rute ke Mode Ukur ATAU buka detail seperti biasa,
 // tergantung measureModeActive. Perilaku detail TP normal (openMapDetail) TIDAK diubah sama
