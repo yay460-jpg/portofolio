@@ -118,6 +118,57 @@ let diggingViewMode = 'today'; // 'today' kalau ada data hari ini, 'recent' kala
 // bisa membuat response LEBIH LAMA menimpa hasil response LEBIH BARU, tergantung urutan
 // selesai (bukan urutan mulai). Pola sama persis dgn produksiFetchRequestSeq di dashboard.
 let ringkasanFetchSeq = 0;
+let diggingRealtimePollTimer_ = null;
+let diggingRealtimeBusy_ = false;
+let diggingCompletenessSignature_ = null;
+const DIGGING_REALTIME_POLL_MS_ = 8000;
+
+function hasCompleteDiggingDataChanged_(previousRows, nextRows) {
+  try {
+    const prev = new Map((Array.isArray(previousRows) ? previousRows : []).map(r => [String(getField(r,'ID Sampel') || ''), isDiggingDataComplete_(r)]));
+    return (Array.isArray(nextRows) ? nextRows : []).some(r => {
+      const id = String(getField(r,'ID Sampel') || '');
+      return id && isDiggingDataComplete_(r) && prev.get(id) !== true;
+    });
+  } catch (e) { return false; }
+}
+
+async function refreshDiggingRealtime_() {
+  if (diggingRealtimeBusy_ || (currentTab !== 'tabel' && currentTab !== 'ringkasan') || document.visibilityState === 'hidden') return;
+  diggingRealtimeBusy_ = true;
+  try {
+    const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=produksi&t=' + Date.now());
+    const result = await response.json();
+    if (result.status === 'error') return;
+    const rows = result.data || [];
+    const todayLabel = new Date().toDateString();
+    const todaysRows = rows.filter(r => { const t=r['Tanggal']; if(!t) return false; const dt=new Date(t); return !isNaN(dt) && dt.toDateString()===todayLabel; });
+    const nextRows = todaysRows.length ? todaysRows : rows.slice().sort((a,b)=>new Date(b['Tanggal'])-new Date(a['Tanggal'])).slice(0,15);
+    const previousRows = globalDiggingToday;
+    const changedComplete = hasCompleteDiggingDataChanged_(previousRows, nextRows);
+    const nextSig = getDiggingCompletenessSignature_(nextRows);
+    if (nextSig !== diggingCompletenessSignature_) {
+      globalDiggingToday = nextRows;
+      diggingViewMode = todaysRows.length ? 'today' : 'recent';
+      diggingCompletenessSignature_ = nextSig;
+      render();
+      if (changedComplete && currentTab === 'ringkasan' && typeof animateDashboardMetrics_ === 'function' && typeof animateDashboardDataRefresh_ === 'function') {
+        requestAnimationFrame(() => {
+          animateDashboardMetrics_();
+          animateDashboardDataRefresh_();
+        });
+      }
+    }
+  } catch (e) {
+    console.warn('Digging realtime refresh skipped:', e);
+  } finally {
+    diggingRealtimeBusy_ = false;
+  }
+}
+function startDiggingRealtimePolling_() {
+  if (diggingRealtimePollTimer_) return;
+  diggingRealtimePollTimer_ = setInterval(refreshDiggingRealtime_, DIGGING_REALTIME_POLL_MS_);
+}
 
 // [BARU] Diekstrak dari loadRingkasanData() -- forward-fill ID_TP baris kedalaman lanjutan
 // (2m/3m/4m/5m yg ID_TP-nya sengaja kosong di sheet asli). Dipakai BERSAMA oleh
@@ -142,6 +193,7 @@ function forwardFillValidasiRows_(rawRows) {
   return filled;
 }
 async function loadRingkasanData() {
+  const previousRowsForAnimation = Array.isArray(globalDiggingToday) ? globalDiggingToday.slice() : [];
   const mySeq = ++ringkasanFetchSeq;
   dataLoadErrorMsg = '';
   mapDataErrorMsg = '';
@@ -206,12 +258,17 @@ async function loadRingkasanData() {
     globalValidasiFullForMap = []; // v90.2.115 FIX #1: dataset Peta ikut dikosongkan saat gagal
     mapDataErrorMsg = 'Tidak bisa menghubungi server: ' + (err && err.message ? err.message : String(err));
   }
+  const changedComplete = hasCompleteDiggingDataChanged_(previousRowsForAnimation, globalDiggingToday);
+  diggingCompletenessSignature_ = getDiggingCompletenessSignature_(globalDiggingToday);
   render();
   const refreshSignature = getDashboardRefreshSignature_();
-  if (mg1LastRefreshSignature_ !== null && refreshSignature !== mg1LastRefreshSignature_ && currentTab === 'ringkasan') {
-    animateDashboardDataRefresh_();
-  }
   mg1LastRefreshSignature_ = refreshSignature;
+  if (changedComplete && currentTab === 'ringkasan' && typeof animateDashboardMetrics_ === 'function' && typeof animateDashboardDataRefresh_ === 'function' && mg1DashboardEntranceDone_) {
+    requestAnimationFrame(() => {
+      animateDashboardMetrics_();
+      animateDashboardDataRefresh_();
+    });
+  }
 }
 
 // ==== SUBMIT DIGGING -- endpoint & skema kolom IDENTIK dgn dashboard.html ====
@@ -363,10 +420,47 @@ async function handleSubmitUpdateAssay() {
 let mg1MetricAnimationRaf_ = null;
 let mg1LastRefreshSignature_ = null;
 let mg1RefreshPulseRaf_ = null;
+function getDiggingAssayValue_(row, names) {
+  for (const name of names) {
+    const v = getField(row, name);
+    if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+  }
+  return '';
+}
+function isFilledAssayValue_(value) {
+  const text = String(value == null ? '' : value).trim();
+  if (!text || text === '-') return false;
+  return Number.isFinite(Number(text));
+}
+function isDiggingDataComplete_(row) {
+  const requiredAssay = [
+    getDiggingAssayValue_(row, ['Ni %','Ni']),
+    getDiggingAssayValue_(row, ['Fe %','Fe']),
+    getDiggingAssayValue_(row, ['Co %','Co']),
+    getDiggingAssayValue_(row, ['MgO %','MgO']),
+    getDiggingAssayValue_(row, ['SiO %','SiO2 %','SiO2'])
+  ];
+  const tujuan = String(getField(row, 'Tujuan') || '').trim();
+  return requiredAssay.every(isFilledAssayValue_) && !!tujuan && tujuan !== '-';
+}
+function getDiggingCompletenessSignature_(rows) {
+  try {
+    return (Array.isArray(rows) ? rows : []).map((r) => JSON.stringify([
+      getField(r,'ID Sampel'),
+      getDiggingAssayValue_(r,['Ni %','Ni']),
+      getDiggingAssayValue_(r,['Fe %','Fe']),
+      getDiggingAssayValue_(r,['Co %','Co']),
+      getDiggingAssayValue_(r,['MgO %','MgO']),
+      getDiggingAssayValue_(r,['SiO %','SiO2 %','SiO2']),
+      getField(r,'Tujuan'),
+      isDiggingDataComplete_(r)
+    ])).join('|');
+  } catch (e) { return String(Date.now()); }
+}
 function getDashboardRefreshSignature_() {
   try {
     const rows = Array.isArray(globalDiggingToday) ? globalDiggingToday : [];
-    return rows.map((r) => JSON.stringify([r['Tanggal'], r['ID Sampel'], r['Tonase'], r['Ni %'], r['Ni'], r['Material'], r['Updated_At'], r['Updated_Date'], r['Updated_Time']])).join('|');
+    return rows.map((r) => JSON.stringify([r['Tanggal'], r['ID Sampel'], r['Tonase'], r['Ni %'], r['Ni'], r['Material'], r['Updated_At'], r['Updated_Date'], r['Updated_Time'], isDiggingDataComplete_(r)])).join('|');
   } catch (e) { return String(Date.now()); }
 }
 function animateDashboardDataRefresh_() {
@@ -536,6 +630,8 @@ function renderTabel() {
       const statusBadgeHtml = isPendingAssay
         ? '<span class="px-2 py-0.5 rounded-md text-[11px] bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold inline-flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>Menunggu Lab</span>'
         : renderClassGradeBadge(material);
+      const isIncomplete = !isDiggingDataComplete_(r);
+      const incompleteDotHtml = isIncomplete ? '<span class="mg1-missing-dot shrink-0 mr-1.5" aria-label="Data belum lengkap" title="Data assay atau Tujuan belum lengkap"></span>' : '';
       html += '<button onclick="openDiggingDetail(' + i + ')" class="text-left min-h-[62px] rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-3.5 flex items-center justify-between shrink-0 active:scale-[0.99] transition-transform">' +
         '<div class="flex items-center gap-3 min-w-0">' +
           '<div class="w-10 h-10 rounded-[10px] bg-white/[0.06] border border-white/10 flex items-center justify-center text-[11px] font-black text-white/70 shrink-0">' + numLabel + '</div>' +
@@ -544,7 +640,7 @@ function renderTabel() {
             '<div class="text-[11px] text-white/45 mt-1 font-medium truncate">Ni ' + ni.toFixed(2) + '%' + (sm ? (' &bull; SM ' + sm.toFixed(2)) : '') + '</div>' +
           '</div>' +
         '</div>' +
-        '<div class="shrink-0 ml-2">' + statusBadgeHtml + '</div>' +
+        '<div class="shrink-0 ml-2 flex items-center">' + incompleteDotHtml + statusBadgeHtml + '</div>' +
       '</button>';
     });
     html += '</div>';
@@ -715,3 +811,6 @@ async function handleSubmitDigging() {
     render();
   }
 }
+
+// AN-05 REFINEMENT: near-realtime completeness monitor for Digging list.
+if (typeof window !== 'undefined') window.addEventListener('load', startDiggingRealtimePolling_);
