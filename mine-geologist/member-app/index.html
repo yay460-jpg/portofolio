@@ -88,37 +88,14 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
   @keyframes spin { to { transform: rotate(360deg); } }
   .fade-in { animation: fadeIn var(--mg1-motion-slow) var(--mg1-ease-emphasis) both; }
   @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
-  .mg1-motion-fast { transition-duration: var(--mg1-motion-fast); transition-timing-function: var(--mg1-ease-standard); }
-  .mg1-motion-normal { transition-duration: var(--mg1-motion-normal); transition-timing-function: var(--mg1-ease-standard); }
-  .mg1-motion-slow { transition-duration: var(--mg1-motion-slow); transition-timing-function: var(--mg1-ease-emphasis); }
+  /* AN-05 REFINEMENT: animation style hanya sekali setelah splash.
+   * Pengecualian: dot assay incomplete memang sengaja blinking sebagai status. */
   .mg1-enter { animation: mg1Enter var(--mg1-motion-slow) var(--mg1-ease-emphasis) both; animation-delay: var(--mg1-enter-delay, 0ms); }
   @keyframes mg1Enter { from { opacity:0; transform: translateY(8px) scale(0.992); } to { opacity:1; transform:none; } }
-  .mg1-pulse-soft { animation: mg1PulseSoft 1.8s var(--mg1-ease-standard) infinite; }
-  .mg1-interact { transition: transform var(--mg1-motion-fast) var(--mg1-ease-standard), opacity var(--mg1-motion-fast) var(--mg1-ease-standard), border-color var(--mg1-motion-fast) var(--mg1-ease-standard), background-color var(--mg1-motion-fast) var(--mg1-ease-standard); }
-  .mg1-interact:active { transform: scale(0.97); }
-  .mg1-tab-active { animation: mg1TabActive var(--mg1-motion-normal) var(--mg1-ease-emphasis) both; }
-  @keyframes mg1TabActive { from { transform: scale(.94); opacity:.65; } to { transform:scale(1); opacity:1; } }
-  .mg1-badge-in { animation: mg1BadgeIn var(--mg1-motion-fast) var(--mg1-ease-emphasis) both; }
-  @keyframes mg1BadgeIn { from { opacity:0; transform:scale(.88); } to { opacity:1; transform:scale(1); } }
-  .mg1-issue-card { animation: mg1IssueIn var(--mg1-motion-normal) var(--mg1-ease-emphasis) both; }
-  @keyframes mg1IssueIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
-  @keyframes mg1PulseSoft { 0%,100% { opacity:1; } 50% { opacity:.72; } }
   .mg1-metric-value { font-variant-numeric: tabular-nums; }
-  .mg1-data-refresh { animation: mg1DataRefresh 520ms var(--mg1-ease-emphasis) both; }
-  @keyframes mg1DataRefresh {
-    0% { opacity: .72; transform: translateY(2px) scale(.985); }
-    55% { opacity: 1; transform: translateY(0) scale(1.012); }
-    100% { opacity: 1; transform: none; }
-  }
-  .mg1-data-refresh-bar { animation: mg1DataRefreshBar 620ms var(--mg1-ease-emphasis) both; transform-origin: left center; }
   .mg1-missing-dot { display:inline-block; width:7px; height:7px; border-radius:9999px; background:#f97316; box-shadow:0 0 0 0 rgba(249,115,22,.55), 0 0 8px rgba(249,115,22,.45); animation: mg1MissingDot 1.15s var(--mg1-ease-standard) infinite; }
   @keyframes mg1MissingDot { 0%,100% { opacity:.45; transform:scale(.82); box-shadow:0 0 0 0 rgba(249,115,22,.10), 0 0 6px rgba(249,115,22,.30); } 50% { opacity:1; transform:scale(1.15); box-shadow:0 0 0 4px rgba(249,115,22,.08), 0 0 12px rgba(249,115,22,.70); } }
-  @keyframes mg1DataRefreshBar {
-    0% { opacity: .65; filter: brightness(.85); }
-    45% { opacity: 1; filter: brightness(1.18); }
-    100% { opacity: 1; filter: brightness(1); }
-  }
-  .mg1-progress-fill { width: 0%; transition: width 700ms var(--mg1-ease-emphasis); }
+  .mg1-progress-fill { width: 100%; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 1ms !important;
@@ -230,8 +207,8 @@ function renderBottomNav() {
   let html = '<nav class="shrink-0 w-full flex items-center justify-around" style="background:#0b1329;border-top:1px solid rgba(255,255,255,0.08);height:72px;padding:8px;">';
   TABS.forEach(t => {
     const active = currentTab === t.id;
-    html += '<button onclick="switchTab(\'' + t.id + '\')" class="mg1-interact flex flex-col items-center justify-center gap-[5px] px-3 py-1 rounded-[8px]">' +
-      '<div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ' + (active ? 'mg1-tab-active border-2 border-[#2563eb] bg-[#2563eb]/10' : 'border-transparent') + '">' +
+    html += '<button onclick="switchTab(\'' + t.id + '\')" class="flex flex-col items-center justify-center gap-[5px] px-3 py-1 rounded-[8px]">' +
+      '<div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ' + (active ? 'border-2 border-[#2563eb] bg-[#2563eb]/10' : 'border-transparent') + '">' +
       icon(t.icon, 'w-[18px] h-[18px] ' + (active ? 'text-[#2563eb]' : 'text-white/40')) +
       '</div>' +
       '<span class="text-[10px] font-bold tracking-wide leading-none ' + (active ? 'text-[#2563eb]' : 'text-white/40') + '">' + t.label + '</span>' +
@@ -364,9 +341,10 @@ function render() {
   html += renderSettingsModal(justOpened.settings);
   app.innerHTML = html;
   if (window.lucide) lucide.createIcons();
-  if (typeof animateDashboardMetrics_ === 'function' && currentTab === 'ringkasan' && !mg1DashboardEntranceDone_) {
+  // AN-05: dashboard entrance + angka/progress hanya sekali setelah splash/boot.
+  if (currentTab === 'ringkasan' && !mg1DashboardEntranceDone_) {
     mg1DashboardEntranceDone_ = true;
-    requestAnimationFrame(() => animateDashboardMetrics_());
+    requestAnimationFrame(() => { if (typeof animateDashboardMetrics_ === 'function') animateDashboardMetrics_(); });
   }
 
   const loginForm = document.getElementById('login-form');
@@ -392,7 +370,7 @@ function render() {
 // menghentikan app -- app tetap jalan normal tanpa PWA kalau SW gagal.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=20260906k4', { updateViaCache: 'none' }).then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=20260907a', { updateViaCache: 'none' }).then((reg) => {
       // Force an update check so a stale HTTP-cached sw.js cannot pin an old app shell.
       reg.update().catch(() => {});
     }).catch((err) => {
