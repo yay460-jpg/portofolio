@@ -3494,11 +3494,17 @@ function renderMineGridSvg(points) {
     }
   }
   // STEP 8D: GPS marker memakai native coordinate yang sama dengan TP/background.
+  // V14.0: ukuran marker mengikuti skala viewport supaya deep-zoom tidak membuat
+  // marker membesar dan menutup detail peta. Koordinat GPS tetap identik.
   if (gpsState_.active && gpsState_.status === 'ok' && gpsState_.native) {
     const gpsRaw = projectToSvg(gpsState_.native.x, gpsState_.native.y, bounds, viewW, viewH);
+    const gpsMarkerScale = Math.max(0.4, Math.min(1.25, 1 / Math.max(1, Number(mapZoom) || 1)));
+    const gpsRingR = 11 * gpsMarkerScale;
+    const gpsDotR = 4 * gpsMarkerScale;
+    const gpsStroke = Math.max(1, 2 * gpsMarkerScale);
     svg += '<g aria-label="Posisi GPS" pointer-events="none">' +
-      '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="11" fill="none" stroke="#22d3ee" stroke-width="2" opacity="0.85"/>' +
-      '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="4" fill="#22d3ee" stroke="#0b1329" stroke-width="2"/>' +
+      '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="' + gpsRingR.toFixed(2) + '" fill="none" stroke="#22d3ee" stroke-width="' + gpsStroke.toFixed(2) + '" opacity="0.85"/>' +
+      '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="' + gpsDotR.toFixed(2) + '" fill="#22d3ee" stroke="#0b1329" stroke-width="' + gpsStroke.toFixed(2) + '"/>' +
       '</g>';
   }
   // STEP 8E: marker hasil tap. Pointer-events none agar tidak mengganggu tap berikutnya.
