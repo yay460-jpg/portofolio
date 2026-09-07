@@ -111,6 +111,8 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
     100% { opacity: 1; transform: none; }
   }
   .mg1-data-refresh-bar { animation: mg1DataRefreshBar 620ms var(--mg1-ease-emphasis) both; transform-origin: left center; }
+  .mg1-missing-dot { display:inline-block; width:7px; height:7px; border-radius:9999px; background:#f97316; box-shadow:0 0 0 0 rgba(249,115,22,.55), 0 0 8px rgba(249,115,22,.45); animation: mg1MissingDot 1.15s var(--mg1-ease-standard) infinite; }
+  @keyframes mg1MissingDot { 0%,100% { opacity:.45; transform:scale(.82); box-shadow:0 0 0 0 rgba(249,115,22,.10), 0 0 6px rgba(249,115,22,.30); } 50% { opacity:1; transform:scale(1.15); box-shadow:0 0 0 4px rgba(249,115,22,.08), 0 0 12px rgba(249,115,22,.70); } }
   @keyframes mg1DataRefreshBar {
     0% { opacity: .65; filter: brightness(.85); }
     45% { opacity: 1; filter: brightness(1.18); }
@@ -335,6 +337,8 @@ function _computeJustOpenedModals() {
   return justOpened;
 }
 
+let mg1DashboardEntranceDone_ = false;
+
 function render() {
   const app = document.getElementById('app');
   const justOpened = _computeJustOpenedModals();
@@ -360,7 +364,8 @@ function render() {
   html += renderSettingsModal(justOpened.settings);
   app.innerHTML = html;
   if (window.lucide) lucide.createIcons();
-  if (typeof animateDashboardMetrics_ === 'function' && currentTab === 'ringkasan') {
+  if (typeof animateDashboardMetrics_ === 'function' && currentTab === 'ringkasan' && !mg1DashboardEntranceDone_) {
+    mg1DashboardEntranceDone_ = true;
     requestAnimationFrame(() => animateDashboardMetrics_());
   }
 
