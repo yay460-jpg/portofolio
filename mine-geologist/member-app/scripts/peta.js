@@ -2477,7 +2477,8 @@ async function submitMapUpload_() {
     await loadBackgroundMapsFromDb_();
     activeBackgroundMapId = id; // peta baru diupload langsung diaktifkan
     mapZoom = 1.25;
-    mapRotationDeg_ = 0;
+    compassRotationOffsetDeg_ = 0;
+    mapRotationDeg_ = (compassState_.active && Number.isFinite(compassState_.smoothedHeadingDeg)) ? normalizeSignedDeg_(-compassState_.smoothedHeadingDeg) : 0;
     mapViewportState_.centerNative = null;
     localStorage.setItem('mg1_active_bg_map_id', id);
     mapUploadFormOpen = false;
@@ -2490,7 +2491,8 @@ async function submitMapUpload_() {
 function activateBackgroundMap_(id) {
   activeBackgroundMapId = id;
   mapZoom = 1.25;
-  mapRotationDeg_ = 0;
+  compassRotationOffsetDeg_ = 0;
+  mapRotationDeg_ = (compassState_.active && Number.isFinite(compassState_.smoothedHeadingDeg)) ? normalizeSignedDeg_(-compassState_.smoothedHeadingDeg) : 0;
   mapViewportState_.centerNative = null;
   localStorage.setItem('mg1_active_bg_map_id', id);
   render();
@@ -2498,7 +2500,8 @@ function activateBackgroundMap_(id) {
 async function deactivateBackgroundMap_() {
   activeBackgroundMapId = null;
   mapZoom = 1;
-  mapRotationDeg_ = 0;
+  compassRotationOffsetDeg_ = 0;
+  mapRotationDeg_ = (compassState_.active && Number.isFinite(compassState_.smoothedHeadingDeg)) ? normalizeSignedDeg_(-compassState_.smoothedHeadingDeg) : 0;
   mapViewportState_.centerNative = null;
   localStorage.removeItem('mg1_active_bg_map_id');
   render();
@@ -2552,6 +2555,164 @@ async function fetchCrsConfig() {
 // 'compass' (BELUM AKTIF -- guard eksplisit di setNorthMode_, bukan cuma disabled visual).
 let northMode = 'grid';
 let northInfoOpen = false; // panel detail (tap ikon North utk buka/tutup)
+// STEP 7.7: Compass / Heading-Up state. Sensor owns the map rotation while active;
+// dual-finger rotate remains available and becomes a temporary manual offset.
+let compassRotationOffsetDeg_ = 0;
+let compassState_ = {
+  active: false,
+  supported: false,
+  permission: 'unknown',
+  headingDeg: null,
+  smoothedHeadingDeg: null,
+  source: null,
+  accuracyDeg: null,
+  error: null,
+  listenerAttached: false
+};
+let compassFallbackTimer_ = null;
+
+function normalizeHeadingDeg_(deg) {
+  if (!Number.isFinite(deg)) return null;
+  let d = deg % 360;
+  if (d < 0) d += 360;
+  return d;
+}
+function normalizeSignedDeg_(deg) {
+  if (!Number.isFinite(deg)) return 0;
+  let d = deg % 360;
+  if (d > 180) d -= 360;
+  if (d <= -180) d += 360;
+  return d;
+}
+function getScreenOrientationAngle_() {
+  try {
+    if (screen && screen.orientation && Number.isFinite(screen.orientation.angle)) return screen.orientation.angle;
+  } catch (_) {}
+  try {
+    if (typeof window.orientation === 'number' && Number.isFinite(window.orientation)) return window.orientation;
+  } catch (_) {}
+  return 0;
+}
+function getCompassHeadingFromEvent_(event) {
+  if (!event) return null;
+  // iOS/WebKit exposes a direct compass heading; prefer it because it is already
+  // expressed as clockwise degrees from North.
+  if (Number.isFinite(event.webkitCompassHeading)) {
+    return { heading: normalizeHeadingDeg_(event.webkitCompassHeading), source: 'webkit-compass', accuracy: Number.isFinite(event.webkitCompassAccuracy) ? event.webkitCompassAccuracy : null };
+  }
+  // For absolute DeviceOrientation, alpha is counter-clockwise from North, so
+  // convert it to the normal compass convention (clockwise from North).
+  if (event.absolute === true && Number.isFinite(event.alpha)) {
+    const screenAngle = getScreenOrientationAngle_();
+    return { heading: normalizeHeadingDeg_(360 - event.alpha + screenAngle), source: 'deviceorientation-absolute', accuracy: null };
+  }
+  return null;
+}
+function applyCompassRotationVisual_() {
+  if (!compassState_.active || !Number.isFinite(compassState_.smoothedHeadingDeg)) return;
+  if (mapPinchState_.active || mapButtonZoomRaf_) return;
+  mapRotationDeg_ = normalizeSignedDeg_(-compassState_.smoothedHeadingDeg + compassRotationOffsetDeg_);
+  const svg = getMapButtonZoomSvg_();
+  if (svg) {
+    if (mapPanState_.active) applyPanVisual_(svg, mapPanState_.dx, mapPanState_.dy);
+    else svg.style.transform = composeMapTransform_(1, mapRotationDeg_, 0, 0);
+  }
+  try {
+    const arrow = document.querySelector('[data-mg1-compass-arrow="true"]');
+    if (arrow) arrow.style.transform = 'rotate(' + mapRotationDeg_.toFixed(3) + 'deg)';
+  } catch (_) {}
+}
+function handleCompassOrientation_(event) {
+  if (!compassState_.active) return;
+  const data = getCompassHeadingFromEvent_(event);
+  if (!data || !Number.isFinite(data.heading)) return;
+  const h = data.heading;
+  compassState_.headingDeg = h;
+  if (compassFallbackTimer_) { clearTimeout(compassFallbackTimer_); compassFallbackTimer_ = null; }
+  compassState_.source = data.source;
+  compassState_.accuracyDeg = data.accuracy;
+  compassState_.error = null;
+  if (!Number.isFinite(compassState_.smoothedHeadingDeg)) {
+    compassState_.smoothedHeadingDeg = h;
+  } else {
+    const delta = normalizeSignedDeg_(h - compassState_.smoothedHeadingDeg);
+    // Light low-pass smoothing: responsive enough for map use, but avoids
+    // magnetic-sensor jitter from shaking the whole map.
+    compassState_.smoothedHeadingDeg = normalizeHeadingDeg_(compassState_.smoothedHeadingDeg + delta * 0.22);
+  }
+  applyCompassRotationVisual_();
+}
+function detachCompassListeners_() {
+  if (typeof window === 'undefined' || !compassState_.listenerAttached) return;
+  try { window.removeEventListener('deviceorientationabsolute', handleCompassOrientation_, true); } catch (_) {}
+  try { window.removeEventListener('deviceorientation', handleCompassOrientation_, true); } catch (_) {}
+  compassState_.listenerAttached = false;
+  if (compassFallbackTimer_) { clearTimeout(compassFallbackTimer_); compassFallbackTimer_ = null; }
+}
+function stopCompassMode_(renderAfter) {
+  detachCompassListeners_();
+  compassState_.active = false;
+  compassState_.headingDeg = null;
+  compassState_.smoothedHeadingDeg = null;
+  compassState_.source = null;
+  compassState_.accuracyDeg = null;
+  compassState_.error = null;
+  compassRotationOffsetDeg_ = 0;
+  if (renderAfter) render();
+}
+async function startCompassMode_() {
+  if (typeof window === 'undefined' || typeof DeviceOrientationEvent === 'undefined') {
+    compassState_.supported = false;
+    compassState_.permission = 'unsupported';
+    compassState_.error = 'Sensor arah perangkat tidak tersedia di WebView ini.';
+    render();
+    return false;
+  }
+  compassState_.supported = true;
+  compassState_.permission = 'unknown';
+  compassState_.error = null;
+  // Some user agents require explicit permission for absolute orientation.
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    try {
+      const permission = await DeviceOrientationEvent.requestPermission(true);
+      compassState_.permission = permission;
+      if (permission !== 'granted') {
+        compassState_.error = 'Izin sensor arah ditolak.';
+        render();
+        return false;
+      }
+    } catch (e) {
+      compassState_.permission = 'error';
+      compassState_.error = 'Izin sensor arah tidak dapat diminta.';
+      render();
+      return false;
+    }
+  } else {
+    compassState_.permission = 'not-required';
+  }
+  detachCompassListeners_();
+  compassState_.active = true;
+  compassState_.headingDeg = null;
+  compassState_.smoothedHeadingDeg = null;
+  compassState_.source = null;
+  compassState_.error = null;
+  // Entering Compass means true Heading-Up: North is derived from the current
+  // device heading, without inheriting an old manual rotation.
+  compassRotationOffsetDeg_ = 0;
+  try { window.addEventListener('deviceorientationabsolute', handleCompassOrientation_, true); } catch (_) {}
+  try { window.addEventListener('deviceorientation', handleCompassOrientation_, true); } catch (_) {}
+  compassState_.listenerAttached = true;
+  // If no absolute event arrives, keep the normal deviceorientation listener alive;
+  // some Android WebViews expose absolute=true only on the normal event.
+  compassFallbackTimer_ = setTimeout(function() {
+    if (compassState_.active && !Number.isFinite(compassState_.headingDeg)) {
+      compassState_.error = 'Menunggu sensor kompas...';
+      render();
+    }
+  }, 2500);
+  render();
+  return true;
+}
 
 // Mode Ukur (bonus fitur, TP->TP Bearing+Distance) -- terpisah dari mapDetailIdTp supaya
 // tidak saling ganggu (buka detail 1 TP tetap bisa jalan normal walau lagi mode ukur).
@@ -3058,6 +3219,9 @@ function startMapPanInertia_() {
 function commitMapPinchViewport_(bounds) {
   if (!bounds || !mapPinchState_.anchorNative) return;
   mapRotationDeg_ = Number.isFinite(mapPinchState_.currentRotation) ? mapPinchState_.currentRotation : mapRotationDeg_;
+  if (compassState_.active && Number.isFinite(compassState_.smoothedHeadingDeg)) {
+    compassRotationOffsetDeg_ = normalizeSignedDeg_(mapRotationDeg_ + compassState_.smoothedHeadingDeg);
+  }
   const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
   const zoomedW = 320 / Math.max(0.0001, mapZoom), zoomedH = 320 / Math.max(0.0001, mapZoom);
   if (!(rangeT > 0) || !(rangeU > 0)) return;
@@ -3458,7 +3622,7 @@ function zoomMapOut() {
 }
 // "Crosshair" = reset tampilan ke fit area peta/responsive viewport -- BUKAN GPS lokasi user (poin desain #4,
 // GPS Generic sengaja tidak dikerjakan krn tidak ada sumber Lat/Long sama sekali).
-function resetMapView() { cancelMapButtonZoom_(false); mapZoom = activeBackgroundMapId ? 1.25 : 1; mapRotationDeg_ = 0; mapViewportState_.centerNative = null; mapPanState_ = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, baseCenterNative: null, baseRectW: 0, baseRectH: 0, baseBounds: null, visualSvg: null, moved: false, suppressTapUntil: 0, velocityX: 0, velocityY: 0, lastX: 0, lastY: 0, lastT: 0 }; mapPinchState_ = { active: false, startDistance: 0, startZoom: mapZoom, startAngle: 0, startRotation: mapRotationDeg_, currentRotation: mapRotationDeg_, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
+function resetMapView() { cancelMapButtonZoom_(false); mapZoom = activeBackgroundMapId ? 1.25 : 1; compassRotationOffsetDeg_ = 0; mapRotationDeg_ = (compassState_.active && Number.isFinite(compassState_.smoothedHeadingDeg)) ? normalizeSignedDeg_(-compassState_.smoothedHeadingDeg) : 0; mapViewportState_.centerNative = null; mapPanState_ = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, baseCenterNative: null, baseRectW: 0, baseRectH: 0, visualSvg: null, moved: false, suppressTapUntil: 0, velocityX: 0, velocityY: 0, lastX: 0, lastY: 0, lastT: 0 }; mapPinchState_ = { active: false, startDistance: 0, startZoom: mapZoom, startAngle: 0, startRotation: mapRotationDeg_, currentRotation: mapRotationDeg_, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
 
 // [BONUS -- 4 Sep] Dispatcher tap marker: rute ke Mode Ukur ATAU buka detail seperti biasa,
 // tergantung measureModeActive. Perilaku detail TP normal (openMapDetail) TIDAK diubah sama
@@ -3485,10 +3649,17 @@ function closeMapDetail() { mapDetailIdTp = null; render(); }
 // ==== NORTH ARROW UI -- overlay, BUKAN bagian dari SVG koordinat/marker (keputusan LOCKED
 // 4 Sep) -- supaya rotasi panah tidak ikut ke-zoom/pan bareng peta. ====
 function toggleNorthInfo_() { northInfoOpen = !northInfoOpen; render(); }
-function setNorthMode_(mode) {
-  // Guard EKSPLISIT di JS, bukan cuma tombol disabled visual -- kalau ada yg coba panggil
-  // langsung dari console/DOM manapun, tetap tidak bisa masuk mode compass yg belum siap.
-  if (mode === 'compass') return;
+async function setNorthMode_(mode) {
+  if (mode === 'compass') {
+    northMode = 'compass';
+    const ok = await startCompassMode_();
+    if (!ok) {
+      // Keep the selected mode visible so the user can see the sensor/permission error.
+      render();
+    }
+    return;
+  }
+  if (compassState_.active) stopCompassMode_(false);
   northMode = mode;
   render();
 }
@@ -3504,17 +3675,13 @@ function renderNorthArrow_(bounds) {
   let rotationDeg = 0, convergenceInfo = null;
   if (northMode === 'true') {
     convergenceInfo = computeConvergenceForPoint_(centerE, centerN, MG1_CRS_CONFIG.zone, MG1_CRS_CONFIG.hemisphere);
-    // CATATAN JUJUR (blm di-E2E-test dgn referensi bearing lapangan sungguhan): arah rotasi
-    // (tanda +/-) di bawah ini konsisten scr matematis dgn rumus gridConvergence_, TAPI
-    // besarnya cuma -28 detik busur (~0.008 deg) di situs ini -- SECARA VISUAL TIDAK
-    // TERLIHAT bedanya dari Grid North apapun tandanya. Kalau MG1 dipakai di situs lain yg
-    // convergence-nya jauh lebih besar (lintang tinggi/jauh dari central meridian), WAJIB
-    // uji ulang tanda rotasi ini terhadap bearing referensi asli sebelum dipercaya penuh.
     rotationDeg = convergenceInfo.ok ? -convergenceInfo.convergenceDeg : 0;
+  } else if (northMode === 'compass') {
+    rotationDeg = Number.isFinite(mapRotationDeg_) ? mapRotationDeg_ : 0;
   }
 
   const modeLabel = northMode === 'grid' ? 'GRID' : (northMode === 'true' ? 'TRUE' : 'GPS');
-  const arrowSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="transform:rotate(' + rotationDeg.toFixed(4) + 'deg);transition:transform .3s ease;display:block">' +
+  const arrowSvg = '<svg data-mg1-compass-arrow="true" width="14" height="14" viewBox="0 0 24 24" fill="none" style="transform:rotate(' + rotationDeg.toFixed(4) + 'deg);transition:transform .12s linear;display:block">' +
     '<path d="M12 2 L17 15 L12 11.5 L7 15 Z" fill="white"/>' +
   '</svg>';
 
@@ -3533,6 +3700,11 @@ function renderNorthInfoPanel_(convergenceInfo) {
     rows.push(['Situs', MG1_CRS_CONFIG.presetLabel || '-']);
     rows.push(['Grid Conv.', (convergenceInfo && convergenceInfo.ok) ? ((convergenceInfo.convergenceDeg >= 0 ? '+' : '') + convergenceInfo.convergenceDeg.toFixed(4) + '\u00b0') : '-']);
     rows.push(['Status', (convergenceInfo && convergenceInfo.ok) ? 'CALCULATED' : 'ERROR']);
+  } else if (northMode === 'compass') {
+    rows.push(['Heading', Number.isFinite(compassState_.smoothedHeadingDeg) ? compassState_.smoothedHeadingDeg.toFixed(1) + '\u00b0' : '--']);
+    rows.push(['Sumber', compassState_.source || '--']);
+    rows.push(['Akurasi', Number.isFinite(compassState_.accuracyDeg) ? '±' + compassState_.accuracyDeg.toFixed(0) + '\u00b0' : '--']);
+    rows.push(['Status', compassState_.error ? compassState_.error : (Number.isFinite(compassState_.headingDeg) ? 'ACTIVE' : 'MENUNGGU SENSOR')]);
   } else if (northMode === 'grid') {
     rows.push(['Status', 'Arah sumbu Utara grid tambang -- belum dikoreksi ke True North']);
   }
@@ -3546,10 +3718,10 @@ function renderNorthInfoPanel_(convergenceInfo) {
     '<div class="flex gap-1.5 mb-2">' +
       '<button onclick="setNorthMode_(\'grid\')" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold ' + (northMode==='grid' ? 'bg-[#2563eb] text-white' : 'bg-white/[0.06] text-white/50') + '">GRID</button>' +
       '<button onclick="setNorthMode_(\'true\')" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold ' + (northMode==='true' ? 'bg-[#2563eb] text-white' : 'bg-white/[0.06] text-white/50') + '">TRUE</button>' +
-      '<button disabled title="Segera hadir" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold bg-white/[0.03] text-white/20 cursor-not-allowed">GPS</button>' +
+      '<button onclick="setNorthMode_(\'compass\')" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold ' + (northMode==='compass' ? 'bg-[#2563eb] text-white' : 'bg-white/[0.06] text-white/50') + '">GPS</button>' +
     '</div>' +
     rowsHtml +
-    '<div class="mt-2 pt-2 border-t border-white/[0.06] text-[9px] text-white/30 leading-relaxed">Compass (GPS) -- Segera Hadir. Menunggu kalibrasi magnetometer &amp; model deklinasi magnetik utk akurasi lapangan.</div>' +
+    '<div class="mt-2 pt-2 border-t border-white/[0.06] text-[9px] text-white/30 leading-relaxed">' + (northMode === 'compass' ? 'Heading-Up memakai sensor orientasi absolut perangkat. Kalibrasi kompas tetap diperlukan bila heading tidak stabil.' : 'Compass (GPS) siap diaktifkan dari mode GPS.') + '</div>' +
   '</div>';
 }
 
