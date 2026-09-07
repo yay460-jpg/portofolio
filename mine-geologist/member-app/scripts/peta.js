@@ -2895,21 +2895,19 @@ function handleMapTouchEnd_(event) {
 }
 
 function scheduleMapPanVisual_() {
-  if (mapPanRenderScheduled_) return;
-  mapPanRenderScheduled_ = true;
-  requestAnimationFrame(() => {
-    mapPanRenderScheduled_ = false;
-    const svg = mapPanState_.visualSvg;
-    if (!svg || !mapPanState_.active) return;
-    // STEP 7.6C: compositor-only pan. Jangan lakukan layout/DOM coordinate work
-    // di setiap frame; posisi visual harus mengikuti jari secepat mungkin.
-    applyPanVisual_(svg, mapPanState_.dx, mapPanState_.dy);
-  });
+  const svg = mapPanState_.visualSvg;
+  if (!svg || !mapPanState_.active) return;
+  // STEP 7.6D: apply visual pan immediately from the input event.
+  // Do not wait an extra requestAnimationFrame; the browser can composite the
+  // transform on the next frame while the input event is still in flight.
+  applyPanVisual_(svg, mapPanState_.dx, mapPanState_.dy);
 }
 
 function applyPanVisual_(svg, dx, dy) {
   if (!svg) return;
-  svg.style.transform = 'translate3d(' + Number(dx || 0).toFixed(2) + 'px,' + Number(dy || 0).toFixed(2) + 'px,0)';
+  const x = Number.isFinite(dx) ? dx : 0;
+  const y = Number.isFinite(dy) ? dy : 0;
+  svg.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)';
   svg.style.willChange = 'transform';
 }
 function applyPinchVisualTransform_(zoom) {
