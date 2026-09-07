@@ -21,8 +21,13 @@ let mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNati
 let mapPinchRenderScheduled_ = false;
 // STEP 7.6: single-finger pan state. Selama gesture aktif, SVG yang sudah tampil
 // digerakkan oleh compositor (CSS transform); DOM/tile tidak dibangun ulang per touchmove.
-let mapPanState_ = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, baseCenterNative: null, baseRectW: 0, baseRectH: 0, baseBounds: null, visualSvg: null, moved: false, suppressTapUntil: 0, velocityX: 0, velocityY: 0, lastX: 0, lastY: 0, lastT: 0 };
+let mapPanState_ = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, baseCenterNative: null, baseRectW: 0, baseRectH: 0, visualSvg: null, moved: false, suppressTapUntil: 0, velocityX: 0, velocityY: 0, lastX: 0, lastY: 0, lastT: 0 };
 let mapPanRenderScheduled_ = false;
+// STEP 7.6E: smooth zoom-button visual transition. mapZoom tetap menjadi
+// sumber kebenaran; selama animasi hanya SVG yang diberi transform compositor.
+let mapButtonZoomRaf_ = null;
+let mapButtonZoomVisual_ = null;
+let mapButtonZoomTarget_ = null;
 
 // STEP 7.6 gesture ownership: cegah long-press Android/Chrome mengambil alih
 // map image (context menu / save image / share). Hanya berlaku di area map.
@@ -46,7 +51,7 @@ let mapPointerState_ = new Map();
 let mapGestureOwner_ = null; // 'touch' | 'pointer' | null
 let mapGestureRenderPending_ = false;
 function requestMapRender_() {
-  if (mapPanState_.active || mapPinchState_.active || mapPanInertiaRaf_) {
+  if (mapPanState_.active || mapPinchState_.active || mapPanInertiaRaf_ || mapButtonZoomRaf_) {
     mapGestureRenderPending_ = true;
     return;
   }
@@ -2942,6 +2947,7 @@ function getMapCenterNative_(bounds) {
   };
 }
 function beginMapPanPointer_(event, svg, bounds, startX, startY) {
+  if (mapButtonZoomRaf_) cancelMapButtonZoom_(true);
   const baseCenterNative = getMapCenterNative_(bounds);
   const rect = getMapPointerRect_(svg);
   if (!baseCenterNative || !rect) return false;
@@ -3326,22 +3332,90 @@ function renderMineGridSvg(points) {
   return svg;
 }
 
+function getMapButtonZoomSvg_() {
+  try {
+    const vp = document.getElementById('mg1-map-viewport');
+    return vp ? vp.querySelector('svg[data-map-gesture=\"true\"]') : null;
+  } catch (_) { return null; }
+}
+function easeOutCubic_(t) {
+  const p = 1 - Math.max(0, Math.min(1, t));
+  return 1 - p * p * p;
+}
+function cancelMapButtonZoom_(commitVisual) {
+  if (mapButtonZoomRaf_) { try { cancelAnimationFrame(mapButtonZoomRaf_); } catch (_) {} mapButtonZoomRaf_ = null; }
+  const visual = Number.isFinite(mapButtonZoomVisual_) ? mapButtonZoomVisual_ : mapZoom;
+  mapButtonZoomVisual_ = null;
+  mapButtonZoomTarget_ = null;
+  if (commitVisual && Number.isFinite(visual) && Math.abs(visual - mapZoom) > 0.0001) {
+    const bounds = computeResponsiveDisplayBounds_(buildMapData());
+    if (bounds) captureMapViewportCenter_(bounds);
+    mapZoom = Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, visual));
+  }
+  const svg = getMapButtonZoomSvg_();
+  if (svg) { svg.style.transform = 'none'; svg.style.transformOrigin = ''; svg.style.willChange = ''; }
+}
+function animateMapButtonZoom_(targetZoom) {
+  const target = Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, targetZoom));
+  const svg = getMapButtonZoomSvg_();
+  if (!svg) {
+    mapZoom = target;
+    if (mapZoom === MAP_ZOOM_MIN) mapViewportState_.centerNative = null;
+    render();
+    return;
+  }
+  const currentVisual = Number.isFinite(mapButtonZoomVisual_) ? mapButtonZoomVisual_ : mapZoom;
+  mapButtonZoomTarget_ = target;
+  if (Math.abs(currentVisual - target) < 0.0001) return;
+  if (mapButtonZoomRaf_) { try { cancelAnimationFrame(mapButtonZoomRaf_); } catch (_) {} mapButtonZoomRaf_ = null; }
+  const start = currentVisual;
+  const distance = Math.abs(target - start);
+  const duration = Math.max(170, Math.min(300, 150 + distance * 180));
+  const startTime = performance.now();
+  svg.style.transition = 'none';
+  svg.style.transformOrigin = '50% 50%';
+  svg.style.willChange = 'transform';
+  const tick = (now) => {
+    const liveTarget = Number.isFinite(mapButtonZoomTarget_) ? mapButtonZoomTarget_ : target;
+    const elapsed = now - startTime;
+    const t = Math.max(0, Math.min(1, elapsed / duration));
+    const eased = easeOutCubic_(t);
+    const visualZoom = start + (liveTarget - start) * eased;
+    mapButtonZoomVisual_ = visualZoom;
+    const scale = Math.max(0.1, visualZoom / Math.max(0.0001, mapZoom));
+    svg.style.transform = 'scale(' + scale.toFixed(5) + ')';
+    if (t < 1) {
+      mapButtonZoomRaf_ = requestAnimationFrame(tick);
+      return;
+    }
+    mapButtonZoomRaf_ = null;
+    mapZoom = liveTarget;
+    if (mapZoom === MAP_ZOOM_MIN) mapViewportState_.centerNative = null;
+    mapButtonZoomVisual_ = null;
+    mapButtonZoomTarget_ = null;
+    mapGestureRenderPending_ = false;
+    svg.style.transform = 'none';
+    svg.style.transformOrigin = '';
+    svg.style.willChange = '';
+    render();
+  };
+  mapButtonZoomRaf_ = requestAnimationFrame(tick);
+}
 function zoomMapIn() {
   const bounds = computeResponsiveDisplayBounds_(buildMapData());
   if (bounds) captureMapViewportCenter_(bounds);
-  mapZoom = Math.min(MAP_ZOOM_MAX, mapZoom + MAP_ZOOM_STEP);
-  render();
+  const base = Number.isFinite(mapButtonZoomTarget_) ? mapButtonZoomTarget_ : mapZoom;
+  animateMapButtonZoom_(base + MAP_ZOOM_STEP);
 }
 function zoomMapOut() {
   const bounds = computeResponsiveDisplayBounds_(buildMapData());
   if (bounds) captureMapViewportCenter_(bounds);
-  mapZoom = Math.max(MAP_ZOOM_MIN, mapZoom - MAP_ZOOM_STEP);
-  if (mapZoom === MAP_ZOOM_MIN) mapViewportState_.centerNative = null;
-  render();
+  const base = Number.isFinite(mapButtonZoomTarget_) ? mapButtonZoomTarget_ : mapZoom;
+  animateMapButtonZoom_(base - MAP_ZOOM_STEP);
 }
 // "Crosshair" = reset tampilan ke fit area peta/responsive viewport -- BUKAN GPS lokasi user (poin desain #4,
 // GPS Generic sengaja tidak dikerjakan krn tidak ada sumber Lat/Long sama sekali).
-function resetMapView() { mapZoom = activeBackgroundMapId ? 1.25 : 1; mapViewportState_.centerNative = null; mapPanState_ = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, baseCenterNative: null, baseRectW: 0, baseRectH: 0, baseBounds: null, visualSvg: null, moved: false, suppressTapUntil: 0, velocityX: 0, velocityY: 0, lastX: 0, lastY: 0, lastT: 0 }; mapPinchState_ = { active: false, startDistance: 0, startZoom: mapZoom, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
+function resetMapView() { cancelMapButtonZoom_(false); mapZoom = activeBackgroundMapId ? 1.25 : 1; mapViewportState_.centerNative = null; mapPanState_ = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, baseCenterNative: null, baseRectW: 0, baseRectH: 0, baseBounds: null, visualSvg: null, moved: false, suppressTapUntil: 0, velocityX: 0, velocityY: 0, lastX: 0, lastY: 0, lastT: 0 }; mapPinchState_ = { active: false, startDistance: 0, startZoom: mapZoom, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
 
 // [BONUS -- 4 Sep] Dispatcher tap marker: rute ke Mode Ukur ATAU buka detail seperti biasa,
 // tergantung measureModeActive. Perilaku detail TP normal (openMapDetail) TIDAK diubah sama
