@@ -3494,8 +3494,7 @@ function renderMineGridSvg(points) {
     }
   }
   // STEP 8D: GPS marker memakai native coordinate yang sama dengan TP/background.
-  // V14.0: ukuran marker mengikuti skala viewport supaya deep-zoom tidak membuat
-  // marker membesar dan menutup detail peta. Koordinat GPS tetap identik.
+  // V14.0: ukuran marker GPS mengikuti skala viewport. Koordinat GPS tetap identik.
   if (gpsState_.active && gpsState_.status === 'ok' && gpsState_.native) {
     const gpsRaw = projectToSvg(gpsState_.native.x, gpsState_.native.y, bounds, viewW, viewH);
     const gpsMarkerScale = Math.max(0.4, Math.min(1.25, 1 / Math.max(1, Number(mapZoom) || 1)));
@@ -3518,27 +3517,42 @@ function renderMineGridSvg(points) {
       '<line x1="' + tp.x + '" y1="' + (tp.y-10) + '" x2="' + tp.x + '" y2="' + (tp.y+10) + '" stroke="#facc15" stroke-width="1"/>' +
       '</g>';
   }
+  // V14.1: TP/Validasi marker adaptive terhadap deep zoom.
+  // viewBox mengecil saat mapZoom naik, sehingga radius SVG konstan akan tampak
+  // membesar di layar. Radius visual dikompensasikan dengan mapZoom^1.5 agar
+  // marker justru mengecil secara terkontrol saat zoom makin dalam.
+  // Koordinat raw T/U TIDAK diubah. Hit area tetap cukup besar agar tap TP tidak sulit.
+  const tpMarkerZoom = Math.max(1, Number(mapZoom) || 1);
+  const tpMarkerScale = 1 / Math.pow(tpMarkerZoom, 1.5);
+  const tpMarkerR = Math.max(1.25, 7 * tpMarkerScale);
+  const tpCoreR = Math.max(0.55, 2.5 * tpMarkerScale);
+  const tpStroke = Math.max(0.75, 2 * tpMarkerScale);
+  const tpRingR = Math.max(2.0, 10.5 * tpMarkerScale);
+  const tpRingStroke = Math.max(0.75, 1.5 * tpMarkerScale);
+  const tpMeasureStroke = Math.max(0.75, 2 * tpMarkerScale);
+  const tpHitR = Math.max(7, 9 * tpMarkerScale);
   valid.forEach(p => {
     const raw = projectToSvg(parseFloat(p.timur), parseFloat(p.utara), bounds, viewW, viewH);
     const preset = getGradeColorPreset(p.classGrade);
     const fillColor = { merah:'#f43f5e', abu:'#94a3b8', kuning:'#f59e0b', biru:'#3b82f6', hijau:'#22c55e' }[
       (globalCOGConfig && globalCOGConfig['Warna_' + p.classGrade]) || GRADE_COLOR_DEFAULTS[p.classGrade] || 'abu'
     ];
-    // v90.2.115 (temuan #4): TP dgn koordinat konflik ditandai cincin kuning putus-putus
-    // di sekeliling marker -- visual, sebelum user tap utk lihat detail konfliknya.
+    // v90.2.115: TP dgn koordinat konflik ditandai cincin kuning putus-putus.
     const conflictRing = p.coordConflict
-      ? '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="10.5" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,2"/>'
+      ? '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpRingR.toFixed(2) + '" fill="none" stroke="#f59e0b" stroke-width="' + tpRingStroke.toFixed(2) + '" stroke-dasharray="3,2"/>'
       : '';
-    // [BONUS -- 4 Sep] Cincin kuning solid utk titik yg sedang dipilih di Mode Ukur --
-    // beda dari conflictRing (dashed) supaya tidak ketuker maknanya.
+    // Cincin kuning solid utk titik yg sedang dipilih di Mode Ukur.
     const measureSelectedRing = (measureModeActive && (p.idTp === measureFromIdTp || p.idTp === measureToIdTp))
-      ? '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="10.5" fill="none" stroke="#facc15" stroke-width="2"/>'
+      ? '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpRingR.toFixed(2) + '" fill="none" stroke="#facc15" stroke-width="' + tpMeasureStroke.toFixed(2) + '"/>'
       : '';
-    svg += '<g onclick="handleMapPointTap_(\'' + p.idTp.replace(/'/g,"\\'") + '\')" style="cursor:pointer;">' +
+    const safeId = p.idTp.replace(/'/g,"\\'");
+    svg += '<g onclick="handleMapPointTap_(\'' + safeId + '\')" style="cursor:pointer;">' +
+      // Transparent hit target preserves TP tap usability while visual marker shrinks.
+      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpHitR.toFixed(2) + '" fill="transparent" stroke="none" pointer-events="all"/>' +
       conflictRing +
       measureSelectedRing +
-      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="7" fill="' + fillColor + '" fill-opacity="0.25" stroke="' + fillColor + '" stroke-width="2"/>' +
-      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="2.5" fill="' + fillColor + '"/>' +
+      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpMarkerR.toFixed(2) + '" fill="' + fillColor + '" fill-opacity="0.25" stroke="' + fillColor + '" stroke-width="' + tpStroke.toFixed(2) + '"/>' +
+      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpCoreR.toFixed(2) + '" fill="' + fillColor + '"/>' +
       '</g>';
   });
   svg += '</svg>';
