@@ -280,7 +280,12 @@ function openUpdateAssayModal() {
   render();
 }
 function closeUpdateAssayModal() { updateAssayModalOpen = false; render(); }
-function updateAssayField(name, val) { updateAssayForm[name] = val; render(); }
+function updateAssayField(name, val) {
+  updateAssayForm[name] = val;
+  // Text/number input: jangan rebuild DOM saat setiap karakter diketik; rebuild hanya
+  // untuk select yang memang mengubah struktur form (mis. Tujuan=Direct).
+  if (name === 'tujuan' || name === 'tipe_ore') render();
+}
 
 function renderUpdateAssayModal(justOpened) {
   if (!updateAssayModalOpen) return '';
@@ -697,8 +702,10 @@ function selectField(name, options, val) {
 }
 function updateDiggingField(name, val) {
   diggingFormState[name] = val;
-  render();
-  requestAnimationFrame(() => { const el = document.querySelector('[data-focus-guard]'); });
+  // Text/number input tidak boleh memanggil render() per karakter karena itu
+  // mengganti node <input>, menghilangkan focus, dan menutup keyboard Android.
+  // Hanya select yang dapat mengubah struktur form yang perlu rebuild.
+  if (name === 'tujuan' || name === 'tipe_ore') render();
 }
 
 // ==== ACTIONS ====

@@ -213,7 +213,12 @@ function openValidasiForm() {
   render();
 }
 function closeValidasiForm() { validasiFormOpen = false; render(); }
-function updateValidasiField(name, val) { validasiFormState[name] = val; render(); }
+function updateValidasiField(name, val) {
+  // Jangan rebuild DOM saat user mengetik. State cukup diperbarui; render()
+  // per karakter membuat node input baru, menghilangkan focus, dan menutup
+  // keyboard Android.
+  validasiFormState[name] = val;
+}
 
 async function submitValidasiEntry() {
   const f = validasiFormState;
