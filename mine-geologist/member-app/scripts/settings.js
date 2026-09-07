@@ -277,3 +277,4 @@ function renderAccountMenu() {
     '</div>' +
   '</div>';
 }
+

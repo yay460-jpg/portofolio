@@ -367,7 +367,13 @@ function renderRingkasan() {
   const oreTypes = new Set(oreRows.map(r => r['Material']).filter(Boolean));
   const dominantOre = oreRows.length ? (oreRows[0]['Material'] || '-') : '-';
 
-  function card(iconName, borderColor, badgeBg, badge, label, value, unit, sub, barPct) {
+  // [BARU] rawNumber+decimals opsional -- kalau diisi, span nilai dapat id+data-attribute
+  // supaya runDashboardCountUp_() (index.html) bisa animasikan dari 0 ke nilai aslinya
+  // sekali setelah boot, tanpa mengubah tampilan akhir (angka final tetap sama persis).
+  function card(iconName, borderColor, badgeBg, badge, label, value, unit, sub, barPct, countUpId, rawNumber, decimals) {
+    const valueSpanAttrs = countUpId
+      ? ' id="' + countUpId + '" data-countup-target="' + (Number(rawNumber) || 0) + '" data-countup-decimals="' + (decimals || 0) + '" data-countup-suffix="' + (unit ? '' : (String(value).replace(/[0-9.,-]/g, '') || '')) + '"'
+      : '';
     return '<div class="flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[12px] flex flex-col justify-between gap-[8px]">' +
       '<div class="flex justify-end leading-none shrink-0">' +
         (badge ? '<span class="text-[9px] font-bold rounded-full px-[8px] py-[3px] tracking-wide leading-none ' + badgeBg + ' text-white">' + badge + '</span>' : '') +
@@ -379,7 +385,7 @@ function renderRingkasan() {
         '<div class="flex-1 min-w-0 flex flex-col justify-center gap-[2px]">' +
           '<span class="text-[10px] font-bold tracking-[0.12em] text-white/60 leading-[1.1]">' + label + '</span>' +
           '<div class="flex items-baseline gap-1">' +
-            '<span class="text-[24px] font-black leading-none text-white tracking-tight">' + value + '</span>' +
+            '<span class="text-[24px] font-black leading-none text-white tracking-tight"' + valueSpanAttrs + '>' + (countUpId ? '0' : value) + '</span>' +
             (unit ? '<span class="text-[11px] font-bold text-white/50 leading-none">' + unit + '</span>' : '') +
           '</div>' +
           '<div class="text-[9px] font-medium text-white/50 leading-[1.2] truncate">' + sub + '</div>' +
@@ -400,10 +406,10 @@ function renderRingkasan() {
     html += '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-6 text-center text-white/40 text-xs">Belum ada data Digging tercatat sama sekali. Tekan tombol + di Digging utk mulai input.</div>';
   } else {
     html += '<div class="flex-1 min-h-0 flex flex-col gap-[10px] justify-between">';
-    html += card('pickaxe', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL DIGGING', totalTonase.toFixed(0), 'Ton', rows.length + ' baris data ' + modeLabel, 100);
-    html += card('layers', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL ORE', totalOre.toFixed(0), 'Ton', dominantOre + ' &bull; ' + oreTypes.size + ' jenis ore', totalTonase ? (totalOre/totalTonase*100) : 0);
-    html += card('flask-conical', 'border-[#2563eb]', 'bg-[#2563eb]', 'VALID', 'RATA-RATA NI', avgNi.toFixed(2) + '%', '', 'Dari ' + rows.length + ' entri rata-rata sampel', Math.min(100, avgNi/2.5*100));
-    html += card('gem', 'border-[#22c55e]', 'bg-[#22c55e]', 'CLEAN', 'RATA-RATA NI TANPA WASTE', avgNiClean.toFixed(2) + '%', '', 'Clean ore grade tanpa impurities', Math.min(100, avgNiClean/2.5*100));
+    html += card('pickaxe', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL DIGGING', totalTonase.toFixed(0), 'Ton', rows.length + ' baris data ' + modeLabel, 100, 'mg1-countup-1', totalTonase, 0);
+    html += card('layers', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL ORE', totalOre.toFixed(0), 'Ton', dominantOre + ' &bull; ' + oreTypes.size + ' jenis ore', totalTonase ? (totalOre/totalTonase*100) : 0, 'mg1-countup-2', totalOre, 0);
+    html += card('flask-conical', 'border-[#2563eb]', 'bg-[#2563eb]', 'VALID', 'RATA-RATA NI', avgNi.toFixed(2) + '%', '', 'Dari ' + rows.length + ' entri rata-rata sampel', Math.min(100, avgNi/2.5*100), 'mg1-countup-3', avgNi, 2);
+    html += card('gem', 'border-[#22c55e]', 'bg-[#22c55e]', 'CLEAN', 'RATA-RATA NI TANPA WASTE', avgNiClean.toFixed(2) + '%', '', 'Clean ore grade tanpa impurities', Math.min(100, avgNiClean/2.5*100), 'mg1-countup-4', avgNiClean, 2);
     html += '</div>';
     // Kartu Issue & Rekomendasi: sekarang AKTIF -- klik buka daftar issue asli
     // (sheet "Masalah & Rekomendasi"), bukan cuma titik hijau dekoratif.
@@ -580,7 +586,7 @@ function renderDiggingModal(justOpened) {
           fieldRow('ID Sampel *', textField('id_sampel', f.id_sampel, 'cth. DM01.L.05')) +
           fieldRow('Total Sampel (Karung) *', numField('total_sampel', f.total_sampel, 'cth. 25')) +
         '</div>' +
-        fieldRow('Tonase (Otomatis)', '<div id="digging-tonase-preview" class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (tonasePreview || '-') + ' Ton</div>') +
+        fieldRow('Tonase (Otomatis)', '<div class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (tonasePreview || '-') + ' Ton</div>') +
         '<div class="rounded-[10px] bg-amber-500/10 border border-amber-500/25 px-3 py-2.5 text-[10px] text-amber-300 leading-relaxed">Ni % dan Tujuan boleh dikosongkan dulu kalau hasil lab belum keluar -- lengkapi belakangan lewat "Update Hasil Assay" di detail baris.</div>' +
         '<div class="grid grid-cols-3 gap-2.5">' +
           fieldRow('Ni %', numField('ni', f.ni, '1.85')) +
@@ -591,7 +597,7 @@ function renderDiggingModal(justOpened) {
           fieldRow('MgO %', numField('mgo', f.mgo, '28.50')) +
           fieldRow('SiO2 %', numField('sio2', f.sio2, '38.20')) +
         '</div>' +
-        fieldRow('SM % (otomatis)', '<div id="digging-sm-preview" class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (smPreview || '-') + '</div>') +
+        fieldRow('SM % (otomatis)', '<div class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/60">' + (smPreview || '-') + '</div>') +
         fieldRow('Tujuan', selectField('tujuan', ['','EFO','ETO','Direct','Disposal'], f.tujuan)) +
         (f.tujuan === 'Direct' ? fieldRow('Nama Ship', textField('ship', f.ship, 'cth. MV Ocean Star')) : '') +
         (diggingStatusMsg ? '<p class="text-xs font-medium ' + (diggingStatusOk?'text-emerald-400':'text-rose-400') + '">' + diggingStatusMsg + '</p>' : '') +
@@ -621,22 +627,9 @@ function selectField(name, options, val) {
   return html;
 }
 function updateDiggingField(name, val) {
-  // Keyboard/focus fix: jangan rebuild seluruh app saat setiap karakter diketik.
-  // Full render() akan mengganti node <input>, sehingga Android kehilangan focus
-  // dan keyboard menutup setelah satu karakter.
   diggingFormState[name] = val;
-
-  // Tetap perbarui preview turunan tanpa menyentuh DOM input.
-  const smPreview = computeSM(diggingFormState.mgo, diggingFormState.sio2);
-  const tonasePreview = computeTonase(
-    diggingFormState.total_sampel,
-    diggingFormState.tipe_ore,
-    parseFloat(smPreview)
-  );
-  const smEl = document.getElementById('digging-sm-preview');
-  const tonaseEl = document.getElementById('digging-tonase-preview');
-  if (smEl) smEl.textContent = smPreview || '-';
-  if (tonaseEl) tonaseEl.textContent = (tonasePreview || '-') + ' Ton';
+  render();
+  requestAnimationFrame(() => { const el = document.querySelector('[data-focus-guard]'); });
 }
 
 // ==== ACTIONS ====
