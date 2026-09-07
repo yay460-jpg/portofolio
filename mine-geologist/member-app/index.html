@@ -286,6 +286,42 @@ function _computeJustOpenedModals() {
   return justOpened;
 }
 
+// [BARU] Animasi count-up angka statistik dashboard (Ringkasan) -- dari 0 naik ke nilai
+// asli dgn easing halus, TIDAK mengubah nilai akhir (angka final tetap presisi sama).
+// Generik: bekerja pada elemen mana pun ber-atribut data-countup-target, tidak spesifik
+// ke Ringkasan saja (kalau nanti dipakai di tab lain, tinggal beri atribut yg sama).
+function runDashboardCountUp_() {
+  const els = document.querySelectorAll('[data-countup-target]');
+  if (!els.length) return;
+  const DURATION_MS = 900;
+  const startedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  // Ease-out kubik: cepat di awal, melambat halus mendekati nilai akhir -- kesan "hitung
+  // cepat lalu mendarat", bukan linear monoton yg terasa kaku.
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+  const targets = Array.prototype.map.call(els, (el) => ({
+    el,
+    target: Number(el.getAttribute('data-countup-target')) || 0,
+    decimals: Number(el.getAttribute('data-countup-decimals')) || 0,
+    suffix: el.getAttribute('data-countup-suffix') || ''
+  }));
+  function tick(now) {
+    const elapsed = (typeof performance !== 'undefined' && performance.now) ? performance.now() - startedAt : Date.now() - startedAt;
+    const t = Math.max(0, Math.min(1, elapsed / DURATION_MS));
+    const eased = easeOutCubic(t);
+    targets.forEach((item) => {
+      const current = item.target * eased;
+      item.el.textContent = current.toFixed(item.decimals) + item.suffix;
+    });
+    if (t < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      // Kunci ke nilai akhir PERSIS (hindari sisa galat pembulatan easing di frame terakhir).
+      targets.forEach((item) => { item.el.textContent = item.target.toFixed(item.decimals) + item.suffix; });
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
 function render() {
   const app = document.getElementById('app');
   const justOpened = _computeJustOpenedModals();
@@ -311,6 +347,13 @@ function render() {
   html += renderSettingsModal(justOpened.settings);
   app.innerHTML = html;
   if (window.lucide) lucide.createIcons();
+
+  // [BARU] Animasi count-up 4 kartu statistik Ringkasan -- SEKALI saja stlh boot selesai
+  // (bukan tiap kali pindah balik ke tab Ringkasan, supaya tidak mengganggu/berulang).
+  if (!window.__mg1DashboardCountUpDone__ && document.getElementById('mg1-countup-1')) {
+    window.__mg1DashboardCountUpDone__ = true;
+    runDashboardCountUp_();
+  }
 
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
@@ -366,13 +409,34 @@ if ('serviceWorker' in navigator) {
 // set custom property --mg1-vvh supaya .app-shell menyusut mengikuti ruang yg tersisa
 // (bukan overlap dgn keyboard) -- lalu scrollIntoView input yg fokus supaya selalu
 // masuk area yg sudah menyusut itu.
+// [DIPERBAIKI] Versi pertama menyusutkan --mg1-vvh utk SETIAP perubahan visualViewport,
+// termasuk fluktuasi kecil (address bar browser collapse/expand saat gestur, dsb) -- ini
+// bikin tab Peta (yg wadah SVG-nya ikut ukuran .app-shell via flex-1 min-h-0, DAN punya
+// listener resize sendiri utk auto-fit peta dari STEP04) jadi ikut resize/reflow berulang
+// tiap fluktuasi kecil itu, terlihat spt kedipan/glitch -- padahal cuma perlu bereaksi
+// thd keyboard SUNGGUHAN (perubahan besar), bukan noise UI kecil. Sekarang pakai ambang
+// batas: cuma terapkan penyusutan kalau bedanya thd tinggi awal cukup besar (>120px,
+// keyboard Android umumnya jauh lebih tinggi dari itu).
 (function setupKeyboardViewportFix_() {
   if (typeof window === 'undefined' || !window.visualViewport) return;
   const vv = window.visualViewport;
+  const KEYBOARD_THRESHOLD_PX = 120;
+  let baselineHeight = vv.height;
   let rafPending = false;
   const applyVvh_ = () => {
     rafPending = false;
-    document.documentElement.style.setProperty('--mg1-vvh', vv.height + 'px');
+    const diff = baselineHeight - vv.height;
+    if (diff > KEYBOARD_THRESHOLD_PX) {
+      // Keyboard (kemungkinan besar) sedang terbuka -- susutkan shell mengikutinya.
+      document.documentElement.style.setProperty('--mg1-vvh', vv.height + 'px');
+    } else {
+      // Tidak ada keyboard (atau cuma fluktuasi kecil) -- kembali ke tinggi penuh normal,
+      // JANGAN ikut menyusut utk noise kecil spt address-bar browser collapse/expand.
+      document.documentElement.style.setProperty('--mg1-vvh', '100svh');
+      // Selama tidak ada keyboard, baseline boleh mengikuti nilai terkini (mis. rotasi
+      // layar genuinely mengubah tinggi total, bukan cuma keyboard) -- update pelan2.
+      baselineHeight = Math.max(baselineHeight, vv.height);
+    }
   };
   const scheduleApply_ = () => {
     if (rafPending) return;
@@ -380,7 +444,6 @@ if ('serviceWorker' in navigator) {
     requestAnimationFrame(applyVvh_);
   };
   vv.addEventListener('resize', scheduleApply_);
-  vv.addEventListener('scroll', scheduleApply_);
   scheduleApply_();
 
   // Saat input/textarea difokus (keyboard baru saja muncul), pastikan elemen itu masuk
