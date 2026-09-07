@@ -230,7 +230,15 @@ function renderSimpleModal(title, subtitle, bodyHtml, closeFn, extraHeaderBtn, j
   const animClass = (justOpened === false) ? '' : ' fade-in';
   return '' +
   '<div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 flex items-end' + animClass + '" onclick="if(event.target===this)' + closeFn + '">' +
-    '<div class="w-full max-w-[480px] mx-auto bg-[#0e1933] rounded-t-[24px] max-h-[85vh] overflow-y-auto border-t border-white/10">' +
+    // [DIPERBAIKI] max-h-[85vh] SEBELUMNYA pakai unit vh murni -- di Android ini sering
+    // dihitung dari tinggi LAYAR PENUH, TIDAK ikut menyusut saat keyboard terbuka. Akibatnya
+    // modal "percaya" dia masih punya ruang 85% layar penuh, padahal ~40% bagian bawahnya
+    // sudah tertutup keyboard -- field/tombol di bagian bawah modal (spt Simpan Peta) jadi
+    // tersembunyi total, tidak terjangkau walau modal secara teknis overflow-y:auto (area
+    // yg BENAR-BENAR archInterior tetap dihitung dari asumsi vh yg salah). Sekarang pakai
+    // --mg1-vvh yg SAMA dgn fix keyboard (index.html) -- otomatis menyusut hanya saat ada
+    // input difokus, konsisten dgn 1 sumber kebenaran yg sama.
+    '<div class="w-full max-w-[480px] mx-auto bg-[#0e1933] rounded-t-[24px] overflow-y-auto border-t border-white/10" style="max-height:calc(var(--mg1-vvh, 100svh) * 0.85);">' +
       '<div class="sticky top-0 bg-[#0e1933] px-5 pt-5 pb-3 border-b border-white/[0.06] flex items-center justify-between">' +
         '<div><div class="text-sm font-bold text-white">' + title + '</div><div class="text-[10px] text-white/35">' + subtitle + '</div></div>' +
         '<div class="flex items-center gap-2">' +
@@ -350,7 +358,14 @@ function render() {
 
   // [BARU] Animasi count-up 4 kartu statistik Ringkasan -- SEKALI saja stlh boot selesai
   // (bukan tiap kali pindah balik ke tab Ringkasan, supaya tidak mengganggu/berulang).
-  if (!window.__mg1DashboardCountUpDone__ && document.getElementById('mg1-countup-1')) {
+  // [DIPERBAIKI] SEBELUMNYA animasi dianggap "selesai" begitu render PERTAMA terjadi --
+  // padahal render pertama saat boot sering terjadi SEBELUM data selesai di-fetch (masih
+  // 0/kosong). Akibatnya animasi "keburu" jalan target 0, lalu flag terkunci selamanya --
+  // saat data ASLI datang & render ulang, angka asli tidak pernah dianimasikan/ditampilkan.
+  // Sekarang: tunggu sampai globalDiggingToday BENAR-BENAR punya isi (data asli termuat)
+  // baru animasi dijalankan & flag dikunci.
+  if (!window.__mg1DashboardCountUpDone__ && document.getElementById('mg1-countup-1') &&
+      typeof globalDiggingToday !== 'undefined' && globalDiggingToday.length > 0) {
     window.__mg1DashboardCountUpDone__ = true;
     runDashboardCountUp_();
   }
@@ -409,33 +424,27 @@ if ('serviceWorker' in navigator) {
 // set custom property --mg1-vvh supaya .app-shell menyusut mengikuti ruang yg tersisa
 // (bukan overlap dgn keyboard) -- lalu scrollIntoView input yg fokus supaya selalu
 // masuk area yg sudah menyusut itu.
-// [DIPERBAIKI] Versi pertama menyusutkan --mg1-vvh utk SETIAP perubahan visualViewport,
-// termasuk fluktuasi kecil (address bar browser collapse/expand saat gestur, dsb) -- ini
-// bikin tab Peta (yg wadah SVG-nya ikut ukuran .app-shell via flex-1 min-h-0, DAN punya
-// listener resize sendiri utk auto-fit peta dari STEP04) jadi ikut resize/reflow berulang
-// tiap fluktuasi kecil itu, terlihat spt kedipan/glitch -- padahal cuma perlu bereaksi
-// thd keyboard SUNGGUHAN (perubahan besar), bukan noise UI kecil. Sekarang pakai ambang
-// batas: cuma terapkan penyusutan kalau bedanya thd tinggi awal cukup besar (>120px,
-// keyboard Android umumnya jauh lebih tinggi dari itu).
+// [DIPERBAIKI ke-2 -- Peta tab masih kena imbas] Versi ambang-batas (>120px) masih
+// mengaktifkan --mg1-vvh berdasar UKURAN viewport semata -- tapi peta.js (STEP04) PUNYA
+// listener resize SENDIRI utk auto-fit peta (getMapViewportRatio_/scheduleMapViewportFit_).
+// Begitu --mg1-vvh berubah (shell menyusut/melebar), kontainer peta (flex-1 min-h-0) ikut
+// berubah ukuran, MEMICU ULANG sistem fit peta itu -- kejadian di tab Peta walau user
+// tidak sedang mengetik apa pun (mis. cuma pan/zoom, atau sekadar viewport Android goyah
+// sesaat). Sekarang jauh lebih presisi: --mg1-vvh HANYA aktif selama ADA input/textarea/
+// select yg BENAR-BENAR difokus (state eksplisit, bukan tebak dari ukuran) -- di luar itu
+// (termasuk sepanjang waktu di tab Peta yg murni visual, 0 keyboard terlibat), shell selalu
+// 100svh tetap seperti semula, sistem fit peta tidak pernah terusik oleh ini.
 (function setupKeyboardViewportFix_() {
   if (typeof window === 'undefined' || !window.visualViewport) return;
   const vv = window.visualViewport;
-  const KEYBOARD_THRESHOLD_PX = 120;
-  let baselineHeight = vv.height;
+  let inputFocused = false;
   let rafPending = false;
   const applyVvh_ = () => {
     rafPending = false;
-    const diff = baselineHeight - vv.height;
-    if (diff > KEYBOARD_THRESHOLD_PX) {
-      // Keyboard (kemungkinan besar) sedang terbuka -- susutkan shell mengikutinya.
+    if (inputFocused) {
       document.documentElement.style.setProperty('--mg1-vvh', vv.height + 'px');
     } else {
-      // Tidak ada keyboard (atau cuma fluktuasi kecil) -- kembali ke tinggi penuh normal,
-      // JANGAN ikut menyusut utk noise kecil spt address-bar browser collapse/expand.
       document.documentElement.style.setProperty('--mg1-vvh', '100svh');
-      // Selama tidak ada keyboard, baseline boleh mengikuti nilai terkini (mis. rotasi
-      // layar genuinely mengubah tinggi total, bukan cuma keyboard) -- update pelan2.
-      baselineHeight = Math.max(baselineHeight, vv.height);
     }
   };
   const scheduleApply_ = () => {
@@ -444,16 +453,26 @@ if ('serviceWorker' in navigator) {
     requestAnimationFrame(applyVvh_);
   };
   vv.addEventListener('resize', scheduleApply_);
-  scheduleApply_();
 
-  // Saat input/textarea difokus (keyboard baru saja muncul), pastikan elemen itu masuk
-  // area yg sudah menyusut -- beri jeda kecil supaya keyboard selesai animasi dulu.
+  const isTextField_ = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+
   document.addEventListener('focusin', (event) => {
     const el = event.target;
-    if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA' && el.tagName !== 'SELECT')) return;
+    if (!isTextField_(el)) return;
+    inputFocused = true;
+    scheduleApply_();
     setTimeout(() => {
       try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
     }, 250);
+  });
+  document.addEventListener('focusout', (event) => {
+    if (!isTextField_(event.target)) return;
+    // Jeda kecil: kalau fokus langsung pindah ke input LAIN (Tab/next field), jangan
+    // sempat "kedip" balik ke 100svh dulu di antaranya.
+    setTimeout(() => {
+      const stillTextField = isTextField_(document.activeElement);
+      if (!stillTextField) { inputFocused = false; scheduleApply_(); }
+    }, 50);
   });
 })();
 
