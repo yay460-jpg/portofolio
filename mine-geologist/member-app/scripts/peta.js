@@ -3511,7 +3511,12 @@ function renderMineGridSvg(points) {
   // tidak, posisi marker jadi USANG begitu viewBox berpindah (mis. saat zoom-anchor aktif).
   if (mapTapState_.active && mapTapState_.native) {
     const tp = projectToSvg(mapTapState_.native.x, mapTapState_.native.y, bounds, viewW, viewH);
-    svg += '<g aria-label="Koordinat tap" pointer-events="none">' +
+    // V14.3: Titik Tap juga true-adaptive. Visual di-anchor pada koordinat tap
+    // sehingga deep zoom mengecilkan crosshair tanpa menggeser titik koordinat.
+    const tapZoom = Math.max(1, Number(mapZoom) || 1);
+    const tapScale = 1 / Math.pow(tapZoom, 1.25);
+    const tapVisualTransform = 'translate(' + tp.x.toFixed(3) + ' ' + tp.y.toFixed(3) + ') scale(' + tapScale.toFixed(6) + ') translate(' + (-tp.x).toFixed(3) + ' ' + (-tp.y).toFixed(3) + ')';
+    svg += '<g aria-label="Koordinat tap" pointer-events="none" transform="' + tapVisualTransform + '">' +
       '<circle cx="' + tp.x + '" cy="' + tp.y + '" r="7" fill="none" stroke="#facc15" stroke-width="2"/>' +
       '<line x1="' + (tp.x-10) + '" y1="' + tp.y + '" x2="' + (tp.x+10) + '" y2="' + tp.y + '" stroke="#facc15" stroke-width="1"/>' +
       '<line x1="' + tp.x + '" y1="' + (tp.y-10) + '" x2="' + tp.x + '" y2="' + (tp.y+10) + '" stroke="#facc15" stroke-width="1"/>' +
