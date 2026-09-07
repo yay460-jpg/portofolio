@@ -73,7 +73,9 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
   .card { background: rgba(15,23,42,0.55); border: 1px solid rgba(255,255,255,0.06); }
   .glow-gold { box-shadow: 0 0 24px rgba(37,99,235,0.18); }
   /* V14.14 -- Lithosite-Oneplus boot visual, adapted from uploaded source artifact. */
-  .mg1-boot { position:relative; width:100%; height:100%; min-height:100svh; overflow:hidden; background:#000; color:#fff; display:flex; align-items:center; justify-content:center; isolation:isolate; }
+  .mg1-boot { position:relative; width:100%; height:100%; min-height:100svh; overflow:hidden; background:#070b1c; color:#fff; display:flex; align-items:center; justify-content:center; isolation:isolate; }
+  .mg1-boot::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.32; background:radial-gradient(circle at 50% 42%, rgba(37,99,235,.14), transparent 34%), radial-gradient(circle at 20% 80%, rgba(15,23,42,.72), transparent 42%); }
+  .mg1-boot::after { content:""; position:absolute; inset:0; pointer-events:none; opacity:.16; background:repeating-radial-gradient(ellipse at 20% 90%, transparent 0 22px, rgba(96,165,250,.10) 23px 24px, transparent 25px 48px); mask-image:linear-gradient(to top, rgba(0,0,0,.9), transparent 72%); }
   .mg1-boot-glow { position:absolute; width:320px; height:320px; border-radius:50%; filter:blur(80px); opacity:.18; pointer-events:none; }
   .mg1-boot-glow-blue { background:#38bdf8; top:-110px; left:50%; transform:translateX(-50%); }
   .mg1-boot-glow-orange { background:#f97316; right:-130px; bottom:-120px; }
@@ -109,6 +111,14 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
     .mg1-boot-tagline { animation:none; opacity:1; }
     .mg1-boot-progress span { animation:none; width:100%; }
   }
+  /* V14.15 -- Boot selesai -> Dashboard entrance SEKALI. Tidak dipakai saat pindah tab. */
+  .mg1-dashboard-boot-enter .app-main > * { animation: mg1DashboardEnter 520ms cubic-bezier(.22,1,.36,1) both; }
+  .mg1-dashboard-boot-enter .app-main > *:nth-child(1) { animation-delay:0ms; }
+  .mg1-dashboard-boot-enter .app-main > *:nth-child(2) { animation-delay:70ms; }
+  .mg1-dashboard-boot-enter .app-main > *:nth-child(3) { animation-delay:140ms; }
+  .mg1-dashboard-boot-enter .app-main > *:nth-child(4) { animation-delay:210ms; }
+  .mg1-dashboard-boot-enter .app-main > *:nth-child(5) { animation-delay:280ms; }
+  @keyframes mg1DashboardEnter { from { opacity:0; transform:translateY(14px) scale(.985); } to { opacity:1; transform:none; } }
   .spin { animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .fade-in { animation: fadeIn 0.35s ease both; }
@@ -431,6 +441,17 @@ function render() {
   html += renderSettingsModal(justOpened.settings);
   app.innerHTML = html;
   if (window.lucide) lucide.createIcons();
+
+  // V14.15: setelah boot selesai, tampilkan entrance Dashboard SEKALI.
+  // Tidak diputar ulang ketika user pindah tab atau render data berikutnya.
+  if (!window.__mg1DashboardEntranceDone__ && currentTab === 'tabel') {
+    const shell = app.querySelector('.app-shell');
+    if (shell) {
+      window.__mg1DashboardEntranceDone__ = true;
+      shell.classList.add('mg1-dashboard-boot-enter');
+      setTimeout(() => shell.classList.remove('mg1-dashboard-boot-enter'), 900);
+    }
+  }
 
   // [BARU] Animasi count-up 4 kartu statistik Ringkasan -- SEKALI saja stlh boot selesai
   // (bukan tiap kali pindah balik ke tab Ringkasan, supaya tidak mengganggu/berulang).
