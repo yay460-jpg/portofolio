@@ -96,7 +96,7 @@ function renderIssueModal(justOpened) {
       fieldRow('Target', textField('target', f.target, 'cth. 30 Agu 2026')) +
       fieldRow('Status', selectField('status', ['Open','Progress','Close'], f.status)) +
       (issueSubmitStatusMsg ? '<p class="text-xs font-medium ' + (issueSubmitOk?'text-emerald-400':'text-rose-400') + '">' + issueSubmitStatusMsg + '</p>' : '') +
-      '<button onclick="submitIssueEntry()" ' + (issueSubmitBusy?'disabled':'') + ' class="mg1-interact w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold text-sm py-3 rounded-xl disabled:opacity-60">' +
+      '<button onclick="submitIssueEntry()" ' + (issueSubmitBusy?'disabled':'') + ' class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold text-sm py-3 rounded-xl disabled:opacity-60">' +
         (issueSubmitBusy ? '<span class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full spin"></span>' : icon('save','w-4 h-4')) +
         '<span>' + (issueSubmitBusy?'Menyimpan...':'Simpan Issue') + '</span>' +
       '</button>' +
@@ -107,15 +107,15 @@ function renderIssueModal(justOpened) {
   } else if (issueErrorMsg) {
     body = '<div class="rounded-[12px] bg-rose-500/10 border border-rose-500/25 p-4"><div class="text-xs font-bold text-rose-300">Gagal memuat Issue</div><div class="text-[11px] text-rose-300/70 mt-1">' + issueErrorMsg + '</div></div>';
   } else {
-    body = '<button onclick="openIssueForm()" class="mg1-interact w-full mb-3 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs py-3 rounded-xl">' + icon('plus','w-4 h-4') + '<span>Tambah Issue Baru</span></button>';
+    body = '<button onclick="openIssueForm()" class="w-full mb-3 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs py-3 rounded-xl">' + icon('plus','w-4 h-4') + '<span>Tambah Issue Baru</span></button>';
     if (!issueListData.length) {
       body += '<div class="text-center text-white/40 text-xs py-6">Belum ada issue tercatat.</div>';
     } else {
       issueListData.forEach(it => {
-        body += '<div class="mg1-issue-card rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-3.5 mb-2.5" style="animation-delay:' + Math.min(240, issueListData.indexOf(it)*45) + 'ms">' +
+        body += '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-3.5 mb-2.5">' +
           '<div class="flex items-start justify-between gap-2 mb-1">' +
             '<span class="text-[13px] font-bold text-white leading-tight">' + (it.masalah||'-') + '</span>' +
-            '<span class="mg1-badge-in shrink-0 text-[9px] font-black tracking-widest px-2.5 py-1 rounded-full ' + statusBadgeColor(it.status) + ' text-white">' + (it.status||'Open') + '</span>' +
+            '<span class="shrink-0 text-[9px] font-black tracking-widest px-2.5 py-1 rounded-full ' + statusBadgeColor(it.status) + ' text-white">' + (it.status||'Open') + '</span>' +
           '</div>' +
           '<div class="text-[11px] text-white/45">' + (it.lokasi||'-') + ' &bull; PIC ' + (it.pic||'-') + (it.target ? (' &bull; target ' + it.target) : '') + '</div>' +
         '</div>';

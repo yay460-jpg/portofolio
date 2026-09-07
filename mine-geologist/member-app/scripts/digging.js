@@ -118,58 +118,6 @@ let diggingViewMode = 'today'; // 'today' kalau ada data hari ini, 'recent' kala
 // bisa membuat response LEBIH LAMA menimpa hasil response LEBIH BARU, tergantung urutan
 // selesai (bukan urutan mulai). Pola sama persis dgn produksiFetchRequestSeq di dashboard.
 let ringkasanFetchSeq = 0;
-let diggingRealtimePollTimer_ = null;
-let diggingRealtimeBusy_ = false;
-let diggingCompletenessSignature_ = null;
-const DIGGING_REALTIME_POLL_MS_ = 8000;
-
-function hasCompleteDiggingDataChanged_(previousRows, nextRows) {
-  try {
-    const prev = new Map((Array.isArray(previousRows) ? previousRows : []).map(r => [String(getField(r,'ID Sampel') || ''), isDiggingDataComplete_(r)]));
-    return (Array.isArray(nextRows) ? nextRows : []).some(r => {
-      const id = String(getField(r,'ID Sampel') || '');
-      return id && isDiggingDataComplete_(r) && prev.get(id) !== true;
-    });
-  } catch (e) { return false; }
-}
-
-async function refreshDiggingRealtime_() {
-  if (diggingRealtimeBusy_ || (currentTab !== 'tabel' && currentTab !== 'ringkasan') || document.visibilityState === 'hidden') return;
-  diggingRealtimeBusy_ = true;
-  try {
-    const response = await fetchWithTimeout(GOOGLE_SCRIPT_READ_URL + '?sheet=produksi&t=' + Date.now());
-    const result = await response.json();
-    if (result.status === 'error') return;
-    const rows = result.data || [];
-    const todayLabel = new Date().toDateString();
-    const todaysRows = rows.filter(r => { const t=r['Tanggal']; if(!t) return false; const dt=new Date(t); return !isNaN(dt) && dt.toDateString()===todayLabel; });
-    const nextRows = todaysRows.length ? todaysRows : rows.slice().sort((a,b)=>new Date(b['Tanggal'])-new Date(a['Tanggal'])).slice(0,15);
-    const previousRows = globalDiggingToday;
-    const changedComplete = hasCompleteDiggingDataChanged_(previousRows, nextRows);
-    const nextSig = getDiggingCompletenessSignature_(nextRows);
-    if (nextSig !== diggingCompletenessSignature_) {
-      globalDiggingToday = nextRows;
-      diggingViewMode = todaysRows.length ? 'today' : 'recent';
-      diggingCompletenessSignature_ = nextSig;
-      render();
-      if (changedComplete && currentTab === 'ringkasan' && typeof animateDashboardMetrics_ === 'function' && typeof animateDashboardDataRefresh_ === 'function') {
-        requestAnimationFrame(() => {
-          animateDashboardMetrics_();
-          animateDashboardDataRefresh_();
-        });
-      }
-    }
-  } catch (e) {
-    console.warn('Digging realtime refresh skipped:', e);
-  } finally {
-    diggingRealtimeBusy_ = false;
-  }
-}
-function startDiggingRealtimePolling_() {
-  if (diggingRealtimePollTimer_) return;
-  diggingRealtimePollTimer_ = setInterval(refreshDiggingRealtime_, DIGGING_REALTIME_POLL_MS_);
-}
-
 // [BARU] Diekstrak dari loadRingkasanData() -- forward-fill ID_TP baris kedalaman lanjutan
 // (2m/3m/4m/5m yg ID_TP-nya sengaja kosong di sheet asli). Dipakai BERSAMA oleh
 // loadRingkasanData() (jalur normal boot) DAN loadValidasiDataForMapStandalone_() (jalur
@@ -193,7 +141,6 @@ function forwardFillValidasiRows_(rawRows) {
   return filled;
 }
 async function loadRingkasanData() {
-  const previousRowsForAnimation = Array.isArray(globalDiggingToday) ? globalDiggingToday.slice() : [];
   const mySeq = ++ringkasanFetchSeq;
   dataLoadErrorMsg = '';
   mapDataErrorMsg = '';
@@ -258,17 +205,7 @@ async function loadRingkasanData() {
     globalValidasiFullForMap = []; // v90.2.115 FIX #1: dataset Peta ikut dikosongkan saat gagal
     mapDataErrorMsg = 'Tidak bisa menghubungi server: ' + (err && err.message ? err.message : String(err));
   }
-  const changedComplete = hasCompleteDiggingDataChanged_(previousRowsForAnimation, globalDiggingToday);
-  diggingCompletenessSignature_ = getDiggingCompletenessSignature_(globalDiggingToday);
   render();
-  const refreshSignature = getDashboardRefreshSignature_();
-  mg1LastRefreshSignature_ = refreshSignature;
-  if (changedComplete && currentTab === 'ringkasan' && typeof animateDashboardMetrics_ === 'function' && typeof animateDashboardDataRefresh_ === 'function' && mg1DashboardEntranceDone_) {
-    requestAnimationFrame(() => {
-      animateDashboardMetrics_();
-      animateDashboardDataRefresh_();
-    });
-  }
 }
 
 // ==== SUBMIT DIGGING -- endpoint & skema kolom IDENTIK dgn dashboard.html ====
@@ -414,12 +351,6 @@ async function handleSubmitUpdateAssay() {
   render();
 }
 
-
-// ==== AN-03: NUMBER / PROGRESS ANIMATION ====
-// Hanya presentation layer. Nilai sumber tetap berasal dari renderRingkasan().
-let mg1MetricAnimationRaf_ = null;
-let mg1LastRefreshSignature_ = null;
-let mg1RefreshPulseRaf_ = null;
 function getDiggingAssayValue_(row, names) {
   for (const name of names) {
     const v = getField(row, name);
@@ -457,38 +388,11 @@ function getDiggingCompletenessSignature_(rows) {
     ])).join('|');
   } catch (e) { return String(Date.now()); }
 }
-function getDashboardRefreshSignature_() {
-  try {
-    const rows = Array.isArray(globalDiggingToday) ? globalDiggingToday : [];
-    return rows.map((r) => JSON.stringify([r['Tanggal'], r['ID Sampel'], r['Tonase'], r['Ni %'], r['Ni'], r['Material'], r['Updated_At'], r['Updated_Date'], r['Updated_Time'], isDiggingDataComplete_(r)])).join('|');
-  } catch (e) { return String(Date.now()); }
-}
-function animateDashboardDataRefresh_() {
-  if (mg1RefreshPulseRaf_) cancelAnimationFrame(mg1RefreshPulseRaf_);
-  mg1RefreshPulseRaf_ = requestAnimationFrame(() => {
-    mg1RefreshPulseRaf_ = null;
-    const cards = document.querySelectorAll('.mg1-dashboard-card');
-    const values = document.querySelectorAll('.mg1-metric-value');
-    const bars = document.querySelectorAll('.mg1-progress-fill');
-    cards.forEach((el) => { el.classList.remove('mg1-data-refresh'); void el.offsetWidth; el.classList.add('mg1-data-refresh'); });
-    values.forEach((el) => { el.classList.remove('mg1-data-refresh'); void el.offsetWidth; el.classList.add('mg1-data-refresh'); });
-    bars.forEach((el) => { el.classList.remove('mg1-data-refresh-bar'); void el.offsetWidth; el.classList.add('mg1-data-refresh-bar'); });
-    window.setTimeout(() => {
-      document.querySelectorAll('.mg1-data-refresh, .mg1-data-refresh-bar').forEach((el) => el.classList.remove('mg1-data-refresh', 'mg1-data-refresh-bar'));
-    }, 700);
-  });
-}
+// AN-03/AN-05 policy: angka + progress dianimasikan SATU KALI saat dashboard pertama kali
+// tampil setelah splash. Tidak dipanggil lagi saat pindah tab atau refresh data.
+let mg1MetricAnimationRaf_ = null;
 function animateDashboardMetrics_() {
   try {
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      document.querySelectorAll('[data-mg1-target-value]').forEach(el => {
-        el.textContent = el.getAttribute('data-mg1-target-value') || '';
-      });
-      document.querySelectorAll('[data-mg1-progress]').forEach(el => {
-        el.style.width = Math.max(0, Math.min(100, Number(el.getAttribute('data-mg1-progress')) || 0)) + '%';
-      });
-      return;
-    }
     if (mg1MetricAnimationRaf_) cancelAnimationFrame(mg1MetricAnimationRaf_);
     const start = performance.now();
     const duration = 720;
@@ -502,19 +406,22 @@ function animateDashboardMetrics_() {
     const bars = Array.from(document.querySelectorAll('[data-mg1-progress]')).map(el => ({
       el, target: Math.max(0, Math.min(100, Number(el.getAttribute('data-mg1-progress')) || 0))
     }));
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) {
+      values.forEach(item => { item.el.textContent = item.target.toFixed(item.decimals) + item.suffix; });
+      bars.forEach(item => { item.el.style.width = item.target + '%'; });
+      return;
+    }
     const tick = now => {
       const t = Math.min(1, (now - start) / duration);
       const e = ease(t);
-      values.forEach(item => {
-        const value = item.target * e;
-        item.el.textContent = value.toFixed(item.decimals) + item.suffix;
-      });
+      values.forEach(item => { item.el.textContent = (item.target * e).toFixed(item.decimals) + item.suffix; });
       bars.forEach(item => { item.el.style.width = (item.target * e) + '%'; });
       if (t < 1) mg1MetricAnimationRaf_ = requestAnimationFrame(tick);
       else mg1MetricAnimationRaf_ = null;
     };
     mg1MetricAnimationRaf_ = requestAnimationFrame(tick);
-  } catch (e) { console.warn('AN-03 metric animation skipped:', e); }
+  } catch (e) { console.warn('AN-03 one-shot metric animation skipped:', e); }
 }
 
 // ==== RINGKASAN & TABEL DIGGING ====
@@ -533,7 +440,8 @@ function renderRingkasan() {
 
   function card(iconName, borderColor, badgeBg, badge, label, value, unit, sub, barPct, delayMs) {
     const cardDelay = Number(delayMs) || 0;
-    return '<div class="mg1-dashboard-card mg1-enter flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[12px] flex flex-col justify-between gap-[8px]" style="--mg1-enter-delay:' + cardDelay + 'ms">' +
+    const entranceClass = !mg1DashboardEntranceDone_ ? ' mg1-enter' : '';
+    return '<div class="mg1-dashboard-card' + entranceClass + ' flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[12px] flex flex-col justify-between gap-[8px]" style="--mg1-enter-delay:' + cardDelay + 'ms">' +
       '<div class="flex justify-end leading-none shrink-0">' +
         (badge ? '<span class="text-[9px] font-bold rounded-full px-[8px] py-[3px] tracking-wide leading-none ' + badgeBg + ' text-white">' + badge + '</span>' : '') +
       '</div>' +
@@ -572,7 +480,7 @@ function renderRingkasan() {
     html += '</div>';
     // Kartu Issue & Rekomendasi: sekarang AKTIF -- klik buka daftar issue asli
     // (sheet "Masalah & Rekomendasi"), bukan cuma titik hijau dekoratif.
-    html += '<button onclick="openIssueModal()" class="mg1-enter shrink-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[14px] flex items-center justify-between gap-2 w-full text-left active:scale-[0.99] transition-transform" style="--mg1-enter-delay:280ms">' +
+    html += '<button onclick="openIssueModal()" class="' + (!mg1DashboardEntranceDone_ ? 'mg1-enter ' : '') + 'shrink-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[14px] flex items-center justify-between gap-2 w-full text-left " style="--mg1-enter-delay:280ms">' +
       '<div class="flex items-center gap-[8px] min-w-0 flex-1">' +
         '<div class="w-[28px] h-[28px] rounded-[8px] bg-[#2563eb]/15 border border-[#2563eb]/20 flex items-center justify-center shrink-0">' +
           icon('clipboard-list','w-[18px] h-[18px] text-[#2563eb]') +
@@ -611,7 +519,7 @@ function renderTabel() {
       icon('search','w-[16px] h-[16px] text-white/40 shrink-0') +
       '<input value="' + diggingSearchQuery.replace(/"/g,'&quot;') + '" oninput="updateDiggingSearch(this.value)" placeholder="Cari ID Sampel / Pit / Blok..." class="flex-1 bg-transparent outline-none text-[12px] font-medium text-white placeholder:text-white/35 min-w-0">' +
     '</div>' +
-    '<button aria-label="Input Digging" onclick="openDiggingForm()" class="shrink-0 w-9 h-9 rounded-full bg-[#2563eb] border border-white/10 flex items-center justify-center active:scale-95 transition-transform">' +
+    '<button aria-label="Input Digging" onclick="openDiggingForm()" class="shrink-0 w-9 h-9 rounded-full bg-[#2563eb] border border-white/10 flex items-center justify-center">' +
       icon('plus','w-[20px] h-[20px] text-white') +
     '</button>' +
   '</div>';
@@ -632,7 +540,7 @@ function renderTabel() {
         : renderClassGradeBadge(material);
       const isIncomplete = !isDiggingDataComplete_(r);
       const incompleteDotHtml = isIncomplete ? '<span class="mg1-missing-dot shrink-0 mr-1.5" aria-label="Data belum lengkap" title="Data assay atau Tujuan belum lengkap"></span>' : '';
-      html += '<button onclick="openDiggingDetail(' + i + ')" class="text-left min-h-[62px] rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-3.5 flex items-center justify-between shrink-0 active:scale-[0.99] transition-transform">' +
+      html += '<button onclick="openDiggingDetail(' + i + ')" class="text-left min-h-[62px] rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-3.5 flex items-center justify-between shrink-0">' +
         '<div class="flex items-center gap-3 min-w-0">' +
           '<div class="w-10 h-10 rounded-[10px] bg-white/[0.06] border border-white/10 flex items-center justify-center text-[11px] font-black text-white/70 shrink-0">' + numLabel + '</div>' +
           '<div class="min-w-0">' +
@@ -709,7 +617,7 @@ function renderDiggingDetailModal(justOpened) {
   // "Menunggu Assay" -- sama persis pola web.
   const isPending = getField(r,'Material') === 'Menunggu Assay';
   const actionBtn = isPending
-    ? '<button onclick="openUpdateAssayModal()" class="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md animate-pulse">' + icon('flask-conical','w-3.5 h-3.5') + '<span>Update Hasil Assay</span></button>'
+    ? '<button onclick="openUpdateAssayModal()" class="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md">' + icon('flask-conical','w-3.5 h-3.5') + '<span>Update Hasil Assay</span></button>'
     : '';
   return renderSimpleModal('Detail Digging', getField(r,'ID Sampel') || (getField(r,'Pit')||'-'), body + actionBtn, 'closeDiggingDetail()', undefined, justOpened);
 }
@@ -812,5 +720,3 @@ async function handleSubmitDigging() {
   }
 }
 
-// AN-05 REFINEMENT: near-realtime completeness monitor for Digging list.
-if (typeof window !== 'undefined') window.addEventListener('load', startDiggingRealtimePolling_);
