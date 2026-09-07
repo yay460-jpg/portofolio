@@ -67,7 +67,7 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
     overflow: hidden; overscroll-behavior: none;
   }
   body { font-family: 'Inter', -apple-system, sans-serif; background:#070b1c; }
-  .app-shell { max-width: 480px; margin: 0 auto; height: 100svh; position: relative; background: #070b1c; display: flex; flex-direction: column; overflow: hidden; }
+  .app-shell { max-width: 480px; margin: 0 auto; height: 100svh; height: calc(var(--mg1-vvh, 100svh)); position: relative; background: #070b1c; display: flex; flex-direction: column; overflow: hidden; }
   .app-main { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: #070b1c; overscroll-behavior: contain; }
   ::-webkit-scrollbar { width: 0; height: 0; }
   .card { background: rgba(15,23,42,0.55); border: 1px solid rgba(255,255,255,0.06); }
@@ -353,6 +353,46 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
+
+// [BARU -- fix keyboard "abnormal" di form panjang spt Digging/Validasi] html/body
+// dikunci position:fixed + 100svh (lihat komentar di CSS .app-shell) supaya gestur
+// pull-to-refresh tidak "menarik" dokumen -- tapi ini juga berarti TIDAK ADA mekanisme
+// bawaan yg menyesuaikan tinggi saat keyboard Android muncul. Browser biasanya auto-scroll
+// input yg di-fokus ke area terlihat, tapi dalam layout fixed+svh terkunci ini perilaku
+// itu jadi tidak konsisten -- keyboard bisa menutupi input yg sedang diketik, terutama
+// di form dgn banyak field spt Digging/Validasi (Login/Peta kebetulan field-nya sedikit,
+// jadi jarang mentok ke skenario ini).
+// Fix: dengar window.visualViewport (area yg BENAR2 terlihat, di luar area keyboard),
+// set custom property --mg1-vvh supaya .app-shell menyusut mengikuti ruang yg tersisa
+// (bukan overlap dgn keyboard) -- lalu scrollIntoView input yg fokus supaya selalu
+// masuk area yg sudah menyusut itu.
+(function setupKeyboardViewportFix_() {
+  if (typeof window === 'undefined' || !window.visualViewport) return;
+  const vv = window.visualViewport;
+  let rafPending = false;
+  const applyVvh_ = () => {
+    rafPending = false;
+    document.documentElement.style.setProperty('--mg1-vvh', vv.height + 'px');
+  };
+  const scheduleApply_ = () => {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(applyVvh_);
+  };
+  vv.addEventListener('resize', scheduleApply_);
+  vv.addEventListener('scroll', scheduleApply_);
+  scheduleApply_();
+
+  // Saat input/textarea difokus (keyboard baru saja muncul), pastikan elemen itu masuk
+  // area yg sudah menyusut -- beri jeda kecil supaya keyboard selesai animasi dulu.
+  document.addEventListener('focusin', (event) => {
+    const el = event.target;
+    if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA' && el.tagName !== 'SELECT')) return;
+    setTimeout(() => {
+      try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
+    }, 250);
+  });
+})();
 
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('app').innerHTML = renderSplash();
