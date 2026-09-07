@@ -111,6 +111,10 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
     .mg1-boot-tagline { animation:none; opacity:1; }
     .mg1-boot-progress span { animation:none; width:100%; }
   }
+  /* V14.16 -- Handoff visual: boot fade-out lalu jeda navy sebelum Dashboard. */
+  .mg1-boot { transition: opacity 320ms cubic-bezier(.22,1,.36,1); }
+  .mg1-boot.mg1-boot-exit { opacity:0; }
+
   /* V14.15 -- Boot selesai -> Dashboard entrance SEKALI. Tidak dipakai saat pindah tab. */
   .mg1-dashboard-boot-enter .app-main > * { animation: mg1DashboardEnter 520ms cubic-bezier(.22,1,.36,1) both; }
   .mg1-dashboard-boot-enter .app-main > *:nth-child(1) { animation-delay:0ms; }
@@ -597,6 +601,16 @@ window.addEventListener('DOMContentLoaded', () => {
     // tidak perlu render() terpisah di sini lagi.
     await loadRingkasanData();
     await bootAnimationReady;
+
+    // V14.16: beri handoff yang terlihat antara boot dan Dashboard.
+    // Boot fade-out 320ms -> jeda navy 500ms -> Dashboard entrance sekali.
+    const bootScreen = document.querySelector('.mg1-boot');
+    if (bootScreen) {
+      bootScreen.classList.add('mg1-boot-exit');
+      await new Promise(resolve => setTimeout(resolve, 320));
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     window.__mg1BootAnimationDone__ = true;
     render();
   }, 900);
