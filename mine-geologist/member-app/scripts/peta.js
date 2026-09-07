@@ -813,7 +813,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
         // Give older Android/WebView devices a small scheduling window every few tiles.
         // This keeps the UI responsive and lets released canvases become collectible.
         if (done % 5 === 0) {
-          await new Promise(r => setTimeout(r, 15));
+          await new Promise(r => setTimeout(r, 10));
         } else {
           await new Promise(r => setTimeout(r, 0));
         }
