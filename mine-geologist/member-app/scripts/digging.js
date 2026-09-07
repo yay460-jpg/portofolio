@@ -207,6 +207,11 @@ async function loadRingkasanData() {
     mapDataErrorMsg = 'Tidak bisa menghubungi server: ' + (err && err.message ? err.message : String(err));
   }
   render();
+  const refreshSignature = getDashboardRefreshSignature_();
+  if (mg1LastRefreshSignature_ !== null && refreshSignature !== mg1LastRefreshSignature_ && currentTab === 'ringkasan') {
+    animateDashboardDataRefresh_();
+  }
+  mg1LastRefreshSignature_ = refreshSignature;
 }
 
 // ==== SUBMIT DIGGING -- endpoint & skema kolom IDENTIK dgn dashboard.html ====
@@ -353,6 +358,71 @@ async function handleSubmitUpdateAssay() {
 }
 
 
+// ==== AN-03: NUMBER / PROGRESS ANIMATION ====
+// Hanya presentation layer. Nilai sumber tetap berasal dari renderRingkasan().
+let mg1MetricAnimationRaf_ = null;
+let mg1LastRefreshSignature_ = null;
+let mg1RefreshPulseRaf_ = null;
+function getDashboardRefreshSignature_() {
+  try {
+    const rows = Array.isArray(globalDiggingToday) ? globalDiggingToday : [];
+    return rows.map((r) => JSON.stringify([r['Tanggal'], r['ID Sampel'], r['Tonase'], r['Ni %'], r['Ni'], r['Material'], r['Updated_At'], r['Updated_Date'], r['Updated_Time']])).join('|');
+  } catch (e) { return String(Date.now()); }
+}
+function animateDashboardDataRefresh_() {
+  if (mg1RefreshPulseRaf_) cancelAnimationFrame(mg1RefreshPulseRaf_);
+  mg1RefreshPulseRaf_ = requestAnimationFrame(() => {
+    mg1RefreshPulseRaf_ = null;
+    const cards = document.querySelectorAll('.mg1-dashboard-card');
+    const values = document.querySelectorAll('.mg1-metric-value');
+    const bars = document.querySelectorAll('.mg1-progress-fill');
+    cards.forEach((el) => { el.classList.remove('mg1-data-refresh'); void el.offsetWidth; el.classList.add('mg1-data-refresh'); });
+    values.forEach((el) => { el.classList.remove('mg1-data-refresh'); void el.offsetWidth; el.classList.add('mg1-data-refresh'); });
+    bars.forEach((el) => { el.classList.remove('mg1-data-refresh-bar'); void el.offsetWidth; el.classList.add('mg1-data-refresh-bar'); });
+    window.setTimeout(() => {
+      document.querySelectorAll('.mg1-data-refresh, .mg1-data-refresh-bar').forEach((el) => el.classList.remove('mg1-data-refresh', 'mg1-data-refresh-bar'));
+    }, 700);
+  });
+}
+function animateDashboardMetrics_() {
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.querySelectorAll('[data-mg1-target-value]').forEach(el => {
+        el.textContent = el.getAttribute('data-mg1-target-value') || '';
+      });
+      document.querySelectorAll('[data-mg1-progress]').forEach(el => {
+        el.style.width = Math.max(0, Math.min(100, Number(el.getAttribute('data-mg1-progress')) || 0)) + '%';
+      });
+      return;
+    }
+    if (mg1MetricAnimationRaf_) cancelAnimationFrame(mg1MetricAnimationRaf_);
+    const start = performance.now();
+    const duration = 720;
+    const ease = t => 1 - Math.pow(1 - t, 3);
+    const values = Array.from(document.querySelectorAll('[data-mg1-target-value]')).map(el => ({
+      el,
+      target: Number(el.getAttribute('data-mg1-target-value')) || 0,
+      decimals: Number(el.getAttribute('data-mg1-decimals')) || 0,
+      suffix: el.getAttribute('data-mg1-suffix') || ''
+    }));
+    const bars = Array.from(document.querySelectorAll('[data-mg1-progress]')).map(el => ({
+      el, target: Math.max(0, Math.min(100, Number(el.getAttribute('data-mg1-progress')) || 0))
+    }));
+    const tick = now => {
+      const t = Math.min(1, (now - start) / duration);
+      const e = ease(t);
+      values.forEach(item => {
+        const value = item.target * e;
+        item.el.textContent = value.toFixed(item.decimals) + item.suffix;
+      });
+      bars.forEach(item => { item.el.style.width = (item.target * e) + '%'; });
+      if (t < 1) mg1MetricAnimationRaf_ = requestAnimationFrame(tick);
+      else mg1MetricAnimationRaf_ = null;
+    };
+    mg1MetricAnimationRaf_ = requestAnimationFrame(tick);
+  } catch (e) { console.warn('AN-03 metric animation skipped:', e); }
+}
+
 // ==== RINGKASAN & TABEL DIGGING ====
 function renderRingkasan() {
   const rows = globalDiggingToday;
@@ -367,8 +437,9 @@ function renderRingkasan() {
   const oreTypes = new Set(oreRows.map(r => r['Material']).filter(Boolean));
   const dominantOre = oreRows.length ? (oreRows[0]['Material'] || '-') : '-';
 
-  function card(iconName, borderColor, badgeBg, badge, label, value, unit, sub, barPct) {
-    return '<div class="flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[12px] flex flex-col justify-between gap-[8px]">' +
+  function card(iconName, borderColor, badgeBg, badge, label, value, unit, sub, barPct, delayMs) {
+    const cardDelay = Number(delayMs) || 0;
+    return '<div class="mg1-dashboard-card mg1-enter flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[12px] flex flex-col justify-between gap-[8px]" style="--mg1-enter-delay:' + cardDelay + 'ms">' +
       '<div class="flex justify-end leading-none shrink-0">' +
         (badge ? '<span class="text-[9px] font-bold rounded-full px-[8px] py-[3px] tracking-wide leading-none ' + badgeBg + ' text-white">' + badge + '</span>' : '') +
       '</div>' +
@@ -379,14 +450,14 @@ function renderRingkasan() {
         '<div class="flex-1 min-w-0 flex flex-col justify-center gap-[2px]">' +
           '<span class="text-[10px] font-bold tracking-[0.12em] text-white/60 leading-[1.1]">' + label + '</span>' +
           '<div class="flex items-baseline gap-1">' +
-            '<span class="text-[24px] font-black leading-none text-white tracking-tight">' + value + '</span>' +
+            '<span class="text-[24px] font-black leading-none text-white tracking-tight mg1-metric-value" data-mg1-target-value="' + (String(value).replace('%','')) + '" data-mg1-decimals="' + (String(value).includes('.') ? (String(value).split('.')[1].replace('%','').length) : '0') + '" data-mg1-suffix="' + (String(value).endsWith('%') ? '%' : '') + '">' + (String(value).endsWith('%') ? '0.00%' : '0') + '</span>' +
             (unit ? '<span class="text-[11px] font-bold text-white/50 leading-none">' + unit + '</span>' : '') +
           '</div>' +
           '<div class="text-[9px] font-medium text-white/50 leading-[1.2] truncate">' + sub + '</div>' +
         '</div>' +
       '</div>' +
       '<div class="shrink-0"><div class="h-[2px] w-full rounded-full bg-white/[0.08] overflow-hidden">' +
-        '<div class="h-full rounded-full bg-gradient-to-r from-[#2563eb] to-[#22c55e]" style="width:' + Math.min(100,barPct||0) + '%"></div>' +
+        '<div class="h-full rounded-full bg-gradient-to-r from-[#2563eb] to-[#22c55e] mg1-progress-fill" data-mg1-progress="' + Math.min(100,barPct||0) + '" style="width:0%"></div>' +
       '</div></div>' +
     '</div>';
   }
@@ -400,14 +471,14 @@ function renderRingkasan() {
     html += '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-6 text-center text-white/40 text-xs">Belum ada data Digging tercatat sama sekali. Tekan tombol + di Digging utk mulai input.</div>';
   } else {
     html += '<div class="flex-1 min-h-0 flex flex-col gap-[10px] justify-between">';
-    html += card('pickaxe', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL DIGGING', totalTonase.toFixed(0), 'Ton', rows.length + ' baris data ' + modeLabel, 100);
-    html += card('layers', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL ORE', totalOre.toFixed(0), 'Ton', dominantOre + ' &bull; ' + oreTypes.size + ' jenis ore', totalTonase ? (totalOre/totalTonase*100) : 0);
-    html += card('flask-conical', 'border-[#2563eb]', 'bg-[#2563eb]', 'VALID', 'RATA-RATA NI', avgNi.toFixed(2) + '%', '', 'Dari ' + rows.length + ' entri rata-rata sampel', Math.min(100, avgNi/2.5*100));
-    html += card('gem', 'border-[#22c55e]', 'bg-[#22c55e]', 'CLEAN', 'RATA-RATA NI TANPA WASTE', avgNiClean.toFixed(2) + '%', '', 'Clean ore grade tanpa impurities', Math.min(100, avgNiClean/2.5*100));
+    html += card('pickaxe', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL DIGGING', totalTonase.toFixed(0), 'Ton', rows.length + ' baris data ' + modeLabel, 100, 0);
+    html += card('layers', 'border-[#2563eb]', 'bg-[#2563eb]', rows.length + ' ENTRI', 'TOTAL ORE', totalOre.toFixed(0), 'Ton', dominantOre + ' &bull; ' + oreTypes.size + ' jenis ore', totalTonase ? (totalOre/totalTonase*100) : 0, 70);
+    html += card('flask-conical', 'border-[#2563eb]', 'bg-[#2563eb]', 'VALID', 'RATA-RATA NI', avgNi.toFixed(2) + '%', '', 'Dari ' + rows.length + ' entri rata-rata sampel', Math.min(100, avgNi/2.5*100), 140);
+    html += card('gem', 'border-[#22c55e]', 'bg-[#22c55e]', 'CLEAN', 'RATA-RATA NI TANPA WASTE', avgNiClean.toFixed(2) + '%', '', 'Clean ore grade tanpa impurities', Math.min(100, avgNiClean/2.5*100), 210);
     html += '</div>';
     // Kartu Issue & Rekomendasi: sekarang AKTIF -- klik buka daftar issue asli
     // (sheet "Masalah & Rekomendasi"), bukan cuma titik hijau dekoratif.
-    html += '<button onclick="openIssueModal()" class="shrink-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[14px] flex items-center justify-between gap-2 w-full text-left active:scale-[0.99] transition-transform">' +
+    html += '<button onclick="openIssueModal()" class="mg1-enter shrink-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-[14px] flex items-center justify-between gap-2 w-full text-left active:scale-[0.99] transition-transform" style="--mg1-enter-delay:280ms">' +
       '<div class="flex items-center gap-[8px] min-w-0 flex-1">' +
         '<div class="w-[28px] h-[28px] rounded-[8px] bg-[#2563eb]/15 border border-[#2563eb]/20 flex items-center justify-center shrink-0">' +
           icon('clipboard-list','w-[18px] h-[18px] text-[#2563eb]') +
