@@ -70,40 +70,12 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
   .app-shell { max-width: 480px; margin: 0 auto; height: 100svh; position: relative; background: #070b1c; display: flex; flex-direction: column; overflow: hidden; }
   .app-main { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: #070b1c; overscroll-behavior: contain; }
   ::-webkit-scrollbar { width: 0; height: 0; }
-  /* =====================================================================
-   * MG1 ANIMATION FOUNDATION -- AN-01
-   * Satu token motion untuk seluruh UI. Tidak mengubah logic/data/render map.
-   * ===================================================================== */
-  :root {
-    --mg1-motion-fast: 120ms;
-    --mg1-motion-normal: 220ms;
-    --mg1-motion-slow: 360ms;
-    --mg1-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
-    --mg1-ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
-    --mg1-ease-linear: linear;
-  }
   .card { background: rgba(15,23,42,0.55); border: 1px solid rgba(255,255,255,0.06); }
   .glow-gold { box-shadow: 0 0 24px rgba(37,99,235,0.18); }
-  .spin { animation: spin 0.8s var(--mg1-ease-linear) infinite; }
+  .spin { animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .fade-in { animation: fadeIn var(--mg1-motion-slow) var(--mg1-ease-emphasis) both; }
+  .fade-in { animation: fadeIn 0.35s ease both; }
   @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
-  /* AN-05 REFINEMENT: animation style hanya sekali setelah splash.
-   * Pengecualian: dot assay incomplete memang sengaja blinking sebagai status. */
-  .mg1-enter { animation: mg1Enter var(--mg1-motion-slow) var(--mg1-ease-emphasis) both; animation-delay: var(--mg1-enter-delay, 0ms); }
-  @keyframes mg1Enter { from { opacity:0; transform: translateY(8px) scale(0.992); } to { opacity:1; transform:none; } }
-  .mg1-metric-value { font-variant-numeric: tabular-nums; }
-  .mg1-missing-dot { display:inline-block; width:7px; height:7px; border-radius:9999px; background:#f97316; box-shadow:0 0 0 0 rgba(249,115,22,.55), 0 0 8px rgba(249,115,22,.45); animation: mg1MissingDot 1.15s var(--mg1-ease-standard) infinite; }
-  @keyframes mg1MissingDot { 0%,100% { opacity:.45; transform:scale(.82); box-shadow:0 0 0 0 rgba(249,115,22,.10), 0 0 6px rgba(249,115,22,.30); } 50% { opacity:1; transform:scale(1.15); box-shadow:0 0 0 4px rgba(249,115,22,.08), 0 0 12px rgba(249,115,22,.70); } }
-  .mg1-progress-fill { width: 100%; }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 1ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 1ms !important;
-      scroll-behavior: auto !important;
-    }
-  }
   input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 </style>
 </head>
@@ -314,8 +286,6 @@ function _computeJustOpenedModals() {
   return justOpened;
 }
 
-let mg1DashboardEntranceDone_ = false;
-
 function render() {
   const app = document.getElementById('app');
   const justOpened = _computeJustOpenedModals();
@@ -341,11 +311,6 @@ function render() {
   html += renderSettingsModal(justOpened.settings);
   app.innerHTML = html;
   if (window.lucide) lucide.createIcons();
-  // AN-05: dashboard entrance + angka/progress hanya sekali setelah splash/boot.
-  if (currentTab === 'ringkasan' && !mg1DashboardEntranceDone_) {
-    mg1DashboardEntranceDone_ = true;
-    requestAnimationFrame(() => { if (typeof animateDashboardMetrics_ === 'function') animateDashboardMetrics_(); });
-  }
 
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
@@ -370,7 +335,7 @@ function render() {
 // menghentikan app -- app tetap jalan normal tanpa PWA kalau SW gagal.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=20260907a', { updateViaCache: 'none' }).then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=20260906k3', { updateViaCache: 'none' }).then((reg) => {
       // Force an update check so a stale HTTP-cached sw.js cannot pin an old app shell.
       reg.update().catch(() => {});
     }).catch((err) => {
