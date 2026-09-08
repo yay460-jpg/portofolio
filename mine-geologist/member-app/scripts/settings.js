@@ -63,12 +63,24 @@ async function openLithositeChangelogModal() {
   render();
 
   try {
-    const response = await fetchWithTimeout(
+    // Hard timeout lokal untuk Changelog.
+    // Tujuan: modal TIDAK boleh menggantung tanpa batas walaupun fetch/WebView
+    // tidak menyelesaikan promise sesuai timeout internal.
+    const changelogRequest = fetchWithTimeout(
       GOOGLE_SCRIPT_READ_URL + '?sheet=lithositechangelog&t=' + Date.now(),
       {},
       20000
-    );
-    const result = await response.json();
+    ).then(function(response) {
+      return response.json();
+    });
+
+    const timeoutGuard = new Promise(function(_, reject) {
+      setTimeout(function() {
+        reject(new Error('Permintaan riwayat update melebihi 12 detik. Periksa koneksi atau izin akses.'));
+      }, 12000);
+    });
+
+    const result = await Promise.race([changelogRequest, timeoutGuard]);
 
     if (result.status !== 'success') {
       throw new Error(result.message || 'Server menolak permintaan changelog Lithosite.');
