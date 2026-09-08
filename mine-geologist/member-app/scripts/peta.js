@@ -177,26 +177,62 @@ function getDeviceTileProfile_() {
   const screenHeight = Number(window.screen && window.screen.height) || 0;
   const screenPixels = screenWidth * screenHeight * dpr * dpr;
 
+  // STEP A V2: raster/compositing micro-benchmark.
+  // Lebih dekat ke pekerjaan tile bitmap daripada fillRect sederhana, tetapi tetap
+  // kecil dan terisolasi. Hasil INI masih diagnostic; belum mengubah renderer.
   let benchMs = 70;
+  let benchSamples = [];
   try {
     const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
+    canvas.width = 512;
+    canvas.height = 512;
     const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
     if (!ctx) throw new Error('Canvas 2D tidak tersedia.');
 
-    // Micro-benchmark ringan: cukup untuk memberi sinyal kemampuan Canvas 2D,
-    // BUKAN benchmark GeoPDF final.
-    const t0 = performance.now();
-    for (let i = 0; i < 20; i++) {
-      ctx.fillStyle = 'rgb(' + ((i * 37) % 255) + ',80,180)';
-      ctx.fillRect(0, 0, 256, 256);
-      ctx.drawImage(canvas, 0, 0, 128, 128);
+    // Warm-up agar JIT/Canvas initialization tidak masuk hasil pengukuran utama.
+    for (let w = 0; w < 2; w++) {
+      for (let i = 0; i < 40; i++) {
+        ctx.fillStyle = 'rgb(' + ((i * 31) % 255) + ',80,180)';
+        ctx.fillRect((i * 13) % 448, (i * 17) % 448, 64, 64);
+      }
+      ctx.drawImage(canvas, 0, 0, 512, 512, 0, 0, 256, 256);
     }
-    benchMs = (performance.now() - t0) / 20;
+
+    for (let sample = 0; sample < 6; sample++) {
+      const t0 = performance.now();
+
+      // Pola raster + transform + compositing + image scaling.
+      for (let i = 0; i < 80; i++) {
+        const x = (i * 37) % 480;
+        const y = (i * 53) % 480;
+        ctx.globalAlpha = 0.55 + ((i % 4) * 0.1);
+        ctx.fillStyle = 'rgb(' + ((i * 47) % 255) + ',' + ((i * 29) % 255) + ',180)';
+        ctx.fillRect(x, y, 48, 48);
+
+        ctx.beginPath();
+        ctx.arc((x + 24) % 512, (y + 24) % 512, 12 + (i % 8), 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,.7)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 1;
+      for (let i = 0; i < 8; i++) {
+        ctx.drawImage(canvas, 0, 0, 512, 512, i * 8, i * 6, 256, 256);
+      }
+
+      // Readback kecil untuk memaksa sinkronisasi raster/composite.
+      ctx.getImageData(0, 0, 32, 32);
+
+      benchSamples.push(performance.now() - t0);
+    }
+
+    benchSamples.sort(function(a, b) { return a - b; });
+    benchMs = benchSamples[Math.floor(benchSamples.length / 2)];
     try { canvas.width = 1; canvas.height = 1; } catch (_) {}
   } catch (e) {
     benchMs = 70;
+    benchSamples = [];
   }
 
   let webglRenderer = '';
@@ -210,14 +246,16 @@ function getDeviceTileProfile_() {
     try { glCanvas.width = 1; glCanvas.height = 1; } catch (_) {}
   } catch (_) {}
 
-  // Klasifikasi STEP A saja. Belum dipakai untuk mengubah parameter renderer.
+  // Klasifikasi STEP A saja. Hardware hints + V2 benchmark sebagai sinyal.
   let tier = 'BALANCED';
-  if (benchMs > 55 || (mem > 0 && mem <= 4) || (cores > 0 && cores <= 4)) tier = 'LOW';
-  if (benchMs < 28 && mem >= 8 && cores >= 6 && screenPixels > 2000000) tier = 'HIGH';
+  if (benchMs > 25 || (mem > 0 && mem <= 4) || (cores > 0 && cores <= 4)) tier = 'LOW';
+  if (benchMs < 8 && mem >= 8 && cores >= 6 && screenPixels > 2000000) tier = 'HIGH';
 
   const profile = {
     tier: tier,
     benchMs: Number(benchMs.toFixed(1)),
+    benchmarkType: 'canvas-raster-v2',
+    benchmarkSamples: benchSamples.map(function(v) { return Number(v.toFixed(1)); }),
     memoryGB: mem || null,
     cores: cores || null,
     dpr: Number(dpr.toFixed(2)),
@@ -225,12 +263,12 @@ function getDeviceTileProfile_() {
     screenHeight: screenHeight,
     screenPixels: Math.round(screenPixels),
     webglRenderer: webglRenderer || null,
-    profilerVersion: 'A1'
+    profilerVersion: 'A2'
   };
 
-  try { localStorage.setItem('mg1_device_tile_profile_v1', JSON.stringify(profile)); } catch (_) {}
+  try { localStorage.setItem('mg1_device_tile_profile_v2', JSON.stringify(profile)); } catch (_) {}
   window.mg1DeviceTileProfile = profile;
-  console.log('[ADAPTIVE] Device Profile V1:', profile);
+  console.log('[ADAPTIVE] Device Profile V2:', profile);
   return profile;
 }
 
