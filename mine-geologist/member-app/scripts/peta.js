@@ -323,6 +323,151 @@ function appendDeviceTileEngineProfileDiagnostic_(profile) {
   } catch (e) { console.warn('[ADAPTIVE] Tile profile diagnostic gagal:', e); }
 }
 
+// STEP C1 - VIEWPORT TILE PLANNER V1
+// Planner ONLY. Tidak merender tile, tidak mengubah renderer V13.1, tidak mengubah
+// gesture, tidak mengubah DPR, dan tidak menulis cache tile. Tujuan: menghitung tile
+// yang secara geometris diperlukan oleh viewport saat ini, berdasarkan GeoReference,
+// mapZoom, tile size, dan profile perangkat.
+function getViewportTilePlan_() {
+  try {
+    const activeMap = activeBackgroundMapId ? backgroundMapsList.find(m => m.id === activeBackgroundMapId) : null;
+    const geoReference = activeMap && activeMap.geoReference;
+    if (!activeMap || !geoReference || !geoReference.metadata || !Array.isArray(geoReference.metadata.vpBBox)) {
+      return { ok:false, reason:'GeoPDF aktif dengan GeoReference belum tersedia.' };
+    }
+    const bounds = computeResponsiveDisplayBounds_(buildMapData());
+    if (!bounds) return { ok:false, reason:'Map bounds belum tersedia.' };
+
+    const deviceProfile = window.mg1DeviceTileEngineProfile || getDeviceTileEngineProfile_();
+    const tileSize = Math.max(64, Number(deviceProfile.tileSize) || GEOPDF_TILE_SIZE_);
+    const maxFactor = Math.max(0.25, Number(deviceProfile.maxFactor) || 1);
+
+    // Ikuti pemetaan zoom yang SUDAH dipakai renderer, tetapi batasi dengan profile.
+    let requestedFactor = 1;
+    if (mapZoom <= 1.5) requestedFactor = 0.25;
+    else if (mapZoom <= 2.5) requestedFactor = 0.5;
+    else requestedFactor = 1;
+    const factor = Math.min(requestedFactor, maxFactor);
+
+    const b = geoReference.metadata.vpBBox;
+    const xMin = Math.min(b[0], b[2]), xMax = Math.max(b[0], b[2]);
+    const yMin = Math.min(b[1], b[3]), yMax = Math.max(b[1], b[3]);
+    const baseScale = getGeoPdfRenderScale_(geoReference);
+    const levelWidth = Math.max(1, Math.round((xMax - xMin) * baseScale * factor));
+    const levelHeight = Math.max(1, Math.round((yMax - yMin) * baseScale * factor));
+    const tilesX = Math.ceil(levelWidth / tileSize);
+    const tilesY = Math.ceil(levelHeight / tileSize);
+
+    const viewBox = getMapViewBox_(bounds);
+    const corners = [
+      {x:viewBox.x, y:viewBox.y},
+      {x:viewBox.x + viewBox.w, y:viewBox.y},
+      {x:viewBox.x + viewBox.w, y:viewBox.y + viewBox.h},
+      {x:viewBox.x, y:viewBox.y + viewBox.h}
+    ];
+    const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+    if (!(rangeT > 0) || !(rangeU > 0)) return { ok:false, reason:'Map bounds tidak valid.' };
+
+    // SVG saat ini dapat diputar. Untuk planner, inverse-rotate corner viewport agar
+    // tile yang dibutuhkan tetap dihitung secara konservatif dan tidak ada area hilang.
+    const nativeCorners = corners.map(function(c) {
+      let sx = c.x, sy = c.y;
+      if (Math.abs(mapRotationDeg_) > 0.0001) {
+        const rad = -mapRotationDeg_ * Math.PI / 180;
+        const cx = 160, cy = 160;
+        const dx = sx - cx, dy = sy - cy;
+        sx = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
+        sy = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
+      }
+      return {
+        x: bounds.minT + (sx / 320) * rangeT,
+        y: bounds.minU + ((320 - sy) / 320) * rangeU
+      };
+    });
+
+    const pageCorners = nativeCorners.map(function(n) {
+      return applyInverseAffineTransform2D_(geoReference.transform && (geoReference.transform.coefficients || geoReference.transform), n);
+    }).filter(Boolean);
+    if (pageCorners.length < 4) return { ok:false, reason:'Transform viewport ke PDF gagal.' };
+
+    const pxCorners = pageCorners.map(function(pt) {
+      return {
+        x: (pt.x - xMin) * baseScale * factor,
+        y: (yMax - pt.y) * baseScale * factor
+      };
+    });
+    let pxMin = Math.min.apply(null, pxCorners.map(p => p.x));
+    let pxMax = Math.max.apply(null, pxCorners.map(p => p.x));
+    let pyMin = Math.min.apply(null, pxCorners.map(p => p.y));
+    let pyMax = Math.max.apply(null, pxCorners.map(p => p.y));
+    pxMin = Math.max(0, Math.min(levelWidth, pxMin));
+    pxMax = Math.max(0, Math.min(levelWidth, pxMax));
+    pyMin = Math.max(0, Math.min(levelHeight, pyMin));
+    pyMax = Math.max(0, Math.min(levelHeight, pyMax));
+
+    const radius = Math.max(0, Number(deviceProfile.prefetchRadius) || 0);
+    const visibleMinX = Math.max(0, Math.floor(pxMin / tileSize));
+    const visibleMaxX = Math.min(tilesX - 1, Math.floor(Math.max(pxMin, pxMax - 0.001) / tileSize));
+    const visibleMinY = Math.max(0, Math.floor(pyMin / tileSize));
+    const visibleMaxY = Math.min(tilesY - 1, Math.floor(Math.max(pyMin, pyMax - 0.001) / tileSize));
+
+    let visibleCount = 0;
+    if (visibleMaxX >= visibleMinX && visibleMaxY >= visibleMinY) {
+      visibleCount = (visibleMaxX - visibleMinX + 1) * (visibleMaxY - visibleMinY + 1);
+    }
+    const planMinX = Math.max(0, visibleMinX - radius);
+    const planMaxX = Math.min(tilesX - 1, visibleMaxX + radius);
+    const planMinY = Math.max(0, visibleMinY - radius);
+    const planMaxY = Math.min(tilesY - 1, visibleMaxY + radius);
+    let requiredCount = 0;
+    if (planMaxX >= planMinX && planMaxY >= planMinY) {
+      requiredCount = (planMaxX - planMinX + 1) * (planMaxY - planMinY + 1);
+    }
+
+    return {
+      ok:true,
+      tier:String(deviceProfile.tier || 'BALANCED'),
+      zoom:Number(mapZoom.toFixed(2)),
+      factor:Number(factor),
+      tileSize,
+      levelWidth,
+      levelHeight,
+      tilesX,
+      tilesY,
+      visible:{minX:visibleMinX,maxX:visibleMaxX,minY:visibleMinY,maxY:visibleMaxY,count:visibleCount},
+      prefetchRadius:radius,
+      required:{minX:planMinX,maxX:planMaxX,minY:planMinY,maxY:planMaxY,count:requiredCount},
+      totalLevelTiles:tilesX * tilesY,
+      rotationDeg:Number(mapRotationDeg_.toFixed(2)),
+      status:'PLANNER ONLY'
+    };
+  } catch (e) {
+    console.warn('[ADAPTIVE] Viewport planner gagal:', e);
+    return { ok:false, reason:e && e.message ? e.message : 'Planner error.' };
+  }
+}
+
+function appendViewportTilePlannerDiagnostic_() {
+  try {
+    const el = document.getElementById('mg1-device-profile-diagnostic');
+    if (!el) return;
+    const existing = document.getElementById('mg1-viewport-tile-planner');
+    if (existing) existing.remove();
+    const plan = getViewportTilePlan_();
+    const box = document.createElement('div');
+    box.id = 'mg1-viewport-tile-planner';
+    box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.86;';
+    if (!plan.ok) {
+      box.textContent = 'STEP C1 — VIEWPORT PLANNER | ' + plan.reason;
+    } else {
+      box.textContent = 'STEP C1 — VIEWPORT PLANNER | Zoom: ' + plan.zoom + 'x | Factor: ' + plan.factor + 'x | Tile: ' + plan.tileSize + 'px | Visible: ' + plan.visible.count + ' | Prefetch: ' + plan.prefetchRadius + ' | Required: ' + plan.required.count + ' | Full level: ' + plan.totalLevelTiles + ' | STATUS: PLANNER ONLY';
+    }
+    const close = el.querySelector('button[data-mg1-close]');
+    if (close) el.insertBefore(box, close);
+    else el.appendChild(box);
+  } catch (e) { console.warn('[ADAPTIVE] Planner diagnostic gagal:', e); }
+}
+
 // STEP A - FIELD DIAGNOSTIC OVERLAY V1
 // Hanya untuk pengujian STEP A. Tidak menyentuh renderer/gesture/tile engine.
 function showDeviceTileProfileDiagnostic_(profile) {
@@ -367,8 +512,15 @@ function showDeviceTileProfileDiagnostic_(profile) {
     gpu.textContent = 'WebGL: ' + (profile.webglRenderer || 'N/A');
     gpu.style.cssText = 'margin-top:5px;font-size:10px;opacity:.65;word-break:break-all;';
 
+    var planner = document.createElement('button');
+    planner.type = 'button';
+    planner.textContent = 'C1 Planner';
+    planner.style.cssText = 'margin-top:8px;margin-right:6px;padding:5px 9px;border:1px solid rgba(56,189,248,.28);border-radius:8px;background:rgba(56,189,248,.08);color:#7dd3fc;font-size:11px;';
+    planner.onclick = function () { appendViewportTilePlannerDiagnostic_(); };
+
     var close = document.createElement('button');
     close.type = 'button';
+    close.setAttribute('data-mg1-close','true');
     close.textContent = 'Tutup';
     close.style.cssText = 'margin-top:8px;padding:5px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:#fff;font-size:11px;';
     close.onclick = function () { el.remove(); };
@@ -376,6 +528,7 @@ function showDeviceTileProfileDiagnostic_(profile) {
     el.appendChild(title);
     el.appendChild(body);
     el.appendChild(gpu);
+    el.appendChild(planner);
     el.appendChild(close);
     document.body.appendChild(el);
   } catch (e) {
