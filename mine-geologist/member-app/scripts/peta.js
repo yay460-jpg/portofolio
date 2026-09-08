@@ -1189,53 +1189,6 @@ function cleanupGeoPdfResources_(page, pdf, loadingTask, canvas) {
 // Prinsip: level terendah tetap lengkap untuk preview/fallback; level di atasnya
 // hanya merender tile yang berada di viewport + prefetch ring. Renderer PDF.js,
 // transform GeoReference, gesture, dan jalur V13.1 tetap dipertahankan.
-function expandAdaptiveC2TileWindowToTarget_(windowPlan, targetCount) {
-  try {
-    if (!windowPlan || !Number.isFinite(Number(targetCount))) return windowPlan;
-    const target = Math.max(0, Math.floor(Number(targetCount)));
-    if (windowPlan.keys.length >= target) return windowPlan;
-
-    // V14.44 C5: keep the 768px tile density. Do NOT shrink tile size just to
-    // manufacture a larger count. Expand the selected window by neighboring
-    // tile coordinates around the actual visible rectangle. These extra tiles
-    // may sit just outside the current crop; the map's existing clip-path keeps
-    // them out of the visible map extent while still giving us a denser local
-    // source around the viewport.
-    const existing = {};
-    windowPlan.keys.forEach(function(key) { existing[key] = true; });
-    const vMinX = Number(windowPlan.visible.minX);
-    const vMaxX = Number(windowPlan.visible.maxX);
-    const vMinY = Number(windowPlan.visible.minY);
-    const vMaxY = Number(windowPlan.visible.maxY);
-    const cx = (vMinX + vMaxX) / 2;
-    const cy = (vMinY + vMaxY) / 2;
-    const candidates = [];
-
-    // One/two local rings around the visible rectangle. Coordinates outside
-    // the crop are intentional: they are rendered from the original PDF page
-    // and clipped by the existing GeoPDF neatline/map boundary at display time.
-    const maxRing = 2;
-    for (let ring = 1; ring <= maxRing && windowPlan.keys.length + candidates.length < target; ring++) {
-      for (let ty = vMinY - ring; ty <= vMaxY + ring; ty++) {
-        for (let tx = vMinX - ring; tx <= vMaxX + ring; tx++) {
-          if (tx >= vMinX && tx <= vMaxX && ty >= vMinY && ty <= vMaxY) continue;
-          const key = tx + ',' + ty;
-          if (existing[key]) continue;
-          existing[key] = true;
-          const dx = tx - cx, dy = ty - cy;
-          candidates.push({ key, tx, ty, d: Math.max(Math.abs(dx), Math.abs(dy)), d2: dx * dx + dy * dy });
-        }
-      }
-    }
-    candidates.sort(function(a, b) { return a.d - b.d || a.d2 - b.d2; });
-    for (let i = 0; i < candidates.length && windowPlan.keys.length < target; i++) {
-      windowPlan.keys.push(candidates[i].key);
-    }
-    windowPlan.required.count = windowPlan.keys.length;
-    return windowPlan;
-  } catch (_) { return windowPlan; }
-}
-
 function getAdaptiveC2TileWindowFromPlan_(planner, levelPlan, prefetchRadius) {
   try {
     if (!planner || !planner.ok || !planner.visible || !levelPlan) return null;
@@ -1270,10 +1223,10 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   // approximate tile-pixel budget by pairing a 1.5x density boost with a
   // proportional 768px raster tile.
   const isLowC2 = adaptiveC2 && deviceProfile && String(deviceProfile.tier).toUpperCase() === 'LOW';
-  // V14.40 C5: hard-lock LOW visible-tile render density to 1.50x for
+  // V14.47 C6: LOW visible-tile render density test at 1.55x for
   // sharpness testing. Keep the 768px tile budget and viewport culling.
   // This is intentionally temporary: deep-zoom factor 2x is NOT enabled.
-  const c2Factor = isLowC2 ? 1.5 : 1;
+  const c2Factor = isLowC2 ? 1.55 : 1;
   const tileSize = isLowC2 ? 768 : GEOPDF_TILE_SIZE_;
   // V14.32: during a NEW GeoPDF upload there is no activeBackgroundMapId yet.
   // Build C1 directly from the incoming GeoReference so C2 can use the actual
@@ -1281,7 +1234,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   if (adaptiveC2) {
     try { window.mg1LastViewportTilePlan = getViewportTilePlan_(geoReference); } catch (_) {}
   }
-  // V14.40: LOW-device C2 uses a hard 1.50x visible-tile render factor.
+  // V14.47: LOW-device C2 uses a hard 1.55x visible-tile render factor.
   // C1 still controls viewport culling; only the selected visible area is rendered.
   const renderFactors = adaptiveC2
     ? [isLowC2 ? c2Factor : 1]
@@ -1320,12 +1273,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     const tilesY = Math.ceil(height / tileSize);
     return { factor: Number(factor), scale, width, height, tilesX, tilesY, total: tilesX * tilesY };
   });
-  const c2Windows = adaptiveC2 ? levelPlan.map((plan) => {
-    const w = getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0);
-    // V14.45 STEP D: LOW C2 prepares a 22-tile prefetch set while keeping
-    // the sharp 1.50x/768px settings. The viewport itself is unchanged.
-    return (isLowC2 && w) ? expandAdaptiveC2TileWindowToTarget_(w, 22) : w;
-  }) : [];
+  const c2Windows = adaptiveC2 ? levelPlan.map((plan) => getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0)) : [];
   const effectiveTotals = adaptiveC2 ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total)) : levelPlan.map(item => item.total);
   const grandTotalTiles = Math.max(1, effectiveTotals.reduce((sum, item) => sum + item, 0));
   if (adaptiveC2) c2Stats.planned = grandTotalTiles;
@@ -1360,24 +1308,16 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     const pageLeftPx = cropLeftPx;
     const pageTopPx = cropTopPx;
 
-    const tileCoords = adaptiveC2 && c2Window
-      ? c2Window.keys.map(function(key) {
-          const parts = key.split(',');
-          return { tx: Number(parts[0]), ty: Number(parts[1]) };
-        })
-      : null;
-    const renderTileCount = tileCoords ? tileCoords.length : (tilesX * tilesY);
-    for (let ti = 0; ti < renderTileCount; ti++) {
-      const tx = tileCoords ? tileCoords[ti].tx : Math.floor(ti % tilesX);
-      const ty = tileCoords ? tileCoords[ti].ty : Math.floor(ti / tilesX);
-      const x = tx * tileSize;
-      const y = ty * tileSize;
-      const tw = tileCoords ? tileSize : Math.min(tileSize, width - x);
-      const th = tileCoords ? tileSize : Math.min(tileSize, height - y);
-      if (!tileCoords && adaptiveC2 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
-        c2Stats.skipped++;
-        continue;
-      }
+    for (let ty = 0; ty < tilesY; ty++) {
+      for (let tx = 0; tx < tilesX; tx++) {
+        const x = tx * tileSize;
+        const y = ty * tileSize;
+        const tw = Math.min(tileSize, width - x);
+        const th = Math.min(tileSize, height - y);
+        if (adaptiveC2 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
+          c2Stats.skipped++;
+          continue;
+        }
         // V14.38: tile guard follows the raised 768px safety ceiling. Only one
         // raster canvas is alive at a time and it is released in finally.
         if (tw <= 0 || th <= 0 || tw > GEOPDF_TILE_SIZE_MAX_SAFE_ || th > GEOPDF_TILE_SIZE_MAX_SAFE_) {
@@ -1431,25 +1371,22 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
             percent
           );
         }
-        // STEP D PREFETCH: LOW device uses the profiled batch/delay guard.
-        // Batch=2 and Delay=25ms intentionally yield between small groups so older
-        // Android/WebView devices get a scheduling window and released canvases can
-        // become collectible before the next prefetch group is rendered.
-        const prefetchBatch = isLowC2 && deviceProfile ? Math.max(1, Number(deviceProfile.batchSize) || 2) : 5;
-        const prefetchDelay = isLowC2 && deviceProfile ? Math.max(0, Number(deviceProfile.batchDelayMs) || 25) : 10;
-        if (done % prefetchBatch === 0) {
-          await new Promise(r => setTimeout(r, prefetchDelay));
+        // Give older Android/WebView devices a small scheduling window every few tiles.
+        // This keeps the UI responsive and lets released canvases become collectible.
+        if (done % 5 === 0) {
+          await new Promise(r => setTimeout(r, 10));
         } else {
           await new Promise(r => setTimeout(r, 0));
         }
       }
+    }
     out.levels.push({ level: li, factor, scale, width, height, tilesX, tilesY, tiles });
   }
   if (adaptiveC2) {
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
     c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
     window.mg1LastC2RenderStats = c2Stats;
-    out.adaptive = { mode:'viewport-plus-prefetch-selected-set', prefetchRadius:0, prefetchTarget:(isLowC2 ? 22 : 0), batchSize:(isLowC2 && deviceProfile ? Number(deviceProfile.batchSize)||2 : 0), batchDelayMs:(isLowC2 && deviceProfile ? Number(deviceProfile.batchDelayMs)||25 : 0), lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
+    out.adaptive = { mode:'viewport-only-selected-factor-test', prefetchRadius:0, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
     try {
       const diag = document.getElementById('mg1-device-profile-diagnostic');
       if (diag) {
@@ -1462,10 +1399,10 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
           if (close) diag.insertBefore(box, close); else diag.appendChild(box);
         }
         var plannedVisible = window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.visible.count : 0;
-        // V14.40: report the hard 1.50x test factor and effective raster density.
+        // V14.47: report the hard 1.55x test factor and effective raster density.
         var renderFactor = adaptiveC2 ? (isLowC2 ? c2Factor : 1) : (window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.factor : 0.5);
         var effectiveScale = adaptiveC2 ? (Number(baseScale) * Number(renderFactor)) : (Number(baseScale) * Number(renderFactor));
-        box.textContent = 'STEP C2 + D PREFETCH | Render Factor: ' + Number(renderFactor).toFixed(2) + 'x | Effective Scale: ' + Number(effectiveScale).toFixed(2) + 'x | Tile: ' + tileSize + 'px | C1 Visible: ' + plannedVisible + ' | Prefetch Target: ' + (isLowC2 ? 22 : 0) + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Batch: ' + (isLowC2 && deviceProfile ? Number(deviceProfile.batchSize)||2 : 0) + ' | Delay: ' + (isLowC2 && deviceProfile ? Number(deviceProfile.batchDelayMs)||25 : 0) + 'ms | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status; 
+        box.textContent = 'STEP C2 — ADAPTIVE RENDER | Render Factor: ' + Number(renderFactor).toFixed(2) + 'x | Effective Scale: ' + Number(effectiveScale).toFixed(2) + 'x | Tile: ' + tileSize + 'px | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
       }
     } catch (_) {}
   }
