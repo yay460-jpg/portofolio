@@ -566,9 +566,9 @@ function showDeviceTileProfileDiagnostic_(profile) {
     el.appendChild(gpu);
     el.appendChild(planner);
     var c2 = document.createElement('button');
-    c2.type = 'button'; c2.textContent = 'C2 Adaptive TEST';
+    c2.type = 'button'; c2.textContent = 'C2 AUTO ACTIVE';
     c2.style.cssText = 'margin-top:8px;margin-right:6px;padding:5px 9px;border:1px solid rgba(74,222,128,.28);border-radius:8px;background:rgba(74,222,128,.08);color:#86efac;font-size:11px;';
-    c2.onclick = function () { window.mg1AdaptiveC2Enabled = true; c2.textContent = 'C2 ACTIVE (next upload)'; try { localStorage.setItem('mg1_adaptive_c2_enabled','1'); } catch (_) {} alert('C2 Adaptive TEST aktif. Upload GeoPDF berikutnya akan memakai visible-tile render eksperimental.'); };
+    c2.onclick = function () { window.mg1AdaptiveC2Enabled = true; c2.textContent = 'C2 AUTO ACTIVE'; try { localStorage.setItem('mg1_adaptive_c2_enabled','1'); } catch (_) {} appendViewportTilePlannerDiagnostic_(); };
     el.appendChild(c2);
     el.appendChild(minimize);
     el.appendChild(close);
@@ -578,7 +578,8 @@ function showDeviceTileProfileDiagnostic_(profile) {
   }
 }
 
-if (typeof window.mg1AdaptiveC2Enabled !== 'boolean') window.mg1AdaptiveC2Enabled = false;
+if (typeof window.mg1AdaptiveC2Enabled !== 'boolean') window.mg1AdaptiveC2Enabled = true;
+// V14.31: C2 field test is automatic; no manual 'next upload' activation required.
 // STEP A hanya profiling saat app siap. Tidak memanggil buildTilePyramidDirect_.
 if (!window.__mg1DeviceTileProfilerV1Started) {
   window.__mg1DeviceTileProfilerV1Started = true;
@@ -1177,7 +1178,13 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
   const tileSize = GEOPDF_TILE_SIZE_;
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
+  // V14.31 C2 test: render only the factor selected by C1. On the S7 Edge this is
+  // the measured 0.25x viewport plan (6 tiles), not the complete pyramid.
+  const renderFactors = adaptiveC2 ? [Number(window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.factor) || 0.25] : factors;
   const adaptiveC2 = window.mg1AdaptiveC2Enabled === true;
+  if (adaptiveC2 && (!window.mg1LastViewportTilePlan || !window.mg1LastViewportTilePlan.ok)) {
+    try { window.mg1LastViewportTilePlan = getViewportTilePlan_(); } catch (_) {}
+  }
   const c2Stats = {
     enabled: adaptiveC2,
     planned: 0,
@@ -1205,7 +1212,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
 
   // Hitung total tile seluruh level sekali supaya progress bar menunjukkan 0..100%
   // untuk keseluruhan pyramid, bukan reset 0% setiap ganti level.
-  const levelPlan = factors.map((factor) => {
+  const levelPlan = renderFactors.map((factor) => {
     const scale = baseScale * Number(factor);
     const width = Math.max(1, Math.round(vpWPt * scale));
     const height = Math.max(1, Math.round(vpHPt * scale));
@@ -1213,8 +1220,8 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
     const tilesY = Math.ceil(height / tileSize);
     return { factor: Number(factor), scale, width, height, tilesX, tilesY, total: tilesX * tilesY };
   });
-  const c2Windows = adaptiveC2 ? levelPlan.map((plan, li) => li === 0 ? null : getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, c2Prefetch)) : [];
-  const effectiveTotals = adaptiveC2 ? levelPlan.map((plan, li) => li === 0 ? plan.total : (c2Windows[li] ? c2Windows[li].required.count : plan.total)) : levelPlan.map(item => item.total);
+  const c2Windows = adaptiveC2 ? levelPlan.map((plan) => getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0)) : [];
+  const effectiveTotals = adaptiveC2 ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total)) : levelPlan.map(item => item.total);
   const grandTotalTiles = Math.max(1, effectiveTotals.reduce((sum, item) => sum + item, 0));
   if (adaptiveC2) c2Stats.planned = grandTotalTiles;
   let globalDone = 0;
@@ -1233,8 +1240,8 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
     const tilesX = plan.tilesX;
     const tilesY = plan.tilesY;
     const tiles = [];
-    const c2Window = adaptiveC2 && li > 0 ? c2Windows[li] : null;
-    const total = adaptiveC2 && li > 0 && c2Window ? c2Window.required.count : tilesX * tilesY;
+    const c2Window = adaptiveC2 ? c2Windows[li] : null;
+    const total = adaptiveC2 && c2Window ? c2Window.required.count : tilesX * tilesY;
     let done = 0;
     const viewport = page.getViewport({ scale });
 
@@ -1254,7 +1261,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
         const y = ty * tileSize;
         const tw = Math.min(tileSize, width - x);
         const th = Math.min(tileSize, height - y);
-        if (adaptiveC2 && li > 0 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
+        if (adaptiveC2 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
           c2Stats.skipped++;
           continue;
         }
@@ -1327,7 +1334,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
     c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
     window.mg1LastC2RenderStats = c2Stats;
-    out.adaptive = { mode:'viewport-visible-test', prefetchRadius:c2Prefetch, lowestLevelFull:true, status:c2Stats.status, stats:c2Stats };
+    out.adaptive = { mode:'viewport-only-selected-factor-test', prefetchRadius:0, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
     try {
       const diag = document.getElementById('mg1-device-profile-diagnostic');
       if (diag) {
@@ -1339,7 +1346,8 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
           const close = diag.querySelector('button[data-mg1-close]');
           if (close) diag.insertBefore(box, close); else diag.appendChild(box);
         }
-        box.textContent = 'STEP C2 — ADAPTIVE RENDER | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
+        var plannedVisible = window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.visible.count : 0;
+        box.textContent = 'STEP C2 — ADAPTIVE RENDER | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
       }
     } catch (_) {}
   }
