@@ -1356,8 +1356,10 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
           if (close) diag.insertBefore(box, close); else diag.appendChild(box);
         }
         var plannedVisible = window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.visible.count : 0;
-        var renderFactor = window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.factor : 0.5;
-        box.textContent = 'STEP C2 — ADAPTIVE RENDER | Factor: ' + renderFactor + 'x | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
+        // V14.35: C2 now reports the factor actually rendered, not the older C1 planner factor.
+        // V14.34 forces the selected C2 render level to native 1x for sharper visible tiles.
+        var renderFactor = adaptiveC2 ? 1 : (window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.factor : 0.5);
+        box.textContent = 'STEP C2 — ADAPTIVE RENDER | Render Factor: ' + renderFactor + 'x | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
       }
     } catch (_) {}
   }
