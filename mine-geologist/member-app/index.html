@@ -67,6 +67,16 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
     overflow: hidden; overscroll-behavior: none;
   }
   body { font-family: 'Inter', -apple-system, sans-serif; background:#070b1c; }
+
+  /* V14.20 -- UI text selection / long-press lock.
+     Non-map UI must not expose Android/browser Copy, Share, Select All, or context menu.
+     Peta remains gesture-driven; its own scoped touch/selection guards stay unchanged. */
+  html, body, #app, #app * {
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-drag: none !important;
+  }
   .app-shell { max-width: 480px; margin: 0 auto; height: 100svh; height: calc(var(--mg1-vvh, 100svh)); position: relative; background: #070b1c; display: flex; flex-direction: column; overflow: hidden; }
   .app-main { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: #070b1c; overscroll-behavior: contain; }
   ::-webkit-scrollbar { width: 0; height: 0; }
@@ -130,7 +140,7 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
   input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 </style>
 </head>
-<body class="text-white">
+<body class="text-white" oncontextmenu="return false;">
 <div id="app" class="app-shell"></div>
 
 <script>
