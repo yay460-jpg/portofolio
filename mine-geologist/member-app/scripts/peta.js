@@ -454,6 +454,7 @@ function appendViewportTilePlannerDiagnostic_() {
     const existing = document.getElementById('mg1-viewport-tile-planner');
     if (existing) existing.remove();
     const plan = getViewportTilePlan_();
+    window.mg1LastViewportTilePlan = plan;
     const box = document.createElement('div');
     box.id = 'mg1-viewport-tile-planner';
     box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.86;';
@@ -564,6 +565,11 @@ function showDeviceTileProfileDiagnostic_(profile) {
     el.appendChild(body);
     el.appendChild(gpu);
     el.appendChild(planner);
+    var c2 = document.createElement('button');
+    c2.type = 'button'; c2.textContent = 'C2 Adaptive TEST';
+    c2.style.cssText = 'margin-top:8px;margin-right:6px;padding:5px 9px;border:1px solid rgba(74,222,128,.28);border-radius:8px;background:rgba(74,222,128,.08);color:#86efac;font-size:11px;';
+    c2.onclick = function () { window.mg1AdaptiveC2Enabled = true; c2.textContent = 'C2 ACTIVE (next upload)'; try { localStorage.setItem('mg1_adaptive_c2_enabled','1'); } catch (_) {} alert('C2 Adaptive TEST aktif. Upload GeoPDF berikutnya akan memakai visible-tile render eksperimental.'); };
+    el.appendChild(c2);
     el.appendChild(minimize);
     el.appendChild(close);
     document.body.appendChild(el);
@@ -572,6 +578,7 @@ function showDeviceTileProfileDiagnostic_(profile) {
   }
 }
 
+if (typeof window.mg1AdaptiveC2Enabled !== 'boolean') window.mg1AdaptiveC2Enabled = false;
 // STEP A hanya profiling saat app siap. Tidak memanggil buildTilePyramidDirect_.
 if (!window.__mg1DeviceTileProfilerV1Started) {
   window.__mg1DeviceTileProfilerV1Started = true;
@@ -1138,10 +1145,41 @@ function cleanupGeoPdfResources_(page, pdf, loadingTask, canvas) {
 //     SUDAH dikonfirmasi visual PASS oleh user sendiri (generator standalone STEP 7.5b).
 // Guard memori (9C) sekarang BENAR-BENAR dipakai: kalau level tertinggi (mis. 2x) terlalu
 // besar utk direder aman, level itu diturunkan otomatis -- bukan diam-diam diabaikan.
+
+// STEP C2 - ADAPTIVE VISIBLE TILE RENDER V1 (OPT-IN FIELD TEST)
+// Hanya aktif bila window.mg1AdaptiveC2Enabled === true.
+// Prinsip: level terendah tetap lengkap untuk preview/fallback; level di atasnya
+// hanya merender tile yang berada di viewport + prefetch ring. Renderer PDF.js,
+// transform GeoReference, gesture, dan jalur V13.1 tetap dipertahankan.
+function getAdaptiveC2TileWindowFromPlan_(planner, levelPlan, prefetchRadius) {
+  try {
+    if (!planner || !planner.ok || !planner.visible || !levelPlan) return null;
+    const baseFactor = Number(planner.factor) || 0.25;
+    const factor = Number(levelPlan.factor) || baseFactor;
+    const ratio = Math.max(0.25, factor / baseFactor);
+    const tilesX = levelPlan.tilesX, tilesY = levelPlan.tilesY;
+    const scaleX = levelPlan.width / Math.max(1, planner.levelWidth * ratio);
+    const scaleY = levelPlan.height / Math.max(1, planner.levelHeight * ratio);
+    const vMinX = Math.max(0, Math.floor(Number(planner.visible.minX) * ratio * scaleX));
+    const vMaxX = Math.min(tilesX - 1, Math.floor((Number(planner.visible.maxX) + 1) * ratio * scaleX - 0.001));
+    const vMinY = Math.max(0, Math.floor(Number(planner.visible.minY) * ratio * scaleY));
+    const vMaxY = Math.min(tilesY - 1, Math.floor((Number(planner.visible.maxY) + 1) * ratio * scaleY - 0.001));
+    const r = Math.max(0, Math.floor(Number(prefetchRadius) || 0));
+    const minX = Math.max(0, vMinX-r), maxX = Math.min(tilesX-1, vMaxX+r);
+    const minY = Math.max(0, vMinY-r), maxY = Math.min(tilesY-1, vMaxY+r);
+    const keys=[];
+    for(let ty=minY; ty<=maxY; ty++) for(let tx=minX; tx<=maxX; tx++) keys.push(tx+','+ty);
+    return { visible:{minX:vMinX,maxX:vMaxX,minY:vMinY,maxY:vMaxY}, required:{minX,maxX,minY,maxY,count:keys.length}, tilesX, tilesY, keys };
+  } catch(e) { return null; }
+}
+
 async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
   const tileSize = GEOPDF_TILE_SIZE_;
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
+  const adaptiveC2 = window.mg1AdaptiveC2Enabled === true;
+  const deviceProfile = window.mg1DeviceTileEngineProfile || null;
+  const c2Prefetch = deviceProfile ? Number(deviceProfile.prefetchRadius) || 0 : 0;
   const vpWPt = Math.abs(vpBBox[2] - vpBBox[0]);
   const vpHPt = Math.abs(vpBBox[3] - vpBBox[1]);
   if (!(vpWPt > 0) || !(vpHPt > 0)) throw new Error('VP BBox GeoPDF tidak valid untuk tile pyramid.');
@@ -1167,9 +1205,11 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
     const tilesY = Math.ceil(height / tileSize);
     return { factor: Number(factor), scale, width, height, tilesX, tilesY, total: tilesX * tilesY };
   });
-  const grandTotalTiles = Math.max(1, levelPlan.reduce((sum, item) => sum + item.total, 0));
+  const c2Windows = adaptiveC2 ? levelPlan.map((plan, li) => li === 0 ? null : getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, c2Prefetch)) : [];
+  const effectiveTotals = adaptiveC2 ? levelPlan.map((plan, li) => li === 0 ? plan.total : (c2Windows[li] ? c2Windows[li].required.count : plan.total)) : levelPlan.map(item => item.total);
+  const grandTotalTiles = Math.max(1, effectiveTotals.reduce((sum, item) => sum + item, 0));
   let globalDone = 0;
-  if (onProgress) onProgress('Menyiapkan tile pyramid: 0/' + grandTotalTiles + ' (0%)', 0);
+  if (onProgress) onProgress('Menyiapkan tile pyramid' + (adaptiveC2 ? ' adaptif' : '') + ': 0/' + grandTotalTiles + ' (0%)', 0);
 
   // PDF.js tetap menjadi renderer sumber. Setiap tile dirender langsung dari halaman PDF
   // pada resolusi levelnya; kita tidak meng-upscale satu PNG crop yang sudah ter-raster.
@@ -1184,7 +1224,8 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
     const tilesX = plan.tilesX;
     const tilesY = plan.tilesY;
     const tiles = [];
-    const total = tilesX * tilesY;
+    const c2Window = adaptiveC2 && li > 0 ? c2Windows[li] : null;
+    const total = adaptiveC2 && li > 0 && c2Window ? c2Window.required.count : tilesX * tilesY;
     let done = 0;
     const viewport = page.getViewport({ scale });
 
@@ -1204,6 +1245,9 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
         const y = ty * tileSize;
         const tw = Math.min(tileSize, width - x);
         const th = Math.min(tileSize, height - y);
+        if (adaptiveC2 && li > 0 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
+          continue;
+        }
         // [BARU -- pengaman ringan] Tiap tile SELALU <= tileSize (256px), jadi risiko
         // memori per-tile memang kecil -- tapi validasi eksplisit tetap murah & aman
         // sbg jaring pengaman kalau suatu saat GEOPDF_TILE_SIZE_ diubah jadi besar.
@@ -1266,6 +1310,9 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
       }
     }
     out.levels.push({ level: li, factor, scale, width, height, tilesX, tilesY, tiles });
+  }
+  if (adaptiveC2) {
+    out.adaptive = { mode:'viewport-visible-test', prefetchRadius:c2Prefetch, lowestLevelFull:true, status:'ACTIVE C2 TEST' };
   }
   return out;
 }
