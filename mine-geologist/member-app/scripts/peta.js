@@ -1214,9 +1214,15 @@ function getAdaptiveC2TileWindowFromPlan_(planner, levelPlan, prefetchRadius) {
 
 async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoReference) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
-  const tileSize = GEOPDF_TILE_SIZE_;
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
   const adaptiveC2 = window.mg1AdaptiveC2Enabled === true;
+  const deviceProfile = window.mg1DeviceTileEngineProfile || null;
+  // V14.37 C4: keep native 1x quality, but use a larger 512px raster tile
+  // for the active C2 viewport on LOW devices. This reduces tile count without
+  // lowering source resolution; the existing 512px safety ceiling remains intact.
+  const tileSize = (adaptiveC2 && deviceProfile && String(deviceProfile.tier).toUpperCase() === 'LOW')
+    ? 512
+    : GEOPDF_TILE_SIZE_;
   // V14.32: during a NEW GeoPDF upload there is no activeBackgroundMapId yet.
   // Build C1 directly from the incoming GeoReference so C2 can use the actual
   // viewport plan (e.g. Visible=6) before the new map is saved to IndexedDB.
@@ -1237,7 +1243,6 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     skipped: 0,
     startedAt: (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
   };
-  const deviceProfile = window.mg1DeviceTileEngineProfile || null;
   const c2Prefetch = deviceProfile ? Number(deviceProfile.prefetchRadius) || 0 : 0;
   const vpWPt = Math.abs(vpBBox[2] - vpBBox[0]);
   const vpHPt = Math.abs(vpBBox[3] - vpBBox[1]);
