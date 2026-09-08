@@ -518,17 +518,53 @@ function showDeviceTileProfileDiagnostic_(profile) {
     planner.style.cssText = 'margin-top:8px;margin-right:6px;padding:5px 9px;border:1px solid rgba(56,189,248,.28);border-radius:8px;background:rgba(56,189,248,.08);color:#7dd3fc;font-size:11px;';
     planner.onclick = function () { appendViewportTilePlannerDiagnostic_(); };
 
+    var minimize = document.createElement('button');
+    minimize.type = 'button';
+    minimize.setAttribute('data-mg1-minimize','true');
+    minimize.textContent = 'Minimize';
+    minimize.style.cssText = 'margin-top:8px;padding:5px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:#fff;font-size:11px;';
+
     var close = document.createElement('button');
     close.type = 'button';
     close.setAttribute('data-mg1-close','true');
     close.textContent = 'Tutup';
-    close.style.cssText = 'margin-top:8px;padding:5px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:#fff;font-size:11px;';
+    close.style.cssText = 'margin-top:8px;margin-left:6px;padding:5px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:#fff;font-size:11px;';
     close.onclick = function () { el.remove(); };
+
+    var minimized = false;
+    minimize.onclick = function () {
+      minimized = !minimized;
+      if (minimized) {
+        title.style.display = 'none';
+        body.style.display = 'none';
+        gpu.style.display = 'none';
+        planner.style.display = 'none';
+        close.style.display = 'none';
+        minimize.textContent = 'DEVICE PROFILER — buka';
+        minimize.style.cssText = 'margin:0;padding:7px 11px;border:1px solid rgba(56,189,248,.35);border-radius:999px;background:rgba(7,11,28,.96);color:#7dd3fc;font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.35);';
+        el.style.cssText += ';left:auto;right:12px;bottom:calc(72px + env(safe-area-inset-bottom, 0px));width:auto;padding:0;border:0;background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;';
+      } else {
+        title.style.display = '';
+        body.style.display = '';
+        gpu.style.display = '';
+        planner.style.display = '';
+        close.style.display = '';
+        minimize.textContent = 'Minimize';
+        minimize.style.cssText = 'margin-top:8px;padding:5px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:#fff;font-size:11px;';
+        el.style.cssText = [
+          'position:fixed','left:10px','right:10px','bottom:calc(10px + env(safe-area-inset-bottom, 0px))','z-index:2147483647','padding:12px 14px',
+          'border:1px solid rgba(56,189,248,.35)','border-radius:12px','background:rgba(7,11,28,.96)','color:#fff',
+          'font:12px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif','box-shadow:0 8px 28px rgba(0,0,0,.45)',
+          'backdrop-filter:blur(8px)','-webkit-backdrop-filter:blur(8px)'
+        ].join(';');
+      }
+    };
 
     el.appendChild(title);
     el.appendChild(body);
     el.appendChild(gpu);
     el.appendChild(planner);
+    el.appendChild(minimize);
     el.appendChild(close);
     document.body.appendChild(el);
   } catch (e) {
