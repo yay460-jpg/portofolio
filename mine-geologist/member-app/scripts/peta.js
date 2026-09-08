@@ -287,7 +287,7 @@ function getDeviceTileEngineProfile_() {
   }
   const tier = String(deviceProfile.tier || 'BALANCED').toUpperCase();
   const profiles = {
-    LOW: { tier:'LOW', tileSize:256, maxFactor:1, usableFactors:[0.25,0.5,1], batchSize:4, batchDelayMs:25, prefetchRadius:1, cacheLimit:50 },
+    LOW: { tier:'LOW', tileSize:768, maxFactor:1, usableFactors:[0.5,1], batchSize:2, batchDelayMs:25, prefetchRadius:0, cacheLimit:40 },
     BALANCED: { tier:'BALANCED', tileSize:256, maxFactor:2, usableFactors:[0.25,0.5,1,2], batchSize:8, batchDelayMs:12, prefetchRadius:2, cacheLimit:150 },
     HIGH: { tier:'HIGH', tileSize:512, maxFactor:2, usableFactors:[0.25,0.5,1,2], batchSize:16, batchDelayMs:0, prefetchRadius:3, cacheLimit:300 }
   };
@@ -379,10 +379,9 @@ function getViewportTilePlan_(geoReferenceOverride) {
 
     // Ikuti pemetaan zoom yang SUDAH dipakai renderer, tetapi batasi dengan profile.
     let requestedFactor = 1;
-    // V14.33: LOW device keeps viewport culling, but uses 0.5x as the
-    // minimum visible-quality level. V14.32's 0.25x/6-tile result was
-    // fast but visibly too soft on the S7 Edge.
-    if (mapZoom <= 1.5) requestedFactor = (String(deviceProfile.tier) === 'LOW') ? 0.5 : 0.25;
+    // V14.39: LOW device uses native 1x at normal zoom. The previous 0.5x
+    // planner was fast but visibly too soft on the S7 Edge.
+    if (mapZoom <= 1.5) requestedFactor = (String(deviceProfile.tier) === 'LOW') ? 1 : 0.25;
     else if (mapZoom <= 2.5) requestedFactor = 0.5;
     else requestedFactor = 1;
     const factor = Math.min(requestedFactor, maxFactor);
@@ -1224,20 +1223,19 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   // approximate tile-pixel budget by pairing a 1.5x density boost with a
   // proportional 768px raster tile.
   const isLowC2 = adaptiveC2 && deviceProfile && String(deviceProfile.tier).toUpperCase() === 'LOW';
-  const c2QualityBoost = isLowC2 ? 1.5 : 1;
-  const c2TargetScale = isLowC2 ? Math.min(0.75, Number(baseScale) * c2QualityBoost) : Number(baseScale);
-  const c2Factor = isLowC2 && Number(baseScale) > 0 ? c2TargetScale / Number(baseScale) : 1;
-  const tileSize = isLowC2
-    ? Math.min(768, Math.max(512, Math.round(512 * c2Factor)))
-    : GEOPDF_TILE_SIZE_;
+  // V14.40 C5: hard-lock LOW visible-tile render density to 1.50x for
+  // sharpness testing. Keep the 768px tile budget and viewport culling.
+  // This is intentionally temporary: deep-zoom factor 2x is NOT enabled.
+  const c2Factor = isLowC2 ? 1.5 : 1;
+  const tileSize = isLowC2 ? 768 : GEOPDF_TILE_SIZE_;
   // V14.32: during a NEW GeoPDF upload there is no activeBackgroundMapId yet.
   // Build C1 directly from the incoming GeoReference so C2 can use the actual
   // viewport plan (e.g. Visible=6) before the new map is saved to IndexedDB.
   if (adaptiveC2) {
     try { window.mg1LastViewportTilePlan = getViewportTilePlan_(geoReference); } catch (_) {}
   }
-  // V14.38: LOW-device C2 uses the density-adjusted factor above. C1 still
-  // controls viewport culling; only the selected visible area is rendered.
+  // V14.40: LOW-device C2 uses a hard 1.50x visible-tile render factor.
+  // C1 still controls viewport culling; only the selected visible area is rendered.
   const renderFactors = adaptiveC2
     ? [isLowC2 ? c2Factor : 1]
     : factors;
@@ -1401,7 +1399,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
           if (close) diag.insertBefore(box, close); else diag.appendChild(box);
         }
         var plannedVisible = window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.visible.count : 0;
-        // V14.38: report the actual relative factor and the effective raster density.
+        // V14.40: report the hard 1.50x test factor and effective raster density.
         var renderFactor = adaptiveC2 ? (isLowC2 ? c2Factor : 1) : (window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.factor : 0.5);
         var effectiveScale = adaptiveC2 ? (Number(baseScale) * Number(renderFactor)) : (Number(baseScale) * Number(renderFactor));
         box.textContent = 'STEP C2 — ADAPTIVE RENDER | Render Factor: ' + Number(renderFactor).toFixed(2) + 'x | Effective Scale: ' + Number(effectiveScale).toFixed(2) + 'x | Tile: ' + tileSize + 'px | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
