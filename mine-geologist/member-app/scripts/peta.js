@@ -1178,6 +1178,14 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
   const tileSize = GEOPDF_TILE_SIZE_;
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
   const adaptiveC2 = window.mg1AdaptiveC2Enabled === true;
+  const c2Stats = {
+    enabled: adaptiveC2,
+    planned: 0,
+    rendered: 0,
+    failed: 0,
+    skipped: 0,
+    startedAt: (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
+  };
   const deviceProfile = window.mg1DeviceTileEngineProfile || null;
   const c2Prefetch = deviceProfile ? Number(deviceProfile.prefetchRadius) || 0 : 0;
   const vpWPt = Math.abs(vpBBox[2] - vpBBox[0]);
@@ -1208,6 +1216,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
   const c2Windows = adaptiveC2 ? levelPlan.map((plan, li) => li === 0 ? null : getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, c2Prefetch)) : [];
   const effectiveTotals = adaptiveC2 ? levelPlan.map((plan, li) => li === 0 ? plan.total : (c2Windows[li] ? c2Windows[li].required.count : plan.total)) : levelPlan.map(item => item.total);
   const grandTotalTiles = Math.max(1, effectiveTotals.reduce((sum, item) => sum + item, 0));
+  if (adaptiveC2) c2Stats.planned = grandTotalTiles;
   let globalDone = 0;
   if (onProgress) onProgress('Menyiapkan tile pyramid' + (adaptiveC2 ? ' adaptif' : '') + ': 0/' + grandTotalTiles + ' (0%)', 0);
 
@@ -1246,6 +1255,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
         const tw = Math.min(tileSize, width - x);
         const th = Math.min(tileSize, height - y);
         if (adaptiveC2 && li > 0 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
+          c2Stats.skipped++;
           continue;
         }
         // [BARU -- pengaman ringan] Tiap tile SELALU <= tileSize (256px), jadi risiko
@@ -1282,7 +1292,9 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
 
           const dataUrl = canvas.toDataURL('image/png');
           tiles.push({ x: tx, y: ty, width: tw, height: th, dataUrl });
+          if (adaptiveC2) c2Stats.rendered++;
         } catch (tileErr) {
+          if (adaptiveC2) c2Stats.failed++;
           // [BARU -- pengaman ringan] 1 tile gagal (mis. render() pdf.js gagal sesaat di
           // Android tertentu) TIDAK BOLEH menggagalkan seluruh upload GeoPDF. Tile ini
           // dilewati -- akan tampil sbg celah kecil di zoom dalam, jauh lebih baik drpd
@@ -1312,7 +1324,24 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
     out.levels.push({ level: li, factor, scale, width, height, tilesX, tilesY, tiles });
   }
   if (adaptiveC2) {
-    out.adaptive = { mode:'viewport-visible-test', prefetchRadius:c2Prefetch, lowestLevelFull:true, status:'ACTIVE C2 TEST' };
+    c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
+    c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
+    window.mg1LastC2RenderStats = c2Stats;
+    out.adaptive = { mode:'viewport-visible-test', prefetchRadius:c2Prefetch, lowestLevelFull:true, status:c2Stats.status, stats:c2Stats };
+    try {
+      const diag = document.getElementById('mg1-device-profile-diagnostic');
+      if (diag) {
+        let box = document.getElementById('mg1-c2-render-diagnostic');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'mg1-c2-render-diagnostic';
+          box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.9;';
+          const close = diag.querySelector('button[data-mg1-close]');
+          if (close) diag.insertBefore(box, close); else diag.appendChild(box);
+        }
+        box.textContent = 'STEP C2 — ADAPTIVE RENDER | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
+      }
+    } catch (_) {}
   }
   return out;
 }
