@@ -1195,7 +1195,7 @@ function expandAdaptiveC2TileWindowToTarget_(windowPlan, targetCount) {
     const target = Math.max(0, Math.floor(Number(targetCount)));
     if (windowPlan.keys.length >= target) return windowPlan;
 
-    // V14.43 C5: keep the 768px tile density. Do NOT shrink tile size just to
+    // V14.44 C5: keep the 768px tile density. Do NOT shrink tile size just to
     // manufacture a larger count. Expand the selected window by neighboring
     // tile coordinates around the actual visible rectangle. These extra tiles
     // may sit just outside the current crop; the map's existing clip-path keeps
@@ -1322,9 +1322,9 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   });
   const c2Windows = adaptiveC2 ? levelPlan.map((plan) => {
     const w = getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0);
-    // V14.43: LOW C2 keeps the sharp 1.50x/768px settings and expands
-    // the selected render set to 25 local tiles without shrinking tile density.
-    return (isLowC2 && w) ? expandAdaptiveC2TileWindowToTarget_(w, 25) : w;
+    // V14.44: LOW C2 keeps the sharp 1.50x/768px settings and expands
+    // the selected render set to 22 local tiles without shrinking tile density.
+    return (isLowC2 && w) ? expandAdaptiveC2TileWindowToTarget_(w, 22) : w;
   }) : [];
   const effectiveTotals = adaptiveC2 ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total)) : levelPlan.map(item => item.total);
   const grandTotalTiles = Math.max(1, effectiveTotals.reduce((sum, item) => sum + item, 0));
