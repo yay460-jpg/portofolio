@@ -37,6 +37,141 @@ function renderReportModal(justOpened) {
 let settingsModalOpen = false;
 function openSettingsModal() { settingsModalOpen = true; accountMenuOpen = false; render(); }
 function closeSettingsModal() { settingsModalOpen = false; render(); }
+
+// ==== LITHOSITE CHANGELOG -- READ ONLY dari backend endpoint khusus MG1 ====
+// Backend endpoint: ?sheet=lithositechangelog
+// Auth: fetchWithTimeout() otomatis membawa sessionToken bila user sudah login.
+// Tidak memakai sheet master "Changelog" dan tidak melakukan POST apa pun.
+let lithositeChangelogOpen = false;
+let lithositeChangelogLoading = false;
+let lithositeChangelogError = '';
+let lithositeChangelogData = [];
+
+function escapeHtml_(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function openLithositeChangelogModal() {
+  lithositeChangelogOpen = true;
+  lithositeChangelogLoading = true;
+  lithositeChangelogError = '';
+  render();
+
+  try {
+    const response = await fetchWithTimeout(
+      GOOGLE_SCRIPT_READ_URL + '?sheet=lithositechangelog&t=' + Date.now(),
+      {},
+      20000
+    );
+    const result = await response.json();
+
+    if (result.status !== 'success') {
+      throw new Error(result.message || 'Server menolak permintaan changelog Lithosite.');
+    }
+
+    lithositeChangelogData = Array.isArray(result.data) ? result.data : [];
+  } catch (err) {
+    lithositeChangelogData = [];
+    lithositeChangelogError = err && err.message
+      ? err.message
+      : 'Tidak bisa memuat riwayat update.';
+  } finally {
+    lithositeChangelogLoading = false;
+    render();
+  }
+}
+
+function closeLithositeChangelogModal() {
+  lithositeChangelogOpen = false;
+  render();
+}
+
+function renderLithositeChangelogItems_(items) {
+  if (!Array.isArray(items) || !items.length) {
+    return '<div class="text-[10px] text-white/30">Tidak ada catatan perubahan.</div>';
+  }
+  return items.map(function(item) {
+    const text = currentLang === 'en'
+      ? (item.en || item.id || '')
+      : (item.id || item.en || '');
+    return '<div class="flex items-start gap-2.5 text-[11px] leading-relaxed text-white/75">' +
+      '<span class="mt-1 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>' +
+      '<span>' + escapeHtml_(text) + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+function renderLithositeChangelogModal(justOpened) {
+  if (!lithositeChangelogOpen) return '';
+
+  let body = '';
+
+  if (lithositeChangelogLoading) {
+    body = '<div class="py-8 flex flex-col items-center justify-center gap-3">' +
+      '<span class="w-6 h-6 border-2 border-white/15 border-t-blue-400 rounded-full spin"></span>' +
+      '<div class="text-[11px] text-white/40">Memuat riwayat update...</div>' +
+    '</div>';
+  } else if (lithositeChangelogError) {
+    body = '<div class="rounded-[12px] bg-rose-500/5 border border-rose-400/15 p-4">' +
+      '<div class="flex items-start gap-2">' +
+        icon('circle-alert','w-4 h-4 text-rose-400 shrink-0') +
+        '<div class="text-[11px] leading-relaxed text-rose-300">' + escapeHtml_(lithositeChangelogError) + '</div>' +
+      '</div>' +
+      '<button onclick="openLithositeChangelogModal()" class="mt-3 w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] font-bold text-white/75">Coba Lagi</button>' +
+    '</div>';
+  } else if (!lithositeChangelogData.length) {
+    body = '<div class="py-8 text-center text-[11px] text-white/30">Belum ada riwayat update Lithosite.</div>';
+  } else {
+    const latest = lithositeChangelogData[0];
+    const older = lithositeChangelogData.slice(1);
+
+    body += '<div class="rounded-[14px] bg-[#0b1329] border border-blue-400/15 p-4">' +
+      '<div class="flex items-center justify-between gap-3 mb-3">' +
+        '<div class="text-[12px] font-black text-blue-300">' + escapeHtml_(latest.version || '-') + '</div>' +
+        '<div class="text-[10px] text-white/35 text-right">' +
+          escapeHtml_(latest.tanggal || '') +
+          (latest.waktu ? ' &bull; ' + escapeHtml_(latest.waktu) : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="space-y-2.5">' + renderLithositeChangelogItems_(latest.items) + '</div>' +
+    '</div>';
+
+    if (older.length) {
+      body += '<div class="mt-3">' +
+        '<div class="text-[10px] font-bold uppercase tracking-wider text-white/25 mb-2">Riwayat Sebelumnya</div>' +
+        '<div class="space-y-2.5">';
+
+      older.forEach(function(entry) {
+        body += '<div class="rounded-[12px] bg-white/[0.025] border border-white/[0.06] p-3.5">' +
+          '<div class="flex items-center justify-between gap-3 mb-2.5">' +
+            '<div class="text-[11px] font-bold text-white/55">' + escapeHtml_(entry.version || '-') + '</div>' +
+            '<div class="text-[9px] text-white/25 text-right">' +
+              escapeHtml_(entry.tanggal || '') +
+              (entry.waktu ? ' &bull; ' + escapeHtml_(entry.waktu) : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="space-y-2">' + renderLithositeChangelogItems_(entry.items) + '</div>' +
+        '</div>';
+      });
+
+      body += '</div></div>';
+    }
+  }
+
+  return renderSimpleModal(
+    'Riwayat Update Dashboard',
+    'Daftar perubahan dan pengembangan Lithosite',
+    body,
+    'closeLithositeChangelogModal()',
+    undefined,
+    justOpened
+  );
+}
 function renderSettingsModal(justOpened) {
   if (!settingsModalOpen) return '';
   const hasCustomAvatar = !!getCustomAvatarDataUrl();
@@ -65,7 +200,9 @@ function renderSettingsModal(justOpened) {
     '</div>' +
     '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4 flex items-center justify-between mt-2.5">' +
       '<div><div class="text-[13px] font-bold text-white">Versi App</div><div class="text-[11px] text-white/40">' + APP_VERSION + '</div></div>' +
-      icon('info','w-4 h-4 text-white/30') +
+      '<button onclick="openLithositeChangelogModal()" aria-label="Lihat riwayat update" class="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-400/15 flex items-center justify-center active:scale-95 transition-transform">' +
+        icon('info','w-4 h-4 text-blue-300') +
+      '</button>' +
     '</div>' +
     '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4 flex items-center justify-between mt-2.5">' +
       '<div><div class="text-[13px] font-bold text-white">Akun</div><div class="text-[11px] text-white/40">' + (sessionInfo ? sessionInfo.userName + ' &bull; ' + sessionInfo.roleId : 'Belum login') + '</div></div>' +
