@@ -1194,23 +1194,42 @@ function expandAdaptiveC2TileWindowToTarget_(windowPlan, targetCount) {
     if (!windowPlan || !Number.isFinite(Number(targetCount))) return windowPlan;
     const target = Math.max(0, Math.floor(Number(targetCount)));
     if (windowPlan.keys.length >= target) return windowPlan;
+
+    // V14.43 C5: keep the 768px tile density. Do NOT shrink tile size just to
+    // manufacture a larger count. Expand the selected window by neighboring
+    // tile coordinates around the actual visible rectangle. These extra tiles
+    // may sit just outside the current crop; the map's existing clip-path keeps
+    // them out of the visible map extent while still giving us a denser local
+    // source around the viewport.
     const existing = {};
     windowPlan.keys.forEach(function(key) { existing[key] = true; });
-    const cx = (Number(windowPlan.visible.minX) + Number(windowPlan.visible.maxX)) / 2;
-    const cy = (Number(windowPlan.visible.minY) + Number(windowPlan.visible.maxY)) / 2;
+    const vMinX = Number(windowPlan.visible.minX);
+    const vMaxX = Number(windowPlan.visible.maxX);
+    const vMinY = Number(windowPlan.visible.minY);
+    const vMaxY = Number(windowPlan.visible.maxY);
+    const cx = (vMinX + vMaxX) / 2;
+    const cy = (vMinY + vMaxY) / 2;
     const candidates = [];
-    for (let ty = 0; ty < windowPlan.tilesY; ty++) {
-      for (let tx = 0; tx < windowPlan.tilesX; tx++) {
-        const key = tx + ',' + ty;
-        if (existing[key]) continue;
-        const dx = tx - cx, dy = ty - cy;
-        candidates.push({ key, tx, ty, d: Math.max(Math.abs(dx), Math.abs(dy)), d2: dx * dx + dy * dy });
+
+    // One/two local rings around the visible rectangle. Coordinates outside
+    // the crop are intentional: they are rendered from the original PDF page
+    // and clipped by the existing GeoPDF neatline/map boundary at display time.
+    const maxRing = 2;
+    for (let ring = 1; ring <= maxRing && windowPlan.keys.length + candidates.length < target; ring++) {
+      for (let ty = vMinY - ring; ty <= vMaxY + ring; ty++) {
+        for (let tx = vMinX - ring; tx <= vMaxX + ring; tx++) {
+          if (tx >= vMinX && tx <= vMaxX && ty >= vMinY && ty <= vMaxY) continue;
+          const key = tx + ',' + ty;
+          if (existing[key]) continue;
+          existing[key] = true;
+          const dx = tx - cx, dy = ty - cy;
+          candidates.push({ key, tx, ty, d: Math.max(Math.abs(dx), Math.abs(dy)), d2: dx * dx + dy * dy });
+        }
       }
     }
     candidates.sort(function(a, b) { return a.d - b.d || a.d2 - b.d2; });
     for (let i = 0; i < candidates.length && windowPlan.keys.length < target; i++) {
-      const c = candidates[i];
-      windowPlan.keys.push(c.key);
+      windowPlan.keys.push(candidates[i].key);
     }
     windowPlan.required.count = windowPlan.keys.length;
     return windowPlan;
@@ -1303,9 +1322,8 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   });
   const c2Windows = adaptiveC2 ? levelPlan.map((plan) => {
     const w = getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0);
-    // V14.41: LOW C2 keeps the current sharp 1.50x/768px settings but expands
-    // the selected render set up to 25 nearest tiles when the level contains enough.
-    // This improves local coverage without returning to the old full-pyramid render.
+    // V14.43: LOW C2 keeps the sharp 1.50x/768px settings and expands
+    // the selected render set to 25 local tiles without shrinking tile density.
     return (isLowC2 && w) ? expandAdaptiveC2TileWindowToTarget_(w, 25) : w;
   }) : [];
   const effectiveTotals = adaptiveC2 ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total)) : levelPlan.map(item => item.total);
@@ -1342,16 +1360,24 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     const pageLeftPx = cropLeftPx;
     const pageTopPx = cropTopPx;
 
-    for (let ty = 0; ty < tilesY; ty++) {
-      for (let tx = 0; tx < tilesX; tx++) {
-        const x = tx * tileSize;
-        const y = ty * tileSize;
-        const tw = Math.min(tileSize, width - x);
-        const th = Math.min(tileSize, height - y);
-        if (adaptiveC2 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
-          c2Stats.skipped++;
-          continue;
-        }
+    const tileCoords = adaptiveC2 && c2Window
+      ? c2Window.keys.map(function(key) {
+          const parts = key.split(',');
+          return { tx: Number(parts[0]), ty: Number(parts[1]) };
+        })
+      : null;
+    const renderTileCount = tileCoords ? tileCoords.length : (tilesX * tilesY);
+    for (let ti = 0; ti < renderTileCount; ti++) {
+      const tx = tileCoords ? tileCoords[ti].tx : Math.floor(ti % tilesX);
+      const ty = tileCoords ? tileCoords[ti].ty : Math.floor(ti / tilesX);
+      const x = tx * tileSize;
+      const y = ty * tileSize;
+      const tw = tileCoords ? tileSize : Math.min(tileSize, width - x);
+      const th = tileCoords ? tileSize : Math.min(tileSize, height - y);
+      if (!tileCoords && adaptiveC2 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
+        c2Stats.skipped++;
+        continue;
+      }
         // V14.38: tile guard follows the raised 768px safety ceiling. Only one
         // raster canvas is alive at a time and it is released in finally.
         if (tw <= 0 || th <= 0 || tw > GEOPDF_TILE_SIZE_MAX_SAFE_ || th > GEOPDF_TILE_SIZE_MAX_SAFE_) {
@@ -1413,14 +1439,13 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
           await new Promise(r => setTimeout(r, 0));
         }
       }
-    }
     out.levels.push({ level: li, factor, scale, width, height, tilesX, tilesY, tiles });
   }
   if (adaptiveC2) {
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
     c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
     window.mg1LastC2RenderStats = c2Stats;
-    out.adaptive = { mode:'viewport-only-selected-factor-test', prefetchRadius:0, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
+    out.adaptive = { mode:'viewport-plus-local-neighbor-selected-factor', prefetchRadius:0, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
     try {
       const diag = document.getElementById('mg1-device-profile-diagnostic');
       if (diag) {
