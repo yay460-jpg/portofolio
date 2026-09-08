@@ -1189,6 +1189,34 @@ function cleanupGeoPdfResources_(page, pdf, loadingTask, canvas) {
 // Prinsip: level terendah tetap lengkap untuk preview/fallback; level di atasnya
 // hanya merender tile yang berada di viewport + prefetch ring. Renderer PDF.js,
 // transform GeoReference, gesture, dan jalur V13.1 tetap dipertahankan.
+function expandAdaptiveC2TileWindowToTarget_(windowPlan, targetCount) {
+  try {
+    if (!windowPlan || !Number.isFinite(Number(targetCount))) return windowPlan;
+    const target = Math.max(0, Math.floor(Number(targetCount)));
+    if (windowPlan.keys.length >= target) return windowPlan;
+    const existing = {};
+    windowPlan.keys.forEach(function(key) { existing[key] = true; });
+    const cx = (Number(windowPlan.visible.minX) + Number(windowPlan.visible.maxX)) / 2;
+    const cy = (Number(windowPlan.visible.minY) + Number(windowPlan.visible.maxY)) / 2;
+    const candidates = [];
+    for (let ty = 0; ty < windowPlan.tilesY; ty++) {
+      for (let tx = 0; tx < windowPlan.tilesX; tx++) {
+        const key = tx + ',' + ty;
+        if (existing[key]) continue;
+        const dx = tx - cx, dy = ty - cy;
+        candidates.push({ key, tx, ty, d: Math.max(Math.abs(dx), Math.abs(dy)), d2: dx * dx + dy * dy });
+      }
+    }
+    candidates.sort(function(a, b) { return a.d - b.d || a.d2 - b.d2; });
+    for (let i = 0; i < candidates.length && windowPlan.keys.length < target; i++) {
+      const c = candidates[i];
+      windowPlan.keys.push(c.key);
+    }
+    windowPlan.required.count = windowPlan.keys.length;
+    return windowPlan;
+  } catch (_) { return windowPlan; }
+}
+
 function getAdaptiveC2TileWindowFromPlan_(planner, levelPlan, prefetchRadius) {
   try {
     if (!planner || !planner.ok || !planner.visible || !levelPlan) return null;
@@ -1273,7 +1301,13 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     const tilesY = Math.ceil(height / tileSize);
     return { factor: Number(factor), scale, width, height, tilesX, tilesY, total: tilesX * tilesY };
   });
-  const c2Windows = adaptiveC2 ? levelPlan.map((plan) => getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0)) : [];
+  const c2Windows = adaptiveC2 ? levelPlan.map((plan) => {
+    const w = getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0);
+    // V14.41: LOW C2 keeps the current sharp 1.50x/768px settings but expands
+    // the selected render set up to 25 nearest tiles when the level contains enough.
+    // This improves local coverage without returning to the old full-pyramid render.
+    return (isLowC2 && w) ? expandAdaptiveC2TileWindowToTarget_(w, 25) : w;
+  }) : [];
   const effectiveTotals = adaptiveC2 ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total)) : levelPlan.map(item => item.total);
   const grandTotalTiles = Math.max(1, effectiveTotals.reduce((sum, item) => sum + item, 0));
   if (adaptiveC2) c2Stats.planned = grandTotalTiles;
