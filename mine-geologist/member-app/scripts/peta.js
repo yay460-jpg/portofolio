@@ -328,10 +328,10 @@ function appendDeviceTileEngineProfileDiagnostic_(profile) {
 // gesture, tidak mengubah DPR, dan tidak menulis cache tile. Tujuan: menghitung tile
 // yang secara geometris diperlukan oleh viewport saat ini, berdasarkan GeoReference,
 // mapZoom, tile size, dan profile perangkat.
-function getViewportTilePlan_() {
+function getViewportTilePlan_(geoReferenceOverride) {
   try {
     const activeMap = activeBackgroundMapId ? backgroundMapsList.find(m => m.id === activeBackgroundMapId) : null;
-    const geoReference = activeMap && activeMap.geoReference;
+    const geoReference = geoReferenceOverride || (activeMap && activeMap.geoReference);
     if (!activeMap || !geoReference || !geoReference.metadata || !Array.isArray(geoReference.metadata.vpBBox)) {
       return { ok:false, reason:'GeoPDF aktif dengan GeoReference belum tersedia.' };
     }
@@ -1174,17 +1174,22 @@ function getAdaptiveC2TileWindowFromPlan_(planner, levelPlan, prefetchRadius) {
   } catch(e) { return null; }
 }
 
-async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
+async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoReference) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
   const tileSize = GEOPDF_TILE_SIZE_;
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
-  // V14.31 C2 test: render only the factor selected by C1. On the S7 Edge this is
-  // the measured 0.25x viewport plan (6 tiles), not the complete pyramid.
-  const renderFactors = adaptiveC2 ? [Number(window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.factor) || 0.25] : factors;
   const adaptiveC2 = window.mg1AdaptiveC2Enabled === true;
-  if (adaptiveC2 && (!window.mg1LastViewportTilePlan || !window.mg1LastViewportTilePlan.ok)) {
-    try { window.mg1LastViewportTilePlan = getViewportTilePlan_(); } catch (_) {}
+  // V14.32: during a NEW GeoPDF upload there is no activeBackgroundMapId yet.
+  // Build C1 directly from the incoming GeoReference so C2 can use the actual
+  // viewport plan (e.g. Visible=6) before the new map is saved to IndexedDB.
+  if (adaptiveC2) {
+    try { window.mg1LastViewportTilePlan = getViewportTilePlan_(geoReference); } catch (_) {}
   }
+  // C2 renders only the factor selected by C1; fallback 0.25x is used only if
+  // a plan could not be calculated.
+  const renderFactors = adaptiveC2
+    ? [Number(window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.factor) || 0.25]
+    : factors;
   const c2Stats = {
     enabled: adaptiveC2,
     planned: 0,
@@ -1231,7 +1236,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress) {
   // pada resolusi levelnya; kita tidak meng-upscale satu PNG crop yang sudah ter-raster.
   // Ini mempertahankan detail vector/text pada deep zoom dan lebih dekat ke pola quadrant
   // renderer Avenza yang sudah kita audit.
-  for (let li = 0; li < factors.length; li++) {
+  for (let li = 0; li < levelPlan.length; li++) {
     const plan = levelPlan[li];
     const factor = plan.factor;
     const scale = plan.scale;
@@ -2927,7 +2932,7 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
     // full-page raster/crop yang kemudian di-upscale menjadi sumber deep-zoom.
     const tileStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     report('Membangun tile pyramid langsung dari PDF...');
-    const tilePyramid = await buildTilePyramidDirect_(page, vpBBox, scale, report);
+    const tilePyramid = await buildTilePyramidDirect_(page, vpBBox, scale, report, geoReference);
     const tileFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
     // IndexedDB/form lama masih membutuhkan imageDataUrl sebagai preview/fallback.
