@@ -1188,11 +1188,11 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   if (adaptiveC2) {
     try { window.mg1LastViewportTilePlan = getViewportTilePlan_(geoReference); } catch (_) {}
   }
-  // C2 renders only the factor selected by C1. V14.33 deliberately raises
-  // LOW-device upload quality from 0.25x to 0.5x while keeping viewport-only
-  // culling, so the initial map stays fast without the severe softness seen in V14.32.
+  // V14.34: LOW-device C2 quality raised to native 1x for sharper GeoPDF output.
+  // C1 still controls viewport culling; only the selected visible area is rendered.
+  // We deliberately keep tileSize=256 to avoid the 512px memory pressure on older Android.
   const renderFactors = adaptiveC2
-    ? [Number(window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.factor) || 0.5]
+    ? [1]
     : factors;
   const c2Stats = {
     enabled: adaptiveC2,
