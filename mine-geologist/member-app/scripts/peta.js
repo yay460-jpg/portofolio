@@ -344,7 +344,10 @@ function getViewportTilePlan_(geoReferenceOverride) {
 
     // Ikuti pemetaan zoom yang SUDAH dipakai renderer, tetapi batasi dengan profile.
     let requestedFactor = 1;
-    if (mapZoom <= 1.5) requestedFactor = 0.25;
+    // V14.33: LOW device keeps viewport culling, but uses 0.5x as the
+    // minimum visible-quality level. V14.32's 0.25x/6-tile result was
+    // fast but visibly too soft on the S7 Edge.
+    if (mapZoom <= 1.5) requestedFactor = (String(deviceProfile.tier) === 'LOW') ? 0.5 : 0.25;
     else if (mapZoom <= 2.5) requestedFactor = 0.5;
     else requestedFactor = 1;
     const factor = Math.min(requestedFactor, maxFactor);
@@ -1185,10 +1188,11 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   if (adaptiveC2) {
     try { window.mg1LastViewportTilePlan = getViewportTilePlan_(geoReference); } catch (_) {}
   }
-  // C2 renders only the factor selected by C1; fallback 0.25x is used only if
-  // a plan could not be calculated.
+  // C2 renders only the factor selected by C1. V14.33 deliberately raises
+  // LOW-device upload quality from 0.25x to 0.5x while keeping viewport-only
+  // culling, so the initial map stays fast without the severe softness seen in V14.32.
   const renderFactors = adaptiveC2
-    ? [Number(window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.factor) || 0.25]
+    ? [Number(window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.factor) || 0.5]
     : factors;
   const c2Stats = {
     enabled: adaptiveC2,
@@ -1352,7 +1356,8 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
           if (close) diag.insertBefore(box, close); else diag.appendChild(box);
         }
         var plannedVisible = window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.visible.count : 0;
-        box.textContent = 'STEP C2 — ADAPTIVE RENDER | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
+        var renderFactor = window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.factor : 0.5;
+        box.textContent = 'STEP C2 — ADAPTIVE RENDER | Factor: ' + renderFactor + 'x | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
       }
     } catch (_) {}
   }
