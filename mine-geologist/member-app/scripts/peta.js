@@ -272,6 +272,57 @@ function getDeviceTileProfile_() {
   return profile;
 }
 
+// STEP B - TILE ENGINE PROFILE V1
+// Parameter profile saja. TIDAK dipakai oleh renderer pada tahap ini.
+function getDeviceTileEngineProfile_() {
+  let deviceProfile = window.mg1DeviceTileProfile;
+  if (!deviceProfile) {
+    try {
+      const cached = localStorage.getItem('mg1_device_tile_profile_v2');
+      if (cached) deviceProfile = JSON.parse(cached);
+    } catch (_) {}
+  }
+  if (!deviceProfile) {
+    try { deviceProfile = getDeviceTileProfile_(); } catch (_) { deviceProfile = { tier: 'BALANCED' }; }
+  }
+  const tier = String(deviceProfile.tier || 'BALANCED').toUpperCase();
+  const profiles = {
+    LOW: { tier:'LOW', tileSize:256, maxFactor:1, usableFactors:[0.25,0.5,1], batchSize:4, batchDelayMs:25, prefetchRadius:1, cacheLimit:50 },
+    BALANCED: { tier:'BALANCED', tileSize:256, maxFactor:2, usableFactors:[0.25,0.5,1,2], batchSize:8, batchDelayMs:12, prefetchRadius:2, cacheLimit:150 },
+    HIGH: { tier:'HIGH', tileSize:512, maxFactor:2, usableFactors:[0.25,0.5,1,2], batchSize:16, batchDelayMs:0, prefetchRadius:3, cacheLimit:300 }
+  };
+  const profile = Object.assign({}, profiles[tier] || profiles.BALANCED, {
+    sourceProfilerVersion: deviceProfile.profilerVersion || 'A2',
+    benchmarkMs: Number(deviceProfile.benchMs) || null
+  });
+  try { localStorage.setItem('mg1_tile_engine_profile_v1', JSON.stringify(profile)); } catch (_) {}
+  window.mg1DeviceTileEngineProfile = profile;
+  console.log('[ADAPTIVE] Tile Engine Profile V1:', profile);
+  return profile;
+}
+
+// STEP B - diagnostic helper. Hanya menampilkan parameter kandidat; belum dipakai renderer.
+function appendDeviceTileEngineProfileDiagnostic_(profile) {
+  try {
+    const el = document.getElementById('mg1-device-profile-diagnostic');
+    if (!el || !profile) return;
+    const existing = document.getElementById('mg1-device-tile-engine-profile');
+    if (existing) existing.remove();
+    const box = document.createElement('div');
+    box.id = 'mg1-device-tile-engine-profile';
+    box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.82;';
+    box.textContent = 'STEP B — TILE PROFILE: ' + profile.tier +
+      ' | Tile: ' + profile.tileSize + 'px' +
+      ' | Max: ' + profile.maxFactor + 'x' +
+      ' | Batch: ' + profile.batchSize +
+      ' | Delay: ' + profile.batchDelayMs + 'ms' +
+      ' | Prefetch: ' + profile.prefetchRadius +
+      ' | Cache: ' + profile.cacheLimit +
+      ' | STATUS: PARAMETER ONLY';
+    el.insertBefore(box, el.lastElementChild);
+  } catch (e) { console.warn('[ADAPTIVE] Tile profile diagnostic gagal:', e); }
+}
+
 // STEP A - FIELD DIAGNOSTIC OVERLAY V1
 // Hanya untuk pengujian STEP A. Tidak menyentuh renderer/gesture/tile engine.
 function showDeviceTileProfileDiagnostic_(profile) {
@@ -338,8 +389,9 @@ if (!window.__mg1DeviceTileProfilerV1Started) {
   setTimeout(function () {
     try {
       var profile = getDeviceTileProfile_();
-      // Overlay hanya untuk field test STEP A; renderer tetap untouched.
+      var tileEngineProfile = getDeviceTileEngineProfile_();
       showDeviceTileProfileDiagnostic_(profile);
+      appendDeviceTileEngineProfileDiagnostic_(tileEngineProfile);
     } catch (e) {
       console.warn('[ADAPTIVE] Device profiler gagal:', e);
     }
