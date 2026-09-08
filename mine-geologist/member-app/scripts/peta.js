@@ -234,11 +234,77 @@ function getDeviceTileProfile_() {
   return profile;
 }
 
+// STEP A - FIELD DIAGNOSTIC OVERLAY V1
+// Hanya untuk pengujian STEP A. Tidak menyentuh renderer/gesture/tile engine.
+function showDeviceTileProfileDiagnostic_(profile) {
+  try {
+    var old = document.getElementById('mg1-device-profile-diagnostic');
+    if (old) old.remove();
+
+    var el = document.createElement('div');
+    el.id = 'mg1-device-profile-diagnostic';
+    el.style.cssText = [
+      'position:fixed',
+      'left:10px',
+      'right:10px',
+      'bottom:calc(10px + env(safe-area-inset-bottom, 0px))',
+      'z-index:2147483647',
+      'padding:12px 14px',
+      'border:1px solid rgba(56,189,248,.35)',
+      'border-radius:12px',
+      'background:rgba(7,11,28,.96)',
+      'color:#fff',
+      'font:12px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+      'box-shadow:0 8px 28px rgba(0,0,0,.45)',
+      'backdrop-filter:blur(8px)',
+      '-webkit-backdrop-filter:blur(8px)'
+    ].join(';');
+
+    var title = document.createElement('div');
+    title.textContent = 'DEVICE PROFILER — STEP A';
+    title.style.cssText = 'font-weight:700;font-size:12px;margin-bottom:7px;color:#7dd3fc;';
+
+    var body = document.createElement('div');
+    body.textContent =
+      'Tier: ' + profile.tier +
+      '  |  Benchmark: ' + profile.benchMs + ' ms' +
+      '  |  RAM: ' + (profile.memoryGB == null ? 'N/A' : profile.memoryGB + ' GB') +
+      '  |  CPU: ' + (profile.cores == null ? 'N/A' : profile.cores + ' cores') +
+      '  |  DPR: ' + profile.dpr +
+      '  |  Screen: ' + profile.screenWidth + '×' + profile.screenHeight;
+    body.style.cssText = 'opacity:.92;word-break:break-word;';
+
+    var gpu = document.createElement('div');
+    gpu.textContent = 'WebGL: ' + (profile.webglRenderer || 'N/A');
+    gpu.style.cssText = 'margin-top:5px;font-size:10px;opacity:.65;word-break:break-all;';
+
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.textContent = 'Tutup';
+    close.style.cssText = 'margin-top:8px;padding:5px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:#fff;font-size:11px;';
+    close.onclick = function () { el.remove(); };
+
+    el.appendChild(title);
+    el.appendChild(body);
+    el.appendChild(gpu);
+    el.appendChild(close);
+    document.body.appendChild(el);
+  } catch (e) {
+    console.warn('[ADAPTIVE] Diagnostic overlay gagal:', e);
+  }
+}
+
 // STEP A hanya profiling saat app siap. Tidak memanggil buildTilePyramidDirect_.
 if (!window.__mg1DeviceTileProfilerV1Started) {
   window.__mg1DeviceTileProfilerV1Started = true;
   setTimeout(function () {
-    try { getDeviceTileProfile_(); } catch (e) { console.warn('[ADAPTIVE] Device profiler gagal:', e); }
+    try {
+      var profile = getDeviceTileProfile_();
+      // Overlay hanya untuk field test STEP A; renderer tetap untouched.
+      showDeviceTileProfileDiagnostic_(profile);
+    } catch (e) {
+      console.warn('[ADAPTIVE] Device profiler gagal:', e);
+    }
   }, 50);
 }
 
