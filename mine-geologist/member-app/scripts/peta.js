@@ -163,6 +163,85 @@ const GEOPDF_TILE_SIZE_MAX_SAFE_ = 512;
 const GEOPDF_TILE_LEVEL_FACTORS_ = [0.25, 0.5, 1, 2];
 const GEOPDF_TILE_MAX_LEVEL_ = GEOPDF_TILE_LEVEL_FACTORS_.length - 1;
 
+
+// STEP A - DEVICE PROFILER V1
+// Profiling saja. TIDAK mengubah renderer GeoPDF, tile pyramid, tile size, batch,
+// prefetch, cache, gesture, atau parameter existing V13.1/V14.x.
+// Tujuan: mengukur kemampuan perangkat dan menghasilkan diagnostic LOW/BALANCED/HIGH
+// untuk field test sebelum parameter adaptive dipakai pada STEP B/C.
+function getDeviceTileProfile_() {
+  const mem = Number(navigator.deviceMemory) || 0;
+  const cores = Number(navigator.hardwareConcurrency) || 0;
+  const dpr = Number(window.devicePixelRatio) || 1;
+  const screenWidth = Number(window.screen && window.screen.width) || 0;
+  const screenHeight = Number(window.screen && window.screen.height) || 0;
+  const screenPixels = screenWidth * screenHeight * dpr * dpr;
+
+  let benchMs = 70;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
+    if (!ctx) throw new Error('Canvas 2D tidak tersedia.');
+
+    // Micro-benchmark ringan: cukup untuk memberi sinyal kemampuan Canvas 2D,
+    // BUKAN benchmark GeoPDF final.
+    const t0 = performance.now();
+    for (let i = 0; i < 20; i++) {
+      ctx.fillStyle = 'rgb(' + ((i * 37) % 255) + ',80,180)';
+      ctx.fillRect(0, 0, 256, 256);
+      ctx.drawImage(canvas, 0, 0, 128, 128);
+    }
+    benchMs = (performance.now() - t0) / 20;
+    try { canvas.width = 1; canvas.height = 1; } catch (_) {}
+  } catch (e) {
+    benchMs = 70;
+  }
+
+  let webglRenderer = '';
+  try {
+    const glCanvas = document.createElement('canvas');
+    const gl = glCanvas.getContext('webgl') || glCanvas.getContext('experimental-webgl');
+    if (gl) {
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      if (dbg) webglRenderer = String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '');
+    }
+    try { glCanvas.width = 1; glCanvas.height = 1; } catch (_) {}
+  } catch (_) {}
+
+  // Klasifikasi STEP A saja. Belum dipakai untuk mengubah parameter renderer.
+  let tier = 'BALANCED';
+  if (benchMs > 55 || (mem > 0 && mem <= 4) || (cores > 0 && cores <= 4)) tier = 'LOW';
+  if (benchMs < 28 && mem >= 8 && cores >= 6 && screenPixels > 2000000) tier = 'HIGH';
+
+  const profile = {
+    tier: tier,
+    benchMs: Number(benchMs.toFixed(1)),
+    memoryGB: mem || null,
+    cores: cores || null,
+    dpr: Number(dpr.toFixed(2)),
+    screenWidth: screenWidth,
+    screenHeight: screenHeight,
+    screenPixels: Math.round(screenPixels),
+    webglRenderer: webglRenderer || null,
+    profilerVersion: 'A1'
+  };
+
+  try { localStorage.setItem('mg1_device_tile_profile_v1', JSON.stringify(profile)); } catch (_) {}
+  window.mg1DeviceTileProfile = profile;
+  console.log('[ADAPTIVE] Device Profile V1:', profile);
+  return profile;
+}
+
+// STEP A hanya profiling saat app siap. Tidak memanggil buildTilePyramidDirect_.
+if (!window.__mg1DeviceTileProfilerV1Started) {
+  window.__mg1DeviceTileProfilerV1Started = true;
+  setTimeout(function () {
+    try { getDeviceTileProfile_(); } catch (e) { console.warn('[ADAPTIVE] Device profiler gagal:', e); }
+  }, 50);
+}
+
 // ==== PETA BACKGROUND (foto udara/hasil olah ArcGIS) -- BARU 5 Sep ====
 // Bukan baca GeoPDF/GeoTIFF asli (butuh mesin libproj+libgdal spt Avenza, mustahil di
 // browser PWA) -- pendekatan lebih ringan: gambar biasa (PNG/JPG) + 2 titik referensi
