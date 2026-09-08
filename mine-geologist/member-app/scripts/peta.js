@@ -332,10 +332,45 @@ function getViewportTilePlan_(geoReferenceOverride) {
   try {
     const activeMap = activeBackgroundMapId ? backgroundMapsList.find(m => m.id === activeBackgroundMapId) : null;
     const geoReference = geoReferenceOverride || (activeMap && activeMap.geoReference);
-    if (!activeMap || !geoReference || !geoReference.metadata || !Array.isArray(geoReference.metadata.vpBBox)) {
+    if (!geoReference || !geoReference.metadata || !Array.isArray(geoReference.metadata.vpBBox)) {
       return { ok:false, reason:'GeoPDF aktif dengan GeoReference belum tersedia.' };
     }
-    const bounds = computeResponsiveDisplayBounds_(buildMapData());
+
+    // V14.36: pada upload GeoPDF baru, activeBackgroundMapId belum terisi karena
+    // peta belum disimpan ke IndexedDB. C1 sebelumnya langsung gagal di sini,
+    // sehingga C2 kehilangan daftar Visible dan fallback ke seluruh tile (70).
+    // Untuk incoming GeoReference, gunakan extent GeoPDF sebagai extra bound sementara.
+    let bounds = null;
+    if (activeMap) {
+      bounds = computeResponsiveDisplayBounds_(buildMapData());
+    } else {
+      const extras = [];
+      const ext = geoReference.extent;
+      if (ext && ext.cornerTL && ext.cornerBR) {
+        const e1 = parseFloat(ext.cornerTL.timur), n1 = parseFloat(ext.cornerTL.utara);
+        const e2 = parseFloat(ext.cornerBR.timur), n2 = parseFloat(ext.cornerBR.utara);
+        if ([e1, n1, e2, n2].every(Number.isFinite)) {
+          extras.push({ minT:Math.min(e1,e2), maxT:Math.max(e1,e2), minU:Math.min(n1,n2), maxU:Math.max(n1,n2) });
+        }
+      }
+      const base = computeMineGridBounds(buildMapData(), extras);
+      if (base) {
+        const ratio = mapViewportRatio_ > 0 ? mapViewportRatio_ : 1;
+        const w = base.maxT - base.minT, h = base.maxU - base.minU;
+        let minT = base.minT, maxT = base.maxT, minU = base.minU, maxU = base.maxU;
+        if (w > 0 && h > 0) {
+          const currentRatio = w / h;
+          if (currentRatio > ratio) {
+            const extra = ((w / ratio) - h) / 2;
+            minU -= extra; maxU += extra;
+          } else if (currentRatio < ratio) {
+            const extra = ((h * ratio) - w) / 2;
+            minT -= extra; maxT += extra;
+          }
+        }
+        bounds = { minT, maxT, minU, maxU };
+      }
+    }
     if (!bounds) return { ok:false, reason:'Map bounds belum tersedia.' };
 
     const deviceProfile = window.mg1DeviceTileEngineProfile || getDeviceTileEngineProfile_();
