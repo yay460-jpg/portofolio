@@ -1322,8 +1322,8 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   });
   const c2Windows = adaptiveC2 ? levelPlan.map((plan) => {
     const w = getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0);
-    // V14.44: LOW C2 keeps the sharp 1.50x/768px settings and expands
-    // the selected render set to 22 local tiles without shrinking tile density.
+    // V14.45 STEP D: LOW C2 prepares a 22-tile prefetch set while keeping
+    // the sharp 1.50x/768px settings. The viewport itself is unchanged.
     return (isLowC2 && w) ? expandAdaptiveC2TileWindowToTarget_(w, 22) : w;
   }) : [];
   const effectiveTotals = adaptiveC2 ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total)) : levelPlan.map(item => item.total);
@@ -1431,10 +1431,14 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
             percent
           );
         }
-        // Give older Android/WebView devices a small scheduling window every few tiles.
-        // This keeps the UI responsive and lets released canvases become collectible.
-        if (done % 5 === 0) {
-          await new Promise(r => setTimeout(r, 10));
+        // STEP D PREFETCH: LOW device uses the profiled batch/delay guard.
+        // Batch=2 and Delay=25ms intentionally yield between small groups so older
+        // Android/WebView devices get a scheduling window and released canvases can
+        // become collectible before the next prefetch group is rendered.
+        const prefetchBatch = isLowC2 && deviceProfile ? Math.max(1, Number(deviceProfile.batchSize) || 2) : 5;
+        const prefetchDelay = isLowC2 && deviceProfile ? Math.max(0, Number(deviceProfile.batchDelayMs) || 25) : 10;
+        if (done % prefetchBatch === 0) {
+          await new Promise(r => setTimeout(r, prefetchDelay));
         } else {
           await new Promise(r => setTimeout(r, 0));
         }
@@ -1445,7 +1449,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
     c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
     window.mg1LastC2RenderStats = c2Stats;
-    out.adaptive = { mode:'viewport-plus-local-neighbor-selected-factor', prefetchRadius:0, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
+    out.adaptive = { mode:'viewport-plus-prefetch-selected-set', prefetchRadius:0, prefetchTarget:(isLowC2 ? 22 : 0), batchSize:(isLowC2 && deviceProfile ? Number(deviceProfile.batchSize)||2 : 0), batchDelayMs:(isLowC2 && deviceProfile ? Number(deviceProfile.batchDelayMs)||25 : 0), lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
     try {
       const diag = document.getElementById('mg1-device-profile-diagnostic');
       if (diag) {
@@ -1461,7 +1465,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
         // V14.40: report the hard 1.50x test factor and effective raster density.
         var renderFactor = adaptiveC2 ? (isLowC2 ? c2Factor : 1) : (window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.factor : 0.5);
         var effectiveScale = adaptiveC2 ? (Number(baseScale) * Number(renderFactor)) : (Number(baseScale) * Number(renderFactor));
-        box.textContent = 'STEP C2 — ADAPTIVE RENDER | Render Factor: ' + Number(renderFactor).toFixed(2) + 'x | Effective Scale: ' + Number(effectiveScale).toFixed(2) + 'x | Tile: ' + tileSize + 'px | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
+        box.textContent = 'STEP C2 + D PREFETCH | Render Factor: ' + Number(renderFactor).toFixed(2) + 'x | Effective Scale: ' + Number(effectiveScale).toFixed(2) + 'x | Tile: ' + tileSize + 'px | C1 Visible: ' + plannedVisible + ' | Prefetch Target: ' + (isLowC2 ? 22 : 0) + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Batch: ' + (isLowC2 && deviceProfile ? Number(deviceProfile.batchSize)||2 : 0) + ' | Delay: ' + (isLowC2 && deviceProfile ? Number(deviceProfile.batchDelayMs)||25 : 0) + 'ms | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status; 
       }
     } catch (_) {}
   }
