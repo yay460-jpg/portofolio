@@ -159,7 +159,7 @@ const GEOPDF_TILE_SIZE_ = 256;
 // [BARU -- pengaman ringan] Batas atas eksplisit ukuran 1 tile (px). Tile SELALU
 // dibuat <=GEOPDF_TILE_SIZE_, jadi ini sebenarnya jaring pengaman kedua -- murah,
 // tidak pernah kena kecuali GEOPDF_TILE_SIZE_ diubah jadi sangat besar di masa depan.
-const GEOPDF_TILE_SIZE_MAX_SAFE_ = 512;
+const GEOPDF_TILE_SIZE_MAX_SAFE_ = 768;
 const GEOPDF_TILE_LEVEL_FACTORS_ = [0.25, 0.5, 1, 2];
 const GEOPDF_TILE_MAX_LEVEL_ = GEOPDF_TILE_LEVEL_FACTORS_.length - 1;
 
@@ -1217,11 +1217,18 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
   const adaptiveC2 = window.mg1AdaptiveC2Enabled === true;
   const deviceProfile = window.mg1DeviceTileEngineProfile || null;
-  // V14.37 C4: keep native 1x quality, but use a larger 512px raster tile
-  // for the active C2 viewport on LOW devices. This reduces tile count without
-  // lowering source resolution; the existing 512px safety ceiling remains intact.
-  const tileSize = (adaptiveC2 && deviceProfile && String(deviceProfile.tier).toUpperCase() === 'LOW')
-    ? 512
+  // V14.38 C4b: increase actual PDF raster density for LOW devices without
+  // increasing the planned viewport tile count. The previous C2 '1x' was a
+  // relative factor over a memory-limited baseScale (often ~0.5x), so the
+  // resulting pixels were still soft on a DPR 3.15 display. Keep the same
+  // approximate tile-pixel budget by pairing a 1.5x density boost with a
+  // proportional 768px raster tile.
+  const isLowC2 = adaptiveC2 && deviceProfile && String(deviceProfile.tier).toUpperCase() === 'LOW';
+  const c2QualityBoost = isLowC2 ? 1.5 : 1;
+  const c2TargetScale = isLowC2 ? Math.min(0.75, Number(baseScale) * c2QualityBoost) : Number(baseScale);
+  const c2Factor = isLowC2 && Number(baseScale) > 0 ? c2TargetScale / Number(baseScale) : 1;
+  const tileSize = isLowC2
+    ? Math.min(768, Math.max(512, Math.round(512 * c2Factor)))
     : GEOPDF_TILE_SIZE_;
   // V14.32: during a NEW GeoPDF upload there is no activeBackgroundMapId yet.
   // Build C1 directly from the incoming GeoReference so C2 can use the actual
@@ -1229,11 +1236,10 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   if (adaptiveC2) {
     try { window.mg1LastViewportTilePlan = getViewportTilePlan_(geoReference); } catch (_) {}
   }
-  // V14.34: LOW-device C2 quality raised to native 1x for sharper GeoPDF output.
-  // C1 still controls viewport culling; only the selected visible area is rendered.
-  // We deliberately keep tileSize=256 to avoid the 512px memory pressure on older Android.
+  // V14.38: LOW-device C2 uses the density-adjusted factor above. C1 still
+  // controls viewport culling; only the selected visible area is rendered.
   const renderFactors = adaptiveC2
-    ? [1]
+    ? [isLowC2 ? c2Factor : 1]
     : factors;
   const c2Stats = {
     enabled: adaptiveC2,
@@ -1314,9 +1320,8 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
           c2Stats.skipped++;
           continue;
         }
-        // [BARU -- pengaman ringan] Tiap tile SELALU <= tileSize (256px), jadi risiko
-        // memori per-tile memang kecil -- tapi validasi eksplisit tetap murah & aman
-        // sbg jaring pengaman kalau suatu saat GEOPDF_TILE_SIZE_ diubah jadi besar.
+        // V14.38: tile guard follows the raised 768px safety ceiling. Only one
+        // raster canvas is alive at a time and it is released in finally.
         if (tw <= 0 || th <= 0 || tw > GEOPDF_TILE_SIZE_MAX_SAFE_ || th > GEOPDF_TILE_SIZE_MAX_SAFE_) {
           console.warn('Tile ' + tx + ',' + ty + ' level ' + li + ' dilewati (ukuran tidak wajar: ' + tw + 'x' + th + ').');
           done++; globalDone++;
@@ -1396,10 +1401,10 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
           if (close) diag.insertBefore(box, close); else diag.appendChild(box);
         }
         var plannedVisible = window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.visible.count : 0;
-        // V14.35: C2 now reports the factor actually rendered, not the older C1 planner factor.
-        // V14.34 forces the selected C2 render level to native 1x for sharper visible tiles.
-        var renderFactor = adaptiveC2 ? 1 : (window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.factor : 0.5);
-        box.textContent = 'STEP C2 — ADAPTIVE RENDER | Render Factor: ' + renderFactor + 'x | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
+        // V14.38: report the actual relative factor and the effective raster density.
+        var renderFactor = adaptiveC2 ? (isLowC2 ? c2Factor : 1) : (window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.factor : 0.5);
+        var effectiveScale = adaptiveC2 ? (Number(baseScale) * Number(renderFactor)) : (Number(baseScale) * Number(renderFactor));
+        box.textContent = 'STEP C2 — ADAPTIVE RENDER | Render Factor: ' + Number(renderFactor).toFixed(2) + 'x | Effective Scale: ' + Number(effectiveScale).toFixed(2) + 'x | Tile: ' + tileSize + 'px | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
       }
     } catch (_) {}
   }
