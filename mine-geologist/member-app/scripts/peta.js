@@ -484,6 +484,84 @@ function getViewportTilePlan_(geoReferenceOverride) {
   }
 }
 
+// STEP D1 - PREFETCH PLANNER ONLY
+// Tidak merender, tidak mengubah viewport, dan tidak mengubah tile core.
+// Planner hanya menentukan kandidat tile satu langkah di depan arah pan/drag.
+function planAdaptivePrefetchFromPan_(dx, dy) {
+  try {
+    if (window.mg1AdaptiveC2Enabled !== true) return null;
+    const planner = window.mg1LastViewportTilePlan;
+    if (!planner || !planner.ok || !planner.visible) return null;
+    const tileSize = Math.max(64, Number(planner.tileSize) || 768);
+    const vx = Number(dx) || 0, vy = Number(dy) || 0;
+    if (Math.hypot(vx, vy) < 8) return null;
+
+    // Drag map ke kiri berarti viewport bergerak ke kanan, dan sebaliknya.
+    const dirX = vx < -8 ? 1 : (vx > 8 ? -1 : 0);
+    const dirY = vy < -8 ? 1 : (vy > 8 ? -1 : 0);
+    const minX = Number(planner.visible.minX), maxX = Number(planner.visible.maxX);
+    const minY = Number(planner.visible.minY), maxY = Number(planner.visible.maxY);
+    const tilesX = Number(planner.tilesX), tilesY = Number(planner.tilesY);
+    if (![minX,maxX,minY,maxY,tilesX,tilesY].every(Number.isFinite)) return null;
+
+    const keys = [];
+    const seen = new Set();
+    const add = (tx, ty) => {
+      if (tx < 0 || ty < 0 || tx >= tilesX || ty >= tilesY) return;
+      const key = tx + ',' + ty;
+      if (!seen.has(key)) { seen.add(key); keys.push(key); }
+    };
+
+    // Satu band tile di depan arah gerakan. Tidak menyentuh core visible tiles.
+    if (dirX !== 0) {
+      const tx = dirX > 0 ? maxX + 1 : minX - 1;
+      for (let ty = minY; ty <= maxY; ty++) add(tx, ty);
+    }
+    if (dirY !== 0) {
+      const ty = dirY > 0 ? maxY + 1 : minY - 1;
+      for (let tx = minX; tx <= maxX; tx++) add(tx, ty);
+    }
+    // Untuk gerakan diagonal, tambahkan satu tile sudut di arah gerak.
+    if (dirX !== 0 && dirY !== 0) {
+      add(dirX > 0 ? maxX + 1 : minX - 1, dirY > 0 ? maxY + 1 : minY - 1);
+    }
+
+    const plan = {
+      direction: dirX + ',' + dirY,
+      drag:{x:vx,y:vy},
+      tileSize,
+      candidates:keys,
+      count:keys.length,
+      coreVisibleCount:Number(planner.visible.count) || 0,
+      status:'PLANNER ONLY'
+    };
+    window.mg1LastPrefetchPlan = plan;
+    return plan;
+  } catch (e) {
+    return null;
+  }
+}
+
+function appendPrefetchPlannerDiagnostic_() {
+  try {
+    const el = document.getElementById('mg1-device-profile-diagnostic');
+    if (!el) return;
+    const old = document.getElementById('mg1-prefetch-planner');
+    if (old) old.remove();
+    const plan = window.mg1LastPrefetchPlan;
+    const box = document.createElement('div');
+    box.id = 'mg1-prefetch-planner';
+    box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.86;';
+    if (!plan) {
+      box.textContent = 'STEP D1 — PREFETCH PLANNER | menunggu arah pan | STATUS: PLANNER ONLY';
+    } else {
+      box.textContent = 'STEP D1 — PREFETCH PLANNER | Direction: ' + plan.direction + ' | Core: ' + plan.coreVisibleCount + ' | Candidates: ' + plan.count + ' | Tile: ' + plan.tileSize + 'px | STATUS: PLANNER ONLY';
+    }
+    const close = el.querySelector('button[data-mg1-close]');
+    if (close) el.insertBefore(box, close); else el.appendChild(box);
+  } catch (_) {}
+}
+
 function appendViewportTilePlannerDiagnostic_() {
   try {
     const el = document.getElementById('mg1-device-profile-diagnostic');
@@ -503,6 +581,7 @@ function appendViewportTilePlannerDiagnostic_() {
     const close = el.querySelector('button[data-mg1-close]');
     if (close) el.insertBefore(box, close);
     else el.appendChild(box);
+    appendPrefetchPlannerDiagnostic_();
   } catch (e) { console.warn('[ADAPTIVE] Planner diagnostic gagal:', e); }
 }
 
@@ -3679,6 +3758,9 @@ function handleMapTouchEnd_(event) {
 function scheduleMapPanVisual_() {
   const svg = mapPanState_.visualSvg;
   if (!svg || !mapPanState_.active) return;
+  // STEP D1: hanya menghitung kandidat prefetch berdasarkan arah drag.
+  // Belum ada render/cache; viewport visual tetap sepenuhnya dikendalikan STEP 7.6D.
+  planAdaptivePrefetchFromPan_(mapPanState_.dx, mapPanState_.dy);
   // STEP 7.6D: apply visual pan immediately from the input event.
   // Do not wait an extra requestAnimationFrame; the browser can composite the
   // transform on the next frame while the input event is still in flight.
