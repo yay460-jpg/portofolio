@@ -1,4 +1,4 @@
-/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V15.6 DETAIL-FIRST COMPOSITOR. */
+/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V15.7 PERSISTENT TILE STORE INDEX (from V15.4 persistent map surface). */
 /* ============================================================
  * MINE GEOLOGIST / LITHOSITE -- member-app/scripts/peta.js
  * [PARTISI -- 4 Sep, Tahap 4] Tab Peta -- Mine Grid SVG, North Arrow (3-mode
@@ -1316,48 +1316,6 @@ function normalizeLithositeTile_(tile, factor) {
   return out;
 }
 
-// V15.6 STEP E — DETAIL-FIRST COMPOSITOR
-// BASE tetap full coverage. DETAIL menjadi visual utama dan harus opaque; BASE hanya fallback.
-// viewport saat ini + margin kecil. Tile identity factor/x/y menjadi kunci lifecycle.
-let mapDetailTileLifecycle_ = { mounted: new Set(), lastViewportKey: '', lastMountedCount: 0, lastRetainedCount: 0 };
-function getLithositeDetailTileViewportKey_(viewBox) {
-  if (!viewBox) return '';
-  return [Number(viewBox.x).toFixed(3), Number(viewBox.y).toFixed(3), Number(viewBox.w).toFixed(3), Number(viewBox.h).toFixed(3)].join('|');
-}
-function tileIntersectsMapViewBox_(tileX, tileY, tileW, tileH, viewBox, margin) {
-  if (!viewBox) return true;
-  const m = Math.max(0, Number(margin) || 0);
-  const left = Number(tileX), top = Number(tileY), right = left + Number(tileW), bottom = top + Number(tileH);
-  const vx0 = Number(viewBox.x) - m, vy0 = Number(viewBox.y) - m;
-  const vx1 = vx0 + Number(viewBox.w) + m * 2, vy1 = vy0 + Number(viewBox.h) + m * 2;
-  return right > vx0 && left < vx1 && bottom > vy0 && top < vy1;
-}
-function prepareLithositeDetailTileLifecycle_(level, tileSize, imgW, imgH, viewBox) {
-  if (!level || !Array.isArray(level.tiles)) {
-    mapDetailTileLifecycle_.mounted = new Set();
-    mapDetailTileLifecycle_.lastViewportKey = getLithositeDetailTileViewportKey_(viewBox);
-    mapDetailTileLifecycle_.lastMountedCount = 0;
-    mapDetailTileLifecycle_.lastRetainedCount = 0;
-    return [];
-  }
-  const pxScaleX = imgW / Math.max(1, Number(level.width) || 1);
-  const pxScaleY = imgH / Math.max(1, Number(level.height) || 1);
-  const margin = Math.max(Number(viewBox && viewBox.w) || 0, Number(viewBox && viewBox.h) || 0) * 0.15;
-  const nextMounted = new Set(), selected = [];
-  for (const t of level.tiles) {
-    if (!t) continue;
-    const key = t.tileKey || t.tileId || makeLithositeTileId_(level.factor, t.x, t.y);
-    const tx = Number(t.x) * tileSize * pxScaleX, ty = Number(t.y) * tileSize * pxScaleY;
-    const tw = Number(t.width) * pxScaleX, th = Number(t.height) * pxScaleY;
-    if (tileIntersectsMapViewBox_(tx, ty, tw, th, viewBox, margin)) { nextMounted.add(key); selected.push(t); }
-  }
-  mapDetailTileLifecycle_.mounted = nextMounted;
-  mapDetailTileLifecycle_.lastViewportKey = getLithositeDetailTileViewportKey_(viewBox);
-  mapDetailTileLifecycle_.lastMountedCount = selected.length;
-  mapDetailTileLifecycle_.lastRetainedCount = selected.length;
-  return selected;
-}
-
 // V15.3 STEP B — PERSISTENT BASE TILE LAYER
 // BASE bukan lagi sekadar level pertama yang kebetulan dipilih renderer.
 // Metadata ini menetapkan BASE sebagai layer permanen/full-coverage yang menjadi
@@ -1377,16 +1335,51 @@ function attachLithositePersistentBaseLayer_(pyramid) {
     tileCount: tiles.length,
     tileKeys: tiles.map(t => t && (t.tileKey || t.tileId)).filter(Boolean)
   };
-  pyramid.tileStore = {
-    version: 1,
-    identity: 'factor/x/y',
-    baseLayer: {
-      persistent: true,
-      factor: Number(base.factor),
-      levelIndex: baseIndex
-    }
+  ensureLithositeTileStore_(pyramid);
+  pyramid.tileStore.baseLayer = {
+    persistent: true,
+    factor: Number(base.factor),
+    levelIndex: baseIndex
   };
   return pyramid;
+}
+
+// V15.7 STEP D — PERSISTENT TILE STORE INDEX
+// Tile data tetap disimpan satu kali di level.tiles. Store ini hanya menyimpan
+// identity -> lokasi tile, sehingga renderer/queue berikutnya dapat mengambil tile
+// tanpa membangun ulang pyramid atau menduplikasi dataUrl.
+function ensureLithositeTileStore_(pyramid) {
+  if (!pyramid || !Array.isArray(pyramid.levels)) return pyramid;
+  const index = Object.create(null);
+  for (let li = 0; li < pyramid.levels.length; li++) {
+    const level = pyramid.levels[li];
+    if (!level || !Array.isArray(level.tiles)) continue;
+    const factor = Number(level.factor);
+    for (let ti = 0; ti < level.tiles.length; ti++) {
+      const tile = level.tiles[ti];
+      const normalized = normalizeLithositeTile_(tile, factor);
+      if (!normalized) continue;
+      // Keep the same tile object/dataUrl; do not duplicate raster payload.
+      if (normalized !== tile) level.tiles[ti] = normalized;
+      index[normalized.tileKey] = { levelIndex: li, tileIndex: ti };
+    }
+  }
+  pyramid.tileStore = {
+    version: 2,
+    identity: 'factor/x/y',
+    count: Object.keys(index).length,
+    index
+  };
+  return pyramid;
+}
+
+function getLithositeTileByKey_(pyramid, tileKey) {
+  if (!pyramid || !pyramid.tileStore || !pyramid.tileStore.index) return null;
+  const ref = pyramid.tileStore.index[String(tileKey)];
+  if (!ref) return null;
+  const level = pyramid.levels && pyramid.levels[ref.levelIndex];
+  const tile = level && Array.isArray(level.tiles) ? level.tiles[ref.tileIndex] : null;
+  return tile || null;
 }
 
 async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoReference) {
@@ -4291,19 +4284,16 @@ function renderMineGridSvg(points) {
           if (!level || !Array.isArray(level.tiles)) return;
           const pxScaleX = imgW / Math.max(1, Number(level.width) || 1);
           const pxScaleY = imgH / Math.max(1, Number(level.height) || 1);
-          const tilesToMount = layerName === 'detail'
-            ? prepareLithositeDetailTileLifecycle_(level, tileSize, imgW, imgH, viewBox)
-            : level.tiles;
-          for (const t of tilesToMount) {
+          for (const t of level.tiles) {
             const tx = imgX + t.x * tileSize * pxScaleX;
             const ty = imgY + t.y * tileSize * pxScaleY;
             const tw = t.width * pxScaleX, th = t.height * pxScaleY;
-            svg += '<image data-map-layer="' + layerName + '" data-map-tile-key="' + String(t.tileKey || t.tileId || makeLithositeTileId_(level.factor, t.x, t.y)) + '" href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" decoding="sync" preserveAspectRatio="none" opacity="' + opacity + '" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
+            svg += '<image data-map-layer="' + layerName + '" href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" decoding="sync" preserveAspectRatio="none" opacity="' + opacity + '" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
           }
         };
 
-        appendLevel(baseLevel, 'base', '1');
-        if (detailLevel && detailLevel !== baseLevel) appendLevel(detailLevel, 'detail', '1');
+        appendLevel(baseLevel, 'base', '0.94');
+        if (detailLevel && detailLevel !== baseLevel) appendLevel(detailLevel, 'detail', '0.98');
       } else {
         svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + ' pointer-events="none" draggable="false" oncontextmenu="return false;"/>';
       }
