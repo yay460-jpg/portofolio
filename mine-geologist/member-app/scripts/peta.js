@@ -1297,6 +1297,25 @@ function getAdaptiveC2TileWindowFromPlan_(planner, levelPlan, prefetchRadius) {
   } catch(e) { return null; }
 }
 
+// V15.2 STEP A — TILE IDENTITY
+// Tile menjadi unit mandiri: level + x + y. Tidak mengubah visual, gesture, C1/C2,
+// factor 1.55x, atau ukuran tile. Identity ini menjadi fondasi cache/queue berikutnya.
+function makeLithositeTileId_(factor, x, y) {
+  const f = Number(factor);
+  const fs = Number.isFinite(f) ? f.toFixed(2).replace(/\.00$/, '') : String(factor);
+  return 'L' + fs + '_X' + Number(x) + '_Y' + Number(y);
+}
+function normalizeLithositeTile_(tile, factor) {
+  if (!tile) return null;
+  const x = Number(tile.x), y = Number(tile.y);
+  if (!Number.isInteger(x) || !Number.isInteger(y)) return null;
+  const out = { ...tile };
+  out.levelFactor = Number(factor);
+  out.tileKey = makeLithositeTileId_(factor, x, y);
+  out.tileId = out.tileKey;
+  return out;
+}
+
 async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoReference) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
@@ -1349,6 +1368,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     sourceHeight: Math.max(1, Math.round(vpHPt * baseScale)),
     levels: [],
     v15Seamless: true, // Marker: base layer kept for no blank pan
+    tileIdentity: 'factor/x/y', // V15.2 STEP A
 
     maxLevel: factors.length - 1
   };
@@ -1451,7 +1471,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
           }).promise;
 
           const dataUrl = canvas.toDataURL('image/png');
-          tiles.push({ x: tx, y: ty, width: tw, height: th, dataUrl });
+          tiles.push(normalizeLithositeTile_({ x: tx, y: ty, width: tw, height: th, dataUrl }, factor));
           if (adaptiveC2) c2Stats.rendered++;
         } catch (tileErr) {
           if (adaptiveC2) c2Stats.failed++;
@@ -1481,7 +1501,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
         }
       }
     }
-    out.levels.push({ level: li, factor, scale, width, height, tilesX, tilesY, tiles });
+    out.levels.push({ level: li, factor, scale, width, height, tilesX, tilesY, tileIdentity: 'factor/x/y', tiles });
   }
   if (adaptiveC2) {
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
