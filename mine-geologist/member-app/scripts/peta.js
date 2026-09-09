@@ -1,4 +1,4 @@
-/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V15.1 SEAMLESS BASE+DETAIL. */
+/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V15.4 PERSISTENT MAP SURFACE. */
 /* ============================================================
  * MINE GEOLOGIST / LITHOSITE -- member-app/scripts/peta.js
  * [PARTISI -- 4 Sep, Tahap 4] Tab Peta -- Mine Grid SVG, North Arrow (3-mode
@@ -3840,12 +3840,40 @@ function scheduleMapPanVisual_() {
   applyPanVisual_(svg, mapPanState_.dx, mapPanState_.dy);
 }
 
+// V15.4 STEP C — PERSISTENT MAP SURFACE.
+// Pan visual tidak lagi mentransform SVG element-nya. SVG tetap berada tepat di dalam
+// viewport; yang digeser hanya jendela viewBox terhadap tile BASE yang sudah ada.
+// Ini mencegah container membuka area kosong/navy ketika surface tidak ikut diperbesar.
 function applyPanVisual_(svg, dx, dy) {
   if (!svg) return;
+  const base = mapPanState_.baseViewBox;
+  const rectW = Number(mapPanState_.baseRectW) || 0;
+  const rectH = Number(mapPanState_.baseRectH) || 0;
+  if (!base || !(rectW > 0) || !(rectH > 0)) return;
+
   const x = Number.isFinite(dx) ? dx : 0;
   const y = Number.isFinite(dy) ? dy : 0;
-  svg.style.transform = composeMapTransform_(1, mapRotationDeg_, x, y);
+  const r = (Number.isFinite(mapRotationDeg_) ? mapRotationDeg_ : 0) * Math.PI / 180;
+  // CSS pan translation is in screen pixels. Convert it into SVG/viewBox coordinates.
+  // Because the SVG itself may be rotated, undo that rotation before shifting viewBox.
+  const qx = x * Math.cos(-r) - y * Math.sin(-r);
+  const qy = x * Math.sin(-r) + y * Math.cos(-r);
+  const vx = base.w / rectW;
+  const vy = base.h / rectH;
+  svg.setAttribute('viewBox',
+    (base.x - qx * vx).toFixed(5) + ' ' +
+    (base.y - qy * vy).toFixed(5) + ' ' +
+    base.w.toFixed(5) + ' ' + base.h.toFixed(5));
+  // Keep CSS transform stable: rotation only. No translate on the surface itself.
+  svg.style.transform = composeMapTransform_(1, mapRotationDeg_, 0, 0);
   svg.style.willChange = 'transform';
+}
+
+function restoreMapPanViewBox_() {
+  const svg = mapPanState_.visualSvg;
+  const base = mapPanState_.baseViewBox;
+  if (!svg || !base) return;
+  svg.setAttribute('viewBox', base.x + ' ' + base.y + ' ' + base.w + ' ' + base.h);
 }
 function applyPinchVisualTransform_(zoom) {
   const svg = mapPinchState_.visualSvg;
@@ -3892,6 +3920,7 @@ function beginMapPanPointer_(event, svg, bounds, startX, startY) {
     baseRectW: rect.width,
     baseRectH: rect.height,
     baseBounds: bounds,
+    baseViewBox: getMapViewBox_(bounds),
     visualSvg: svg,
     moved: false,
     suppressTapUntil: 0,
@@ -3921,7 +3950,12 @@ function commitMapPan_(extraDx, extraDy) {
     const ny = mapPanState_.baseCenterNative.y + deltaNativeY;
     if (Number.isFinite(nx) && Number.isFinite(ny)) mapViewportState_.centerNative = { x: nx, y: ny };
   }
-  if (svg) { svg.style.transition = ''; svg.style.transform = 'none'; svg.style.willChange = ''; }
+  if (svg) {
+    restoreMapPanViewBox_();
+    svg.style.transition = '';
+    svg.style.transform = 'none';
+    svg.style.willChange = '';
+  }
   mapPanState_.active = false;
   mapPanState_.visualSvg = null;
   mapPanRenderScheduled_ = false;
