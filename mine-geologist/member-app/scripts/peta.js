@@ -1,4 +1,4 @@
-/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V15.11 RUNTIME MISSING DETAIL TILE RESOLVER. */
+/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V17.1 GEO-PDF NO FLICKER STABILIZATION. */
 /* ============================================================
  * MINE GEOLOGIST / LITHOSITE -- member-app/scripts/peta.js
  * [PARTISI -- 4 Sep, Tahap 4] Tab Peta -- Mine Grid SVG, North Arrow (3-mode
@@ -948,6 +948,69 @@ function makeGeoPdfProgressReporter_() {
 }
 
 
+
+function paintMapUploadGeoPdfUi_() {
+  try {
+    const f = mapUploadFormState || {};
+    const statusEl = document.getElementById('map-upload-status');
+    const progressTextEl = document.getElementById('map-upload-progress-text');
+    const previewEl = document.getElementById('map-upload-preview');
+    const lockNoteEl = document.getElementById('map-upload-geo-lock-note');
+    const saveBtn = document.getElementById('map-upload-save-btn');
+    const fillEl = document.getElementById('map-upload-progress-fill');
+
+    const fields = [
+      ['map-upload-tl-timur', f.tlTimur],
+      ['map-upload-tl-utara', f.tlUtara],
+      ['map-upload-br-timur', f.brTimur],
+      ['map-upload-br-utara', f.brUtara]
+    ];
+    for (const [id, value] of fields) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      const v = value == null ? '' : String(value);
+      if (el.value !== v) el.value = v;
+      el.readOnly = !!f.geoReference;
+      el.disabled = !!f.geoReference;
+    }
+
+    const msg = String(mapUploadStatusMsg || 'Memproses GeoPDF...');
+    if (statusEl) {
+      statusEl.textContent = msg;
+      statusEl.classList.toggle('text-emerald-400', !!mapUploadStatusOk);
+      statusEl.classList.toggle('text-rose-400', !mapUploadStatusOk);
+      statusEl.classList.toggle('text-amber-300', mapUploadStatusOk && /peringatan|warning/i.test(msg));
+    }
+    if (progressTextEl) progressTextEl.textContent = msg;
+
+    if (fillEl) {
+      const pct = mapUploadProcessing ? 0 : (f.fileDataUrl ? 100 : 0);
+      fillEl.style.width = pct + '%';
+    }
+
+    if (previewEl) {
+      if (f.fileDataUrl) {
+        if (previewEl.src !== f.fileDataUrl) previewEl.src = f.fileDataUrl;
+        previewEl.classList.remove('hidden');
+      } else {
+        previewEl.removeAttribute('src');
+        previewEl.classList.add('hidden');
+      }
+    }
+
+    if (lockNoteEl) lockNoteEl.classList.toggle('hidden', !f.geoReference);
+
+    if (saveBtn) {
+      const busy = !!mapUploadBusy || !!mapUploadProcessing;
+      saveBtn.disabled = busy;
+      saveBtn.innerHTML = busy
+        ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span><span>' +
+          (mapUploadProcessing ? 'Memproses GeoPDF...' : 'Menyimpan...') + '</span>'
+        : icon('upload','w-4 h-4') + '<span>Simpan Peta</span>';
+    }
+  } catch (_) {}
+}
+
 async function handleMapImageFileSelected_(inputEl) {
   const file = inputEl.files && inputEl.files[0];
   if (!file) return;
@@ -975,10 +1038,10 @@ async function handleMapImageFileSelected_(inputEl) {
     mapUploadStatusMsg = 'File .tif ini tidak punya koordinat tertanam (mungkin hasil "Export Map/Print", bukan "Export Data" dari ArcGIS) -- lanjut isi 2 sudut manual di bawah.';
     mapUploadStatusOk = false;
   } else if (/\.pdf$/i.test(file.name)) {
-    // GeoPDF: pisahkan status GeoReference dari proses tile. Koordinat dikirim ke form
-    // segera setelah metadata+transform tervalidasi; user tidak perlu menunggu seluruh
-    // pyramid selesai.
-    mapUploadStatusMsg = 'Membaca koordinat dari GeoPDF...'; mapUploadStatusOk = true; mapUploadProcessing = true; render();
+    // V17 NO FLICKER: GeoPDF - jangan render() full, cuma update status modal
+    mapUploadStatusMsg = 'Membaca koordinat dari GeoPDF...'; mapUploadStatusOk = true; mapUploadProcessing = true;
+    try { paintMapUploadGeoPdfUi_(); } catch(_) {}
+    // Jangan render() full map di belakang modal - biar tidak kedip
     // STEP 7.5.3C: jangan gunakan Promise.race/timeout untuk lifecycle GeoPDF.
     // Tile pyramid pada Android lama memang dapat >20 detik. Timeout sebelumnya membuat
     // handler upload selesai lebih dulu sementara tryParseGeoPdf_ masih berjalan, sehingga
@@ -996,11 +1059,14 @@ async function handleMapImageFileSelected_(inputEl) {
       mapUploadFormState.brUtara = String(cornerBR.utara);
       mapUploadStatusMsg = '✓ GeoReference/koordinat berhasil dibaca. Tile pyramid sedang diproses...';
       mapUploadStatusOk = true;
-      // Update the live form immediately; render() below may recreate the modal DOM.
+      // V17 NO FLICKER: Jangan render() full map saat modal masih proses - cuma sync DOM form
       syncMapUploadGeoReferenceDom_();
-      render();
-      // Re-apply after render so a freshly recreated modal cannot show stale defaults.
-      requestAnimationFrame(() => syncMapUploadGeoReferenceDom_());
+      paintMapUploadGeoPdfUi_();
+      // Re-apply after next frame tanpa render() full
+      requestAnimationFrame(() => {
+        syncMapUploadGeoReferenceDom_();
+        paintMapUploadGeoPdfUi_();
+      });
     };
     const progressReporter = makeGeoPdfProgressReporter_();
     const geoResult = await tryParseGeoPdf_(file, progressReporter, applyGeoReferenceEarly_);
@@ -1033,7 +1099,8 @@ async function handleMapImageFileSelected_(inputEl) {
     }
     mapUploadProcessing = false;
     progressReporter.stop();
-    render(); return;
+    paintMapUploadGeoPdfUi_();
+    return;
   } else if (!file.type.startsWith('image/')) {
     mapUploadStatusMsg = 'File harus berupa gambar (PNG/JPG), GeoTIFF (.tif), atau GeoPDF (.pdf).'; mapUploadStatusOk = false; render(); return;
   }
@@ -3649,7 +3716,78 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
     bytes = null; buffer = null; text = '';
   }
 }
-// V15.14 STEP K — STABLE SAVE UI
+
+// V17.1 NO FLICKER — freeze the currently rendered map outside #app while the
+// final render() rebuilds the application DOM. This is a visual shield only;
+// it does not alter map state, tiles, gestures, or compositor math.
+function captureMapSurfaceTransition_() {
+  try {
+    const vp = document.getElementById('mg1-map-viewport');
+    if (!vp || !document.body) return null;
+    const rect = vp.getBoundingClientRect();
+    if (!(rect.width > 0 && rect.height > 0)) return null;
+
+    const overlay = vp.cloneNode(true);
+    overlay.id = 'mg1-map-transition-freeze';
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.style.position = 'fixed';
+    overlay.style.left = rect.left + 'px';
+    overlay.style.top = rect.top + 'px';
+    overlay.style.width = rect.width + 'px';
+    overlay.style.height = rect.height + 'px';
+    overlay.style.margin = '0';
+    overlay.style.zIndex = '2147483646';
+    overlay.style.pointerEvents = 'none';
+    overlay.style.opacity = '1';
+    overlay.style.transition = 'none';
+    overlay.style.transform = 'none';
+    document.body.appendChild(overlay);
+    return overlay;
+  } catch (_) {
+    return null;
+  }
+}
+
+function releaseMapSurfaceTransition_(overlay) {
+  if (!overlay) return;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
+      try {
+        const newVp = document.getElementById('mg1-map-viewport');
+        if (!newVp) {
+          overlay.remove();
+          return;
+        }
+
+        // SVG <image> tiles use data URLs. Preload the small set used by the
+        // freshly-rendered viewport so the freeze is removed only after the
+        // browser has had a chance to decode the same tiles.
+        const hrefs = Array.from(newVp.querySelectorAll('image'))
+          .map(el => el.getAttribute('href') || el.getAttributeNS('http://www.w3.org/1999/xlink', 'href'))
+          .filter(Boolean)
+          .slice(0, 96);
+
+        if (hrefs.length) {
+          await Promise.all(hrefs.map(href => new Promise(resolve => {
+            const img = new Image();
+            img.onload = img.onerror = () => resolve();
+            img.src = href;
+          })));
+        }
+
+        overlay.style.transition = 'opacity 160ms ease-out';
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          try { overlay.remove(); } catch (_) {}
+        }, 190);
+      } catch (_) {
+        try { overlay.remove(); } catch (_) {}
+      }
+    });
+  });
+}
+
+// V17.1 STEP K — STABLE SAVE + MAP TRANSITION UI
 // Selama proses Simpan, jangan panggil render() berulang-ulang. render() mengganti
 // app.innerHTML dan dapat membuat map surface berkedip. Status upload diperbarui langsung
 // pada DOM yang sudah ada; render() hanya dilakukan sekali setelah lifecycle save selesai.
@@ -3682,8 +3820,10 @@ async function submitMapUpload_() {
     mapUploadStatusMsg = 'Ke-4 angka Timur/Utara wajib angka valid (bukan kosong/teks).'; mapUploadStatusOk = false; render(); return;
   }
 
-  // V15.14: pisahkan "save ke IndexedDB" dari "register runtime source".
-  // Keduanya bukan satu transaksi. Kalau runtime registration gagal, map TETAP tersimpan.
+  // V17.1 NO FLICKER: capture the currently visible map BEFORE the final render().
+  // The snapshot lives outside #app, so replacing app.innerHTML cannot expose a
+  // black/empty frame while the new SVG/tile images are being attached.
+  const v17MapFreeze = captureMapSurfaceTransition_();
   mapUploadBusy = true;
   mapUploadStatusMsg = 'Menyimpan ke HP...';
   mapUploadStatusOk = true;
@@ -3751,8 +3891,10 @@ async function submitMapUpload_() {
     }
   } finally {
     mapUploadBusy = false;
-    // Satu render final saja. Tidak ada render() selama transaksi save berlangsung.
+    // Exactly one final render. The old map remains visually frozen outside #app
+    // until the new viewport has had a chance to attach/decode its tiles.
     render();
+    releaseMapSurfaceTransition_(v17MapFreeze);
   }
 }
 function activateBackgroundMap_(id) {
@@ -5319,10 +5461,10 @@ function renderMapUploadForm_() {
     '<div class="mb-3">' +
       '<label class="block text-[10px] text-white/40 mb-1 font-medium">Gambar Peta (PNG/JPG, GeoTIFF, atau GeoPDF -- koordinat auto-terisi kalau ada)</label>' +
       '<input type="file" accept="image/*,.tif,.tiff,.pdf" onchange="handleMapImageFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
-      (f.fileDataUrl ? '<img src="' + f.fileDataUrl + '" class="w-full h-24 object-cover rounded-lg mt-2">' : '') +
+      '<img id="map-upload-preview" src="' + (f.fileDataUrl || '') + '" class="w-full h-24 object-cover rounded-lg mt-2' + (f.fileDataUrl ? '' : ' hidden') + '">' +
     '</div>' +
     '<p class="text-[10px] text-white/40 mb-2 leading-relaxed">Masukkan Timur/Utara pojok KIRI-ATAS dan KANAN-BAWAH gambar (dari ArcGIS/data survey) -- ini yang dipakai app utk menempel gambar ke posisi yang benar.</p>' +
-    (f.geoReference ? '<p class="text-[10px] text-emerald-400/80 mb-2 leading-relaxed">🔒 Terkunci -- koordinat ini hasil auto-detect GeoPDF, tidak bisa diedit manual (jaga-jaga salah ketik). Ganti file kalau perlu koordinat berbeda.</p>' : '') +
+    '<p id="map-upload-geo-lock-note" class="text-[10px] text-emerald-400/80 mb-2 leading-relaxed' + (f.geoReference ? '' : ' hidden') + '>🔒 Terkunci -- koordinat ini hasil auto-detect GeoPDF, tidak bisa diedit manual (jaga-jaga salah ketik). Ganti file kalau perlu koordinat berbeda.</p>' +
     '<div class="grid grid-cols-2 gap-2 mb-2">' +
       inputRow('Kiri-Atas: Timur', 'tlTimur', '397000') +
       inputRow('Kiri-Atas: Utara', 'tlUtara', '53500') +
@@ -5331,6 +5473,7 @@ function renderMapUploadForm_() {
     '</div>' +
     '<div class="mt-2">' +
       '<p id="map-upload-status" class="text-[10px] mt-1 mb-1 font-medium ' + (mapUploadStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + (mapUploadStatusMsg || 'Siap memproses file...') + '</p>' +
+      '<div id="map-upload-progress-text" class="sr-only"></div>' +
       '<div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden" role="progressbar" aria-label="Proses tile GeoPDF">' +
         '<div id="map-upload-progress-fill" class="h-full rounded-full bg-blue-500" style="width: 0%; transition: width 120ms ease-out;"></div>' +
       '</div>' +
