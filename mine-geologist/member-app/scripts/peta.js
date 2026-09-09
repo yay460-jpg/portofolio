@@ -912,12 +912,12 @@ function makeGeoPdfProgressReporter_() {
   // Semua update visual digabung ke 1 animation frame: status text + progress line.
   let pendingMsg = '';
   let pendingPercent = 0;
-  let rafPending = false;
+  let rafPending = null;
   let lastPercent = -1;
   let stopped = false;
 
   const paint_ = () => {
-    rafPending = false;
+    rafPending = null;
     if (stopped) return;
     const statusEl = document.getElementById('map-upload-status');
     const fillEl = document.getElementById('map-upload-progress-fill');
@@ -941,9 +941,8 @@ function makeGeoPdfProgressReporter_() {
     // Sinkronisasi koordinat tetap ringan; tidak membangun ulang modal.
     syncMapUploadGeoReferenceDom_();
 
-    if (!rafPending) {
-      rafPending = true;
-      requestAnimationFrame(paint_);
+    if (rafPending === null) {
+      rafPending = requestAnimationFrame(paint_);
     }
   };
   // [BARU -- perbaiki 2-modal-tumpang-tindih sesaat] paint_() dijadwalkan lewat
@@ -953,7 +952,15 @@ function makeGeoPdfProgressReporter_() {
   // masih mencari elemen progress-bar LAMA yg mungkin sudah/sedang diganti render() dgn
   // DOM sukses yg baru. .stop() dipanggil pemanggil TEPAT SEBELUM render() akhir supaya
   // paint_() yg masih ter-jadwal jadi no-op total -- tidak ada lagi peluang tabrakan.
-  reporter.stop = () => { stopped = true; };
+  reporter.stop = () => {
+    stopped = true;
+    if (rafPending) {
+      // V17.1 FIX-1: cancel the queued progress paint instead of allowing a
+      // stale frame to run after GeoPDF lifecycle completion.
+      try { cancelAnimationFrame(rafPending); } catch (_) {}
+      rafPending = false;
+    }
+  };
   return reporter;
 }
 
@@ -3763,6 +3770,54 @@ function captureMapSurfaceTransition_() {
   }
 }
 
+function preloadSvgImages_(svgElement, timeoutMs = 3000) {
+  const svgImages = Array.from(svgElement.querySelectorAll('image'));
+  if (svgImages.length === 0) return Promise.resolve(true);
+
+  const decodePromises = svgImages.map(svgImg => {
+    const href = svgImg.getAttribute('href') ||
+      svgImg.getAttributeNS('http://www.w3.org/1999/xlink', 'href') ||
+      svgImg.getAttribute('xlink:href');
+    if (!href) return Promise.resolve(true);
+
+    return new Promise(resolve => {
+      const loader = new Image();
+      let settled = false;
+      const done = ok => {
+        if (settled) return;
+        settled = true;
+        resolve(!!ok);
+      };
+      loader.onload = async () => {
+        if (typeof loader.decode === 'function') {
+          try {
+            await loader.decode();
+          } catch (_) {}
+        }
+        done(true);
+      };
+      loader.onerror = () => done(false);
+      loader.src = href;
+      if (loader.complete) {
+        if (typeof loader.decode === 'function') {
+          loader.decode().then(() => done(true)).catch(() => done(true));
+        } else {
+          done(true);
+        }
+      }
+    });
+  });
+
+  const timerGuard = new Promise(resolve => {
+    setTimeout(() => resolve('TIMEOUT'), Math.max(0, Number(timeoutMs) || 3000));
+  });
+
+  return Promise.race([Promise.all(decodePromises), timerGuard]).then(result => {
+    if (result === 'TIMEOUT') return false;
+    return Array.isArray(result) && result.every(Boolean);
+  });
+}
+
 function releaseMapSurfaceTransition_(overlay) {
   if (!overlay) return;
   requestAnimationFrame(() => {
@@ -3774,28 +3829,35 @@ function releaseMapSurfaceTransition_(overlay) {
           return;
         }
 
-        // SVG <image> tiles use data URLs. Preload the small set used by the
-        // freshly-rendered viewport so the freeze is removed only after the
-        // browser has had a chance to decode the same tiles.
-        const hrefs = Array.from(newVp.querySelectorAll('image'))
-          .map(el => el.getAttribute('href') || el.getAttributeNS('http://www.w3.org/1999/xlink', 'href'))
-          .filter(Boolean)
-          .slice(0, 96);
+        // V17.1 FIX-2: keep the old frozen map visible while the newly-rendered
+        // viewport is hidden. The DOM may be rebuilt, but the user never sees
+        // an intermediate empty map frame.
+        newVp.style.visibility = 'hidden';
+        newVp.style.pointerEvents = 'none';
 
-        if (hrefs.length) {
-          await Promise.all(hrefs.map(href => new Promise(resolve => {
-            const img = new Image();
-            img.onload = img.onerror = () => resolve();
-            img.src = href;
-          })));
+        // SVG <image> is not HTMLImageElement, so preload its href through a
+        // temporary Image() and decode that resource when supported. A timeout
+        // is a safety guard only: it NEVER forces an incomplete surface swap.
+        const isReady = await preloadSvgImages_(newVp, 3000);
+        if (!isReady) {
+          // The old map exists only as the freeze overlay after render(). Keep
+          // that overlay visible rather than exposing a partially-loaded new
+          // surface. The temporary new viewport is removed, but the old map
+          // remains visually intact as the safe fallback.
+          try { newVp.remove(); } catch (_) {}
+          return;
         }
 
-        overlay.style.transition = 'opacity 160ms ease-out';
-        overlay.style.opacity = '0';
-        setTimeout(() => {
+        // New surface is ready. Make it visible first; remove the old frozen
+        // surface on the following frame so there is never a frame with no map.
+        newVp.style.visibility = '';
+        newVp.style.pointerEvents = '';
+        requestAnimationFrame(() => {
           try { overlay.remove(); } catch (_) {}
-        }, 190);
+        });
       } catch (_) {
+        // Defensive fallback: if the handoff itself fails, remove only the
+        // temporary freeze overlay and never alter map engine state.
         try { overlay.remove(); } catch (_) {}
       }
     });
