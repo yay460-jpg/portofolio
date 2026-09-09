@@ -1,4 +1,4 @@
-/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path; logic unchanged from V4. */
+/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V15.1 SEAMLESS BASE+DETAIL. */
 /* ============================================================
  * MINE GEOLOGIST / LITHOSITE -- member-app/scripts/peta.js
  * [PARTISI -- 4 Sep, Tahap 4] Tab Peta -- Mine Grid SVG, North Arrow (3-mode
@@ -67,7 +67,7 @@ function flushMapGestureRender_() {
 function resetMapGestureTransientState_() {
   mapGestureOwner_ = null;
   mapPointerState_.clear();
-  mapPanState_.active = false; mapPanState_.visualSvg = null;
+  mapPanState_.active = false; if(mapPanState_.visualSvg){ mapPanState_.visualSvg.style.willChange='auto'; } mapPanState_.visualSvg = null;
   mapPanState_.dx = 0; mapPanState_.dy = 0;
   mapPanState_.velocityX = 0; mapPanState_.velocityY = 0; mapPanState_.moved = false;
   mapPinchState_.active = false; if (mapPinchState_.visualSvg) { mapPinchState_.visualSvg.style.transform = composeMapTransform_(1, mapRotationDeg_, 0, 0); mapPinchState_.visualSvg.style.transformOrigin='50% 50%'; } mapPinchState_.visualSvg = null;
@@ -482,6 +482,92 @@ function getViewportTilePlan_(geoReferenceOverride) {
     console.warn('[ADAPTIVE] Viewport planner gagal:', e);
     return { ok:false, reason:e && e.message ? e.message : 'Planner error.' };
   }
+}
+
+// V14.49 STEP D1 — PASSIVE PREFETCH PLANNER
+// Hanya membaca hasil C1 + arah pan yang SUDAH selesai. Tidak dipanggil dari
+// touchmove/pointermove dan tidak menyentuh DOM peta, SVG transform, level.tiles,
+// tile positioning, atau renderer. Output hanya daftar kandidat tile untuk tahap D2.
+function planPassivePrefetchAfterPan_(dx, dy) {
+  try {
+    const plan = getViewportTilePlan_();
+    if (!plan || !plan.ok) return { ok:false, reason:plan && plan.reason ? plan.reason : 'C1 belum siap.' };
+
+    const x = Number(dx) || 0, y = Number(dy) || 0;
+    const ax = Math.abs(x), ay = Math.abs(y);
+    if (Math.max(ax, ay) < 4) {
+      return { ok:true, direction:'NONE', candidates:[], plan:plan, status:'PLANNER ONLY' };
+    }
+
+    // Drag kiri -> viewport berikutnya cenderung membuka sisi kanan.
+    // Drag kanan -> membuka sisi kiri. Demikian pula sumbu Y.
+    const dirX = ax >= 4 ? (x < 0 ? 1 : -1) : 0;
+    const dirY = ay >= 4 ? (y < 0 ? 1 : -1) : 0;
+    const candidates = [];
+    const seen = new Set();
+
+    function addCandidate(tx, ty) {
+      if (tx < 0 || ty < 0 || tx >= plan.tilesX || ty >= plan.tilesY) return;
+      if (tx >= plan.visible.minX && tx <= plan.visible.maxX && ty >= plan.visible.minY && ty <= plan.visible.maxY) return;
+      const key = tx + ':' + ty;
+      if (seen.has(key)) return;
+      seen.add(key);
+      candidates.push({ x:tx, y:ty, key:key });
+    }
+
+    // Satu ring/strip tile tepat di depan viewport. Tidak memperluas core visible.
+    if (dirX !== 0) {
+      const edgeX = dirX > 0 ? plan.visible.maxX + 1 : plan.visible.minX - 1;
+      for (let ty = plan.visible.minY; ty <= plan.visible.maxY; ty++) addCandidate(edgeX, ty);
+    }
+    if (dirY !== 0) {
+      const edgeY = dirY > 0 ? plan.visible.maxY + 1 : plan.visible.minY - 1;
+      for (let tx = plan.visible.minX; tx <= plan.visible.maxX; tx++) addCandidate(tx, edgeY);
+    }
+    // Tambahkan sudut depan bila pan diagonal.
+    if (dirX !== 0 && dirY !== 0) {
+      const edgeX = dirX > 0 ? plan.visible.maxX + 1 : plan.visible.minX - 1;
+      const edgeY = dirY > 0 ? plan.visible.maxY + 1 : plan.visible.minY - 1;
+      addCandidate(edgeX, edgeY);
+    }
+
+    return {
+      ok:true,
+      direction:(dirX > 0 ? 'RIGHT' : dirX < 0 ? 'LEFT' : '') +
+                (dirY > 0 ? (dirX ? '+DOWN' : 'DOWN') : dirY < 0 ? (dirX ? '+UP' : 'UP') : ''),
+      drag:{x:Number(x.toFixed(1)), y:Number(y.toFixed(1))},
+      candidates:candidates,
+      plan:plan,
+      status:'PLANNER ONLY'
+    };
+  } catch (e) {
+    console.warn('[ADAPTIVE] Passive prefetch planner gagal:', e);
+    return { ok:false, reason:e && e.message ? e.message : 'Passive planner error.' };
+  }
+}
+
+function appendPassivePrefetchPlannerDiagnostic_(result) {
+  try {
+    const el = document.getElementById('mg1-device-profile-diagnostic');
+    if (!el) return;
+    const old = document.getElementById('mg1-passive-prefetch-planner');
+    if (old) old.remove();
+    const box = document.createElement('div');
+    box.id = 'mg1-passive-prefetch-planner';
+    box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.86;';
+    if (!result || !result.ok) {
+      box.textContent = 'STEP D1 — PASSIVE PREFETCH PLANNER | ' + ((result && result.reason) || 'Planner belum dijalankan.');
+    } else {
+      const keys = (result.candidates || []).map(c => c.key).join(', ');
+      box.textContent = 'STEP D1 — PASSIVE PREFETCH PLANNER | Direction: ' + result.direction +
+        ' | Candidates: ' + (result.candidates || []).length +
+        ' | Tile: ' + (result.plan ? result.plan.tileSize : '-') + 'px' +
+        ' | Keys: ' + (keys || '-') +
+        ' | STATUS: PLANNER ONLY';
+    }
+    const close = el.querySelector('button[data-mg1-close]');
+    if (close) el.insertBefore(box, close); else el.appendChild(box);
+  } catch (e) { console.warn('[ADAPTIVE] D1 diagnostic gagal:', e); }
 }
 
 function appendViewportTilePlannerDiagnostic_() {
@@ -1234,10 +1320,12 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   if (adaptiveC2) {
     try { window.mg1LastViewportTilePlan = getViewportTilePlan_(geoReference); } catch (_) {}
   }
-  // V14.47: LOW-device C2 uses a hard 1.55x visible-tile render factor.
-  // C1 still controls viewport culling; only the selected visible area is rendered.
+  // V15 SEAMLESS: Keep base 0.25x always + detail c2Factor
+  // Fix blank space on pan: base layer (2 tiles) never deleted, detail on top
+  // Avenza behavior: "Saya geser peta → peta tetap ada"
+  const V15_SEAMLESS_KEEP_BASE = true; // V15.1: base+detail is also rendered as two visual layers
   const renderFactors = adaptiveC2
-    ? [isLowC2 ? c2Factor : 1]
+    ? (V15_SEAMLESS_KEEP_BASE ? [0.25, isLowC2 ? c2Factor : 1] : [isLowC2 ? c2Factor : 1])
     : factors;
   const c2Stats = {
     enabled: adaptiveC2,
@@ -1247,19 +1335,21 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     skipped: 0,
     startedAt: (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
   };
-  const c2Prefetch = deviceProfile ? Number(deviceProfile.prefetchRadius) || 0 : 0;
+  const c2Prefetch = deviceProfile ? Math.max(1, Number(deviceProfile.prefetchRadius) || 0) : 1; // V15: min 1 ring prefetch for no blank
   const vpWPt = Math.abs(vpBBox[2] - vpBBox[0]);
   const vpHPt = Math.abs(vpBBox[3] - vpBBox[1]);
   if (!(vpWPt > 0) || !(vpHPt > 0)) throw new Error('VP BBox GeoPDF tidak valid untuk tile pyramid.');
 
   const out = {
     version: 2,
-    mode: 'pdfjs-direct-tile-render',
+    mode: 'pdfjs-direct-tile-render-v15.1-seamless-base-detail',
     tileSize,
     baseScale,
     sourceWidth: Math.max(1, Math.round(vpWPt * baseScale)),
     sourceHeight: Math.max(1, Math.round(vpHPt * baseScale)),
     levels: [],
+    v15Seamless: true, // Marker: base layer kept for no blank pan
+
     maxLevel: factors.length - 1
   };
 
@@ -1273,8 +1363,17 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     const tilesY = Math.ceil(height / tileSize);
     return { factor: Number(factor), scale, width, height, tilesX, tilesY, total: tilesX * tilesY };
   });
-  const c2Windows = adaptiveC2 ? levelPlan.map((plan) => getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0)) : [];
-  const effectiveTotals = adaptiveC2 ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total)) : levelPlan.map(item => item.total);
+  // V15.1 SEAMLESS: BASE is a permanent full-map safety layer.
+  // DETAIL remains viewport-cropped. This is the critical difference from V14.x:
+  // when the detail set changes, BASE still covers the entire GeoPDF extent.
+  const c2Windows = adaptiveC2
+    ? levelPlan.map((plan, li) => li === 0
+        ? null
+        : getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0))
+    : [];
+  const effectiveTotals = adaptiveC2
+    ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total))
+    : levelPlan.map(item => item.total);
   const grandTotalTiles = Math.max(1, effectiveTotals.reduce((sum, item) => sum + item, 0));
   if (adaptiveC2) c2Stats.planned = grandTotalTiles;
   let globalDone = 0;
@@ -1314,7 +1413,9 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
         const y = ty * tileSize;
         const tw = Math.min(tileSize, width - x);
         const th = Math.min(tileSize, height - y);
-        if (adaptiveC2 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
+        // BASE (li===0) is intentionally NOT culled: it must cover the full map.
+        // DETAIL (li>0) may use the viewport window for the low-end device budget.
+        if (adaptiveC2 && li > 0 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
           c2Stats.skipped++;
           continue;
         }
@@ -3676,54 +3777,13 @@ function handleMapTouchEnd_(event) {
   }
 }
 
-function clampMapPanOffset_(dx, dy) {
-  const x = Number.isFinite(dx) ? dx : 0;
-  const y = Number.isFinite(dy) ? dy : 0;
-  try {
-    const bounds = mapPanState_.baseBounds;
-    const baseCenter = mapPanState_.baseCenterNative;
-    const rectW = mapPanState_.baseRectW;
-    const rectH = mapPanState_.baseRectH;
-    if (!bounds || !baseCenter || !(rectW > 0) || !(rectH > 0)) return { dx:x, dy:y };
-    if (!activeBackgroundMapId) return { dx:x, dy:y };
-    const activeMap = backgroundMapsList.find(m => m.id === activeBackgroundMapId);
-    const extent = activeMap && activeMap.geoReference && activeMap.geoReference.extent
-      ? activeMap.geoReference.extent
-      : (activeMap ? { cornerTL: activeMap.cornerTL, cornerBR: activeMap.cornerBR } : null);
-    if (!extent || !extent.cornerTL || !extent.cornerBR) return { dx:x, dy:y };
-    const minT = Math.min(parseFloat(extent.cornerTL.timur), parseFloat(extent.cornerBR.timur));
-    const maxT = Math.max(parseFloat(extent.cornerTL.timur), parseFloat(extent.cornerBR.timur));
-    const minU = Math.min(parseFloat(extent.cornerTL.utara), parseFloat(extent.cornerBR.utara));
-    const maxU = Math.max(parseFloat(extent.cornerTL.utara), parseFloat(extent.cornerBR.utara));
-    if (![minT,maxT,minU,maxU].every(Number.isFinite) || !(maxT > minT) || !(maxU > minU)) return { dx:x, dy:y };
-    const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
-    const zoom = Math.max(0.0001, Number(mapZoom) || 1);
-    const viewNativeW = rangeT / zoom, viewNativeH = rangeU / zoom;
-    const halfW = viewNativeW / 2, halfH = viewNativeH / 2;
-    const desiredX = baseCenter.x - (x / rectW) * (viewNativeW / 320) * rangeT;
-    const desiredY = baseCenter.y + (y / rectH) * (viewNativeH / 320) * rangeU;
-    const loX = minT + halfW, hiX = maxT - halfW;
-    const loY = minU + halfH, hiY = maxU - halfH;
-    const clampedX = loX <= hiX ? Math.max(loX, Math.min(hiX, desiredX)) : (minT + maxT) / 2;
-    const clampedY = loY <= hiY ? Math.max(loY, Math.min(hiY, desiredY)) : (minU + maxU) / 2;
-    const dxClamped = -(clampedX - baseCenter.x) * rectW * 320 / Math.max(1e-9, viewNativeW * rangeT);
-    const dyClamped = (clampedY - baseCenter.y) * rectH * 320 / Math.max(1e-9, viewNativeH * rangeU);
-    return { dx: Number.isFinite(dxClamped) ? dxClamped : x, dy: Number.isFinite(dyClamped) ? dyClamped : y };
-  } catch (_) {
-    return { dx:x, dy:y };
-  }
-}
-
 function scheduleMapPanVisual_() {
   const svg = mapPanState_.visualSvg;
   if (!svg || !mapPanState_.active) return;
-  // D1.2: visual pan is still immediate/GPU, but cannot drag the GeoPDF outside
-  // its native extent. This prevents the viewport from exposing a large navy blank
-  // region while the finger is moving.
-  const clamped = clampMapPanOffset_(mapPanState_.dx, mapPanState_.dy);
-  mapPanState_.visualDx = clamped.dx;
-  mapPanState_.visualDy = clamped.dy;
-  applyPanVisual_(svg, clamped.dx, clamped.dy);
+  // STEP 7.6D: apply visual pan immediately from the input event.
+  // Do not wait an extra requestAnimationFrame; the browser can composite the
+  // transform on the next frame while the input event is still in flight.
+  applyPanVisual_(svg, mapPanState_.dx, mapPanState_.dy);
 }
 
 function applyPanVisual_(svg, dx, dy) {
@@ -3793,14 +3853,14 @@ function beginMapPanPointer_(event, svg, bounds, startX, startY) {
 }
 function commitMapPan_(extraDx, extraDy) {
   const svg = mapPanState_.visualSvg;
+  const d1Dx = Number(mapPanState_.dx || 0) + Number(extraDx || 0);
+  const d1Dy = Number(mapPanState_.dy || 0) + Number(extraDy || 0);
   const bounds = mapPanState_.baseBounds;
   if (bounds && mapPanState_.baseCenterNative && mapPanState_.baseRectW > 0 && mapPanState_.baseRectH > 0) {
     const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
     const zoomedW = 320 / Math.max(0.0001, mapZoom), zoomedH = 320 / Math.max(0.0001, mapZoom);
-    const totalRawDx = mapPanState_.dx + (extraDx || 0);
-    const totalRawDy = mapPanState_.dy + (extraDy || 0);
-    const clamped = clampMapPanOffset_(totalRawDx, totalRawDy);
-    const totalDx = clamped.dx, totalDy = clamped.dy;
+    const totalDx = mapPanState_.dx + (extraDx || 0);
+    const totalDy = mapPanState_.dy + (extraDy || 0);
     const deltaNativeX = -(totalDx / mapPanState_.baseRectW) * (zoomedW / 320) * rangeT;
     const deltaNativeY = (totalDy / mapPanState_.baseRectH) * (zoomedH / 320) * rangeU;
     const nx = mapPanState_.baseCenterNative.x + deltaNativeX;
@@ -3812,7 +3872,16 @@ function commitMapPan_(extraDx, extraDy) {
   mapPanState_.visualSvg = null;
   mapPanRenderScheduled_ = false;
   mapPanInertiaRaf_ = null;
-  if (mapPanState_.moved) render();
+  if (mapPanState_.moved) {
+    render();
+    // D1 hanya berjalan SETELAH commit/render selesai. Tidak pernah masuk ke jalur
+    // scheduleMapPanVisual_ sehingga gesture 60 FPS tetap bebas dari planner.
+    try {
+      const d1 = planPassivePrefetchAfterPan_(d1Dx, d1Dy);
+      window.mg1LastPassivePrefetchPlan = d1;
+      appendPassivePrefetchPlannerDiagnostic_(d1);
+    } catch (_) {}
+  }
 }
 function startMapPanInertia_() {
   const svg = mapPanState_.visualSvg;
@@ -3832,8 +3901,7 @@ function startMapPanInertia_() {
     extraDy += vy * dt;
     vx *= Math.pow(friction, dt / 16);
     vy *= Math.pow(friction, dt / 16);
-    const visual = clampMapPanOffset_(mapPanState_.dx + extraDx, mapPanState_.dy + extraDy);
-    applyPanVisual_(svg, visual.dx, visual.dy);
+    applyPanVisual_(svg, mapPanState_.dx + extraDx, mapPanState_.dy + extraDy);
     if (Math.hypot(vx, vy) > 0.02 && Math.hypot(extraDx, extraDy) < 420) {
       mapPanInertiaRaf_ = requestAnimationFrame(tick);
     } else {
@@ -4063,24 +4131,42 @@ function renderMineGridSvg(points) {
       }
       const pyramid = activeMap.tilePyramid;
       if (pyramid && Array.isArray(pyramid.levels) && pyramid.levels.length) {
-        // Pilih level resolusi yang paling dekat di bawah kebutuhan zoom. Deep zoom
-        // memakai level native hasil render langsung dari PDF, bukan upscale crop PNG.
+        // V15.1 SEAMLESS 2-LAYER DISPLAY:
+        //   BASE 0.25x = always rendered first and covers the full GeoPDF extent.
+        //   DETAIL     = selected higher-resolution level rendered on top.
+        // If detail is incomplete/outside its viewport window, BASE remains visible.
         const maxFactor = Math.max(...pyramid.levels.map(l => Number(l.factor) || 0));
         let targetFactor = maxFactor;
         if (mapZoom <= 1.5) targetFactor = Math.min(0.25, maxFactor);
         else if (mapZoom <= 2.5) targetFactor = Math.min(0.5, maxFactor);
-        let level = pyramid.levels[0];
+
+        const baseLevel = pyramid.levels.find(l => Math.abs(Number(l.factor) - 0.25) < 0.0001)
+          || pyramid.levels[0];
+        let detailLevel = pyramid.levels[0];
         for (const candidate of pyramid.levels) {
-          if (Number(candidate.factor) <= targetFactor) level = candidate;
+          if (Number(candidate.factor) <= targetFactor) detailLevel = candidate;
         }
+        // On LOW/C2 the stored detail is the tested 1.55x layer. Keep it as detail
+        // even when targetFactor is below it; BASE is the visual fallback.
+        if (detailLevel === baseLevel && pyramid.levels.length > 1) {
+          detailLevel = pyramid.levels[pyramid.levels.length - 1];
+        }
+
         const tileSize = Number(pyramid.tileSize) || GEOPDF_TILE_SIZE_;
-        const pxScaleX = imgW / level.width, pxScaleY = imgH / level.height;
-        for (const t of (level.tiles || [])) {
-          const tx = imgX + t.x * tileSize * pxScaleX;
-          const ty = imgY + t.y * tileSize * pxScaleY;
-          const tw = t.width * pxScaleX, th = t.height * pxScaleY;
-          svg += '<image href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
-        }
+        const appendLevel = (level, layerName, opacity) => {
+          if (!level || !Array.isArray(level.tiles)) return;
+          const pxScaleX = imgW / Math.max(1, Number(level.width) || 1);
+          const pxScaleY = imgH / Math.max(1, Number(level.height) || 1);
+          for (const t of level.tiles) {
+            const tx = imgX + t.x * tileSize * pxScaleX;
+            const ty = imgY + t.y * tileSize * pxScaleY;
+            const tw = t.width * pxScaleX, th = t.height * pxScaleY;
+            svg += '<image data-map-layer="' + layerName + '" href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" decoding="sync" preserveAspectRatio="none" opacity="' + opacity + '" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
+          }
+        };
+
+        appendLevel(baseLevel, 'base', '0.94');
+        if (detailLevel && detailLevel !== baseLevel) appendLevel(detailLevel, 'detail', '0.98');
       } else {
         svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + ' pointer-events="none" draggable="false" oncontextmenu="return false;"/>';
       }
