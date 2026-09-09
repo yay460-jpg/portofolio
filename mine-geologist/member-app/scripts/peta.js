@@ -1316,6 +1316,37 @@ function normalizeLithositeTile_(tile, factor) {
   return out;
 }
 
+// V15.3 STEP B — PERSISTENT BASE TILE LAYER
+// BASE bukan lagi sekadar level pertama yang kebetulan dipilih renderer.
+// Metadata ini menetapkan BASE sebagai layer permanen/full-coverage yang menjadi
+// safety surface saat DETAIL berubah. Tidak menduplikasi dataUrl/tile di store.
+function attachLithositePersistentBaseLayer_(pyramid) {
+  if (!pyramid || !Array.isArray(pyramid.levels) || !pyramid.levels.length) return pyramid;
+  let baseIndex = pyramid.levels.findIndex(l => Math.abs(Number(l.factor) - 0.25) < 0.0001);
+  if (baseIndex < 0) baseIndex = 0;
+  const base = pyramid.levels[baseIndex];
+  const tiles = Array.isArray(base.tiles) ? base.tiles : [];
+  pyramid.baseLayer = {
+    version: 1,
+    persistent: true,
+    coverage: 'full',
+    factor: Number(base.factor),
+    levelIndex: baseIndex,
+    tileCount: tiles.length,
+    tileKeys: tiles.map(t => t && (t.tileKey || t.tileId)).filter(Boolean)
+  };
+  pyramid.tileStore = {
+    version: 1,
+    identity: 'factor/x/y',
+    baseLayer: {
+      persistent: true,
+      factor: Number(base.factor),
+      levelIndex: baseIndex
+    }
+  };
+  return pyramid;
+}
+
 async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoReference) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
@@ -1503,6 +1534,9 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     }
     out.levels.push({ level: li, factor, scale, width, height, tilesX, tilesY, tileIdentity: 'factor/x/y', tiles });
   }
+  // V15.3 STEP B: publish the BASE lifecycle only after all requested tiles
+  // have been assembled. BASE remains full-coverage; DETAIL may stay partial.
+  attachLithositePersistentBaseLayer_(out);
   if (adaptiveC2) {
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
     c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
@@ -4160,7 +4194,11 @@ function renderMineGridSvg(points) {
         if (mapZoom <= 1.5) targetFactor = Math.min(0.25, maxFactor);
         else if (mapZoom <= 2.5) targetFactor = Math.min(0.5, maxFactor);
 
-        const baseLevel = pyramid.levels.find(l => Math.abs(Number(l.factor) - 0.25) < 0.0001)
+        // V15.3 STEP B: BASE layer is resolved from explicit persistent metadata.
+        // Legacy pyramids without baseLayer remain compatible via the old fallback.
+        const baseMeta = pyramid.baseLayer && pyramid.baseLayer.persistent ? pyramid.baseLayer : null;
+        const baseLevel = (baseMeta && pyramid.levels[baseMeta.levelIndex])
+          || pyramid.levels.find(l => Math.abs(Number(l.factor) - 0.25) < 0.0001)
           || pyramid.levels[0];
         let detailLevel = pyramid.levels[0];
         for (const candidate of pyramid.levels) {
