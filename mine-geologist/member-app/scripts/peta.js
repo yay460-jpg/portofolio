@@ -4158,7 +4158,13 @@ function renderMineGridSvg(points) {
 function getMapButtonZoomSvg_() {
   try {
     const vp = document.getElementById('mg1-map-viewport');
-    return vp ? vp.querySelector('svg[data-map-gesture=\"true\"]') : null;
+    if (!vp) return null;
+    // D1.1: bila fallback layer ada, JANGAN pernah mengambil SVG fallback
+    // sebagai target gesture/zoom. Semua kontrol interaktif harus selalu
+    // menunjuk current visual layer.
+    const current = vp.querySelector('[data-map-current-layer=\"true\"] svg[data-map-gesture=\"true\"]');
+    if (current) return current;
+    return vp.querySelector('svg[data-map-gesture=\"true\"]');
   } catch (_) { return null; }
 }
 function easeOutCubic_(t) {
@@ -4412,21 +4418,21 @@ function renderMapTapInfo_() {
     '<div class="flex items-center justify-between gap-3"><span class="text-[9px] text-yellow-300 font-bold">Titik Tap</span><button onclick="clearMapTap_()" class="text-[9px] text-white/40">Tutup</button></div>' + body + '</div>';
 }
 
-// V14.49 D1: VISUAL FALLBACK LAYER.
-// Pertahankan SVG map sebelumnya sebagai lapisan bawah selama image tile pada
-// SVG baru masih load/decode. D1 tidak menyentuh gesture, viewport, atau tile layout.
+// V14.49 D1.1: VISUAL FALLBACK LAYER — isolated from the live gesture SVG.
+// The previous SVG is copied only as a temporary visual fallback. It must never
+// become the target of pan/pinch/zoom controls.
 function captureMapFallbackSvgHtml_() {
   try {
     const vp = document.getElementById('mg1-map-viewport');
     if (!vp) return '';
-    const oldSvg = vp.querySelector('svg[data-map-gesture="true"]');
+    const oldSvg = vp.querySelector('[data-map-current-layer="true"] svg[data-map-gesture="true"]')
+      || vp.querySelector('svg[data-map-gesture="true"]');
     if (!oldSvg) return '';
-    let html = oldSvg.outerHTML || '';
+    const html = oldSvg.outerHTML || '';
     if (!html) return '';
-    html = html.replace('<svg ', '<svg data-map-fallback="true" aria-hidden="true" ');
-    html = html.replace('pointer-events:auto;', 'pointer-events:none;');
-    html = html.replace('pointer-events:auto', 'pointer-events:none');
-    return html;
+    return html
+      .replace('<svg ', '<svg data-map-fallback="true" aria-hidden="true" ')
+      .replace(/pointer-events:auto/g, 'pointer-events:none');
   } catch (_) { return ''; }
 }
 
@@ -4539,8 +4545,7 @@ function renderPeta() {
     : '';
   const currentLayerHtml = '<div class="absolute inset-0 z-[1]" data-map-current-layer="true">' + currentMapSvgHtml + '</div>';
   html += '<div id="mg1-map-viewport" class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden select-none" style="touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;" oncontextmenu="return false" onselectstart="return false" ondragstart="return false">' +
-    fallbackLayerHtml +
-    currentLayerHtml +
+    fallbackLayerHtml + currentLayerHtml +
     renderNorthArrow_(computeResponsiveDisplayBounds_(validPoints)) +
     renderMeasureBanner_(mapData) +
     // Kontrol zoom + crosshair (reset view) -- poin desain #2 (MAP-02): sekarang BENAR2
@@ -4573,7 +4578,6 @@ function renderPeta() {
   html += renderMapUploadForm_();
   html += renderKmlManagePanel_();
   html += renderKmlUploadForm_();
-  if (mapFallbackSvgHtml) scheduleMapFallbackRetire_();
   // STEP 04: setelah DOM dipasang oleh render(), ukur container aktual agar FIT
   // mengikuti portrait/landscape tanpa mengubah GeoReference.
   scheduleMapViewportFit_();
