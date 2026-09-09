@@ -484,92 +484,6 @@ function getViewportTilePlan_(geoReferenceOverride) {
   }
 }
 
-// V14.49 STEP D1 — PASSIVE PREFETCH PLANNER
-// Hanya membaca hasil C1 + arah pan yang SUDAH selesai. Tidak dipanggil dari
-// touchmove/pointermove dan tidak menyentuh DOM peta, SVG transform, level.tiles,
-// tile positioning, atau renderer. Output hanya daftar kandidat tile untuk tahap D2.
-function planPassivePrefetchAfterPan_(dx, dy) {
-  try {
-    const plan = getViewportTilePlan_();
-    if (!plan || !plan.ok) return { ok:false, reason:plan && plan.reason ? plan.reason : 'C1 belum siap.' };
-
-    const x = Number(dx) || 0, y = Number(dy) || 0;
-    const ax = Math.abs(x), ay = Math.abs(y);
-    if (Math.max(ax, ay) < 4) {
-      return { ok:true, direction:'NONE', candidates:[], plan:plan, status:'PLANNER ONLY' };
-    }
-
-    // Drag kiri -> viewport berikutnya cenderung membuka sisi kanan.
-    // Drag kanan -> membuka sisi kiri. Demikian pula sumbu Y.
-    const dirX = ax >= 4 ? (x < 0 ? 1 : -1) : 0;
-    const dirY = ay >= 4 ? (y < 0 ? 1 : -1) : 0;
-    const candidates = [];
-    const seen = new Set();
-
-    function addCandidate(tx, ty) {
-      if (tx < 0 || ty < 0 || tx >= plan.tilesX || ty >= plan.tilesY) return;
-      if (tx >= plan.visible.minX && tx <= plan.visible.maxX && ty >= plan.visible.minY && ty <= plan.visible.maxY) return;
-      const key = tx + ':' + ty;
-      if (seen.has(key)) return;
-      seen.add(key);
-      candidates.push({ x:tx, y:ty, key:key });
-    }
-
-    // Satu ring/strip tile tepat di depan viewport. Tidak memperluas core visible.
-    if (dirX !== 0) {
-      const edgeX = dirX > 0 ? plan.visible.maxX + 1 : plan.visible.minX - 1;
-      for (let ty = plan.visible.minY; ty <= plan.visible.maxY; ty++) addCandidate(edgeX, ty);
-    }
-    if (dirY !== 0) {
-      const edgeY = dirY > 0 ? plan.visible.maxY + 1 : plan.visible.minY - 1;
-      for (let tx = plan.visible.minX; tx <= plan.visible.maxX; tx++) addCandidate(tx, edgeY);
-    }
-    // Tambahkan sudut depan bila pan diagonal.
-    if (dirX !== 0 && dirY !== 0) {
-      const edgeX = dirX > 0 ? plan.visible.maxX + 1 : plan.visible.minX - 1;
-      const edgeY = dirY > 0 ? plan.visible.maxY + 1 : plan.visible.minY - 1;
-      addCandidate(edgeX, edgeY);
-    }
-
-    return {
-      ok:true,
-      direction:(dirX > 0 ? 'RIGHT' : dirX < 0 ? 'LEFT' : '') +
-                (dirY > 0 ? (dirX ? '+DOWN' : 'DOWN') : dirY < 0 ? (dirX ? '+UP' : 'UP') : ''),
-      drag:{x:Number(x.toFixed(1)), y:Number(y.toFixed(1))},
-      candidates:candidates,
-      plan:plan,
-      status:'PLANNER ONLY'
-    };
-  } catch (e) {
-    console.warn('[ADAPTIVE] Passive prefetch planner gagal:', e);
-    return { ok:false, reason:e && e.message ? e.message : 'Passive planner error.' };
-  }
-}
-
-function appendPassivePrefetchPlannerDiagnostic_(result) {
-  try {
-    const el = document.getElementById('mg1-device-profile-diagnostic');
-    if (!el) return;
-    const old = document.getElementById('mg1-passive-prefetch-planner');
-    if (old) old.remove();
-    const box = document.createElement('div');
-    box.id = 'mg1-passive-prefetch-planner';
-    box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.86;';
-    if (!result || !result.ok) {
-      box.textContent = 'STEP D1 — PASSIVE PREFETCH PLANNER | ' + ((result && result.reason) || 'Planner belum dijalankan.');
-    } else {
-      const keys = (result.candidates || []).map(c => c.key).join(', ');
-      box.textContent = 'STEP D1 — PASSIVE PREFETCH PLANNER | Direction: ' + result.direction +
-        ' | Candidates: ' + (result.candidates || []).length +
-        ' | Tile: ' + (result.plan ? result.plan.tileSize : '-') + 'px' +
-        ' | Keys: ' + (keys || '-') +
-        ' | STATUS: PLANNER ONLY';
-    }
-    const close = el.querySelector('button[data-mg1-close]');
-    if (close) el.insertBefore(box, close); else el.appendChild(box);
-  } catch (e) { console.warn('[ADAPTIVE] D1 diagnostic gagal:', e); }
-}
-
 function appendViewportTilePlannerDiagnostic_() {
   try {
     const el = document.getElementById('mg1-device-profile-diagnostic');
@@ -3838,8 +3752,6 @@ function beginMapPanPointer_(event, svg, bounds, startX, startY) {
 }
 function commitMapPan_(extraDx, extraDy) {
   const svg = mapPanState_.visualSvg;
-  const d1Dx = Number(mapPanState_.dx || 0) + Number(extraDx || 0);
-  const d1Dy = Number(mapPanState_.dy || 0) + Number(extraDy || 0);
   const bounds = mapPanState_.baseBounds;
   if (bounds && mapPanState_.baseCenterNative && mapPanState_.baseRectW > 0 && mapPanState_.baseRectH > 0) {
     const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
@@ -3857,16 +3769,7 @@ function commitMapPan_(extraDx, extraDy) {
   mapPanState_.visualSvg = null;
   mapPanRenderScheduled_ = false;
   mapPanInertiaRaf_ = null;
-  if (mapPanState_.moved) {
-    render();
-    // D1 hanya berjalan SETELAH commit/render selesai. Tidak pernah masuk ke jalur
-    // scheduleMapPanVisual_ sehingga gesture 60 FPS tetap bebas dari planner.
-    try {
-      const d1 = planPassivePrefetchAfterPan_(d1Dx, d1Dy);
-      window.mg1LastPassivePrefetchPlan = d1;
-      appendPassivePrefetchPlannerDiagnostic_(d1);
-    } catch (_) {}
-  }
+  if (mapPanState_.moved) render();
 }
 function startMapPanInertia_() {
   const svg = mapPanState_.visualSvg;
@@ -4509,7 +4412,57 @@ function renderMapTapInfo_() {
     '<div class="flex items-center justify-between gap-3"><span class="text-[9px] text-yellow-300 font-bold">Titik Tap</span><button onclick="clearMapTap_()" class="text-[9px] text-white/40">Tutup</button></div>' + body + '</div>';
 }
 
+// V14.49 D1: VISUAL FALLBACK LAYER.
+// Pertahankan SVG map sebelumnya sebagai lapisan bawah selama image tile pada
+// SVG baru masih load/decode. D1 tidak menyentuh gesture, viewport, atau tile layout.
+function captureMapFallbackSvgHtml_() {
+  try {
+    const vp = document.getElementById('mg1-map-viewport');
+    if (!vp) return '';
+    const oldSvg = vp.querySelector('svg[data-map-gesture="true"]');
+    if (!oldSvg) return '';
+    let html = oldSvg.outerHTML || '';
+    if (!html) return '';
+    html = html.replace('<svg ', '<svg data-map-fallback="true" aria-hidden="true" ');
+    html = html.replace('pointer-events:auto;', 'pointer-events:none;');
+    html = html.replace('pointer-events:auto', 'pointer-events:none');
+    return html;
+  } catch (_) { return ''; }
+}
+
+function scheduleMapFallbackRetire_() {
+  try {
+    const vp = document.getElementById('mg1-map-viewport');
+    if (!vp) return;
+    const fallback = vp.querySelector('[data-map-fallback-layer="true"]');
+    const current = vp.querySelector('[data-map-current-layer="true"] svg[data-map-gesture="true"]');
+    if (!fallback || !current) return;
+    const imgs = Array.from(current.querySelectorAll('image'));
+    let retired = false;
+    const retire = () => {
+      if (retired) return;
+      retired = true;
+      if (!fallback.isConnected) return;
+      fallback.style.transition = 'opacity 120ms ease-out';
+      fallback.style.opacity = '0';
+      setTimeout(() => { try { if (fallback.isConnected) fallback.remove(); } catch (_) {} }, 140);
+    };
+    if (!imgs.length) { requestAnimationFrame(retire); return; }
+    let remaining = imgs.length;
+    const done = () => { remaining--; if (remaining <= 0) retire(); };
+    imgs.forEach(img => {
+      try {
+        if (img.complete) { done(); return; }
+        img.addEventListener('load', done, { once:true });
+        img.addEventListener('error', done, { once:true });
+      } catch (_) { done(); }
+    });
+    setTimeout(retire, 1800);
+  } catch (_) {}
+}
+
 function renderPeta() {
+  const mapFallbackSvgHtml = captureMapFallbackSvgHtml_();
   let html = renderHeader();
   html += '<main class="app-main flex-1 min-h-0 flex flex-col gap-[10px] px-4 pt-3 pb-3">';
 
@@ -4580,8 +4533,14 @@ function renderPeta() {
   }
 
   // ==== SUCCESS: render Mine Grid ====
+  const currentMapSvgHtml = renderMineGridSvg(validPoints);
+  const fallbackLayerHtml = mapFallbackSvgHtml
+    ? '<div class="absolute inset-0 z-0" data-map-fallback-layer="true" style="pointer-events:none;">' + mapFallbackSvgHtml + '</div>'
+    : '';
+  const currentLayerHtml = '<div class="absolute inset-0 z-[1]" data-map-current-layer="true">' + currentMapSvgHtml + '</div>';
   html += '<div id="mg1-map-viewport" class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden select-none" style="touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;" oncontextmenu="return false" onselectstart="return false" ondragstart="return false">' +
-    renderMineGridSvg(validPoints) +
+    fallbackLayerHtml +
+    currentLayerHtml +
     renderNorthArrow_(computeResponsiveDisplayBounds_(validPoints)) +
     renderMeasureBanner_(mapData) +
     // Kontrol zoom + crosshair (reset view) -- poin desain #2 (MAP-02): sekarang BENAR2
@@ -4614,6 +4573,7 @@ function renderPeta() {
   html += renderMapUploadForm_();
   html += renderKmlManagePanel_();
   html += renderKmlUploadForm_();
+  if (mapFallbackSvgHtml) scheduleMapFallbackRetire_();
   // STEP 04: setelah DOM dipasang oleh render(), ukur container aktual agar FIT
   // mengikuti portrait/landscape tanpa mengubah GeoReference.
   scheduleMapViewportFit_();
