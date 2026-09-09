@@ -1382,6 +1382,78 @@ function getLithositeTileByKey_(pyramid, tileKey) {
   return tile || null;
 }
 
+
+// V15.8 STEP E — PERSISTENT TILE QUEUE REGISTRY
+// Queue hanya mengatur identity/lifecycle bookkeeping. Tidak merender ulang tile,
+// tidak melakukan culling/prefetch, dan tidak mengubah visual/gesture/viewport.
+function ensureLithositeTileQueue_(pyramid) {
+  if (!pyramid) return null;
+  if (!pyramid.tileStore) ensureLithositeTileStore_(pyramid);
+  const store = pyramid.tileStore || {};
+  if (!pyramid.tileQueue || pyramid.tileQueue.version !== 1) {
+    pyramid.tileQueue = {
+      version: 1,
+      identity: 'factor/x/y',
+      pending: [],
+      pendingSet: Object.create(null),
+      loadedSet: Object.create(null),
+      failedSet: Object.create(null)
+    };
+  }
+  const q = pyramid.tileQueue;
+  // Existing stored tiles are considered loaded; no raster is duplicated.
+  const index = store.index || {};
+  Object.keys(index).forEach(k => { q.loadedSet[k] = true; });
+  return q;
+}
+
+function enqueueLithositeTileKey_(pyramid, tileKey) {
+  const q = ensureLithositeTileQueue_(pyramid);
+  if (!q || !tileKey) return false;
+  const key = String(tileKey);
+  if (q.loadedSet[key] || q.pendingSet[key]) return false;
+  q.pending.push(key);
+  q.pendingSet[key] = true;
+  return true;
+}
+
+function dequeueLithositeTileKey_(pyramid) {
+  const q = ensureLithositeTileQueue_(pyramid);
+  if (!q || !q.pending.length) return null;
+  const key = q.pending.shift();
+  delete q.pendingSet[key];
+  return key;
+}
+
+function markLithositeTileLoaded_(pyramid, tileKey) {
+  const q = ensureLithositeTileQueue_(pyramid);
+  if (!q || !tileKey) return false;
+  const key = String(tileKey);
+  q.loadedSet[key] = true;
+  delete q.pendingSet[key];
+  delete q.failedSet[key];
+  return true;
+}
+
+function markLithositeTileFailed_(pyramid, tileKey) {
+  const q = ensureLithositeTileQueue_(pyramid);
+  if (!q || !tileKey) return false;
+  const key = String(tileKey);
+  q.failedSet[key] = true;
+  delete q.pendingSet[key];
+  return true;
+}
+
+function getLithositeTileQueueStats_(pyramid) {
+  const q = ensureLithositeTileQueue_(pyramid);
+  if (!q) return { pending: 0, loaded: 0, failed: 0 };
+  return {
+    pending: q.pending.length,
+    loaded: Object.keys(q.loadedSet).length,
+    failed: Object.keys(q.failedSet).length
+  };
+}
+
 async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoReference) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
