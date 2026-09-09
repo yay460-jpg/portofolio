@@ -857,11 +857,21 @@ async function loadBackgroundMapsFromDb_() {
 }
 function openMapManagePanel_() { mapManagePanelOpen = true; render(); }
 function closeMapManagePanel_() { mapManagePanelOpen = false; mapUploadFormOpen = false; render(); }
+let applyGeoRefRafId_ = null;
+
+function cancelApplyGeoReferenceRaf_() {
+  if (applyGeoRefRafId_ !== null) {
+    cancelAnimationFrame(applyGeoRefRafId_);
+    applyGeoRefRafId_ = null;
+  }
+}
+
 function openMapUploadForm_() {
+  cancelApplyGeoReferenceRaf_();
   mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null, tilePyramid: null };
   mapUploadStatusMsg = ''; mapUploadStatusOk = true; mapUploadBusy = false; mapUploadProcessing = false; mapUploadFormOpen = true; render();
 }
-function closeMapUploadForm_() { mapUploadFormOpen = false; mapUploadProcessing = false; mapUploadRuntimeFile_ = null; render(); }
+function closeMapUploadForm_() { cancelApplyGeoReferenceRaf_(); mapUploadFormOpen = false; mapUploadProcessing = false; mapUploadRuntimeFile_ = null; render(); }
 function updateMapUploadField_(field, value) { mapUploadFormState[field] = value; }
 // [BARU -- 5 Sep] Deteksi GeoTIFF: cek EKSTENSI file (bukan cuma MIME type -- browser
 // kadang kasih MIME kosong/salah utk .tif). Kalau .tif/.tiff, coba baca koordinat
@@ -1062,8 +1072,12 @@ async function handleMapImageFileSelected_(inputEl) {
       // V17 NO FLICKER: Jangan render() full map saat modal masih proses - cuma sync DOM form
       syncMapUploadGeoReferenceDom_();
       paintMapUploadGeoPdfUi_();
-      // Re-apply after next frame tanpa render() full
-      requestAnimationFrame(() => {
+      // Re-apply after next frame tanpa render() full. RAF ini dikelola eksplisit
+      // agar tidak tertinggal saat lifecycle GeoPDF masuk ke done/save/close.
+      cancelApplyGeoReferenceRaf_();
+      applyGeoRefRafId_ = requestAnimationFrame(() => {
+        applyGeoRefRafId_ = null;
+        if (!geoReferenceReady) return;
         syncMapUploadGeoReferenceDom_();
         paintMapUploadGeoPdfUi_();
       });
@@ -1097,6 +1111,7 @@ async function handleMapImageFileSelected_(inputEl) {
       mapUploadStatusMsg = geoResult.reason + ' PDF tidak bisa ditampilkan langsung di Peta -- silakan export ulang sbg gambar PNG/JPG.';
       mapUploadStatusOk = false;
     }
+    cancelApplyGeoReferenceRaf_();
     mapUploadProcessing = false;
     progressReporter.stop();
     paintMapUploadGeoPdfUi_();
@@ -3812,6 +3827,7 @@ function paintMapUploadSaveUi_() {
 }
 
 async function submitMapUpload_() {
+  cancelApplyGeoReferenceRaf_();
   if (mapUploadBusy || mapUploadProcessing) return;
   const f = mapUploadFormState;
   if (!f.fileDataUrl) { mapUploadStatusMsg = 'Pilih gambar peta dulu.'; mapUploadStatusOk = false; render(); return; }
