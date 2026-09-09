@@ -484,82 +484,90 @@ function getViewportTilePlan_(geoReferenceOverride) {
   }
 }
 
-// STEP D1 - PREFETCH PLANNER ONLY
-// Tidak merender, tidak mengubah viewport, dan tidak mengubah tile core.
-// Planner hanya menentukan kandidat tile satu langkah di depan arah pan/drag.
-function planAdaptivePrefetchFromPan_(dx, dy) {
+// V14.49 STEP D1 — PASSIVE PREFETCH PLANNER
+// Hanya membaca hasil C1 + arah pan yang SUDAH selesai. Tidak dipanggil dari
+// touchmove/pointermove dan tidak menyentuh DOM peta, SVG transform, level.tiles,
+// tile positioning, atau renderer. Output hanya daftar kandidat tile untuk tahap D2.
+function planPassivePrefetchAfterPan_(dx, dy) {
   try {
-    if (window.mg1AdaptiveC2Enabled !== true) return null;
-    const planner = window.mg1LastViewportTilePlan;
-    if (!planner || !planner.ok || !planner.visible) return null;
-    const tileSize = Math.max(64, Number(planner.tileSize) || 768);
-    const vx = Number(dx) || 0, vy = Number(dy) || 0;
-    if (Math.hypot(vx, vy) < 8) return null;
+    const plan = getViewportTilePlan_();
+    if (!plan || !plan.ok) return { ok:false, reason:plan && plan.reason ? plan.reason : 'C1 belum siap.' };
 
-    // Drag map ke kiri berarti viewport bergerak ke kanan, dan sebaliknya.
-    const dirX = vx < -8 ? 1 : (vx > 8 ? -1 : 0);
-    const dirY = vy < -8 ? 1 : (vy > 8 ? -1 : 0);
-    const minX = Number(planner.visible.minX), maxX = Number(planner.visible.maxX);
-    const minY = Number(planner.visible.minY), maxY = Number(planner.visible.maxY);
-    const tilesX = Number(planner.tilesX), tilesY = Number(planner.tilesY);
-    if (![minX,maxX,minY,maxY,tilesX,tilesY].every(Number.isFinite)) return null;
+    const x = Number(dx) || 0, y = Number(dy) || 0;
+    const ax = Math.abs(x), ay = Math.abs(y);
+    if (Math.max(ax, ay) < 4) {
+      return { ok:true, direction:'NONE', candidates:[], plan:plan, status:'PLANNER ONLY' };
+    }
 
-    const keys = [];
+    // Drag kiri -> viewport berikutnya cenderung membuka sisi kanan.
+    // Drag kanan -> membuka sisi kiri. Demikian pula sumbu Y.
+    const dirX = ax >= 4 ? (x < 0 ? 1 : -1) : 0;
+    const dirY = ay >= 4 ? (y < 0 ? 1 : -1) : 0;
+    const candidates = [];
     const seen = new Set();
-    const add = (tx, ty) => {
-      if (tx < 0 || ty < 0 || tx >= tilesX || ty >= tilesY) return;
-      const key = tx + ',' + ty;
-      if (!seen.has(key)) { seen.add(key); keys.push(key); }
-    };
 
-    // Satu band tile di depan arah gerakan. Tidak menyentuh core visible tiles.
+    function addCandidate(tx, ty) {
+      if (tx < 0 || ty < 0 || tx >= plan.tilesX || ty >= plan.tilesY) return;
+      if (tx >= plan.visible.minX && tx <= plan.visible.maxX && ty >= plan.visible.minY && ty <= plan.visible.maxY) return;
+      const key = tx + ':' + ty;
+      if (seen.has(key)) return;
+      seen.add(key);
+      candidates.push({ x:tx, y:ty, key:key });
+    }
+
+    // Satu ring/strip tile tepat di depan viewport. Tidak memperluas core visible.
     if (dirX !== 0) {
-      const tx = dirX > 0 ? maxX + 1 : minX - 1;
-      for (let ty = minY; ty <= maxY; ty++) add(tx, ty);
+      const edgeX = dirX > 0 ? plan.visible.maxX + 1 : plan.visible.minX - 1;
+      for (let ty = plan.visible.minY; ty <= plan.visible.maxY; ty++) addCandidate(edgeX, ty);
     }
     if (dirY !== 0) {
-      const ty = dirY > 0 ? maxY + 1 : minY - 1;
-      for (let tx = minX; tx <= maxX; tx++) add(tx, ty);
+      const edgeY = dirY > 0 ? plan.visible.maxY + 1 : plan.visible.minY - 1;
+      for (let tx = plan.visible.minX; tx <= plan.visible.maxX; tx++) addCandidate(tx, edgeY);
     }
-    // Untuk gerakan diagonal, tambahkan satu tile sudut di arah gerak.
+    // Tambahkan sudut depan bila pan diagonal.
     if (dirX !== 0 && dirY !== 0) {
-      add(dirX > 0 ? maxX + 1 : minX - 1, dirY > 0 ? maxY + 1 : minY - 1);
+      const edgeX = dirX > 0 ? plan.visible.maxX + 1 : plan.visible.minX - 1;
+      const edgeY = dirY > 0 ? plan.visible.maxY + 1 : plan.visible.minY - 1;
+      addCandidate(edgeX, edgeY);
     }
 
-    const plan = {
-      direction: dirX + ',' + dirY,
-      drag:{x:vx,y:vy},
-      tileSize,
-      candidates:keys,
-      count:keys.length,
-      coreVisibleCount:Number(planner.visible.count) || 0,
+    return {
+      ok:true,
+      direction:(dirX > 0 ? 'RIGHT' : dirX < 0 ? 'LEFT' : '') +
+                (dirY > 0 ? (dirX ? '+DOWN' : 'DOWN') : dirY < 0 ? (dirX ? '+UP' : 'UP') : ''),
+      drag:{x:Number(x.toFixed(1)), y:Number(y.toFixed(1))},
+      candidates:candidates,
+      plan:plan,
       status:'PLANNER ONLY'
     };
-    window.mg1LastPrefetchPlan = plan;
-    return plan;
   } catch (e) {
-    return null;
+    console.warn('[ADAPTIVE] Passive prefetch planner gagal:', e);
+    return { ok:false, reason:e && e.message ? e.message : 'Passive planner error.' };
   }
 }
 
-function appendPrefetchPlannerDiagnostic_() {
+function appendPassivePrefetchPlannerDiagnostic_(result) {
   try {
     const el = document.getElementById('mg1-device-profile-diagnostic');
     if (!el) return;
-    const old = document.getElementById('mg1-prefetch-planner');
+    const old = document.getElementById('mg1-passive-prefetch-planner');
     if (old) old.remove();
-    const plan = window.mg1LastPrefetchPlan;
     const box = document.createElement('div');
-    box.id = 'mg1-prefetch-planner';
+    box.id = 'mg1-passive-prefetch-planner';
     box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.86;';
-    if (!plan) {
-      box.textContent = 'STEP D1 — PREFETCH PLANNER | menunggu arah pan | STATUS: PLANNER ONLY';
+    if (!result || !result.ok) {
+      box.textContent = 'STEP D1 — PASSIVE PREFETCH PLANNER | ' + ((result && result.reason) || 'Planner belum dijalankan.');
     } else {
-      box.textContent = 'STEP D1 — PREFETCH PLANNER | Direction: ' + plan.direction + ' | Core: ' + plan.coreVisibleCount + ' | Candidates: ' + plan.count + ' | Tile: ' + plan.tileSize + 'px | STATUS: PLANNER ONLY';
+      const keys = (result.candidates || []).map(c => c.key).join(', ');
+      box.textContent = 'STEP D1 — PASSIVE PREFETCH PLANNER | Direction: ' + result.direction +
+        ' | Candidates: ' + (result.candidates || []).length +
+        ' | Tile: ' + (result.plan ? result.plan.tileSize : '-') + 'px' +
+        ' | Keys: ' + (keys || '-') +
+        ' | STATUS: PLANNER ONLY';
     }
     const close = el.querySelector('button[data-mg1-close]');
     if (close) el.insertBefore(box, close); else el.appendChild(box);
-  } catch (_) {}
+  } catch (e) { console.warn('[ADAPTIVE] D1 diagnostic gagal:', e); }
 }
 
 function appendViewportTilePlannerDiagnostic_() {
@@ -581,7 +589,6 @@ function appendViewportTilePlannerDiagnostic_() {
     const close = el.querySelector('button[data-mg1-close]');
     if (close) el.insertBefore(box, close);
     else el.appendChild(box);
-    appendPrefetchPlannerDiagnostic_();
   } catch (e) { console.warn('[ADAPTIVE] Planner diagnostic gagal:', e); }
 }
 
@@ -3758,9 +3765,6 @@ function handleMapTouchEnd_(event) {
 function scheduleMapPanVisual_() {
   const svg = mapPanState_.visualSvg;
   if (!svg || !mapPanState_.active) return;
-  // STEP D1: hanya menghitung kandidat prefetch berdasarkan arah drag.
-  // Belum ada render/cache; viewport visual tetap sepenuhnya dikendalikan STEP 7.6D.
-  planAdaptivePrefetchFromPan_(mapPanState_.dx, mapPanState_.dy);
   // STEP 7.6D: apply visual pan immediately from the input event.
   // Do not wait an extra requestAnimationFrame; the browser can composite the
   // transform on the next frame while the input event is still in flight.
@@ -3834,6 +3838,8 @@ function beginMapPanPointer_(event, svg, bounds, startX, startY) {
 }
 function commitMapPan_(extraDx, extraDy) {
   const svg = mapPanState_.visualSvg;
+  const d1Dx = Number(mapPanState_.dx || 0) + Number(extraDx || 0);
+  const d1Dy = Number(mapPanState_.dy || 0) + Number(extraDy || 0);
   const bounds = mapPanState_.baseBounds;
   if (bounds && mapPanState_.baseCenterNative && mapPanState_.baseRectW > 0 && mapPanState_.baseRectH > 0) {
     const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
@@ -3851,7 +3857,16 @@ function commitMapPan_(extraDx, extraDy) {
   mapPanState_.visualSvg = null;
   mapPanRenderScheduled_ = false;
   mapPanInertiaRaf_ = null;
-  if (mapPanState_.moved) render();
+  if (mapPanState_.moved) {
+    render();
+    // D1 hanya berjalan SETELAH commit/render selesai. Tidak pernah masuk ke jalur
+    // scheduleMapPanVisual_ sehingga gesture 60 FPS tetap bebas dari planner.
+    try {
+      const d1 = planPassivePrefetchAfterPan_(d1Dx, d1Dy);
+      window.mg1LastPassivePrefetchPlan = d1;
+      appendPassivePrefetchPlannerDiagnostic_(d1);
+    } catch (_) {}
+  }
 }
 function startMapPanInertia_() {
   const svg = mapPanState_.visualSvg;
