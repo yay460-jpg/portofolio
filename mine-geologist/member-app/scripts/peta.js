@@ -786,6 +786,29 @@ async function dbPutMap_(entry) {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+// V15.13 STEP J — RUNTIME TILE PERSISTENCE
+// Menyimpan kembali tilePyramid setelah tile runtime berhasil dibuat. Tidak mengubah
+// renderer/gesture; tujuan tahap ini hanya agar tile yang sudah dibuat tidak hilang
+// ketika map dibaca ulang dari IndexedDB. Raw PDF bytes/File tetap TIDAK disimpan.
+async function persistLithositeRuntimeTileStore_(pyramid) {
+  if (!pyramid || !pyramid.runtimeMapId) return { ok:false, reason:'map-id-unavailable' };
+  const mapId = String(pyramid.runtimeMapId);
+  const entry = Array.isArray(backgroundMapsList)
+    ? backgroundMapsList.find(m => m && String(m.id) === mapId)
+    : null;
+  if (!entry) return { ok:false, reason:'map-entry-unavailable' };
+  try {
+    const updated = { ...entry, tilePyramid: pyramid };
+    await dbPutMap_(updated);
+    const idx = backgroundMapsList.findIndex(m => m && String(m.id) === mapId);
+    if (idx >= 0) backgroundMapsList[idx] = updated;
+    return { ok:true, mapId, tileCount: pyramid.tileStore ? Number(pyramid.tileStore.count) || 0 : 0 };
+  } catch (err) {
+    console.warn('Persist runtime tile ' + mapId + ' gagal:', err);
+    return { ok:false, reason:String(err && err.message || err) };
+  }
+}
 async function dbDeleteMap_(id) {
   const db = await openMapDb_();
   return new Promise((resolve, reject) => {
@@ -800,6 +823,11 @@ async function dbDeleteMap_(id) {
 async function loadBackgroundMapsFromDb_() {
   try {
     backgroundMapsList = await dbGetAllMaps_();
+    backgroundMapsList.forEach(m => {
+      if (m && m.tilePyramid && typeof m.tilePyramid === 'object' && !m.tilePyramid.runtimeMapId) {
+        m.tilePyramid.runtimeMapId = m.id;
+      }
+    });
     const stored = localStorage.getItem('mg1_active_bg_map_id');
     if (stored && backgroundMapsList.find(m => m.id === stored)) { activeBackgroundMapId = stored; mapZoom = 1.25; mapViewportState_.centerNative = null; }
   } catch (e) {
@@ -1632,6 +1660,7 @@ function getLithositeMissingDetailResolverStats_(pyramid) {
 
 
 // V15.12 STEP I — RUNTIME TILE SOURCE + MISSING DETAIL TILE CREATION
+// V15.13 adds persistence of successfully created runtime tiles back to IndexedDB.
 // Runtime source memakai File asli yang dipilih user, bukan menyimpan raw PDF bytes
 // secara permanen di IndexedDB. Satu tile dibuat per request; setelah selesai resource
 // pdf.js ditutup kembali. Tahap ini belum mengubah compositor/gesture/C1/C2.
@@ -1683,6 +1712,9 @@ function addLithositeRuntimeCreatedTile_(pyramid, tile) {
   ensureLithositeTileStore_(pyramid);
   ensureLithositeTileQueue_(pyramid);
   markLithositeTileLoaded_(pyramid, tile.tileKey);
+  // Persist satu hasil runtime tile ke IndexedDB; kegagalan persistence tidak
+  // membatalkan tile yang sudah berhasil tersedia di memory.
+  try { void persistLithositeRuntimeTileStore_(pyramid); } catch (_) {}
   return true;
 }
 
@@ -3639,6 +3671,9 @@ async function submitMapUpload_() {
     // V15.12: retain only the browser File reference for on-demand runtime tile creation.
     // Raw PDF bytes are NOT persisted here and are read only when a missing tile is requested.
     if (f.geoReference) registerLithositeRuntimePdfSource_(id, file, f.geoReference);
+    // V15.13: remember the owning map id inside the pyramid so runtime-created tiles
+    // can be written back to the same IndexedDB map record. This is metadata only.
+    if (f.tilePyramid && typeof f.tilePyramid === 'object') f.tilePyramid.runtimeMapId = id;
     activeBackgroundMapId = id; // peta baru diupload langsung diaktifkan
     mapZoom = 1.25;
     compassRotationOffsetDeg_ = 0;
