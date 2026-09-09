@@ -6008,20 +6008,33 @@ function renderKmlUploadForm_() {
           modalState.open = false;
         }
 
-        // V22 ATOMIC FIXED SWAP
+        // V23 SAVE UX FIX: setelah DB sukses, jangan tahan modal sampai atomic swap selesai.
+        // List peta harus langsung terlihat seperti alur normal. Surface map baru boleh
+        // disiapkan/ditukar di belakang tanpa memblokir penutupan modal.
         const vp = document.getElementById('mg1-map-viewport');
-        if(vp) {
-          console.log('[V22] Starting FIXED atomic swap with new Image() loader');
-          const swapped = await executeAtomicSurfaceSwap_(vp, buildNewMapSurfaceV22);
-          if(!swapped) {
-            // FIXED-2: swap gagal/timeout = jangan sentuh surface lama.
-            // Peta lama tetap menjadi visible surface; tidak ada direct inject
-            // dan tidak ada render() fallback yang dapat membuka blank frame.
-            console.warn('[V22 FIXED-2] Swap cancelled - OLD MAP retained, no destructive fallback');
-          }
-          console.log(`[V22] Atomic swap ${swapped ? 'SUCCESS' : 'CANCELLED'} - blank frame eliminated`);
-        } else {
-          if(typeof render === 'function') render();
+        const openManageAfterSave = () => {
+          try {
+            if(typeof window._v23OpenManageModal === 'function') {
+              window._v23OpenManageModal();
+              return;
+            }
+            if(typeof window.openMapManagePanel_ === 'function') {
+              window.openMapManagePanel_();
+              return;
+            }
+          } catch(e) { console.warn('[V23 SAVE UX] open manage failed', e); }
+        };
+
+        // Modal upload sudah ditutup. Jangan await swap di sini.
+        setTimeout(openManageAfterSave, 300);
+
+        if(vp && typeof executeAtomicSurfaceSwap_ === 'function') {
+          console.log('[V22/V23] Starting atomic map swap in background');
+          executeAtomicSurfaceSwap_(vp, buildNewMapSurfaceV22)
+            .then(swapped => {
+              console.log(`[V22/V23] Atomic swap ${swapped ? 'SUCCESS' : 'CANCELLED'} - OLD MAP retained on failure`);
+            })
+            .catch(e => console.warn('[V22/V23] Atomic swap failed - OLD MAP retained', e));
         }
 
       } catch(err) {
@@ -6041,17 +6054,23 @@ function renderKmlUploadForm_() {
     window.submitMapUpload_NoRender_ = window.submitMapUpload_V22_;
     window.submitMapUpload_Atomic_ = window.submitMapUpload_V22_;
 
-    // Patch V19 button
-    const check = setInterval(() => {
+    // Bind langsung ke tombol V19. Jangan clone tombol karena V19 dapat membuat/
+    // menginisialisasi ulang DOM modal setelah runtime aktif.
+    const bindV22SaveButton_ = () => {
       const saveBtn = document.getElementById('mg1-new-modal-save');
-      if(saveBtn) {
+      if(!saveBtn) return false;
+      saveBtn.type = 'button';
+      saveBtn.onclick = window.submitMapUpload_V22_;
+      saveBtn.__v22SaveBound = true;
+      return true;
+    };
+    bindV22SaveButton_();
+    const check = setInterval(() => {
+      if(bindV22SaveButton_()) {
         clearInterval(check);
-        const newBtn = saveBtn.cloneNode(true);
-        saveBtn.parentNode.replaceChild(newBtn, saveBtn);
-        newBtn.onclick = window.submitMapUpload_V22_;
-        console.log('[V22] V19 modal button patched to FIXED atomic');
+        console.log('[V22] V19 save button bound directly to FIXED save flow');
       }
-    }, 500);
+    }, 250);
 
     console.log('[V22] submitMapUpload_ replaced with FIXED atomic version');
   }
@@ -6708,6 +6727,9 @@ function renderKmlUploadForm_() {
       if(typeof mapManagePanelOpen !== 'undefined') mapManagePanelOpen = false;
     }, 300);
   }
+
+  // Dipakai save flow V22 agar daftar peta langsung tampil tanpa render() global.
+  window._v23OpenManageModal = openManageModal;
 
   // Isolated upload modal sudah ada di V19, tapi kita pastikan tidak pakai render()
   function openUploadModal() {
