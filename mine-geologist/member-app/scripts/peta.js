@@ -1,4 +1,4 @@
-/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V17.1 GEO-PDF NO FLICKER STABILIZATION. */
+/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V17.2 MAP SURFACE MANAGER / NO FLICKER. */
 /* ============================================================
  * MINE GEOLOGIST / LITHOSITE -- member-app/scripts/peta.js
  * [PARTISI -- 4 Sep, Tahap 4] Tab Peta -- Mine Grid SVG, North Arrow (3-mode
@@ -3717,74 +3717,131 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
   }
 }
 
-// V17.1 NO FLICKER — freeze the currently rendered map outside #app while the
-// final render() rebuilds the application DOM. This is a visual shield only;
-// it does not alter map state, tiles, gestures, or compositor math.
-function captureMapSurfaceTransition_() {
+// V17.2 MAP SURFACE MANAGER — import is a transaction; map surface is independent.
+// Prinsip: selama GeoPDF/save berlangsung, current map surface TIDAK disentuh.
+// Map baru dibangun detached, tile image dipastikan siap, lalu hanya surface map yang
+// di-swap. Tidak ada freeze clone, fallback render, atau render() berulang di lifecycle import.
+let mg1MapSurfaceSwapBusy_ = false;
+
+function getActiveMapSurface_() {
   try {
     const vp = document.getElementById('mg1-map-viewport');
-    if (!vp || !document.body) return null;
-    const rect = vp.getBoundingClientRect();
-    if (!(rect.width > 0 && rect.height > 0)) return null;
+    return vp ? vp.querySelector('[data-mg1-map-surface="true"]') : null;
+  } catch (_) { return null; }
+}
 
-    const overlay = vp.cloneNode(true);
-    overlay.id = 'mg1-map-transition-freeze';
-    overlay.setAttribute('aria-hidden', 'true');
-    overlay.style.position = 'fixed';
-    overlay.style.left = rect.left + 'px';
-    overlay.style.top = rect.top + 'px';
-    overlay.style.width = rect.width + 'px';
-    overlay.style.height = rect.height + 'px';
-    overlay.style.margin = '0';
-    overlay.style.zIndex = '2147483646';
-    overlay.style.pointerEvents = 'none';
-    overlay.style.opacity = '1';
-    overlay.style.transition = 'none';
-    overlay.style.transform = 'none';
-    document.body.appendChild(overlay);
-    return overlay;
-  } catch (_) {
+function buildMapSurfaceDetached_(points) {
+  try {
+    if (!Array.isArray(points) || !points.length) return null;
+    const surface = document.createElement('div');
+    surface.setAttribute('data-mg1-map-surface', 'true');
+    surface.setAttribute('aria-hidden', 'true');
+    surface.style.position = 'absolute';
+    surface.style.inset = '0';
+    surface.style.width = '100%';
+    surface.style.height = '100%';
+    surface.style.overflow = 'hidden';
+    surface.style.opacity = '0';
+    surface.style.pointerEvents = 'none';
+    surface.style.zIndex = '1';
+    surface.style.transition = 'none';
+    surface.innerHTML = renderMineGridSvg(points);
+    return surface;
+  } catch (e) {
+    console.warn('Build map surface detached gagal:', e);
     return null;
   }
 }
 
-function releaseMapSurfaceTransition_(overlay) {
-  if (!overlay) return;
+function collectMapSurfaceImageSources_(surface) {
+  if (!surface) return [];
+  return Array.from(surface.querySelectorAll('image'))
+    .map(el => el.getAttribute('href') || el.getAttributeNS('http://www.w3.org/1999/xlink', 'href'))
+    .filter(Boolean);
+}
+
+async function waitMapSurfaceReady_(surface) {
+  const hrefs = collectMapSurfaceImageSources_(surface);
+  if (!hrefs.length) return;
+
+  // Decode source tiles off-screen. A failed individual tile must not abort the
+  // transaction because the renderer already has its normal tile fallback behavior.
+  await Promise.all(hrefs.map(href => new Promise(resolve => {
+    try {
+      const img = new Image();
+      let settled = false;
+      const finish = () => { if (settled) return; settled = true; resolve(); };
+      img.onload = finish;
+      img.onerror = finish;
+      img.src = href;
+      if (typeof img.decode === 'function') img.decode().then(finish, finish);
+      setTimeout(finish, 2500);
+    } catch (_) { resolve(); }
+  })));
+}
+
+async function swapMapSurface_(newSurface, oldSurface) {
+  const vp = document.getElementById('mg1-map-viewport');
+  if (!vp || !newSurface) return false;
+
+  newSurface.style.opacity = '0';
+  newSurface.style.pointerEvents = 'none';
+  newSurface.style.zIndex = '2';
+  vp.appendChild(newSurface);
+
+  // The new surface is now in the real viewport, but remains invisible until its
+  // images have had a chance to decode. The old surface is still the only visible map.
+  await waitMapSurfaceReady_(newSurface);
+
+  if (!document.body.contains(vp) || !vp.contains(newSurface)) return false;
+
+  const old = oldSurface && vp.contains(oldSurface) ? oldSurface : null;
+  if (old) {
+    old.style.pointerEvents = 'none';
+    old.style.transition = 'opacity 120ms ease-out';
+  }
+  newSurface.style.transition = 'opacity 120ms ease-out';
+  newSurface.style.pointerEvents = 'auto';
+
   requestAnimationFrame(() => {
-    requestAnimationFrame(async () => {
-      try {
-        const newVp = document.getElementById('mg1-map-viewport');
-        if (!newVp) {
-          overlay.remove();
-          return;
-        }
-
-        // SVG <image> tiles use data URLs. Preload the small set used by the
-        // freshly-rendered viewport so the freeze is removed only after the
-        // browser has had a chance to decode the same tiles.
-        const hrefs = Array.from(newVp.querySelectorAll('image'))
-          .map(el => el.getAttribute('href') || el.getAttributeNS('http://www.w3.org/1999/xlink', 'href'))
-          .filter(Boolean)
-          .slice(0, 96);
-
-        if (hrefs.length) {
-          await Promise.all(hrefs.map(href => new Promise(resolve => {
-            const img = new Image();
-            img.onload = img.onerror = () => resolve();
-            img.src = href;
-          })));
-        }
-
-        overlay.style.transition = 'opacity 160ms ease-out';
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-          try { overlay.remove(); } catch (_) {}
-        }, 190);
-      } catch (_) {
-        try { overlay.remove(); } catch (_) {}
-      }
-    });
+    if (old) old.style.opacity = '0';
+    newSurface.style.opacity = '1';
   });
+
+  setTimeout(() => {
+    try { if (old && old.parentNode === vp) old.remove(); } catch (_) {}
+    try {
+      newSurface.removeAttribute('aria-hidden');
+      newSurface.style.transition = 'none';
+      newSurface.style.zIndex = '1';
+    } catch (_) {}
+  }, 150);
+  return true;
+}
+
+async function commitMapSurfaceAfterImport_(points) {
+  if (mg1MapSurfaceSwapBusy_) return false;
+  mg1MapSurfaceSwapBusy_ = true;
+  try {
+    const vp = document.getElementById('mg1-map-viewport');
+    if (!vp) return false;
+    const oldSurface = getActiveMapSurface_();
+    const newSurface = buildMapSurfaceDetached_(points);
+    if (!newSurface) return false;
+    return await swapMapSurface_(newSurface, oldSurface);
+  } finally {
+    mg1MapSurfaceSwapBusy_ = false;
+  }
+}
+
+function closeMapUploadFormNoRender_() {
+  mapUploadFormOpen = false;
+  mapUploadProcessing = false;
+  mapUploadRuntimeFile_ = null;
+  try {
+    const host = document.getElementById('mg1-map-upload-modal-host');
+    if (host) host.innerHTML = '';
+  } catch (_) {}
 }
 
 // V17.1 STEP K — STABLE SAVE + MAP TRANSITION UI
@@ -3814,16 +3871,14 @@ function paintMapUploadSaveUi_() {
 async function submitMapUpload_() {
   if (mapUploadBusy || mapUploadProcessing) return;
   const f = mapUploadFormState;
-  if (!f.fileDataUrl) { mapUploadStatusMsg = 'Pilih gambar peta dulu.'; mapUploadStatusOk = false; render(); return; }
-  if (!f.name.trim()) { mapUploadStatusMsg = 'Nama peta wajib diisi.'; mapUploadStatusOk = false; render(); return; }
+  if (!f.fileDataUrl) { mapUploadStatusMsg = 'Pilih gambar peta dulu.'; mapUploadStatusOk = false; paintMapUploadSaveUi_(); return; }
+  if (!f.name.trim()) { mapUploadStatusMsg = 'Nama peta wajib diisi.'; mapUploadStatusOk = false; paintMapUploadSaveUi_(); return; }
   if (!isStrictNumeric(f.tlTimur) || !isStrictNumeric(f.tlUtara) || !isStrictNumeric(f.brTimur) || !isStrictNumeric(f.brUtara)) {
-    mapUploadStatusMsg = 'Ke-4 angka Timur/Utara wajib angka valid (bukan kosong/teks).'; mapUploadStatusOk = false; render(); return;
+    mapUploadStatusMsg = 'Ke-4 angka Timur/Utara wajib angka valid (bukan kosong/teks).'; mapUploadStatusOk = false; paintMapUploadSaveUi_(); return;
   }
 
-  // V17.1 NO FLICKER: capture the currently visible map BEFORE the final render().
-  // The snapshot lives outside #app, so replacing app.innerHTML cannot expose a
-  // black/empty frame while the new SVG/tile images are being attached.
-  const v17MapFreeze = captureMapSurfaceTransition_();
+  // V17.2: current map surface is NEVER frozen, cloned, rebuilt, or rendered during save.
+  // It remains the visible surface until the new surface is fully prepared.
   mapUploadBusy = true;
   mapUploadStatusMsg = 'Menyimpan ke HP...';
   mapUploadStatusOk = true;
@@ -3835,7 +3890,6 @@ async function submitMapUpload_() {
     id = 'bgmap_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
     const runtimeFile = mapUploadRuntimeFile_;
     const tilePyramid = (f.tilePyramid && typeof f.tilePyramid === 'object') ? { ...f.tilePyramid } : null;
-    // V15.14: set runtimeMapId BEFORE initial DB write so persisted metadata sudah lengkap.
     if (tilePyramid) tilePyramid.runtimeMapId = id;
 
     await dbPutMap_({
@@ -3850,51 +3904,59 @@ async function submitMapUpload_() {
       uploadedBy: sessionInfo ? sessionInfo.userName : 'unknown'
     });
     savedToHp = true;
-    mapUploadStatusMsg = '✓ Peta berhasil disimpan ke HP.';
+    mapUploadStatusMsg = '✓ Peta berhasil disimpan ke HP. Menyiapkan tampilan...';
     mapUploadStatusOk = true;
     paintMapUploadSaveUi_();
 
-    // Refresh in-memory list, tetapi JANGAN render() di tengah lifecycle.
     await loadBackgroundMapsFromDb_();
 
-    // V15.12/V15.14: runtime PDF source memakai File asli yang dipilih user.
-    // Jika registration gagal/tidak tersedia, itu bukan kegagalan penyimpanan map.
     if (f.geoReference && runtimeFile) {
       const registered = registerLithositeRuntimePdfSource_(id, runtimeFile, f.geoReference);
       if (!registered) {
-        mapUploadStatusMsg = '✓ Peta tersimpan. Runtime source belum aktif pada sesi ini.';
-        mapUploadStatusOk = true;
+        mapUploadStatusMsg = '✓ Peta tersimpan. Menyiapkan tampilan tanpa runtime source.';
         paintMapUploadSaveUi_();
       }
-    } else if (f.geoReference && !runtimeFile) {
-      mapUploadStatusMsg = '✓ Peta tersimpan. Runtime source PDF tidak tersedia pada sesi ini.';
-      mapUploadStatusOk = true;
-      paintMapUploadSaveUi_();
     }
 
+    // Commit map state only after the persistent entry exists. The visible surface
+    // itself is still the old one at this point.
     activeBackgroundMapId = id;
     mapZoom = 1.25;
     compassRotationOffsetDeg_ = 0;
     mapRotationDeg_ = (compassState_.active && Number.isFinite(compassState_.smoothedHeadingDeg)) ? normalizeSignedDeg_(-compassState_.smoothedHeadingDeg) : 0;
     mapViewportState_.centerNative = null;
     localStorage.setItem('mg1_active_bg_map_id', id);
+
+    // Build from the same map data that is already displayed. No render() and no #app rewrite.
+    const mapDataForSwap = buildMapData();
+    const validPointsForSwap = mapDataForSwap.filter(p => p.hasValidCoord);
+    const swapped = await commitMapSurfaceAfterImport_(validPointsForSwap);
+    if (!swapped) {
+      // If no viewport exists (edge case), fall back to one normal render. In the normal
+      // Peta flow the viewport exists, so the import path stays surface-only.
+      if (!document.getElementById('mg1-map-viewport')) render();
+      else {
+        mapUploadStatusMsg = '✓ Peta tersimpan. Surface baru belum bisa dipasang; peta lama tetap aman.';
+        paintMapUploadSaveUi_();
+        return;
+      }
+    }
+
+    mapUploadStatusMsg = '✓ Peta berhasil disimpan ke HP.';
+    mapUploadStatusOk = true;
     mapUploadFormOpen = false;
+    closeMapUploadFormNoRender_();
   } catch (e) {
     if (savedToHp) {
-      // Defensive: seharusnya tidak masuk sini setelah dbPutMap_ sukses, tetapi jangan
-      // pernah menyatakan "gagal simpan" kalau data sudah commit di IndexedDB.
       mapUploadStatusMsg = '✓ Peta sudah tersimpan ke HP. Ada langkah lanjutan yang gagal: ' + String(e && e.message || e);
       mapUploadStatusOk = true;
     } else {
       mapUploadStatusMsg = 'Gagal menyimpan ke HP: ' + String(e && e.message || e);
       mapUploadStatusOk = false;
     }
+    paintMapUploadSaveUi_();
   } finally {
     mapUploadBusy = false;
-    // Exactly one final render. The old map remains visually frozen outside #app
-    // until the new viewport has had a chance to attach/decode its tiles.
-    render();
-    releaseMapSurfaceTransition_(v17MapFreeze);
   }
 }
 function activateBackgroundMap_(id) {
@@ -5375,7 +5437,9 @@ function renderPeta() {
 
   // ==== SUCCESS: render Mine Grid ====
   html += '<div id="mg1-map-viewport" class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden select-none" style="touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;" oncontextmenu="return false" onselectstart="return false" ondragstart="return false">' +
+    '<div data-mg1-map-surface="true" class="absolute inset-0 overflow-hidden" style="z-index:1;">' +
     renderMineGridSvg(validPoints) +
+    '</div>' +
     renderNorthArrow_(computeResponsiveDisplayBounds_(validPoints)) +
     renderMeasureBanner_(mapData) +
     // Kontrol zoom + crosshair (reset view) -- poin desain #2 (MAP-02): sekarang BENAR2
@@ -5405,7 +5469,7 @@ function renderPeta() {
   html += renderBottomNav();
   html += renderMapDetailModal(mapData);
   html += renderMapManagePanel_();
-  html += renderMapUploadForm_();
+  html += '<div id="mg1-map-upload-modal-host">' + renderMapUploadForm_() + '</div>';
   html += renderKmlManagePanel_();
   html += renderKmlUploadForm_();
   // STEP 04: setelah DOM dipasang oleh render(), ukur container aktual agar FIT
