@@ -1,4 +1,4 @@
-/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V15.4 PERSISTENT MAP SURFACE. */
+/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V15.6 DETAIL-FIRST COMPOSITOR. */
 /* ============================================================
  * MINE GEOLOGIST / LITHOSITE -- member-app/scripts/peta.js
  * [PARTISI -- 4 Sep, Tahap 4] Tab Peta -- Mine Grid SVG, North Arrow (3-mode
@@ -1316,8 +1316,8 @@ function normalizeLithositeTile_(tile, factor) {
   return out;
 }
 
-// V15.5 STEP D — DETAIL TILE LIFECYCLE
-// BASE tetap full coverage. DETAIL hanya dipasang untuk tile yang relevan dengan
+// V15.6 STEP E — DETAIL-FIRST COMPOSITOR
+// BASE tetap full coverage. DETAIL menjadi visual utama dan harus opaque; BASE hanya fallback.
 // viewport saat ini + margin kecil. Tile identity factor/x/y menjadi kunci lifecycle.
 let mapDetailTileLifecycle_ = { mounted: new Set(), lastViewportKey: '', lastMountedCount: 0, lastRetainedCount: 0 };
 function getLithositeDetailTileViewportKey_(viewBox) {
@@ -4302,8 +4302,8 @@ function renderMineGridSvg(points) {
           }
         };
 
-        appendLevel(baseLevel, 'base', '0.94');
-        if (detailLevel && detailLevel !== baseLevel) appendLevel(detailLevel, 'detail', '0.98');
+        appendLevel(baseLevel, 'base', '1');
+        if (detailLevel && detailLevel !== baseLevel) appendLevel(detailLevel, 'detail', '1');
       } else {
         svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + ' pointer-events="none" draggable="false" oncontextmenu="return false;"/>';
       }
