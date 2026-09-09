@@ -3676,13 +3676,54 @@ function handleMapTouchEnd_(event) {
   }
 }
 
+function clampMapPanOffset_(dx, dy) {
+  const x = Number.isFinite(dx) ? dx : 0;
+  const y = Number.isFinite(dy) ? dy : 0;
+  try {
+    const bounds = mapPanState_.baseBounds;
+    const baseCenter = mapPanState_.baseCenterNative;
+    const rectW = mapPanState_.baseRectW;
+    const rectH = mapPanState_.baseRectH;
+    if (!bounds || !baseCenter || !(rectW > 0) || !(rectH > 0)) return { dx:x, dy:y };
+    if (!activeBackgroundMapId) return { dx:x, dy:y };
+    const activeMap = backgroundMapsList.find(m => m.id === activeBackgroundMapId);
+    const extent = activeMap && activeMap.geoReference && activeMap.geoReference.extent
+      ? activeMap.geoReference.extent
+      : (activeMap ? { cornerTL: activeMap.cornerTL, cornerBR: activeMap.cornerBR } : null);
+    if (!extent || !extent.cornerTL || !extent.cornerBR) return { dx:x, dy:y };
+    const minT = Math.min(parseFloat(extent.cornerTL.timur), parseFloat(extent.cornerBR.timur));
+    const maxT = Math.max(parseFloat(extent.cornerTL.timur), parseFloat(extent.cornerBR.timur));
+    const minU = Math.min(parseFloat(extent.cornerTL.utara), parseFloat(extent.cornerBR.utara));
+    const maxU = Math.max(parseFloat(extent.cornerTL.utara), parseFloat(extent.cornerBR.utara));
+    if (![minT,maxT,minU,maxU].every(Number.isFinite) || !(maxT > minT) || !(maxU > minU)) return { dx:x, dy:y };
+    const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+    const zoom = Math.max(0.0001, Number(mapZoom) || 1);
+    const viewNativeW = rangeT / zoom, viewNativeH = rangeU / zoom;
+    const halfW = viewNativeW / 2, halfH = viewNativeH / 2;
+    const desiredX = baseCenter.x - (x / rectW) * (viewNativeW / 320) * rangeT;
+    const desiredY = baseCenter.y + (y / rectH) * (viewNativeH / 320) * rangeU;
+    const loX = minT + halfW, hiX = maxT - halfW;
+    const loY = minU + halfH, hiY = maxU - halfH;
+    const clampedX = loX <= hiX ? Math.max(loX, Math.min(hiX, desiredX)) : (minT + maxT) / 2;
+    const clampedY = loY <= hiY ? Math.max(loY, Math.min(hiY, desiredY)) : (minU + maxU) / 2;
+    const dxClamped = -(clampedX - baseCenter.x) * rectW * 320 / Math.max(1e-9, viewNativeW * rangeT);
+    const dyClamped = (clampedY - baseCenter.y) * rectH * 320 / Math.max(1e-9, viewNativeH * rangeU);
+    return { dx: Number.isFinite(dxClamped) ? dxClamped : x, dy: Number.isFinite(dyClamped) ? dyClamped : y };
+  } catch (_) {
+    return { dx:x, dy:y };
+  }
+}
+
 function scheduleMapPanVisual_() {
   const svg = mapPanState_.visualSvg;
   if (!svg || !mapPanState_.active) return;
-  // STEP 7.6D: apply visual pan immediately from the input event.
-  // Do not wait an extra requestAnimationFrame; the browser can composite the
-  // transform on the next frame while the input event is still in flight.
-  applyPanVisual_(svg, mapPanState_.dx, mapPanState_.dy);
+  // D1.2: visual pan is still immediate/GPU, but cannot drag the GeoPDF outside
+  // its native extent. This prevents the viewport from exposing a large navy blank
+  // region while the finger is moving.
+  const clamped = clampMapPanOffset_(mapPanState_.dx, mapPanState_.dy);
+  mapPanState_.visualDx = clamped.dx;
+  mapPanState_.visualDy = clamped.dy;
+  applyPanVisual_(svg, clamped.dx, clamped.dy);
 }
 
 function applyPanVisual_(svg, dx, dy) {
@@ -3756,8 +3797,10 @@ function commitMapPan_(extraDx, extraDy) {
   if (bounds && mapPanState_.baseCenterNative && mapPanState_.baseRectW > 0 && mapPanState_.baseRectH > 0) {
     const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
     const zoomedW = 320 / Math.max(0.0001, mapZoom), zoomedH = 320 / Math.max(0.0001, mapZoom);
-    const totalDx = mapPanState_.dx + (extraDx || 0);
-    const totalDy = mapPanState_.dy + (extraDy || 0);
+    const totalRawDx = mapPanState_.dx + (extraDx || 0);
+    const totalRawDy = mapPanState_.dy + (extraDy || 0);
+    const clamped = clampMapPanOffset_(totalRawDx, totalRawDy);
+    const totalDx = clamped.dx, totalDy = clamped.dy;
     const deltaNativeX = -(totalDx / mapPanState_.baseRectW) * (zoomedW / 320) * rangeT;
     const deltaNativeY = (totalDy / mapPanState_.baseRectH) * (zoomedH / 320) * rangeU;
     const nx = mapPanState_.baseCenterNative.x + deltaNativeX;
@@ -3789,7 +3832,8 @@ function startMapPanInertia_() {
     extraDy += vy * dt;
     vx *= Math.pow(friction, dt / 16);
     vy *= Math.pow(friction, dt / 16);
-    applyPanVisual_(svg, mapPanState_.dx + extraDx, mapPanState_.dy + extraDy);
+    const visual = clampMapPanOffset_(mapPanState_.dx + extraDx, mapPanState_.dy + extraDy);
+    applyPanVisual_(svg, visual.dx, visual.dy);
     if (Math.hypot(vx, vy) > 0.02 && Math.hypot(extraDx, extraDy) < 420) {
       mapPanInertiaRaf_ = requestAnimationFrame(tick);
     } else {
@@ -4158,13 +4202,7 @@ function renderMineGridSvg(points) {
 function getMapButtonZoomSvg_() {
   try {
     const vp = document.getElementById('mg1-map-viewport');
-    if (!vp) return null;
-    // D1.1: bila fallback layer ada, JANGAN pernah mengambil SVG fallback
-    // sebagai target gesture/zoom. Semua kontrol interaktif harus selalu
-    // menunjuk current visual layer.
-    const current = vp.querySelector('[data-map-current-layer=\"true\"] svg[data-map-gesture=\"true\"]');
-    if (current) return current;
-    return vp.querySelector('svg[data-map-gesture=\"true\"]');
+    return vp ? vp.querySelector('svg[data-map-gesture=\"true\"]') : null;
   } catch (_) { return null; }
 }
 function easeOutCubic_(t) {
@@ -4418,57 +4456,7 @@ function renderMapTapInfo_() {
     '<div class="flex items-center justify-between gap-3"><span class="text-[9px] text-yellow-300 font-bold">Titik Tap</span><button onclick="clearMapTap_()" class="text-[9px] text-white/40">Tutup</button></div>' + body + '</div>';
 }
 
-// V14.49 D1.1: VISUAL FALLBACK LAYER — isolated from the live gesture SVG.
-// The previous SVG is copied only as a temporary visual fallback. It must never
-// become the target of pan/pinch/zoom controls.
-function captureMapFallbackSvgHtml_() {
-  try {
-    const vp = document.getElementById('mg1-map-viewport');
-    if (!vp) return '';
-    const oldSvg = vp.querySelector('[data-map-current-layer="true"] svg[data-map-gesture="true"]')
-      || vp.querySelector('svg[data-map-gesture="true"]');
-    if (!oldSvg) return '';
-    const html = oldSvg.outerHTML || '';
-    if (!html) return '';
-    return html
-      .replace('<svg ', '<svg data-map-fallback="true" aria-hidden="true" ')
-      .replace(/pointer-events:auto/g, 'pointer-events:none');
-  } catch (_) { return ''; }
-}
-
-function scheduleMapFallbackRetire_() {
-  try {
-    const vp = document.getElementById('mg1-map-viewport');
-    if (!vp) return;
-    const fallback = vp.querySelector('[data-map-fallback-layer="true"]');
-    const current = vp.querySelector('[data-map-current-layer="true"] svg[data-map-gesture="true"]');
-    if (!fallback || !current) return;
-    const imgs = Array.from(current.querySelectorAll('image'));
-    let retired = false;
-    const retire = () => {
-      if (retired) return;
-      retired = true;
-      if (!fallback.isConnected) return;
-      fallback.style.transition = 'opacity 120ms ease-out';
-      fallback.style.opacity = '0';
-      setTimeout(() => { try { if (fallback.isConnected) fallback.remove(); } catch (_) {} }, 140);
-    };
-    if (!imgs.length) { requestAnimationFrame(retire); return; }
-    let remaining = imgs.length;
-    const done = () => { remaining--; if (remaining <= 0) retire(); };
-    imgs.forEach(img => {
-      try {
-        if (img.complete) { done(); return; }
-        img.addEventListener('load', done, { once:true });
-        img.addEventListener('error', done, { once:true });
-      } catch (_) { done(); }
-    });
-    setTimeout(retire, 1800);
-  } catch (_) {}
-}
-
 function renderPeta() {
-  const mapFallbackSvgHtml = captureMapFallbackSvgHtml_();
   let html = renderHeader();
   html += '<main class="app-main flex-1 min-h-0 flex flex-col gap-[10px] px-4 pt-3 pb-3">';
 
@@ -4539,13 +4527,8 @@ function renderPeta() {
   }
 
   // ==== SUCCESS: render Mine Grid ====
-  const currentMapSvgHtml = renderMineGridSvg(validPoints);
-  const fallbackLayerHtml = mapFallbackSvgHtml
-    ? '<div class="absolute inset-0 z-0" data-map-fallback-layer="true" style="pointer-events:none;">' + mapFallbackSvgHtml + '</div>'
-    : '';
-  const currentLayerHtml = '<div class="absolute inset-0 z-[1]" data-map-current-layer="true">' + currentMapSvgHtml + '</div>';
   html += '<div id="mg1-map-viewport" class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden select-none" style="touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;" oncontextmenu="return false" onselectstart="return false" ondragstart="return false">' +
-    fallbackLayerHtml + currentLayerHtml +
+    renderMineGridSvg(validPoints) +
     renderNorthArrow_(computeResponsiveDisplayBounds_(validPoints)) +
     renderMeasureBanner_(mapData) +
     // Kontrol zoom + crosshair (reset view) -- poin desain #2 (MAP-02): sekarang BENAR2
