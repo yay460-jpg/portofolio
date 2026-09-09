@@ -1,4 +1,4 @@
-/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V17.3 IMPORT TRANSACTION + PERSISTENT MAP SURFACE HOST / NO FLICKER. */
+/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V17.1 GEO-PDF NO FLICKER STABILIZATION. */
 /* ============================================================
  * MINE GEOLOGIST / LITHOSITE -- member-app/scripts/peta.js
  * [PARTISI -- 4 Sep, Tahap 4] Tab Peta -- Mine Grid SVG, North Arrow (3-mode
@@ -3717,235 +3717,80 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
   }
 }
 
-// V17.3 — IMPORT TRANSACTION + PERSISTENT MAP SURFACE HOST
-// Struktur utama:
-//   1) #app boleh render ulang UI tanpa memiliki lifecycle map surface.
-//   2) Map surface hidup di host persistent di document.body.
-//   3) Import membangun surface baru detached.
-//   4) Surface baru dipastikan siap.
-//   5) Satu replaceChildren() menjadi COMMIT atomik.
-// Tidak ada clone/freeze/fallback/fade/render() untuk pergantian map saat import.
-let mg1MapSurfaceSwapBusy_ = false;
-let mg1MapSurfaceHost_ = null;
-let mg1MapSurfaceObserver_ = null;
-let mg1MapSurfacePositionRaf_ = null;
-
-function ensureLithositeMapSurfaceHost_() {
+// V17.1 NO FLICKER — freeze the currently rendered map outside #app while the
+// final render() rebuilds the application DOM. This is a visual shield only;
+// it does not alter map state, tiles, gestures, or compositor math.
+function captureMapSurfaceTransition_() {
   try {
-    if (mg1MapSurfaceHost_ && document.body.contains(mg1MapSurfaceHost_)) return mg1MapSurfaceHost_;
-    let host = document.getElementById('mg1-map-surface-host');
-    if (!host) {
-      host = document.createElement('div');
-      host.id = 'mg1-map-surface-host';
-      host.setAttribute('aria-hidden', 'true');
-      host.style.position = 'fixed';
-      host.style.left = '0';
-      host.style.top = '0';
-      host.style.width = '0';
-      host.style.height = '0';
-      host.style.overflow = 'hidden';
-      host.style.pointerEvents = 'none';
-      host.style.zIndex = '5';
-      host.style.margin = '0';
-      host.style.padding = '0';
-      host.style.background = 'transparent';
-      document.body.appendChild(host);
-    }
-    mg1MapSurfaceHost_ = host;
+    const vp = document.getElementById('mg1-map-viewport');
+    if (!vp || !document.body) return null;
+    const rect = vp.getBoundingClientRect();
+    if (!(rect.width > 0 && rect.height > 0)) return null;
 
-    if (!mg1MapSurfaceObserver_) {
-      const app = document.getElementById('app');
-      if (app) {
-        mg1MapSurfaceObserver_ = new MutationObserver(() => {
-          syncLithositeMapSurfaceHost_();
-        });
-        mg1MapSurfaceObserver_.observe(app, { childList: true, subtree: true });
-      } else {
-        setTimeout(() => { try { ensureLithositeMapSurfaceHost_(); } catch (_) {} }, 0);
-      }
-    }
-    syncLithositeMapSurfaceHost_();
-    return host;
-  } catch (e) {
-    console.warn('Map surface host gagal dibuat:', e);
+    const overlay = vp.cloneNode(true);
+    overlay.id = 'mg1-map-transition-freeze';
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.style.position = 'fixed';
+    overlay.style.left = rect.left + 'px';
+    overlay.style.top = rect.top + 'px';
+    overlay.style.width = rect.width + 'px';
+    overlay.style.height = rect.height + 'px';
+    overlay.style.margin = '0';
+    overlay.style.zIndex = '2147483646';
+    overlay.style.pointerEvents = 'none';
+    overlay.style.opacity = '1';
+    overlay.style.transition = 'none';
+    overlay.style.transform = 'none';
+    document.body.appendChild(overlay);
+    return overlay;
+  } catch (_) {
     return null;
   }
 }
 
-function syncLithositeMapSurfaceHost_() {
-  try {
-    const host = mg1MapSurfaceHost_ || ensureLithositeMapSurfaceHost_();
-    if (!host) return;
-    const vp = document.getElementById('mg1-map-viewport');
-    if (!vp || typeof currentTab !== 'undefined' && currentTab !== 'peta') {
-      host.style.width = '0';
-      host.style.height = '0';
-      host.style.pointerEvents = 'none';
-      host.style.visibility = 'hidden';
-      return;
-    }
+function releaseMapSurfaceTransition_(overlay) {
+  if (!overlay) return;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
+      try {
+        const newVp = document.getElementById('mg1-map-viewport');
+        if (!newVp) {
+          overlay.remove();
+          return;
+        }
 
-    host.style.visibility = 'visible';
-    const rect = vp.getBoundingClientRect();
-    if (!(rect.width > 0 && rect.height > 0)) return;
-    host.style.left = rect.left + 'px';
-    host.style.top = rect.top + 'px';
-    host.style.width = rect.width + 'px';
-    host.style.height = rect.height + 'px';
+        // SVG <image> tiles use data URLs. Preload the small set used by the
+        // freshly-rendered viewport so the freeze is removed only after the
+        // browser has had a chance to decode the same tiles.
+        const hrefs = Array.from(newVp.querySelectorAll('image'))
+          .map(el => el.getAttribute('href') || el.getAttributeNS('http://www.w3.org/1999/xlink', 'href'))
+          .filter(Boolean)
+          .slice(0, 96);
 
-    // On the first Peta render the surface is produced inside #app. Move that
-    // already-rendered surface into the persistent host before the next paint.
-    const inlineSurface = vp.querySelector('[data-mg1-map-surface="true"]');
-    const hostedSurface = host.querySelector('[data-mg1-map-surface="true"]');
-    if (inlineSurface && inlineSurface.parentElement === vp) {
-      if (!hostedSurface) {
-        // First map surface: adopt the already-rendered surface into the persistent host.
-        inlineSurface.style.position = 'absolute';
-        inlineSurface.style.inset = '0';
-        inlineSurface.style.width = '100%';
-        inlineSurface.style.height = '100%';
-        inlineSurface.style.overflow = 'hidden';
-        inlineSurface.style.opacity = '1';
-        inlineSurface.style.pointerEvents = 'none';
-        inlineSurface.style.zIndex = '1';
-        host.replaceChildren(inlineSurface);
-      } else {
-        // A normal #app render may create a temporary duplicate surface. Never let it
-        // replace the live persistent map. Remove only the duplicate DOM node.
-        inlineSurface.remove();
+        if (hrefs.length) {
+          await Promise.all(hrefs.map(href => new Promise(resolve => {
+            const img = new Image();
+            img.onload = img.onerror = () => resolve();
+            img.src = href;
+          })));
+        }
+
+        overlay.style.transition = 'opacity 160ms ease-out';
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          try { overlay.remove(); } catch (_) {}
+        }, 190);
+      } catch (_) {
+        try { overlay.remove(); } catch (_) {}
       }
-    }
-
-    const active = host.querySelector('[data-mg1-map-surface="true"]');
-    if (active) {
-      active.style.position = 'absolute';
-      active.style.inset = '0';
-      active.style.width = '100%';
-      active.style.height = '100%';
-      active.style.overflow = 'hidden';
-      active.style.opacity = '1';
-      active.style.pointerEvents = 'auto';
-      active.style.zIndex = '1';
-    }
-  } catch (_) {}
-}
-
-function scheduleLithositeMapSurfaceHostSync_() {
-  if (mg1MapSurfacePositionRaf_) return;
-  mg1MapSurfacePositionRaf_ = requestAnimationFrame(() => {
-    mg1MapSurfacePositionRaf_ = null;
-    syncLithositeMapSurfaceHost_();
+    });
   });
 }
 
-if (!window.__mg1LithositeMapSurfaceHostBound) {
-  window.__mg1LithositeMapSurfaceHostBound = true;
-  window.addEventListener('resize', scheduleLithositeMapSurfaceHostSync_, { passive: true });
-  window.addEventListener('scroll', scheduleLithositeMapSurfaceHostSync_, { passive: true });
-  setTimeout(() => { try { ensureLithositeMapSurfaceHost_(); } catch (_) {} }, 0);
-}
-
-function getActiveMapSurface_() {
-  try {
-    const host = ensureLithositeMapSurfaceHost_();
-    const hosted = host && host.querySelector('[data-mg1-map-surface="true"]');
-    if (hosted) return hosted;
-    const vp = document.getElementById('mg1-map-viewport');
-    return vp ? vp.querySelector('[data-mg1-map-surface="true"]') : null;
-  } catch (_) { return null; }
-}
-
-function buildMapSurfaceDetached_(points) {
-  try {
-    if (!Array.isArray(points) || !points.length) return null;
-    const surface = document.createElement('div');
-    surface.setAttribute('data-mg1-map-surface', 'true');
-    surface.setAttribute('aria-hidden', 'true');
-    surface.style.position = 'absolute';
-    surface.style.inset = '0';
-    surface.style.width = '100%';
-    surface.style.height = '100%';
-    surface.style.overflow = 'hidden';
-    surface.style.opacity = '1';
-    surface.style.pointerEvents = 'none';
-    surface.style.zIndex = '1';
-    surface.style.transition = 'none';
-    surface.innerHTML = renderMineGridSvg(points);
-    return surface;
-  } catch (e) {
-    console.warn('Build map surface detached gagal:', e);
-    return null;
-  }
-}
-
-function collectMapSurfaceImageSources_(surface) {
-  if (!surface) return [];
-  return Array.from(surface.querySelectorAll('image'))
-    .map(el => el.getAttribute('href') || el.getAttributeNS('http://www.w3.org/1999/xlink', 'href'))
-    .filter(Boolean);
-}
-
-async function waitMapSurfaceReady_(surface) {
-  const hrefs = collectMapSurfaceImageSources_(surface);
-  if (!hrefs.length) return;
-  await Promise.all(hrefs.map(href => new Promise(resolve => {
-    try {
-      const img = new Image();
-      let settled = false;
-      const finish = () => { if (settled) return; settled = true; resolve(); };
-      img.onload = finish;
-      img.onerror = finish;
-      img.src = href;
-      if (typeof img.decode === 'function') img.decode().then(finish, finish);
-      setTimeout(finish, 2500);
-    } catch (_) { resolve(); }
-  })));
-}
-
-async function commitMapSurfaceAfterImport_(points) {
-  if (mg1MapSurfaceSwapBusy_) return false;
-  mg1MapSurfaceSwapBusy_ = true;
-  try {
-    const host = ensureLithositeMapSurfaceHost_();
-    if (!host) return false;
-    const newSurface = buildMapSurfaceDetached_(points);
-    if (!newSurface) return false;
-
-    // The current map remains untouched while the new surface is prepared.
-    await waitMapSurfaceReady_(newSurface);
-    if (!document.body.contains(host)) return false;
-
-    const oldSurface = host.querySelector('[data-mg1-map-surface="true"]');
-    newSurface.style.opacity = '1';
-    newSurface.style.pointerEvents = 'auto';
-    newSurface.removeAttribute('aria-hidden');
-
-    // ONE DOM operation: old surface and new surface are never painted as a
-    // half-transition. There is no fade because a fade would expose two map states.
-    host.replaceChildren(newSurface);
-
-    if (oldSurface) {
-      try { oldSurface.remove(); } catch (_) {}
-    }
-    scheduleLithositeMapSurfaceHostSync_();
-    return true;
-  } finally {
-    mg1MapSurfaceSwapBusy_ = false;
-  }
-}
-
-function closeMapUploadFormNoRender_() {
-  mapUploadFormOpen = false;
-  mapUploadProcessing = false;
-  mapUploadRuntimeFile_ = null;
-  try {
-    const host = document.getElementById('mg1-map-upload-modal-host');
-    if (host) host.innerHTML = '';
-  } catch (_) {}
-}
-
-// V17.3 — IMPORT TRANSACTION UI. Progress/status is painted directly into the
-// modal. It never owns or rebuilds the map surface.
+// V17.1 STEP K — STABLE SAVE + MAP TRANSITION UI
+// Selama proses Simpan, jangan panggil render() berulang-ulang. render() mengganti
+// app.innerHTML dan dapat membuat map surface berkedip. Status upload diperbarui langsung
+// pada DOM yang sudah ada; render() hanya dilakukan sekali setelah lifecycle save selesai.
 function paintMapUploadSaveUi_() {
   try {
     const statusEl = document.getElementById('map-upload-status');
@@ -3969,12 +3814,16 @@ function paintMapUploadSaveUi_() {
 async function submitMapUpload_() {
   if (mapUploadBusy || mapUploadProcessing) return;
   const f = mapUploadFormState;
-  if (!f.fileDataUrl) { mapUploadStatusMsg = 'Pilih gambar peta dulu.'; mapUploadStatusOk = false; paintMapUploadSaveUi_(); return; }
-  if (!f.name.trim()) { mapUploadStatusMsg = 'Nama peta wajib diisi.'; mapUploadStatusOk = false; paintMapUploadSaveUi_(); return; }
+  if (!f.fileDataUrl) { mapUploadStatusMsg = 'Pilih gambar peta dulu.'; mapUploadStatusOk = false; render(); return; }
+  if (!f.name.trim()) { mapUploadStatusMsg = 'Nama peta wajib diisi.'; mapUploadStatusOk = false; render(); return; }
   if (!isStrictNumeric(f.tlTimur) || !isStrictNumeric(f.tlUtara) || !isStrictNumeric(f.brTimur) || !isStrictNumeric(f.brUtara)) {
-    mapUploadStatusMsg = 'Ke-4 angka Timur/Utara wajib angka valid (bukan kosong/teks).'; mapUploadStatusOk = false; paintMapUploadSaveUi_(); return;
+    mapUploadStatusMsg = 'Ke-4 angka Timur/Utara wajib angka valid (bukan kosong/teks).'; mapUploadStatusOk = false; render(); return;
   }
 
+  // V17.1 NO FLICKER: capture the currently visible map BEFORE the final render().
+  // The snapshot lives outside #app, so replacing app.innerHTML cannot expose a
+  // black/empty frame while the new SVG/tile images are being attached.
+  const v17MapFreeze = captureMapSurfaceTransition_();
   mapUploadBusy = true;
   mapUploadStatusMsg = 'Menyimpan ke HP...';
   mapUploadStatusOk = true;
@@ -3986,6 +3835,7 @@ async function submitMapUpload_() {
     id = 'bgmap_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
     const runtimeFile = mapUploadRuntimeFile_;
     const tilePyramid = (f.tilePyramid && typeof f.tilePyramid === 'object') ? { ...f.tilePyramid } : null;
+    // V15.14: set runtimeMapId BEFORE initial DB write so persisted metadata sudah lengkap.
     if (tilePyramid) tilePyramid.runtimeMapId = id;
 
     await dbPutMap_({
@@ -4000,57 +3850,53 @@ async function submitMapUpload_() {
       uploadedBy: sessionInfo ? sessionInfo.userName : 'unknown'
     });
     savedToHp = true;
-    mapUploadStatusMsg = '✓ Peta berhasil disimpan ke HP. Menyiapkan tampilan...';
+    mapUploadStatusMsg = '✓ Peta berhasil disimpan ke HP.';
     mapUploadStatusOk = true;
     paintMapUploadSaveUi_();
 
+    // Refresh in-memory list, tetapi JANGAN render() di tengah lifecycle.
     await loadBackgroundMapsFromDb_();
 
+    // V15.12/V15.14: runtime PDF source memakai File asli yang dipilih user.
+    // Jika registration gagal/tidak tersedia, itu bukan kegagalan penyimpanan map.
     if (f.geoReference && runtimeFile) {
       const registered = registerLithositeRuntimePdfSource_(id, runtimeFile, f.geoReference);
       if (!registered) {
-        mapUploadStatusMsg = '✓ Peta tersimpan. Menyiapkan tampilan tanpa runtime source.';
+        mapUploadStatusMsg = '✓ Peta tersimpan. Runtime source belum aktif pada sesi ini.';
+        mapUploadStatusOk = true;
         paintMapUploadSaveUi_();
       }
+    } else if (f.geoReference && !runtimeFile) {
+      mapUploadStatusMsg = '✓ Peta tersimpan. Runtime source PDF tidak tersedia pada sesi ini.';
+      mapUploadStatusOk = true;
+      paintMapUploadSaveUi_();
     }
 
-    // State commit happens only after the persistent record is safe.
     activeBackgroundMapId = id;
     mapZoom = 1.25;
     compassRotationOffsetDeg_ = 0;
     mapRotationDeg_ = (compassState_.active && Number.isFinite(compassState_.smoothedHeadingDeg)) ? normalizeSignedDeg_(-compassState_.smoothedHeadingDeg) : 0;
     mapViewportState_.centerNative = null;
     localStorage.setItem('mg1_active_bg_map_id', id);
-
-    // Build the NEW map surface from committed state. Current surface remains untouched.
-    const mapDataForSwap = buildMapData();
-    const validPointsForSwap = mapDataForSwap.filter(p => p.hasValidCoord);
-    const swapped = await commitMapSurfaceAfterImport_(validPointsForSwap);
-    if (!swapped) {
-      mapUploadStatusMsg = '✓ Peta tersimpan, tetapi tampilan baru belum siap. Peta lama tetap dipertahankan.';
-      mapUploadStatusOk = true;
-      paintMapUploadSaveUi_();
-      return;
-    }
-
-    mapUploadStatusMsg = '✓ Peta berhasil disimpan ke HP.';
-    mapUploadStatusOk = true;
     mapUploadFormOpen = false;
-    closeMapUploadFormNoRender_();
   } catch (e) {
     if (savedToHp) {
+      // Defensive: seharusnya tidak masuk sini setelah dbPutMap_ sukses, tetapi jangan
+      // pernah menyatakan "gagal simpan" kalau data sudah commit di IndexedDB.
       mapUploadStatusMsg = '✓ Peta sudah tersimpan ke HP. Ada langkah lanjutan yang gagal: ' + String(e && e.message || e);
       mapUploadStatusOk = true;
     } else {
       mapUploadStatusMsg = 'Gagal menyimpan ke HP: ' + String(e && e.message || e);
       mapUploadStatusOk = false;
     }
-    paintMapUploadSaveUi_();
   } finally {
     mapUploadBusy = false;
+    // Exactly one final render. The old map remains visually frozen outside #app
+    // until the new viewport has had a chance to attach/decode its tiles.
+    render();
+    releaseMapSurfaceTransition_(v17MapFreeze);
   }
 }
-
 function activateBackgroundMap_(id) {
   activeBackgroundMapId = id;
   mapZoom = 1.25;
@@ -5203,9 +5049,6 @@ function renderMineGridSvg(points) {
 function getMapButtonZoomSvg_() {
   try {
     const vp = document.getElementById('mg1-map-viewport');
-    const host = document.getElementById('mg1-map-surface-host');
-    const hosted = host && host.querySelector('svg[data-map-gesture=\"true\"]');
-    if (hosted) return hosted;
     return vp ? vp.querySelector('svg[data-map-gesture=\"true\"]') : null;
   } catch (_) { return null; }
 }
@@ -5532,9 +5375,7 @@ function renderPeta() {
 
   // ==== SUCCESS: render Mine Grid ====
   html += '<div id="mg1-map-viewport" class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden select-none" style="touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;" oncontextmenu="return false" onselectstart="return false" ondragstart="return false">' +
-    '<div data-mg1-map-surface="true" class="absolute inset-0 overflow-hidden" style="z-index:1;">' +
     renderMineGridSvg(validPoints) +
-    '</div>' +
     renderNorthArrow_(computeResponsiveDisplayBounds_(validPoints)) +
     renderMeasureBanner_(mapData) +
     // Kontrol zoom + crosshair (reset view) -- poin desain #2 (MAP-02): sekarang BENAR2
@@ -5564,7 +5405,7 @@ function renderPeta() {
   html += renderBottomNav();
   html += renderMapDetailModal(mapData);
   html += renderMapManagePanel_();
-  html += '<div id="mg1-map-upload-modal-host">' + renderMapUploadForm_() + '</div>';
+  html += renderMapUploadForm_();
   html += renderKmlManagePanel_();
   html += renderKmlUploadForm_();
   // STEP 04: setelah DOM dipasang oleh render(), ukur container aktual agar FIT
@@ -5803,448 +5644,3 @@ function renderKmlUploadForm_() {
     '</button>';
   return renderSimpleModal('Import KML', 'Titik &amp; garis batas', body, 'closeKmlUploadForm_()');
 }
-
-
-/* ===== V19.1 ATOMIC IMPORT MODULE — BUNDLED INTO peta.js ===== */
-(function(){
-  console.log('[V19.1 ATOMIC IMPORT] Loading isolated no-flicker modal');
-
-  // State isolated - tidak pakai mapUploadFormState global
-  const state = {
-    open: false,
-    file: null,
-    fileName: '',
-    name: '',
-    fileDataUrl: '',
-    geoReference: null,
-    tilePyramid: null,
-    cornerTL: null,
-    cornerBR: null,
-    busy: false,
-    processing: false,
-    statusMsg: '',
-    statusOk: true,
-    progress: 0
-  };
-
-  let els = {};
-  let progressRaf = null;
-  let lastProgress = -1;
-
-  function ensureDom() {
-    if(document.getElementById('mg1-new-map-modal-root')) {
-      els.root = document.getElementById('mg1-new-map-modal-root');
-      els.backdrop = document.getElementById('mg1-new-modal-backdrop');
-      els.panel = document.getElementById('mg1-new-modal-panel');
-      els.nameInput = document.getElementById('mg1-new-modal-name');
-      els.fileInput = document.getElementById('mg1-new-modal-file');
-      els.fileLabel = document.getElementById('mg1-new-modal-file-label');
-      els.preview = document.getElementById('mg1-new-modal-preview');
-      els.coords = document.getElementById('mg1-new-modal-coords');
-      els.status = document.getElementById('mg1-new-modal-status');
-      els.progressBar = document.getElementById('mg1-new-modal-progress');
-      els.progressFill = document.getElementById('mg1-new-modal-progress-fill');
-      els.saveBtn = document.getElementById('mg1-new-modal-save');
-      return;
-    }
-
-    const root = document.createElement('div');
-    root.id = 'mg1-new-map-modal-root';
-    root.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:none;';
-    root.innerHTML = `
-      <div id="mg1-new-modal-backdrop" style="position:absolute;inset:0;background:rgba(3,8,20,0.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);opacity:0;transition:opacity 220ms ease;"></div>
-      <div id="mg1-new-modal-panel" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-44%) scale(0.96);width:min(92vw,420px);max-height:86vh;overflow:auto;background:#0e1933;border:1px solid rgba(255,255,255,0.12);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);opacity:0;transition:all 280ms cubic-bezier(0.16,1,0.3,1);">
-        <div style="position:sticky;top:0;z-index:2;background:rgba(14,25,51,0.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:18px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:-0.02em;">Tambah Peta Baru</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">GeoPDF / GeoTIFF / PNG-JPG + koordinat auto</div>
-          </div>
-          <button id="mg1-new-modal-close" style="width:32px;height:32px;border-radius:9999px;background:rgba(255,255,255,0.08);border:none;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.6);font-size:16px;">✕</button>
-        </div>
-        <div style="padding:16px 18px 18px;">
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;font-weight:600;letter-spacing:0.04em;">NAMA PETA</label>
-            <input id="mg1-new-modal-name" placeholder="cth. Foto Udara Avenza Sep 2025" style="width:100%;background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 12px;font-size:13px;color:#fff;outline:none;transition:border 0.2s;" />
-          </div>
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;font-weight:600;">GAMBAR PETA (PNG,JPG,GeoTIFF,GeoPDF)</label>
-            <input type="file" id="mg1-new-modal-file" accept=".png,.jpg,.jpeg,.tif,.tiff,.pdf" style="display:none;" />
-            <button id="mg1-new-modal-pick" style="width:100%;background:rgba(37,99,235,0.12);border:1px dashed rgba(37,99,235,0.4);border-radius:12px;padding:12px;font-size:12px;font-weight:700;color:#60a5fa;">+ Pilih File</button>
-            <div id="mg1-new-modal-file-label" style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.35);">Tidak ada file dipilih</div>
-          </div>
-          <div id="mg1-new-modal-preview" style="display:none;margin-bottom:12px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:#0b1329;"></div>
-          <div id="mg1-new-modal-coords" style="display:none;margin-bottom:12px;background:rgba(255,255,255,0.04);border-radius:12px;padding:10px 12px;"></div>
-          <div id="mg1-new-modal-progress" style="display:none;margin-bottom:12px;">
-            <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:9999px;overflow:hidden;">
-              <div id="mg1-new-modal-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#60a5fa);transition:width 0.2s ease;"></div>
-            </div>
-            <div id="mg1-new-modal-status" style="margin-top:8px;font-size:11px;font-weight:500;color:rgba(255,255,255,0.7);"></div>
-          </div>
-          <button id="mg1-new-modal-save" style="width:100%;background:linear-gradient(180deg,#2563eb,#1d4ed8);border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:800;color:#fff;box-shadow:0 4px 16px rgba(37,99,235,0.4);transition:all 0.2s;opacity:0.5;pointer-events:none;">Simpan Peta</button>
-          <div style="margin-top:10px;text-align:center;font-size:9px;color:rgba(255,255,255,0.25);line-height:1.4;">Koordinat auto-detect dari GeoPDF/GeoTIFF. Cek ulang sebelum Simpan.<br/>Peta disimpan di HP (IndexedDB) - tidak perlu internet lagi.</div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(root);
-    // cache els
-    els.root = root;
-    els.backdrop = document.getElementById('mg1-new-modal-backdrop');
-    els.panel = document.getElementById('mg1-new-modal-panel');
-    els.nameInput = document.getElementById('mg1-new-modal-name');
-    els.fileInput = document.getElementById('mg1-new-modal-file');
-    els.fileLabel = document.getElementById('mg1-new-modal-file-label');
-    els.preview = document.getElementById('mg1-new-modal-preview');
-    els.coords = document.getElementById('mg1-new-modal-coords');
-    els.status = document.getElementById('mg1-new-modal-status');
-    els.progressBar = document.getElementById('mg1-new-modal-progress');
-    els.progressFill = document.getElementById('mg1-new-modal-progress-fill');
-    els.saveBtn = document.getElementById('mg1-new-modal-save');
-
-    // events
-    document.getElementById('mg1-new-modal-close').onclick = close;
-    document.getElementById('mg1-new-modal-pick').onclick = () => els.fileInput.click();
-    els.backdrop.onclick = close;
-    els.fileInput.onchange = onFileSelected;
-    els.nameInput.oninput = (e) => { state.name = e.target.value; validate(); };
-    els.saveBtn.onclick = onSave;
-  }
-
-  function open() {
-    ensureDom();
-    state.open = true;
-    els.root.style.display = 'block';
-    // animate in
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        els.backdrop.style.opacity = '1';
-        els.panel.style.opacity = '1';
-        els.panel.style.transform = 'translate(-50%,-50%) scale(1)';
-      });
-    });
-    // reset
-    reset();
-  }
-
-  function close() {
-    if(!state.open) return;
-    els.backdrop.style.opacity = '0';
-    els.panel.style.opacity = '0';
-    els.panel.style.transform = 'translate(-50%,-44%) scale(0.96)';
-    setTimeout(() => {
-      els.root.style.display = 'none';
-      state.open = false;
-    }, 260);
-  }
-
-  function reset() {
-    state.file = null;
-    state.fileName = '';
-    state.name = '';
-    state.fileDataUrl = '';
-    state.geoReference = null;
-    state.tilePyramid = null;
-    state.cornerTL = null;
-    state.cornerBR = null;
-    state.busy = false;
-    state.processing = false;
-    state.statusMsg = '';
-    state.progress = 0;
-    els.nameInput.value = '';
-    els.fileInput.value = '';
-    els.fileLabel.textContent = 'Tidak ada file dipilih';
-    els.fileLabel.style.color = 'rgba(255,255,255,0.35)';
-    els.preview.style.display = 'none';
-    els.preview.innerHTML = '';
-    els.coords.style.display = 'none';
-    els.coords.innerHTML = '';
-    els.progressBar.style.display = 'none';
-    els.progressFill.style.width = '0%';
-    els.status.textContent = '';
-    els.saveBtn.style.opacity = '0.5';
-    els.saveBtn.style.pointerEvents = 'none';
-    els.saveBtn.textContent = 'Simpan Peta';
-  }
-
-  function validate() {
-    const ok = state.fileDataUrl && state.name.trim().length >= 2;
-    els.saveBtn.style.opacity = ok ? '1' : '0.5';
-    els.saveBtn.style.pointerEvents = ok ? 'auto' : 'none';
-  }
-
-  function setStatus(msg, ok=true, progress=null) {
-    state.statusMsg = msg;
-    state.statusOk = ok;
-    if(els.status) {
-      els.status.textContent = msg;
-      els.status.style.color = ok ? 'rgba(255,255,255,0.7)' : '#fb7185';
-    }
-    if(progress !== null) {
-      state.progress = progress;
-      if(els.progressBar) els.progressBar.style.display = 'block';
-      // batch via rAF
-      if(progressRaf) cancelAnimationFrame(progressRaf);
-      progressRaf = requestAnimationFrame(() => {
-        if(els.progressFill) {
-          els.progressFill.style.width = Math.max(0,Math.min(100,progress)) + '%';
-        }
-        lastProgress = progress;
-      });
-    }
-  }
-
-  async function onFileSelected(e) {
-    const file = e.target.files && e.target.files[0];
-    if(!file) return;
-    state.file = file;
-    state.fileName = file.name;
-    els.fileLabel.textContent = file.name + ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
-    els.fileLabel.style.color = '#fff';
-    
-    // auto fill name
-    if(!state.name) {
-      const base = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g,' ').slice(0,40);
-      state.name = base;
-      els.nameInput.value = base;
-    }
-
-    setStatus('Membaca file...', true, 0);
-    els.progressBar.style.display = 'block';
-
-    if(/\.pdf$/i.test(file.name)) {
-      await handleGeoPdf(file);
-    } else if(/\.(tif|tiff)$/i.test(file.name)) {
-      await handleGeoTiff(file);
-    } else {
-      await handleImage(file);
-    }
-    validate();
-  }
-
-  async function handleImage(file) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      state.fileDataUrl = reader.result;
-      els.preview.style.display = 'block';
-      els.preview.innerHTML = `<img src="${reader.result}" style="width:100%;display:block;" />`;
-      setStatus('Gambar siap. Isi koordinat manual 2 sudut.', true, 100);
-      showManualCoordsForm();
-    };
-    reader.readAsDataURL(file);
-  }
-
-  async function handleGeoTiff(file) {
-    setStatus('Membaca GeoTIFF...', true, 10);
-    try {
-      if(typeof tryParseGeoTiff_ === 'function') {
-        const res = await tryParseGeoTiff_(file);
-        if(res && res.cornerTL) {
-          state.fileDataUrl = res.imageDataUrl;
-          state.cornerTL = res.cornerTL;
-          state.cornerBR = res.cornerBR;
-          els.preview.style.display = 'block';
-          els.preview.innerHTML = `<img src="${res.imageDataUrl}" style="width:100%;display:block;" />`;
-          showCoords(res.cornerTL, res.cornerBR, true);
-          setStatus('✓ Koordinat GeoTIFF terbaca otomatis.', true, 100);
-          return;
-        }
-      }
-    } catch(err) {
-      console.warn('[V19.1] GeoTIFF parse fail', err);
-    }
-    // fallback to image
-    await handleImage(file);
-  }
-
-  async function handleGeoPdf(file) {
-    state.processing = true;
-    setStatus('Membaca metadata GeoPDF...', true, 5);
-
-    // Progress reporter yang TIDAK manggil render() global
-    let pendingMsg = '';
-    let pendingPct = 0;
-    let rafPending = false;
-    const paint = () => {
-      rafPending = false;
-      setStatus(pendingMsg, true, pendingPct);
-    };
-    const reporter = (msg, pct) => {
-      pendingMsg = msg;
-      pendingPct = pct;
-      if(!rafPending) {
-        rafPending = true;
-        requestAnimationFrame(paint);
-      }
-    };
-    reporter.stop = () => {};
-
-    try {
-      // tryParseGeoPdf_ ada di peta.js global - pakai itu tapi dengan reporter isolasi
-      let geoRefReady = false;
-      const applyEarly = ({geoReference, cornerTL, cornerBR}) => {
-        if(!cornerTL || !cornerBR) return;
-        geoRefReady = true;
-        state.geoReference = geoReference;
-        state.cornerTL = cornerTL;
-        state.cornerBR = cornerBR;
-        // update coords DOM langsung tanpa render()
-        showCoords(cornerTL, cornerBR, true);
-      };
-
-      if(typeof tryParseGeoPdf_ !== 'function') {
-        setStatus('PDF parser belum siap. Coba lagi.', false, 0);
-        return;
-      }
-
-      const result = await tryParseGeoPdf_(file, reporter, applyEarly);
-
-      if(result && result.ok) {
-        state.geoReference = result.geoReference;
-        state.tilePyramid = result.tilePyramid;
-        state.fileDataUrl = result.imageDataUrl;
-        state.cornerTL = result.cornerTL;
-        state.cornerBR = result.cornerBR;
-        
-        // preview
-        els.preview.style.display = 'block';
-        els.preview.innerHTML = `<img src="${result.imageDataUrl}" style="width:100%;display:block;" />`;
-        showCoords(result.cornerTL, result.cornerBR, true);
-        setStatus('✓ Koordinat & gambar terbaca otomatis dari GeoPDF.', true, 100);
-        
-        // simpan runtime file untuk V15
-        try {
-          if(typeof mapUploadRuntimeFile_ !== 'undefined') {
-            mapUploadRuntimeFile_ = file;
-          }
-          window._v19RuntimeFile = file;
-        } catch(_){}
-      } else if(result && result.cornerTL) {
-        // partial: koordinat ok, gambar gagal
-        state.geoReference = result.geoReference;
-        state.cornerTL = result.cornerTL;
-        state.cornerBR = result.cornerBR;
-        showCoords(result.cornerTL, result.cornerBR, true);
-        setStatus(result.reason || 'Koordinat terbaca, tapi gambar gagal. Upload PNG/JPG terpisah.', false, 100);
-        // tetap allow save dengan koordinat saja? minta image
-      } else {
-        setStatus((result && result.reason) ? result.reason : 'Gagal baca GeoPDF. Export ulang sebagai PNG/JPG.', false, 0);
-      }
-    } catch(err) {
-      console.error('[V19.1] GeoPDF error', err);
-      setStatus('Error baca GeoPDF: ' + (err.message||err), false, 0);
-    } finally {
-      state.processing = false;
-    }
-  }
-
-  function showCoords(tl, br, auto) {
-    els.coords.style.display = 'block';
-    els.coords.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
-        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KIRI-ATAS Timur</div><div style="color:#fff;font-weight:600;">${tl.timur}</div></div>
-        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KIRI-ATAS Utara</div><div style="color:#fff;font-weight:600;">${tl.utara}</div></div>
-        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KANAN-BAWAH Timur</div><div style="color:#fff;font-weight:600;">${br.timur}</div></div>
-        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KANAN-BAWAH Utara</div><div style="color:#fff;font-weight:600;">${br.utara}</div></div>
-      </div>
-      <div style="margin-top:8px;font-size:9px;color:${auto?'#4ade80':'#fbbf24'};">${auto?'✓ Koordinat auto-detect dari file':'Isi manual 2 sudut'}</div>
-    `;
-  }
-
-  function showManualCoordsForm() {
-    // untuk PNG/JPG biasa - tetap tampilkan form manual simple
-    els.coords.style.display = 'block';
-    els.coords.innerHTML = `
-      <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px;">Masukkan Timur/Utara KIRI-ATAS dan KANAN-BAWAH dari ArcGIS/data survey</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <input id="mg1-v19-tl-timur" placeholder="Kiri-Atas Timur" style="background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px;font-size:11px;color:#fff;" />
-        <input id="mg1-v19-tl-utara" placeholder="Kiri-Atas Utara" style="background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px;font-size:11px;color:#fff;" />
-        <input id="mg1-v19-br-timur" placeholder="Kanan-Bawah Timur" style="background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px;font-size:11px;color:#fff;" />
-        <input id="mg1-v19-br-utara" placeholder="Kanan-Bawah Utara" style="background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px;font-size:11px;color:#fff;" />
-      </div>
-    `;
-  }
-
-  async function onSave() {
-    if(state.busy || state.processing) return;
-    if(!state.fileDataUrl) { setStatus('Pilih gambar peta dulu.', false); return; }
-    if(!state.name.trim()) { setStatus('Nama peta wajib diisi.', false); return; }
-    let tlTimur, tlUtara, brTimur, brUtara;
-    if(state.cornerTL && state.cornerBR) {
-      tlTimur=state.cornerTL.timur; tlUtara=state.cornerTL.utara; brTimur=state.cornerBR.timur; brUtara=state.cornerBR.utara;
-    } else {
-      const tlT=document.getElementById('mg1-v19-tl-timur'), tlU=document.getElementById('mg1-v19-tl-utara'), brT=document.getElementById('mg1-v19-br-timur'), brU=document.getElementById('mg1-v19-br-utara');
-      if(!tlT||!tlU||!brT||!brU||!tlT.value||!tlU.value||!brT.value||!brU.value){setStatus('Isi 4 angka Timur/Utara.',false);return;}
-      tlTimur=parseFloat(tlT.value); tlUtara=parseFloat(tlU.value); brTimur=parseFloat(brT.value); brUtara=parseFloat(brU.value);
-      if(![tlTimur,tlUtara,brTimur,brUtara].every(Number.isFinite)){setStatus('Koordinat harus berupa angka valid.',false);return;}
-    }
-    state.busy=true; els.saveBtn.textContent='Menyimpan...'; els.saveBtn.style.opacity='0.7'; setStatus('Menyimpan ke HP...',true,92);
-    let saved=false; let previousActive=(typeof activeBackgroundMapId!=='undefined')?activeBackgroundMapId:null;
-    try {
-      const id='bgmap_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-      const tilePyramid=state.tilePyramid&&typeof state.tilePyramid==='object'?{...state.tilePyramid,runtimeMapId:id}:null;
-      if(typeof dbPutMap_!=='function') throw new Error('dbPutMap_ tidak tersedia');
-      await dbPutMap_({id,name:state.name.trim(),imageDataUrl:state.fileDataUrl,
-        cornerTL:state.geoReference&&state.geoReference.extent?{...state.geoReference.extent.cornerTL}:{timur:tlTimur,utara:tlUtara},
-        cornerBR:state.geoReference&&state.geoReference.extent?{...state.geoReference.extent.cornerBR}:{timur:brTimur,utara:brUtara},
-        geoReference:state.geoReference||null,tilePyramid,uploadedAt:new Date().toISOString(),
-        uploadedBy:(typeof sessionInfo!=='undefined'&&sessionInfo)?sessionInfo.userName:'unknown'});
-      saved=true; setStatus('✓ Data tersimpan. Menyiapkan peta baru...',true,95);
-      if(typeof loadBackgroundMapsFromDb_==='function') await loadBackgroundMapsFromDb_();
-      try { const runtimeFile=window._v19RuntimeFile||state.file; if(state.geoReference&&runtimeFile&&typeof registerLithositeRuntimePdfSource_==='function') registerLithositeRuntimePdfSource_(id,runtimeFile,state.geoReference); } catch(_){}
-      activeBackgroundMapId=id; mapZoom=1.25;
-      if(typeof compassRotationOffsetDeg_!=='undefined') compassRotationOffsetDeg_=0;
-      if(typeof mapRotationDeg_!=='undefined') mapRotationDeg_=(typeof compassState_!=='undefined'&&compassState_.active&&Number.isFinite(compassState_.smoothedHeadingDeg))?normalizeSignedDeg_(-compassState_.smoothedHeadingDeg):0;
-      if(typeof mapViewportState_!=='undefined') mapViewportState_.centerNative=null;
-      try{localStorage.setItem('mg1_active_bg_map_id',id);}catch(_){}
-      if(typeof buildMapData!=='function'||typeof commitMapSurfaceAfterImport_!=='function') throw new Error('Map surface commit engine tidak tersedia');
-      const mapData=buildMapData(); const validPoints=Array.isArray(mapData)?mapData.filter(p=>p&&p.hasValidCoord):[];
-      const ready=await commitMapSurfaceAfterImport_(validPoints);
-      if(!ready) { activeBackgroundMapId=previousActive; if(previousActive) localStorage.setItem('mg1_active_bg_map_id',previousActive); else localStorage.removeItem('mg1_active_bg_map_id'); throw new Error('Peta baru belum siap untuk ditampilkan'); }
-      setStatus('✓ Peta berhasil disimpan.',true,100); state.busy=false; els.saveBtn.textContent='Selesai'; setTimeout(()=>{try{close();}catch(_){}},80);
-    } catch(err) {
-      console.error('[V19.1] atomic import commit error',err);
-      if(saved) setStatus('✓ Data sudah tersimpan, tetapi peta baru belum ditampilkan. Peta lama tetap aman.',true,95);
-      else setStatus('Gagal menyimpan ke HP: '+(err&&err.message||err),false,0);
-      state.busy=false; els.saveBtn.textContent='Simpan Peta'; els.saveBtn.style.opacity='1';
-    }
-  }
-
-  // Public API
-  window.MG1NewMapModal = {
-    open: open,
-    close: close,
-    _state: state
-  };
-
-  // Auto-override tombol lama "Tambah Peta Baru" dan "Kelola Peta Background"
-  function overrideOldButtons() {
-    // Override global openMapUploadForm_ jika ada
-    if(typeof window.openMapUploadForm_ === 'function') {
-      const old = window.openMapUploadForm_;
-      window.openMapUploadForm_ = function() {
-        console.log('[V19.1] openMapUploadForm_ overridden -> new modal');
-        open();
-      };
-    }
-    // Override openMapManagePanel_ untuk tetap pakai modal lama? tapi kita skip
-    // Tombol di UI yang manggil openMapManagePanel_ tetap jalan, tapi Tambah Peta Baru di dalamnya kita override
-    const check = setInterval(() => {
-      const btns = document.querySelectorAll('button');
-      btns.forEach(b => {
-        if(b.textContent && b.textContent.includes('Tambah Peta Baru') && !b.__v19Overridden) {
-          b.__v19Overridden = true;
-          b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); open(); };
-        }
-      });
-    }, 1000);
-  }
-
-  // Init after DOM ready
-  if(document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { ensureDom(); overrideOldButtons(); });
-  } else {
-    ensureDom();
-    overrideOldButtons();
-  }
-
-  console.log('[V19.1 ATOMIC IMPORT] Ready - call MG1NewMapModal.open() to test');
-})();
