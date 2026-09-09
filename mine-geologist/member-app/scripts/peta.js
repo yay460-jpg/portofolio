@@ -1454,6 +1454,31 @@ function getLithositeTileQueueStats_(pyramid) {
   };
 }
 
+// V15.9 STEP F — QUEUE CONSUMER / TILE LIFECYCLE EXECUTOR
+// Executor generik: hanya memproses queue lifecycle melalui worker yang diberikan.
+// Belum melakukan PDF re-render, culling, prefetch, atau perubahan compositor.
+async function consumeLithositeTileQueue_(pyramid, worker, maxItems) {
+  const q = ensureLithositeTileQueue_(pyramid);
+  if (!q || typeof worker !== 'function') return { processed: 0, loaded: 0, failed: 0, pending: q ? q.pending.length : 0 };
+  const limit = Number.isFinite(Number(maxItems)) && Number(maxItems) > 0 ? Math.floor(Number(maxItems)) : 1;
+  let processed = 0, loaded = 0, failed = 0;
+  while (processed < limit) {
+    const tileKey = dequeueLithositeTileKey_(pyramid);
+    if (!tileKey) break;
+    processed++;
+    try {
+      const result = await worker(tileKey, getLithositeTileByKey_(pyramid, tileKey), pyramid);
+      if (result === false) throw new Error('Tile worker returned false.');
+      markLithositeTileLoaded_(pyramid, tileKey);
+      loaded++;
+    } catch (err) {
+      markLithositeTileFailed_(pyramid, tileKey);
+      failed++;
+    }
+  }
+  return { processed, loaded, failed, pending: q.pending.length };
+}
+
 async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoReference) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
