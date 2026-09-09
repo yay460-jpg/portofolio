@@ -737,6 +737,8 @@ let mapManagePanelOpen = false;
 let mapUploadFormOpen = false;
 let mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null, tilePyramid: null };
 let mapUploadStatusMsg = '', mapUploadStatusOk = true, mapUploadBusy = false, mapUploadProcessing = false;
+// V15.14: browser File reference untuk runtime GeoPDF. IndexedDB tetap hanya menyimpan data map/tile; File asli dipakai runtime bila tersedia.
+let mapUploadRuntimeFile_ = null;
 // STEP 8D: GPS realtime state -- hanya aktif saat user menyalakan GPS.
 let gpsWatchId_ = null;
 let gpsState_ = {
@@ -859,7 +861,7 @@ function openMapUploadForm_() {
   mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null, tilePyramid: null };
   mapUploadStatusMsg = ''; mapUploadStatusOk = true; mapUploadBusy = false; mapUploadProcessing = false; mapUploadFormOpen = true; render();
 }
-function closeMapUploadForm_() { mapUploadFormOpen = false; mapUploadProcessing = false; render(); }
+function closeMapUploadForm_() { mapUploadFormOpen = false; mapUploadProcessing = false; mapUploadRuntimeFile_ = null; render(); }
 function updateMapUploadField_(field, value) { mapUploadFormState[field] = value; }
 // [BARU -- 5 Sep] Deteksi GeoTIFF: cek EKSTENSI file (bukan cuma MIME type -- browser
 // kadang kasih MIME kosong/salah utk .tif). Kalau .tif/.tiff, coba baca koordinat
@@ -949,6 +951,8 @@ function makeGeoPdfProgressReporter_() {
 async function handleMapImageFileSelected_(inputEl) {
   const file = inputEl.files && inputEl.files[0];
   if (!file) return;
+  // V15.14: retain the browser File object for the runtime GeoPDF source registry.
+  mapUploadRuntimeFile_ = file;
   const isTiff = /\.(tif|tiff)$/i.test(file.name);
 
   if (isTiff) {
@@ -3645,6 +3649,30 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
     bytes = null; buffer = null; text = '';
   }
 }
+// V15.14 STEP K — STABLE SAVE UI
+// Selama proses Simpan, jangan panggil render() berulang-ulang. render() mengganti
+// app.innerHTML dan dapat membuat map surface berkedip. Status upload diperbarui langsung
+// pada DOM yang sudah ada; render() hanya dilakukan sekali setelah lifecycle save selesai.
+function paintMapUploadSaveUi_() {
+  try {
+    const statusEl = document.getElementById('map-upload-status');
+    const btn = document.getElementById('map-upload-save-btn');
+    if (statusEl) {
+      statusEl.textContent = String(mapUploadStatusMsg || 'Memproses...');
+      statusEl.classList.toggle('text-emerald-400', !!mapUploadStatusOk);
+      statusEl.classList.toggle('text-rose-400', !mapUploadStatusOk);
+      statusEl.classList.toggle('text-amber-300', mapUploadStatusOk && /peringatan|warning/i.test(String(mapUploadStatusMsg || '')));
+    }
+    if (btn) {
+      const busy = !!mapUploadBusy || !!mapUploadProcessing;
+      btn.disabled = busy;
+      btn.innerHTML = busy
+        ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span><span>' + (mapUploadProcessing ? 'Memproses GeoPDF...' : 'Menyimpan...') + '</span>'
+        : icon('upload','w-4 h-4') + '<span>Simpan Peta</span>';
+    }
+  } catch (_) {}
+}
+
 async function submitMapUpload_() {
   if (mapUploadBusy || mapUploadProcessing) return;
   const f = mapUploadFormState;
@@ -3653,9 +3681,23 @@ async function submitMapUpload_() {
   if (!isStrictNumeric(f.tlTimur) || !isStrictNumeric(f.tlUtara) || !isStrictNumeric(f.brTimur) || !isStrictNumeric(f.brUtara)) {
     mapUploadStatusMsg = 'Ke-4 angka Timur/Utara wajib angka valid (bukan kosong/teks).'; mapUploadStatusOk = false; render(); return;
   }
-  mapUploadBusy = true; mapUploadStatusMsg = 'Menyimpan ke HP...'; mapUploadStatusOk = true; render();
+
+  // V15.14: pisahkan "save ke IndexedDB" dari "register runtime source".
+  // Keduanya bukan satu transaksi. Kalau runtime registration gagal, map TETAP tersimpan.
+  mapUploadBusy = true;
+  mapUploadStatusMsg = 'Menyimpan ke HP...';
+  mapUploadStatusOk = true;
+  paintMapUploadSaveUi_();
+
+  let id = null;
+  let savedToHp = false;
   try {
-    const id = 'bgmap_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    id = 'bgmap_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const runtimeFile = mapUploadRuntimeFile_;
+    const tilePyramid = (f.tilePyramid && typeof f.tilePyramid === 'object') ? { ...f.tilePyramid } : null;
+    // V15.14: set runtimeMapId BEFORE initial DB write so persisted metadata sudah lengkap.
+    if (tilePyramid) tilePyramid.runtimeMapId = id;
+
     await dbPutMap_({
       id: id,
       name: f.name.trim(),
@@ -3663,18 +3705,34 @@ async function submitMapUpload_() {
       cornerTL: f.geoReference && f.geoReference.extent ? { ...f.geoReference.extent.cornerTL } : { timur: parseFloat(f.tlTimur), utara: parseFloat(f.tlUtara) },
       cornerBR: f.geoReference && f.geoReference.extent ? { ...f.geoReference.extent.cornerBR } : { timur: parseFloat(f.brTimur), utara: parseFloat(f.brUtara) },
       geoReference: f.geoReference || null,
-      tilePyramid: f.tilePyramid || null,
+      tilePyramid: tilePyramid,
       uploadedAt: new Date().toISOString(),
       uploadedBy: sessionInfo ? sessionInfo.userName : 'unknown'
     });
+    savedToHp = true;
+    mapUploadStatusMsg = '✓ Peta berhasil disimpan ke HP.';
+    mapUploadStatusOk = true;
+    paintMapUploadSaveUi_();
+
+    // Refresh in-memory list, tetapi JANGAN render() di tengah lifecycle.
     await loadBackgroundMapsFromDb_();
-    // V15.12: retain only the browser File reference for on-demand runtime tile creation.
-    // Raw PDF bytes are NOT persisted here and are read only when a missing tile is requested.
-    if (f.geoReference) registerLithositeRuntimePdfSource_(id, file, f.geoReference);
-    // V15.13: remember the owning map id inside the pyramid so runtime-created tiles
-    // can be written back to the same IndexedDB map record. This is metadata only.
-    if (f.tilePyramid && typeof f.tilePyramid === 'object') f.tilePyramid.runtimeMapId = id;
-    activeBackgroundMapId = id; // peta baru diupload langsung diaktifkan
+
+    // V15.12/V15.14: runtime PDF source memakai File asli yang dipilih user.
+    // Jika registration gagal/tidak tersedia, itu bukan kegagalan penyimpanan map.
+    if (f.geoReference && runtimeFile) {
+      const registered = registerLithositeRuntimePdfSource_(id, runtimeFile, f.geoReference);
+      if (!registered) {
+        mapUploadStatusMsg = '✓ Peta tersimpan. Runtime source belum aktif pada sesi ini.';
+        mapUploadStatusOk = true;
+        paintMapUploadSaveUi_();
+      }
+    } else if (f.geoReference && !runtimeFile) {
+      mapUploadStatusMsg = '✓ Peta tersimpan. Runtime source PDF tidak tersedia pada sesi ini.';
+      mapUploadStatusOk = true;
+      paintMapUploadSaveUi_();
+    }
+
+    activeBackgroundMapId = id;
     mapZoom = 1.25;
     compassRotationOffsetDeg_ = 0;
     mapRotationDeg_ = (compassState_.active && Number.isFinite(compassState_.smoothedHeadingDeg)) ? normalizeSignedDeg_(-compassState_.smoothedHeadingDeg) : 0;
@@ -3682,9 +3740,19 @@ async function submitMapUpload_() {
     localStorage.setItem('mg1_active_bg_map_id', id);
     mapUploadFormOpen = false;
   } catch (e) {
-    mapUploadStatusMsg = 'Gagal menyimpan (HP mungkin kehabisan ruang penyimpanan).'; mapUploadStatusOk = false;
+    if (savedToHp) {
+      // Defensive: seharusnya tidak masuk sini setelah dbPutMap_ sukses, tetapi jangan
+      // pernah menyatakan "gagal simpan" kalau data sudah commit di IndexedDB.
+      mapUploadStatusMsg = '✓ Peta sudah tersimpan ke HP. Ada langkah lanjutan yang gagal: ' + String(e && e.message || e);
+      mapUploadStatusOk = true;
+    } else {
+      mapUploadStatusMsg = 'Gagal menyimpan ke HP: ' + String(e && e.message || e);
+      mapUploadStatusOk = false;
+    }
   } finally {
-    mapUploadBusy = false; render();
+    mapUploadBusy = false;
+    // Satu render final saja. Tidak ada render() selama transaksi save berlangsung.
+    render();
   }
 }
 function activateBackgroundMap_(id) {
@@ -5267,7 +5335,7 @@ function renderMapUploadForm_() {
         '<div id="map-upload-progress-fill" class="h-full rounded-full bg-blue-500" style="width: 0%; transition: width 120ms ease-out;"></div>' +
       '</div>' +
     '</div>' +
-    '<button onclick="submitMapUpload_()" ' + ((mapUploadBusy || mapUploadProcessing) ? 'disabled' : '') + ' class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs py-2.5 rounded-xl disabled:opacity-60">' +
+    '<button id="map-upload-save-btn" onclick="submitMapUpload_()" ' + ((mapUploadBusy || mapUploadProcessing) ? 'disabled' : '') + ' class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs py-2.5 rounded-xl disabled:opacity-60">' +
       ((mapUploadBusy || mapUploadProcessing) ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>' : icon('upload','w-4 h-4')) + '<span>' + (mapUploadBusy ? 'Menyimpan...' : (mapUploadProcessing ? 'Memproses GeoPDF...' : 'Simpan Peta')) + '</span>' +
     '</button>';
   return renderSimpleModal('Tambah Peta Baru', 'Upload gambar + 2 titik referensi', body, 'closeMapUploadForm_()');
