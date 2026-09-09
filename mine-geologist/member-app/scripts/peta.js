@@ -1316,6 +1316,48 @@ function normalizeLithositeTile_(tile, factor) {
   return out;
 }
 
+// V15.5 STEP D — DETAIL TILE LIFECYCLE
+// BASE tetap full coverage. DETAIL hanya dipasang untuk tile yang relevan dengan
+// viewport saat ini + margin kecil. Tile identity factor/x/y menjadi kunci lifecycle.
+let mapDetailTileLifecycle_ = { mounted: new Set(), lastViewportKey: '', lastMountedCount: 0, lastRetainedCount: 0 };
+function getLithositeDetailTileViewportKey_(viewBox) {
+  if (!viewBox) return '';
+  return [Number(viewBox.x).toFixed(3), Number(viewBox.y).toFixed(3), Number(viewBox.w).toFixed(3), Number(viewBox.h).toFixed(3)].join('|');
+}
+function tileIntersectsMapViewBox_(tileX, tileY, tileW, tileH, viewBox, margin) {
+  if (!viewBox) return true;
+  const m = Math.max(0, Number(margin) || 0);
+  const left = Number(tileX), top = Number(tileY), right = left + Number(tileW), bottom = top + Number(tileH);
+  const vx0 = Number(viewBox.x) - m, vy0 = Number(viewBox.y) - m;
+  const vx1 = vx0 + Number(viewBox.w) + m * 2, vy1 = vy0 + Number(viewBox.h) + m * 2;
+  return right > vx0 && left < vx1 && bottom > vy0 && top < vy1;
+}
+function prepareLithositeDetailTileLifecycle_(level, tileSize, imgW, imgH, viewBox) {
+  if (!level || !Array.isArray(level.tiles)) {
+    mapDetailTileLifecycle_.mounted = new Set();
+    mapDetailTileLifecycle_.lastViewportKey = getLithositeDetailTileViewportKey_(viewBox);
+    mapDetailTileLifecycle_.lastMountedCount = 0;
+    mapDetailTileLifecycle_.lastRetainedCount = 0;
+    return [];
+  }
+  const pxScaleX = imgW / Math.max(1, Number(level.width) || 1);
+  const pxScaleY = imgH / Math.max(1, Number(level.height) || 1);
+  const margin = Math.max(Number(viewBox && viewBox.w) || 0, Number(viewBox && viewBox.h) || 0) * 0.15;
+  const nextMounted = new Set(), selected = [];
+  for (const t of level.tiles) {
+    if (!t) continue;
+    const key = t.tileKey || t.tileId || makeLithositeTileId_(level.factor, t.x, t.y);
+    const tx = Number(t.x) * tileSize * pxScaleX, ty = Number(t.y) * tileSize * pxScaleY;
+    const tw = Number(t.width) * pxScaleX, th = Number(t.height) * pxScaleY;
+    if (tileIntersectsMapViewBox_(tx, ty, tw, th, viewBox, margin)) { nextMounted.add(key); selected.push(t); }
+  }
+  mapDetailTileLifecycle_.mounted = nextMounted;
+  mapDetailTileLifecycle_.lastViewportKey = getLithositeDetailTileViewportKey_(viewBox);
+  mapDetailTileLifecycle_.lastMountedCount = selected.length;
+  mapDetailTileLifecycle_.lastRetainedCount = selected.length;
+  return selected;
+}
+
 // V15.3 STEP B — PERSISTENT BASE TILE LAYER
 // BASE bukan lagi sekadar level pertama yang kebetulan dipilih renderer.
 // Metadata ini menetapkan BASE sebagai layer permanen/full-coverage yang menjadi
@@ -4249,11 +4291,14 @@ function renderMineGridSvg(points) {
           if (!level || !Array.isArray(level.tiles)) return;
           const pxScaleX = imgW / Math.max(1, Number(level.width) || 1);
           const pxScaleY = imgH / Math.max(1, Number(level.height) || 1);
-          for (const t of level.tiles) {
+          const tilesToMount = layerName === 'detail'
+            ? prepareLithositeDetailTileLifecycle_(level, tileSize, imgW, imgH, viewBox)
+            : level.tiles;
+          for (const t of tilesToMount) {
             const tx = imgX + t.x * tileSize * pxScaleX;
             const ty = imgY + t.y * tileSize * pxScaleY;
             const tw = t.width * pxScaleX, th = t.height * pxScaleY;
-            svg += '<image data-map-layer="' + layerName + '" href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" decoding="sync" preserveAspectRatio="none" opacity="' + opacity + '" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
+            svg += '<image data-map-layer="' + layerName + '" data-map-tile-key="' + String(t.tileKey || t.tileId || makeLithositeTileId_(level.factor, t.x, t.y)) + '" href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" decoding="sync" preserveAspectRatio="none" opacity="' + opacity + '" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
           }
         };
 
