@@ -6894,3 +6894,227 @@ function renderKmlUploadForm_() {
 
   console.log('[V23] Ready - All map modals isolated, no render() flicker');
 })();
+(function(){
+  'use strict';
+  console.log('[V24.1] TRUE INSTANT SAVE loading');
+
+  function getSaveState_(){
+    const f = typeof mapUploadFormState !== 'undefined' ? mapUploadFormState : null;
+    const modalState = window.MG1NewMapModal ? window.MG1NewMapModal._state : null;
+    const isNewModal = !!(modalState && modalState.open);
+    if(isNewModal) return { state: modalState, isNewModal };
+    if(!f) return { state:null, isNewModal:false };
+    return {
+      isNewModal:false,
+      state:{
+        file: typeof mapUploadRuntimeFile_ !== 'undefined' ? mapUploadRuntimeFile_ : (window._v19RuntimeFile || null),
+        name: f.name,
+        fileDataUrl: f.fileDataUrl,
+        geoReference: f.geoReference,
+        tilePyramid: f.tilePyramid,
+        cornerTL: f.geoReference?.extent ? f.geoReference.extent.cornerTL : (f.tlTimur ? {timur:parseFloat(f.tlTimur), utara:parseFloat(f.tlUtara)} : null),
+        cornerBR: f.geoReference?.extent ? f.geoReference.extent.cornerBR : (f.brTimur ? {timur:parseFloat(f.brTimur), utara:parseFloat(f.brUtara)} : null)
+      }
+    };
+  }
+
+  function closeUploadModalInstant_(isNewModal, modalState){
+    const root = document.getElementById('mg1-new-map-modal-root');
+    const backdrop = document.getElementById('mg1-new-modal-backdrop');
+    const panel = document.getElementById('mg1-new-modal-panel');
+    if(root && isNewModal){
+      if(backdrop) backdrop.style.opacity='0';
+      if(panel){ panel.style.opacity='0'; panel.style.transform='translate(-50%,-44%) scale(0.96)'; }
+      setTimeout(()=>{ root.style.display='none'; if(modalState) modalState.open=false; }, 200);
+    } else {
+      if(typeof mapUploadFormOpen !== 'undefined') mapUploadFormOpen=false;
+      if(typeof mapManagePanelOpen !== 'undefined') mapManagePanelOpen=false;
+    }
+  }
+
+  function buildInstantPreviewSurface_(mapEntry){
+    if(typeof renderMineGridSvg !== 'function' || typeof buildMapData !== 'function') return null;
+    const idx = Array.isArray(backgroundMapsList) ? backgroundMapsList.findIndex(m=>m && m.id===mapEntry.id) : -1;
+    const previous = idx >= 0 ? backgroundMapsList[idx] : null;
+    // Force the existing renderer to use the single full image for the first paint.
+    // This avoids building/preloading the 25-level pyramid before the user sees the map.
+    if(idx >= 0) backgroundMapsList[idx] = {...mapEntry, tilePyramid:null};
+    else if(Array.isArray(backgroundMapsList)) backgroundMapsList.push({...mapEntry, tilePyramid:null});
+    let built='';
+    try { built = renderMineGridSvg(buildMapData()); } finally {
+      if(idx >= 0) backgroundMapsList[idx] = previous;
+      else if(Array.isArray(backgroundMapsList)) backgroundMapsList.pop();
+    }
+    const temp=document.createElement('div');
+    temp.innerHTML=String(built||'').trim();
+    const svg=temp.firstElementChild;
+    if(!svg) return null;
+    svg.classList.add('lithosite-map-surface','lithosite-map-surface--instant');
+    svg.style.visibility='hidden';
+    svg.style.pointerEvents='none';
+    svg.style.position='absolute';
+    svg.style.inset='0';
+    svg.style.opacity='1';
+    return svg;
+  }
+
+  function showInstantPreview_(mapEntry){
+    const vp=document.getElementById('mg1-map-viewport');
+    if(!vp) return Promise.resolve(false);
+    let svg;
+    try { svg=buildInstantPreviewSurface_(mapEntry); } catch(e){ console.warn('[V24.1] preview build failed',e); return Promise.resolve(false); }
+    if(!svg) return Promise.resolve(false);
+    vp.appendChild(svg);
+    const href=svg.querySelector('image')?.getAttribute('href') || svg.querySelector('image')?.getAttribute('xlink:href') || '';
+    if(!href){
+      svg.style.visibility=''; svg.style.pointerEvents='';
+      const old=vp.querySelector('svg[data-map-gesture="true"]:not(.lithosite-map-surface--instant)');
+      if(old) old.remove();
+      return Promise.resolve(true);
+    }
+    return new Promise(resolve=>{
+      let settled=false;
+      const finish=(ok)=>{
+        if(settled) return; settled=true;
+        if(ok){
+          svg.style.visibility=''; svg.style.pointerEvents='';
+          const old=vp.querySelector('svg[data-map-gesture="true"]:not(.lithosite-map-surface--instant)');
+          if(old) old.remove();
+          svg.classList.remove('lithosite-map-surface--instant');
+          requestAnimationFrame(()=>{ try{ if(typeof ensureMapContextBlocker_==='function') ensureMapContextBlocker_(); }catch(_){} });
+        } else {
+          try{svg.remove();}catch(_){}
+        }
+        resolve(!!ok);
+      };
+      const loader=new Image();
+      loader.onload=()=>finish(true);
+      loader.onerror=()=>finish(false);
+      loader.src=href;
+      setTimeout(()=>finish(false),1200);
+    });
+  }
+
+  function persistMapInWorker_(entry){
+    return new Promise((resolve,reject)=>{
+      if(typeof Worker==='undefined' || typeof Blob==='undefined' || typeof URL==='undefined' || !URL.createObjectURL){
+        reject(new Error('Worker tidak tersedia')); return;
+      }
+      const workerCode=`
+        self.onmessage=function(ev){
+          const d=ev.data||{}; const req=indexedDB.open(d.dbName,2);
+          req.onupgradeneeded=function(){const db=req.result; if(!db.objectStoreNames.contains(d.storeName)) db.createObjectStore(d.storeName,{keyPath:'id'}); if(!db.objectStoreNames.contains('kmlOverlays')) db.createObjectStore('kmlOverlays',{keyPath:'id'});};
+          req.onerror=function(){self.postMessage({ok:false,error:String(req.error&&req.error.message||req.error||'open failed')});};
+          req.onsuccess=function(){const db=req.result; let tx; try{tx=db.transaction(d.storeName,'readwrite'); tx.objectStore(d.storeName).put(d.entry); tx.oncomplete=function(){try{db.close();}catch(_){} self.postMessage({ok:true});}; tx.onerror=function(){try{db.close();}catch(_){} self.postMessage({ok:false,error:String(tx.error&&tx.error.message||tx.error||'put failed')});}; tx.onabort=tx.onerror;}catch(e){try{db.close();}catch(_){} self.postMessage({ok:false,error:String(e&&e.message||e)});}};
+        };
+      `;
+      const blob=new Blob([workerCode],{type:'application/javascript'});
+      const url=URL.createObjectURL(blob);
+      const worker=new Worker(url);
+      const cleanup=()=>{try{worker.terminate();}catch(_){} try{URL.revokeObjectURL(url);}catch(_){} };
+      worker.onmessage=ev=>{const r=ev.data||{}; cleanup(); r.ok?resolve(true):reject(new Error(r.error||'worker save failed'));};
+      worker.onerror=ev=>{cleanup(); reject(new Error(ev&&ev.message||'worker error'));};
+      try{worker.postMessage({dbName:'mg1_background_maps',storeName:'maps',entry:entry});}
+      catch(e){cleanup(); reject(e);}
+    });
+  }
+
+  function scheduleBackgroundPersistence_(entry){
+    const run=()=>{
+      console.log('[V24.1] Background persistence starting');
+      persistMapInWorker_(entry).then(()=>{
+        console.log('[V24.1] Background IndexedDB save DONE');
+        entry.__v24Persisted=true;
+      }).catch(err=>{
+        console.warn('[V24.1] Worker persistence failed, fallback idle DB save:',err);
+        const fallback=()=>{ if(typeof dbPutMap_==='function') dbPutMap_(entry).catch(e=>console.warn('[V24.1] fallback DB save failed',e)); };
+        if(typeof requestIdleCallback==='function') requestIdleCallback(fallback,{timeout:10000}); else setTimeout(fallback,1000);
+      });
+    };
+    // Give the browser several frames of clean UI time before even cloning the large entry.
+    if(typeof requestIdleCallback==='function') requestIdleCallback(run,{timeout:5000});
+    else setTimeout(run,1500);
+  }
+
+  window.submitMapUpload_InstantV24_1 = async function(){
+    if(window.__v24SaveInFlight) return;
+    const pack=getSaveState_();
+    const state=pack.state, isNewModal=pack.isNewModal;
+    if(!state) return;
+    if(!state.fileDataUrl || !String(state.name||'').trim()) return;
+    window.__v24SaveInFlight=true;
+
+    const id='bgmap_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    const tilePyramid=state.tilePyramid && typeof state.tilePyramid==='object' ? {...state.tilePyramid,runtimeMapId:id} : null;
+    const entry={
+      id,
+      name:String(state.name).trim(),
+      imageDataUrl:state.fileDataUrl,
+      cornerTL:state.geoReference?.extent ? {...state.geoReference.extent.cornerTL} : state.cornerTL,
+      cornerBR:state.geoReference?.extent ? {...state.geoReference.extent.cornerBR} : state.cornerBR,
+      geoReference:state.geoReference||null,
+      tilePyramid,
+      uploadedAt:new Date().toISOString(),
+      uploadedBy:(typeof sessionInfo!=='undefined' && sessionInfo)?sessionInfo.userName:'unknown'
+    };
+
+    if(isNewModal && pack.state){
+      pack.state.busy=false;
+      const btn=document.getElementById('mg1-new-modal-save'); if(btn){btn.textContent='Menyimpan...';btn.style.opacity='0.7';}
+      const st=document.getElementById('mg1-new-modal-status'); if(st) st.textContent='Peta diterapkan. Menyimpan data di belakang...';
+    }
+
+    // 1) RAM commit first — this is the user-visible save.
+    if(Array.isArray(backgroundMapsList)) backgroundMapsList.push(entry);
+    activeBackgroundMapId=id;
+    mapZoom=1.25;
+    if(typeof compassRotationOffsetDeg_!=='undefined') compassRotationOffsetDeg_=0;
+    if(typeof mapViewportState_!=='undefined' && mapViewportState_) mapViewportState_.centerNative=null;
+    try{localStorage.setItem('mg1_active_bg_map_id',id);}catch(_){ }
+
+    // 2) Close upload modal immediately; never wait for IndexedDB.
+    closeUploadModalInstant_(isNewModal, pack.state);
+
+    // 3) Show the new map from the full image as soon as it decodes; old map stays until then.
+    showInstantPreview_(entry).catch(e=>console.warn('[V24.1] instant preview error',e));
+
+    // 4) Upgrade to pyramid atomically in the background; never await it here.
+    setTimeout(()=>{
+      try{
+        const vp=document.getElementById('mg1-map-viewport');
+        if(vp && typeof executeAtomicSurfaceSwap_==='function' && typeof buildNewMapSurfaceV22==='function'){
+          executeAtomicSurfaceSwap_(vp,buildNewMapSurfaceV22).then(ok=>console.log('[V24.1] detail atomic swap',ok?'READY':'CANCELLED')).catch(e=>console.warn('[V24.1] detail swap failed; current map retained',e));
+        }
+      }catch(e){console.warn('[V24.1] detail swap start failed',e);}
+    },50);
+
+    // 5) Manage list appears quickly from RAM; no DB reload and no global render.
+    setTimeout(()=>{
+      try{
+        if(typeof window._v23OpenManageModal==='function') window._v23OpenManageModal();
+        else if(typeof window.openMapManagePanel_==='function') window.openMapManagePanel_();
+      }catch(e){console.warn('[V24.1] manage modal failed',e);}
+    },230);
+
+    // 6) Heavy IndexedDB persistence is deliberately decoupled from the click path.
+    scheduleBackgroundPersistence_(entry);
+
+    // UI busy state can be cleared immediately because save-to-RAM already committed.
+    if(typeof mapUploadBusy!=='undefined') mapUploadBusy=false;
+    if(isNewModal && pack.state) pack.state.busy=false;
+    window.__v24SaveInFlight=false;
+  };
+
+  window.submitMapUpload_ = window.submitMapUpload_InstantV24_1;
+  window.submitMapUpload_NoRender_ = window.submitMapUpload_InstantV24_1;
+  window.submitMapUpload_Atomic_ = window.submitMapUpload_InstantV24_1;
+
+  const bind=()=>{
+    const b=document.getElementById('mg1-new-modal-save');
+    if(!b) return false;
+    b.type='button'; b.onclick=window.submitMapUpload_InstantV24_1; b.__v24SaveBound=true; return true;
+  };
+  bind();
+  const iv=setInterval(()=>{ if(bind()) clearInterval(iv); },250);
+  console.log('[V24.1] Ready - RAM-first save, worker persistence, instant preview, V22 detail upgrade');
+})();
