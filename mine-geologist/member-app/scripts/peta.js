@@ -598,6 +598,33 @@ function showDeviceTileProfileDiagnostic_(profile) {
   try {
     var old = document.getElementById('mg1-device-profile-diagnostic');
     if (old) old.remove();
+    var oldLauncher = document.getElementById('mg1-device-profile-launcher');
+    if (oldLauncher) oldLauncher.remove();
+
+    // STEP A TEMP UI: small launcher icon; full diagnostic opens only on click.
+    var launcher = document.createElement('button');
+    launcher.id = 'mg1-device-profile-launcher';
+    launcher.type = 'button';
+    launcher.title = 'Device Profiler — buka detail';
+    launcher.setAttribute('aria-label', 'Buka Device Profiler');
+    launcher.textContent = '⚙';
+    launcher.style.cssText = [
+      'position:fixed',
+      'right:12px',
+      'bottom:calc(72px + env(safe-area-inset-bottom, 0px))',
+      'z-index:2147483647',
+      'width:38px',
+      'height:38px',
+      'padding:0',
+      'border:1px solid rgba(56,189,248,.38)',
+      'border-radius:50%',
+      'background:rgba(7,11,28,.94)',
+      'color:#7dd3fc',
+      'font:18px/38px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+      'text-align:center',
+      'box-shadow:0 4px 16px rgba(0,0,0,.35)',
+      'cursor:pointer'
+    ].join(';');
 
     var el = document.createElement('div');
     el.id = 'mg1-device-profile-diagnostic';
@@ -615,7 +642,8 @@ function showDeviceTileProfileDiagnostic_(profile) {
       'font:12px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
       'box-shadow:0 8px 28px rgba(0,0,0,.45)',
       'backdrop-filter:blur(8px)',
-      '-webkit-backdrop-filter:blur(8px)'
+      '-webkit-backdrop-filter:blur(8px)',
+      'display:none'
     ].join(';');
 
     var title = document.createElement('div');
@@ -642,60 +670,45 @@ function showDeviceTileProfileDiagnostic_(profile) {
     planner.style.cssText = 'margin-top:8px;margin-right:6px;padding:5px 9px;border:1px solid rgba(56,189,248,.28);border-radius:8px;background:rgba(56,189,248,.08);color:#7dd3fc;font-size:11px;';
     planner.onclick = function () { appendViewportTilePlannerDiagnostic_(); };
 
-    var minimize = document.createElement('button');
-    minimize.type = 'button';
-    minimize.setAttribute('data-mg1-minimize','true');
-    minimize.textContent = 'Minimize';
-    minimize.style.cssText = 'margin-top:8px;padding:5px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:#fff;font-size:11px;';
+    var c2 = document.createElement('button');
+    c2.type = 'button';
+    c2.textContent = 'C2 AUTO ACTIVE';
+    c2.style.cssText = 'margin-top:8px;margin-right:6px;padding:5px 9px;border:1px solid rgba(74,222,128,.28);border-radius:8px;background:rgba(74,222,128,.08);color:#86efac;font-size:11px;';
+    c2.onclick = function () {
+      window.mg1AdaptiveC2Enabled = true;
+      c2.textContent = 'C2 AUTO ACTIVE';
+      try { localStorage.setItem('mg1_adaptive_c2_enabled','1'); } catch (_) {}
+      appendViewportTilePlannerDiagnostic_();
+    };
 
     var close = document.createElement('button');
     close.type = 'button';
     close.setAttribute('data-mg1-close','true');
     close.textContent = 'Tutup';
     close.style.cssText = 'margin-top:8px;margin-left:6px;padding:5px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:#fff;font-size:11px;';
-    close.onclick = function () { el.remove(); };
 
-    var minimized = false;
-    minimize.onclick = function () {
-      minimized = !minimized;
-      if (minimized) {
-        title.style.display = 'none';
-        body.style.display = 'none';
-        gpu.style.display = 'none';
-        planner.style.display = 'none';
-        close.style.display = 'none';
-        minimize.textContent = 'DEVICE PROFILER — buka';
-        minimize.style.cssText = 'margin:0;padding:7px 11px;border:1px solid rgba(56,189,248,.35);border-radius:999px;background:rgba(7,11,28,.96);color:#7dd3fc;font-size:11px;box-shadow:0 4px 16px rgba(0,0,0,.35);';
-        el.style.cssText += ';left:auto;right:12px;bottom:calc(72px + env(safe-area-inset-bottom, 0px));width:auto;padding:0;border:0;background:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;';
-      } else {
-        title.style.display = '';
-        body.style.display = '';
-        gpu.style.display = '';
-        planner.style.display = '';
-        close.style.display = '';
-        minimize.textContent = 'Minimize';
-        minimize.style.cssText = 'margin-top:8px;padding:5px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:#fff;font-size:11px;';
-        el.style.cssText = [
-          'position:fixed','left:10px','right:10px','bottom:calc(10px + env(safe-area-inset-bottom, 0px))','z-index:2147483647','padding:12px 14px',
-          'border:1px solid rgba(56,189,248,.35)','border-radius:12px','background:rgba(7,11,28,.96)','color:#fff',
-          'font:12px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif','box-shadow:0 8px 28px rgba(0,0,0,.45)',
-          'backdrop-filter:blur(8px)','-webkit-backdrop-filter:blur(8px)'
-        ].join(';');
-      }
-    };
+    function openProfiler() {
+      launcher.style.display = 'none';
+      el.style.display = 'block';
+    }
+
+    function closeProfiler() {
+      el.style.display = 'none';
+      launcher.style.display = 'block';
+    }
+
+    launcher.onclick = openProfiler;
+    close.onclick = closeProfiler;
 
     el.appendChild(title);
     el.appendChild(body);
     el.appendChild(gpu);
     el.appendChild(planner);
-    var c2 = document.createElement('button');
-    c2.type = 'button'; c2.textContent = 'C2 AUTO ACTIVE';
-    c2.style.cssText = 'margin-top:8px;margin-right:6px;padding:5px 9px;border:1px solid rgba(74,222,128,.28);border-radius:8px;background:rgba(74,222,128,.08);color:#86efac;font-size:11px;';
-    c2.onclick = function () { window.mg1AdaptiveC2Enabled = true; c2.textContent = 'C2 AUTO ACTIVE'; try { localStorage.setItem('mg1_adaptive_c2_enabled','1'); } catch (_) {} appendViewportTilePlannerDiagnostic_(); };
     el.appendChild(c2);
-    el.appendChild(minimize);
     el.appendChild(close);
+
     document.body.appendChild(el);
+    document.body.appendChild(launcher);
   } catch (e) {
     console.warn('[ADAPTIVE] Diagnostic overlay gagal:', e);
   }
@@ -1610,63 +1623,69 @@ function getVisibleDetailKeysFromPlan_(pyramid, detailLevel, bounds, viewBox, im
       return { ok:false, keys:[], reason:'level width/height invalid' };
     }
 
-    // pxScale sama seperti di appendLevel() - menjaga alignment dengan compositor
     const pxScaleX = imgW / Math.max(1, levelWidth);
     const pxScaleY = imgH / Math.max(1, levelHeight);
+    const stepX = tileSize * pxScaleX;
+    const stepY = tileSize * pxScaleY;
 
-    // ViewBox dari getMapViewBox_() - sudah ada di renderMineGridSvg()
     const vb = viewBox;
-    if (!vb || !Number.isFinite(vb.x)) {
-      // Fallback: kalau viewBox tidak tersedia, return semua tile (aman, tidak salah key)
+    if (!vb || !Number.isFinite(vb.x) || !Number.isFinite(vb.w) || !Number.isFinite(vb.h) || stepX <= 0 || stepY <= 0) {
       const allKeys = detailLevel.tiles.map(t => t.tileKey || t.tileId).filter(Boolean);
       return { ok:true, keys: allKeys, factor, visible: { minX:0, maxX:0, minY:0, maxY:0, count: allKeys.length }, reason:'viewBox fallback to all tiles' };
     }
 
     const vbX1 = vb.x, vbY1 = vb.y, vbX2 = vb.x + vb.w, vbY2 = vb.y + vb.h;
+    const tilesX = Math.max(1, Math.ceil(levelWidth / tileSize));
+    const tilesY = Math.max(1, Math.ceil(levelHeight / tileSize));
+
+    const localX1 = vbX1 - imgX;
+    const localX2 = vbX2 - imgX;
+    const localY1 = vbY1 - imgY;
+    const localY2 = vbY2 - imgY;
+
+    let minX = Math.floor(localX1 / stepX);
+    let maxX = Math.ceil(localX2 / stepX) - 1;
+    let minY = Math.floor(localY1 / stepY);
+    let maxY = Math.ceil(localY2 / stepY) - 1;
+
+    minX = Math.max(0, Math.min(tilesX - 1, minX));
+    maxX = Math.max(0, Math.min(tilesX - 1, maxX));
+    minY = Math.max(0, Math.min(tilesY - 1, minY));
+    maxY = Math.max(0, Math.min(tilesY - 1, maxY));
+
+    if (minX > maxX || minY > maxY) {
+      return { ok:true, keys:[], factor, visible: { minX, maxX, minY, maxY, count:0, empty:true }, visibleTiles:[], detailLevelFactor:factor, pyramidTileSize:tileSize, img:{x:imgX,y:imgY,w:imgW,h:imgH}, viewBox:vb, reason:'viewBox outside img' };
+    }
 
     const keys = [];
     const visibleTiles = [];
-
-    // Iterasi actual tiles dari pyramid, cek intersection dengan viewBox
-    // Ini menjamin alignment: tileSize = pyramid.tileSize, factor = detailLevel.factor, posisi = sama dengan appendLevel()
-    for (let i=0;i<detailLevel.tiles.length;i++) {
-      const t = detailLevel.tiles[i];
-      if (!t) continue;
-      const tx = imgX + t.x * tileSize * pxScaleX;
-      const ty = imgY + t.y * tileSize * pxScaleY;
-      const tw = (t.width || tileSize) * pxScaleX;
-      const th = (t.height || tileSize) * pxScaleY;
-
-      // Intersection test: tile rect vs viewBox rect
-      const intersects = !(tx + tw < vbX1 || tx > vbX2 || ty + th < vbY1 || ty > vbY2);
-      if (intersects) {
-        const key = t.tileKey || t.tileId || (typeof makeLithositeTileId_ === 'function' ? makeLithositeTileId_(factor, t.x, t.y) : null);
-        if (key) {
-          keys.push(key);
-          visibleTiles.push({ x: t.x, y: t.y, key, tx, ty, tw, th });
-        }
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const key = (typeof makeLithositeTileId_ === 'function') ? makeLithositeTileId_(factor, x, y) : ('L'+factor+'_X'+x+'_Y'+y);
+        if (!key) continue;
+        keys.push(key);
+        const tx = imgX + x * tileSize * pxScaleX;
+        const ty = imgY + y * tileSize * pxScaleY;
+        const tw = Math.min(tileSize, levelWidth - x * tileSize) * pxScaleX;
+        const th = Math.min(tileSize, levelHeight - y * tileSize) * pxScaleY;
+        visibleTiles.push({ x, y, key, tx, ty, tw, th });
       }
-    }
-
-    // Jika tidak ada yang intersect (misal viewBox di luar img), fallback ke semua tile untuk safety
-    if (keys.length === 0 && detailLevel.tiles.length > 0) {
-      const allKeys = detailLevel.tiles.map(t => t.tileKey || t.tileId).filter(Boolean);
-      return { ok:true, keys: allKeys, factor, visible: { minX:0, maxX:0, minY:0, maxY:0, count: allKeys.length, fallback:true }, visibleTiles: [], reason:'no intersect fallback to all' };
     }
 
     return { 
       ok:true, 
       keys, 
       factor, 
-      visible: { minX: Math.min(...visibleTiles.map(v=>v.x)), maxX: Math.max(...visibleTiles.map(v=>v.x)), minY: Math.min(...visibleTiles.map(v=>v.y)), maxY: Math.max(...visibleTiles.map(v=>v.y)), count: keys.length },
+      visible: { minX, maxX, minY, maxY, count: keys.length, tilesX, tilesY },
       visibleTiles,
       detailLevelFactor: factor,
       pyramidTileSize: tileSize,
       img: { x: imgX, y: imgY, w: imgW, h: imgH },
-      viewBox: vb
+      viewBox: vb,
+      reason:'expected geometry 8.14'
     };
   } catch(e) {
-    return { ok:false, keys:[], reason: e && e.message ? e.message : 'getVisibleDetailKeys FIX error' };
+    return { ok:false, keys:[], reason: e && e.message ? e.message : 'getVisibleDetailKeys 8.14 error' };
   }
 }
 
@@ -1764,6 +1783,93 @@ function scheduleSurfaceInvalidationOnce_() {
     }
   });
 }
+
+// === STEP 8.14 - Missing Creation Worker with in-flight protection ===
+let mg1MissingCreationTracker_ = null;
+function ensureMissingCreationTracker_(pyramid) {
+  if (!pyramid) return null;
+  if (!mg1MissingCreationTracker_ || mg1MissingCreationTracker_.pyramid !== pyramid) {
+    mg1MissingCreationTracker_ = {
+      pyramid: pyramid,
+      creatingSet: Object.create(null),
+      lastMissingCount: 0
+    };
+  }
+  if (!pyramid.missingCreationTracker || pyramid.missingCreationTracker.version !== 1) {
+    pyramid.missingCreationTracker = {
+      version: 1,
+      creatingSet: Object.create(null)
+    };
+  }
+  return mg1MissingCreationTracker_;
+}
+
+async function processMissingCreationBatch_(pyramid, mapId, missingKeys, batchSize) {
+  try {
+    if (!pyramid || !Array.isArray(missingKeys) || !missingKeys.length) return { processed:0, created:0, failed:0 };
+    if (!mapId) {
+      try { mapId = (typeof activeBackgroundMapId !== 'undefined' && activeBackgroundMapId) ? activeBackgroundMapId : null; } catch(_) { mapId = null; }
+    }
+    if (!mapId) return { processed:0, created:0, failed:0, reason:'mapId missing' };
+    const tracker = ensureMissingCreationTracker_(pyramid);
+    if (!tracker) return { processed:0, created:0, failed:0 };
+    const creatingSet = pyramid.missingCreationTracker ? pyramid.missingCreationTracker.creatingSet : tracker.creatingSet;
+    const bs = Math.max(1, Math.min(2, Number(batchSize) || 1));
+
+    const toCreate = [];
+    for (let i=0;i<missingKeys.length && toCreate.length<bs;i++) {
+      const k = String(missingKeys[i]);
+      if (!k) continue;
+      if (creatingSet[k]) continue;
+      try {
+        const av = typeof resolveLithositeDetailTileAvailability_ === 'function' ? resolveLithositeDetailTileAvailability_(pyramid, k) : null;
+        if (av && av.status === 'available') continue;
+      } catch(_) {}
+      toCreate.push(k);
+    }
+    if (!toCreate.length) return { processed:0, created:0, failed:0 };
+
+    for (const k of toCreate) creatingSet[k] = true;
+
+    let created = 0, failed = 0, processed = 0;
+    for (const k of toCreate) {
+      try {
+        const result = typeof resolveAndCreateLithositeMissingDetailTile_ === 'function'
+          ? await resolveAndCreateLithositeMissingDetailTile_(mapId, pyramid, k)
+          : (typeof createLithositeMissingDetailTileFromPdf_ === 'function' ? await createLithositeMissingDetailTileFromPdf_(mapId, pyramid, k) : { status:'no-creator' });
+        processed++;
+        if (result && (result.status === 'created' || result.status === 'available')) {
+          created++;
+        } else {
+          failed++;
+        }
+      } catch(e) {
+        failed++; processed++;
+      } finally {
+        delete creatingSet[k];
+      }
+    }
+
+    if (created > 0) {
+      try { if (typeof scheduleSurfaceInvalidationOnce_ === 'function') scheduleSurfaceInvalidationOnce_(); } catch(_) {}
+    }
+
+    try {
+      const remaining = missingKeys.filter(k => !creatingSet[String(k)]);
+      if (remaining.length > toCreate.length) {
+        setTimeout(() => {
+          try { processMissingCreationBatch_(pyramid, mapId, remaining.slice(toCreate.length), bs); } catch(_) {}
+        }, 250);
+      }
+    } catch(_) {}
+
+    return { processed, created, failed };
+  } catch(e) {
+    return { processed:0, created:0, failed:0, error: e && e.message };
+  }
+}
+
+
 
 async function processRuntimeQueueBatch_(pyramid, maxItems) {
   if (!pyramid) return { processed:0, loaded:0, failed:0, pending:0 };
@@ -5175,6 +5281,9 @@ function renderMineGridSvg(points) {
       }
       const pyramid = activeMap.tilePyramid;
       if (pyramid && Array.isArray(pyramid.levels) && pyramid.levels.length) {
+        // STEP 8.11-PATCH FIX: counter harus sebelum orchestration (hindari TDZ)
+        let mg1RuntimeUsedCount_ = 0;
+        let mg1FallbackCount_ = 0;
         // V15.1 SEAMLESS 2-LAYER DISPLAY:
         //   BASE 0.25x = always rendered first and covers the full GeoPDF extent.
         //   DETAIL     = selected higher-resolution level rendered on top.
@@ -5209,17 +5318,25 @@ function renderMineGridSvg(points) {
               ? getVisibleDetailKeysFromPlan_(pyramid, detailLevel, bounds, viewBox, imgX, imgY, imgW, imgH) 
               : { ok:false, keys:[] };
             if (visibleResult.ok && visibleResult.keys.length) {
-              const runtimeResult = typeof ensureRuntimeTiles_NonBlocking_ === 'function' ? ensureRuntimeTiles_NonBlocking_(visibleResult.keys, pyramid) : { ok:false, queued:0 };
+              const runtimeResult = typeof ensureRuntimeTiles_NonBlocking_ === 'function' ? ensureRuntimeTiles_NonBlocking_(visibleResult.keys, pyramid) : { ok:false, queued:0, missing:[], alreadyReady:0, alreadyLoading:0 };
               if (runtimeResult.ok && runtimeResult.queued > 0) {
-                // Background consumer - jangan await di render path, jangan block compositor
                 setTimeout(() => {
                   try {
                     processRuntimeQueueBatch_(pyramid, 3);
                   } catch(_) {}
                 }, 0);
               }
+              if (runtimeResult.ok && Array.isArray(runtimeResult.missing) && runtimeResult.missing.length > 0) {
+                setTimeout(() => {
+                  try {
+                    const mapIdForMissing = (typeof activeBackgroundMapId !== 'undefined' && activeBackgroundMapId) ? activeBackgroundMapId : (typeof activeMap !== 'undefined' && activeMap ? activeMap.id : null);
+                    processMissingCreationBatch_(pyramid, mapIdForMissing, runtimeResult.missing, 2);
+                  } catch(_) {}
+                }, 50);
+              }
               // Debug untuk orchestration test (bukan visual upgrade di patch pertama)
               if (typeof window !== 'undefined') {
+                window.mg1LastPyramid = pyramid;
                 window.mg1LastRuntimeOrchestration = {
                   visibleKeys: visibleResult.keys.length,
                   factor: visibleResult.factor,
@@ -5228,6 +5345,8 @@ function renderMineGridSvg(points) {
                   alreadyReady: runtimeResult.alreadyReady,
                   alreadyLoading: runtimeResult.alreadyLoading,
                   missing: runtimeResult.missing.length,
+                  runtimeUsed: mg1RuntimeUsedCount_,
+                  fallback: mg1FallbackCount_,
                   viewBox: visibleResult.viewBox,
                   img: visibleResult.img
                 };
@@ -5247,12 +5366,48 @@ function renderMineGridSvg(points) {
             const tx = imgX + t.x * tileSize * pxScaleX;
             const ty = imgY + t.y * tileSize * pxScaleY;
             const tw = t.width * pxScaleX, th = t.height * pxScaleY;
-            svg += '<image data-map-layer="' + layerName + '" href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" decoding="sync" preserveAspectRatio="none" opacity="' + opacity + '" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
+            // Resolve tileKey: L<factor>_X<x>_Y<y>
+            let tileKey = t.tileKey || t.tileId || null;
+            if (!tileKey && typeof makeLithositeTileId_ === 'function') {
+              try { tileKey = makeLithositeTileId_(level.factor, t.x, t.y); } catch(_) {}
+            }
+            let href = t.dataUrl;
+            let isRuntime = 0;
+            try {
+              if (tileKey && typeof getLithositeRuntimeTile_ === 'function') {
+                const rt = getLithositeRuntimeTile_(pyramid, tileKey);
+                if (rt) {
+                  // rt = { key, tile, image } — image sudah onload (RUNTIME_READY)
+                  if (rt.tile && rt.tile.dataUrl) href = rt.tile.dataUrl;
+                  else if (rt.image && rt.image.src) href = rt.image.src;
+                  isRuntime = 1;
+                  mg1RuntimeUsedCount_++;
+                } else {
+                  mg1FallbackCount_++;
+                }
+              } else {
+                mg1FallbackCount_++;
+              }
+            } catch(_) {
+              mg1FallbackCount_++;
+            }
+            svg += '<image data-map-layer="' + layerName + '" data-runtime="' + isRuntime + '" data-key="' + (tileKey||'') + '" href="' + href + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" decoding="sync" preserveAspectRatio="none" opacity="' + opacity + '" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
           }
         };
 
         appendLevel(baseLevel, 'base', '0.94');
         if (detailLevel && detailLevel !== baseLevel) appendLevel(detailLevel, 'detail', '0.98');
+        // STEP 8.11-PATCH FIX: update diagnostic AFTER compositor (runtimeUsed sudah dihitung)
+        try {
+          if (typeof window !== 'undefined') {
+            window.mg1LastCompositorStats = { runtimeUsed: mg1RuntimeUsedCount_, fallback: mg1FallbackCount_ };
+            if (window.mg1LastRuntimeOrchestration) {
+              window.mg1LastRuntimeOrchestration.runtimeUsed = mg1RuntimeUsedCount_;
+              window.mg1LastRuntimeOrchestration.fallback = mg1FallbackCount_;
+              window.mg1LastRuntimeOrchestration.compositorRuntimeRatio = (mg1RuntimeUsedCount_ + mg1FallbackCount_) > 0 ? (mg1RuntimeUsedCount_ / (mg1RuntimeUsedCount_ + mg1FallbackCount_)) : 0;
+            }
+          }
+        } catch(_) {}
       } else {
         svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + ' pointer-events="none" draggable="false" oncontextmenu="return false;"/>';
       }

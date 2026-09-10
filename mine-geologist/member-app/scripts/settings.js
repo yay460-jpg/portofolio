@@ -42,10 +42,45 @@ function closeSettingsModal() { settingsModalOpen = false; render(); }
 // Backend endpoint: ?sheet=lithositechangelog
 // Auth: fetchWithTimeout() otomatis membawa sessionToken bila user sudah login.
 // Tidak memakai sheet master "Changelog" dan tidak melakukan POST apa pun.
+//
+// [REVISI -- 10 Sep, keputusan user] Endpoint ini TERBUKTI bisa impas 20 detik
+// (AbortError) walau sheet "LithositeChangelog" sendiri kecil (~100 baris) --
+// akar keterlambatan ada di sisi backend (auth/lock/beban server), BUKAN volume
+// data, dan di luar apa yang bisa diperbaiki dari file frontend ini saja. Solusi
+// yang diambil: SAMAKAN pola dgn sheet master "Changelog" -- 3 versi TERBARU
+// di-hardcode di sini supaya modal tampil INSTAN, 0 fetch, TIDAK PERNAH kena
+// timeout endpoint ini. Fetch ke sheet cuma dipanggil kalau user MINTA sendiri
+// lewat tombol "Lihat Selengkapnya".
+// WAJIB: array LITHOSITE_CHANGELOG_PREVIEW di bawah HARUS diupdate manual tiap
+// kali ada versi baru dirilis (samakan dgn 3 baris teratas sheet
+// LithositeChangelog) -- ini BUKAN otomatis, sama seperti CHANGELOG_DATA Master.
+const LITHOSITE_CHANGELOG_PREVIEW = [
+  {
+    version: 'V24.1', tanggal: '10 Sep 2026',
+    items: [
+      { id: '', en: 'Map persistence is decoupled from the immediate map activation flow.' },
+      { id: '', en: 'Map save activates the new map immediately from memory before persistence.' }
+    ]
+  },
+  {
+    version: 'V23', tanggal: '10 Sep 2026',
+    items: [
+      { id: '', en: 'Map management and New Map modal isolated from global render lifecycle.' }
+    ]
+  },
+  {
+    version: 'V22', tanggal: '10 Sep 2026',
+    items: [
+      { id: '', en: 'Atomic map surface swap using decoded SVG image resources.' }
+    ]
+  }
+];
+
 let lithositeChangelogOpen = false;
 let lithositeChangelogLoading = false;
 let lithositeChangelogError = '';
 let lithositeChangelogData = [];
+let lithositeChangelogHasMore = true; // true selama yg tampil masih preview hardcode
 
 function escapeHtml_(value) {
   return String(value == null ? '' : value)
@@ -56,42 +91,44 @@ function escapeHtml_(value) {
     .replace(/'/g, '&#39;');
 }
 
-async function openLithositeChangelogModal() {
+function openLithositeChangelogModal() {
+  // Instan -- 0 fetch, murni pakai preview hardcode. Tidak ada state loading di sini
+  // sama sekali supaya modal TIDAK PERNAH menampilkan spinner/gagal saat baru dibuka.
   lithositeChangelogOpen = true;
+  lithositeChangelogLoading = false;
+  lithositeChangelogError = '';
+  lithositeChangelogData = LITHOSITE_CHANGELOG_PREVIEW;
+  lithositeChangelogHasMore = true;
+  render();
+}
+
+async function loadLithositeChangelogFull_() {
   lithositeChangelogLoading = true;
   lithositeChangelogError = '';
   render();
 
   try {
-    // Hard timeout lokal untuk Changelog.
-    // Tujuan: modal TIDAK boleh menggantung tanpa batas walaupun fetch/WebView
-    // tidak menyelesaikan promise sesuai timeout internal.
-    const changelogRequest = fetchWithTimeout(
+    const response = await fetchWithTimeout(
       GOOGLE_SCRIPT_READ_URL + '?sheet=lithositechangelog&t=' + Date.now(),
       {},
       20000
-    ).then(function(response) {
-      return response.json();
-    });
-
-    const timeoutGuard = new Promise(function(_, reject) {
-      setTimeout(function() {
-        reject(new Error('Permintaan riwayat update melebihi 12 detik. Periksa koneksi atau izin akses.'));
-      }, 12000);
-    });
-
-    const result = await Promise.race([changelogRequest, timeoutGuard]);
+    );
+    const result = await response.json();
 
     if (result.status !== 'success') {
       throw new Error(result.message || 'Server menolak permintaan changelog Lithosite.');
     }
 
-    lithositeChangelogData = Array.isArray(result.data) ? result.data : [];
+    lithositeChangelogData = Array.isArray(result.data) && result.data.length
+      ? result.data
+      : LITHOSITE_CHANGELOG_PREVIEW;
+    lithositeChangelogHasMore = false;
   } catch (err) {
-    lithositeChangelogData = [];
-    lithositeChangelogError = err && err.message
-      ? err.message
-      : 'Tidak bisa memuat riwayat update.';
+    // Gagal muat riwayat LENGKAP TIDAK PERNAH menghapus preview yg sudah tampil --
+    // cuma tampilkan pesan error di bawah daftar + tombol tetap ada utk dicoba lagi.
+    lithositeChangelogError = (err && err.name === 'AbortError')
+      ? 'Permintaan riwayat lengkap melebihi 20 detik. Periksa koneksi atau izin akses.'
+      : (err && err.message ? err.message : 'Tidak bisa memuat riwayat update lengkap.');
   } finally {
     lithositeChangelogLoading = false;
     render();
@@ -123,20 +160,7 @@ function renderLithositeChangelogModal(justOpened) {
 
   let body = '';
 
-  if (lithositeChangelogLoading) {
-    body = '<div class="py-8 flex flex-col items-center justify-center gap-3">' +
-      '<span class="w-6 h-6 border-2 border-white/15 border-t-blue-400 rounded-full spin"></span>' +
-      '<div class="text-[11px] text-white/40">Memuat riwayat update...</div>' +
-    '</div>';
-  } else if (lithositeChangelogError) {
-    body = '<div class="rounded-[12px] bg-rose-500/5 border border-rose-400/15 p-4">' +
-      '<div class="flex items-start gap-2">' +
-        icon('circle-alert','w-4 h-4 text-rose-400 shrink-0') +
-        '<div class="text-[11px] leading-relaxed text-rose-300">' + escapeHtml_(lithositeChangelogError) + '</div>' +
-      '</div>' +
-      '<button onclick="openLithositeChangelogModal()" class="mt-3 w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] font-bold text-white/75">Coba Lagi</button>' +
-    '</div>';
-  } else if (!lithositeChangelogData.length) {
+  if (!lithositeChangelogData.length) {
     body = '<div class="py-8 text-center text-[11px] text-white/30">Belum ada riwayat update Lithosite.</div>';
   } else {
     const latest = lithositeChangelogData[0];
@@ -173,6 +197,27 @@ function renderLithositeChangelogModal(justOpened) {
 
       body += '</div></div>';
     }
+  }
+
+  // [BARU -- 10 Sep] Error di sini HANYA milik aksi "Lihat Selengkapnya" (fetch
+  // riwayat penuh dari sheet) -- preview 3 versi di atas SUDAH tampil duluan (hardcode,
+  // 0 fetch), jadi error jaringan tidak pernah bikin modal ini kosong/gagal total lagi.
+  if (lithositeChangelogError) {
+    body += '<div class="mt-3 rounded-[12px] bg-rose-500/5 border border-rose-400/15 p-3.5">' +
+      '<div class="flex items-start gap-2">' +
+        icon('circle-alert','w-4 h-4 text-rose-400 shrink-0') +
+        '<div class="text-[11px] leading-relaxed text-rose-300">' + escapeHtml_(lithositeChangelogError) + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  if (lithositeChangelogHasMore) {
+    body += '<button onclick="loadLithositeChangelogFull_()"' + (lithositeChangelogLoading ? ' disabled' : '') +
+      ' class="mt-3 w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] font-bold text-white/75 flex items-center justify-center gap-2">' +
+      (lithositeChangelogLoading
+        ? '<span class="w-3.5 h-3.5 border-2 border-white/20 border-t-blue-400 rounded-full spin"></span><span>Memuat riwayat lengkap...</span>'
+        : '<span>' + (lithositeChangelogError ? 'Coba Lagi' : 'Lihat Selengkapnya') + '</span>') +
+    '</button>';
   }
 
   return renderSimpleModal(
