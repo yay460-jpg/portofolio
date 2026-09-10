@@ -1511,20 +1511,28 @@ function ensureLithositeTileQueue_(pyramid) {
   if (!pyramid) return null;
   if (!pyramid.tileStore) ensureLithositeTileStore_(pyramid);
   const store = pyramid.tileStore || {};
-  if (!pyramid.tileQueue || pyramid.tileQueue.version !== 1) {
+  if (!pyramid.tileQueue || pyramid.tileQueue.version !== 2) {
+    // V15.8 FIX STEP 8.10B-1: STORED ≠ RUNTIME_READY
+    // loadedSet = runtime loader sudah selesai (Image ready), bukan sekadar ada di index
+    // storedSet = ada di tileStore.index (persistent)
     pyramid.tileQueue = {
-      version: 1,
+      version: 2,
       identity: 'factor/x/y',
       pending: [],
       pendingSet: Object.create(null),
       loadedSet: Object.create(null),
-      failedSet: Object.create(null)
+      failedSet: Object.create(null),
+      storedSet: Object.create(null)
     };
   }
   const q = pyramid.tileQueue;
-  // Existing stored tiles are considered loaded; no raster is duplicated.
+  // STORED tracking terpisah dari RUNTIME_READY
+  if (!q.storedSet) q.storedSet = Object.create(null);
   const index = store.index || {};
-  Object.keys(index).forEach(k => { q.loadedSet[k] = true; });
+  // Update storedSet dari index terbaru, tapi JANGAN auto-mark loadedSet
+  Object.keys(q.storedSet).forEach(k => { if (!index[k]) delete q.storedSet[k]; });
+  Object.keys(index).forEach(k => { q.storedSet[k] = true; });
+  // loadedSet tetap hanya untuk yang sudah runtime loaded (diisi oleh markLithositeTileLoaded_)
   return q;
 }
 
@@ -1532,7 +1540,13 @@ function enqueueLithositeTileKey_(pyramid, tileKey) {
   const q = ensureLithositeTileQueue_(pyramid);
   if (!q || !tileKey) return false;
   const key = String(tileKey);
-  if (q.loadedSet[key] || q.pendingSet[key]) return false;
+  // 8.10B-1 FIX: untuk runtime loading, cek pending saja, bukan loadedSet (STORED)
+  // loadedSet = sudah RUNTIME_READY, jadi kalau sudah READY jangan queue lagi
+  // tapi kalau hanya STORED (storedSet) dan belum READY, harus boleh queue
+  if (q.pendingSet[key]) return false;
+  const loader = pyramid.runtimeTileLoader;
+  if (loader && loader.cache && loader.cache[key]) return false; // sudah RUNTIME_READY
+  if (loader && loader.loading && loader.loading[key]) return false; // sedang LOADING
   q.pending.push(key);
   q.pendingSet[key] = true;
   return true;
@@ -1574,6 +1588,201 @@ function getLithositeTileQueueStats_(pyramid) {
     failed: Object.keys(q.failedSet).length
   };
 }
+
+
+// === STEP 8.10B-2 FIX: getVisibleDetailKeysFromPlan_() with pyramid.tileSize alignment ===
+// FIX BLOCKER 1: planner tileSize (deviceProfile) ≠ pyramid tileSize (768)
+// Jangan pakai plan.visible.minX/maxX langsung sebagai pyramid X/Y
+// Hitung visible berdasarkan actual pyramid tiles + viewBox intersection + factor = detailLevel.factor
+function getVisibleDetailKeysFromPlan_(pyramid, detailLevel, bounds, viewBox, imgX, imgY, imgW, imgH) {
+  try {
+    if (!pyramid || !detailLevel || !Array.isArray(detailLevel.tiles)) {
+      return { ok:false, keys:[], reason:'pyramid or detailLevel invalid' };
+    }
+    const factor = Number(detailLevel.factor);
+    if (!Number.isFinite(factor)) {
+      return { ok:false, keys:[], reason:'detailLevel.factor invalid: ' + (detailLevel && detailLevel.factor) };
+    }
+    const tileSize = Number(pyramid.tileSize) || 768;
+    const levelWidth = Number(detailLevel.width) || 1;
+    const levelHeight = Number(detailLevel.height) || 1;
+    if (!(levelWidth>0) || !(levelHeight>0)) {
+      return { ok:false, keys:[], reason:'level width/height invalid' };
+    }
+
+    // pxScale sama seperti di appendLevel() - menjaga alignment dengan compositor
+    const pxScaleX = imgW / Math.max(1, levelWidth);
+    const pxScaleY = imgH / Math.max(1, levelHeight);
+
+    // ViewBox dari getMapViewBox_() - sudah ada di renderMineGridSvg()
+    const vb = viewBox;
+    if (!vb || !Number.isFinite(vb.x)) {
+      // Fallback: kalau viewBox tidak tersedia, return semua tile (aman, tidak salah key)
+      const allKeys = detailLevel.tiles.map(t => t.tileKey || t.tileId).filter(Boolean);
+      return { ok:true, keys: allKeys, factor, visible: { minX:0, maxX:0, minY:0, maxY:0, count: allKeys.length }, reason:'viewBox fallback to all tiles' };
+    }
+
+    const vbX1 = vb.x, vbY1 = vb.y, vbX2 = vb.x + vb.w, vbY2 = vb.y + vb.h;
+
+    const keys = [];
+    const visibleTiles = [];
+
+    // Iterasi actual tiles dari pyramid, cek intersection dengan viewBox
+    // Ini menjamin alignment: tileSize = pyramid.tileSize, factor = detailLevel.factor, posisi = sama dengan appendLevel()
+    for (let i=0;i<detailLevel.tiles.length;i++) {
+      const t = detailLevel.tiles[i];
+      if (!t) continue;
+      const tx = imgX + t.x * tileSize * pxScaleX;
+      const ty = imgY + t.y * tileSize * pxScaleY;
+      const tw = (t.width || tileSize) * pxScaleX;
+      const th = (t.height || tileSize) * pxScaleY;
+
+      // Intersection test: tile rect vs viewBox rect
+      const intersects = !(tx + tw < vbX1 || tx > vbX2 || ty + th < vbY1 || ty > vbY2);
+      if (intersects) {
+        const key = t.tileKey || t.tileId || (typeof makeLithositeTileId_ === 'function' ? makeLithositeTileId_(factor, t.x, t.y) : null);
+        if (key) {
+          keys.push(key);
+          visibleTiles.push({ x: t.x, y: t.y, key, tx, ty, tw, th });
+        }
+      }
+    }
+
+    // Jika tidak ada yang intersect (misal viewBox di luar img), fallback ke semua tile untuk safety
+    if (keys.length === 0 && detailLevel.tiles.length > 0) {
+      const allKeys = detailLevel.tiles.map(t => t.tileKey || t.tileId).filter(Boolean);
+      return { ok:true, keys: allKeys, factor, visible: { minX:0, maxX:0, minY:0, maxY:0, count: allKeys.length, fallback:true }, visibleTiles: [], reason:'no intersect fallback to all' };
+    }
+
+    return { 
+      ok:true, 
+      keys, 
+      factor, 
+      visible: { minX: Math.min(...visibleTiles.map(v=>v.x)), maxX: Math.max(...visibleTiles.map(v=>v.x)), minY: Math.min(...visibleTiles.map(v=>v.y)), maxY: Math.max(...visibleTiles.map(v=>v.y)), count: keys.length },
+      visibleTiles,
+      detailLevelFactor: factor,
+      pyramidTileSize: tileSize,
+      img: { x: imgX, y: imgY, w: imgW, h: imgH },
+      viewBox: vb
+    };
+  } catch(e) {
+    return { ok:false, keys:[], reason: e && e.message ? e.message : 'getVisibleDetailKeys FIX error' };
+  }
+}
+
+// === STEP 8.10B-3: Orchestrator non-blocking untuk existing stored tiles ===
+// SYNC, tidak await, tidak block renderMineGridSvg
+function ensureRuntimeTiles_NonBlocking_(visibleKeys, pyramid) {
+  if (!pyramid || !Array.isArray(visibleKeys) || !visibleKeys.length) {
+    return { ok:false, readyMap: Object.create(null), queued:0, missing:[], total:0, reason:'visibleKeys empty' };
+  }
+  const loader = typeof ensureLithositeRuntimeTileLoader_ === 'function' ? ensureLithositeRuntimeTileLoader_(pyramid) : null;
+  if (!loader) return { ok:false, readyMap: Object.create(null), queued:0, missing:[], total: visibleKeys.length, reason:'loader not ready' };
+
+  const readyMap = Object.create(null);
+  let queued = 0;
+  const missing = [];
+  let alreadyLoading = 0;
+  let alreadyReady = 0;
+
+  for (let i=0;i<visibleKeys.length;i++) {
+    const k = String(visibleKeys[i]);
+    if (!k) continue;
+    // READY?
+    if (loader.cache && loader.cache[k]) {
+      readyMap[k] = loader.cache[k];
+      alreadyReady++;
+      continue;
+    }
+    if (loader.loading && loader.loading[k]) {
+      alreadyLoading++;
+      continue;
+    }
+    // Resolve availability - hanya untuk stored tiles di patch pertama
+    try {
+      const avail = typeof resolveLithositeDetailTileAvailability_ === 'function' ? resolveLithositeDetailTileAvailability_(pyramid, k) : { status:'missing' };
+      if (avail.status === 'available') {
+        // STORED ada, perlu runtime loading
+        const enqueued = typeof requestLithositeDetailTile_ === 'function' ? requestLithositeDetailTile_(pyramid, k) : false;
+        if (enqueued) queued++;
+      } else if (avail.status === 'missing') {
+        missing.push(k);
+        // Untuk 8.10B patch pertama, MISSING hanya ditandai, tidak creation
+      }
+    } catch(e) {
+      missing.push(k);
+    }
+  }
+
+  return { ok:true, readyMap, queued, missing, total: visibleKeys.length, alreadyReady, alreadyLoading };
+}
+
+// === STEP 8.10B-4: Background consumer + surface-only invalidation ===
+let mg1RuntimeInvalidationScheduled_ = false;
+let mg1RuntimeInvalidationRaf_ = null;
+let mg1IsSurfaceInvalidationInProgress_ = false;
+
+function scheduleSurfaceInvalidationOnce_() {
+  if (mg1RuntimeInvalidationScheduled_) return;
+  if (mg1IsSurfaceInvalidationInProgress_) return;
+  mg1RuntimeInvalidationScheduled_ = true;
+  try {
+    if (mg1RuntimeInvalidationRaf_) cancelAnimationFrame(mg1RuntimeInvalidationRaf_);
+  } catch(_) {}
+  mg1RuntimeInvalidationRaf_ = requestAnimationFrame(async () => {
+    mg1RuntimeInvalidationScheduled_ = false;
+    if (mg1IsSurfaceInvalidationInProgress_) return;
+    mg1IsSurfaceInvalidationInProgress_ = true;
+    try {
+      const vp = document.getElementById('mg1-map-viewport');
+      if (!vp) {
+        mg1IsSurfaceInvalidationInProgress_ = false;
+        return;
+      }
+      // 8.10B-FIX: NO GLOBAL render() fallback - sesuai audit STEP 8.9
+      // Hanya surface-only atomic swap, bukan rebuild #app
+      if (typeof window.executeAtomicSurfaceSwap_ === 'function' && typeof window.buildNewMapSurfaceV25 === 'function') {
+        await window.executeAtomicSurfaceSwap_(vp, window.buildNewMapSurfaceV25);
+      } else if (typeof window.executeAtomicSurfaceSwap_ === 'function') {
+        const buildFn = () => {
+          try {
+            const points = typeof buildMapData === 'function' ? buildMapData() : [];
+            return typeof renderMineGridSvg === 'function' ? renderMineGridSvg(points) : '';
+          } catch(e) { return ''; }
+        };
+        await window.executeAtomicSurfaceSwap_(vp, buildFn);
+      } else {
+        // FIX: Hapus fallback requestMapRender_() → log warning saja
+        console.warn('[8.10B-4 FIX] Atomic swap not available, skip invalidation. No global render() fallback per STEP 8.9 contract.');
+        mg1IsSurfaceInvalidationInProgress_ = false;
+        return;
+      }
+    } catch(e) {
+      console.warn('[8.10B-4 FIX] surface invalidation failed', e);
+    } finally {
+      mg1IsSurfaceInvalidationInProgress_ = false;
+    }
+  });
+}
+
+async function processRuntimeQueueBatch_(pyramid, maxItems) {
+  if (!pyramid) return { processed:0, loaded:0, failed:0, pending:0 };
+  try {
+    const max = Number.isFinite(Number(maxItems)) ? Number(maxItems) : 3;
+    const result = typeof consumeLithositeRuntimeDetailQueue_ === 'function' 
+      ? await consumeLithositeRuntimeDetailQueue_(pyramid, max)
+      : { processed:0, loaded:0, failed:0, pending:0 };
+    if (result.loaded > 0) {
+      scheduleSurfaceInvalidationOnce_();
+    }
+    return result;
+  } catch(e) {
+    console.warn('[8.10B-4] processRuntimeQueueBatch failed', e);
+    return { processed:0, loaded:0, failed:0, pending:0, error: String(e) };
+  }
+}
+
+
 
 // V15.9 STEP F — QUEUE CONSUMER / TILE LIFECYCLE EXECUTOR
 // Executor generik: hanya memproses queue lifecycle melalui worker yang diberikan.
@@ -4989,6 +5198,44 @@ function renderMineGridSvg(points) {
         // even when targetFactor is below it; BASE is the visual fallback.
         if (detailLevel === baseLevel && pyramid.levels.length > 1) {
           detailLevel = pyramid.levels[pyramid.levels.length - 1];
+        }
+
+        // === STEP 8.10B-FIX HOOK: Non-blocking runtime orchestration with tileSize alignment ===
+        // FIX BLOCKER 1: pakai actual pyramid tiles + viewBox intersection, bukan planner indices langsung
+        // BASE tetap fallback visual, appendLevel() 100% untouched
+        try {
+          if (pyramid && detailLevel) {
+            const visibleResult = typeof getVisibleDetailKeysFromPlan_ === 'function' 
+              ? getVisibleDetailKeysFromPlan_(pyramid, detailLevel, bounds, viewBox, imgX, imgY, imgW, imgH) 
+              : { ok:false, keys:[] };
+            if (visibleResult.ok && visibleResult.keys.length) {
+              const runtimeResult = typeof ensureRuntimeTiles_NonBlocking_ === 'function' ? ensureRuntimeTiles_NonBlocking_(visibleResult.keys, pyramid) : { ok:false, queued:0 };
+              if (runtimeResult.ok && runtimeResult.queued > 0) {
+                // Background consumer - jangan await di render path, jangan block compositor
+                setTimeout(() => {
+                  try {
+                    processRuntimeQueueBatch_(pyramid, 3);
+                  } catch(_) {}
+                }, 0);
+              }
+              // Debug untuk orchestration test (bukan visual upgrade di patch pertama)
+              if (typeof window !== 'undefined') {
+                window.mg1LastRuntimeOrchestration = {
+                  visibleKeys: visibleResult.keys.length,
+                  factor: visibleResult.factor,
+                  pyramidTileSize: visibleResult.pyramidTileSize,
+                  queued: runtimeResult.queued,
+                  alreadyReady: runtimeResult.alreadyReady,
+                  alreadyLoading: runtimeResult.alreadyLoading,
+                  missing: runtimeResult.missing.length,
+                  viewBox: visibleResult.viewBox,
+                  img: visibleResult.img
+                };
+              }
+            }
+          }
+        } catch(e) {
+          console.warn('[8.10B-FIX] runtime hook failed', e);
         }
 
         const tileSize = Number(pyramid.tileSize) || GEOPDF_TILE_SIZE_;
