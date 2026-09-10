@@ -227,7 +227,11 @@ function renderLithositeChangelogModal(justOpened) {
     'closeLithositeChangelogModal()',
     undefined,
     justOpened
-  );
+  ).replace('z-40', 'z-[60]'); // [FIX -- 10 Sep] modal ini SELALU dibuka DI ATAS modal
+  // Pengaturan (2 overlay fixed inset-0 bertumpuk) -- z-index sama (z-40) di kedua
+  // modal berisiko ambigu di sebagian browser/Webview. Dipaksa lebih tinggi supaya
+  // Changelog PASTI di lapisan paling atas, X/tombolnya PASTI bisa diklik, dan
+  // menutupnya PASTI mengembalikan klik ke modal Pengaturan di bawahnya.
 }
 function renderSettingsModal(justOpened) {
   if (!settingsModalOpen) return '';
