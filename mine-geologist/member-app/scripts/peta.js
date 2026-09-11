@@ -592,128 +592,6 @@ function appendViewportTilePlannerDiagnostic_() {
   } catch (e) { console.warn('[ADAPTIVE] Planner diagnostic gagal:', e); }
 }
 
-// STEP A - FIELD DIAGNOSTIC OVERLAY V1
-// Hanya untuk pengujian STEP A. Tidak menyentuh renderer/gesture/tile engine.
-function showDeviceTileProfileDiagnostic_(profile) {
-  try {
-    var old = document.getElementById('mg1-device-profile-diagnostic');
-    if (old) old.remove();
-    var oldLauncher = document.getElementById('mg1-device-profile-launcher');
-    if (oldLauncher) oldLauncher.remove();
-
-    // STEP A TEMP UI: small launcher icon; full diagnostic opens only on click.
-    var launcher = document.createElement('button');
-    launcher.id = 'mg1-device-profile-launcher';
-    launcher.type = 'button';
-    launcher.title = 'Device Profiler — buka detail';
-    launcher.setAttribute('aria-label', 'Buka Device Profiler');
-    launcher.textContent = '⚙';
-    launcher.style.cssText = [
-      'position:fixed',
-      'right:12px',
-      'bottom:calc(72px + env(safe-area-inset-bottom, 0px))',
-      'z-index:2147483647',
-      'width:38px',
-      'height:38px',
-      'padding:0',
-      'border:1px solid rgba(56,189,248,.38)',
-      'border-radius:50%',
-      'background:rgba(7,11,28,.94)',
-      'color:#7dd3fc',
-      'font:18px/38px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
-      'text-align:center',
-      'box-shadow:0 4px 16px rgba(0,0,0,.35)',
-      'cursor:pointer'
-    ].join(';');
-
-    var el = document.createElement('div');
-    el.id = 'mg1-device-profile-diagnostic';
-    el.style.cssText = [
-      'position:fixed',
-      'left:10px',
-      'right:10px',
-      'bottom:calc(10px + env(safe-area-inset-bottom, 0px))',
-      'z-index:2147483647',
-      'padding:12px 14px',
-      'border:1px solid rgba(56,189,248,.35)',
-      'border-radius:12px',
-      'background:rgba(7,11,28,.96)',
-      'color:#fff',
-      'font:12px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
-      'box-shadow:0 8px 28px rgba(0,0,0,.45)',
-      'backdrop-filter:blur(8px)',
-      '-webkit-backdrop-filter:blur(8px)',
-      'display:none'
-    ].join(';');
-
-    var title = document.createElement('div');
-    title.textContent = 'DEVICE PROFILER — STEP A';
-    title.style.cssText = 'font-weight:700;font-size:12px;margin-bottom:7px;color:#7dd3fc;';
-
-    var body = document.createElement('div');
-    body.textContent =
-      'Tier: ' + profile.tier +
-      '  |  Benchmark: ' + profile.benchMs + ' ms' +
-      '  |  RAM: ' + (profile.memoryGB == null ? 'N/A' : profile.memoryGB + ' GB') +
-      '  |  CPU: ' + (profile.cores == null ? 'N/A' : profile.cores + ' cores') +
-      '  |  DPR: ' + profile.dpr +
-      '  |  Screen: ' + profile.screenWidth + '×' + profile.screenHeight;
-    body.style.cssText = 'opacity:.92;word-break:break-word;';
-
-    var gpu = document.createElement('div');
-    gpu.textContent = 'WebGL: ' + (profile.webglRenderer || 'N/A');
-    gpu.style.cssText = 'margin-top:5px;font-size:10px;opacity:.65;word-break:break-all;';
-
-    var planner = document.createElement('button');
-    planner.type = 'button';
-    planner.textContent = 'C1 Planner';
-    planner.style.cssText = 'margin-top:8px;margin-right:6px;padding:5px 9px;border:1px solid rgba(56,189,248,.28);border-radius:8px;background:rgba(56,189,248,.08);color:#7dd3fc;font-size:11px;';
-    planner.onclick = function () { appendViewportTilePlannerDiagnostic_(); };
-
-    var c2 = document.createElement('button');
-    c2.type = 'button';
-    c2.textContent = 'C2 AUTO ACTIVE';
-    c2.style.cssText = 'margin-top:8px;margin-right:6px;padding:5px 9px;border:1px solid rgba(74,222,128,.28);border-radius:8px;background:rgba(74,222,128,.08);color:#86efac;font-size:11px;';
-    c2.onclick = function () {
-      window.mg1AdaptiveC2Enabled = true;
-      c2.textContent = 'C2 AUTO ACTIVE';
-      try { localStorage.setItem('mg1_adaptive_c2_enabled','1'); } catch (_) {}
-      appendViewportTilePlannerDiagnostic_();
-    };
-
-    var close = document.createElement('button');
-    close.type = 'button';
-    close.setAttribute('data-mg1-close','true');
-    close.textContent = 'Tutup';
-    close.style.cssText = 'margin-top:8px;margin-left:6px;padding:5px 9px;border:1px solid rgba(255,255,255,.18);border-radius:8px;background:rgba(255,255,255,.06);color:#fff;font-size:11px;';
-
-    function openProfiler() {
-      launcher.style.display = 'none';
-      el.style.display = 'block';
-    }
-
-    function closeProfiler() {
-      el.style.display = 'none';
-      launcher.style.display = 'block';
-    }
-
-    launcher.onclick = openProfiler;
-    close.onclick = closeProfiler;
-
-    el.appendChild(title);
-    el.appendChild(body);
-    el.appendChild(gpu);
-    el.appendChild(planner);
-    el.appendChild(c2);
-    el.appendChild(close);
-
-    document.body.appendChild(el);
-    document.body.appendChild(launcher);
-  } catch (e) {
-    console.warn('[ADAPTIVE] Diagnostic overlay gagal:', e);
-  }
-}
-
 if (typeof window.mg1AdaptiveC2Enabled !== 'boolean') window.mg1AdaptiveC2Enabled = true;
 // V14.31: C2 field test is automatic; no manual 'next upload' activation required.
 // STEP A hanya profiling saat app siap. Tidak memanggil buildTilePyramidDirect_.
@@ -723,7 +601,6 @@ if (!window.__mg1DeviceTileProfilerV1Started) {
     try {
       var profile = getDeviceTileProfile_();
       var tileEngineProfile = getDeviceTileEngineProfile_();
-      showDeviceTileProfileDiagnostic_(profile);
       appendDeviceTileEngineProfileDiagnostic_(tileEngineProfile);
     } catch (e) {
       console.warn('[ADAPTIVE] Device profiler gagal:', e);
@@ -806,6 +683,58 @@ async function dbPutMap_(entry) {
 // Menyimpan kembali tilePyramid setelah tile runtime berhasil dibuat. Tidak mengubah
 // renderer/gesture; tujuan tahap ini hanya agar tile yang sudah dibuat tidak hilang
 // ketika map dibaca ulang dari IndexedDB. Raw PDF bytes/File tetap TIDAK disimpan.
+function sanitizePyramidForStorage_(pyramid) {
+  if (!pyramid || typeof pyramid !== 'object') return pyramid;
+  try {
+    const clean = {};
+    // Copy only serializable fields
+    if (Number.isFinite(pyramid.tileSize)) clean.tileSize = pyramid.tileSize;
+    if (pyramid.runtimeMapId) clean.runtimeMapId = pyramid.runtimeMapId;
+    if (Number.isFinite(pyramid.__persistVersion)) clean.__persistVersion = pyramid.__persistVersion;
+    if (Number.isFinite(pyramid.__lastPersistAt)) clean.__lastPersistAt = pyramid.__lastPersistAt;
+    if (Array.isArray(pyramid.levels)) {
+      clean.levels = pyramid.levels.map(level => {
+        if (!level || typeof level !== 'object') return null;
+        const cl = {};
+        if (Number.isFinite(level.factor)) cl.factor = level.factor;
+        if (Number.isFinite(level.width)) cl.width = level.width;
+        if (Number.isFinite(level.height)) cl.height = level.height;
+        if (Array.isArray(level.tiles)) {
+          cl.tiles = level.tiles.map(t => {
+            if (!t || typeof t !== 'object') return null;
+            // Only keep serializable tile data - NO Image, no HTMLImageElement
+            const ct = {};
+            if (Number.isFinite(t.x)) ct.x = t.x;
+            if (Number.isFinite(t.y)) ct.y = t.y;
+            if (Number.isFinite(t.width)) ct.width = t.width;
+            if (Number.isFinite(t.height)) ct.height = t.height;
+            if (Number.isFinite(t.levelFactor)) ct.levelFactor = t.levelFactor;
+            if (t.tileKey) ct.tileKey = String(t.tileKey);
+            if (t.tileId) ct.tileId = String(t.tileId);
+            if (t.dataUrl && typeof t.dataUrl === 'string' && t.dataUrl.startsWith('data:')) ct.dataUrl = t.dataUrl;
+            return ct;
+          }).filter(Boolean);
+        } else {
+          cl.tiles = [];
+        }
+        return cl;
+      }).filter(Boolean);
+    }
+    // Preserve baseLayer metadata if exists
+    if (pyramid.baseLayer && typeof pyramid.baseLayer === 'object') {
+      clean.baseLayer = { ...pyramid.baseLayer };
+    }
+    // Preserve tileStore count but not the index with non-clonable objects - will be rebuilt on load
+    if (pyramid.tileStore && typeof pyramid.tileStore.count === 'number') {
+      clean.tileStore = { count: pyramid.tileStore.count, version: pyramid.tileStore.version || 1 };
+    }
+    return clean;
+  } catch(e) {
+    console.warn('[SANITIZE] pyramid sanitize failed, using original', e);
+    return pyramid;
+  }
+}
+
 async function persistLithositeRuntimeTileStore_(pyramid) {
   if (!pyramid || !pyramid.runtimeMapId) return { ok:false, reason:'map-id-unavailable' };
   const mapId = String(pyramid.runtimeMapId);
@@ -814,7 +743,16 @@ async function persistLithositeRuntimeTileStore_(pyramid) {
     : null;
   if (!entry) return { ok:false, reason:'map-entry-unavailable' };
   try {
-    const updated = { ...entry, tilePyramid: pyramid };
+    try {
+      const curVer = Number(entry.tilePyramid && entry.tilePyramid.__persistVersion) || 0;
+      const newVer = Number(pyramid.__persistVersion) || 0;
+      if (curVer > 0 && newVer > 0 && newVer < curVer) {
+        return { ok:true, skipped:true, reason:'version-skipped', mapId };
+      }
+    } catch(_) {}
+    // FIX DataCloneError: sanitize pyramid to remove HTMLImageElement / Image objects
+    const cleanPyramid = sanitizePyramidForStorage_(pyramid);
+    const updated = { ...entry, tilePyramid: cleanPyramid };
     await dbPutMap_(updated);
     const idx = backgroundMapsList.findIndex(m => m && String(m.id) === mapId);
     if (idx >= 0) backgroundMapsList[idx] = updated;
@@ -824,6 +762,7 @@ async function persistLithositeRuntimeTileStore_(pyramid) {
     return { ok:false, reason:String(err && err.message || err) };
   }
 }
+
 async function dbDeleteMap_(id) {
   const db = await openMapDb_();
   return new Promise((resolve, reject) => {
@@ -1623,18 +1562,24 @@ function getVisibleDetailKeysFromPlan_(pyramid, detailLevel, bounds, viewBox, im
       return { ok:false, keys:[], reason:'level width/height invalid' };
     }
 
+    // pxScale sama seperti di appendLevel() - menjaga alignment dengan compositor
     const pxScaleX = imgW / Math.max(1, levelWidth);
     const pxScaleY = imgH / Math.max(1, levelHeight);
     const stepX = tileSize * pxScaleX;
     const stepY = tileSize * pxScaleY;
 
+    // ViewBox dari getMapViewBox_() - sudah ada di renderMineGridSvg()
     const vb = viewBox;
     if (!vb || !Number.isFinite(vb.x) || !Number.isFinite(vb.w) || !Number.isFinite(vb.h) || stepX <= 0 || stepY <= 0) {
+      // Fallback: viewBox tidak tersedia → return semua tile existing (aman)
       const allKeys = detailLevel.tiles.map(t => t.tileKey || t.tileId).filter(Boolean);
       return { ok:true, keys: allKeys, factor, visible: { minX:0, maxX:0, minY:0, maxY:0, count: allKeys.length }, reason:'viewBox fallback to all tiles' };
     }
 
     const vbX1 = vb.x, vbY1 = vb.y, vbX2 = vb.x + vb.w, vbY2 = vb.y + vb.h;
+
+    // === STEP 8.14 FIX: expected geometry, bukan existing tiles ===
+    // Hitung tilesX/Y dari level geometry
     const tilesX = Math.max(1, Math.ceil(levelWidth / tileSize));
     const tilesY = Math.max(1, Math.ceil(levelHeight / tileSize));
 
@@ -1643,16 +1588,20 @@ function getVisibleDetailKeysFromPlan_(pyramid, detailLevel, bounds, viewBox, im
     const localY1 = vbY1 - imgY;
     const localY2 = vbY2 - imgY;
 
+    // Koreksi off-by-one sesuai audit 8.14:
+    // tile screen X = imgX + x * tileSize * pxScaleX
     let minX = Math.floor(localX1 / stepX);
     let maxX = Math.ceil(localX2 / stepX) - 1;
     let minY = Math.floor(localY1 / stepY);
     let maxY = Math.ceil(localY2 / stepY) - 1;
 
+    // Clamp ke level bounds
     minX = Math.max(0, Math.min(tilesX - 1, minX));
     maxX = Math.max(0, Math.min(tilesX - 1, maxX));
     minY = Math.max(0, Math.min(tilesY - 1, minY));
     maxY = Math.max(0, Math.min(tilesY - 1, maxY));
 
+    // Jika viewBox di luar img, bisa jadi min>max → fallback ke 0 tile? kembalikan 0 untuk safety, biar tidak fallback ke all
     if (minX > maxX || minY > maxY) {
       return { ok:true, keys:[], factor, visible: { minX, maxX, minY, maxY, count:0, empty:true }, visibleTiles:[], detailLevelFactor:factor, pyramidTileSize:tileSize, img:{x:imgX,y:imgY,w:imgW,h:imgH}, viewBox:vb, reason:'viewBox outside img' };
     }
@@ -1664,6 +1613,7 @@ function getVisibleDetailKeysFromPlan_(pyramid, detailLevel, bounds, viewBox, im
         const key = (typeof makeLithositeTileId_ === 'function') ? makeLithositeTileId_(factor, x, y) : ('L'+factor+'_X'+x+'_Y'+y);
         if (!key) continue;
         keys.push(key);
+        // Untuk diagnostic, hitung tx/ty/tw/th sama seperti compositor
         const tx = imgX + x * tileSize * pxScaleX;
         const ty = imgY + y * tileSize * pxScaleY;
         const tw = Math.min(tileSize, levelWidth - x * tileSize) * pxScaleX;
@@ -1783,93 +1733,6 @@ function scheduleSurfaceInvalidationOnce_() {
     }
   });
 }
-
-// === STEP 8.14 - Missing Creation Worker with in-flight protection ===
-let mg1MissingCreationTracker_ = null;
-function ensureMissingCreationTracker_(pyramid) {
-  if (!pyramid) return null;
-  if (!mg1MissingCreationTracker_ || mg1MissingCreationTracker_.pyramid !== pyramid) {
-    mg1MissingCreationTracker_ = {
-      pyramid: pyramid,
-      creatingSet: Object.create(null),
-      lastMissingCount: 0
-    };
-  }
-  if (!pyramid.missingCreationTracker || pyramid.missingCreationTracker.version !== 1) {
-    pyramid.missingCreationTracker = {
-      version: 1,
-      creatingSet: Object.create(null)
-    };
-  }
-  return mg1MissingCreationTracker_;
-}
-
-async function processMissingCreationBatch_(pyramid, mapId, missingKeys, batchSize) {
-  try {
-    if (!pyramid || !Array.isArray(missingKeys) || !missingKeys.length) return { processed:0, created:0, failed:0 };
-    if (!mapId) {
-      try { mapId = (typeof activeBackgroundMapId !== 'undefined' && activeBackgroundMapId) ? activeBackgroundMapId : null; } catch(_) { mapId = null; }
-    }
-    if (!mapId) return { processed:0, created:0, failed:0, reason:'mapId missing' };
-    const tracker = ensureMissingCreationTracker_(pyramid);
-    if (!tracker) return { processed:0, created:0, failed:0 };
-    const creatingSet = pyramid.missingCreationTracker ? pyramid.missingCreationTracker.creatingSet : tracker.creatingSet;
-    const bs = Math.max(1, Math.min(2, Number(batchSize) || 1));
-
-    const toCreate = [];
-    for (let i=0;i<missingKeys.length && toCreate.length<bs;i++) {
-      const k = String(missingKeys[i]);
-      if (!k) continue;
-      if (creatingSet[k]) continue;
-      try {
-        const av = typeof resolveLithositeDetailTileAvailability_ === 'function' ? resolveLithositeDetailTileAvailability_(pyramid, k) : null;
-        if (av && av.status === 'available') continue;
-      } catch(_) {}
-      toCreate.push(k);
-    }
-    if (!toCreate.length) return { processed:0, created:0, failed:0 };
-
-    for (const k of toCreate) creatingSet[k] = true;
-
-    let created = 0, failed = 0, processed = 0;
-    for (const k of toCreate) {
-      try {
-        const result = typeof resolveAndCreateLithositeMissingDetailTile_ === 'function'
-          ? await resolveAndCreateLithositeMissingDetailTile_(mapId, pyramid, k)
-          : (typeof createLithositeMissingDetailTileFromPdf_ === 'function' ? await createLithositeMissingDetailTileFromPdf_(mapId, pyramid, k) : { status:'no-creator' });
-        processed++;
-        if (result && (result.status === 'created' || result.status === 'available')) {
-          created++;
-        } else {
-          failed++;
-        }
-      } catch(e) {
-        failed++; processed++;
-      } finally {
-        delete creatingSet[k];
-      }
-    }
-
-    if (created > 0) {
-      try { if (typeof scheduleSurfaceInvalidationOnce_ === 'function') scheduleSurfaceInvalidationOnce_(); } catch(_) {}
-    }
-
-    try {
-      const remaining = missingKeys.filter(k => !creatingSet[String(k)]);
-      if (remaining.length > toCreate.length) {
-        setTimeout(() => {
-          try { processMissingCreationBatch_(pyramid, mapId, remaining.slice(toCreate.length), bs); } catch(_) {}
-        }, 250);
-      }
-    } catch(_) {}
-
-    return { processed, created, failed };
-  } catch(e) {
-    return { processed:0, created:0, failed:0, error: e && e.message };
-  }
-}
-
-
 
 async function processRuntimeQueueBatch_(pyramid, maxItems) {
   if (!pyramid) return { processed:0, loaded:0, failed:0, pending:0 };
@@ -2111,20 +1974,74 @@ function getLithositeLevelByFactor_(pyramid, factor) {
 
 function addLithositeRuntimeCreatedTile_(pyramid, tile) {
   if (!pyramid || !tile || !Array.isArray(pyramid.levels)) return false;
+  try { if (tile && tile.image) delete tile.image; if (tile && tile.img) delete tile.img; } catch(_) {}
   const level = getLithositeLevelByFactor_(pyramid, tile.levelFactor);
   if (!level) return false;
   if (!Array.isArray(level.tiles)) level.tiles = [];
   const existing = level.tiles.findIndex(t => t && (t.tileKey || t.tileId) === tile.tileKey);
   if (existing >= 0) level.tiles[existing] = tile;
   else level.tiles.push(tile);
+  try { pyramid.__persistVersion = (Number(pyramid.__persistVersion)||0)+1; pyramid.__lastPersistAt = Date.now(); } catch(_) {}
   ensureLithositeTileStore_(pyramid);
   ensureLithositeTileQueue_(pyramid);
   markLithositeTileLoaded_(pyramid, tile.tileKey);
-  // Persist satu hasil runtime tile ke IndexedDB; kegagalan persistence tidak
-  // membatalkan tile yang sudah berhasil tersedia di memory.
-  try { void persistLithositeRuntimeTileStore_(pyramid); } catch (_) {}
+  try { 
+    if (typeof schedulePersistCoalesced_ === 'function') schedulePersistCoalesced_(pyramid);
+    else void persistLithositeRuntimeTileStore_(pyramid); 
+  } catch (_) {}
   return true;
 }
+
+// === STEP 8.16 + 8.20 - PERSISTENCE QUEUE / COALESCING (clone-safe) ===
+let mg1PersistQueue_ = { scheduled:false, pendingPyramid:null, inProgress:false, retryCount:0, timeoutId:null, lastPersistAt:0 };
+function schedulePersistCoalesced_(pyramid) {
+  if (!pyramid || !pyramid.runtimeMapId) return;
+  mg1PersistQueue_.pendingPyramid = pyramid;
+  if (mg1PersistQueue_.inProgress) return;
+  if (mg1PersistQueue_.scheduled) return;
+  mg1PersistQueue_.scheduled = true;
+  const debounceMs = 120;
+  try { if (mg1PersistQueue_.timeoutId) clearTimeout(mg1PersistQueue_.timeoutId); } catch(_) {}
+  mg1PersistQueue_.timeoutId = setTimeout(async () => { mg1PersistQueue_.scheduled=false; mg1PersistQueue_.timeoutId=null; await executePersistCoalesced_(); }, debounceMs);
+}
+async function executePersistCoalesced_() {
+  if (mg1PersistQueue_.inProgress) return;
+  const pyramid = mg1PersistQueue_.pendingPyramid;
+  if (!pyramid || !pyramid.runtimeMapId) return;
+  mg1PersistQueue_.inProgress = true;
+  try {
+    let entry=null, retries=0;
+    while (retries<8) {
+      try {
+        if (typeof backgroundMapsList !== 'undefined' && Array.isArray(backgroundMapsList)) {
+          entry = backgroundMapsList.find(m => m && String(m.id)===String(pyramid.runtimeMapId));
+          if (entry) break;
+        }
+        await new Promise(r=>setTimeout(r,200)); retries++;
+      } catch(_) { await new Promise(r=>setTimeout(r,200)); retries++; }
+    }
+    if (!entry) { mg1PersistQueue_.inProgress=false; setTimeout(()=>{ if(mg1PersistQueue_.pendingPyramid) schedulePersistCoalesced_(mg1PersistQueue_.pendingPyramid); },500); return; }
+    const latestPyramid = mg1PersistQueue_.pendingPyramid || pyramid;
+    mg1PersistQueue_.pendingPyramid=null;
+    let result=null;
+    try { result = await persistLithositeRuntimeTileStore_(latestPyramid); } catch(err) { result={ok:false, reason:err&&err.message}; }
+    if (!result || result.ok===false) {
+      if (!mg1PersistQueue_.pendingPyramid) mg1PersistQueue_.pendingPyramid=latestPyramid;
+      mg1PersistQueue_.inProgress=false; mg1PersistQueue_.retryCount++;
+      const backoff=Math.min(2000,300*Math.pow(1.5,mg1PersistQueue_.retryCount));
+      setTimeout(()=>{ if(mg1PersistQueue_.pendingPyramid) schedulePersistCoalesced_(mg1PersistQueue_.pendingPyramid); }, backoff);
+      return result;
+    }
+    mg1PersistQueue_.lastPersistAt=Date.now(); mg1PersistQueue_.inProgress=false; mg1PersistQueue_.retryCount=0;
+    if (mg1PersistQueue_.pendingPyramid) schedulePersistCoalesced_(mg1PersistQueue_.pendingPyramid);
+    return result;
+  } catch(e) {
+    mg1PersistQueue_.inProgress=false;
+    if (!mg1PersistQueue_.pendingPyramid && pyramid) mg1PersistQueue_.pendingPyramid=pyramid;
+    setTimeout(()=>{ if(mg1PersistQueue_.pendingPyramid) schedulePersistCoalesced_(mg1PersistQueue_.pendingPyramid); },500);
+  }
+}
+
 
 async function createLithositeMissingDetailTileFromPdf_(mapId, pyramid, tileKey) {
   const parsed = parseLithositeTileKey_(tileKey);
@@ -5244,6 +5161,9 @@ function renderMapScaleBar(bounds) {
 }
 
 function renderMineGridSvg(points) {
+  // STEP 8.21D MINIMAL FIX: hoist counters to top to avoid TDZ - diagnostic/compositor only
+  var mg1RuntimeUsedCount_ = 0;
+  var mg1FallbackCount_ = 0;
   ensureMapContextBlocker_();
   const bounds = computeResponsiveDisplayBounds_(points);
   const viewW = 320, viewH = 320;
@@ -5281,9 +5201,7 @@ function renderMineGridSvg(points) {
       }
       const pyramid = activeMap.tilePyramid;
       if (pyramid && Array.isArray(pyramid.levels) && pyramid.levels.length) {
-        // STEP 8.11-PATCH FIX: counter harus sebelum orchestration (hindari TDZ)
-        let mg1RuntimeUsedCount_ = 0;
-        let mg1FallbackCount_ = 0;
+        // STEP 8.19 FIX: counters
         // V15.1 SEAMLESS 2-LAYER DISPLAY:
         //   BASE 0.25x = always rendered first and covers the full GeoPDF extent.
         //   DETAIL     = selected higher-resolution level rendered on top.
@@ -5313,19 +5231,24 @@ function renderMineGridSvg(points) {
         // FIX BLOCKER 1: pakai actual pyramid tiles + viewBox intersection, bukan planner indices langsung
         // BASE tetap fallback visual, appendLevel() 100% untouched
         try {
+          try { if (typeof window !== 'undefined') { window.mg1LastPyramidCheck = { hasPyramid: !!pyramid, hasDetail: !!detailLevel, pyramidLevels: pyramid && pyramid.levels ? pyramid.levels.length : 0 }; } } catch(_) {}
           if (pyramid && detailLevel) {
             const visibleResult = typeof getVisibleDetailKeysFromPlan_ === 'function' 
               ? getVisibleDetailKeysFromPlan_(pyramid, detailLevel, bounds, viewBox, imgX, imgY, imgW, imgH) 
               : { ok:false, keys:[] };
+            // STEP 8.21D: record visibleResult regardless of ok
+            try { if (typeof window !== 'undefined') { window.mg1LastVisibleResult = visibleResult; window.mg1LastDetailFactor = detailLevel ? detailLevel.factor : null; window.mg1LastTargetFactor = targetFactor; } } catch(_) {}
             if (visibleResult.ok && visibleResult.keys.length) {
               const runtimeResult = typeof ensureRuntimeTiles_NonBlocking_ === 'function' ? ensureRuntimeTiles_NonBlocking_(visibleResult.keys, pyramid) : { ok:false, queued:0, missing:[], alreadyReady:0, alreadyLoading:0 };
               if (runtimeResult.ok && runtimeResult.queued > 0) {
+                // Background consumer - jangan await di render path, jangan block compositor
                 setTimeout(() => {
                   try {
                     processRuntimeQueueBatch_(pyramid, 3);
                   } catch(_) {}
                 }, 0);
               }
+              // STEP 8.14: Missing worker - async, 1-2/batch, in-flight protection, tidak block render
               if (runtimeResult.ok && Array.isArray(runtimeResult.missing) && runtimeResult.missing.length > 0) {
                 setTimeout(() => {
                   try {
@@ -5334,22 +5257,38 @@ function renderMineGridSvg(points) {
                   } catch(_) {}
                 }, 50);
               }
-              // Debug untuk orchestration test (bukan visual upgrade di patch pertama)
+              // STEP 8.21D - ALWAYS set diagnostics, even when visibleResult not ok, to debug undefined
               if (typeof window !== 'undefined') {
-                window.mg1LastPyramid = pyramid;
-                window.mg1LastRuntimeOrchestration = {
-                  visibleKeys: visibleResult.keys.length,
-                  factor: visibleResult.factor,
-                  pyramidTileSize: visibleResult.pyramidTileSize,
-                  queued: runtimeResult.queued,
-                  alreadyReady: runtimeResult.alreadyReady,
-                  alreadyLoading: runtimeResult.alreadyLoading,
-                  missing: runtimeResult.missing.length,
-                  runtimeUsed: mg1RuntimeUsedCount_,
-                  fallback: mg1FallbackCount_,
-                  viewBox: visibleResult.viewBox,
-                  img: visibleResult.img
-                };
+                try { window.mg1LastPyramid = pyramid; } catch(_) {}
+                try { window.mg1LastCompositorStats = { runtimeUsed: mg1RuntimeUsedCount_, fallback: mg1FallbackCount_ }; } catch(_) {}
+                try {
+                  window.mg1LastVisibleResult = visibleResult;
+                  window.mg1LastRuntimeResult = runtimeResult;
+                } catch(_) {}
+                try {
+                  window.mg1LastRuntimeOrchestration = {
+                    visibleKeys: visibleResult && visibleResult.keys ? visibleResult.keys.length : 0,
+                    ok: visibleResult ? visibleResult.ok : false,
+                    reason: visibleResult ? visibleResult.reason : 'no-result',
+                    factor: visibleResult ? visibleResult.factor : null,
+                    pyramidTileSize: visibleResult ? visibleResult.pyramidTileSize : null,
+                    queued: runtimeResult ? runtimeResult.queued : 0,
+                    alreadyReady: runtimeResult ? runtimeResult.alreadyReady : 0,
+                    alreadyLoading: runtimeResult ? runtimeResult.alreadyLoading : 0,
+                    missing: runtimeResult && Array.isArray(runtimeResult.missing) ? runtimeResult.missing.length : 0,
+                    runtimeUsed: mg1RuntimeUsedCount_,
+                    fallback: mg1FallbackCount_,
+                    viewBox: visibleResult ? visibleResult.viewBox : null,
+                    img: visibleResult ? visibleResult.img : null,
+                    detailFactor: detailLevel ? detailLevel.factor : null,
+                    targetFactor: typeof targetFactor !== 'undefined' ? targetFactor : null,
+                    pyramidLevels: pyramid && pyramid.levels ? pyramid.levels.map(l=>({factor:l.factor, tiles:l.tiles?l.tiles.length:0})) : null,
+                    timestamp: Date.now()
+                  };
+                } catch(e2) {
+                  console.warn('[8.21D] diagnostic assignment failed', e2);
+                  window.mg1LastRuntimeOrchestration = { error: String(e2), ok:false, reason:'assignment-failed' };
+                }
               }
             }
           }
@@ -5358,6 +5297,7 @@ function renderMineGridSvg(points) {
         }
 
         const tileSize = Number(pyramid.tileSize) || GEOPDF_TILE_SIZE_;
+        // STEP 8.11-PATCH: compositor memakai runtime cache bila READY, fallback t.dataUrl
         const appendLevel = (level, layerName, opacity) => {
           if (!level || !Array.isArray(level.tiles)) return;
           const pxScaleX = imgW / Math.max(1, Number(level.width) || 1);
@@ -5397,17 +5337,6 @@ function renderMineGridSvg(points) {
 
         appendLevel(baseLevel, 'base', '0.94');
         if (detailLevel && detailLevel !== baseLevel) appendLevel(detailLevel, 'detail', '0.98');
-        // STEP 8.11-PATCH FIX: update diagnostic AFTER compositor (runtimeUsed sudah dihitung)
-        try {
-          if (typeof window !== 'undefined') {
-            window.mg1LastCompositorStats = { runtimeUsed: mg1RuntimeUsedCount_, fallback: mg1FallbackCount_ };
-            if (window.mg1LastRuntimeOrchestration) {
-              window.mg1LastRuntimeOrchestration.runtimeUsed = mg1RuntimeUsedCount_;
-              window.mg1LastRuntimeOrchestration.fallback = mg1FallbackCount_;
-              window.mg1LastRuntimeOrchestration.compositorRuntimeRatio = (mg1RuntimeUsedCount_ + mg1FallbackCount_) > 0 ? (mg1RuntimeUsedCount_ / (mg1RuntimeUsedCount_ + mg1FallbackCount_)) : 0;
-            }
-          }
-        } catch(_) {}
       } else {
         svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + ' pointer-events="none" draggable="false" oncontextmenu="return false;"/>';
       }
@@ -7407,14 +7336,46 @@ function renderKmlUploadForm_() {
           const d=ev.data||{}; const req=indexedDB.open(d.dbName,2);
           req.onupgradeneeded=function(){const db=req.result; if(!db.objectStoreNames.contains(d.storeName)) db.createObjectStore(d.storeName,{keyPath:'id'}); if(!db.objectStoreNames.contains('kmlOverlays')) db.createObjectStore('kmlOverlays',{keyPath:'id'});};
           req.onerror=function(){self.postMessage({ok:false,error:String(req.error&&req.error.message||req.error||'open failed')});};
-          req.onsuccess=function(){const db=req.result; let tx; try{tx=db.transaction(d.storeName,'readwrite'); tx.objectStore(d.storeName).put(d.entry); tx.oncomplete=function(){try{db.close();}catch(_){} self.postMessage({ok:true});}; tx.onerror=function(){try{db.close();}catch(_){} self.postMessage({ok:false,error:String(tx.error&&tx.error.message||tx.error||'put failed')});}; tx.onabort=tx.onerror;}catch(e){try{db.close();}catch(_){} self.postMessage({ok:false,error:String(e&&e.message||e)});}};
+          req.onsuccess=function(){
+            const db=req.result;
+            try {
+              const txRead=db.transaction(d.storeName,'readonly');
+              const getReq=txRead.objectStore(d.storeName).get(d.entry.id);
+              getReq.onsuccess=function(){
+                const existing=getReq.result;
+                const curVer=existing && existing.tilePyramid && Number(existing.tilePyramid.__persistVersion)||0;
+                const newVer=d.entry && d.entry.tilePyramid && Number(d.entry.tilePyramid.__persistVersion)||0;
+                if(curVer>0 && newVer>0 && newVer < curVer){
+                  try{db.close();}catch(_){}
+                  self.postMessage({ok:true, skipped:true, reason:'version-skipped V24.1 worker'});
+                  return;
+                }
+                try{
+                  const tx=db.transaction(d.storeName,'readwrite');
+                  tx.objectStore(d.storeName).put(d.entry);
+                  tx.oncomplete=function(){try{db.close();}catch(_){} self.postMessage({ok:true});};
+                  tx.onerror=function(){try{db.close();}catch(_){} self.postMessage({ok:false,error:String(tx.error&&tx.error.message||tx.error||'put failed')});};
+                  tx.onabort=tx.onerror;
+                }catch(e){try{db.close();}catch(_){} self.postMessage({ok:false,error:String(e&&e.message||e)});}
+              };
+              getReq.onerror=function(){
+                try{
+                  const tx=db.transaction(d.storeName,'readwrite');
+                  tx.objectStore(d.storeName).put(d.entry);
+                  tx.oncomplete=function(){try{db.close();}catch(_){} self.postMessage({ok:true});};
+                  tx.onerror=function(){try{db.close();}catch(_){} self.postMessage({ok:false,error:String(tx.error&&tx.error.message||tx.error||'put failed')});};
+                  tx.onabort=tx.onerror;
+                }catch(e){try{db.close();}catch(_){} self.postMessage({ok:false,error:String(e&&e.message||e)});}
+              };
+            }catch(e){try{db.close();}catch(_){} self.postMessage({ok:false,error:String(e&&e.message||e)});}
+          };
         };
       `;
       const blob=new Blob([workerCode],{type:'application/javascript'});
       const url=URL.createObjectURL(blob);
       const worker=new Worker(url);
       const cleanup=()=>{try{worker.terminate();}catch(_){} try{URL.revokeObjectURL(url);}catch(_){} };
-      worker.onmessage=ev=>{const r=ev.data||{}; cleanup(); r.ok?resolve(true):reject(new Error(r.error||'worker save failed'));};
+      worker.onmessage=ev=>{const r=ev.data||{}; cleanup(); if(r.skipped){ resolve(true); return; } r.ok?resolve(true):reject(new Error(r.error||'worker save failed'));};
       worker.onerror=ev=>{cleanup(); reject(new Error(ev&&ev.message||'worker error'));};
       try{worker.postMessage({dbName:'mg1_background_maps',storeName:'maps',entry:entry});}
       catch(e){cleanup(); reject(e);}
@@ -7423,17 +7384,69 @@ function renderKmlUploadForm_() {
 
   function scheduleBackgroundPersistence_(entry){
     const run=()=>{
-      console.log('[V24.1] Background persistence starting');
-      persistMapInWorker_(entry).then(()=>{
-        console.log('[V24.1] Background IndexedDB save DONE');
-        entry.__v24Persisted=true;
-      }).catch(err=>{
-        console.warn('[V24.1] Worker persistence failed, fallback idle DB save:',err);
-        const fallback=()=>{ if(typeof dbPutMap_==='function') dbPutMap_(entry).catch(e=>console.warn('[V24.1] fallback DB save failed',e)); };
-        if(typeof requestIdleCallback==='function') requestIdleCallback(fallback,{timeout:10000}); else setTimeout(fallback,1000);
-      });
+      console.log('[V24.1] Background persistence starting - version-aware + clone-safe');
+      try {
+        let entryToPersist = entry;
+        // === FIX race T0-T3: ambil entry terbaru dari RAM, bukan closure lama ===
+        try {
+          if (typeof backgroundMapsList !== 'undefined' && Array.isArray(backgroundMapsList)) {
+            const latest = backgroundMapsList.find(m => m && String(m.id) === String(entry.id));
+            if (latest) {
+              const curVer = Number(latest.tilePyramid && latest.tilePyramid.__persistVersion) || 0;
+              const oldVer = Number(entry.tilePyramid && entry.tilePyramid.__persistVersion) || 0;
+              if (curVer > oldVer) {
+                console.log('[V24.1] Using latest entry from RAM, version', oldVer, '->', curVer);
+                entryToPersist = latest;
+              }
+              // Jika latest sudah lebih baru, jangan overwrite dengan versi lama
+              if (curVer > 0 && oldVer > 0 && oldVer < curVer && latest !== entry) {
+                console.log('[V24.1] Skipped - newer version in RAM exists', curVer, 'vs', oldVer);
+                return;
+              }
+            }
+          }
+        } catch(_) {}
+        // Clone-safe sanitize
+        try {
+          if (entryToPersist && entryToPersist.tilePyramid && typeof sanitizePyramidForStorage_ === 'function') {
+            const cleanPyramid = sanitizePyramidForStorage_(entryToPersist.tilePyramid);
+            entryToPersist = { ...entryToPersist, tilePyramid: cleanPyramid };
+          }
+        } catch(_) {}
+        persistMapInWorker_(entryToPersist).then(()=>{
+          console.log('[V24.1] Background IndexedDB save DONE');
+          entry.__v24Persisted=true;
+        }).catch(err=>{
+          console.warn('[V24.1] Worker persistence failed, fallback idle DB save:',err);
+          const fallback=()=>{
+            try {
+              let safe = entryToPersist;
+              try {
+                if (safe && safe.tilePyramid && typeof sanitizePyramidForStorage_ === 'function') {
+                  safe = { ...safe, tilePyramid: sanitizePyramidForStorage_(safe.tilePyramid) };
+                }
+              } catch(_) {}
+              // Final version check before fallback
+              try {
+                if (typeof backgroundMapsList !== 'undefined' && Array.isArray(backgroundMapsList)) {
+                  const latest = backgroundMapsList.find(m => m && String(m.id) === String(safe.id));
+                  if (latest) {
+                    const curVer = Number(latest.tilePyramid && latest.tilePyramid.__persistVersion) || 0;
+                    const newVer = Number(safe.tilePyramid && safe.tilePyramid.__persistVersion) || 0;
+                    if (curVer > 0 && newVer > 0 && newVer < curVer) {
+                      console.log('[V24.1 fallback] Skipped - newer version exists', curVer, 'vs', newVer);
+                      return;
+                    }
+                  }
+                }
+              } catch(_) {}
+              if(typeof dbPutMap_==='function') dbPutMap_(safe).catch(e=>console.warn('[V24.1] fallback DB save failed',e));
+            } catch(e2) { console.warn('[V24.1] fallback sanitize failed', e2); }
+          };
+          if(typeof requestIdleCallback==='function') requestIdleCallback(fallback,{timeout:10000}); else setTimeout(fallback,1000);
+        });
+      } catch(e) { console.warn('[V24.1] schedule failed', e); }
     };
-    // Give the browser several frames of clean UI time before even cloning the large entry.
     if(typeof requestIdleCallback==='function') requestIdleCallback(run,{timeout:5000});
     else setTimeout(run,1500);
   }
@@ -7520,3 +7533,94 @@ function renderKmlUploadForm_() {
   const iv=setInterval(()=>{ if(bind()) clearInterval(iv); },250);
   console.log('[V24.1] Ready - RAM-first save, worker persistence, instant preview, V22 detail upgrade');
 })();
+
+// === STEP 8.14 - Missing Creation Worker with in-flight protection ===
+let mg1MissingCreationTracker_ = null;
+function ensureMissingCreationTracker_(pyramid) {
+  if (!pyramid) return null;
+  if (!mg1MissingCreationTracker_ || mg1MissingCreationTracker_.pyramid !== pyramid) {
+    mg1MissingCreationTracker_ = {
+      pyramid: pyramid,
+      creatingSet: Object.create(null),
+      lastMissingCount: 0
+    };
+  }
+  if (!pyramid.missingCreationTracker || pyramid.missingCreationTracker.version !== 1) {
+    pyramid.missingCreationTracker = {
+      version: 1,
+      creatingSet: Object.create(null)
+    };
+  }
+  return mg1MissingCreationTracker_;
+}
+
+async function processMissingCreationBatch_(pyramid, mapId, missingKeys, batchSize) {
+  try {
+    if (!pyramid || !Array.isArray(missingKeys) || !missingKeys.length) return { processed:0, created:0, failed:0 };
+    if (!mapId) {
+      try { mapId = (typeof activeBackgroundMapId !== 'undefined' && activeBackgroundMapId) ? activeBackgroundMapId : null; } catch(_) { mapId = null; }
+    }
+    if (!mapId) return { processed:0, created:0, failed:0, reason:'mapId missing' };
+    const tracker = ensureMissingCreationTracker_(pyramid);
+    if (!tracker) return { processed:0, created:0, failed:0 };
+    const creatingSet = pyramid.missingCreationTracker ? pyramid.missingCreationTracker.creatingSet : tracker.creatingSet;
+    const bs = Math.max(1, Math.min(2, Number(batchSize) || 1));
+
+    // Filter: jangan buat yang sedang in-flight atau sudah available
+    const toCreate = [];
+    for (let i=0;i<missingKeys.length && toCreate.length<bs;i++) {
+      const k = String(missingKeys[i]);
+      if (!k) continue;
+      if (creatingSet[k]) continue; // in-flight protection
+      // cek sudah available sekarang?
+      try {
+        const av = typeof resolveLithositeDetailTileAvailability_ === 'function' ? resolveLithositeDetailTileAvailability_(pyramid, k) : null;
+        if (av && av.status === 'available') continue;
+      } catch(_) {}
+      toCreate.push(k);
+    }
+    if (!toCreate.length) return { processed:0, created:0, failed:0 };
+
+    // Mark in-flight
+    for (const k of toCreate) creatingSet[k] = true;
+
+    let created = 0, failed = 0, processed = 0;
+    for (const k of toCreate) {
+      try {
+        const result = typeof resolveAndCreateLithositeMissingDetailTile_ === 'function'
+          ? await resolveAndCreateLithositeMissingDetailTile_(mapId, pyramid, k)
+          : (typeof createLithositeMissingDetailTileFromPdf_ === 'function' ? await createLithositeMissingDetailTileFromPdf_(mapId, pyramid, k) : { status:'no-creator' });
+        processed++;
+        if (result && (result.status === 'created' || result.status === 'available')) {
+          created++;
+        } else {
+          failed++;
+        }
+      } catch(e) {
+        failed++; processed++;
+      } finally {
+        delete creatingSet[k];
+      }
+    }
+
+    if (created > 0) {
+      try { if (typeof scheduleSurfaceInvalidationOnce_ === 'function') scheduleSurfaceInvalidationOnce_(); } catch(_) {}
+    }
+
+    // Jika masih ada missing lain, schedule next batch (jangan flood PDF.js)
+    try {
+      const remaining = missingKeys.filter(k => !creatingSet[String(k)]);
+      if (remaining.length > toCreate.length) {
+        setTimeout(() => {
+          try { processMissingCreationBatch_(pyramid, mapId, remaining.slice(toCreate.length), bs); } catch(_) {}
+        }, 250);
+      }
+    } catch(_) {}
+
+    return { processed, created, failed };
+  } catch(e) {
+    return { processed:0, created:0, failed:0, error: e && e.message };
+  }
+}
+
+
