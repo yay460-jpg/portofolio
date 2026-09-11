@@ -1,4 +1,4 @@
-/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path. V17.1 GEO-PDF NO FLICKER STABILIZATION. */
+/* STEP 7.6 V10.6.1 TOUCH OWNERSHIP BUILD: direct PDF.js tile path; logic unchanged from V4. */
 /* ============================================================
  * MINE GEOLOGIST / LITHOSITE -- member-app/scripts/peta.js
  * [PARTISI -- 4 Sep, Tahap 4] Tab Peta -- Mine Grid SVG, North Arrow (3-mode
@@ -12,11 +12,15 @@
 
 // ==== PETA (Mine Grid) -- v90.2.113 BARU ====
 // State panel/interaksi peta -- terpisah dari state tab lain, tidak saling pengaruh.
+let mapZoom = 1;             // 1 = fit-all murni; default background map memakai 1.25x agar layout lebih padat
+let mapViewportState_ = { centerNative: null }; // posisi viewport persisten; tap tidak pernah mengubahnya
 // STEP 5.6: state gesture pinch-to-zoom 2 jari.
+let mapPinchState_ = { active: false, startDistance: 0, startZoom: 1, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null };
+let mapPinchRenderScheduled_ = false;
 // STEP 7.6: single-finger pan state. Selama gesture aktif, SVG yang sudah tampil
 // digerakkan oleh compositor (CSS transform); DOM/tile tidak dibangun ulang per touchmove.
-// STEP 7.6E: smooth zoom-button visual transition. mapZoom tetap menjadi
-// sumber kebenaran; selama animasi hanya SVG yang diberi transform compositor.
+let mapPanState_ = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, baseCenterNative: null, baseRectW: 0, baseRectH: 0, baseBounds: null, visualSvg: null, moved: false, suppressTapUntil: 0, velocityX: 0, velocityY: 0, lastX: 0, lastY: 0, lastT: 0 };
+let mapPanRenderScheduled_ = false;
 
 // STEP 7.6 gesture ownership: cegah long-press Android/Chrome mengambil alih
 // map image (context menu / save image / share). Hanya berlaku di area map.
@@ -35,59 +39,9 @@ if (typeof document !== 'undefined') {
   }, true);
 }
 // STEP 7.6 V10.4: unified Pointer Events state. Visual movement stays on compositor.
-// STEP 7.6B-V13.1: one gesture = one input owner.
-function requestMapRender_() {
-  if (mapPanState_.active || mapPinchState_.active || mapPanInertiaRaf_ || mapButtonZoomRaf_) {
-    mapGestureRenderPending_ = true;
-    return;
-  }
-  render();
-}
-function flushMapGestureRender_() {
-  if (!mapGestureRenderPending_) return;
-  mapGestureRenderPending_ = false;
-  render();
-}
-// STEP 7.6B-V13.2: clear stale transient input state before a new gesture.
-function resetMapGestureTransientState_() {
-  mapGestureOwner_ = null;
-  mapPointerState_.clear();
-  mapPanState_.active = false; if(mapPanState_.visualSvg){ mapPanState_.visualSvg.style.willChange='auto'; } mapPanState_.visualSvg = null;
-  mapPanState_.dx = 0; mapPanState_.dy = 0;
-  mapPanState_.velocityX = 0; mapPanState_.velocityY = 0; mapPanState_.moved = false;
-  mapPinchState_.active = false; if (mapPinchState_.visualSvg) { mapPinchState_.visualSvg.style.transform = composeMapTransform_(1, mapRotationDeg_, 0, 0); mapPinchState_.visualSvg.style.transformOrigin='50% 50%'; } mapPinchState_.visualSvg = null;
-  mapPinchRenderScheduled_ = false; mapPanRenderScheduled_ = false;
-  if (mapPanInertiaRaf_) { try { cancelAnimationFrame(mapPanInertiaRaf_); } catch (_) {} mapPanInertiaRaf_ = null; }
-}
-
-function blockMapContextMenu_() {
-  try {
-    const vp = document.getElementById('mg1-map-viewport');
-    if (!vp || vp.__mg1CtxBlocked) return;
-    vp.__mg1CtxBlocked = true;
-    const stop = (e) => { e.preventDefault(); e.stopPropagation(); return false; };
-    vp.addEventListener('contextmenu', stop, { capture: true, passive: false });
-    vp.addEventListener('selectstart', stop, { capture: true, passive: false });
-    vp.addEventListener('dragstart', stop, { capture: true, passive: false });
-    vp.addEventListener('mousedown', (e) => { if (e.button===2) stop(e); }, { capture: true });
-    let longPressTimer = null;
-    vp.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        clearTimeout(longPressTimer);
-        // TRACE: jangan preventDefault di sini dengan stale event, cegah menu via CSS saja
-        longPressTimer = setTimeout(() => { console.log('[TRACE] longPress 400ms would trigger menu - blocked by CSS'); }, 400);
-      }
-    }, { passive: true, capture: true });
-    vp.addEventListener('touchend', () => { clearTimeout(longPressTimer); }, { passive: true });
-    vp.addEventListener('touchmove', () => { clearTimeout(longPressTimer); }, { passive: false });
-  } catch(e){}
-}
-// STEP 7.6B-ROOT-2: activate scoped map touch/context ownership after DOM creation.
-function ensureMapContextBlocker_() {
-  try {
-    if (typeof blockMapContextMenu_ === 'function') blockMapContextMenu_();
-  } catch (_) {}
-}
+let mapPointerState_ = new Map();
+let mapViewportRatio_ = 1;
+let mapViewportSyncScheduled_ = false;
 
 function getMapViewportRatio_() {
   const el = document.getElementById('mg1-map-viewport');
@@ -98,19 +52,10 @@ function getMapViewportRatio_() {
 }
 
 function scheduleMapViewportFit_() {
-  // KEYBOARD FIX: Android visual viewport resize fires while a form input is focused.
-  // The map-fit listener must never rebuild the whole app during keyboard activity,
-  // otherwise Digging/Validasi inputs lose focus and the keyboard closes.
-  const active = document.activeElement;
-  const keyboardInputActive = !!(active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA'));
-  if (keyboardInputActive || currentTab !== 'peta') return;
   if (mapViewportSyncScheduled_) return;
   mapViewportSyncScheduled_ = true;
   requestAnimationFrame(() => {
     mapViewportSyncScheduled_ = false;
-    const activeNow = document.activeElement;
-    const keyboardStillActive = !!(activeNow && (activeNow.tagName === 'INPUT' || activeNow.tagName === 'TEXTAREA'));
-    if (keyboardStillActive || currentTab !== 'peta') return;
     const ratio = getMapViewportRatio_();
     if (ratio > 0 && Math.abs(ratio - mapViewportRatio_) >= 0.01) {
       mapViewportRatio_ = ratio;
@@ -124,9 +69,11 @@ if (!window.__mg1MapViewportResizeBound) {
   window.addEventListener('resize', scheduleMapViewportFit_, { passive: true });
 }
 
+let mapDetailIdTp = null;    // ID TP yg sedang dibuka detailnya, null = tidak ada modal terbuka
 // v90.2.116 BARU (permintaan user -- lompat dari Validasi ke lokasi Peta): TP yg harus
 // otomatis dibuka detailnya begitu tab Peta aktif -- dipicu dari tombol pin di kartu
 // Validasi, BUKAN cuma pindah tab tapi juga langsung fokus ke TP spesifik yg diminta.
+let mapFocusIdTp = null;
 function focusMapFromValidasi(idTp) {
   mapFocusIdTp = idTp;
   switchTab('peta');
@@ -137,238 +84,9 @@ const MAP_ZOOM_MIN = 1, MAP_ZOOM_MAX = 8, MAP_ZOOM_STEP = 0.5;
 
 // STEP 7.5: tile pyramid generated from the already-rendered GeoPDF crop.
 const GEOPDF_TILE_SIZE_ = 256;
-// [BARU -- pengaman ringan] Batas atas eksplisit ukuran 1 tile (px). Tile SELALU
-// dibuat <=GEOPDF_TILE_SIZE_, jadi ini sebenarnya jaring pengaman kedua -- murah,
-// tidak pernah kena kecuali GEOPDF_TILE_SIZE_ diubah jadi sangat besar di masa depan.
-const GEOPDF_TILE_SIZE_MAX_SAFE_ = 768;
 const GEOPDF_TILE_LEVEL_FACTORS_ = [0.25, 0.5, 1, 2];
 const GEOPDF_TILE_MAX_LEVEL_ = GEOPDF_TILE_LEVEL_FACTORS_.length - 1;
 
-// STEP C1 - VIEWPORT TILE PLANNER V1
-// Planner ONLY. Tidak merender tile, tidak mengubah renderer V13.1, tidak mengubah
-// gesture, tidak mengubah DPR, dan tidak menulis cache tile. Tujuan: menghitung tile
-// yang secara geometris diperlukan oleh viewport saat ini, berdasarkan GeoReference,
-// mapZoom, tile size, dan profile perangkat.
-function getViewportTilePlan_(geoReferenceOverride) {
-  try {
-    const activeMap = activeBackgroundMapId ? backgroundMapsList.find(m => m.id === activeBackgroundMapId) : null;
-    const geoReference = geoReferenceOverride || (activeMap && activeMap.geoReference);
-    if (!geoReference || !geoReference.metadata || !Array.isArray(geoReference.metadata.vpBBox)) {
-      return { ok:false, reason:'GeoPDF aktif dengan GeoReference belum tersedia.' };
-    }
-
-    // V14.36: pada upload GeoPDF baru, activeBackgroundMapId belum terisi karena
-    // peta belum disimpan ke IndexedDB. C1 sebelumnya langsung gagal di sini,
-    // sehingga C2 kehilangan daftar Visible dan fallback ke seluruh tile (70).
-    // Untuk incoming GeoReference, gunakan extent GeoPDF sebagai extra bound sementara.
-    let bounds = null;
-    if (activeMap) {
-      bounds = computeResponsiveDisplayBounds_(buildMapData());
-    } else {
-      const extras = [];
-      const ext = geoReference.extent;
-      if (ext && ext.cornerTL && ext.cornerBR) {
-        const e1 = parseFloat(ext.cornerTL.timur), n1 = parseFloat(ext.cornerTL.utara);
-        const e2 = parseFloat(ext.cornerBR.timur), n2 = parseFloat(ext.cornerBR.utara);
-        if ([e1, n1, e2, n2].every(Number.isFinite)) {
-          extras.push({ minT:Math.min(e1,e2), maxT:Math.max(e1,e2), minU:Math.min(n1,n2), maxU:Math.max(n1,n2) });
-        }
-      }
-      const base = computeMineGridBounds(buildMapData(), extras);
-      if (base) {
-        const ratio = mapViewportRatio_ > 0 ? mapViewportRatio_ : 1;
-        const w = base.maxT - base.minT, h = base.maxU - base.minU;
-        let minT = base.minT, maxT = base.maxT, minU = base.minU, maxU = base.maxU;
-        if (w > 0 && h > 0) {
-          const currentRatio = w / h;
-          if (currentRatio > ratio) {
-            const extra = ((w / ratio) - h) / 2;
-            minU -= extra; maxU += extra;
-          } else if (currentRatio < ratio) {
-            const extra = ((h * ratio) - w) / 2;
-            minT -= extra; maxT += extra;
-          }
-        }
-        bounds = { minT, maxT, minU, maxU };
-      }
-    }
-    if (!bounds) return { ok:false, reason:'Map bounds belum tersedia.' };
-
-    const deviceProfile = window.mg1DeviceTileEngineProfile || getDeviceTileEngineProfile_();
-    const tileSize = Math.max(64, Number(deviceProfile.tileSize) || GEOPDF_TILE_SIZE_);
-    const maxFactor = Math.max(0.25, Number(deviceProfile.maxFactor) || 1);
-
-    // Ikuti pemetaan zoom yang SUDAH dipakai renderer, tetapi batasi dengan profile.
-    let requestedFactor = 1;
-    // V14.39: LOW device uses native 1x at normal zoom. The previous 0.5x
-    // planner was fast but visibly too soft on the S7 Edge.
-    if (mapZoom <= 1.5) requestedFactor = (String(deviceProfile.tier) === 'LOW') ? 1 : 0.25;
-    else if (mapZoom <= 2.5) requestedFactor = 0.5;
-    else requestedFactor = 1;
-    const factor = Math.min(requestedFactor, maxFactor);
-
-    const b = geoReference.metadata.vpBBox;
-    const xMin = Math.min(b[0], b[2]), xMax = Math.max(b[0], b[2]);
-    const yMin = Math.min(b[1], b[3]), yMax = Math.max(b[1], b[3]);
-    const baseScale = getGeoPdfRenderScale_(geoReference);
-    const levelWidth = Math.max(1, Math.round((xMax - xMin) * baseScale * factor));
-    const levelHeight = Math.max(1, Math.round((yMax - yMin) * baseScale * factor));
-    const tilesX = Math.ceil(levelWidth / tileSize);
-    const tilesY = Math.ceil(levelHeight / tileSize);
-
-    const viewBox = getMapViewBox_(bounds);
-    const corners = [
-      {x:viewBox.x, y:viewBox.y},
-      {x:viewBox.x + viewBox.w, y:viewBox.y},
-      {x:viewBox.x + viewBox.w, y:viewBox.y + viewBox.h},
-      {x:viewBox.x, y:viewBox.y + viewBox.h}
-    ];
-    const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
-    if (!(rangeT > 0) || !(rangeU > 0)) return { ok:false, reason:'Map bounds tidak valid.' };
-
-    // SVG saat ini dapat diputar. Untuk planner, inverse-rotate corner viewport agar
-    // tile yang dibutuhkan tetap dihitung secara konservatif dan tidak ada area hilang.
-    const nativeCorners = corners.map(function(c) {
-      let sx = c.x, sy = c.y;
-      if (Math.abs(mapRotationDeg_) > 0.0001) {
-        const rad = -mapRotationDeg_ * Math.PI / 180;
-        const cx = 160, cy = 160;
-        const dx = sx - cx, dy = sy - cy;
-        sx = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
-        sy = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
-      }
-      return {
-        x: bounds.minT + (sx / 320) * rangeT,
-        y: bounds.minU + ((320 - sy) / 320) * rangeU
-      };
-    });
-
-    const pageCorners = nativeCorners.map(function(n) {
-      return applyInverseAffineTransform2D_(geoReference.transform && (geoReference.transform.coefficients || geoReference.transform), n);
-    }).filter(Boolean);
-    if (pageCorners.length < 4) return { ok:false, reason:'Transform viewport ke PDF gagal.' };
-
-    const pxCorners = pageCorners.map(function(pt) {
-      return {
-        x: (pt.x - xMin) * baseScale * factor,
-        y: (yMax - pt.y) * baseScale * factor
-      };
-    });
-    let pxMin = Math.min.apply(null, pxCorners.map(p => p.x));
-    let pxMax = Math.max.apply(null, pxCorners.map(p => p.x));
-    let pyMin = Math.min.apply(null, pxCorners.map(p => p.y));
-    let pyMax = Math.max.apply(null, pxCorners.map(p => p.y));
-    pxMin = Math.max(0, Math.min(levelWidth, pxMin));
-    pxMax = Math.max(0, Math.min(levelWidth, pxMax));
-    pyMin = Math.max(0, Math.min(levelHeight, pyMin));
-    pyMax = Math.max(0, Math.min(levelHeight, pyMax));
-
-    const radius = Math.max(0, Number(deviceProfile.prefetchRadius) || 0);
-    const visibleMinX = Math.max(0, Math.floor(pxMin / tileSize));
-    const visibleMaxX = Math.min(tilesX - 1, Math.floor(Math.max(pxMin, pxMax - 0.001) / tileSize));
-    const visibleMinY = Math.max(0, Math.floor(pyMin / tileSize));
-    const visibleMaxY = Math.min(tilesY - 1, Math.floor(Math.max(pyMin, pyMax - 0.001) / tileSize));
-
-    let visibleCount = 0;
-    if (visibleMaxX >= visibleMinX && visibleMaxY >= visibleMinY) {
-      visibleCount = (visibleMaxX - visibleMinX + 1) * (visibleMaxY - visibleMinY + 1);
-    }
-    const planMinX = Math.max(0, visibleMinX - radius);
-    const planMaxX = Math.min(tilesX - 1, visibleMaxX + radius);
-    const planMinY = Math.max(0, visibleMinY - radius);
-    const planMaxY = Math.min(tilesY - 1, visibleMaxY + radius);
-    let requiredCount = 0;
-    if (planMaxX >= planMinX && planMaxY >= planMinY) {
-      requiredCount = (planMaxX - planMinX + 1) * (planMaxY - planMinY + 1);
-    }
-
-    return {
-      ok:true,
-      tier:String(deviceProfile.tier || 'BALANCED'),
-      zoom:Number(mapZoom.toFixed(2)),
-      factor:Number(factor),
-      tileSize,
-      levelWidth,
-      levelHeight,
-      tilesX,
-      tilesY,
-      visible:{minX:visibleMinX,maxX:visibleMaxX,minY:visibleMinY,maxY:visibleMaxY,count:visibleCount},
-      prefetchRadius:radius,
-      required:{minX:planMinX,maxX:planMaxX,minY:planMinY,maxY:planMaxY,count:requiredCount},
-      totalLevelTiles:tilesX * tilesY,
-      rotationDeg:Number(mapRotationDeg_.toFixed(2)),
-      status:'PLANNER ONLY'
-    };
-  } catch (e) {
-    console.warn('[ADAPTIVE] Viewport planner gagal:', e);
-    return { ok:false, reason:e && e.message ? e.message : 'Planner error.' };
-  }
-}
-
-// V14.49 STEP D1 — PASSIVE PREFETCH PLANNER
-// Hanya membaca hasil C1 + arah pan yang SUDAH selesai. Tidak dipanggil dari
-// touchmove/pointermove dan tidak menyentuh DOM peta, SVG transform, level.tiles,
-// tile positioning, atau renderer. Output hanya daftar kandidat tile untuk tahap D2.
-function planPassivePrefetchAfterPan_(dx, dy) {
-  try {
-    const plan = getViewportTilePlan_();
-    if (!plan || !plan.ok) return { ok:false, reason:plan && plan.reason ? plan.reason : 'C1 belum siap.' };
-
-    const x = Number(dx) || 0, y = Number(dy) || 0;
-    const ax = Math.abs(x), ay = Math.abs(y);
-    if (Math.max(ax, ay) < 4) {
-      return { ok:true, direction:'NONE', candidates:[], plan:plan, status:'PLANNER ONLY' };
-    }
-
-    // Drag kiri -> viewport berikutnya cenderung membuka sisi kanan.
-    // Drag kanan -> membuka sisi kiri. Demikian pula sumbu Y.
-    const dirX = ax >= 4 ? (x < 0 ? 1 : -1) : 0;
-    const dirY = ay >= 4 ? (y < 0 ? 1 : -1) : 0;
-    const candidates = [];
-    const seen = new Set();
-
-    function addCandidate(tx, ty) {
-      if (tx < 0 || ty < 0 || tx >= plan.tilesX || ty >= plan.tilesY) return;
-      if (tx >= plan.visible.minX && tx <= plan.visible.maxX && ty >= plan.visible.minY && ty <= plan.visible.maxY) return;
-      const key = tx + ':' + ty;
-      if (seen.has(key)) return;
-      seen.add(key);
-      candidates.push({ x:tx, y:ty, key:key });
-    }
-
-    // Satu ring/strip tile tepat di depan viewport. Tidak memperluas core visible.
-    if (dirX !== 0) {
-      const edgeX = dirX > 0 ? plan.visible.maxX + 1 : plan.visible.minX - 1;
-      for (let ty = plan.visible.minY; ty <= plan.visible.maxY; ty++) addCandidate(edgeX, ty);
-    }
-    if (dirY !== 0) {
-      const edgeY = dirY > 0 ? plan.visible.maxY + 1 : plan.visible.minY - 1;
-      for (let tx = plan.visible.minX; tx <= plan.visible.maxX; tx++) addCandidate(tx, edgeY);
-    }
-    // Tambahkan sudut depan bila pan diagonal.
-    if (dirX !== 0 && dirY !== 0) {
-      const edgeX = dirX > 0 ? plan.visible.maxX + 1 : plan.visible.minX - 1;
-      const edgeY = dirY > 0 ? plan.visible.maxY + 1 : plan.visible.minY - 1;
-      addCandidate(edgeX, edgeY);
-    }
-
-    return {
-      ok:true,
-      direction:(dirX > 0 ? 'RIGHT' : dirX < 0 ? 'LEFT' : '') +
-                (dirY > 0 ? (dirX ? '+DOWN' : 'DOWN') : dirY < 0 ? (dirX ? '+UP' : 'UP') : ''),
-      drag:{x:Number(x.toFixed(1)), y:Number(y.toFixed(1))},
-      candidates:candidates,
-      plan:plan,
-      status:'PLANNER ONLY'
-    };
-  } catch (e) {
-    console.warn('[ADAPTIVE] Passive prefetch planner gagal:', e);
-    return { ok:false, reason:e && e.message ? e.message : 'Passive planner error.' };
-  }
-}
-
-// STEP C1 - VIEWPORT TILE PLANNER V1 !== 'boolean') window.mg1AdaptiveC2Enabled = true;
-// V14.31: C2 field test is automatic; no manual 'next upload' activation required.
 // ==== PETA BACKGROUND (foto udara/hasil olah ArcGIS) -- BARU 5 Sep ====
 // Bukan baca GeoPDF/GeoTIFF asli (butuh mesin libproj+libgdal spt Avenza, mustahil di
 // browser PWA) -- pendekatan lebih ringan: gambar biasa (PNG/JPG) + 2 titik referensi
@@ -379,14 +97,15 @@ function planPassivePrefetchAfterPan_(dx, dy) {
 // cuma ~5-10MB & síncron/blocking). SEMUA Member boleh upload, TAPI cuma LOKAL per-HP
 // (keputusan disadari: tiap HP bisa beda peta background, belum otomatis seragam se-tim
 // -- kalau nanti perlu diseragamkan, itu perlu versi backend terpisah, BUKAN sekarang).
+const MAP_DB_NAME_ = 'mg1_background_maps';
+const MAP_DB_STORE_ = 'maps';
+const KML_DB_STORE_ = 'kmlOverlays'; // [BARU -- 5 Sep] store baru, DB version dinaikkan
 let backgroundMapsList = []; // cache in-memory dari IndexedDB, direfresh tiap ada perubahan
 let activeBackgroundMapId = null;
 let mapManagePanelOpen = false;
 let mapUploadFormOpen = false;
 let mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null, tilePyramid: null };
 let mapUploadStatusMsg = '', mapUploadStatusOk = true, mapUploadBusy = false, mapUploadProcessing = false;
-// V15.14: browser File reference untuk runtime GeoPDF. IndexedDB tetap hanya menyimpan data map/tile; File asli dipakai runtime bila tersedia.
-let mapUploadRuntimeFile_ = null;
 // STEP 8D: GPS realtime state -- hanya aktif saat user menyalakan GPS.
 let gpsWatchId_ = null;
 let gpsState_ = {
@@ -406,30 +125,82 @@ let kmlUploadFormOpen = false;
 let kmlUploadFileName = '', kmlUploadParsedName = '', kmlUploadParsedPoints = [], kmlUploadParsedLines = [];
 let kmlUploadStatusMsg = '', kmlUploadStatusOk = true, kmlUploadBusy = false;
 
-// V15.13 STEP J — RUNTIME TILE PERSISTENCE
-// Menyimpan kembali tilePyramid setelah tile runtime berhasil dibuat. Tidak mengubah
-// renderer/gesture; tujuan tahap ini hanya agar tile yang sudah dibuat tidak hilang
-// ketika map dibaca ulang dari IndexedDB. Raw PDF bytes/File tetap TIDAK disimpan.
+function openMapDb_() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(MAP_DB_NAME_, 2); // [BARU -- 5 Sep] versi 1->2, tambah store KML
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(MAP_DB_STORE_)) db.createObjectStore(MAP_DB_STORE_, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(KML_DB_STORE_)) db.createObjectStore(KML_DB_STORE_, { keyPath: 'id' });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbGetAllMaps_() {
+  const db = await openMapDb_();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MAP_DB_STORE_, 'readonly');
+    const req = tx.objectStore(MAP_DB_STORE_).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbPutMap_(entry) {
+  const db = await openMapDb_();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MAP_DB_STORE_, 'readwrite');
+    tx.objectStore(MAP_DB_STORE_).put(entry);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function dbDeleteMap_(id) {
+  const db = await openMapDb_();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MAP_DB_STORE_, 'readwrite');
+    tx.objectStore(MAP_DB_STORE_).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
 // Dipanggil sekali saat boot (lihat pemanggilan di index.html) -- gagal (mis. browser
 // lama tanpa IndexedDB) TIDAK BOLEH bikin app crash, Peta tetap jalan tanpa background.
-
-function openMapManagePanel_() { mapManagePanelOpen = true; render(); }
-function closeMapManagePanel_() { mapManagePanelOpen = false; mapUploadFormOpen = false; render(); }
-let applyGeoRefRafId_ = null;
-
-function cancelApplyGeoReferenceRaf_() {
-  if (applyGeoRefRafId_ !== null) {
-    cancelAnimationFrame(applyGeoRefRafId_);
-    applyGeoRefRafId_ = null;
+async function loadBackgroundMapsFromDb_() {
+  try {
+    backgroundMapsList = await dbGetAllMaps_();
+    const stored = localStorage.getItem('mg1_active_bg_map_id');
+    if (stored && backgroundMapsList.find(m => m.id === stored)) { activeBackgroundMapId = stored; mapZoom = 1.25; mapViewportState_.centerNative = null; }
+  } catch (e) {
+    console.warn('Gagal muat daftar peta background (IndexedDB mungkin tidak didukung):', e);
+    backgroundMapsList = [];
+  }
+  // [BARU -- 5 Sep] Muat juga daftar KML overlay + status aktif mana saja (bisa >1).
+  try {
+    const db = await openMapDb_();
+    kmlOverlaysList = await new Promise((resolve, reject) => {
+      const tx = db.transaction(KML_DB_STORE_, 'readonly');
+      const req = tx.objectStore(KML_DB_STORE_).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+    const storedActive = localStorage.getItem('mg1_active_kml_ids');
+    if (storedActive) {
+      const parsed = JSON.parse(storedActive);
+      activeKmlOverlayIds = parsed.filter(id => kmlOverlaysList.find(k => k.id === id));
+    }
+  } catch (e) {
+    console.warn('Gagal muat daftar KML overlay:', e);
+    kmlOverlaysList = [];
   }
 }
-
+function openMapManagePanel_() { mapManagePanelOpen = true; render(); }
+function closeMapManagePanel_() { mapManagePanelOpen = false; mapUploadFormOpen = false; render(); }
 function openMapUploadForm_() {
-  cancelApplyGeoReferenceRaf_();
   mapUploadFormState = { name: '', fileDataUrl: '', fileName: '', tlTimur: '', tlUtara: '', brTimur: '', brUtara: '', geoReference: null, tilePyramid: null };
   mapUploadStatusMsg = ''; mapUploadStatusOk = true; mapUploadBusy = false; mapUploadProcessing = false; mapUploadFormOpen = true; render();
 }
-function closeMapUploadForm_() { cancelApplyGeoReferenceRaf_(); mapUploadFormOpen = false; mapUploadProcessing = false; mapUploadRuntimeFile_ = null; render(); }
+function closeMapUploadForm_() { mapUploadFormOpen = false; mapUploadProcessing = false; render(); }
 function updateMapUploadField_(field, value) { mapUploadFormState[field] = value; }
 // [BARU -- 5 Sep] Deteksi GeoTIFF: cek EKSTENSI file (bukan cuma MIME type -- browser
 // kadang kasih MIME kosong/salah utk .tif). Kalau .tif/.tiff, coba baca koordinat
@@ -464,18 +235,17 @@ function syncMapUploadGeoReferenceDom_() {
   } catch(e){ console.warn('sync DOM fail', e); }
 }
 
+
 function makeGeoPdfProgressReporter_() {
   // HOT PATH: dipanggil ratusan kali. Jangan render() modal di sini.
   // Semua update visual digabung ke 1 animation frame: status text + progress line.
   let pendingMsg = '';
   let pendingPercent = 0;
-  let rafPending = null;
+  let rafPending = false;
   let lastPercent = -1;
-  let stopped = false;
 
   const paint_ = () => {
-    rafPending = null;
-    if (stopped) return;
+    rafPending = false;
     const statusEl = document.getElementById('map-upload-status');
     const fillEl = document.getElementById('map-upload-progress-fill');
     const percent = Math.max(0, Math.min(100, Number(pendingPercent) || 0));
@@ -488,8 +258,7 @@ function makeGeoPdfProgressReporter_() {
     }
   };
 
-  const reporter = (stageMsg, percent = 0) => {
-    if (stopped) return;
+  return (stageMsg, percent = 0) => {
     pendingMsg = String(stageMsg || pendingMsg || 'Memproses GeoPDF...');
     pendingPercent = Math.max(0, Math.min(100, Number(percent) || 0));
     mapUploadStatusMsg = pendingMsg;
@@ -498,96 +267,17 @@ function makeGeoPdfProgressReporter_() {
     // Sinkronisasi koordinat tetap ringan; tidak membangun ulang modal.
     syncMapUploadGeoReferenceDom_();
 
-    if (rafPending === null) {
-      rafPending = requestAnimationFrame(paint_);
+    if (!rafPending) {
+      rafPending = true;
+      requestAnimationFrame(paint_);
     }
   };
-  // [BARU -- perbaiki 2-modal-tumpang-tindih sesaat] paint_() dijadwalkan lewat
-  // requestAnimationFrame (jalan di FRAME BERIKUTNYA), sementara render() akhir (saat
-  // proses 100% selesai) jalan SINKRON segera setelah await tryParseGeoPdf_ resolve --
-  // ada celah waktu sempit di mana KEDUANYA bisa "berebut" DOM di frame yg sama: paint_()
-  // masih mencari elemen progress-bar LAMA yg mungkin sudah/sedang diganti render() dgn
-  // DOM sukses yg baru. .stop() dipanggil pemanggil TEPAT SEBELUM render() akhir supaya
-  // paint_() yg masih ter-jadwal jadi no-op total -- tidak ada lagi peluang tabrakan.
-  reporter.stop = () => {
-    stopped = true;
-    if (rafPending) {
-      // V17.1 FIX-1: cancel the queued progress paint instead of allowing a
-      // stale frame to run after GeoPDF lifecycle completion.
-      try { cancelAnimationFrame(rafPending); } catch (_) {}
-      rafPending = false;
-    }
-  };
-  return reporter;
 }
 
-function paintMapUploadGeoPdfUi_() {
-  try {
-    const f = mapUploadFormState || {};
-    const statusEl = document.getElementById('map-upload-status');
-    const progressTextEl = document.getElementById('map-upload-progress-text');
-    const previewEl = document.getElementById('map-upload-preview');
-    const lockNoteEl = document.getElementById('map-upload-geo-lock-note');
-    const saveBtn = document.getElementById('map-upload-save-btn');
-    const fillEl = document.getElementById('map-upload-progress-fill');
-
-    const fields = [
-      ['map-upload-tl-timur', f.tlTimur],
-      ['map-upload-tl-utara', f.tlUtara],
-      ['map-upload-br-timur', f.brTimur],
-      ['map-upload-br-utara', f.brUtara]
-    ];
-    for (const [id, value] of fields) {
-      const el = document.getElementById(id);
-      if (!el) continue;
-      const v = value == null ? '' : String(value);
-      if (el.value !== v) el.value = v;
-      el.readOnly = !!f.geoReference;
-      el.disabled = !!f.geoReference;
-    }
-
-    const msg = String(mapUploadStatusMsg || 'Memproses GeoPDF...');
-    if (statusEl) {
-      statusEl.textContent = msg;
-      statusEl.classList.toggle('text-emerald-400', !!mapUploadStatusOk);
-      statusEl.classList.toggle('text-rose-400', !mapUploadStatusOk);
-      statusEl.classList.toggle('text-amber-300', mapUploadStatusOk && /peringatan|warning/i.test(msg));
-    }
-    if (progressTextEl) progressTextEl.textContent = msg;
-
-    if (fillEl) {
-      const pct = mapUploadProcessing ? 0 : (f.fileDataUrl ? 100 : 0);
-      fillEl.style.width = pct + '%';
-    }
-
-    if (previewEl) {
-      if (f.fileDataUrl) {
-        if (previewEl.src !== f.fileDataUrl) previewEl.src = f.fileDataUrl;
-        previewEl.classList.remove('hidden');
-      } else {
-        previewEl.removeAttribute('src');
-        previewEl.classList.add('hidden');
-      }
-    }
-
-    if (lockNoteEl) lockNoteEl.classList.toggle('hidden', !f.geoReference);
-
-    if (saveBtn) {
-      const busy = !!mapUploadBusy || !!mapUploadProcessing;
-      saveBtn.disabled = busy;
-      saveBtn.innerHTML = busy
-        ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span><span>' +
-          (mapUploadProcessing ? 'Memproses GeoPDF...' : 'Menyimpan...') + '</span>'
-        : icon('upload','w-4 h-4') + '<span>Simpan Peta</span>';
-    }
-  } catch (_) {}
-}
 
 async function handleMapImageFileSelected_(inputEl) {
   const file = inputEl.files && inputEl.files[0];
   if (!file) return;
-  // V15.14: retain the browser File object for the runtime GeoPDF source registry.
-  mapUploadRuntimeFile_ = file;
   const isTiff = /\.(tif|tiff)$/i.test(file.name);
 
   if (isTiff) {
@@ -610,10 +300,10 @@ async function handleMapImageFileSelected_(inputEl) {
     mapUploadStatusMsg = 'File .tif ini tidak punya koordinat tertanam (mungkin hasil "Export Map/Print", bukan "Export Data" dari ArcGIS) -- lanjut isi 2 sudut manual di bawah.';
     mapUploadStatusOk = false;
   } else if (/\.pdf$/i.test(file.name)) {
-    // V17 NO FLICKER: GeoPDF - jangan render() full, cuma update status modal
-    mapUploadStatusMsg = 'Membaca koordinat dari GeoPDF...'; mapUploadStatusOk = true; mapUploadProcessing = true;
-    try { paintMapUploadGeoPdfUi_(); } catch(_) {}
-    // Jangan render() full map di belakang modal - biar tidak kedip
+    // GeoPDF: pisahkan status GeoReference dari proses tile. Koordinat dikirim ke form
+    // segera setelah metadata+transform tervalidasi; user tidak perlu menunggu seluruh
+    // pyramid selesai.
+    mapUploadStatusMsg = 'Membaca koordinat dari GeoPDF...'; mapUploadStatusOk = true; mapUploadProcessing = true; render();
     // STEP 7.5.3C: jangan gunakan Promise.race/timeout untuk lifecycle GeoPDF.
     // Tile pyramid pada Android lama memang dapat >20 detik. Timeout sebelumnya membuat
     // handler upload selesai lebih dulu sementara tryParseGeoPdf_ masih berjalan, sehingga
@@ -631,18 +321,11 @@ async function handleMapImageFileSelected_(inputEl) {
       mapUploadFormState.brUtara = String(cornerBR.utara);
       mapUploadStatusMsg = '✓ GeoReference/koordinat berhasil dibaca. Tile pyramid sedang diproses...';
       mapUploadStatusOk = true;
-      // V17 NO FLICKER: Jangan render() full map saat modal masih proses - cuma sync DOM form
+      // Update the live form immediately; render() below may recreate the modal DOM.
       syncMapUploadGeoReferenceDom_();
-      paintMapUploadGeoPdfUi_();
-      // Re-apply after next frame tanpa render() full. RAF ini dikelola eksplisit
-      // agar tidak tertinggal saat lifecycle GeoPDF masuk ke done/save/close.
-      cancelApplyGeoReferenceRaf_();
-      applyGeoRefRafId_ = requestAnimationFrame(() => {
-        applyGeoRefRafId_ = null;
-        if (!geoReferenceReady) return;
-        syncMapUploadGeoReferenceDom_();
-        paintMapUploadGeoPdfUi_();
-      });
+      render();
+      // Re-apply after render so a freshly recreated modal cannot show stale defaults.
+      requestAnimationFrame(() => syncMapUploadGeoReferenceDom_());
     };
     const progressReporter = makeGeoPdfProgressReporter_();
     const geoResult = await tryParseGeoPdf_(file, progressReporter, applyGeoReferenceEarly_);
@@ -673,11 +356,8 @@ async function handleMapImageFileSelected_(inputEl) {
       mapUploadStatusMsg = geoResult.reason + ' PDF tidak bisa ditampilkan langsung di Peta -- silakan export ulang sbg gambar PNG/JPG.';
       mapUploadStatusOk = false;
     }
-    cancelApplyGeoReferenceRaf_();
     mapUploadProcessing = false;
-    progressReporter.stop();
-    paintMapUploadGeoPdfUi_();
-    return;
+    render(); return;
   } else if (!file.type.startsWith('image/')) {
     mapUploadStatusMsg = 'File harus berupa gambar (PNG/JPG), GeoTIFF (.tif), atau GeoPDF (.pdf).'; mapUploadStatusOk = false; render(); return;
   }
@@ -757,6 +437,145 @@ async function tryParseGeoTiff_(file) {
 // inti sama sekali. Tujuannya: supaya kalau macet lagi, kita tahu PERSIS di tahap mana
 // (baca file? cari metadata? muat pdf.js? buka dokumen? render halaman?) -- tanpa ini,
 // "macet" cuma 1 titik buta besar, tidak bisa didiagnosis lebih lanjut dari jauh.
+function solveAffineTransform2D_(src, dst) {
+  if (!src || !dst || src.length !== dst.length || src.length < 3) return null;
+  // Pilih tiga titik non-kolinear untuk menyelesaikan enam parameter affine.
+  for (let i = 0; i < src.length - 2; i++) {
+    for (let j = i + 1; j < src.length - 1; j++) {
+      for (let k = j + 1; k < src.length; k++) {
+        const x1=src[i].x,y1=src[i].y,x2=src[j].x,y2=src[j].y,x3=src[k].x,y3=src[k].y;
+        const det = x1*(y2-y3) + x2*(y3-y1) + x3*(y1-y2);
+        if (Math.abs(det) < 1e-9) continue;
+        const d1=dst[i],d2=dst[j],d3=dst[k];
+        const solve=(v1,v2,v3)=>({
+          a:(v1*(y2-y3)+v2*(y3-y1)+v3*(y1-y2))/det,
+          b:(x1*(v2-v3)+x2*(v3-v1)+x3*(v1-v2))/det,
+          c:(x1*(y2*v3-y3*v2)+x2*(y3*v1-y1*v3)+x3*(y1*v2-y2*v1))/det
+        });
+        const tx=solve(d1.x,d2.x,d3.x), ty=solve(d1.y,d2.y,d3.y);
+        return { ax:tx.a,bx:tx.b,cx:tx.c, ay:ty.a,by:ty.b,cy:ty.c };
+      }
+    }
+  }
+  return null;
+}
+function applyAffineTransform2D_(t, p) {
+  return { x:t.ax*p.x+t.bx*p.y+t.cx, y:t.ay*p.x+t.by*p.y+t.cy };
+}
+// STEP 8B: Inverse affine transform -- native CRS -> PDF page coordinate.
+// Dipakai untuk membalik arah page-to-native saat koordinat GPS/native akan
+// diproyeksikan kembali ke posisi pada GeoPDF.
+function applyInverseAffineTransform2D_(t, p) {
+  if (!t || !p) return null;
+  const det = t.ax * t.by - t.bx * t.ay;
+  if (!Number.isFinite(det) || Math.abs(det) < 1e-12) return null;
+  const dx = p.x - t.cx;
+  const dy = p.y - t.cy;
+  return {
+    x: (t.by * dx - t.bx * dy) / det,
+    y: (-t.ay * dx + t.ax * dy) / det
+  };
+}
+// STEP 8C + STEP 11D: Composite bidirectional GeoPDF coordinate engine.
+// Supports the projection families explicitly supported by projectionParamsFromCrs11C_():
+// GEOGRAPHIC, WEB_MERCATOR, and TRANSVERSE_MERCATOR/UTM. Zone/hemisphere are required
+// only for the TM/UTM family; geographic and Web Mercator CRS do not require them.
+function wgs84ToGeoPdfPage_(geoReference, lat, lon) {
+  if (!geoReference || !geoReference.crs || !geoReference.transform) return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const crs=geoReference.crs, datum=String(crs.datum||'WGS84');
+  const projection=String(crs.projection||'TRANSVERSE_MERCATOR').toUpperCase();
+  const isGeographic=['GEOGRAPHIC','LATLON','GEOGRAPHIC_2D'].includes(projection) || Number(crs.epsg)===4326;
+  const isWebMercator=['WEB_MERCATOR','MERCATOR_SPHERICAL'].includes(projection) || Number(crs.epsg)===3857 || Number(crs.epsg)===900913;
+  const isTm=projection==='TRANSVERSE_MERCATOR' || projection==='TRANSVERSE_MERCATOR_UTM_COMPATIBLE' || projection==='UTM';
+  if (!isGeographic && !isWebMercator && !isTm) return null;
+  if (isTm && (!Number.isInteger(Number(crs.zone)) || Number(crs.zone)<1 || Number(crs.zone)>60 || !['N','S'].includes(String(crs.hemisphere||'').toUpperCase()))) return null;
+  let nativeGeo={lat,lon,height:0};
+  if (datum.toUpperCase()!=='WGS84') {
+    const dt=geoReference.datumTransform;
+    if (!dt || !dt.parameters) return null;
+    nativeGeo=transformDatumWgs84To11B_(lat,lon,datum,dt.parameters);
+    if (!nativeGeo) return null;
+  }
+  const ell=getDatumEllipsoid11B_(datum);
+  if (!ell) return null;
+  const native=forwardProjection11D_(nativeGeo.lat,nativeGeo.lon,crs,ell);
+  if (!native || !Number.isFinite(native.easting) || !Number.isFinite(native.northing)) return null;
+  const page=applyInverseAffineTransform2D_(geoReference.transform.coefficients||geoReference.transform,{x:native.easting,y:native.northing});
+  if (!page) return null;
+  return {lat,lon,native:{x:native.easting,y:native.northing},page};
+}
+
+function geoPdfPageToWgs84_(geoReference,pageX,pageY) {
+  if (!geoReference || !geoReference.crs || !geoReference.transform) return null;
+  if (!Number.isFinite(pageX) || !Number.isFinite(pageY)) return null;
+  const crs=geoReference.crs, datum=String(crs.datum||'WGS84');
+  const projection=String(crs.projection||'TRANSVERSE_MERCATOR').toUpperCase();
+  const isGeographic=['GEOGRAPHIC','LATLON','GEOGRAPHIC_2D'].includes(projection) || Number(crs.epsg)===4326;
+  const isWebMercator=['WEB_MERCATOR','MERCATOR_SPHERICAL'].includes(projection) || Number(crs.epsg)===3857 || Number(crs.epsg)===900913;
+  const isTm=projection==='TRANSVERSE_MERCATOR' || projection==='TRANSVERSE_MERCATOR_UTM_COMPATIBLE' || projection==='UTM';
+  if (!isGeographic && !isWebMercator && !isTm) return null;
+  if (isTm && (!Number.isInteger(Number(crs.zone)) || Number(crs.zone)<1 || Number(crs.zone)>60 || !['N','S'].includes(String(crs.hemisphere||'').toUpperCase()))) return null;
+  const native=applyAffineTransform2D_(geoReference.transform.coefficients||geoReference.transform,{x:pageX,y:pageY});
+  if (!native || !Number.isFinite(native.x) || !Number.isFinite(native.y)) return null;
+  const ell=getDatumEllipsoid11B_(datum);
+  if (!ell) return null;
+  const geoNative=inverseProjection11D_(native.x,native.y,crs,ell);
+  if (!geoNative || !Number.isFinite(geoNative.lat) || !Number.isFinite(geoNative.lon)) return null;
+  let wgs84=geoNative;
+  if (datum.toUpperCase()!=='WGS84') {
+    const dt=geoReference.datumTransform;
+    if (!dt || !dt.parameters) return null;
+    wgs84=transformDatum11BToWgs84_(geoNative.lat,geoNative.lon,datum,dt.parameters);
+    if (!wgs84) return null;
+  }
+  return {page:{x:pageX,y:pageY},native,wgs84:{lat:wgs84.lat,lon:wgs84.lon}};
+}
+
+function validateBidirectionalGeoPdfTransform_(geoReference, points, toleranceMeters) {
+  if (!geoReference || !Array.isArray(points) || !points.length) return { ok: false, reason: 'Input tidak lengkap.' };
+  const tol = Number.isFinite(toleranceMeters) ? toleranceMeters : 0.1;
+  let maxPageError = 0;
+  let maxLatLonErrorMeters = 0;
+  for (const p of points) {
+    const a = wgs84ToGeoPdfPage_(geoReference, p.lat, p.lon);
+    if (!a) return { ok: false, reason: 'Forward transform gagal.' };
+    const b = geoPdfPageToWgs84_(geoReference, a.page.x, a.page.y);
+    if (!b) return { ok: false, reason: 'Inverse transform gagal.' };
+    const pageError = Math.hypot(b.native.x - a.native.x, b.native.y - a.native.y);
+    const latErrorMeters = Math.abs(b.wgs84.lat - p.lat) * 111320;
+    const lonScale = Math.max(Math.cos(p.lat * Math.PI / 180), 1e-6);
+    const lonErrorMeters = Math.abs(b.wgs84.lon - p.lon) * 111320 * lonScale;
+    const geoError = Math.hypot(latErrorMeters, lonErrorMeters);
+    if (pageError > maxPageError) maxPageError = pageError;
+    if (geoError > maxLatLonErrorMeters) maxLatLonErrorMeters = geoError;
+  }
+  return { ok: maxPageError <= tol && maxLatLonErrorMeters <= tol, maxPageError, maxLatLonErrorMeters };
+}
+
+function validateAffineTransform2D_(t, src, dst) {
+  let maxError = 0;
+  for (let i=0;i<src.length;i++) {
+    const p=applyAffineTransform2D_(t,src[i]);
+    const e=Math.hypot(p.x-dst[i].x,p.y-dst[i].y);
+    if (e>maxError) maxError=e;
+  }
+  // GeoPDF tie points dari export raster normal harus konsisten sangat dekat; ambang 2 m
+  // menjaga file dengan pembulatan metadata tetap diterima tanpa menerima transformasi rusak.
+  return { ok:maxError <= 2, maxError };
+}
+
+// STEP 8D: PDF page <-> rendered VP-crop pixel coordinates.
+// tryParseGeoPdf_() renders the VP area at the selected render scale, with PDF Y inverted by pdf.js.
+const GEOPDF_RENDER_SCALE_ = 3.5; // STEP 7.4: dinaikkan dari 2 -- kurangi downsampling dini raster GeoPDF sblm di-crop PNG, kualitas lebih tajam saat deep-zoom. Guard memori (9C) & batas piksel/dimensi tetap menyesuaikan otomatis.
+// STEP 9B: adaptive render guard for very large GeoPDF/VP areas.
+const GEOPDF_MAX_RENDER_PIXELS_ = 12000000;
+const GEOPDF_MAX_RENDER_DIMENSION_ = 4096;
+// STEP 9C: Android memory guard. Canvas RGBA uses roughly 4 bytes/pixel, while
+// PNG encoding/Data-URL and pdf.js internals temporarily need additional memory.
+const GEOPDF_CANVAS_BYTES_PER_PIXEL_ = 4;
+const GEOPDF_MEMORY_HEADROOM_ = 2.5;
+// STEP M2: source-file preflight before ArrayBuffer/text duplication.
 function getGeoPdfSourceMemoryProfileM2_() {
   const deviceMemory = Number(typeof navigator !== 'undefined' && navigator ? navigator.deviceMemory : NaN);
   let maxSourceBytes = 96 * 1024 * 1024;
@@ -796,377 +615,245 @@ function cleanupGeoPdfResources_(page, pdf, loadingTask, canvas) {
 // STEP 7.5: Generator tile/pyramid dari hasil crop image yang SUDAH ada.
 // Tidak merender GeoPDF ulang per tile. Level tertinggi (factor 1) mempertahankan
 // resolusi crop asli; level bawah hanya downsample untuk zoom yang lebih dangkal.
-// [DIPERBAIKI -- STEP 7.6.2 SAFE RENDER] Fungsi lama merender tiap tile LANGSUNG dari
-// pdf.js pakai getViewport({offsetX,offsetY}) ke kanvas kecil -- ini PERSIS mekanisme yg
-// terbukti gagal di HP nyata sebelumnya (Step 9B: hasil malah tampilkan seluruh halaman,
-// bukan area yg diminta). Diganti total dengan pendekatan yg SUDAH tervalidasi lapangan:
-// (1) render HALAMAN PENUH 1x saja (page.render() standar, tanpa offset apa pun),
-// (2) potong ke VP BBox pakai drawImage() (operasi umum, 0 ambiguitas),
-// (3) turunkan level pyramid lain dari hasil crop itu via drawImage() resize -- pola yg
-//     SUDAH dikonfirmasi visual PASS oleh user sendiri (generator standalone STEP 7.5b).
-// Guard memori (9C) sekarang BENAR-BENAR dipakai: kalau level tertinggi (mis. 2x) terlalu
-// besar utk direder aman, level itu diturunkan otomatis -- bukan diam-diam diabaikan.
+async function buildTilePyramidFromGeoPdfPage_(page, vpBBox, baseScale, onProgress) {
+  if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
+  const tileSize = GEOPDF_TILE_SIZE_;
+  const factors = GEOPDF_TILE_LEVEL_FACTORS_;
+  const vpWPt = Math.abs(vpBBox[2] - vpBBox[0]);
+  const vpHPt = Math.abs(vpBBox[3] - vpBBox[1]);
+  if (!(vpWPt > 0) || !(vpHPt > 0)) throw new Error('VP BBox GeoPDF tidak valid untuk tile pyramid.');
 
-// STEP C2 - ADAPTIVE VISIBLE TILE RENDER V1 (OPT-IN FIELD TEST)
-// Hanya aktif bila window.mg1AdaptiveC2Enabled === true.
-// Prinsip: level terendah tetap lengkap untuk preview/fallback; level di atasnya
-// hanya merender tile yang berada di viewport + prefetch ring. Renderer PDF.js,
-// transform GeoReference, gesture, dan jalur V13.1 tetap dipertahankan.
+  const out = {
+    version: 2,
+    mode: 'pdfjs-direct-tile-render',
+    tileSize,
+    baseScale,
+    sourceWidth: Math.max(1, Math.round(vpWPt * baseScale)),
+    sourceHeight: Math.max(1, Math.round(vpHPt * baseScale)),
+    levels: [],
+    maxLevel: factors.length - 1
+  };
 
-// V15.2 STEP A — TILE IDENTITY
-// Tile menjadi unit mandiri: level + x + y. Tidak mengubah visual, gesture, C1/C2,
-// factor 1.55x, atau ukuran tile. Identity ini menjadi fondasi cache/queue berikutnya.
-
-// V15.3 STEP B — PERSISTENT BASE TILE LAYER
-// BASE bukan lagi sekadar level pertama yang kebetulan dipilih renderer.
-// Metadata ini menetapkan BASE sebagai layer permanen/full-coverage yang menjadi
-// safety surface saat DETAIL berubah. Tidak menduplikasi dataUrl/tile di store.
-
-// V15.7 STEP D — PERSISTENT TILE STORE INDEX
-// Tile data tetap disimpan satu kali di level.tiles. Store ini hanya menyimpan
-// identity -> lokasi tile, sehingga renderer/queue berikutnya dapat mengambil tile
-// tanpa membangun ulang pyramid atau menduplikasi dataUrl.
-// V15.8 STEP E — PERSISTENT TILE QUEUE REGISTRY
-// Queue hanya mengatur identity/lifecycle bookkeeping. Tidak merender ulang tile,
-// tidak melakukan culling/prefetch, dan tidak mengubah visual/gesture/viewport.
-
-// === STEP 8.10B-2 FIX: getVisibleDetailKeysFromPlan_() with pyramid.tileSize alignment ===
-// FIX BLOCKER 1: planner tileSize (deviceProfile) ≠ pyramid tileSize (768)
-// Jangan pakai plan.visible.minX/maxX langsung sebagai pyramid X/Y
-// Hitung visible berdasarkan actual pyramid tiles + viewBox intersection + factor = detailLevel.factor
-function getVisibleDetailKeysFromPlan_(pyramid, detailLevel, bounds, viewBox, imgX, imgY, imgW, imgH) {
-  try {
-    if (!pyramid || !detailLevel || !Array.isArray(detailLevel.tiles)) {
-      return { ok:false, keys:[], reason:'pyramid or detailLevel invalid' };
-    }
-    const factor = Number(detailLevel.factor);
-    if (!Number.isFinite(factor)) {
-      return { ok:false, keys:[], reason:'detailLevel.factor invalid: ' + (detailLevel && detailLevel.factor) };
-    }
-    const tileSize = Number(pyramid.tileSize) || 768;
-    const levelWidth = Number(detailLevel.width) || 1;
-    const levelHeight = Number(detailLevel.height) || 1;
-    if (!(levelWidth>0) || !(levelHeight>0)) {
-      return { ok:false, keys:[], reason:'level width/height invalid' };
-    }
-
-    // pxScale sama seperti di appendLevel() - menjaga alignment dengan compositor
-    const pxScaleX = imgW / Math.max(1, levelWidth);
-    const pxScaleY = imgH / Math.max(1, levelHeight);
-    const stepX = tileSize * pxScaleX;
-    const stepY = tileSize * pxScaleY;
-
-    // ViewBox dari getMapViewBox_() - sudah ada di renderMineGridSvg()
-    const vb = viewBox;
-    if (!vb || !Number.isFinite(vb.x) || !Number.isFinite(vb.w) || !Number.isFinite(vb.h) || stepX <= 0 || stepY <= 0) {
-      // Fallback: viewBox tidak tersedia → return semua tile existing (aman)
-      const allKeys = detailLevel.tiles.map(t => t.tileKey || t.tileId).filter(Boolean);
-      return { ok:true, keys: allKeys, factor, visible: { minX:0, maxX:0, minY:0, maxY:0, count: allKeys.length }, reason:'viewBox fallback to all tiles' };
-    }
-
-    const vbX1 = vb.x, vbY1 = vb.y, vbX2 = vb.x + vb.w, vbY2 = vb.y + vb.h;
-
-    // === STEP 8.14 FIX: expected geometry, bukan existing tiles ===
-    // Hitung tilesX/Y dari level geometry
-    const tilesX = Math.max(1, Math.ceil(levelWidth / tileSize));
-    const tilesY = Math.max(1, Math.ceil(levelHeight / tileSize));
-
-    const localX1 = vbX1 - imgX;
-    const localX2 = vbX2 - imgX;
-    const localY1 = vbY1 - imgY;
-    const localY2 = vbY2 - imgY;
-
-    // Koreksi off-by-one sesuai audit 8.14:
-    // tile screen X = imgX + x * tileSize * pxScaleX
-    let minX = Math.floor(localX1 / stepX);
-    let maxX = Math.ceil(localX2 / stepX) - 1;
-    let minY = Math.floor(localY1 / stepY);
-    let maxY = Math.ceil(localY2 / stepY) - 1;
-
-    // Clamp ke level bounds
-    minX = Math.max(0, Math.min(tilesX - 1, minX));
-    maxX = Math.max(0, Math.min(tilesX - 1, maxX));
-    minY = Math.max(0, Math.min(tilesY - 1, minY));
-    maxY = Math.max(0, Math.min(tilesY - 1, maxY));
-
-    // Jika viewBox di luar img, bisa jadi min>max → fallback ke 0 tile? kembalikan 0 untuk safety, biar tidak fallback ke all
-    if (minX > maxX || minY > maxY) {
-      return { ok:true, keys:[], factor, visible: { minX, maxX, minY, maxY, count:0, empty:true }, visibleTiles:[], detailLevelFactor:factor, pyramidTileSize:tileSize, img:{x:imgX,y:imgY,w:imgW,h:imgH}, viewBox:vb, reason:'viewBox outside img' };
-    }
-
-    const keys = [];
-    const visibleTiles = [];
-    for (let y = minY; y <= maxY; y++) {
-      for (let x = minX; x <= maxX; x++) {
-        const key = (typeof makeLithositeTileId_ === 'function') ? makeLithositeTileId_(factor, x, y) : ('L'+factor+'_X'+x+'_Y'+y);
-        if (!key) continue;
-        keys.push(key);
-        // Untuk diagnostic, hitung tx/ty/tw/th sama seperti compositor
-        const tx = imgX + x * tileSize * pxScaleX;
-        const ty = imgY + y * tileSize * pxScaleY;
-        const tw = Math.min(tileSize, levelWidth - x * tileSize) * pxScaleX;
-        const th = Math.min(tileSize, levelHeight - y * tileSize) * pxScaleY;
-        visibleTiles.push({ x, y, key, tx, ty, tw, th });
-      }
-    }
-
-    return { 
-      ok:true, 
-      keys, 
-      factor, 
-      visible: { minX, maxX, minY, maxY, count: keys.length, tilesX, tilesY },
-      visibleTiles,
-      detailLevelFactor: factor,
-      pyramidTileSize: tileSize,
-      img: { x: imgX, y: imgY, w: imgW, h: imgH },
-      viewBox: vb,
-      reason:'expected geometry 8.14'
-    };
-  } catch(e) {
-    return { ok:false, keys:[], reason: e && e.message ? e.message : 'getVisibleDetailKeys 8.14 error' };
-  }
-}
-
-// === STEP 8.10B-3: Orchestrator non-blocking untuk existing stored tiles ===
-// SYNC, tidak await, tidak block renderMineGridSvg
-function ensureRuntimeTiles_NonBlocking_(visibleKeys, pyramid) {
-  if (!pyramid || !Array.isArray(visibleKeys) || !visibleKeys.length) {
-    return { ok:false, readyMap: Object.create(null), queued:0, missing:[], total:0, reason:'visibleKeys empty' };
-  }
-  const loader = typeof ensureLithositeRuntimeTileLoader_ === 'function' ? ensureLithositeRuntimeTileLoader_(pyramid) : null;
-  if (!loader) return { ok:false, readyMap: Object.create(null), queued:0, missing:[], total: visibleKeys.length, reason:'loader not ready' };
-
-  const readyMap = Object.create(null);
-  let queued = 0;
-  const missing = [];
-  let alreadyLoading = 0;
-  let alreadyReady = 0;
-
-  for (let i=0;i<visibleKeys.length;i++) {
-    const k = String(visibleKeys[i]);
-    if (!k) continue;
-    // READY?
-    if (loader.cache && loader.cache[k]) {
-      readyMap[k] = loader.cache[k];
-      alreadyReady++;
-      continue;
-    }
-    if (loader.loading && loader.loading[k]) {
-      alreadyLoading++;
-      continue;
-    }
-    // Resolve availability - hanya untuk stored tiles di patch pertama
-    try {
-      const avail = typeof resolveLithositeDetailTileAvailability_ === 'function' ? resolveLithositeDetailTileAvailability_(pyramid, k) : { status:'missing' };
-      if (avail.status === 'available') {
-        // STORED ada, perlu runtime loading
-        const enqueued = typeof requestLithositeDetailTile_ === 'function' ? requestLithositeDetailTile_(pyramid, k) : false;
-        if (enqueued) queued++;
-      } else if (avail.status === 'missing') {
-        missing.push(k);
-        // Untuk 8.10B patch pertama, MISSING hanya ditandai, tidak creation
-      }
-    } catch(e) {
-      missing.push(k);
-    }
-  }
-
-  return { ok:true, readyMap, queued, missing, total: visibleKeys.length, alreadyReady, alreadyLoading };
-}
-
-// === STEP 8.10B-4: Background consumer + surface-only invalidation ===
-let mg1RuntimeInvalidationScheduled_ = false;
-let mg1RuntimeInvalidationRaf_ = null;
-let mg1IsSurfaceInvalidationInProgress_ = false;
-let mg1CoalescePending_ = 0;
-let mg1CoalesceTimer_ = null;
-
-// STEP 8.29C: coalesce runtime/missing tile updates before one atomic surface swap.
-// Geometry/tile selection unchanged; only invalidation timing is grouped.
-function scheduleCoalescedInvalidation_(n) {
-  const count = Math.max(0, Number(n) || 0);
-  if (count > 0) mg1CoalescePending_ += count;
-  // STEP 8.29C-R1: fixed 500ms window. Never reset an active window.
-  if (mg1CoalesceTimer_) return;
-  if (mg1CoalescePending_ <= 0) return;
-  mg1CoalesceTimer_ = setTimeout(() => {
-    const pending = mg1CoalescePending_;
-    mg1CoalescePending_ = 0;
-    mg1CoalesceTimer_ = null;
-    if (pending > 0) scheduleSurfaceInvalidationOnce_();
-  }, 500);
-}
-
-function scheduleSurfaceInvalidationOnce_() {
-  if (mg1RuntimeInvalidationScheduled_) return;
-  if (mg1IsSurfaceInvalidationInProgress_) return;
-  mg1RuntimeInvalidationScheduled_ = true;
-  try {
-    if (mg1RuntimeInvalidationRaf_) cancelAnimationFrame(mg1RuntimeInvalidationRaf_);
-  } catch(_) {}
-  mg1RuntimeInvalidationRaf_ = requestAnimationFrame(async () => {
-    mg1RuntimeInvalidationScheduled_ = false;
-    if (mg1IsSurfaceInvalidationInProgress_) return;
-    mg1IsSurfaceInvalidationInProgress_ = true;
-    try {
-      const vp = document.getElementById('mg1-map-viewport');
-      if (!vp) {
-        mg1IsSurfaceInvalidationInProgress_ = false;
-        return;
-      }
-      // 8.10B-FIX: NO GLOBAL render() fallback - sesuai audit STEP 8.9
-      // Hanya surface-only atomic swap, bukan rebuild #app
-      if (typeof window.executeAtomicSurfaceSwap_ === 'function' && typeof window.buildNewMapSurfaceV25 === 'function') {
-        await window.executeAtomicSurfaceSwap_(vp, window.buildNewMapSurfaceV25);
-      } else if (typeof window.executeAtomicSurfaceSwap_ === 'function') {
-        const buildFn = () => {
-          try {
-            const points = typeof buildMapData === 'function' ? buildMapData() : [];
-            return typeof renderMineGridSvg === 'function' ? renderMineGridSvg(points) : '';
-          } catch(e) { return ''; }
-        };
-        await window.executeAtomicSurfaceSwap_(vp, buildFn);
-      } else {
-        // FIX: Hapus fallback requestMapRender_() → log warning saja
-        console.warn('[8.10B-4 FIX] Atomic swap not available, skip invalidation. No global render() fallback per STEP 8.9 contract.');
-        mg1IsSurfaceInvalidationInProgress_ = false;
-        return;
-      }
-    } catch(e) {
-      console.warn('[8.10B-4 FIX] surface invalidation failed', e);
-    } finally {
-      mg1IsSurfaceInvalidationInProgress_ = false;
-    }
+  // Hitung total tile seluruh level sekali supaya progress bar menunjukkan 0..100%
+  // untuk keseluruhan pyramid, bukan reset 0% setiap ganti level.
+  const levelPlan = factors.map((factor) => {
+    const scale = baseScale * Number(factor);
+    const width = Math.max(1, Math.round(vpWPt * scale));
+    const height = Math.max(1, Math.round(vpHPt * scale));
+    const tilesX = Math.ceil(width / tileSize);
+    const tilesY = Math.ceil(height / tileSize);
+    return { factor: Number(factor), scale, width, height, tilesX, tilesY, total: tilesX * tilesY };
   });
-}
+  const grandTotalTiles = Math.max(1, levelPlan.reduce((sum, item) => sum + item.total, 0));
+  let globalDone = 0;
+  if (onProgress) onProgress('Menyiapkan tile pyramid: 0/' + grandTotalTiles + ' (0%)', 0);
 
-async function processRuntimeQueueBatch_(pyramid, maxItems) {
-  if (!pyramid) return { processed:0, loaded:0, failed:0, pending:0 };
-  try {
-    const max = Number.isFinite(Number(maxItems)) ? Number(maxItems) : 3;
-    const result = typeof consumeLithositeRuntimeDetailQueue_ === 'function' 
-      ? await consumeLithositeRuntimeDetailQueue_(pyramid, max)
-      : { processed:0, loaded:0, failed:0, pending:0 };
-    if (result.loaded > 0) {
-      scheduleCoalescedInvalidation_(result.loaded);
-    }
-    return result;
-  } catch(e) {
-    console.warn('[8.10B-4] processRuntimeQueueBatch failed', e);
-    return { processed:0, loaded:0, failed:0, pending:0, error: String(e) };
-  }
-}
+  // PDF.js tetap menjadi renderer sumber. Setiap tile dirender langsung dari halaman PDF
+  // pada resolusi levelnya; kita tidak meng-upscale satu PNG crop yang sudah ter-raster.
+  // Ini mempertahankan detail vector/text pada deep zoom dan lebih dekat ke pola quadrant
+  // renderer Avenza yang sudah kita audit.
+  for (let li = 0; li < factors.length; li++) {
+    const plan = levelPlan[li];
+    const factor = plan.factor;
+    const scale = plan.scale;
+    const width = plan.width;
+    const height = plan.height;
+    const tilesX = plan.tilesX;
+    const tilesY = plan.tilesY;
+    const tiles = [];
+    const total = tilesX * tilesY;
+    let done = 0;
+    const viewport = page.getViewport({ scale });
 
-// V15.9 STEP F — QUEUE CONSUMER / TILE LIFECYCLE EXECUTOR
-// Executor generik: hanya memproses queue lifecycle melalui worker yang diberikan.
-// Belum melakukan PDF re-render, culling, prefetch, atau perubahan compositor.
-async function consumeLithositeTileQueue_(pyramid, worker, maxItems) {
-  const q = ensureLithositeTileQueue_(pyramid);
-  if (!q || typeof worker !== 'function') return { processed: 0, loaded: 0, failed: 0, pending: q ? q.pending.length : 0 };
-  const limit = Number.isFinite(Number(maxItems)) && Number(maxItems) > 0 ? Math.floor(Number(maxItems)) : 1;
-  let processed = 0, loaded = 0, failed = 0;
-  while (processed < limit) {
-    const tileKey = dequeueLithositeTileKey_(pyramid);
-    if (!tileKey) break;
-    processed++;
-    try {
-      const result = await worker(tileKey, getLithositeTileByKey_(pyramid, tileKey), pyramid);
-      if (result === false) throw new Error('Tile worker returned false.');
-      markLithositeTileLoaded_(pyramid, tileKey);
-      loaded++;
-    } catch (err) {
-      markLithositeTileFailed_(pyramid, tileKey);
-      failed++;
-    }
-  }
-  return { processed, loaded, failed, pending: q.pending.length };
-}
+    // PDF page coordinates: origin bottom-left. Convert VP crop top edge into viewport
+    // (canvas) coordinates before building the tile offsets.
+    const leftPt = Math.min(vpBBox[0], vpBBox[2]);
+    const bottomPt = Math.min(vpBBox[1], vpBBox[3]);
+    const topPt = Math.max(vpBBox[1], vpBBox[3]);
+    const cropLeftPx = leftPt * scale;
+    const cropTopPx = viewport.height - (topPt * scale);
+    const pageLeftPx = cropLeftPx;
+    const pageTopPx = cropTopPx;
 
-// V15.10 STEP G — RUNTIME DETAIL TILE LOADER
-// Loader runtime hanya mengambil tile yang SUDAH tersedia di persistent tileStore.
-// Tidak melakukan PDF re-render, culling, prefetch, atau perubahan compositor.
+    for (let ty = 0; ty < tilesY; ty++) {
+      for (let tx = 0; tx < tilesX; tx++) {
+        const x = tx * tileSize;
+        const y = ty * tileSize;
+        const tw = Math.min(tileSize, width - x);
+        const th = Math.min(tileSize, height - y);
+        const canvas = document.createElement('canvas');
+        canvas.width = tw;
+        canvas.height = th;
+        const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
+        if (!ctx) throw new Error('Canvas tile tidak tersedia.');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
 
+        // Render hanya quadrant yang diminta. offsetX/offsetY pada viewport menjaga skala
+        // PDF tetap asli; canvas kecil menjadi clipping surface, bukan target resize halaman.
+        const tileViewport = page.getViewport({
+          scale,
+          offsetX: -(pageLeftPx + x),
+          offsetY: -(pageTopPx + y)
+        });
+        await page.render({
+          canvasContext: ctx,
+          viewport: tileViewport,
+          intent: 'display',
+          useRequestAnimationFrame: true
+        }).promise;
 
-
-
-
-
-
-
-// V15.12 STEP I — RUNTIME TILE SOURCE + MISSING DETAIL TILE CREATION
-// V15.13 adds persistence of successfully created runtime tiles back to IndexedDB.
-// Runtime source memakai File asli yang dipilih user, bukan menyimpan raw PDF bytes
-// secara permanen di IndexedDB. Satu tile dibuat per request; setelah selesai resource
-// pdf.js ditutup kembali. Tahap ini belum mengubah compositor/gesture/C1/C2.
-
-
-
-
-
-
-
-
-
-
-
-function getPersistQueueState_(pyramid) {
-  const mapId = pyramid && pyramid.runtimeMapId ? String(pyramid.runtimeMapId) : '';
-  if (!mapId) return null;
-  if (!mg1PersistQueue_[mapId]) mg1PersistQueue_[mapId] = { scheduled:false, pendingPyramid:null, inProgress:false, retryCount:0, timeoutId:null, lastPersistAt:0 };
-  return mg1PersistQueue_[mapId];
-}
-function schedulePersistCoalesced_(pyramid) {
-  if (!pyramid || !pyramid.runtimeMapId) return;
-  const q = getPersistQueueState_(pyramid);
-  if (!q) return;
-  q.pendingPyramid = pyramid;
-  if (q.inProgress) return;
-  if (q.scheduled) return;
-  q.scheduled = true;
-  const debounceMs = 120;
-  try { if (q.timeoutId) clearTimeout(q.timeoutId); } catch(_) {}
-  q.timeoutId = setTimeout(async () => { q.scheduled=false; q.timeoutId=null; await executePersistCoalesced_(pyramid.runtimeMapId); }, debounceMs);
-}
-async function executePersistCoalesced_(runtimeMapId) {
-  const mapId = runtimeMapId ? String(runtimeMapId) : '';
-  const q = mapId ? mg1PersistQueue_[mapId] : null;
-  if (!q || q.inProgress) return;
-  const pyramid = q.pendingPyramid;
-  if (!pyramid || !pyramid.runtimeMapId || String(pyramid.runtimeMapId)!==mapId) return;
-  q.inProgress = true;
-  try {
-    let entry=null, retries=0;
-    while (retries<8) {
-      try {
-        if (typeof backgroundMapsList !== 'undefined' && Array.isArray(backgroundMapsList)) {
-          entry = backgroundMapsList.find(m => m && String(m.id)===mapId);
-          if (entry) break;
+        const dataUrl = canvas.toDataURL('image/png');
+        releaseGeoPdfCanvas_(canvas);
+        tiles.push({ x: tx, y: ty, width: tw, height: th, dataUrl });
+        done++;
+        globalDone++;
+        if (onProgress) {
+          const percent = (globalDone / grandTotalTiles) * 100;
+          onProgress(
+            'Memproses tile PDF: ' + globalDone + '/' + grandTotalTiles + ' (' + Math.round(percent) + '%)',
+            percent
+          );
         }
-        await new Promise(r=>setTimeout(r,200)); retries++;
-      } catch(_) { await new Promise(r=>setTimeout(r,200)); retries++; }
+        // Give older Android/WebView devices a small scheduling window every few tiles.
+        // This keeps the UI responsive and lets released canvases become collectible.
+        if (done % 5 === 0) {
+          await new Promise(r => setTimeout(r, 15));
+        } else {
+          await new Promise(r => setTimeout(r, 0));
+        }
+      }
     }
-    if (!entry) { q.inProgress=false; setTimeout(()=>{ if(q.pendingPyramid) schedulePersistCoalesced_(q.pendingPyramid); },500); return; }
-    const latestPyramid = q.pendingPyramid || pyramid;
-    q.pendingPyramid=null;
-    let result=null;
-    try { result = await persistLithositeRuntimeTileStore_(latestPyramid); } catch(err) { result={ok:false, reason:err&&err.message}; }
-    if (!result || result.ok===false) {
-      if (!q.pendingPyramid) q.pendingPyramid=latestPyramid;
-      q.inProgress=false; q.retryCount++;
-      const backoff=Math.min(2000,300*Math.pow(1.5,q.retryCount));
-      setTimeout(()=>{ if(q.pendingPyramid) schedulePersistCoalesced_(q.pendingPyramid); }, backoff);
-      return result;
-    }
-    q.lastPersistAt=Date.now(); q.inProgress=false; q.retryCount=0;
-    if (q.pendingPyramid) schedulePersistCoalesced_(q.pendingPyramid);
-    return result;
-  } catch(e) {
-    q.inProgress=false;
-    if (!q.pendingPyramid && pyramid) q.pendingPyramid=pyramid;
-    setTimeout(()=>{ if(q.pendingPyramid) schedulePersistCoalesced_(q.pendingPyramid); },500);
+    out.levels.push({ level: li, factor, scale, width, height, tilesX, tilesY, tiles });
   }
+  return out;
 }
 
+function getGeoPdfRenderScale_(geoReference) {
+  const s = geoReference && Number(geoReference.renderScale);
+  return Number.isFinite(s) && s > 0 ? s : GEOPDF_RENDER_SCALE_;
+}
+function geoPdfPageToPixel_(geoReference, pageX, pageY) {
+  if (!geoReference || !geoReference.metadata || !Array.isArray(geoReference.metadata.vpBBox)) return null;
+  if (!Number.isFinite(pageX) || !Number.isFinite(pageY)) return null;
+  const b = geoReference.metadata.vpBBox;
+  if (b.length !== 4 || !b.every(Number.isFinite)) return null;
+  // [DIPERBAIKI -- 5 Sep, bug nyata ditemukan] SEBELUMNYA pakai b[0]/b[3] mentah, asumsikan
+  // urutan vpBBox SELALU x0<x1 dan y-maksimum ada di indeks 3 -- TIDAK TERJAMIN (temuan lama:
+  // beberapa GeoPDF nyata simpan y0>y1, urutan "non-standar"). Step 4 (render asli, TERBUKTI
+  // benar via tes 4 file nyata) SELALU pakai Math.min/Math.max eksplisit -- disamakan di sini
+  // supaya posisi GPS di layar taat pada logika crop yg SAMA dgn yg benar2 dipakai render.
+  const xMin = Math.min(b[0], b[2]);
+  const yMax = Math.max(b[1], b[3]);
+  return { x: (pageX - xMin) * getGeoPdfRenderScale_(geoReference), y: (yMax - pageY) * getGeoPdfRenderScale_(geoReference) };
+}
+function geoPdfPixelToPage_(geoReference, pixelX, pixelY) {
+  if (!geoReference || !geoReference.metadata || !Array.isArray(geoReference.metadata.vpBBox)) return null;
+  if (!Number.isFinite(pixelX) || !Number.isFinite(pixelY)) return null;
+  const b = geoReference.metadata.vpBBox;
+  if (b.length !== 4 || !b.every(Number.isFinite)) return null;
+  const xMin = Math.min(b[0], b[2]);
+  const yMax = Math.max(b[1], b[3]);
+  return { x: xMin + pixelX / getGeoPdfRenderScale_(geoReference), y: yMax - pixelY / getGeoPdfRenderScale_(geoReference) };
+}
+function validateGeoPdfPagePixelRoundTrip_(geoReference, points, tolerancePx) {
+  if (!geoReference || !Array.isArray(points) || !points.length) return { ok: false, reason: 'Input tidak lengkap.' };
+  const tol = Number.isFinite(tolerancePx) ? tolerancePx : 0.01;
+  let maxErrorPx = 0;
+  for (const p of points) {
+    const px = geoPdfPageToPixel_(geoReference, p.x, p.y);
+    const page = px && geoPdfPixelToPage_(geoReference, px.x, px.y);
+    if (!page) return { ok: false, reason: 'Round-trip page/pixel gagal.' };
+    const e = Math.hypot(page.x - p.x, page.y - p.y) * getGeoPdfRenderScale_(geoReference);
+    if (e > maxErrorPx) maxErrorPx = e;
+  }
+  return { ok: maxErrorPx <= tol, maxErrorPx };
+}
+
+// STEP 8F: Accuracy & boundary validation for the complete coordinate chain.
+// Tidak mengubah schema GeoReference; fungsi-fungsi ini hanya memvalidasi object/koordinat
+// sebelum dipakai oleh GPS atau hasil tap. Tolerance default sengaja ketat untuk transform,
+// tetapi tidak mengklaim akurasi GPS hardware.
+function isValidGeoReferenceForCoordinate_(geoReference) {
+  if (!geoReference || geoReference.schema !== 'MG1-GeoReference') return false;
+  const c = geoReference.crs, t = geoReference.transform;
+  const b = geoReference.metadata && geoReference.metadata.vpBBox;
+  const e = geoReference.extent;
+  if (!c || !t || !b || !e) return false;
+  const projection=String(c.projection||'TRANSVERSE_MERCATOR').toUpperCase();
+  const isGeographic=['GEOGRAPHIC','LATLON','GEOGRAPHIC_2D'].includes(projection) || Number(c.epsg)===4326;
+  const isWebMercator=['WEB_MERCATOR','MERCATOR_SPHERICAL'].includes(projection) || Number(c.epsg)===3857 || Number(c.epsg)===900913;
+  const isTm=projection==='TRANSVERSE_MERCATOR' || projection==='TRANSVERSE_MERCATOR_UTM_COMPATIBLE' || projection==='UTM';
+  if (!isGeographic && !isWebMercator && !isTm) return false;
+  if (isTm) {
+    if (!Number.isInteger(c.zone) || c.zone < 1 || c.zone > 60) return false;
+    if (!['N','S'].includes(String(c.hemisphere).toUpperCase())) return false;
+  }
+  const k = t.coefficients || t;
+  if (![k.ax,k.bx,k.cx,k.ay,k.by,k.cy].every(Number.isFinite)) return false;
+  if (Math.abs(k.ax * k.by - k.bx * k.ay) < 1e-12) return false;
+  if (!Array.isArray(b) || b.length !== 4 || !b.every(Number.isFinite)) return false;
+  if (!e.cornerTL || !e.cornerBR) return false;
+  if (![e.cornerTL.timur,e.cornerTL.utara,e.cornerBR.timur,e.cornerBR.utara].every(Number.isFinite)) return false;
+  if (!(e.cornerTL.timur < e.cornerBR.timur && e.cornerTL.utara > e.cornerBR.utara)) return false;
+  return true;
+}
+
+function isNativeCoordinateWithinGeoReferenceExtent_(geoReference, x, y, epsilonMeters) {
+  if (!isValidGeoReferenceForCoordinate_(geoReference) || !Number.isFinite(x) || !Number.isFinite(y)) return false;
+  const rawEps = Number.isFinite(epsilonMeters) ? Math.max(0, epsilonMeters) : 0;
+  const proj=geoReference.crs ? String(geoReference.crs.projection||'').toUpperCase() : '';
+  const eps = (proj==='GEOGRAPHIC' || proj==='LATLON' || proj==='GEOGRAPHIC_2D' || Number(geoReference.crs && geoReference.crs.epsg)===4326) ? rawEps/111320 : rawEps;
+  const tl = geoReference.extent.cornerTL, br = geoReference.extent.cornerBR;
+  return x >= tl.timur - eps && x <= br.timur + eps && y <= tl.utara + eps && y >= br.utara - eps;
+}
+
+function validateGeoReferenceAccuracy_(geoReference, toleranceMeters, tolerancePx) {
+  if (!isValidGeoReferenceForCoordinate_(geoReference)) return { ok:false, reason:'GeoReference tidak valid untuk coordinate engine.' };
+  const tolM = Number.isFinite(toleranceMeters) ? toleranceMeters : 0.1;
+  const tolPx = Number.isFinite(tolerancePx) ? tolerancePx : 0.01;
+  const b = geoReference.metadata.vpBBox;
+  const pagePoints = [
+    {x:b[0],y:b[1]}, {x:b[2],y:b[1]}, {x:b[2],y:b[3]}, {x:b[0],y:b[3]},
+    {x:(b[0]+b[2])/2,y:(b[1]+b[3])/2}
+  ];
+  let maxPageErrorUnits = 0, maxWgs84ErrorM = 0, maxPixelErrorPx = 0, outsideCount = 0;
+  for (const pagePoint of pagePoints) {
+    const native = applyAffineTransform2D_(geoReference.transform.coefficients || geoReference.transform, pagePoint);
+    if (!native || !isNativeCoordinateWithinGeoReferenceExtent_(geoReference, native.x, native.y, 2)) outsideCount++;
+    const w = geoPdfPageToWgs84_(geoReference, pagePoint.x, pagePoint.y);
+    if (!w || !w.wgs84) return {ok:false, reason:'Page → WGS84 gagal.'};
+    const back = wgs84ToGeoPdfPage_(geoReference, w.wgs84.lat, w.wgs84.lon);
+    if (!back || !back.page) return {ok:false, reason:'WGS84 → Page gagal.'};
+    const pageErrUnits = Math.hypot(back.page.x-pagePoint.x, back.page.y-pagePoint.y);
+    const latErrM = (back.lat-w.wgs84.lat) * 111320;
+    const lonScale = Math.max(Math.cos(w.wgs84.lat*Math.PI/180), 1e-6);
+    const lonErrM = (back.lon-w.wgs84.lon) * 111320 * lonScale;
+    const geoErrM = Math.hypot(latErrM, lonErrM);
+    const px = geoPdfPageToPixel_(geoReference, pagePoint.x, pagePoint.y);
+    const backPage = px && geoPdfPixelToPage_(geoReference, px.x, px.y);
+    if (!backPage) return {ok:false, reason:'Page ↔ Pixel gagal.'};
+    const pxErr = Math.hypot(backPage.x-pagePoint.x, backPage.y-pagePoint.y) * getGeoPdfRenderScale_(geoReference);
+    if (pageErrUnits > maxPageErrorUnits) maxPageErrorUnits = pageErrUnits;
+    if (geoErrM > maxWgs84ErrorM) maxWgs84ErrorM = geoErrM;
+    if (pxErr > maxPixelErrorPx) maxPixelErrorPx = pxErr;
+  }
+  return {
+    ok: outsideCount === 0 && maxPageErrorUnits <= 0.01 && maxWgs84ErrorM <= tolM && maxPixelErrorPx <= tolPx,
+    maxPageErrorUnits, maxWgs84ErrorM, maxPixelErrorPx, outsideCount,
+    toleranceMeters: tolM, tolerancePx: tolPx
+  };
+}
+
+// GPS WGS84 -> native -> PDF page -> rendered pixel.
+function gpsWgs84ToGeoPdfPixel_(geoReference, lat, lon) {
+  if (!geoReference || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const pageResult = wgs84ToGeoPdfPage_(geoReference, lat, lon);
+  if (!pageResult || !pageResult.page) return null;
+  const pixel = geoPdfPageToPixel_(geoReference, pageResult.page.x, pageResult.page.y);
+  if (!pixel) return null;
+  return { lat, lon, native: pageResult.native, page: pageResult.page, pixel };
+}
 function stopGpsTracking_() {
   if (gpsWatchId_ !== null && navigator.geolocation) navigator.geolocation.clearWatch(gpsWatchId_);
   gpsWatchId_ = null;
@@ -1204,7 +891,7 @@ function startGpsTracking_() {
         page: mapped ? mapped.page : null, pixel: mapped ? mapped.pixel : null,
         error: mapped ? (insideBoundary ? null : 'Posisi GPS berada di luar Neatline GeoPDF.') : 'Koordinat GPS tidak dapat diproyeksikan ke GeoPDF.'
       };
-      requestMapRender_();
+      render();
     },
     err => {
       gpsState_ = { ...gpsState_, active: true, status: 'error', error: 'GPS error (' + err.code + '): ' + (err.message || 'lokasi tidak tersedia') };
@@ -1226,21 +913,13 @@ function handleMapTap_(event) {
     const svgEl = event.currentTarget;
     const bounds = computeResponsiveDisplayBounds_(buildMapData());
     if (!bounds) return;
-    const rect = (svgEl.parentElement || svgEl).getBoundingClientRect();
+    const rect = svgEl.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const viewW = 320, viewH = 320;
     const viewBox = getMapViewBox_(bounds);
-    let svgX = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.w;
-    let svgY = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.h;
+    const svgX = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.w;
+    const svgY = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.h;
     if (!Number.isFinite(svgX) || !Number.isFinite(svgY)) return;
-    // STEP 7.6F: undo persistent screen rotation before converting tap to native coordinates.
-    if (Math.abs(mapRotationDeg_) > 0.0001) {
-      const rad = -mapRotationDeg_ * Math.PI / 180;
-      const cx = viewW / 2, cy = viewH / 2;
-      const dx = svgX - cx, dy = svgY - cy;
-      svgX = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
-      svgY = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
-    }
     const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
     const nativeX = bounds.minT + (svgX / viewW) * rangeT;
     const nativeY = bounds.minU + ((viewH - svgY) / viewH) * rangeU;
@@ -1515,6 +1194,449 @@ function bboxFromViewportText10C_(body) {
   const b = pdfNums10A_(m[1]).slice(0,4);
   return b.length === 4 && b.every(Number.isFinite) ? b : null;
 }
+function findGeoPdfViewportBBoxForMeasure10C_(text, measureVariant) {
+  const full = String(text || '');
+  const owner = measureVariant && Number(measureVariant.ownerObjectNumber);
+  if (owner) {
+    const ownerBody = extractPdfObject10C_(full, owner);
+    const direct = bboxFromViewportText10C_(ownerBody);
+    if (direct) return direct;
+
+    // Page/Viewport dictionaries commonly reference the Measure object indirectly.
+    const ref = Number(owner);
+    const objectRe = /(?:^|\n|\r)\s*(\d+)\s+0\s+obj\b([\s\S]*?)\bendobj\b/g;
+    let m;
+    while ((m = objectRe.exec(full))) {
+      const body = m[2];
+      if (!/\/Type\s*\/Viewport\b/i.test(body)) continue;
+      const measureRef = body.match(new RegExp('\/Measure\s+' + ref + '\\s+0\\s+R\b'));
+      if (measureRef) {
+        const b = bboxFromViewportText10C_(body);
+        if (b) return b;
+      }
+    }
+  }
+
+  // /VP [N 0 R ...] can live on a page object. Find a page/object referencing the
+  // Measure, then resolve its VP references to Viewport objects.
+  if (owner) {
+    const refRe = new RegExp('\\/Measure\\s+' + owner + '\\s+0\\s+R\\b[\\s\\S]{0,1600}?\\/VP\\s*\\[([^\\]]+)\\]', 'i');
+    const hit = refRe.exec(full);
+    if (hit) {
+      const refs = String(hit[1]).match(/\b\d+\s+0\s+R\b/g) || [];
+      for (const token of refs) {
+        const n = Number(token.match(/^\d+/)[0]);
+        const b = bboxFromViewportText10C_(extractPdfObject10C_(full, n));
+        if (b) return b;
+      }
+    }
+  }
+
+  // Direct Measure inside Viewport, including inline dictionaries.
+  const directRe = /\/Type\s*\/Viewport\b[\s\S]{0,1800}?\/Measure\s*(?:\d+\s+0\s+R|<<)[\s\S]{0,900}?\/BBox\s*\[([^\]]+)\]/gi;
+  let dm;
+  while ((dm = directRe.exec(full))) {
+    const b = pdfNums10A_(dm[1]).slice(0,4);
+    if (b.length === 4 && b.every(Number.isFinite)) return b;
+  }
+
+  return findGeoPdfViewportBBox10B_(full);
+}
+
+function parseTerraGoProjection10A_(body, fullText) {
+  const b = pdfValue10A_(body, 'Projection');
+  if (!b) return null;
+  const p = b.raw.startsWith('<<') ? b.raw : (pdfRefObject10A_(fullText, b.raw) || '');
+  if (!p) return null;
+  return {
+    type: pdfString10A_(p, 'ProjectionType') || 'NONE',
+    datum: pdfString10A_(p, 'Datum') || '',
+    hemisphere: (pdfString10A_(p, 'Hemisphere') || '').toUpperCase() || null,
+    zone: pdfScalar10A_(p, 'Zone'),
+    centralMeridian: pdfScalar10A_(p, 'CentralMeridian'),
+    falseEasting: pdfScalar10A_(p, 'FalseEasting'),
+    falseNorthing: pdfScalar10A_(p, 'FalseNorthing'),
+    scaleFactor: pdfScalar10A_(p, 'ScaleFactor')
+  };
+}
+// STEP 11A: Datum detection only. This step NEVER transforms coordinates.
+// Priority: explicit EPSG authority -> explicit datum/name -> TerraGo/LGI datum token.
+// Unknown stays UNKNOWN; MG1 must not guess a datum.
+function detectDatum11A_(input) {
+  const src = input || {};
+  const text = String(src.text || src.gcsText || '');
+  const epsgCandidate = src.epsg;
+  const epsg = (epsgCandidate !== null && epsgCandidate !== undefined && epsgCandidate !== '' && Number.isInteger(Number(epsgCandidate))) ? Number(epsgCandidate) : null;
+  const projectionDatum = String(src.projectionDatum || '').trim();
+  const hay = text + ' | ' + projectionDatum;
+  const epsgMap = [
+    { min: 32601, max: 32660, datum: 'WGS84' },
+    { min: 32701, max: 32760, datum: 'WGS84' },
+    { min: 26901, max: 26923, datum: 'NAD83' },
+    { min: 26701, max: 26722, datum: 'NAD27' },
+    { min: 25828, max: 25838, datum: 'ETRS89' },
+    { min: 28348, max: 28358, datum: 'GDA94' },
+    { min: 7850, max: 7859, datum: 'GDA2020' },
+    { min: 31965, max: 31985, datum: 'SIRGAS2000' }
+  ];
+  if (epsg !== null) {
+    const hit = epsgMap.find(r => epsg >= r.min && epsg <= r.max);
+    if (hit) return { datum: hit.datum, status: 'recognized', confidence: 'epsg-derived', source: 'EPSG', epsg };
+  }
+  const patterns = [
+    { datum: 'WGS84', re: /WGS[_\s-]*(?:84|1984)|D[_\s-]*WGS[_\s-]*1984|GCS[_\s-]*WGS[_\s-]*1984/i },
+    { datum: 'GDA2020', re: /GDA[_\s-]*2020/i },
+    { datum: 'GDA94', re: /GDA[_\s-]*94/i },
+    { datum: 'NZGD2000', re: /NZGD[_\s-]*2000/i },
+    { datum: 'ETRS89', re: /ETRS[_\s-]*89/i },
+    { datum: 'NAD83', re: /NAD[_\s-]*83/i },
+    { datum: 'NAD27', re: /NAD[_\s-]*27/i },
+    { datum: 'SIRGAS2000', re: /SIRGAS[_\s-]*2000/i },
+    { datum: 'DGN95', re: /DGN[_\s-]*95|Datum[_\s-]*Geodesi[_\s-]*Nasional[_\s-]*1995/i },
+    { datum: 'ID74', re: /(?:\bID[_\s-]*74\b|Indonesian[_\s-]*Datum[_\s-]*1974)/i },
+    { datum: 'ED50', re: /\bED[_\s-]*50\b|European[_\s-]*Datum[_\s-]*1950/i },
+    { datum: 'Arc1960', re: /Arc[_\s-]*1960/i },
+    { datum: 'OSGB36', re: /OSGB[_\s-]*36/i },
+    { datum: 'Tokyo', re: /Tokyo[_\s-]*Datum/i },
+    { datum: 'CH1903', re: /CH1903/i }
+  ];
+  const hit = patterns.find(item => item.re.test(hay));
+  if (hit) return { datum: hit.datum, status: 'recognized', confidence: 'explicit-name', source: 'GCS_WKT_OR_LGI', epsg };
+  return { datum: 'UNKNOWN', status: 'unknown', confidence: 'none', source: 'NO_EXPLICIT_DATUM', epsg };
+}
+
+// STEP 11B: Generic datum transformation engine.
+// Prinsip: WGS84 <-> datum target dilakukan di geocentric XYZ memakai Helmert
+// 3/7-parameter bila parameter transformasi dinyatakan eksplisit oleh metadata.
+// Tidak ada datum shift yang ditebak dari nama datum saja.
+function getDatumEllipsoid11B_(datum) {
+  const d = String(datum || '').toUpperCase();
+  const map = {
+    WGS84: { a: 6378137.0, invF: 298.257223563 },
+    NAD83: { a: 6378137.0, invF: 298.257222101 },
+    GRS80: { a: 6378137.0, invF: 298.257222101 },
+    ETRS89: { a: 6378137.0, invF: 298.257222101 },
+    GDA94: { a: 6378137.0, invF: 298.257222101 },
+    GDA2020: { a: 6378137.0, invF: 298.257222101 },
+    SIRGAS2000: { a: 6378137.0, invF: 298.257222101 },
+    NZGD2000: { a: 6378137.0, invF: 298.257222101 },
+    NAD27: { a: 6378206.4, invF: 294.9786982 },
+    ED50: { a: 6378388.0, invF: 297.0 },
+    OSGB36: { a: 6377563.396, invF: 299.3249646 },
+    TOKYO: { a: 6377397.155, invF: 299.1528128 },
+    CH1903: { a: 6377397.155, invF: 299.1528128 }
+  };
+  return map[d] || null;
+}
+
+function parseTowgs84Parameters11B_(text) {
+  const m = String(text || '').match(/TOWGS84\s*\[([^\]]+)\]/i);
+  if (!m) return null;
+  const v = (m[1].match(/[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/g) || []).map(Number);
+  if (v.length < 3 || v.length > 7 || v.some(x => !Number.isFinite(x))) return null;
+  return { dx:v[0], dy:v[1], dz:v[2], rxArcSec:v[3] || 0, ryArcSec:v[4] || 0, rzArcSec:v[5] || 0, dsPpm:v[6] || 0, source:'TOWGS84' };
+}
+
+function geodeticToEcef11B_(lat, lon, h, ellipsoid) {
+  if (!ellipsoid || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const a=ellipsoid.a, f=1/ellipsoid.invF, e2=f*(2-f);
+  const p=lat*Math.PI/180, l=lon*Math.PI/180, sinP=Math.sin(p), cosP=Math.cos(p);
+  const N=a/Math.sqrt(1-e2*sinP*sinP);
+  const H=Number.isFinite(h)?h:0;
+  return { x:(N+H)*cosP*Math.cos(l), y:(N+H)*cosP*Math.sin(l), z:(N*(1-e2)+H)*sinP };
+}
+
+function ecefToGeodetic11B_(xyz, ellipsoid) {
+  if (!xyz || !ellipsoid) return null;
+  const a=ellipsoid.a, f=1/ellipsoid.invF, e2=f*(2-f), x=xyz.x,y=xyz.y,z=xyz.z;
+  const p=Math.hypot(x,y);
+  if (!Number.isFinite(p) || !Number.isFinite(z)) return null;
+  let lat=Math.atan2(z,p*(1-e2));
+  for (let i=0;i<12;i++) {
+    const sin=Math.sin(lat), N=a/Math.sqrt(1-e2*sin*sin);
+    const next=Math.atan2(z+e2*N*sin,p);
+    if (Math.abs(next-lat)<1e-13) { lat=next; break; }
+    lat=next;
+  }
+  const sin=Math.sin(lat), N=a/Math.sqrt(1-e2*sin*sin);
+  const h=p/Math.max(Math.cos(lat),1e-15)-N;
+  const lon=Math.atan2(y,x);
+  return { lat:lat*180/Math.PI, lon:lon*180/Math.PI, height:h };
+}
+
+function helmert11B_(xyz, params, inverse) {
+  if (!xyz || !params) return null;
+  const secToRad=Math.PI/(180*3600), s=1+(Number(params.dsPpm)||0)*1e-6;
+  const rx=(Number(params.rxArcSec)||0)*secToRad, ry=(Number(params.ryArcSec)||0)*secToRad, rz=(Number(params.rzArcSec)||0)*secToRad;
+  let X=xyz.x,Y=xyz.y,Z=xyz.z;
+  let dx=Number(params.dx)||0,dy=Number(params.dy)||0,dz=Number(params.dz)||0;
+  if (inverse) {
+    X=(X-dx)/s; Y=(Y-dy)/s; Z=(Z-dz)/s;
+    return { x:X+rz*Y-ry*Z, y:Y-rz*X+rx*Z, z:Z+ry*X-rx*Y };
+  }
+  return { x:dx+s*(X-rz*Y+ry*Z), y:dy+s*(rz*X+Y-rx*Z), z:dz+s*(-ry*X+rx*Y+Z) };
+}
+
+// STEP 11C: Generalized Transverse Mercator projection engine.
+// UTM adalah konfigurasi khusus TM; wrapper 11B di bawah tetap mempertahankan
+// kontrak lama, tetapi sekarang parameter central meridian/scale/false origins
+// dapat dipakai eksplisit tanpa mengubah datum engine.
+function forwardTransverseMercator11C_(lat, lon, ellipsoid, params) {
+  if (!ellipsoid || !params || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const a=ellipsoid.a, f=1/ellipsoid.invF, e2=f*(2-f), ep2=e2/(1-e2);
+  const k0=Number.isFinite(params.scaleFactor) ? params.scaleFactor : 0.9996;
+  const fe=Number.isFinite(params.falseEasting) ? params.falseEasting : 500000;
+  const fn=Number.isFinite(params.falseNorthing) ? params.falseNorthing : 0;
+  const cm=Number(params.centralMeridian);
+  if (!Number.isFinite(cm) || !Number.isFinite(k0) || k0<=0) return null;
+  const p=lat*Math.PI/180,l=lon*Math.PI/180,l0=cm*Math.PI/180;
+  const sin=Math.sin(p),cos=Math.cos(p),tan=Math.tan(p),N=a/Math.sqrt(1-e2*sin*sin),T=tan*tan,C=ep2*cos*cos,A=cos*(l-l0);
+  const M=a*((1-e2/4-3*e2*e2/64-5*e2*e2*e2/256)*p-(3*e2/8+3*e2*e2/32+45*e2*e2*e2/1024)*Math.sin(2*p)+(15*e2*e2/256+45*e2*e2*e2/1024)*Math.sin(4*p)-(35*e2*e2*e2/3072)*Math.sin(6*p));
+  return {easting:fe+k0*N*(A+(1-T+C)*A**3/6+(5-18*T+T*T+72*C-58*ep2)*A**5/120),northing:fn+k0*(M+N*tan*(A*A/2+(5-T+9*C+4*C*C)*A**4/24+(61-58*T+T*T+600*C-330*ep2)*A**6/720))};
+}
+function inverseTransverseMercator11C_(easting,northing,ellipsoid,params) {
+  if (!ellipsoid || !params || !Number.isFinite(easting) || !Number.isFinite(northing)) return null;
+  const a=ellipsoid.a,f=1/ellipsoid.invF,e2=f*(2-f),ep2=e2/(1-e2);
+  const k0=Number.isFinite(params.scaleFactor) ? params.scaleFactor : 0.9996;
+  const fe=Number.isFinite(params.falseEasting) ? params.falseEasting : 500000;
+  const fn=Number.isFinite(params.falseNorthing) ? params.falseNorthing : 0;
+  const cm=Number(params.centralMeridian);
+  if (!Number.isFinite(cm) || !Number.isFinite(k0) || k0<=0) return null;
+  const x=easting-fe,y=northing-fn,M=y/k0,e1=(1-Math.sqrt(1-e2))/(1+Math.sqrt(1-e2)),mu=M/(a*(1-e2/4-3*e2*e2/64-5*e2*e2*e2/256));
+  const p1=mu+(3*e1/2-27*e1**3/32)*Math.sin(2*mu)+(21*e1**2/16-55*e1**4/32)*Math.sin(4*mu)+(151*e1**3/96)*Math.sin(6*mu)+(1097*e1**4/512)*Math.sin(8*mu);
+  const sp=Math.sin(p1),cp=Math.cos(p1),tp=Math.tan(p1),C=ep2*cp*cp,T=tp*tp,N=a/Math.sqrt(1-e2*sp*sp),R=a*(1-e2)/Math.pow(1-e2*sp*sp,1.5),D=x/(N*k0);
+  const lat=p1-(N*tp/R)*(D*D/2-(5+3*T+10*C-4*C*C-9*ep2)*D**4/24+(61+90*T+298*C+45*T*T-252*ep2-3*C*C)*D**6/720);
+  const lon=cm*Math.PI/180+(D-(1+2*T+C)*D**3/6+(5-2*C+28*T-3*C*C+8*ep2+24*T*T)*D**5/120)/cp;
+  return {lat:lat*180/Math.PI,lon:lon*180/Math.PI};
+}
+function projectionParamsFromCrs11C_(crs) {
+  if (!crs) return null;
+  const type=String(crs.projection||'TRANSVERSE_MERCATOR').toUpperCase();
+  if (type==='GEOGRAPHIC' || type==='LATLON' || type==='GEOGRAPHIC_2D' || Number(crs.epsg)===4326) return { type:'GEOGRAPHIC' };
+  if (type==='WEB_MERCATOR' || type==='MERCATOR_SPHERICAL' || Number(crs.epsg)===3857 || Number(crs.epsg)===900913) return { type:'WEB_MERCATOR' };
+  const zone=Number(crs.zone);
+  const cm=Number.isFinite(Number(crs.centralMeridian)) ? Number(crs.centralMeridian) : (zone>=1&&zone<=60 ? -183+zone*6 : null);
+  const hemisphere=String(crs.hemisphere||'N').toUpperCase();
+  if (!Number.isFinite(cm) || !['N','S'].includes(hemisphere)) return null;
+  return { type:'TRANSVERSE_MERCATOR', centralMeridian:cm, scaleFactor:Number.isFinite(Number(crs.scaleFactor))&&Number(crs.scaleFactor)>0?Number(crs.scaleFactor):0.9996, falseEasting:Number.isFinite(Number(crs.falseEasting))?Number(crs.falseEasting):500000, falseNorthing:Number.isFinite(Number(crs.falseNorthing))?Number(crs.falseNorthing):(hemisphere==='S'?10000000:0) };
+}
+function forwardWebMercator11D_(lat, lon) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat)>=90) return null;
+  const R=6378137, maxLat=85.0511287798066, clamped=Math.max(-maxLat,Math.min(maxLat,lat));
+  const p=clamped*Math.PI/180;
+  return {easting:R*lon*Math.PI/180,northing:R*Math.log(Math.tan(Math.PI/4+p/2))};
+}
+function inverseWebMercator11D_(easting, northing) {
+  if (!Number.isFinite(easting) || !Number.isFinite(northing)) return null;
+  const R=6378137;
+  const lat=(2*Math.atan(Math.exp(northing/R))-Math.PI/2)*180/Math.PI;
+  const lon=easting/R*180/Math.PI;
+  return Number.isFinite(lat)&&Number.isFinite(lon)?{lat,lon}:null;
+}
+function forwardProjection11D_(lat,lon,crs,ellipsoid) {
+  const p=projectionParamsFromCrs11C_(crs);
+  if (!p) return null;
+  if (p.type==='GEOGRAPHIC') return {easting:lon,northing:lat};
+  if (p.type==='WEB_MERCATOR') return forwardWebMercator11D_(lat,lon);
+  return forwardTransverseMercator11C_(lat,lon,ellipsoid,p);
+}
+function inverseProjection11D_(easting,northing,crs,ellipsoid) {
+  const p=projectionParamsFromCrs11C_(crs);
+  if (!p) return null;
+  if (p.type==='GEOGRAPHIC') return {lat:northing,lon:easting};
+  if (p.type==='WEB_MERCATOR') return inverseWebMercator11D_(easting,northing);
+  return inverseTransverseMercator11C_(easting,northing,ellipsoid,p);
+}
+function forwardUtmEllipsoid11B_(lat, lon, zone, hemisphere, ellipsoid) {
+  const params=projectionParamsFromCrs11C_({zone,hemisphere,centralMeridian:-183+zone*6,scaleFactor:0.9996,falseEasting:500000,falseNorthing:hemisphere==='S'?10000000:0});
+  return forwardTransverseMercator11C_(lat,lon,ellipsoid,params);
+}
+function inverseUtmEllipsoid11B_(easting,northing,zone,hemisphere,ellipsoid) {
+  const params=projectionParamsFromCrs11C_({zone,hemisphere,centralMeridian:-183+zone*6,scaleFactor:0.9996,falseEasting:500000,falseNorthing:hemisphere==='S'?10000000:0});
+  return inverseTransverseMercator11C_(easting,northing,ellipsoid,params);
+}
+function forwardProjection11C_(lat,lon,crs,ellipsoid) {
+  const p=projectionParamsFromCrs11C_(crs);
+  return p ? forwardTransverseMercator11C_(lat,lon,ellipsoid,p) : null;
+}
+function inverseProjection11C_(easting,northing,crs,ellipsoid) {
+  const p=projectionParamsFromCrs11C_(crs);
+  return p ? inverseTransverseMercator11C_(easting,northing,ellipsoid,p) : null;
+}
+
+function transformDatumWgs84To11B_(lat, lon, targetDatum, params) {
+  const target=getDatumEllipsoid11B_(targetDatum), wgs=getDatumEllipsoid11B_('WGS84');
+  if (!target || !wgs || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (String(targetDatum).toUpperCase()==='WGS84') return {lat,lon,height:0,method:'IDENTITY'};
+  if (!params) return null;
+  const wgsXyz=geodeticToEcef11B_(lat,lon,0,wgs);
+  const targetXyz=helmert11B_(wgsXyz,params,true);
+  return ecefToGeodetic11B_(targetXyz,target);
+}
+
+function transformDatum11BToWgs84_(lat, lon, sourceDatum, params) {
+  const source=getDatumEllipsoid11B_(sourceDatum), wgs=getDatumEllipsoid11B_('WGS84');
+  if (!source || !wgs || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (String(sourceDatum).toUpperCase()==='WGS84') return {lat,lon,height:0,method:'IDENTITY'};
+  if (!params) return null;
+  const srcXyz=geodeticToEcef11B_(lat,lon,0,source);
+  const wgsXyz=helmert11B_(srcXyz,params,false);
+  return ecefToGeodetic11B_(wgsXyz,wgs);
+}
+
+function datumDetectionIsWgs84_11A_(detection) {
+  return !!detection && String(detection.datum || '').toUpperCase() === 'WGS84';
+}
+
+function parseTerraGoRegistration10A_(raw) {
+  if (!raw) return [];
+  const groups = [];
+  const re = /\[([^\[\]]+)\]/g;
+  let m;
+  while ((m = re.exec(raw))) {
+    const n = pdfNums10A_(m[1]);
+    if (n.length >= 4) groups.push({ pdf: { x:n[0], y:n[1] }, map:{ x:n[2], y:n[3] } });
+  }
+  return groups;
+}
+function parseTerraGoNeatline10A_(raw) {
+  const n = pdfNums10A_(raw);
+  if (n.length < 4 || n.length % 2) return null;
+  const pts = [];
+  for (let i=0;i<n.length;i+=2) pts.push({x:n[i],y:n[i+1]});
+  if (pts.length === 2) {
+    const a=pts[0], b=pts[1];
+    return [{x:a.x,y:a.y},{x:a.x,y:b.y},{x:b.x,y:b.y},{x:b.x,y:a.y}];
+  }
+  return pts;
+}
+function terraGoCtmToAffine10A_(ctm) {
+  if (!Array.isArray(ctm) || ctm.length !== 6 || ctm.some(v => !Number.isFinite(v))) return null;
+  return { ax:ctm[0], bx:ctm[2], cx:ctm[4], ay:ctm[1], by:ctm[3], cy:ctm[5] };
+}
+function parseTerraGoLgi10A_(text) {
+  const frames=[];
+  const objectRe=/(?:^|\n|\r)\s*(\d+)\s+0\s+obj\b([\s\S]*?)\bendobj\b/g;
+  let m;
+  while ((m=objectRe.exec(text||''))) {
+    if (/\/Type\s+\/LGIDict\b/i.test(m[2])) frames.push({objectNumber:Number(m[1]),text:m[2]});
+  }
+  if (!frames.length) return {ok:false,reason:'Tidak ditemukan /LGIDict TerraGo/LGI.'};
+  const parsed=[];
+  for (const frame of frames) {
+    const body=frame.text;
+    const ctmBlock=pdfValue10A_(body,'CTM');
+    const ctm=ctmBlock ? pdfNums10A_(ctmBlock.raw) : [];
+    const registration=parseTerraGoRegistration10A_((pdfValue10A_(body,'Registration')||{}).raw);
+    const neatline=parseTerraGoNeatline10A_((pdfValue10A_(body,'Neatline')||{}).raw);
+    const projection=parseTerraGoProjection10A_(body,text);
+    let affine=terraGoCtmToAffine10A_(ctm);
+    if (!affine && registration.length >= 3) affine=solveAffineTransform2D_(registration.map(p=>p.pdf),registration.map(p=>p.map));
+    if (!affine || !projection) continue;
+    const ptype=String(projection.type||'').toUpperCase();
+    if (ptype !== 'UT' || !Number.isInteger(projection.zone) || projection.zone<1 || projection.zone>60 || !['N','S'].includes(projection.hemisphere)) continue;
+    const vp=neatline && neatline.length ? [Math.min(...neatline.map(p=>p.x)),Math.min(...neatline.map(p=>p.y)),Math.max(...neatline.map(p=>p.x)),Math.max(...neatline.map(p=>p.y))] : (registration.length ? [Math.min(...registration.map(p=>p.pdf.x)),Math.min(...registration.map(p=>p.pdf.y)),Math.max(...registration.map(p=>p.pdf.x)),Math.max(...registration.map(p=>p.pdf.y))] : null);
+    if (!vp) continue;
+    const native=neatline ? neatline.map(p=>applyAffineTransform2D_(affine,p)) : [];
+    const boundary=native.length>=3 ? {type:'neatline',source:'TERRAGO_LGI_NEATLINE',pagePoints:neatline,nativePoints:native,extent:{cornerTL:{timur:Math.min(...native.map(p=>p.x)),utara:Math.max(...native.map(p=>p.y))},cornerBR:{timur:Math.max(...native.map(p=>p.x)),utara:Math.min(...native.map(p=>p.y))}}} : null;
+    const datum=projection.datum==='WE'?'WGS84':(projection.datum||'UNKNOWN');
+    parsed.push({objectNumber:frame.objectNumber,description:pdfString10A_(body,'Description')||'',version:pdfString10A_(body,'Version'),projection,affine,registration,neatline,boundary,vpBBox:vp,crs:{datum,zone:projection.zone,hemisphere:projection.hemisphere,epsg:datum==='WGS84'?(projection.hemisphere==='N'?32600+projection.zone:32700+projection.zone):null,name:'TerraGo/LGI UTM Zone '+projection.zone+projection.hemisphere,centralMeridian:projection.centralMeridian,falseEasting:projection.falseEasting,falseNorthing:projection.falseNorthing,scaleFactor:projection.scaleFactor,projection:'TRANSVERSE_MERCATOR'}});
+  }
+  if (!parsed.length) return {ok:false,reason:'LGIDict ditemukan, tetapi belum ada map frame TerraGo/LGI UTM yang dapat dipakai aman oleh engine MG1.'};
+  return {ok:true,frames:parsed,frame:parsed[0]};
+}
+
+// STEP 9A: GeoPDF Neatline / map-frame boundary.
+// Neatline adalah batas valid georegistration pada PDF page. Implementasi ini
+// sengaja memakai data publik GeoPDF/OGC dan tidak meniru kode proprietary Avenza.
+function parseNeatlineCandidates_(text) {
+  const out = [];
+  if (!text) return out;
+  const re = /\/Neatline\s*\[\s*([^\]]+?)\s*\]/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    const nums = m[1].trim().split(/\s+/).map(Number);
+    if (nums.length < 8 || nums.length % 2 !== 0 || nums.some(v => !Number.isFinite(v))) continue;
+    const points = [];
+    for (let i = 0; i < nums.length; i += 2) points.push({ x: nums[i], y: nums[i + 1] });
+    out.push(points);
+  }
+  return out;
+}
+
+function selectGeoPdfNeatline_(candidates, vpBBox) {
+  if (!Array.isArray(candidates) || !candidates.length || !Array.isArray(vpBBox) || vpBBox.length < 4) return null;
+  const vx0 = Math.min(vpBBox[0], vpBBox[2]), vx1 = Math.max(vpBBox[0], vpBBox[2]);
+  const vy0 = Math.min(vpBBox[1], vpBBox[3]), vy1 = Math.max(vpBBox[1], vpBBox[3]);
+  let best = null, bestScore = -Infinity;
+  for (const points of candidates) {
+    const xs = points.map(p => p.x), ys = points.map(p => p.y);
+    const px0 = Math.min(...xs), px1 = Math.max(...xs), py0 = Math.min(...ys), py1 = Math.max(...ys);
+    const iw = Math.max(0, Math.min(vx1, px1) - Math.max(vx0, px0));
+    const ih = Math.max(0, Math.min(vy1, py1) - Math.max(vy0, py0));
+    const interArea = iw * ih;
+    const pArea = Math.max(1e-9, (px1 - px0) * (py1 - py0));
+    const vArea = Math.max(1e-9, (vx1 - vx0) * (vy1 - vy0));
+    const centerInside = ((px0 + px1) / 2 >= vx0 && (px0 + px1) / 2 <= vx1 &&
+      (py0 + py1) / 2 >= vy0 && (py0 + py1) / 2 <= vy1) ? 1 : 0;
+    const score = (interArea / Math.max(pArea, vArea)) + centerInside * 0.25;
+    if (score > bestScore) { bestScore = score; best = points; }
+  }
+  return best ? best.map(p => ({ x: p.x, y: p.y })) : null;
+}
+
+function buildGeoPdfBoundary_(neatlinePagePoints, affine) {
+  if (!Array.isArray(neatlinePagePoints) || neatlinePagePoints.length < 4 || !affine) return null;
+  const nativePoints = neatlinePagePoints.map(p => applyAffineTransform2D_(affine, p)).filter(Boolean);
+  if (nativePoints.length !== neatlinePagePoints.length) return null;
+  const xs = nativePoints.map(p => p.x), ys = nativePoints.map(p => p.y);
+  return {
+    type: 'neatline',
+    source: 'GEOPDF_NEATLINE',
+    pagePoints: neatlinePagePoints.map(p => ({ x: p.x, y: p.y })),
+    nativePoints: nativePoints.map(p => ({ x: p.x, y: p.y })),
+    extent: {
+      cornerTL: { timur: Math.min(...xs), utara: Math.max(...ys) },
+      cornerBR: { timur: Math.max(...xs), utara: Math.min(...ys) }
+    }
+  };
+}
+
+function isPointInsidePolygon_(point, polygon) {
+  if (!point || !Array.isArray(polygon) || polygon.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x, yi = polygon[i].y;
+    const xj = polygon[j].x, yj = polygon[j].y;
+    const intersects = ((yi > point.y) !== (yj > point.y)) &&
+      (point.x < (xj - xi) * (point.y - yi) / ((yj - yi) || Number.EPSILON) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function isNativeCoordinateInsideGeoPdfBoundary_(geoReference, x, y, epsilonMeters) {
+  const b = geoReference && geoReference.boundary;
+  if (!b || b.type !== 'neatline' || !Array.isArray(b.nativePoints) || b.nativePoints.length < 3) return true;
+  const eps = Number.isFinite(epsilonMeters) ? Math.max(0, epsilonMeters) : 0;
+  if (isPointInsidePolygon_({ x, y }, b.nativePoints)) return true;
+  // Boundary vertex/edge tolerance: accept a small distance to the polygon bbox first.
+  const ex = b.extent;
+  if (ex && x >= ex.cornerTL.timur - eps && x <= ex.cornerBR.timur + eps &&
+      y <= ex.cornerTL.utara + eps && y >= ex.cornerBR.utara - eps) {
+    return isPointInsidePolygon_({ x: x + eps, y }, b.nativePoints) ||
+           isPointInsidePolygon_({ x: x - eps, y }, b.nativePoints) ||
+           isPointInsidePolygon_({ x, y: y + eps }, b.nativePoints) ||
+           isPointInsidePolygon_({ x, y: y - eps }, b.nativePoints);
+  }
+  return false;
+}
+
+// STEP 10E: Multi-Viewport / Multi-Map-Frame handling.
+// Satu PDF dapat memiliki beberapa Viewport/Measure pair (mis. main map + inset map).
+// MG1 tetap menyimpan satu GeoReference aktif untuk satu background map, tetapi sebelum
+// memilih frame kita enumerasi semua kandidat valid agar tidak lagi bergantung pada [0].
+// Primary frame dipilih deterministik: kandidat dengan area viewport terbesar.
 function buildGeoPdfMapFrameCandidates10E_(text, measureVariants) {
   const candidates = [];
   const seen = new Set();
@@ -1599,11 +1721,252 @@ function findGeoPdfViewportBBoxForMeasure10C_(text, measureVariant) {
   return findGeoPdfViewportBBox10B_(full);
 }
 
+function parseTerraGoProjection10A_(body, fullText) {
+  const b = pdfValue10A_(body, 'Projection');
+  if (!b) return null;
+  const p = b.raw.startsWith('<<') ? b.raw : (pdfRefObject10A_(fullText, b.raw) || '');
+  if (!p) return null;
+  return {
+    type: pdfString10A_(p, 'ProjectionType') || 'NONE',
+    datum: pdfString10A_(p, 'Datum') || '',
+    hemisphere: (pdfString10A_(p, 'Hemisphere') || '').toUpperCase() || null,
+    zone: pdfScalar10A_(p, 'Zone'),
+    centralMeridian: pdfScalar10A_(p, 'CentralMeridian'),
+    falseEasting: pdfScalar10A_(p, 'FalseEasting'),
+    falseNorthing: pdfScalar10A_(p, 'FalseNorthing'),
+    scaleFactor: pdfScalar10A_(p, 'ScaleFactor')
+  };
+}
+function parseTerraGoRegistration10A_(raw) {
+  if (!raw) return [];
+  const groups = [];
+  const re = /\[([^\[\]]+)\]/g;
+  let m;
+  while ((m = re.exec(raw))) {
+    const n = pdfNums10A_(m[1]);
+    if (n.length >= 4) groups.push({ pdf: { x:n[0], y:n[1] }, map:{ x:n[2], y:n[3] } });
+  }
+  return groups;
+}
+function parseTerraGoNeatline10A_(raw) {
+  const n = pdfNums10A_(raw);
+  if (n.length < 4 || n.length % 2) return null;
+  const pts = [];
+  for (let i=0;i<n.length;i+=2) pts.push({x:n[i],y:n[i+1]});
+  if (pts.length === 2) {
+    const a=pts[0], b=pts[1];
+    return [{x:a.x,y:a.y},{x:a.x,y:b.y},{x:b.x,y:b.y},{x:b.x,y:a.y}];
+  }
+  return pts;
+}
+function terraGoCtmToAffine10A_(ctm) {
+  if (!Array.isArray(ctm) || ctm.length !== 6 || ctm.some(v => !Number.isFinite(v))) return null;
+  return { ax:ctm[0], bx:ctm[2], cx:ctm[4], ay:ctm[1], by:ctm[3], cy:ctm[5] };
+}
+function parseTerraGoLgi10A_(text) {
+  const frames=[];
+  const objectRe=/(?:^|\n|\r)\s*(\d+)\s+0\s+obj\b([\s\S]*?)\bendobj\b/g;
+  let m;
+  while ((m=objectRe.exec(text||''))) {
+    if (/\/Type\s+\/LGIDict\b/i.test(m[2])) frames.push({objectNumber:Number(m[1]),text:m[2]});
+  }
+  if (!frames.length) return {ok:false,reason:'Tidak ditemukan /LGIDict TerraGo/LGI.'};
+  const parsed=[];
+  for (const frame of frames) {
+    const body=frame.text;
+    const ctmBlock=pdfValue10A_(body,'CTM');
+    const ctm=ctmBlock ? pdfNums10A_(ctmBlock.raw) : [];
+    const registration=parseTerraGoRegistration10A_((pdfValue10A_(body,'Registration')||{}).raw);
+    const neatline=parseTerraGoNeatline10A_((pdfValue10A_(body,'Neatline')||{}).raw);
+    const projection=parseTerraGoProjection10A_(body,text);
+    let affine=terraGoCtmToAffine10A_(ctm);
+    if (!affine && registration.length >= 3) affine=solveAffineTransform2D_(registration.map(p=>p.pdf),registration.map(p=>p.map));
+    if (!affine || !projection) continue;
+    const ptype=String(projection.type||'').toUpperCase();
+    if (ptype !== 'UT' || !Number.isInteger(projection.zone) || projection.zone<1 || projection.zone>60 || !['N','S'].includes(projection.hemisphere)) continue;
+    const vp=neatline && neatline.length ? [Math.min(...neatline.map(p=>p.x)),Math.min(...neatline.map(p=>p.y)),Math.max(...neatline.map(p=>p.x)),Math.max(...neatline.map(p=>p.y))] : (registration.length ? [Math.min(...registration.map(p=>p.pdf.x)),Math.min(...registration.map(p=>p.pdf.y)),Math.max(...registration.map(p=>p.pdf.x)),Math.max(...registration.map(p=>p.pdf.y))] : null);
+    if (!vp) continue;
+    const native=neatline ? neatline.map(p=>applyAffineTransform2D_(affine,p)) : [];
+    const boundary=native.length>=3 ? {type:'neatline',source:'TERRAGO_LGI_NEATLINE',pagePoints:neatline,nativePoints:native,extent:{cornerTL:{timur:Math.min(...native.map(p=>p.x)),utara:Math.max(...native.map(p=>p.y))},cornerBR:{timur:Math.max(...native.map(p=>p.x)),utara:Math.min(...native.map(p=>p.y))}}} : null;
+    const datum=projection.datum==='WE'?'WGS84':(projection.datum||'UNKNOWN');
+    parsed.push({objectNumber:frame.objectNumber,description:pdfString10A_(body,'Description')||'',version:pdfString10A_(body,'Version'),projection,affine,registration,neatline,boundary,vpBBox:vp,crs:{datum,zone:projection.zone,hemisphere:projection.hemisphere,epsg:datum==='WGS84'?(projection.hemisphere==='N'?32600+projection.zone:32700+projection.zone):null,name:'TerraGo/LGI UTM Zone '+projection.zone+projection.hemisphere,centralMeridian:projection.centralMeridian,falseEasting:projection.falseEasting,falseNorthing:projection.falseNorthing,scaleFactor:projection.scaleFactor}});
+  }
+  if (!parsed.length) return {ok:false,reason:'LGIDict ditemukan, tetapi belum ada map frame TerraGo/LGI UTM yang dapat dipakai aman oleh engine MG1.'};
+  return {ok:true,frames:parsed,frame:parsed[0]};
+}
+
+// STEP 9A: GeoPDF Neatline / map-frame boundary.
+// Neatline adalah batas valid georegistration pada PDF page. Implementasi ini
+// sengaja memakai data publik GeoPDF/OGC dan tidak meniru kode proprietary Avenza.
+function parseNeatlineCandidates_(text) {
+  const out = [];
+  if (!text) return out;
+  const re = /\/Neatline\s*\[\s*([^\]]+?)\s*\]/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    const nums = m[1].trim().split(/\s+/).map(Number);
+    if (nums.length < 8 || nums.length % 2 !== 0 || nums.some(v => !Number.isFinite(v))) continue;
+    const points = [];
+    for (let i = 0; i < nums.length; i += 2) points.push({ x: nums[i], y: nums[i + 1] });
+    out.push(points);
+  }
+  return out;
+}
+
+function selectGeoPdfNeatline_(candidates, vpBBox) {
+  if (!Array.isArray(candidates) || !candidates.length || !Array.isArray(vpBBox) || vpBBox.length < 4) return null;
+  const vx0 = Math.min(vpBBox[0], vpBBox[2]), vx1 = Math.max(vpBBox[0], vpBBox[2]);
+  const vy0 = Math.min(vpBBox[1], vpBBox[3]), vy1 = Math.max(vpBBox[1], vpBBox[3]);
+  let best = null, bestScore = -Infinity;
+  for (const points of candidates) {
+    const xs = points.map(p => p.x), ys = points.map(p => p.y);
+    const px0 = Math.min(...xs), px1 = Math.max(...xs), py0 = Math.min(...ys), py1 = Math.max(...ys);
+    const iw = Math.max(0, Math.min(vx1, px1) - Math.max(vx0, px0));
+    const ih = Math.max(0, Math.min(vy1, py1) - Math.max(vy0, py0));
+    const interArea = iw * ih;
+    const pArea = Math.max(1e-9, (px1 - px0) * (py1 - py0));
+    const vArea = Math.max(1e-9, (vx1 - vx0) * (vy1 - vy0));
+    const centerInside = ((px0 + px1) / 2 >= vx0 && (px0 + px1) / 2 <= vx1 &&
+      (py0 + py1) / 2 >= vy0 && (py0 + py1) / 2 <= vy1) ? 1 : 0;
+    const score = (interArea / Math.max(pArea, vArea)) + centerInside * 0.25;
+    if (score > bestScore) { bestScore = score; best = points; }
+  }
+  return best ? best.map(p => ({ x: p.x, y: p.y })) : null;
+}
+
+function buildGeoPdfBoundary_(neatlinePagePoints, affine) {
+  if (!Array.isArray(neatlinePagePoints) || neatlinePagePoints.length < 4 || !affine) return null;
+  const nativePoints = neatlinePagePoints.map(p => applyAffineTransform2D_(affine, p)).filter(Boolean);
+  if (nativePoints.length !== neatlinePagePoints.length) return null;
+  const xs = nativePoints.map(p => p.x), ys = nativePoints.map(p => p.y);
+  return {
+    type: 'neatline',
+    source: 'GEOPDF_NEATLINE',
+    pagePoints: neatlinePagePoints.map(p => ({ x: p.x, y: p.y })),
+    nativePoints: nativePoints.map(p => ({ x: p.x, y: p.y })),
+    extent: {
+      cornerTL: { timur: Math.min(...xs), utara: Math.max(...ys) },
+      cornerBR: { timur: Math.max(...xs), utara: Math.min(...ys) }
+    }
+  };
+}
+
+function isPointInsidePolygon_(point, polygon) {
+  if (!point || !Array.isArray(polygon) || polygon.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x, yi = polygon[i].y;
+    const xj = polygon[j].x, yj = polygon[j].y;
+    const intersects = ((yi > point.y) !== (yj > point.y)) &&
+      (point.x < (xj - xi) * (point.y - yi) / ((yj - yi) || Number.EPSILON) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function isNativeCoordinateInsideGeoPdfBoundary_(geoReference, x, y, epsilonMeters) {
+  const b = geoReference && geoReference.boundary;
+  if (!b || b.type !== 'neatline' || !Array.isArray(b.nativePoints) || b.nativePoints.length < 3) return true;
+  const eps = Number.isFinite(epsilonMeters) ? Math.max(0, epsilonMeters) : 0;
+  if (isPointInsidePolygon_({ x, y }, b.nativePoints)) return true;
+  // Boundary vertex/edge tolerance: accept a small distance to the polygon bbox first.
+  const ex = b.extent;
+  if (ex && x >= ex.cornerTL.timur - eps && x <= ex.cornerBR.timur + eps &&
+      y <= ex.cornerTL.utara + eps && y >= ex.cornerBR.utara - eps) {
+    return isPointInsidePolygon_({ x: x + eps, y }, b.nativePoints) ||
+           isPointInsidePolygon_({ x: x - eps, y }, b.nativePoints) ||
+           isPointInsidePolygon_({ x, y: y + eps }, b.nativePoints) ||
+           isPointInsidePolygon_({ x, y: y - eps }, b.nativePoints);
+  }
+  return false;
+}
+
+
+function buildGeoReferenceObject_(args) {
+  const {
+    sourceFileName, measureSubtype, gcsObjectNumber, vpBBox, gpts, lpts,
+    coordinateType, crs, crsSource, transform, residualM, extent, mapFrame, boundary, datumTransform, datumDetection
+  } = args;
+
+  return {
+    schema: 'MG1-GeoReference',
+    version: 1,
+    source: {
+      type: 'GeoPDF',
+      fileName: sourceFileName || '',
+      measureSubtype: measureSubtype || 'GEO',
+      gcsObjectNumber: gcsObjectNumber || null
+    },
+    metadata: {
+      gpts: gpts.slice(),
+      lpts: lpts.slice(),
+      vpBBox: vpBBox.slice(),
+      coordinateType: coordinateType || 'projected'
+    },
+    transform: {
+      type: 'affine-2d',
+      direction: 'page-to-native',
+      coefficients: {
+        ax: transform.ax, bx: transform.bx, cx: transform.cx,
+        ay: transform.ay, by: transform.by, cy: transform.cy
+      },
+      validation: {
+        maxResidualMeters: residualM
+      }
+    },
+    crs: {
+      datum: crs.datum || 'UNKNOWN',
+      zone: crs.zone ?? null,
+      hemisphere: crs.hemisphere || null,
+      epsg: crs.epsg ?? null,
+      name: crs.name || '',
+      centralMeridian: crs.centralMeridian ?? null,
+      falseEasting: crs.falseEasting ?? null,
+      falseNorthing: crs.falseNorthing ?? null,
+      scaleFactor: crs.scaleFactor ?? null,
+      projection: crs.projection || 'TRANSVERSE_MERCATOR_UTM_COMPATIBLE',
+      nativeUnits: crs.nativeUnits || ((String(crs.projection||'').toUpperCase()==='GEOGRAPHIC') ? 'degrees' : 'meters'),
+      source: crsSource
+    },
+    datumTransform: datumTransform ? {
+      method: datumTransform.method || 'HELMERT',
+      sourceDatum: datumTransform.sourceDatum || null,
+      targetDatum: datumTransform.targetDatum || null,
+      parameters: datumTransform.parameters || null,
+      status: datumTransform.status || 'available',
+      source: datumTransform.source || 'EXPLICIT_METADATA'
+    } : null,
+    datumDetection: datumDetection ? {
+      datum: datumDetection.datum || 'UNKNOWN',
+      status: datumDetection.status || 'unknown',
+      confidence: datumDetection.confidence || 'none',
+      source: datumDetection.source || 'NO_EXPLICIT_DATUM',
+      epsg: datumDetection.epsg ?? null
+    } : null,
+    extent: {
+      cornerTL: { timur: extent.cornerTL.timur, utara: extent.cornerTL.utara },
+      cornerBR: { timur: extent.cornerBR.timur, utara: extent.cornerBR.utara }
+    },
+    mapFrame: mapFrame ? {
+      candidateCount: Number(mapFrame.candidateCount) || 1,
+      selectedIndex: Number(mapFrame.selectedIndex) || 0,
+      selection: mapFrame.selection || 'largest-viewport'
+    } : null,
+    boundary: boundary ? {
+      type: boundary.type || 'neatline',
+      source: boundary.source || 'GEOPDF_NEATLINE',
+      pagePoints: (boundary.pagePoints || []).map(p => ({ x: p.x, y: p.y })),
+      nativePoints: (boundary.nativePoints || []).map(p => ({ x: p.x, y: p.y })),
+      extent: boundary.extent ? {
+        cornerTL: { timur: boundary.extent.cornerTL.timur, utara: boundary.extent.cornerTL.utara },
+        cornerBR: { timur: boundary.extent.cornerBR.timur, utara: boundary.extent.cornerBR.utara }
+      } : null
+    } : null
+  };
+}
+
 async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
-  // [DIPERBAIKI] report() SEBELUMNYA cuma meneruskan `msg`, membuang `percent` -- makanya
-  // progress bar upload GeoPDF terlihat diam di 0% walau teks jalan (tile pyramid ratusan
-  // tile TIDAK PERNAH mengirim angka persen ke UI). Sekarang teruskan keduanya.
-  const report = (msg, percent) => { if (onProgress) onProgress(msg, percent); };
+  const report = (msg) => { if (onProgress) onProgress(msg); };
   report('Cek pdf.js...');
   if (typeof pdfjsLib === 'undefined') return { ok: false, reason: 'pdf.js belum termuat (kemungkinan CDN diblok jaringan HP ini).' };
 
@@ -1924,11 +2287,12 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
     }
 
     // STEP 7.5.3: DIRECT TILE-ONLY GeoPDF path.
-    // Setiap tile dirender langsung dari PDF.js pada resolusi levelnya; tidak ada
-    // full-page raster/crop yang kemudian di-upscale menjadi sumber deep-zoom.
+    // Jangan rasterisasi full page / crop besar sebelum membuat tile. Itu justru memicu
+    // memory guard pada Android dan menghilangkan keuntungan tile pyramid.
+    // Semua detail deep-zoom dirender langsung oleh pdf.js per tile.
     const tileStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     report('Membangun tile pyramid langsung dari PDF...');
-    const tilePyramid = await buildTilePyramidDirect_(page, vpBBox, scale, report, geoReference);
+    const tilePyramid = await buildTilePyramidFromGeoPdfPage_(page, vpBBox, scale, report);
     const tileFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
     // IndexedDB/form lama masih membutuhkan imageDataUrl sebagai preview/fallback.
@@ -1958,13 +2322,13 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
       megapixels: Number(((previewLevel.width * previewLevel.height) / 1000000).toFixed(3)),
       pixelsPerSecond: null,
       requestAnimationFrame: true,
-      mode: 'pdfjs-direct-tile-render',
+      mode: 'direct-pdf-tile-render',
       tileRenderMs: Math.max(0, tileFinishedAt - tileStartedAt),
       previewEncodeMs: Math.max(0, previewEncodeFinishedAt - tileFinishedAt)
     };
     geoReference.render.tilePyramid = {
       mode: 'pdfjs-direct-tile-render',
-      tileSize: Number(tilePyramid && tilePyramid.tileSize) || GEOPDF_TILE_SIZE_,
+      tileSize: GEOPDF_TILE_SIZE_,
       levels: GEOPDF_TILE_LEVEL_FACTORS_.slice(),
       baseScale: scale,
       source: 'GeoPDF direct PDF.js tile render',
@@ -1983,41 +2347,156 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
     bytes = null; buffer = null; text = '';
   }
 }
-
-// V17.1 NO FLICKER — freeze the currently rendered map outside #app while the
-// final render() rebuilds the application DOM. This is a visual shield only;
-// it does not alter map state, tiles, gestures, or compositor math.
-
-
-
-
-
-
-// V17.1 STEP K — STABLE SAVE + MAP TRANSITION UI
-// Selama proses Simpan, jangan panggil render() berulang-ulang. render() mengganti
-// app.innerHTML dan dapat membuat map surface berkedip. Status upload diperbarui langsung
-// pada DOM yang sudah ada; render() hanya dilakukan sekali setelah lifecycle save selesai.
-function paintMapUploadSaveUi_() {
+async function submitMapUpload_() {
+  if (mapUploadBusy || mapUploadProcessing) return;
+  const f = mapUploadFormState;
+  if (!f.fileDataUrl) { mapUploadStatusMsg = 'Pilih gambar peta dulu.'; mapUploadStatusOk = false; render(); return; }
+  if (!f.name.trim()) { mapUploadStatusMsg = 'Nama peta wajib diisi.'; mapUploadStatusOk = false; render(); return; }
+  if (!isStrictNumeric(f.tlTimur) || !isStrictNumeric(f.tlUtara) || !isStrictNumeric(f.brTimur) || !isStrictNumeric(f.brUtara)) {
+    mapUploadStatusMsg = 'Ke-4 angka Timur/Utara wajib angka valid (bukan kosong/teks).'; mapUploadStatusOk = false; render(); return;
+  }
+  mapUploadBusy = true; mapUploadStatusMsg = 'Menyimpan ke HP...'; mapUploadStatusOk = true; render();
   try {
-    const statusEl = document.getElementById('map-upload-status');
-    const btn = document.getElementById('map-upload-save-btn');
-    if (statusEl) {
-      statusEl.textContent = String(mapUploadStatusMsg || 'Memproses...');
-      statusEl.classList.toggle('text-emerald-400', !!mapUploadStatusOk);
-      statusEl.classList.toggle('text-rose-400', !mapUploadStatusOk);
-      statusEl.classList.toggle('text-amber-300', mapUploadStatusOk && /peringatan|warning/i.test(String(mapUploadStatusMsg || '')));
-    }
-    if (btn) {
-      const busy = !!mapUploadBusy || !!mapUploadProcessing;
-      btn.disabled = busy;
-      btn.innerHTML = busy
-        ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span><span>' + (mapUploadProcessing ? 'Memproses GeoPDF...' : 'Menyimpan...') + '</span>'
-        : icon('upload','w-4 h-4') + '<span>Simpan Peta</span>';
-    }
+    const id = 'bgmap_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    await dbPutMap_({
+      id: id,
+      name: f.name.trim(),
+      imageDataUrl: f.fileDataUrl,
+      cornerTL: f.geoReference && f.geoReference.extent ? { ...f.geoReference.extent.cornerTL } : { timur: parseFloat(f.tlTimur), utara: parseFloat(f.tlUtara) },
+      cornerBR: f.geoReference && f.geoReference.extent ? { ...f.geoReference.extent.cornerBR } : { timur: parseFloat(f.brTimur), utara: parseFloat(f.brUtara) },
+      geoReference: f.geoReference || null,
+      tilePyramid: f.tilePyramid || null,
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: sessionInfo ? sessionInfo.userName : 'unknown'
+    });
+    await loadBackgroundMapsFromDb_();
+    activeBackgroundMapId = id; // peta baru diupload langsung diaktifkan
+    mapZoom = 1.25;
+    mapViewportState_.centerNative = null;
+    localStorage.setItem('mg1_active_bg_map_id', id);
+    mapUploadFormOpen = false;
+  } catch (e) {
+    mapUploadStatusMsg = 'Gagal menyimpan (HP mungkin kehabisan ruang penyimpanan).'; mapUploadStatusOk = false;
+  } finally {
+    mapUploadBusy = false; render();
+  }
+}
+function activateBackgroundMap_(id) {
+  activeBackgroundMapId = id;
+  mapZoom = 1.25;
+  mapViewportState_.centerNative = null;
+  localStorage.setItem('mg1_active_bg_map_id', id);
+  render();
+}
+async function deactivateBackgroundMap_() {
+  activeBackgroundMapId = null;
+  mapZoom = 1;
+  mapViewportState_.centerNative = null;
+  localStorage.removeItem('mg1_active_bg_map_id');
+  render();
+}
+// [PATCH 9.14Q] Restore branded delete-map confirmation + flat trash icon
+// Replaces native confirm(), which exposes the github.io origin on Android.
+function showBrandedConfirm_(title, message, onConfirm) {
+  try {
+    const old = document.getElementById('mg1-branded-confirm');
+    if (old) old.remove();
   } catch (_) {}
+
+  const el = document.createElement('div');
+  el.id = 'mg1-branded-confirm';
+  el.style.cssText =
+    'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;' +
+    'justify-content:center;padding:20px;';
+
+  el.innerHTML = `
+    <div id="mg1-confirm-backdrop"
+         style="position:absolute;inset:0;background:rgba(0,0,0,0.65);
+                backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);"></div>
+
+    <div style="position:relative;width:100%;max-width:340px;
+                background:#0f172a;border:1px solid rgba(255,255,255,0.1);
+                border-radius:20px;padding:20px 20px 16px;
+                box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div style="width:36px;height:36px;border-radius:12px;
+                    background:rgba(244,63,94,0.15);
+                    border:1px solid rgba(244,63,94,0.3);
+                    display:flex;align-items:center;justify-content:center;">
+          ${icon('trash-2','w-5 h-5 text-rose-400')}
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:-0.02em;">
+            ${title || 'MINE GEOLOGIST'}
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">
+            Konfirmasi tindakan
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:13px;color:rgba(255,255,255,0.85);
+                  line-height:1.5;margin-bottom:18px;">
+        ${message || ''}
+      </div>
+
+      <div style="display:flex;gap:10px;">
+        <button id="mg1-confirm-cancel"
+                style="flex:1;height:42px;border-radius:12px;
+                       background:rgba(255,255,255,0.06);
+                       border:1px solid rgba(255,255,255,0.08);
+                       color:rgba(255,255,255,0.7);
+                       font-size:13px;font-weight:700;">
+          Batal
+        </button>
+        <button id="mg1-confirm-ok"
+                style="flex:1;height:42px;border-radius:12px;
+                       background:#ef4444;border:none;color:#fff;
+                       font-size:13px;font-weight:800;">
+          Hapus
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(el);
+
+  const close = () => {
+    try { el.remove(); } catch (_) {}
+  };
+
+  el.querySelector('#mg1-confirm-backdrop').onclick = close;
+  el.querySelector('#mg1-confirm-cancel').onclick = close;
+  el.querySelector('#mg1-confirm-ok').onclick = () => {
+    close();
+    try {
+      if (onConfirm) onConfirm();
+    } catch (e) {
+      console.warn(e);
+    }
+  };
 }
 
-
+async function deleteBackgroundMapEntry_(id) {
+  showBrandedConfirm_(
+    'Hapus Peta?',
+    'Peta ini akan dihapus dari penyimpanan HP (IndexedDB). Tindakan tidak bisa dibatalkan.',
+    async function() {
+      try {
+        await dbDeleteMap_(id);
+        if (activeBackgroundMapId === id) {
+          activeBackgroundMapId = null;
+          localStorage.removeItem('mg1_active_bg_map_id');
+        }
+        await loadBackgroundMapsFromDb_();
+      } catch (e) {
+        console.warn('Gagal hapus peta:', e);
+      }
+      render();
+    }
+  );
+}
 
 // ==== NORTH ARROW / CRS CONFIG -- v90.2.117 BARU (4 Sep, desain LOCKED sesi audit
 // Avenza+ArcGIS, lihat memori proyek utk histori lengkap). Config CRS DISENGAJA disimpan
@@ -2059,164 +2538,6 @@ async function fetchCrsConfig() {
 // 'compass' (BELUM AKTIF -- guard eksplisit di setNorthMode_, bukan cuma disabled visual).
 let northMode = 'grid';
 let northInfoOpen = false; // panel detail (tap ikon North utk buka/tutup)
-// STEP 7.7: Compass / Heading-Up state. Sensor owns the map rotation while active;
-// dual-finger rotate remains available and becomes a temporary manual offset.
-let compassRotationOffsetDeg_ = 0;
-let compassState_ = {
-  active: false,
-  supported: false,
-  permission: 'unknown',
-  headingDeg: null,
-  smoothedHeadingDeg: null,
-  source: null,
-  accuracyDeg: null,
-  error: null,
-  listenerAttached: false
-};
-let compassFallbackTimer_ = null;
-
-function normalizeHeadingDeg_(deg) {
-  if (!Number.isFinite(deg)) return null;
-  let d = deg % 360;
-  if (d < 0) d += 360;
-  return d;
-}
-function normalizeSignedDeg_(deg) {
-  if (!Number.isFinite(deg)) return 0;
-  let d = deg % 360;
-  if (d > 180) d -= 360;
-  if (d <= -180) d += 360;
-  return d;
-}
-function getScreenOrientationAngle_() {
-  try {
-    if (screen && screen.orientation && Number.isFinite(screen.orientation.angle)) return screen.orientation.angle;
-  } catch (_) {}
-  try {
-    if (typeof window.orientation === 'number' && Number.isFinite(window.orientation)) return window.orientation;
-  } catch (_) {}
-  return 0;
-}
-function getCompassHeadingFromEvent_(event) {
-  if (!event) return null;
-  // iOS/WebKit exposes a direct compass heading; prefer it because it is already
-  // expressed as clockwise degrees from North.
-  if (Number.isFinite(event.webkitCompassHeading)) {
-    return { heading: normalizeHeadingDeg_(event.webkitCompassHeading), source: 'webkit-compass', accuracy: Number.isFinite(event.webkitCompassAccuracy) ? event.webkitCompassAccuracy : null };
-  }
-  // For absolute DeviceOrientation, alpha is counter-clockwise from North, so
-  // convert it to the normal compass convention (clockwise from North).
-  if (event.absolute === true && Number.isFinite(event.alpha)) {
-    const screenAngle = getScreenOrientationAngle_();
-    return { heading: normalizeHeadingDeg_(360 - event.alpha + screenAngle), source: 'deviceorientation-absolute', accuracy: null };
-  }
-  return null;
-}
-function applyCompassRotationVisual_() {
-  if (!compassState_.active || !Number.isFinite(compassState_.smoothedHeadingDeg)) return;
-  if (mapPinchState_.active || mapButtonZoomRaf_) return;
-  mapRotationDeg_ = normalizeSignedDeg_(-compassState_.smoothedHeadingDeg + compassRotationOffsetDeg_);
-  const svg = getMapButtonZoomSvg_();
-  if (svg) {
-    if (mapPanState_.active) applyPanVisual_(svg, mapPanState_.dx, mapPanState_.dy);
-    else svg.style.transform = composeMapTransform_(1, mapRotationDeg_, 0, 0);
-  }
-  try {
-    const arrow = document.querySelector('[data-mg1-compass-arrow="true"]');
-    if (arrow) arrow.style.transform = 'rotate(' + mapRotationDeg_.toFixed(3) + 'deg)';
-  } catch (_) {}
-}
-function handleCompassOrientation_(event) {
-  if (!compassState_.active) return;
-  const data = getCompassHeadingFromEvent_(event);
-  if (!data || !Number.isFinite(data.heading)) return;
-  const h = data.heading;
-  compassState_.headingDeg = h;
-  if (compassFallbackTimer_) { clearTimeout(compassFallbackTimer_); compassFallbackTimer_ = null; }
-  compassState_.source = data.source;
-  compassState_.accuracyDeg = data.accuracy;
-  compassState_.error = null;
-  if (!Number.isFinite(compassState_.smoothedHeadingDeg)) {
-    compassState_.smoothedHeadingDeg = h;
-  } else {
-    const delta = normalizeSignedDeg_(h - compassState_.smoothedHeadingDeg);
-    // Light low-pass smoothing: responsive enough for map use, but avoids
-    // magnetic-sensor jitter from shaking the whole map.
-    compassState_.smoothedHeadingDeg = normalizeHeadingDeg_(compassState_.smoothedHeadingDeg + delta * 0.22);
-  }
-  applyCompassRotationVisual_();
-}
-function detachCompassListeners_() {
-  if (typeof window === 'undefined' || !compassState_.listenerAttached) return;
-  try { window.removeEventListener('deviceorientationabsolute', handleCompassOrientation_, true); } catch (_) {}
-  try { window.removeEventListener('deviceorientation', handleCompassOrientation_, true); } catch (_) {}
-  compassState_.listenerAttached = false;
-  if (compassFallbackTimer_) { clearTimeout(compassFallbackTimer_); compassFallbackTimer_ = null; }
-}
-function stopCompassMode_(renderAfter) {
-  detachCompassListeners_();
-  compassState_.active = false;
-  compassState_.headingDeg = null;
-  compassState_.smoothedHeadingDeg = null;
-  compassState_.source = null;
-  compassState_.accuracyDeg = null;
-  compassState_.error = null;
-  compassRotationOffsetDeg_ = 0;
-  if (renderAfter) render();
-}
-async function startCompassMode_() {
-  if (typeof window === 'undefined' || typeof DeviceOrientationEvent === 'undefined') {
-    compassState_.supported = false;
-    compassState_.permission = 'unsupported';
-    compassState_.error = 'Sensor arah perangkat tidak tersedia di WebView ini.';
-    render();
-    return false;
-  }
-  compassState_.supported = true;
-  compassState_.permission = 'unknown';
-  compassState_.error = null;
-  // Some user agents require explicit permission for absolute orientation.
-  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-    try {
-      const permission = await DeviceOrientationEvent.requestPermission(true);
-      compassState_.permission = permission;
-      if (permission !== 'granted') {
-        compassState_.error = 'Izin sensor arah ditolak.';
-        render();
-        return false;
-      }
-    } catch (e) {
-      compassState_.permission = 'error';
-      compassState_.error = 'Izin sensor arah tidak dapat diminta.';
-      render();
-      return false;
-    }
-  } else {
-    compassState_.permission = 'not-required';
-  }
-  detachCompassListeners_();
-  compassState_.active = true;
-  compassState_.headingDeg = null;
-  compassState_.smoothedHeadingDeg = null;
-  compassState_.source = null;
-  compassState_.error = null;
-  // Entering Compass means true Heading-Up: North is derived from the current
-  // device heading, without inheriting an old manual rotation.
-  compassRotationOffsetDeg_ = 0;
-  try { window.addEventListener('deviceorientationabsolute', handleCompassOrientation_, true); } catch (_) {}
-  try { window.addEventListener('deviceorientation', handleCompassOrientation_, true); } catch (_) {}
-  compassState_.listenerAttached = true;
-  // If no absolute event arrives, keep the normal deviceorientation listener alive;
-  // some Android WebViews expose absolute=true only on the normal event.
-  compassFallbackTimer_ = setTimeout(function() {
-    if (compassState_.active && !Number.isFinite(compassState_.headingDeg)) {
-      compassState_.error = 'Menunggu sensor kompas...';
-      render();
-    }
-  }, 2500);
-  render();
-  return true;
-}
 
 // Mode Ukur (bonus fitur, TP->TP Bearing+Distance) -- terpisah dari mapDetailIdTp supaya
 // tidak saling ganggu (buka detail 1 TP tetap bisa jalan normal walau lagi mode ukur).
@@ -2436,48 +2757,312 @@ function getMapViewBox_(bounds) {
   return { x: centerX - zoomedW / 2, y: centerY - zoomedH / 2, w: zoomedW, h: zoomedH };
 }
 
-
+function captureMapViewportCenter_(bounds) {
+  if (!bounds) return;
+  const viewBox = getMapViewBox_(bounds);
+  const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+  if (!(rangeT > 0) || !(rangeU > 0)) return;
+  const centerSvgX = viewBox.x + viewBox.w / 2;
+  const centerSvgY = viewBox.y + viewBox.h / 2;
+  const nativeX = bounds.minT + (centerSvgX / 320) * rangeT;
+  const nativeY = bounds.minU + ((320 - centerSvgY) / 320) * rangeU;
+  if (Number.isFinite(nativeX) && Number.isFinite(nativeY)) {
+    mapViewportState_.centerNative = { x: nativeX, y: nativeY };
+  }
+}
 
 // STEP 5.6: helper geometri pinch-to-zoom.
+function pinchDistance_(a, b) {
+  const dx = b.clientX - a.clientX, dy = b.clientY - a.clientY;
+  return Math.hypot(dx, dy);
+}
+function pinchMidpoint_(a, b, rect) {
+  return {
+    x: ((a.clientX + b.clientX) / 2 - rect.left) / rect.width,
+    y: ((a.clientY + b.clientY) / 2 - rect.top) / rect.height
+  };
+}
+function nativeFromClientPoint_(event, bounds, rect) {
+  const viewW = 320, viewH = 320;
+  const viewBox = getMapViewBox_(bounds);
+  const sx = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.w;
+  const sy = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.h;
+  const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+  return {
+    x: bounds.minT + (sx / viewW) * rangeT,
+    y: bounds.minU + ((viewH - sy) / viewH) * rangeU
+  };
+}
+function scheduleMapPinchRender_() {
+  if (mapPinchRenderScheduled_) return;
+  mapPinchRenderScheduled_ = true;
+  requestAnimationFrame(() => {
+    mapPinchRenderScheduled_ = false;
+    if (mapPinchState_.active) render();
+  });
+}
+function scheduleMapPanVisual_() {
+  if (mapPanRenderScheduled_) return;
+  mapPanRenderScheduled_ = true;
+  requestAnimationFrame(() => {
+    mapPanRenderScheduled_ = false;
+    const svg = mapPanState_.visualSvg;
+    if (!svg || !mapPanState_.active) return;
+    svg.style.transform = 'translate3d(' + mapPanState_.dx.toFixed(2) + 'px,' + mapPanState_.dy.toFixed(2) + 'px,0)';
+  });
+}
+function applyPanVisual_(svg, dx, dy) {
+  if (!svg) return;
+  svg.style.transform = 'translate3d(' + Number(dx || 0).toFixed(2) + 'px,' + Number(dy || 0).toFixed(2) + 'px,0)';
+  svg.style.willChange = 'transform';
+}
+function applyPinchVisualTransform_(zoom) {
+  const svg = mapPinchState_.visualSvg;
+  if (!svg || !mapPinchState_.active) return false;
+  const baseZoom = Math.max(0.0001, mapPinchState_.startZoom);
+  const visualScale = Math.max(0.1, zoom / baseZoom);
+  svg.style.transformOrigin = (mapPinchState_.midX * 100).toFixed(2) + '% ' + (mapPinchState_.midY * 100).toFixed(2) + '%';
+  svg.style.transform = 'scale(' + visualScale.toFixed(4) + ')';
+  svg.style.willChange = 'transform';
+  return true;
+}
+function getMapPointerSvg_(event) {
+  return event && event.currentTarget && event.currentTarget.tagName === 'svg'
+    ? event.currentTarget
+    : (event && event.currentTarget ? event.currentTarget.querySelector('svg') : null);
+}
+function getMapPointerRect_(svg) {
+  if (!svg) return null;
+  const r = svg.getBoundingClientRect();
+  return r && r.width > 0 && r.height > 0 ? r : null;
+}
+function getMapCenterNative_(bounds) {
+  if (!bounds) return null;
+  const vb = getMapViewBox_(bounds);
+  const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+  if (!(rangeT > 0) || !(rangeU > 0)) return null;
+  const sx = vb.x + vb.w / 2, sy = vb.y + vb.h / 2;
+  return {
+    x: bounds.minT + (sx / 320) * rangeT,
+    y: bounds.minU + ((320 - sy) / 320) * rangeU
+  };
+}
+function beginMapPanPointer_(event, svg, bounds, startX, startY) {
+  const baseCenterNative = getMapCenterNative_(bounds);
+  const rect = getMapPointerRect_(svg);
+  if (!baseCenterNative || !rect) return false;
+  if (mapPanInertiaRaf_) { cancelAnimationFrame(mapPanInertiaRaf_); mapPanInertiaRaf_ = null; }
+  mapPanState_ = {
+    active: true,
+    startX, startY,
+    dx: 0, dy: 0,
+    baseCenterNative,
+    baseRectW: rect.width,
+    baseRectH: rect.height,
+    baseBounds: bounds,
+    visualSvg: svg,
+    moved: false,
+    suppressTapUntil: 0,
+    velocityX: 0,
+    velocityY: 0,
+    lastX: startX,
+    lastY: startY,
+    lastT: performance.now()
+  };
+  svg.style.transition = 'none';
+  applyPanVisual_(svg, 0, 0);
+  return true;
+}
+function commitMapPan_(extraDx, extraDy) {
+  const svg = mapPanState_.visualSvg;
+  const bounds = mapPanState_.baseBounds;
+  if (bounds && mapPanState_.baseCenterNative && mapPanState_.baseRectW > 0 && mapPanState_.baseRectH > 0) {
+    const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+    const zoomedW = 320 / Math.max(0.0001, mapZoom), zoomedH = 320 / Math.max(0.0001, mapZoom);
+    const totalDx = mapPanState_.dx + (extraDx || 0);
+    const totalDy = mapPanState_.dy + (extraDy || 0);
+    const deltaNativeX = -(totalDx / mapPanState_.baseRectW) * (zoomedW / 320) * rangeT;
+    const deltaNativeY = (totalDy / mapPanState_.baseRectH) * (zoomedH / 320) * rangeU;
+    const nx = mapPanState_.baseCenterNative.x + deltaNativeX;
+    const ny = mapPanState_.baseCenterNative.y + deltaNativeY;
+    if (Number.isFinite(nx) && Number.isFinite(ny)) mapViewportState_.centerNative = { x: nx, y: ny };
+  }
+  if (svg) { svg.style.transition = ''; svg.style.transform = 'none'; svg.style.willChange = ''; }
+  mapPanState_.active = false;
+  mapPanState_.visualSvg = null;
+  mapPanRenderScheduled_ = false;
+  mapPanInertiaRaf_ = null;
+  if (mapPanState_.moved) render();
+}
+function startMapPanInertia_() {
+  const svg = mapPanState_.visualSvg;
+  if (!svg) return false;
+  let vx = mapPanState_.velocityX;
+  let vy = mapPanState_.velocityY;
+  const speed = Math.hypot(vx, vy);
+  if (!mapPanState_.moved || speed < 0.08) return false;
+  const friction = 0.90;
+  let extraDx = 0, extraDy = 0;
+  let lastFrame = performance.now();
+  const tick = (now) => {
+    if (!mapPanState_.active || mapPanState_.visualSvg !== svg) { mapPanInertiaRaf_ = null; return; }
+    const dt = Math.min(32, Math.max(8, now - lastFrame));
+    lastFrame = now;
+    extraDx += vx * dt;
+    extraDy += vy * dt;
+    vx *= Math.pow(friction, dt / 16);
+    vy *= Math.pow(friction, dt / 16);
+    applyPanVisual_(svg, mapPanState_.dx + extraDx, mapPanState_.dy + extraDy);
+    if (Math.hypot(vx, vy) > 0.02 && Math.hypot(extraDx, extraDy) < 420) {
+      mapPanInertiaRaf_ = requestAnimationFrame(tick);
+    } else {
+      mapPanState_.dx += extraDx;
+      mapPanState_.dy += extraDy;
+      commitMapPan_(0, 0);
+    }
+  };
+  mapPanInertiaRaf_ = requestAnimationFrame(tick);
+  return true;
+}
+function commitMapPinchViewport_(bounds) {
+  if (!bounds || !mapPinchState_.anchorNative) return;
+  const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+  const zoomedW = 320 / Math.max(0.0001, mapZoom), zoomedH = 320 / Math.max(0.0001, mapZoom);
+  if (!(rangeT > 0) || !(rangeU > 0)) return;
+  const anchor = mapPinchState_.anchorNative;
+  const anchorX = ((anchor.x - bounds.minT) / rangeT) * 320;
+  const anchorY = 320 - ((anchor.y - bounds.minU) / rangeU) * 320;
+  const fx = Math.max(0, Math.min(1, mapPinchState_.midX));
+  const fy = Math.max(0, Math.min(1, mapPinchState_.midY));
+  const centerSvgX = anchorX - fx * zoomedW + zoomedW / 2;
+  const centerSvgY = anchorY - fy * zoomedH + zoomedH / 2;
+  const centerNativeX = bounds.minT + (centerSvgX / 320) * rangeT;
+  const centerNativeY = bounds.minU + ((320 - centerSvgY) / 320) * rangeU;
+  if (Number.isFinite(centerNativeX) && Number.isFinite(centerNativeY)) {
+    mapViewportState_.centerNative = { x: centerNativeX, y: centerNativeY };
+  }
+}
+function handleMapPointerDown_(event) {
+  if (!event || !event.currentTarget) return;
+  const svg = getMapPointerSvg_(event);
+  if (!svg) return;
+  // Touch ownership ditentukan oleh touch-action:none + blocker contextmenu/select/drag.
+  // JANGAN preventDefault() pada pointerdown: Android/WebView dapat menekan compatibility
+  // click sehingga tap cepat tidak lagi masuk ke handleMapTap_. Pointermove akan dibatalkan
+  // saat gesture benar-benar bergerak.
+  try { svg.setPointerCapture(event.pointerId); } catch (_) {}
+  mapPointerState_.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  const points = Array.from(mapPointerState_.entries());
+  const bounds = computeResponsiveDisplayBounds_(buildMapData());
+  if (!bounds) return;
+  if (points.length === 1) {
+    beginMapPanPointer_(event, svg, bounds, event.clientX, event.clientY);
+    return;
+  }
+  if (points.length === 2) {
+    const a = points[0][1], b = points[1][1];
+    const rect = getMapPointerRect_(svg);
+    if (!rect) return;
+    const distance = Math.hypot(b.x - a.x, b.y - a.y);
+    if (!(distance > 0)) return;
+    const midpoint = { x: ((a.x + b.x) / 2 - rect.left) / rect.width, y: ((a.y + b.y) / 2 - rect.top) / rect.height };
+    const anchor = nativeFromClientPoint_({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 }, bounds, rect);
+    mapPanState_.active = false;
+    if (mapPanInertiaRaf_) { cancelAnimationFrame(mapPanInertiaRaf_); mapPanInertiaRaf_ = null; }
+    mapPinchState_ = { active: true, startDistance: distance, startZoom: mapZoom, anchorNative: anchor, midX: midpoint.x, midY: midpoint.y, suppressTapUntil: Date.now() + 500, visualSvg: svg };
+    svg.style.transform = 'none';
+    svg.style.willChange = 'transform';
+    event.preventDefault();
+  }
+}
+function handleMapPointerMove_(event) {
+  if (!event || !event.currentTarget || !mapPointerState_.has(event.pointerId)) return;
+  mapPointerState_.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  const svg = getMapPointerSvg_(event);
+  const points = Array.from(mapPointerState_.entries());
+  if (mapPinchState_.active && points.length >= 2) {
+    event.preventDefault();
+    const a = points[0][1], b = points[1][1];
+    const distance = Math.hypot(b.x - a.x, b.y - a.y);
+    if (!(distance > 0) || !(mapPinchState_.startDistance > 0)) return;
+    const rect = getMapPointerRect_(svg);
+    if (!rect) return;
+    mapPinchState_.midX = ((a.x + b.x) / 2 - rect.left) / rect.width;
+    mapPinchState_.midY = ((a.y + b.y) / 2 - rect.top) / rect.height;
+    mapZoom = Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, mapPinchState_.startZoom * (distance / mapPinchState_.startDistance)));
+    applyPinchVisualTransform_(mapZoom);
+    return;
+  }
+  if (mapPanState_.active && points.length === 1) {
+    event.preventDefault();
+    const curX = event.clientX, curY = event.clientY;
+    const dx = curX - mapPanState_.startX;
+    const dy = curY - mapPanState_.startY;
+    const now = performance.now();
+    const dt = Math.max(1, now - mapPanState_.lastT);
+    const sample = Math.max(0.001, Math.min(1, 16 / dt));
+    const vx = (curX - mapPanState_.lastX) / dt;
+    const vy = (curY - mapPanState_.lastY) / dt;
+    mapPanState_.velocityX = mapPanState_.velocityX * (1 - sample) + vx * sample;
+    mapPanState_.velocityY = mapPanState_.velocityY * (1 - sample) + vy * sample;
+    mapPanState_.lastX = curX; mapPanState_.lastY = curY; mapPanState_.lastT = now;
+    mapPanState_.dx = dx; mapPanState_.dy = dy;
+    if (Math.hypot(dx, dy) >= 4) mapPanState_.moved = true;
+    scheduleMapPanVisual_();
+  }
+}
+function handleMapPointerUp_(event) {
+  if (!event) return;
+  const svg = getMapPointerSvg_(event);
+  const wasPinching = mapPinchState_.active;
+  const wasPanning = mapPanState_.active;
+  const moved = mapPanState_.moved;
+  mapPointerState_.delete(event.pointerId);
+  try { if (svg && svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId); } catch (_) {}
 
+  if (wasPinching) {
+    const bounds = computeResponsiveDisplayBounds_(buildMapData());
+    if (bounds) commitMapPinchViewport_(bounds);
+    mapPinchState_.active = false;
+    mapPinchState_.suppressTapUntil = Date.now() + 350;
+    const visual = mapPinchState_.visualSvg;
+    if (visual) { visual.style.transform = 'none'; visual.style.willChange = ''; }
+    mapPinchState_.visualSvg = null;
+    mapPinchRenderScheduled_ = false;
+    const remaining = Array.from(mapPointerState_.entries());
+    if (remaining.length === 1 && visual) {
+      const p = remaining[0][1];
+      beginMapPanPointer_(event, visual, bounds, p.x, p.y);
+      mapPanState_.suppressTapUntil = Date.now() + 350;
+    } else {
+      requestAnimationFrame(() => render());
+    }
+    return;
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
-// V15.4 STEP C — PERSISTENT MAP SURFACE.
-// Pan visual tidak lagi mentransform SVG element-nya. SVG tetap berada tepat di dalam
-// viewport; yang digeser hanya jendela viewBox terhadap tile BASE yang sudah ada.
-// Ini mencegah container membuka area kosong/navy ketika surface tidak ikut diperbesar.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  if (wasPanning) {
+    if (moved && startMapPanInertia_()) {
+      mapPanState_.suppressTapUntil = Date.now() + 500;
+      return;
+    }
+    commitMapPan_(0, 0);
+    mapPanState_.suppressTapUntil = moved ? Date.now() + 350 : 0;
+  }
+}
+function handleMapPointerCancel_(event) {
+  handleMapPointerUp_(event);
+}
 
 // Konversi 1 titik Timur/Utara -> koordinat SVG (x,y). SVG y-axis terbalik dari Utara
 // (Utara makin besar = "ke atas" secara peta, tapi SVG y makin besar = "ke bawah") --
 // makanya utara di-flip di rumus y.
+function projectToSvg(timur, utara, bounds, viewW, viewH) {
+  const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+  const x = ((timur - bounds.minT) / rangeT) * viewW;
+  const y = viewH - (((utara - bounds.minU) / rangeU) * viewH);
+  return { x, y };
+}
+
 // [PARTISI -- 4 Sep, Tahap 1] 4 fungsi geo-engine (inverseUtm_, gridConvergence_,
 // computeConvergenceForPoint_, bearingDistanceGrid_) DIPINDAH ke ../shared/geo-engine.js
 // -- SATU-SATUNYA salinan, dipakai bersama Master & Member Android. Dimuat lewat
@@ -2493,11 +3078,23 @@ function getMapViewBox_(bounds) {
 // 20/25/50/100/...) terdekat yg TIDAK melebihi target -- supaya batang selalu menunjukkan
 // jarak asli yg benar pada zoom berapapun, bukan dekorasi statis.
 const NICE_SCALE_METERS = [1,2,5,10,20,25,50,100,200,250,500,1000,2000,5000];
+function renderMapScaleBar(bounds) {
+  if (!bounds) return '';
+  const viewW = 320;
+  // Total meter yg terlihat di LEBAR PENUH viewBox saat ini (viewBox menyempit saat zoom,
+  // jadi meter yg terlihat pun ikut menyempit -- inilah yg bikin skala "hidup").
+  const totalMetersVisible = (bounds.maxT - bounds.minT) / mapZoom;
+  const target = totalMetersVisible * 0.25;
+  let niceMeters = NICE_SCALE_METERS[0];
+  for (const m of NICE_SCALE_METERS) { if (m <= target) niceMeters = m; else break; }
+  const barWidthPercent = Math.min(60, (niceMeters / totalMetersVisible) * 100);
+  return '<div class="absolute left-3 bottom-3 flex flex-col items-start gap-1">' +
+    '<div class="h-[3px] rounded-full bg-white/70" style="width:' + barWidthPercent.toFixed(1) + '%; min-width:20px;"></div>' +
+    '<div class="text-[9px] text-white/60 font-semibold">' + niceMeters + ' m</div>' +
+  '</div>';
+}
+
 function renderMineGridSvg(points) {
-  // STEP 8.21D MINIMAL FIX: hoist counters to top to avoid TDZ - diagnostic/compositor only
-  var mg1RuntimeUsedCount_ = 0;
-  var mg1FallbackCount_ = 0;
-  ensureMapContextBlocker_();
   const bounds = computeResponsiveDisplayBounds_(points);
   const viewW = 320, viewH = 320;
   if (!bounds) return '';
@@ -2506,7 +3103,7 @@ function renderMineGridSvg(points) {
   // mengikuti persistent viewport state; titik tap tidak pernah menjadi anchor.
   const viewBox = getMapViewBox_(bounds);
   const valid = points.filter(p => p.hasValidCoord);
-  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="pointer-events:auto; touch-action:none; overflow:hidden; will-change:transform; transition:none; transform-origin:50% 50%; transform:rotate(' + mapRotationDeg_.toFixed(4) + 'deg); -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" ontouchstart="handleMapTouchStart_(event)" ontouchmove="handleMapTouchMove_(event)" ontouchend="handleMapTouchEnd_(event)" ontouchcancel="handleMapTouchEnd_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
+  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="touch-action:none; overflow:hidden; will-change:transform; transition:none; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
   // [BARU -- 5 Sep] Peta background (foto udara/olah ArcGIS) -- digambar PALING BAWAH
   // (sebelum grid helper & marker) supaya tidak menutupi apa pun. Posisi & ukuran dihitung
   // dari 2 sudut referensi pakai projectToSvg() yg SAMA dgn yg plot titik TP -- kalau titik
@@ -2534,148 +3131,26 @@ function renderMineGridSvg(points) {
       }
       const pyramid = activeMap.tilePyramid;
       if (pyramid && Array.isArray(pyramid.levels) && pyramid.levels.length) {
-        // STEP 8.19 FIX: counters
-        // V15.1 SEAMLESS 2-LAYER DISPLAY:
-        //   BASE 0.25x = always rendered first and covers the full GeoPDF extent.
-        //   DETAIL     = selected higher-resolution level rendered on top.
-        // If detail is incomplete/outside its viewport window, BASE remains visible.
+        // Pilih level resolusi yang paling dekat di bawah kebutuhan zoom. Deep zoom
+        // memakai level native hasil render langsung dari PDF, bukan upscale crop PNG.
         const maxFactor = Math.max(...pyramid.levels.map(l => Number(l.factor) || 0));
         let targetFactor = maxFactor;
         if (mapZoom <= 1.5) targetFactor = Math.min(0.25, maxFactor);
         else if (mapZoom <= 2.5) targetFactor = Math.min(0.5, maxFactor);
-
-        // V15.3 STEP B: BASE layer is resolved from explicit persistent metadata.
-        // Legacy pyramids without baseLayer remain compatible via the old fallback.
-        const baseMeta = pyramid.baseLayer && pyramid.baseLayer.persistent ? pyramid.baseLayer : null;
-        const baseLevel = (baseMeta && pyramid.levels[baseMeta.levelIndex])
-          || pyramid.levels.find(l => Math.abs(Number(l.factor) - 0.25) < 0.0001)
-          || pyramid.levels[0];
-        let detailLevel = pyramid.levels[0];
+        let level = pyramid.levels[0];
         for (const candidate of pyramid.levels) {
-          if (Number(candidate.factor) <= targetFactor) detailLevel = candidate;
+          if (Number(candidate.factor) <= targetFactor) level = candidate;
         }
-        // On LOW/C2 the stored detail is the tested 1.55x layer. Keep it as detail
-        // even when targetFactor is below it; BASE is the visual fallback.
-        if (detailLevel === baseLevel && pyramid.levels.length > 1) {
-          detailLevel = pyramid.levels[pyramid.levels.length - 1];
-        }
-
-        // === STEP 8.10B-FIX HOOK: Non-blocking runtime orchestration with tileSize alignment ===
-        // FIX BLOCKER 1: pakai actual pyramid tiles + viewBox intersection, bukan planner indices langsung
-        // BASE tetap fallback visual, appendLevel() 100% untouched
-        try {
-          try { if (typeof window !== 'undefined') { window.mg1LastPyramidCheck = { hasPyramid: !!pyramid, hasDetail: !!detailLevel, pyramidLevels: pyramid && pyramid.levels ? pyramid.levels.length : 0 }; } } catch(_) {}
-          if (pyramid && detailLevel) {
-            const visibleResult = typeof getVisibleDetailKeysFromPlan_ === 'function' 
-              ? getVisibleDetailKeysFromPlan_(pyramid, detailLevel, bounds, viewBox, imgX, imgY, imgW, imgH) 
-              : { ok:false, keys:[] };
-            // STEP 8.21D: record visibleResult regardless of ok
-            try { if (typeof window !== 'undefined') { window.mg1LastVisibleResult = visibleResult; window.mg1LastDetailFactor = detailLevel ? detailLevel.factor : null; window.mg1LastTargetFactor = targetFactor; } } catch(_) {}
-            if (visibleResult.ok && visibleResult.keys.length) {
-              const runtimeResult = typeof ensureRuntimeTiles_NonBlocking_ === 'function' ? ensureRuntimeTiles_NonBlocking_(visibleResult.keys, pyramid) : { ok:false, queued:0, missing:[], alreadyReady:0, alreadyLoading:0 };
-              if (runtimeResult.ok && runtimeResult.queued > 0) {
-                // Background consumer - jangan await di render path, jangan block compositor
-                setTimeout(() => {
-                  try {
-                    processRuntimeQueueBatch_(pyramid, 3);
-                  } catch(_) {}
-                }, 0);
-              }
-              // STEP 8.14: Missing worker - async, 1-2/batch, in-flight protection, tidak block render
-              if (runtimeResult.ok && Array.isArray(runtimeResult.missing) && runtimeResult.missing.length > 0) {
-                setTimeout(() => {
-                  try {
-                    const mapIdForMissing = (typeof activeBackgroundMapId !== 'undefined' && activeBackgroundMapId) ? activeBackgroundMapId : (typeof activeMap !== 'undefined' && activeMap ? activeMap.id : null);
-                    processMissingCreationBatch_(pyramid, mapIdForMissing, runtimeResult.missing, 2);
-                  } catch(_) {}
-                }, 50);
-              }
-              // STEP 8.21D - ALWAYS set diagnostics, even when visibleResult not ok, to debug undefined
-              if (typeof window !== 'undefined') {
-                try { window.mg1LastPyramid = pyramid; } catch(_) {}
-                try {
-                  window.mg1LastVisibleResult = visibleResult;
-                  window.mg1LastRuntimeResult = runtimeResult;
-                } catch(_) {}
-                try {
-                  window.mg1LastRuntimeOrchestration = {
-                    visibleKeys: visibleResult && visibleResult.keys ? visibleResult.keys.length : 0,
-                    ok: visibleResult ? visibleResult.ok : false,
-                    reason: visibleResult ? visibleResult.reason : 'no-result',
-                    factor: visibleResult ? visibleResult.factor : null,
-                    pyramidTileSize: visibleResult ? visibleResult.pyramidTileSize : null,
-                    queued: runtimeResult ? runtimeResult.queued : 0,
-                    alreadyReady: runtimeResult ? runtimeResult.alreadyReady : 0,
-                    alreadyLoading: runtimeResult ? runtimeResult.alreadyLoading : 0,
-                    missing: runtimeResult && Array.isArray(runtimeResult.missing) ? runtimeResult.missing.length : 0,
-                    runtimeUsed: mg1RuntimeUsedCount_,
-                    fallback: mg1FallbackCount_,
-                    viewBox: visibleResult ? visibleResult.viewBox : null,
-                    img: visibleResult ? visibleResult.img : null,
-                    detailFactor: detailLevel ? detailLevel.factor : null,
-                    targetFactor: typeof targetFactor !== 'undefined' ? targetFactor : null,
-                    pyramidLevels: pyramid && pyramid.levels ? pyramid.levels.map(l=>({factor:l.factor, tiles:l.tiles?l.tiles.length:0})) : null,
-                    timestamp: Date.now()
-                  };
-                } catch(e2) {
-                  console.warn('[8.21D] diagnostic assignment failed', e2);
-                  window.mg1LastRuntimeOrchestration = { error: String(e2), ok:false, reason:'assignment-failed' };
-                }
-              }
-            }
-          }
-        } catch(e) {
-          console.warn('[8.10B-FIX] runtime hook failed', e);
-        }
-
         const tileSize = Number(pyramid.tileSize) || GEOPDF_TILE_SIZE_;
-        // STEP 8.11-PATCH: compositor memakai runtime cache bila READY, fallback t.dataUrl
-        const appendLevel = (level, layerName, opacity) => {
-          if (!level || !Array.isArray(level.tiles)) return;
-          const pxScaleX = imgW / Math.max(1, Number(level.width) || 1);
-          const pxScaleY = imgH / Math.max(1, Number(level.height) || 1);
-          for (const t of level.tiles) {
-            const tx = imgX + t.x * tileSize * pxScaleX;
-            const ty = imgY + t.y * tileSize * pxScaleY;
-            const tw = t.width * pxScaleX, th = t.height * pxScaleY;
-            // Resolve tileKey: L<factor>_X<x>_Y<y>
-            let tileKey = t.tileKey || t.tileId || null;
-            if (!tileKey && typeof makeLithositeTileId_ === 'function') {
-              try { tileKey = makeLithositeTileId_(level.factor, t.x, t.y); } catch(_) {}
-            }
-            let href = t.dataUrl;
-            let isRuntime = 0;
-            try {
-              if (tileKey && typeof getLithositeRuntimeTile_ === 'function') {
-                const rt = getLithositeRuntimeTile_(pyramid, tileKey);
-                if (rt) {
-                  // rt = { key, tile, image } — image sudah onload (RUNTIME_READY)
-                  if (rt.tile && rt.tile.dataUrl) href = rt.tile.dataUrl;
-                  else if (rt.image && rt.image.src) href = rt.image.src;
-                  isRuntime = 1;
-                  mg1RuntimeUsedCount_++;
-                } else {
-                  mg1FallbackCount_++;
-                }
-              } else {
-                mg1FallbackCount_++;
-              }
-            } catch(_) {
-              mg1FallbackCount_++;
-            }
-            svg += '<image data-map-layer="' + layerName + '" data-runtime="' + isRuntime + '" data-key="' + (tileKey||'') + '" href="' + href + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" decoding="sync" preserveAspectRatio="none" opacity="' + opacity + '" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
-          }
-        };
-
-        appendLevel(baseLevel, 'base', '0.94');
-        if (detailLevel && detailLevel !== baseLevel) appendLevel(detailLevel, 'detail', '0.98');
-        // STEP 8.29A: compositor diagnostics are snapshotted only after all layers are appended.
-        try { window.mg1LastCompositorStats = { runtimeUsed: mg1RuntimeUsedCount_, fallback: mg1FallbackCount_ }; } catch(_) {}
-        try {
-          if (window.mg1LastRuntimeOrchestration) window.mg1LastRuntimeOrchestration.runtimeUsed = mg1RuntimeUsedCount_;
-        } catch(_) {}
+        const pxScaleX = imgW / level.width, pxScaleY = imgH / level.height;
+        for (const t of (level.tiles || [])) {
+          const tx = imgX + t.x * tileSize * pxScaleX;
+          const ty = imgY + t.y * tileSize * pxScaleY;
+          const tw = t.width * pxScaleX, th = t.height * pxScaleY;
+          svg += '<image href="' + t.dataUrl + '" x="' + tx + '" y="' + ty + '" width="' + tw + '" height="' + th + '" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
+        }
       } else {
-        svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + ' pointer-events="none" draggable="false" oncontextmenu="return false;"/>';
+        svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + '/>';
       }
     }
   }
@@ -2716,16 +3191,11 @@ function renderMineGridSvg(points) {
     }
   }
   // STEP 8D: GPS marker memakai native coordinate yang sama dengan TP/background.
-  // V14.0: ukuran marker GPS mengikuti skala viewport. Koordinat GPS tetap identik.
   if (gpsState_.active && gpsState_.status === 'ok' && gpsState_.native) {
     const gpsRaw = projectToSvg(gpsState_.native.x, gpsState_.native.y, bounds, viewW, viewH);
-    const gpsMarkerScale = Math.max(0.4, Math.min(1.25, 1 / Math.max(1, Number(mapZoom) || 1)));
-    const gpsRingR = 11 * gpsMarkerScale;
-    const gpsDotR = 4 * gpsMarkerScale;
-    const gpsStroke = Math.max(1, 2 * gpsMarkerScale);
     svg += '<g aria-label="Posisi GPS" pointer-events="none">' +
-      '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="' + gpsRingR.toFixed(2) + '" fill="none" stroke="#22d3ee" stroke-width="' + gpsStroke.toFixed(2) + '" opacity="0.85"/>' +
-      '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="' + gpsDotR.toFixed(2) + '" fill="#22d3ee" stroke="#0b1329" stroke-width="' + gpsStroke.toFixed(2) + '"/>' +
+      '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="11" fill="none" stroke="#22d3ee" stroke-width="2" opacity="0.85"/>' +
+      '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="4" fill="#22d3ee" stroke="#0b1329" stroke-width="2"/>' +
       '</g>';
   }
   // STEP 8E: marker hasil tap. Pointer-events none agar tidak mengganggu tap berikutnya.
@@ -2733,74 +3203,55 @@ function renderMineGridSvg(points) {
   // tidak, posisi marker jadi USANG begitu viewBox berpindah (mis. saat zoom-anchor aktif).
   if (mapTapState_.active && mapTapState_.native) {
     const tp = projectToSvg(mapTapState_.native.x, mapTapState_.native.y, bounds, viewW, viewH);
-    // V14.3: Titik Tap juga true-adaptive. Visual di-anchor pada koordinat tap
-    // sehingga deep zoom mengecilkan crosshair tanpa menggeser titik koordinat.
-    const tapZoom = Math.max(1, Number(mapZoom) || 1);
-    const tapScale = 1 / Math.pow(tapZoom, 1.25);
-    const tapVisualTransform = 'translate(' + tp.x.toFixed(3) + ' ' + tp.y.toFixed(3) + ') scale(' + tapScale.toFixed(6) + ') translate(' + (-tp.x).toFixed(3) + ' ' + (-tp.y).toFixed(3) + ')';
-    svg += '<g aria-label="Koordinat tap" pointer-events="none" transform="' + tapVisualTransform + '">' +
+    svg += '<g aria-label="Koordinat tap" pointer-events="none">' +
       '<circle cx="' + tp.x + '" cy="' + tp.y + '" r="7" fill="none" stroke="#facc15" stroke-width="2"/>' +
       '<line x1="' + (tp.x-10) + '" y1="' + tp.y + '" x2="' + (tp.x+10) + '" y2="' + tp.y + '" stroke="#facc15" stroke-width="1"/>' +
       '<line x1="' + tp.x + '" y1="' + (tp.y-10) + '" x2="' + tp.x + '" y2="' + (tp.y+10) + '" stroke="#facc15" stroke-width="1"/>' +
       '</g>';
   }
-  // V14.2: TRUE adaptive TP/Validasi marker.
-  // V14.1 mengecilkan radius elemen secara langsung. V14.2 mengunci anchor visual
-  // pada koordinat raw (x,y) dan memberi counter-scale pada GROUP marker.
-  // Effective screen scale ~= mapZoom * mapZoom^(-1.25) = mapZoom^(-0.25),
-  // sehingga deep zoom membuat marker benar-benar mengecil secara bertahap.
-  // Koordinat native/raw tidak pernah diubah.
-  const tpMarkerZoom = Math.max(1, Number(mapZoom) || 1);
-  const tpCounterScale = 1 / Math.pow(tpMarkerZoom, 1.25);
-  const tpMarkerScale = Math.max(0.35 / tpMarkerZoom, tpCounterScale);
-  const tpMarkerR = 7;
-  const tpCoreR = 2.5;
-  const tpStroke = 2;
-  const tpRingR = 10.5;
-  const tpRingStroke = 1.5;
-  const tpMeasureStroke = 2;
-  const tpHitR = 9;
   valid.forEach(p => {
     const raw = projectToSvg(parseFloat(p.timur), parseFloat(p.utara), bounds, viewW, viewH);
     const preset = getGradeColorPreset(p.classGrade);
     const fillColor = { merah:'#f43f5e', abu:'#94a3b8', kuning:'#f59e0b', biru:'#3b82f6', hijau:'#22c55e' }[
       (globalCOGConfig && globalCOGConfig['Warna_' + p.classGrade]) || GRADE_COLOR_DEFAULTS[p.classGrade] || 'abu'
     ];
-    const visualTransform = 'translate(' + raw.x.toFixed(3) + ' ' + raw.y.toFixed(3) + ') scale(' + tpMarkerScale.toFixed(6) + ') translate(' + (-raw.x).toFixed(3) + ' ' + (-raw.y).toFixed(3) + ')';
-    // v90.2.115: TP dgn koordinat konflik ditandai cincin kuning putus-putus.
+    // v90.2.115 (temuan #4): TP dgn koordinat konflik ditandai cincin kuning putus-putus
+    // di sekeliling marker -- visual, sebelum user tap utk lihat detail konfliknya.
     const conflictRing = p.coordConflict
-      ? '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpRingR + '" fill="none" stroke="#f59e0b" stroke-width="' + tpRingStroke + '" stroke-dasharray="3,2"/>'
+      ? '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="10.5" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="3,2"/>'
       : '';
-    // Cincin kuning solid utk titik yg sedang dipilih di Mode Ukur.
+    // [BONUS -- 4 Sep] Cincin kuning solid utk titik yg sedang dipilih di Mode Ukur --
+    // beda dari conflictRing (dashed) supaya tidak ketuker maknanya.
     const measureSelectedRing = (measureModeActive && (p.idTp === measureFromIdTp || p.idTp === measureToIdTp))
-      ? '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpRingR + '" fill="none" stroke="#facc15" stroke-width="' + tpMeasureStroke + '"/>'
+      ? '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="10.5" fill="none" stroke="#facc15" stroke-width="2"/>'
       : '';
-    const safeId = p.idTp.replace(/'/g,"\\'");
-    // Visual marker di-counter-scale terhadap viewBox dengan anchor (x,y) yang terkunci.
-    // Hit target sengaja berada di luar group visual agar ukuran area sentuh tetap nyaman.
-    svg += '<g onclick="handleMapPointTap_(\'' + safeId + '\')" style="cursor:pointer;">' +
-      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpHitR + '" fill="transparent" stroke="none" pointer-events="all"/>' +
-      '<g transform="' + visualTransform + '" pointer-events="none">' +
+    svg += '<g onclick="handleMapPointTap_(\'' + p.idTp.replace(/'/g,"\\'") + '\')" style="cursor:pointer;">' +
       conflictRing +
       measureSelectedRing +
-      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpMarkerR + '" fill="' + fillColor + '" fill-opacity="0.25" stroke="' + fillColor + '" stroke-width="' + tpStroke + '"/>' +
-      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpCoreR + '" fill="' + fillColor + '"/>' +
-      '</g>' +
+      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="7" fill="' + fillColor + '" fill-opacity="0.25" stroke="' + fillColor + '" stroke-width="2"/>' +
+      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="2.5" fill="' + fillColor + '"/>' +
       '</g>';
   });
   svg += '</svg>';
   return svg;
 }
 
-
-
-
-
-
-
+function zoomMapIn() {
+  const bounds = computeResponsiveDisplayBounds_(buildMapData());
+  if (bounds) captureMapViewportCenter_(bounds);
+  mapZoom = Math.min(MAP_ZOOM_MAX, mapZoom + MAP_ZOOM_STEP);
+  render();
+}
+function zoomMapOut() {
+  const bounds = computeResponsiveDisplayBounds_(buildMapData());
+  if (bounds) captureMapViewportCenter_(bounds);
+  mapZoom = Math.max(MAP_ZOOM_MIN, mapZoom - MAP_ZOOM_STEP);
+  if (mapZoom === MAP_ZOOM_MIN) mapViewportState_.centerNative = null;
+  render();
+}
 // "Crosshair" = reset tampilan ke fit area peta/responsive viewport -- BUKAN GPS lokasi user (poin desain #4,
 // GPS Generic sengaja tidak dikerjakan krn tidak ada sumber Lat/Long sama sekali).
-
+function resetMapView() { mapZoom = activeBackgroundMapId ? 1.25 : 1; mapViewportState_.centerNative = null; mapPanState_ = { active: false, startX: 0, startY: 0, dx: 0, dy: 0, baseCenterNative: null, baseRectW: 0, baseRectH: 0, baseBounds: null, visualSvg: null, moved: false, suppressTapUntil: 0, velocityX: 0, velocityY: 0, lastX: 0, lastY: 0, lastT: 0 }; mapPinchState_ = { active: false, startDistance: 0, startZoom: mapZoom, anchorNative: null, midX: 0, midY: 0, suppressTapUntil: 0, visualSvg: null }; render(); }
 
 // [BONUS -- 4 Sep] Dispatcher tap marker: rute ke Mode Ukur ATAU buka detail seperti biasa,
 // tergantung measureModeActive. Perilaku detail TP normal (openMapDetail) TIDAK diubah sama
@@ -2827,17 +3278,10 @@ function closeMapDetail() { mapDetailIdTp = null; render(); }
 // ==== NORTH ARROW UI -- overlay, BUKAN bagian dari SVG koordinat/marker (keputusan LOCKED
 // 4 Sep) -- supaya rotasi panah tidak ikut ke-zoom/pan bareng peta. ====
 function toggleNorthInfo_() { northInfoOpen = !northInfoOpen; render(); }
-async function setNorthMode_(mode) {
-  if (mode === 'compass') {
-    northMode = 'compass';
-    const ok = await startCompassMode_();
-    if (!ok) {
-      // Keep the selected mode visible so the user can see the sensor/permission error.
-      render();
-    }
-    return;
-  }
-  if (compassState_.active) stopCompassMode_(false);
+function setNorthMode_(mode) {
+  // Guard EKSPLISIT di JS, bukan cuma tombol disabled visual -- kalau ada yg coba panggil
+  // langsung dari console/DOM manapun, tetap tidak bisa masuk mode compass yg belum siap.
+  if (mode === 'compass') return;
   northMode = mode;
   render();
 }
@@ -2853,13 +3297,17 @@ function renderNorthArrow_(bounds) {
   let rotationDeg = 0, convergenceInfo = null;
   if (northMode === 'true') {
     convergenceInfo = computeConvergenceForPoint_(centerE, centerN, MG1_CRS_CONFIG.zone, MG1_CRS_CONFIG.hemisphere);
+    // CATATAN JUJUR (blm di-E2E-test dgn referensi bearing lapangan sungguhan): arah rotasi
+    // (tanda +/-) di bawah ini konsisten scr matematis dgn rumus gridConvergence_, TAPI
+    // besarnya cuma -28 detik busur (~0.008 deg) di situs ini -- SECARA VISUAL TIDAK
+    // TERLIHAT bedanya dari Grid North apapun tandanya. Kalau MG1 dipakai di situs lain yg
+    // convergence-nya jauh lebih besar (lintang tinggi/jauh dari central meridian), WAJIB
+    // uji ulang tanda rotasi ini terhadap bearing referensi asli sebelum dipercaya penuh.
     rotationDeg = convergenceInfo.ok ? -convergenceInfo.convergenceDeg : 0;
-  } else if (northMode === 'compass') {
-    rotationDeg = Number.isFinite(mapRotationDeg_) ? mapRotationDeg_ : 0;
   }
 
   const modeLabel = northMode === 'grid' ? 'GRID' : (northMode === 'true' ? 'TRUE' : 'GPS');
-  const arrowSvg = '<svg data-mg1-compass-arrow="true" width="14" height="14" viewBox="0 0 24 24" fill="none" style="transform:rotate(' + rotationDeg.toFixed(4) + 'deg);transition:transform .12s linear;display:block">' +
+  const arrowSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="transform:rotate(' + rotationDeg.toFixed(4) + 'deg);transition:transform .3s ease;display:block">' +
     '<path d="M12 2 L17 15 L12 11.5 L7 15 Z" fill="white"/>' +
   '</svg>';
 
@@ -2878,11 +3326,6 @@ function renderNorthInfoPanel_(convergenceInfo) {
     rows.push(['Situs', MG1_CRS_CONFIG.presetLabel || '-']);
     rows.push(['Grid Conv.', (convergenceInfo && convergenceInfo.ok) ? ((convergenceInfo.convergenceDeg >= 0 ? '+' : '') + convergenceInfo.convergenceDeg.toFixed(4) + '\u00b0') : '-']);
     rows.push(['Status', (convergenceInfo && convergenceInfo.ok) ? 'CALCULATED' : 'ERROR']);
-  } else if (northMode === 'compass') {
-    rows.push(['Heading', Number.isFinite(compassState_.smoothedHeadingDeg) ? compassState_.smoothedHeadingDeg.toFixed(1) + '\u00b0' : '--']);
-    rows.push(['Sumber', compassState_.source || '--']);
-    rows.push(['Akurasi', Number.isFinite(compassState_.accuracyDeg) ? '±' + compassState_.accuracyDeg.toFixed(0) + '\u00b0' : '--']);
-    rows.push(['Status', compassState_.error ? compassState_.error : (Number.isFinite(compassState_.headingDeg) ? 'ACTIVE' : 'MENUNGGU SENSOR')]);
   } else if (northMode === 'grid') {
     rows.push(['Status', 'Arah sumbu Utara grid tambang -- belum dikoreksi ke True North']);
   }
@@ -2896,10 +3339,10 @@ function renderNorthInfoPanel_(convergenceInfo) {
     '<div class="flex gap-1.5 mb-2">' +
       '<button onclick="setNorthMode_(\'grid\')" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold ' + (northMode==='grid' ? 'bg-[#2563eb] text-white' : 'bg-white/[0.06] text-white/50') + '">GRID</button>' +
       '<button onclick="setNorthMode_(\'true\')" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold ' + (northMode==='true' ? 'bg-[#2563eb] text-white' : 'bg-white/[0.06] text-white/50') + '">TRUE</button>' +
-      '<button onclick="setNorthMode_(\'compass\')" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold ' + (northMode==='compass' ? 'bg-[#2563eb] text-white' : 'bg-white/[0.06] text-white/50') + '">GPS</button>' +
+      '<button disabled title="Segera hadir" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold bg-white/[0.03] text-white/20 cursor-not-allowed">GPS</button>' +
     '</div>' +
     rowsHtml +
-    '<div class="mt-2 pt-2 border-t border-white/[0.06] text-[9px] text-white/30 leading-relaxed">' + (northMode === 'compass' ? 'Heading-Up memakai sensor orientasi absolut perangkat. Kalibrasi kompas tetap diperlukan bila heading tidak stabil.' : 'Compass (GPS) siap diaktifkan dari mode GPS.') + '</div>' +
+    '<div class="mt-2 pt-2 border-t border-white/[0.06] text-[9px] text-white/30 leading-relaxed">Compass (GPS) -- Segera Hadir. Menunggu kalibrasi magnetometer &amp; model deklinasi magnetik utk akurasi lapangan.</div>' +
   '</div>';
 }
 
@@ -2941,7 +3384,7 @@ function renderMapDetailModal(mapData) {
       '<span class="text-white font-semibold">Ni ' + fmt2(parseFloat(getField(d,'Ni %')||getField(d,'Ni'))) + '%</span>' +
       '</div>').join('');
   return '<div class="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onclick="closeMapDetail()">' +
-    '<div class="w-full max-w-md bg-[#0b1329] border-t border-white/10 rounded-t-[20px] p-5 overflow-y-auto" style="max-height:calc(var(--mg1-vvh, 100svh) * 0.75);" onclick="event.stopPropagation()">' +
+    '<div class="w-full max-w-md bg-[#0b1329] border-t border-white/10 rounded-t-[20px] p-5 max-h-[75vh] overflow-y-auto" onclick="event.stopPropagation()">' +
       '<div class="flex items-center justify-between mb-3">' +
         '<div class="text-white font-bold text-base">' + p.idTp + '</div>' +
         renderClassGradeBadge(p.classGrade) +
@@ -2974,13 +3417,185 @@ function renderMapTapInfo_() {
     '<div class="flex items-center justify-between gap-3"><span class="text-[9px] text-yellow-300 font-bold">Titik Tap</span><button onclick="clearMapTap_()" class="text-[9px] text-white/40">Tutup</button></div>' + body + '</div>';
 }
 
+function renderPeta() {
+  let html = renderHeader();
+  html += '<main class="app-main flex-1 min-h-0 flex flex-col gap-[10px] px-4 pt-3 pb-3">';
 
+  // [BARU] State loading -- muncul singkat saat tab Peta pertama kali dibuka & fetch
+  // mandirinya (loadValidasiDataForMapStandalone_) masih berjalan.
+  if (mapDataBusy) {
+    html += renderSectionTitle('PETA LOKASI', 'memuat...');
+    html += '<div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-8 text-center">' +
+      '<span class="w-8 h-8 border-2 border-white/20 border-t-blue-400 rounded-full spin"></span>' +
+      '<div class="text-white/50 text-xs">Memuat data Peta...</div>' +
+    '</div>';
+    html += '</main>' + renderBottomNav();
+    return html;
+  }
+
+  // v90.2.115 FIX (temuan audit #2): SEKARANG pakai mapDataErrorMsg yg KHUSUS terisi dari
+  // fetch Validasi -- SEBELUMNYA salah pakai dataLoadErrorMsg (punya Produksi), bikin Peta
+  // ikut "error" saat Produksi gagal padahal Validasi sukses, ATAU sebaliknya Validasi
+  // gagal tapi Peta tidak masuk state error sama sekali (malah pakai dataset lama).
+  if (mapDataErrorMsg) {
+    html += renderSectionTitle('PETA LOKASI', 'gagal memuat');
+    html += '<div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-[12px] bg-[#0b1329] border border-rose-500/20 p-8 text-center">' +
+      icon('alert-triangle','w-10 h-10 text-rose-400') +
+      '<div class="text-white font-bold text-sm">Gagal Memuat Data Peta</div>' +
+      '<div class="text-[11px] text-white/40 max-w-[260px]">' + mapDataErrorMsg + '</div>' +
+      '<button onclick="mapDataFetchAttempted=false; loadValidasiDataForMapStandalone_()" class="mt-1 px-4 py-2 rounded-xl bg-[#2563eb] text-white text-xs font-bold active:scale-95 transition-transform">Coba Lagi</button>' +
+    '</div>';
+    html += '</main>' + renderBottomNav();
+    return html;
+  }
+
+  const mapData = buildMapData();
+  const validPoints = mapData.filter(p => p.hasValidCoord);
+  const invalidCount = mapData.length - validPoints.length;
+
+  // v90.2.116: konsumsi permintaan fokus dari kartu Validasi -- kalau TP-nya BENAR ADA
+  // di mapData (mis. belum kehapus/berubah), buka detailnya otomatis. "Konsumsi 1x" --
+  // flag langsung direset supaya tidak terus2an buka modal tiap render() lain dipicu.
+  if (mapFocusIdTp) {
+    if (mapData.some(p => p.idTp === mapFocusIdTp)) mapDetailIdTp = mapFocusIdTp;
+    mapFocusIdTp = null;
+  }
+
+  html += renderSectionTitle('PETA LOKASI', mapData.length + ' titik TP');
+
+  // v90.2.113: state EMPTY (poin desain #7) -- 0 TP sama sekali (bukan krn error, genuinely
+  // belum ada data Validasi).
+  if (mapData.length === 0) {
+    html += '<div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-8 text-center">' +
+      icon('map','w-10 h-10 text-white/20') +
+      '<div class="text-white font-bold text-sm">Belum Ada Titik TP</div>' +
+      '<div class="text-[11px] text-white/40 max-w-[260px]">Data Validasi/Test Pit belum ada utk periode ini.</div>' +
+    '</div>';
+    html += '</main>' + renderBottomNav();
+    return html;
+  }
+
+  // Semua TP ADA tapi TIDAK SATUPUN punya koordinat valid -- beda dari "benar2 kosong",
+  // jadi pesan & state-nya juga dibedakan (poin desain #9, "TP tanpa koordinat").
+  if (validPoints.length === 0) {
+    html += '<div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-[12px] bg-[#0b1329] border border-amber-500/20 p-8 text-center">' +
+      icon('map-pin-off','w-10 h-10 text-amber-400/60') +
+      '<div class="text-white font-bold text-sm">Koordinat Belum Tersedia</div>' +
+      '<div class="text-[11px] text-white/40 max-w-[260px]">' + mapData.length + ' titik TP ada, tapi belum satupun punya Timur/Utara terisi dari Plan/Head.</div>' +
+    '</div>';
+    html += '</main>' + renderBottomNav();
+    return html;
+  }
+
+  // ==== SUCCESS: render Mine Grid ====
+  html += '<div id="mg1-map-viewport" class="relative flex-1 min-h-0 rounded-[12px] bg-[#0b1329] border border-white/[0.08] overflow-hidden select-none" style="touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;" oncontextmenu="return false" onselectstart="return false" ondragstart="return false">' +
+    renderMineGridSvg(validPoints) +
+    renderNorthArrow_(computeResponsiveDisplayBounds_(validPoints)) +
+    renderMeasureBanner_(mapData) +
+    // Kontrol zoom + crosshair (reset view) -- poin desain #2 (MAP-02): sekarang BENAR2
+    // py handler, bukan sekadar elemen visual. [BONUS -- 4 Sep] Tombol Mode Ukur ditambah
+    // di grup yg sama (kanan-atas), ikon berubah & warna nyala kuning saat aktif.
+    '<div class="absolute right-3 top-3 flex flex-col gap-2">' +
+      '<button onclick="zoomMapIn()" aria-label="Perbesar" class="w-9 h-9 rounded-full bg-[#0b1329]/90 border border-white/10 flex items-center justify-center active:scale-95 transition-transform">' + icon('plus','w-4 h-4 text-white') + '</button>' +
+      '<button onclick="zoomMapOut()" aria-label="Perkecil" class="w-9 h-9 rounded-full bg-[#0b1329]/90 border border-white/10 flex items-center justify-center active:scale-95 transition-transform">' + icon('minus','w-4 h-4 text-white') + '</button>' +
+      '<button onclick="resetMapView()" aria-label="Reset tampilan" class="w-9 h-9 rounded-full bg-[#0b1329]/90 border border-white/10 flex items-center justify-center active:scale-95 transition-transform">' + icon('crosshair','w-4 h-4 text-white') + '</button>' +
+      '<button onclick="toggleMeasureMode_()" aria-label="Mode Ukur" class="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ' + (measureModeActive ? 'bg-amber-500 border border-amber-400' : 'bg-[#0b1329]/90 border border-white/10') + '">' + icon('ruler','w-4 h-4 ' + (measureModeActive ? 'text-[#0b1329]' : 'text-white')) + '</button>' +
+      '<button onclick="' + (gpsState_.active ? 'stopGpsTracking_()' : 'startGpsTracking_()') + '" aria-label="' + (gpsState_.active ? 'Matikan GPS' : 'Aktifkan GPS') + '" class="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ' + (gpsState_.active ? 'bg-cyan-400 border border-cyan-300' : 'bg-[#0b1329]/90 border border-white/10') + '">' + icon('navigation','w-4 h-4 ' + (gpsState_.active ? 'text-[#0b1329]' : 'text-white')) + '</button>' +
+      '<button onclick="openMapManagePanel_()" aria-label="Kelola Peta Background" class="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ' + (activeBackgroundMapId ? 'bg-emerald-500 border border-emerald-400' : 'bg-[#0b1329]/90 border border-white/10') + '">' + icon('layers','w-4 h-4 ' + (activeBackgroundMapId ? 'text-[#0b1329]' : 'text-white')) + '</button>' +
+      '<button onclick="openKmlManagePanel_()" aria-label="Kelola KML" class="w-9 h-9 rounded-full flex items-center justify-center active:scale-95 transition-transform ' + (activeKmlOverlayIds.length > 0 ? 'bg-purple-500 border border-purple-400' : 'bg-[#0b1329]/90 border border-white/10') + '">' + icon('shapes','w-4 h-4 ' + (activeKmlOverlayIds.length > 0 ? 'text-white' : 'text-white')) + '</button>' +
+    '</div>' +
+    (invalidCount > 0 ? '<div class="absolute left-3 bottom-11 px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-300 font-semibold">' + invalidCount + ' TP tanpa koordinat</div>' : '') +
+    (mapTapState_.active ? renderMapTapInfo_() : '') +
+    renderMapScaleBar(computeResponsiveDisplayBounds_(validPoints)) +
+  '</div>';
+  if (gpsState_.active) {
+    const gpsText = gpsState_.status === 'ok'
+      ? ('GPS: ' + gpsState_.lat.toFixed(6) + ', ' + gpsState_.lon.toFixed(6) + (gpsState_.accuracyM != null ? ' ±' + gpsState_.accuracyM.toFixed(0) + 'm' : ''))
+      : (gpsState_.status === 'searching' ? 'GPS: mencari posisi...' : 'GPS: ' + (gpsState_.error || 'belum tersedia'));
+    html += '<div class="text-[10px] ' + (gpsState_.status === 'ok' ? 'text-cyan-300' : 'text-amber-300') + ' text-center shrink-0">' + gpsText + '</div>';
+  }
+  html += '<div class="text-[10px] text-white/30 text-center shrink-0">Koordinat grid tambang (Timur/Utara) -- bukan GPS. Tap titik utk detail.</div>';
+  html += '</main>';
+  html += renderBottomNav();
+  html += renderMapDetailModal(mapData);
+  html += renderMapManagePanel_();
+  html += renderMapUploadForm_();
+  html += renderKmlManagePanel_();
+  html += renderKmlUploadForm_();
+  // STEP 04: setelah DOM dipasang oleh render(), ukur container aktual agar FIT
+  // mengikuti portrait/landscape tanpa mengubah GeoReference.
+  scheduleMapViewportFit_();
+  return html;
+}
 
 // ==== RENDER: Panel Kelola Peta Background ====
-
+function renderMapManagePanel_() {
+  if (!mapManagePanelOpen) return '';
+  const listHtml = backgroundMapsList.length === 0
+    ? '<p class="text-[11px] text-white/30 text-center py-4">Belum ada peta background tersimpan.</p>'
+    : backgroundMapsList.map(function(m) {
+        const active = m.id === activeBackgroundMapId;
+        return '<div class="flex items-center gap-2.5 rounded-xl p-2.5 mb-1.5 ' + (active ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-white/[0.04]') + '">' +
+          '<img src="' + m.imageDataUrl + '" class="w-11 h-11 rounded-lg object-cover shrink-0">' +
+          '<div class="flex-1 min-w-0" onclick="activateBackgroundMap_(\'' + m.id + '\')">' +
+            '<div class="text-[12px] font-semibold text-white truncate">' + m.name + (active ? ' <span class="text-emerald-400 text-[9px] font-bold">&bull; AKTIF</span>' : '') + '</div>' +
+            '<div class="text-[9px] text-white/30">oleh ' + (m.uploadedBy || '-') + '</div>' +
+          '</div>' +
+          '<button onclick="event.stopPropagation(); deleteBackgroundMapEntry_(\'' + m.id + '\')" class="w-7 h-7 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">' + icon('trash-2','w-3.5 h-3.5 text-rose-400') + '</button>' +
+        '</div>';
+      }).join('');
+  const body = listHtml +
+    (activeBackgroundMapId ? '<button onclick="deactivateBackgroundMap_()" class="w-full mt-1 mb-2 py-2 rounded-xl bg-white/[0.04] text-white/50 text-[11px] font-semibold">Nonaktifkan Background</button>' : '') +
+    '<button onclick="openMapUploadForm_()" class="w-full mt-2 flex items-center justify-center gap-2 bg-[#2563eb]/15 border border-[#2563eb]/30 text-blue-300 font-bold text-xs py-2.5 rounded-xl">' + icon('plus','w-4 h-4') + '<span>Tambah Peta Baru</span></button>' +
+    '<p class="text-[9px] text-white/25 mt-2 leading-relaxed">Peta background cuma tersimpan di HP ini (lokal) -- HP lain tidak otomatis ikut lihat peta yang sama.</p>';
+  return renderSimpleModal('Kelola Peta Background', backgroundMapsList.length + ' peta tersimpan', body, 'closeMapManagePanel_()');
+}
 
 // ==== RENDER: Form Upload Peta Background ====
-
+function renderMapUploadForm_() {
+  if (!mapUploadFormOpen) return '';
+  const f = mapUploadFormState;
+  function inputRow(label, field, placeholder) {
+    // [BARU] Kunci 4 kolom ini kalau koordinat berasal dari GeoPDF auto-detect (jaga-jaga
+    // human error -- angka GeoPDF sudah tervalidasi otomatis, tidak perlu/boleh diubah
+    // manual). GeoTIFF & upload manual TETAP bisa diedit seperti biasa (0 geoReference).
+    const locked = !!f.geoReference;
+    const domFieldId = {
+      tlTimur: 'tl-timur', tlUtara: 'tl-utara',
+      brTimur: 'br-timur', brUtara: 'br-utara'
+    }[field] || field;
+    return '<div><label class="block text-[10px] text-white/40 mb-1 font-medium">' + label + '</label>' +
+      '<input id="map-upload-' + domFieldId + '" type="text" inputmode="decimal" value="' + (f[field]||'') + '" oninput="updateMapUploadField_(\'' + field + '\', this.value)" placeholder="' + placeholder + '" ' + (locked ? 'disabled readonly' : '') + ' class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60' + (locked ? ' opacity-50 cursor-not-allowed' : '') + '"></div>';
+  }
+  const body =
+    '<div class="mb-3">' +
+      '<label class="block text-[10px] text-white/40 mb-1 font-medium">Nama Peta</label>' +
+      '<input type="text" value="' + f.name + '" oninput="updateMapUploadField_(\'name\', this.value)" placeholder="cth. Foto Udara Avanza Sep 2026" class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60">' +
+    '</div>' +
+    '<div class="mb-3">' +
+      '<label class="block text-[10px] text-white/40 mb-1 font-medium">Gambar Peta (PNG/JPG, GeoTIFF, atau GeoPDF -- koordinat auto-terisi kalau ada)</label>' +
+      '<input type="file" accept="image/*,.tif,.tiff,.pdf" onchange="handleMapImageFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
+      (f.fileDataUrl ? '<img src="' + f.fileDataUrl + '" class="w-full h-24 object-cover rounded-lg mt-2">' : '') +
+    '</div>' +
+    '<p class="text-[10px] text-white/40 mb-2 leading-relaxed">Masukkan Timur/Utara pojok KIRI-ATAS dan KANAN-BAWAH gambar (dari ArcGIS/data survey) -- ini yang dipakai app utk menempel gambar ke posisi yang benar.</p>' +
+    (f.geoReference ? '<p class="text-[10px] text-emerald-400/80 mb-2 leading-relaxed">🔒 Terkunci -- koordinat ini hasil auto-detect GeoPDF, tidak bisa diedit manual (jaga-jaga salah ketik). Ganti file kalau perlu koordinat berbeda.</p>' : '') +
+    '<div class="grid grid-cols-2 gap-2 mb-2">' +
+      inputRow('Kiri-Atas: Timur', 'tlTimur', '397000') +
+      inputRow('Kiri-Atas: Utara', 'tlUtara', '53500') +
+      inputRow('Kanan-Bawah: Timur', 'brTimur', '397300') +
+      inputRow('Kanan-Bawah: Utara', 'brUtara', '53100') +
+    '</div>' +
+    '<div class="mt-2">' +
+      '<p id="map-upload-status" class="text-[10px] mt-1 mb-1 font-medium ' + (mapUploadStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + (mapUploadStatusMsg || 'Siap memproses file...') + '</p>' +
+      '<div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden" role="progressbar" aria-label="Proses tile GeoPDF">' +
+        '<div id="map-upload-progress-fill" class="h-full rounded-full bg-blue-500" style="width: 0%; transition: width 120ms ease-out;"></div>' +
+      '</div>' +
+    '</div>' +
+    '<button onclick="submitMapUpload_()" ' + ((mapUploadBusy || mapUploadProcessing) ? 'disabled' : '') + ' class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold text-xs py-2.5 rounded-xl disabled:opacity-60">' +
+      ((mapUploadBusy || mapUploadProcessing) ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>' : icon('upload','w-4 h-4')) + '<span>' + (mapUploadBusy ? 'Menyimpan...' : (mapUploadProcessing ? 'Memproses GeoPDF...' : 'Simpan Peta')) + '</span>' +
+    '</button>';
+  return renderSimpleModal('Tambah Peta Baru', 'Upload gambar + 2 titik referensi', body, 'closeMapUploadForm_()');
+}
 
 // ==== KML OVERLAY -- BARU 5 Sep ====
 // Parsing pakai DOMParser BAWAAN BROWSER (0 library tambahan, beda dari GeoTIFF yg
@@ -3103,1264 +3718,42 @@ async function deleteKmlOverlayEntry_(id) {
 }
 
 // ==== RENDER: Panel Kelola KML Overlay ====
-
+function renderKmlManagePanel_() {
+  if (!kmlManagePanelOpen) return '';
+  const listHtml = kmlOverlaysList.length === 0
+    ? '<p class="text-[11px] text-white/30 text-center py-4">Belum ada KML tersimpan.</p>'
+    : kmlOverlaysList.map(function(k) {
+        const active = activeKmlOverlayIds.indexOf(k.id) >= 0;
+        return '<div class="flex items-center gap-2.5 rounded-xl p-2.5 mb-1.5 ' + (active ? 'bg-purple-500/10 border border-purple-500/30' : 'bg-white/[0.04]') + '">' +
+          '<div class="w-9 h-9 rounded-lg bg-purple-500/15 flex items-center justify-center shrink-0">' + icon('shapes','w-4 h-4 text-purple-400') + '</div>' +
+          '<div class="flex-1 min-w-0" onclick="toggleKmlOverlayActive_(\'' + k.id + '\')">' +
+            '<div class="text-[12px] font-semibold text-white truncate">' + k.name + '</div>' +
+            '<div class="text-[9px] text-white/30">' + k.points.length + ' titik &bull; ' + k.lines.length + ' garis</div>' +
+          '</div>' +
+          '<button onclick="toggleKmlOverlayActive_(\'' + k.id + '\')" class="text-[9px] font-bold px-2 py-1 rounded-full ' + (active ? 'bg-purple-500 text-white' : 'bg-white/10 text-white/40') + '">' + (active ? 'TAMPIL' : 'SEMBUNYI') + '</button>' +
+          '<button onclick="event.stopPropagation(); deleteKmlOverlayEntry_(\'' + k.id + '\')" class="w-7 h-7 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">' + icon('trash-2','w-3.5 h-3.5 text-rose-400') + '</button>' +
+        '</div>';
+      }).join('');
+  const body = listHtml +
+    '<button onclick="openKmlUploadForm_()" class="w-full mt-2 flex items-center justify-center gap-2 bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold text-xs py-2.5 rounded-xl">' + icon('plus','w-4 h-4') + '<span>Import KML Baru</span></button>' +
+    '<p class="text-[9px] text-white/25 mt-2 leading-relaxed">Bisa aktifkan beberapa KML sekaligus. Titik &amp; garis dikonversi otomatis dari Lat/Lon ke grid Timur/Utara pakai CRS situs aktif (' + (MG1_CRS_CONFIG.presetLabel||'-') + ').</p>';
+  return renderSimpleModal('Kelola KML', kmlOverlaysList.length + ' file tersimpan', body, 'closeKmlManagePanel_()');
+}
 
 // ==== RENDER: Form Upload KML ====
-
-
-/* ============================================================
- * V22 FIXED-2 RUNTIME MERGE
- * Merged into the canonical runtime filename: scripts/peta.js
- * Non-destructive atomic map surface swap.
- * ============================================================ */
-/* V22 ATOMIC SWAP FIXED - SVGImageElement vs HTMLImageElement
- * FIX: SVG <image> tidak punya .decode(), harus pakai new Image() loader dari href
- * + Cancel swap saat timeout, tahan map lama, jangan tampilkan incomplete frame
- * Implementasi persis koreksi user untuk arsitektur V17.1
- */
-
-
-
-/* ===== V19 NEW MODAL UX INTEGRATED ===== */
-/* V19 NEW MODAL UX - NO FLICKER NO GLITCH
- * Modal import GeoPDF isolasi total dari render() global.
- * - Hidup di document.body, di luar #app
- * - Tidak pernah manggil render() selama proses baca + pyramid
- * - Progress update via direct DOM, bukan via global state + render()
- * - Pas Simpan: capture overlay peta lama, tutup modal, 1x render() final + fade
- * Cara pakai: load file ini SETELAH peta.js, lalu panggil window.MG1NewMapModal.open()
- * Tombol "Tambah Peta Baru" yang lama otomatis di-override ke modal baru.
- */
-
-(function(){
-  console.log('[V19 NEW MODAL] Loading isolated no-flicker modal');
-
-  // State isolated - tidak pakai mapUploadFormState global
-  const state = {
-    open: false,
-    file: null,
-    fileName: '',
-    name: '',
-    fileDataUrl: '',
-    geoReference: null,
-    tilePyramid: null,
-    cornerTL: null,
-    cornerBR: null,
-    busy: false,
-    processing: false,
-    statusMsg: '',
-    statusOk: true,
-    progress: 0
-  };
-
-  let els = {};
-  let progressRaf = null;
-  let lastProgress = -1;
-
-  function ensureDom() {
-    if(document.getElementById('mg1-new-map-modal-root')) {
-      els.root = document.getElementById('mg1-new-map-modal-root');
-      els.backdrop = document.getElementById('mg1-new-modal-backdrop');
-      els.panel = document.getElementById('mg1-new-modal-panel');
-      els.nameInput = document.getElementById('mg1-new-modal-name');
-      els.fileInput = document.getElementById('mg1-new-modal-file');
-      els.fileLabel = document.getElementById('mg1-new-modal-file-label');
-      els.preview = document.getElementById('mg1-new-modal-preview');
-      els.coords = document.getElementById('mg1-new-modal-coords');
-      els.status = document.getElementById('mg1-new-modal-status');
-      els.progressBar = document.getElementById('mg1-new-modal-progress');
-      els.progressFill = document.getElementById('mg1-new-modal-progress-fill');
-      els.saveBtn = document.getElementById('mg1-new-modal-save');
-      return;
-    }
-
-    const root = document.createElement('div');
-    root.id = 'mg1-new-map-modal-root';
-    root.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:none;';
-    root.innerHTML = `
-      <div id="mg1-new-modal-backdrop" style="position:absolute;inset:0;background:rgba(3,8,20,0.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);opacity:0;transition:opacity 220ms ease;"></div>
-      <div id="mg1-new-modal-panel" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-44%) scale(0.96);width:min(92vw,420px);max-height:86vh;overflow:auto;background:#0e1933;border:1px solid rgba(255,255,255,0.12);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);opacity:0;transition:all 280ms cubic-bezier(0.16,1,0.3,1);">
-        <div style="position:sticky;top:0;z-index:2;background:rgba(14,25,51,0.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:18px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:-0.02em;">Tambah Peta Baru</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">GeoPDF / GeoTIFF / PNG-JPG + koordinat auto</div>
-          </div>
-          <button id="mg1-new-modal-close" style="width:32px;height:32px;border-radius:9999px;background:rgba(255,255,255,0.08);border:none;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.6);font-size:16px;">✕</button>
-        </div>
-        <div style="padding:16px 18px 18px;">
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;font-weight:600;letter-spacing:0.04em;">NAMA PETA</label>
-            <input id="mg1-new-modal-name" placeholder="cth. Foto Udara Avenza Sep 2025" style="width:100%;background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 12px;font-size:13px;color:#fff;outline:none;transition:border 0.2s;" />
-          </div>
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;font-weight:600;">GAMBAR PETA (PNG,JPG,GeoTIFF,GeoPDF)</label>
-            <input type="file" id="mg1-new-modal-file" accept=".png,.jpg,.jpeg,.tif,.tiff,.pdf" style="display:none;" />
-            <button id="mg1-new-modal-pick" style="width:100%;background:rgba(37,99,235,0.12);border:1px dashed rgba(37,99,235,0.4);border-radius:12px;padding:12px;font-size:12px;font-weight:700;color:#60a5fa;">+ Pilih File</button>
-            <div id="mg1-new-modal-file-label" style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.35);">Tidak ada file dipilih</div>
-          </div>
-          <div id="mg1-new-modal-preview" style="display:none;margin-bottom:12px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:#0b1329;"></div>
-          <div id="mg1-new-modal-coords" style="display:none;margin-bottom:12px;background:rgba(255,255,255,0.04);border-radius:12px;padding:10px 12px;"></div>
-          <div id="mg1-new-modal-progress" style="display:none;margin-bottom:12px;">
-            <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:9999px;overflow:hidden;">
-              <div id="mg1-new-modal-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#60a5fa);transition:width 0.2s ease;"></div>
-            </div>
-            <div id="mg1-new-modal-status" style="margin-top:8px;font-size:11px;font-weight:500;color:rgba(255,255,255,0.7);"></div>
-          </div>
-          <button id="mg1-new-modal-save" style="width:100%;background:linear-gradient(180deg,#2563eb,#1d4ed8);border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:800;color:#fff;box-shadow:0 4px 16px rgba(37,99,235,0.4);transition:all 0.2s;opacity:0.5;pointer-events:none;">Simpan Peta</button>
-          <div style="margin-top:10px;text-align:center;font-size:9px;color:rgba(255,255,255,0.25);line-height:1.4;">Koordinat auto-detect dari GeoPDF/GeoTIFF. Cek ulang sebelum Simpan.<br/>Peta disimpan di HP (IndexedDB) - tidak perlu internet lagi.</div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(root);
-    // cache els
-    els.root = root;
-    els.backdrop = document.getElementById('mg1-new-modal-backdrop');
-    els.panel = document.getElementById('mg1-new-modal-panel');
-    els.nameInput = document.getElementById('mg1-new-modal-name');
-    els.fileInput = document.getElementById('mg1-new-modal-file');
-    els.fileLabel = document.getElementById('mg1-new-modal-file-label');
-    els.preview = document.getElementById('mg1-new-modal-preview');
-    els.coords = document.getElementById('mg1-new-modal-coords');
-    els.status = document.getElementById('mg1-new-modal-status');
-    els.progressBar = document.getElementById('mg1-new-modal-progress');
-    els.progressFill = document.getElementById('mg1-new-modal-progress-fill');
-    els.saveBtn = document.getElementById('mg1-new-modal-save');
-
-    // events
-    document.getElementById('mg1-new-modal-close').onclick = close;
-    document.getElementById('mg1-new-modal-pick').onclick = () => els.fileInput.click();
-    els.backdrop.onclick = close;
-    els.fileInput.onchange = onFileSelected;
-    els.nameInput.oninput = (e) => { state.name = e.target.value; validate(); };
-    els.saveBtn.onclick = onSave;
-  }
-
-  function open() {
-    ensureDom();
-    state.open = true;
-    els.root.style.display = 'block';
-    // animate in
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        els.backdrop.style.opacity = '1';
-        els.panel.style.opacity = '1';
-        els.panel.style.transform = 'translate(-50%,-50%) scale(1)';
-      });
-    });
-    // reset
-    reset();
-  }
-
-  function close() {
-    if(!state.open) return;
-    els.backdrop.style.opacity = '0';
-    els.panel.style.opacity = '0';
-    els.panel.style.transform = 'translate(-50%,-44%) scale(0.96)';
-    setTimeout(() => {
-      els.root.style.display = 'none';
-      state.open = false;
-    }, 260);
-  }
-
-  function reset() {
-    state.file = null;
-    state.fileName = '';
-    state.name = '';
-    state.fileDataUrl = '';
-    state.geoReference = null;
-    state.tilePyramid = null;
-    state.cornerTL = null;
-    state.cornerBR = null;
-    state.busy = false;
-    state.processing = false;
-    state.statusMsg = '';
-    state.progress = 0;
-    els.nameInput.value = '';
-    els.fileInput.value = '';
-    els.fileLabel.textContent = 'Tidak ada file dipilih';
-    els.fileLabel.style.color = 'rgba(255,255,255,0.35)';
-    els.preview.style.display = 'none';
-    els.preview.innerHTML = '';
-    els.coords.style.display = 'none';
-    els.coords.innerHTML = '';
-    els.progressBar.style.display = 'none';
-    els.progressFill.style.width = '0%';
-    els.status.textContent = '';
-    els.saveBtn.style.opacity = '0.5';
-    els.saveBtn.style.pointerEvents = 'none';
-    els.saveBtn.textContent = 'Simpan Peta';
-  }
-
-  function validate() {
-    const ok = state.fileDataUrl && state.name.trim().length >= 2;
-    els.saveBtn.style.opacity = ok ? '1' : '0.5';
-    els.saveBtn.style.pointerEvents = ok ? 'auto' : 'none';
-  }
-
-  function setStatus(msg, ok=true, progress=null) {
-    state.statusMsg = msg;
-    state.statusOk = ok;
-    if(els.status) {
-      els.status.textContent = msg;
-      els.status.style.color = ok ? 'rgba(255,255,255,0.7)' : '#fb7185';
-    }
-    if(progress !== null) {
-      state.progress = progress;
-      if(els.progressBar) els.progressBar.style.display = 'block';
-      // batch via rAF
-      if(progressRaf) cancelAnimationFrame(progressRaf);
-      progressRaf = requestAnimationFrame(() => {
-        if(els.progressFill) {
-          els.progressFill.style.width = Math.max(0,Math.min(100,progress)) + '%';
-        }
-        lastProgress = progress;
-      });
-    }
-  }
-
-  async function onFileSelected(e) {
-    const file = e.target.files && e.target.files[0];
-    if(!file) return;
-    state.file = file;
-    state.fileName = file.name;
-    els.fileLabel.textContent = file.name + ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
-    els.fileLabel.style.color = '#fff';
-    
-    // auto fill name
-    if(!state.name) {
-      const base = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g,' ').slice(0,40);
-      state.name = base;
-      els.nameInput.value = base;
-    }
-
-    setStatus('Membaca file...', true, 0);
-    els.progressBar.style.display = 'block';
-
-    if(/\.pdf$/i.test(file.name)) {
-      await handleGeoPdf(file);
-    } else if(/\.(tif|tiff)$/i.test(file.name)) {
-      await handleGeoTiff(file);
-    } else {
-      await handleImage(file);
-    }
-    validate();
-  }
-
-  async function handleImage(file) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      state.fileDataUrl = reader.result;
-      els.preview.style.display = 'block';
-      els.preview.innerHTML = `<img src="${reader.result}" style="width:100%;display:block;" />`;
-      setStatus('Gambar siap. Isi koordinat manual 2 sudut.', true, 100);
-      showManualCoordsForm();
-    };
-    reader.readAsDataURL(file);
-  }
-
-  async function handleGeoTiff(file) {
-    setStatus('Membaca GeoTIFF...', true, 10);
-    try {
-      if(typeof tryParseGeoTiff_ === 'function') {
-        const res = await tryParseGeoTiff_(file);
-        if(res && res.cornerTL) {
-          state.fileDataUrl = res.imageDataUrl;
-          state.cornerTL = res.cornerTL;
-          state.cornerBR = res.cornerBR;
-          els.preview.style.display = 'block';
-          els.preview.innerHTML = `<img src="${res.imageDataUrl}" style="width:100%;display:block;" />`;
-          showCoords(res.cornerTL, res.cornerBR, true);
-          setStatus('✓ Koordinat GeoTIFF terbaca otomatis.', true, 100);
-          return;
-        }
-      }
-    } catch(err) {
-      console.warn('[V19] GeoTIFF parse fail', err);
-    }
-    // fallback to image
-    await handleImage(file);
-  }
-
-  async function handleGeoPdf(file) {
-    state.processing = true;
-    setStatus('Membaca metadata GeoPDF...', true, 5);
-
-    // Progress reporter yang TIDAK manggil render() global
-    let pendingMsg = '';
-    let pendingPct = 0;
-    let rafPending = false;
-    const paint = () => {
-      rafPending = false;
-      setStatus(pendingMsg, true, pendingPct);
-    };
-    const reporter = (msg, pct) => {
-      pendingMsg = msg;
-      pendingPct = pct;
-      if(!rafPending) {
-        rafPending = true;
-        requestAnimationFrame(paint);
-      }
-    };
-    reporter.stop = () => {};
-
-    try {
-      // tryParseGeoPdf_ ada di peta.js global - pakai itu tapi dengan reporter isolasi
-      let geoRefReady = false;
-      const applyEarly = ({geoReference, cornerTL, cornerBR}) => {
-        if(!cornerTL || !cornerBR) return;
-        geoRefReady = true;
-        state.geoReference = geoReference;
-        state.cornerTL = cornerTL;
-        state.cornerBR = cornerBR;
-        // update coords DOM langsung tanpa render()
-        showCoords(cornerTL, cornerBR, true);
-      };
-
-      if(typeof tryParseGeoPdf_ !== 'function') {
-        setStatus('PDF parser belum siap. Coba lagi.', false, 0);
-        return;
-      }
-
-      const result = await tryParseGeoPdf_(file, reporter, applyEarly);
-
-      if(result && result.ok) {
-        state.geoReference = result.geoReference;
-        state.tilePyramid = result.tilePyramid;
-        state.fileDataUrl = result.imageDataUrl;
-        state.cornerTL = result.cornerTL;
-        state.cornerBR = result.cornerBR;
-        
-        // preview
-        els.preview.style.display = 'block';
-        els.preview.innerHTML = `<img src="${result.imageDataUrl}" style="width:100%;display:block;" />`;
-        showCoords(result.cornerTL, result.cornerBR, true);
-        setStatus('✓ Koordinat & gambar terbaca otomatis dari GeoPDF.', true, 100);
-        
-        // simpan runtime file untuk V15
-        try {
-          if(typeof mapUploadRuntimeFile_ !== 'undefined') {
-            mapUploadRuntimeFile_ = file;
-          }
-          window._v19RuntimeFile = file;
-        } catch(_){}
-      } else if(result && result.cornerTL) {
-        // partial: koordinat ok, gambar gagal
-        state.geoReference = result.geoReference;
-        state.cornerTL = result.cornerTL;
-        state.cornerBR = result.cornerBR;
-        showCoords(result.cornerTL, result.cornerBR, true);
-        setStatus(result.reason || 'Koordinat terbaca, tapi gambar gagal. Upload PNG/JPG terpisah.', false, 100);
-        // tetap allow save dengan koordinat saja? minta image
-      } else {
-        setStatus((result && result.reason) ? result.reason : 'Gagal baca GeoPDF. Export ulang sebagai PNG/JPG.', false, 0);
-      }
-    } catch(err) {
-      console.error('[V19] GeoPDF error', err);
-      setStatus('Error baca GeoPDF: ' + (err.message||err), false, 0);
-    } finally {
-      state.processing = false;
-    }
-  }
-
-  function showCoords(tl, br, auto) {
-    els.coords.style.display = 'block';
-    els.coords.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
-        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KIRI-ATAS Timur</div><div style="color:#fff;font-weight:600;">${tl.timur}</div></div>
-        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KIRI-ATAS Utara</div><div style="color:#fff;font-weight:600;">${tl.utara}</div></div>
-        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KANAN-BAWAH Timur</div><div style="color:#fff;font-weight:600;">${br.timur}</div></div>
-        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KANAN-BAWAH Utara</div><div style="color:#fff;font-weight:600;">${br.utara}</div></div>
-      </div>
-      <div style="margin-top:8px;font-size:9px;color:${auto?'#4ade80':'#fbbf24'};">${auto?'✓ Koordinat auto-detect dari file':'Isi manual 2 sudut'}</div>
-    `;
-  }
-
-  function showManualCoordsForm() {
-    // untuk PNG/JPG biasa - tetap tampilkan form manual simple
-    els.coords.style.display = 'block';
-    els.coords.innerHTML = `
-      <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px;">Masukkan Timur/Utara KIRI-ATAS dan KANAN-BAWAH dari ArcGIS/data survey</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <input id="mg1-v19-tl-timur" placeholder="Kiri-Atas Timur" style="background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px;font-size:11px;color:#fff;" />
-        <input id="mg1-v19-tl-utara" placeholder="Kiri-Atas Utara" style="background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px;font-size:11px;color:#fff;" />
-        <input id="mg1-v19-br-timur" placeholder="Kanan-Bawah Timur" style="background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px;font-size:11px;color:#fff;" />
-        <input id="mg1-v19-br-utara" placeholder="Kanan-Bawah Utara" style="background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:8px;font-size:11px;color:#fff;" />
-      </div>
-    `;
-  }
-
-  async function onSave() {
-    if(state.busy || state.processing) return;
-    if(!state.fileDataUrl) {
-      setStatus('Pilih gambar peta dulu.', false);
-      return;
-    }
-    if(!state.name.trim()) {
-      setStatus('Nama peta wajib diisi.', false);
-      return;
-    }
-
-    // ambil koordinat - dari auto atau manual
-    let tlTimur, tlUtara, brTimur, brUtara;
-    if(state.cornerTL && state.cornerBR) {
-      tlTimur = state.cornerTL.timur;
-      tlUtara = state.cornerTL.utara;
-      brTimur = state.cornerBR.timur;
-      brUtara = state.cornerBR.utara;
-    } else {
-      // manual
-      const tlT = document.getElementById('mg1-v19-tl-timur');
-      const tlU = document.getElementById('mg1-v19-tl-utara');
-      const brT = document.getElementById('mg1-v19-br-timur');
-      const brU = document.getElementById('mg1-v19-br-utara');
-      if(!tlT || !tlU || !brT || !brU || !tlT.value || !tlU.value || !brT.value || !brU.value) {
-        setStatus('Isi 4 angka Timur/Utara.', false);
-        return;
-      }
-      tlTimur = parseFloat(tlT.value);
-      tlUtara = parseFloat(tlU.value);
-      brTimur = parseFloat(brT.value);
-      brUtara = parseFloat(brU.value);
-    }
-
-    state.busy = true;
-    els.saveBtn.textContent = 'Menyimpan...';
-    els.saveBtn.style.opacity = '0.7';
-    setStatus('Menyimpan ke HP...', true, 90);
-
-    // V19: capture peta lama untuk no flicker transition
-    let freezeOverlay = null;
-    try {
-      if(typeof captureMapSurfaceTransition_ === 'function') {
-        freezeOverlay = captureMapSurfaceTransition_();
-      }
-    } catch(_){}
-
-    try {
-      const id = 'bgmap_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
-      const tilePyramid = state.tilePyramid ? {...state.tilePyramid, runtimeMapId: id} : null;
-
-      // dbPutMap_ ada di peta.js global
-      if(typeof dbPutMap_ !== 'function') throw new Error('dbPutMap_ tidak tersedia');
-
-      await dbPutMap_({
-        id: id,
-        name: state.name.trim(),
-        imageDataUrl: state.fileDataUrl,
-        cornerTL: state.geoReference && state.geoReference.extent ? {...state.geoReference.extent.cornerTL} : {timur: tlTimur, utara: tlUtara},
-        cornerBR: state.geoReference && state.geoReference.extent ? {...state.geoReference.extent.cornerBR} : {timur: brTimur, utara: brUtara},
-        geoReference: state.geoReference || null,
-        tilePyramid: tilePyramid,
-        uploadedAt: new Date().toISOString(),
-        uploadedBy: (typeof sessionInfo !== 'undefined' && sessionInfo) ? sessionInfo.userName : 'unknown'
-      });
-
-      if(typeof loadBackgroundMapsFromDb_ === 'function') {
-        await loadBackgroundMapsFromDb_();
-      }
-
-      // runtime PDF source
-      try {
-        const runtimeFile = window._v19RuntimeFile || state.file;
-        if(state.geoReference && runtimeFile && typeof registerLithositeRuntimePdfSource_ === 'function') {
-          registerLithositeRuntimePdfSource_(id, runtimeFile, state.geoReference);
-        }
-      } catch(_){}
-
-      // aktifkan peta baru langsung - tidak lewat Kelola modal
-      if(typeof activeBackgroundMapId !== 'undefined') {
-        activeBackgroundMapId = id;
-      }
-      if(typeof mapZoom !== 'undefined') mapZoom = 1.25;
-      if(typeof mapViewportState_ !== 'undefined') mapViewportState_.centerNative = null;
-      try { localStorage.setItem('mg1_active_bg_map_id', id); } catch(_){}
-
-      setStatus('✓ Peta tersimpan!', true, 100);
-
-      // tutup modal dengan fade natural
-      setTimeout(() => {
-        close();
-        // satu render final saja - dengan overlay freeze yang sudah di-capture
-        try {
-          if(typeof mapManagePanelOpen !== 'undefined') mapManagePanelOpen = false;
-          if(typeof mapUploadFormOpen !== 'undefined') mapUploadFormOpen = false;
-          if(typeof render === 'function') render();
-        } catch(_){}
-        try {
-          if(typeof releaseMapSurfaceTransition_ === 'function') {
-            releaseMapSurfaceTransition_(freezeOverlay);
-          } else if(freezeOverlay) {
-            freezeOverlay.style.transition = 'opacity 250ms ease-out';
-            freezeOverlay.style.opacity = '0';
-            setTimeout(()=>{ try{freezeOverlay.remove();}catch(_){} }, 300);
-          }
-        } catch(_){}
-      }, 400);
-
-    } catch(err) {
-      console.error('[V19] save error', err);
-      setStatus('Gagal simpan: ' + (err.message||err), false);
-      state.busy = false;
-      els.saveBtn.textContent = 'Simpan Peta';
-      els.saveBtn.style.opacity = '1';
-      try { if(freezeOverlay) freezeOverlay.remove(); } catch(_){}
-    }
-  }
-
-  // Public API
-  window.MG1NewMapModal = {
-    open: open,
-    close: close,
-    _state: state
-  };
-
-  // Auto-override tombol lama "Tambah Peta Baru" dan "Kelola Peta Background"
-  function overrideOldButtons() {
-    // Override global openMapUploadForm_ jika ada
-    if(typeof window.openMapUploadForm_ === 'function') {
-      const old = window.openMapUploadForm_;
-      window.openMapUploadForm_ = function() {
-        console.log('[V19] openMapUploadForm_ overridden -> new modal');
-        open();
-      };
-    }
-    // Override openMapManagePanel_ untuk tetap pakai modal lama? tapi kita skip
-    // Tombol di UI yang manggil openMapManagePanel_ tetap jalan, tapi Tambah Peta Baru di dalamnya kita override
-    const check = setInterval(() => {
-      const btns = document.querySelectorAll('button');
-      btns.forEach(b => {
-        if(b.textContent && b.textContent.includes('Tambah Peta Baru') && !b.__v19Overridden) {
-          b.__v19Overridden = true;
-          b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); open(); };
-        }
-      });
-    }, 1000);
-  }
-
-  // Init after DOM ready
-  if(document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => { ensureDom(); overrideOldButtons(); });
-  } else {
-    ensureDom();
-    overrideOldButtons();
-  }
-
-  console.log('[V19 NEW MODAL] Ready - call MG1NewMapModal.open() to test');
-})();
-
-/* ===== V23 NO MODAL FLICKER TIMING FIX INTEGRATED ===== */
-/* V23 NO MODAL FLICKER - MATIKAN render() UNTUK SEMUA MODAL PETA
- * Masalah video 18.28: 
- * - openMapManagePanel_() { render() } -> rebuild #app
- * - openMapUploadForm_() { render() } -> rebuild #app lagi
- * - Klik + Tambah Peta Baru di dalam Kelola -> 2 modal rebutan render -> flicker 7.6s, 10.8s
- * Solusi: Override semua open/close modal jadi isolated, tidak pakai render() global
- */
-
-(function(){
-  console.log('[V23] Loading NO-MODAL-FLICKER fix');
-
-  // Simpan original untuk fallback
-  const origOpenManage = window.openMapManagePanel_;
-  const origCloseManage = window.closeMapManagePanel_;
-  const origOpenUpload = window.openMapUploadForm_;
-  const origCloseUpload = window.closeMapUploadForm_;
-
-  // State untuk modal isolated
-  let manageModalEl = null;
-  let uploadModalEl = null;
-
-  function ensureManageModalDom() {
-    if(manageModalEl && document.body.contains(manageModalEl)) return manageModalEl;
-    
-    // Buat modal Kelola isolasi (tidak pakai render())
-    const el = document.createElement('div');
-    el.id = 'mg1-manage-modal-isolated';
-    el.style.cssText = 'position:fixed;inset:0;z-index:2147483646;display:none;';
-    el.innerHTML = `
-      <div id="mg1-manage-backdrop" style="position:absolute;inset:0;background:rgba(3,8,20,0.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;transition:opacity 200ms ease;"></div>
-      <div id="mg1-manage-panel" style="position:absolute;left:0;right:0;bottom:0;max-height:78vh;background:#0e1933;border-top:1px solid rgba(255,255,255,0.1);border-radius:20px 20px 0 0;transform:translateY(100%);transition:transform 300ms cubic-bezier(0.16,1,0.3,1);overflow:auto;">
-        <div style="padding:16px;">
-          <div style="width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:9999px;margin:0 auto 12px;"></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <div>
-              <div style="font-size:13px;font-weight:800;color:#fff;">Kelola Peta Background</div>
-              <div id="mg1-manage-count" style="font-size:10px;color:rgba(255,255,255,0.4);">0 peta tersimpan</div>
-            </div>
-            <button id="mg1-manage-close" style="width:28px;height:28px;border-radius:9999px;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.6);">✕</button>
-          </div>
-          <div id="mg1-manage-list"></div>
-          <button id="mg1-manage-add" style="width:100%;margin-top:12px;background:rgba(37,99,235,0.12);border:1px dashed rgba(37,99,235,0.4);border-radius:12px;padding:12px;font-size:12px;font-weight:700;color:#60a5fa;">+ Tambah Peta Baru</button>
-          <div style="margin-top:8px;font-size:9px;color:rgba(255,255,255,0.25);text-align:center;">Peta disimpan di HP (IndexedDB) - offline</div>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(el);
-    
-    // Events
-    el.querySelector('#mg1-manage-backdrop').onclick = () => closeManageModal();
-    el.querySelector('#mg1-manage-close').onclick = () => closeManageModal();
-    el.querySelector('#mg1-manage-add').onclick = () => {
-      closeManageModal();
-      setTimeout(() => openUploadModal(), 330);
-    };
-    
-    manageModalEl = el;
-    return el;
-  }
-
-  function openManageModal() {
-    const el = ensureManageModalDom();
-    const backdrop = el.querySelector('#mg1-manage-backdrop');
-    const panel = el.querySelector('#mg1-manage-panel');
-    const listEl = el.querySelector('#mg1-manage-list');
-    const countEl = el.querySelector('#mg1-manage-count');
-    
-    // Update list dari backgroundMapsList global
-    try {
-      const maps = typeof backgroundMapsList !== 'undefined' ? backgroundMapsList : [];
-      countEl.textContent = maps.length + ' peta tersimpan';
-      if(maps.length === 0) {
-        listEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:rgba(255,255,255,0.3);font-size:11px;">Belum ada peta background tersimpan.</div>';
-      } else {
-        listEl.innerHTML = maps.map(m => `
-          <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.04);border-radius:12px;padding:10px;margin-bottom:8px;">
-            <div style="width:48px;height:48px;border-radius:8px;background:#0b1329;overflow:hidden;flex-shrink:0;">
-              ${m.imageDataUrl ? `<img src="${m.imageDataUrl}" style="width:100%;height:100%;object-fit:cover;" />` : ''}
-            </div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.name||'Tanpa nama'}</div>
-              <div style="font-size:10px;color:rgba(255,255,255,0.4);">${(m.id||'').slice(0,12)} • ${m.tilePyramid ? (m.tilePyramid.levels?.length||0)+' level' : 'single'}</div>
-            </div>
-            <button onclick="window._v23ActivateMap('${m.id}')" style="background:#2563eb;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:700;">AKTIFKAN</button>
-            <button onclick="window._v23DeleteMap('${m.id}')" style="background:rgba(244,63,94,0.15);color:#f43f5e;border:none;border-radius:8px;width:28px;height:28px;">🗑</button>
-          </div>
-        `).join('');
-      }
-    } catch(e) {
-      console.warn('[V23] manage list update fail', e);
-    }
-    
-    el.style.display = 'block';
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        backdrop.style.opacity = '1';
-        panel.style.transform = 'translateY(0)';
-      });
-    });
-    
-    // Set flag tanpa render()
-    if(typeof mapManagePanelOpen !== 'undefined') mapManagePanelOpen = true;
-  }
-
-  function closeManageModal() {
-    if(!manageModalEl) return;
-    const backdrop = manageModalEl.querySelector('#mg1-manage-backdrop');
-    const panel = manageModalEl.querySelector('#mg1-manage-panel');
-    if(backdrop) backdrop.style.opacity = '0';
-    if(panel) panel.style.transform = 'translateY(100%)';
-    setTimeout(() => {
-      manageModalEl.style.display = 'none';
-      if(typeof mapManagePanelOpen !== 'undefined') mapManagePanelOpen = false;
-    }, 300);
-  }
-
-  // Dipakai save flow V22 agar daftar peta langsung tampil tanpa render() global.
-  window._v23OpenManageModal = openManageModal;
-
-  // Isolated upload modal sudah ada di V19, tapi kita pastikan tidak pakai render()
-  function openUploadModal() {
-    // Jika V19 modal ada, pakai itu
-    if(window.MG1NewMapModal && typeof window.MG1NewMapModal.open === 'function') {
-      window.MG1NewMapModal.open();
-      return;
-    }
-    // Fallback: pakai original tapi tanpa flicker double
-    // Tutup manage dulu baru buka upload
-    closeManageModal();
-    setTimeout(() => {
-      if(typeof mapUploadFormOpen !== 'undefined') {
-        mapUploadFormOpen = true;
-        // JANGAN render() - langsung buat modal isolated simple
-        // Untuk sekarang fallback ke original jika V19 tidak ada
-        if(origOpenUpload) {
-          // Override render di original untuk tidak rebuild #app? 
-          // Kita set flag untuk skip render sekali
-          window._v23SkipNextRender = true;
-          origOpenUpload();
-        }
-      }
-    }, 200);
-  }
-
-  function closeUploadModal() {
-    if(window.MG1NewMapModal && typeof window.MG1NewMapModal.close === 'function') {
-      window.MG1NewMapModal.close();
-      return;
-    }
-    if(typeof mapUploadFormOpen !== 'undefined') mapUploadFormOpen = false;
-    // Jangan render() - tutup via DOM saja jika ada
-    const v19Root = document.getElementById('mg1-new-map-modal-root');
-    if(v19Root) {
-      const backdrop = document.getElementById('mg1-new-modal-backdrop');
-      const panel = document.getElementById('mg1-new-modal-panel');
-      if(backdrop) backdrop.style.opacity = '0';
-      if(panel) { panel.style.opacity = '0'; panel.style.transform = 'translate(-50%,-44%) scale(0.96)'; }
-      setTimeout(() => { v19Root.style.display = 'none'; }, 260);
-    } else {
-      if(origCloseUpload) {
-        window._v23SkipNextRender = true;
-        origCloseUpload();
-      }
-    }
-  }
-
-  // Override global functions - NO RENDER
-  window.openMapManagePanel_ = function() {
-    console.log('[V23] openMapManagePanel_ overridden - no render()');
-    openManageModal();
-  };
-
-  window.closeMapManagePanel_ = function() {
-    console.log('[V23] closeMapManagePanel_ overridden - no render()');
-    closeManageModal();
-    // Juga tutup upload jika ada
-    if(typeof mapUploadFormOpen !== 'undefined' && mapUploadFormOpen) {
-      mapUploadFormOpen = false;
-    }
-  };
-
-  window.openMapUploadForm_ = function() {
-    console.log('[V23] openMapUploadForm_ overridden - no render(), use V19 isolated modal');
-    // Tutup manage dulu biar tidak double modal
-    closeManageModal();
-    setTimeout(() => openUploadModal(), 330);
-  };
-
-  window.closeMapUploadForm_ = function() {
-    console.log('[V23] closeMapUploadForm_ overridden - no render()');
-    closeUploadModal();
-  };
-
-  // Helper untuk activate/delete tanpa render() global - pakai atomic swap
-  window._v23ActivateMap = async function(id) {
-    closeManageModal();
-    setTimeout(async () => {
-      try {
-        activeBackgroundMapId = id;
-        mapZoom = 1.25;
-        if(typeof mapViewportState_ !== 'undefined') mapViewportState_.centerNative = null;
-        try { localStorage.setItem('mg1_active_bg_map_id', id); } catch(_){}
-        
-        // Atomic swap tanpa render()
-        const vp = document.getElementById('mg1-map-viewport');
-        if(vp && typeof window.executeAtomicSurfaceSwap_ === 'function' && typeof window.buildNewMapSurfaceV22 === 'function') {
-          await window.executeAtomicSurfaceSwap_(vp, window.buildNewMapSurfaceV22);
-        } else if(typeof window.updateMapViewportDirectNoRender_ === 'function') {
-          window.updateMapViewportDirectNoRender_();
-        } else if(typeof render === 'function') {
-          render();
-        }
-      } catch(e) {
-        console.error('[V23] activate fail', e);
-        if(typeof render === 'function') render();
-      }
-    }, 200);
-  };
-
-  window._v23DeleteMap = async function(id) {
-    if(!confirm('Hapus peta ini?')) return;
-    try {
-      if(typeof dbDeleteMap_ === 'function') await dbDeleteMap_(id);
-      if(activeBackgroundMapId === id) {
-        activeBackgroundMapId = null;
-        try { localStorage.removeItem('mg1_active_bg_map_id'); } catch(_){}
-      }
-      if(typeof loadBackgroundMapsFromDb_ === 'function') await loadBackgroundMapsFromDb_();
-      // Refresh manage modal list tanpa render()
-      openManageModal();
-      // Jika peta aktif dihapus, update viewport
-      if(!activeBackgroundMapId) {
-        const vp = document.getElementById('mg1-map-viewport');
-        if(vp && typeof window.buildNewMapSurfaceV22 === 'function' && typeof window.executeAtomicSurfaceSwap_ === 'function') {
-          await window.executeAtomicSurfaceSwap_(vp, window.buildNewMapSurfaceV22);
-        }
-      }
-    } catch(e) {
-      console.error('[V23] delete fail', e);
-    }
-  };
-
-  // Intercept render() untuk skip jika flag _v23SkipNextRender
-  if(typeof window.render === 'function' && !window._v23RenderPatched) {
-    const origRender = window.render;
-    window.render = function() {
-      if(window._v23SkipNextRender) {
-        console.log('[V23] Skipping render() to prevent modal flicker');
-        window._v23SkipNextRender = false;
-        return;
-      }
-      return origRender.apply(this, arguments);
-    };
-    window._v23RenderPatched = true;
-  }
-
-  // Auto patch tombol-tombol lama
-  function patchOldButtons() {
-    const check = setInterval(() => {
-      const btns = document.querySelectorAll('button, [onclick*="openMapManagePanel"], [onclick*="openMapUploadForm"]');
-      btns.forEach(b => {
-        const onclick = b.getAttribute('onclick') || '';
-        if(onclick.includes('openMapManagePanel_') && !b.__v23Patched) {
-          b.__v23Patched = true;
-          b.onclick = (e) => { e.preventDefault(); openManageModal(); };
-        }
-        if(onclick.includes('openMapUploadForm_') && !b.__v23Patched) {
-          b.__v23Patched = true;
-          b.onclick = (e) => { e.preventDefault(); openUploadModal(); };
-        }
-      });
-    }, 1000);
-  }
-
-  if(document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', patchOldButtons);
-  } else {
-    patchOldButtons();
-  }
-
-  console.log('[V23] Ready - All map modals isolated, no render() flicker');
-})();
-(function(){
-  'use strict';
-  console.log('[V24.1] TRUE INSTANT SAVE loading');
-
-  function getSaveState_(){
-    const f = typeof mapUploadFormState !== 'undefined' ? mapUploadFormState : null;
-    const modalState = window.MG1NewMapModal ? window.MG1NewMapModal._state : null;
-    const isNewModal = !!(modalState && modalState.open);
-    if(isNewModal) return { state: modalState, isNewModal };
-    if(!f) return { state:null, isNewModal:false };
-    return {
-      isNewModal:false,
-      state:{
-        file: typeof mapUploadRuntimeFile_ !== 'undefined' ? mapUploadRuntimeFile_ : (window._v19RuntimeFile || null),
-        name: f.name,
-        fileDataUrl: f.fileDataUrl,
-        geoReference: f.geoReference,
-        tilePyramid: f.tilePyramid,
-        cornerTL: f.geoReference?.extent ? f.geoReference.extent.cornerTL : (f.tlTimur ? {timur:parseFloat(f.tlTimur), utara:parseFloat(f.tlUtara)} : null),
-        cornerBR: f.geoReference?.extent ? f.geoReference.extent.cornerBR : (f.brTimur ? {timur:parseFloat(f.brTimur), utara:parseFloat(f.brUtara)} : null)
-      }
-    };
-  }
-
-  function closeUploadModalInstant_(isNewModal, modalState){
-    const root = document.getElementById('mg1-new-map-modal-root');
-    const backdrop = document.getElementById('mg1-new-modal-backdrop');
-    const panel = document.getElementById('mg1-new-modal-panel');
-    if(root && isNewModal){
-      if(backdrop) backdrop.style.opacity='0';
-      if(panel){ panel.style.opacity='0'; panel.style.transform='translate(-50%,-44%) scale(0.96)'; }
-      setTimeout(()=>{ root.style.display='none'; if(modalState) modalState.open=false; }, 200);
-    } else {
-      if(typeof mapUploadFormOpen !== 'undefined') mapUploadFormOpen=false;
-      if(typeof mapManagePanelOpen !== 'undefined') mapManagePanelOpen=false;
-    }
-  }
-
-  function buildInstantPreviewSurface_(mapEntry){
-    if(typeof renderMineGridSvg !== 'function' || typeof buildMapData !== 'function') return null;
-    const idx = Array.isArray(backgroundMapsList) ? backgroundMapsList.findIndex(m=>m && m.id===mapEntry.id) : -1;
-    const previous = idx >= 0 ? backgroundMapsList[idx] : null;
-    // Force the existing renderer to use the single full image for the first paint.
-    // This avoids building/preloading the 25-level pyramid before the user sees the map.
-    if(idx >= 0) backgroundMapsList[idx] = {...mapEntry, tilePyramid:null};
-    else if(Array.isArray(backgroundMapsList)) backgroundMapsList.push({...mapEntry, tilePyramid:null});
-    let built='';
-    try { built = renderMineGridSvg(buildMapData()); } finally {
-      if(idx >= 0) backgroundMapsList[idx] = previous;
-      else if(Array.isArray(backgroundMapsList)) backgroundMapsList.pop();
-    }
-    const temp=document.createElement('div');
-    temp.innerHTML=String(built||'').trim();
-    const svg=temp.firstElementChild;
-    if(!svg) return null;
-    svg.classList.add('lithosite-map-surface','lithosite-map-surface--instant');
-    svg.style.visibility='hidden';
-    svg.style.pointerEvents='none';
-    svg.style.position='absolute';
-    svg.style.inset='0';
-    svg.style.opacity='1';
-    return svg;
-  }
-
-  function showInstantPreview_(mapEntry){
-    const vp=document.getElementById('mg1-map-viewport');
-    if(!vp) return Promise.resolve(false);
-    let svg;
-    try { svg=buildInstantPreviewSurface_(mapEntry); } catch(e){ console.warn('[V24.1] preview build failed',e); return Promise.resolve(false); }
-    if(!svg) return Promise.resolve(false);
-    vp.appendChild(svg);
-    const href=svg.querySelector('image')?.getAttribute('href') || svg.querySelector('image')?.getAttribute('xlink:href') || '';
-    if(!href){
-      svg.style.visibility=''; svg.style.pointerEvents='';
-      const old=vp.querySelector('svg[data-map-gesture="true"]:not(.lithosite-map-surface--instant)');
-      if(old) old.remove();
-      return Promise.resolve(true);
-    }
-    return new Promise(resolve=>{
-      let settled=false;
-      const finish=(ok)=>{
-        if(settled) return; settled=true;
-        if(ok){
-          svg.style.visibility=''; svg.style.pointerEvents='';
-          const old=vp.querySelector('svg[data-map-gesture="true"]:not(.lithosite-map-surface--instant)');
-          if(old) old.remove();
-          svg.classList.remove('lithosite-map-surface--instant');
-          requestAnimationFrame(()=>{ try{ if(typeof ensureMapContextBlocker_==='function') ensureMapContextBlocker_(); }catch(_){} });
-        } else {
-          try{svg.remove();}catch(_){}
-        }
-        resolve(!!ok);
-      };
-      const loader=new Image();
-      loader.onload=()=>finish(true);
-      loader.onerror=()=>finish(false);
-      loader.src=href;
-      setTimeout(()=>finish(false),1200);
-    });
-  }
-
-  function persistMapVersionAware_(entry){
-    return new Promise(async (resolve,reject)=>{
-      try {
-        if(!entry || !entry.id) return reject(new Error('entry unavailable'));
-        const db=await openMapDb_();
-        const tx=db.transaction(MAP_DB_STORE_,'readwrite');
-        const store=tx.objectStore(MAP_DB_STORE_);
-        let skipped=false;
-        const req=store.get(entry.id);
-        req.onsuccess=()=>{
-          const existing=req.result;
-          const curVer=existing && existing.tilePyramid && Number(existing.tilePyramid.__persistVersion)||0;
-          const newVer=entry && entry.tilePyramid && Number(entry.tilePyramid.__persistVersion)||0;
-          if(newVer < curVer){
-            skipped=true;
-            return;
-          }
-          store.put(entry);
-        };
-        req.onerror=()=>{ try{store.put(entry);}catch(_){} };
-        tx.oncomplete=()=>{
-          try{db.close();}catch(_){}
-          resolve(skipped ? {ok:true,skipped:true,reason:'version-skipped fallback'} : {ok:true});
-        };
-        tx.onerror=()=>{try{db.close();}catch(_){} reject(tx.error||new Error('version-aware fallback failed'));};
-        tx.onabort=()=>{try{db.close();}catch(_){} reject(tx.error||new Error('version-aware fallback aborted'));};
-      } catch(e) { reject(e); }
-    });
-  }
-
-  function persistMapInWorker_(entry){
-    return new Promise((resolve,reject)=>{
-      if(typeof Worker==='undefined' || typeof Blob==='undefined' || typeof URL==='undefined' || !URL.createObjectURL){
-        reject(new Error('Worker tidak tersedia')); return;
-      }
-      const workerCode=`
-        self.onmessage=function(ev){
-          const d=ev.data||{}; const req=indexedDB.open(d.dbName,2);
-          req.onupgradeneeded=function(){const db=req.result; if(!db.objectStoreNames.contains(d.storeName)) db.createObjectStore(d.storeName,{keyPath:'id'}); if(!db.objectStoreNames.contains('kmlOverlays')) db.createObjectStore('kmlOverlays',{keyPath:'id'});};
-          req.onerror=function(){self.postMessage({ok:false,error:String(req.error&&req.error.message||req.error||'open failed')});};
-          req.onsuccess=function(){
-            const db=req.result;
-            try {
-              // Read + version check + put must share ONE readwrite transaction.
-              // This closes the T0-T3 race where a stale worker read could overwrite
-              // a newer runtime persistence that committed between separate transactions.
-              const tx=db.transaction(d.storeName,'readwrite');
-              const store=tx.objectStore(d.storeName);
-              let skipped=false;
-              const getReq=store.get(d.entry.id);
-              getReq.onsuccess=function(){
-                const existing=getReq.result;
-                const curVer=existing && existing.tilePyramid && Number(existing.tilePyramid.__persistVersion)||0;
-                const newVer=d.entry && d.entry.tilePyramid && Number(d.entry.tilePyramid.__persistVersion)||0;
-                if(newVer < curVer){
-                  skipped=true;
-                  return;
-                }
-                store.put(d.entry);
-              };
-              getReq.onerror=function(){
-                // Preserve previous fallback behavior if the version read itself fails.
-                try{store.put(d.entry);}catch(_){}
-              };
-              tx.oncomplete=function(){
-                try{db.close();}catch(_){}
-                if(skipped){
-                  self.postMessage({ok:true, skipped:true, reason:'version-skipped V24.1 worker'});
-                } else {
-                  self.postMessage({ok:true});
-                }
-              };
-              tx.onerror=function(){try{db.close();}catch(_){} self.postMessage({ok:false,error:String(tx.error&&tx.error.message||tx.error||'put failed')});};
-              tx.onabort=tx.onerror;
-            }catch(e){try{db.close();}catch(_){} self.postMessage({ok:false,error:String(e&&e.message||e)});}
-          };
-        };
-      `;
-      const blob=new Blob([workerCode],{type:'application/javascript'});
-      const url=URL.createObjectURL(blob);
-      const worker=new Worker(url);
-      const cleanup=()=>{try{worker.terminate();}catch(_){} try{URL.revokeObjectURL(url);}catch(_){} };
-      worker.onmessage=ev=>{const r=ev.data||{}; cleanup(); if(r.skipped){ resolve(true); return; } r.ok?resolve(true):reject(new Error(r.error||'worker save failed'));};
-      worker.onerror=ev=>{cleanup(); reject(new Error(ev&&ev.message||'worker error'));};
-      try{worker.postMessage({dbName:'mg1_background_maps',storeName:'maps',entry:entry});}
-      catch(e){cleanup(); reject(e);}
-    });
-  }
-
-  function scheduleBackgroundPersistence_(entry){
-    const run=()=>{
-      console.log('[V24.1] Background persistence starting - version-aware + clone-safe');
-      try {
-        let entryToPersist = entry;
-        // === FIX race T0-T3: ambil entry terbaru dari RAM, bukan closure lama ===
-        try {
-          if (typeof backgroundMapsList !== 'undefined' && Array.isArray(backgroundMapsList)) {
-            const latest = backgroundMapsList.find(m => m && String(m.id) === String(entry.id));
-            if (latest) {
-              const curVer = Number(latest.tilePyramid && latest.tilePyramid.__persistVersion) || 0;
-              const oldVer = Number(entry.tilePyramid && entry.tilePyramid.__persistVersion) || 0;
-              if (curVer > oldVer) {
-                console.log('[V24.1] Using latest entry from RAM, version', oldVer, '->', curVer);
-                entryToPersist = latest;
-              }
-              // Jika latest sudah lebih baru, jangan overwrite dengan versi lama
-              if (curVer > 0 && oldVer > 0 && oldVer < curVer && latest !== entry) {
-                console.log('[V24.1] Skipped - newer version in RAM exists', curVer, 'vs', oldVer);
-                return;
-              }
-            }
-          }
-        } catch(_) {}
-        // Clone-safe sanitize
-        try {
-          if (entryToPersist && entryToPersist.tilePyramid && typeof sanitizePyramidForStorage_ === 'function') {
-            const cleanPyramid = sanitizePyramidForStorage_(entryToPersist.tilePyramid);
-            entryToPersist = { ...entryToPersist, tilePyramid: cleanPyramid };
-          }
-        } catch(_) {}
-        persistMapInWorker_(entryToPersist).then(()=>{
-          console.log('[V24.1] Background IndexedDB save DONE');
-          entry.__v24Persisted=true;
-        }).catch(err=>{
-          console.warn('[V24.1] Worker persistence failed, fallback idle DB save:',err);
-          const fallback=()=>{
-            try {
-              let safe = entryToPersist;
-              try {
-                if (safe && safe.tilePyramid && typeof sanitizePyramidForStorage_ === 'function') {
-                  safe = { ...safe, tilePyramid: sanitizePyramidForStorage_(safe.tilePyramid) };
-                }
-              } catch(_) {}
-              // Final version check before fallback
-              try {
-                if (typeof backgroundMapsList !== 'undefined' && Array.isArray(backgroundMapsList)) {
-                  const latest = backgroundMapsList.find(m => m && String(m.id) === String(safe.id));
-                  if (latest) {
-                    const curVer = Number(latest.tilePyramid && latest.tilePyramid.__persistVersion) || 0;
-                    const newVer = Number(safe.tilePyramid && safe.tilePyramid.__persistVersion) || 0;
-                    if (curVer > 0 && newVer > 0 && newVer < curVer) {
-                      console.log('[V24.1 fallback] Skipped - newer version exists', curVer, 'vs', newVer);
-                      return;
-                    }
-                  }
-                }
-              } catch(_) {}
-              if(typeof persistMapVersionAware_==='function') persistMapVersionAware_(safe).then(r=>{
-                if(r&&r.skipped) console.log('[V24.1 fallback] Skipped stale DB write');
-              }).catch(e=>console.warn('[V24.1] fallback DB save failed',e));
-            } catch(e2) { console.warn('[V24.1] fallback sanitize failed', e2); }
-          };
-          if(typeof requestIdleCallback==='function') requestIdleCallback(fallback,{timeout:10000}); else setTimeout(fallback,1000);
-        });
-      } catch(e) { console.warn('[V24.1] schedule failed', e); }
-    };
-    if(typeof requestIdleCallback==='function') requestIdleCallback(run,{timeout:5000});
-    else setTimeout(run,1500);
-  }
-
-  window.submitMapUpload_InstantV24_1 = async function(){
-    if(window.__v24SaveInFlight) return;
-    const pack=getSaveState_();
-    const state=pack.state, isNewModal=pack.isNewModal;
-    if(!state) return;
-    if(!state.fileDataUrl || !String(state.name||'').trim()) return;
-    window.__v24SaveInFlight=true;
-
-    const id='bgmap_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-    const tilePyramid=state.tilePyramid && typeof state.tilePyramid==='object' ? {...state.tilePyramid,runtimeMapId:id} : null;
-    const entry={
-      id,
-      name:String(state.name).trim(),
-      imageDataUrl:state.fileDataUrl,
-      cornerTL:state.geoReference?.extent ? {...state.geoReference.extent.cornerTL} : state.cornerTL,
-      cornerBR:state.geoReference?.extent ? {...state.geoReference.extent.cornerBR} : state.cornerBR,
-      geoReference:state.geoReference||null,
-      tilePyramid,
-      uploadedAt:new Date().toISOString(),
-      uploadedBy:(typeof sessionInfo!=='undefined' && sessionInfo)?sessionInfo.userName:'unknown'
-    };
-
-    if(isNewModal && pack.state){
-      pack.state.busy=false;
-      const btn=document.getElementById('mg1-new-modal-save'); if(btn){btn.textContent='Menyimpan...';btn.style.opacity='0.7';}
-      const st=document.getElementById('mg1-new-modal-status'); if(st) st.textContent='Peta diterapkan. Menyimpan data di belakang...';
-    }
-
-    // 1) RAM commit first — this is the user-visible save.
-    if(Array.isArray(backgroundMapsList)) backgroundMapsList.push(entry);
-    activeBackgroundMapId=id;
-    mapZoom=1.25;
-    if(typeof compassRotationOffsetDeg_!=='undefined') compassRotationOffsetDeg_=0;
-    if(typeof mapViewportState_!=='undefined' && mapViewportState_) mapViewportState_.centerNative=null;
-    try{localStorage.setItem('mg1_active_bg_map_id',id);}catch(_){ }
-
-    // 2) Close upload modal immediately; never wait for IndexedDB.
-    closeUploadModalInstant_(isNewModal, pack.state);
-
-    // 3) Show the new map from the full image as soon as it decodes; old map stays until then.
-    showInstantPreview_(entry).catch(e=>console.warn('[V24.1] instant preview error',e));
-
-    // 4) Upgrade to pyramid atomically in the background; never await it here.
-    setTimeout(()=>{
-      try{
-        const vp=document.getElementById('mg1-map-viewport');
-        if(vp && typeof executeAtomicSurfaceSwap_==='function' && typeof buildNewMapSurfaceV22==='function'){
-          executeAtomicSurfaceSwap_(vp,buildNewMapSurfaceV22).then(ok=>console.log('[V24.1] detail atomic swap',ok?'READY':'CANCELLED')).catch(e=>console.warn('[V24.1] detail swap failed; current map retained',e));
-        }
-      }catch(e){console.warn('[V24.1] detail swap start failed',e);}
-    },50);
-
-    // 5) Manage list appears quickly from RAM; no DB reload and no global render.
-    setTimeout(()=>{
-      try{
-        if(typeof window._v23OpenManageModal==='function') window._v23OpenManageModal();
-        else if(typeof window.openMapManagePanel_==='function') window.openMapManagePanel_();
-      }catch(e){console.warn('[V24.1] manage modal failed',e);}
-    },230);
-
-    // 6) Heavy IndexedDB persistence is deliberately decoupled from the click path.
-    scheduleBackgroundPersistence_(entry);
-
-    // UI busy state can be cleared immediately because save-to-RAM already committed.
-    if(typeof mapUploadBusy!=='undefined') mapUploadBusy=false;
-    if(isNewModal && pack.state) pack.state.busy=false;
-    window.__v24SaveInFlight=false;
-  };
-
-  window.submitMapUpload_ = window.submitMapUpload_InstantV24_1;
-  window.submitMapUpload_NoRender_ = window.submitMapUpload_InstantV24_1;
-  window.submitMapUpload_Atomic_ = window.submitMapUpload_InstantV24_1;
-
-  const bind=()=>{
-    const b=document.getElementById('mg1-new-modal-save');
-    if(!b) return false;
-    b.type='button'; b.onclick=window.submitMapUpload_InstantV24_1; b.__v24SaveBound=true; return true;
-  };
-  bind();
-  const iv=setInterval(()=>{ if(bind()) clearInterval(iv); },250);
-  console.log('[V24.1] Ready - RAM-first save, worker persistence, instant preview, V22 detail upgrade');
-})();
-
-// === STEP 8.14 - Missing Creation Worker with in-flight protection ===
-let mg1MissingCreationTracker_ = null;
-function ensureMissingCreationTracker_(pyramid) {
-  if (!pyramid) return null;
-  if (!mg1MissingCreationTracker_ || mg1MissingCreationTracker_.pyramid !== pyramid) {
-    mg1MissingCreationTracker_ = {
-      pyramid: pyramid,
-      creatingSet: Object.create(null),
-      lastMissingCount: 0
-    };
-  }
-  if (!pyramid.missingCreationTracker || pyramid.missingCreationTracker.version !== 1) {
-    pyramid.missingCreationTracker = {
-      version: 1,
-      creatingSet: Object.create(null)
-    };
-  }
-  return mg1MissingCreationTracker_;
+function renderKmlUploadForm_() {
+  if (!kmlUploadFormOpen) return '';
+  const body =
+    '<div class="mb-3">' +
+      '<label class="block text-[10px] text-white/40 mb-1 font-medium">File KML</label>' +
+      '<input type="file" accept=".kml" onchange="handleKmlFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
+    '</div>' +
+    (kmlUploadStatusMsg ? '<p class="text-[11px] mb-2 font-medium ' + (kmlUploadStatusOk ? 'text-emerald-400' : 'text-rose-400') + '">' + kmlUploadStatusMsg + '</p>' : '') +
+    (kmlUploadParsedPoints.length > 0 || kmlUploadParsedLines.length > 0
+      ? '<p class="text-[9px] text-white/30 mb-2">Koordinat KML (Lat/Lon) otomatis dikonversi ke Timur/Utara pakai CRS situs aktif sekarang: <span class="text-white/50 font-semibold">' + (MG1_CRS_CONFIG.presetLabel||'-') + '</span>.</p>'
+      : '') +
+    '<button onclick="submitKmlUpload_()" ' + (kmlUploadBusy ? 'disabled' : '') + ' class="w-full mt-2 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold text-xs py-2.5 rounded-xl disabled:opacity-60">' +
+      (kmlUploadBusy ? '<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin"></span>' : icon('upload','w-4 h-4')) + '<span>' + (kmlUploadBusy ? 'Menyimpan...' : 'Simpan KML') + '</span>' +
+    '</button>';
+  return renderSimpleModal('Import KML', 'Titik &amp; garis batas', body, 'closeKmlUploadForm_()');
 }
-
-async function processMissingCreationBatch_(pyramid, mapId, missingKeys, batchSize) {
-  try {
-    if (!pyramid || !Array.isArray(missingKeys) || !missingKeys.length) return { processed:0, created:0, failed:0 };
-    if (!mapId) {
-      try { mapId = (typeof activeBackgroundMapId !== 'undefined' && activeBackgroundMapId) ? activeBackgroundMapId : null; } catch(_) { mapId = null; }
-    }
-    if (!mapId) return { processed:0, created:0, failed:0, reason:'mapId missing' };
-    const tracker = ensureMissingCreationTracker_(pyramid);
-    if (!tracker) return { processed:0, created:0, failed:0 };
-    const creatingSet = pyramid.missingCreationTracker ? pyramid.missingCreationTracker.creatingSet : tracker.creatingSet;
-    const bs = Math.max(1, Math.min(2, Number(batchSize) || 1));
-
-    // Filter: jangan buat yang sedang in-flight atau sudah available
-    const toCreate = [];
-    for (let i=0;i<missingKeys.length && toCreate.length<bs;i++) {
-      const k = String(missingKeys[i]);
-      if (!k) continue;
-      if (creatingSet[k]) continue; // in-flight protection
-      // cek sudah available sekarang?
-      try {
-        const av = typeof resolveLithositeDetailTileAvailability_ === 'function' ? resolveLithositeDetailTileAvailability_(pyramid, k) : null;
-        if (av && av.status === 'available') continue;
-      } catch(_) {}
-      toCreate.push(k);
-    }
-    if (!toCreate.length) return { processed:0, created:0, failed:0 };
-
-    // Mark in-flight
-    for (const k of toCreate) creatingSet[k] = true;
-
-    let created = 0, failed = 0, processed = 0;
-    for (const k of toCreate) {
-      try {
-        const result = typeof resolveAndCreateLithositeMissingDetailTile_ === 'function'
-          ? await resolveAndCreateLithositeMissingDetailTile_(mapId, pyramid, k)
-          : (typeof createLithositeMissingDetailTileFromPdf_ === 'function' ? await createLithositeMissingDetailTileFromPdf_(mapId, pyramid, k) : { status:'no-creator' });
-        processed++;
-        if (result && (result.status === 'created' || result.status === 'available')) {
-          created++;
-        } else {
-          failed++;
-        }
-      } catch(e) {
-        failed++; processed++;
-      } finally {
-        delete creatingSet[k];
-      }
-    }
-
-    if (created > 0) {
-      try { if (typeof scheduleCoalescedInvalidation_ === 'function') scheduleCoalescedInvalidation_(created); } catch(_) {}
-    }
-
-    // Jika masih ada missing lain, schedule next batch (jangan flood PDF.js)
-    try {
-      const remaining = missingKeys.filter(k => !creatingSet[String(k)]);
-      if (remaining.length > toCreate.length) {
-        setTimeout(() => {
-          try { processMissingCreationBatch_(pyramid, mapId, remaining.slice(toCreate.length), bs); } catch(_) {}
-        }, 250);
-      }
-    } catch(_) {}
-
-    return { processed, created, failed };
-  } catch(e) {
-    return { processed:0, created:0, failed:0, error: e && e.message };
-  }
-}
-
