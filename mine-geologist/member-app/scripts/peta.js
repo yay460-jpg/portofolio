@@ -169,6 +169,13 @@ const GEOPDF_TILE_MAX_LEVEL_ = GEOPDF_TILE_LEVEL_FACTORS_.length - 1;
 // prefetch, cache, gesture, atau parameter existing V13.1/V14.x.
 // Tujuan: mengukur kemampuan perangkat dan menghasilkan diagnostic LOW/BALANCED/HIGH
 // untuk field test sebelum parameter adaptive dipakai pada STEP B/C.
+// ============================================================================
+// IMPORTANT — LOCKED DEVICE TIER DETECTION CORE
+// This function is FUNCTIONAL, not temporary diagnostic UI.
+// It detects/classifies the device tier (LOW / BALANCED / HIGH) using hardware
+// hints + raster benchmark. DO NOT delete, rename, bypass, or replace it
+// without a dedicated cross-file audit. Its result feeds tile-engine selection.
+// ============================================================================
 function getDeviceTileProfile_() {
   const mem = Number(navigator.deviceMemory) || 0;
   const cores = Number(navigator.hardwareConcurrency) || 0;
@@ -273,6 +280,13 @@ function getDeviceTileProfile_() {
 
 // STEP B - TILE ENGINE PROFILE V1
 // Parameter profile saja. TIDAK dipakai oleh renderer pada tahap ini.
+// ============================================================================
+// IMPORTANT — LOCKED TILE ENGINE PROFILE CORE
+// This function converts the detected tier into the functional tile-engine
+// contract. LOW=768px, BALANCED=256px, HIGH=512px.
+// DO NOT delete, rename, or alter these tier mappings without a dedicated
+// geometry/runtime audit. Renderer and persistence depend on this contract.
+// ============================================================================
 function getDeviceTileEngineProfile_() {
   let deviceProfile = window.mg1DeviceTileProfile;
   if (!deviceProfile) {
@@ -296,6 +310,7 @@ function getDeviceTileEngineProfile_() {
   });
   try { localStorage.setItem('mg1_tile_engine_profile_v1', JSON.stringify(profile)); } catch (_) {}
   window.mg1DeviceTileEngineProfile = profile;
+  // IMPORTANT: functional runtime state; do not remove.
   return profile;
 }
 
@@ -522,7 +537,7 @@ function planPassivePrefetchAfterPan_(dx, dy) {
   }
 }
 
-if (typeof window.mg1AdaptiveC2Enabled !== 'boolean') window.mg1AdaptiveC2Enabled = true;
+// STEP C1 - VIEWPORT TILE PLANNER V1 !== 'boolean') window.mg1AdaptiveC2Enabled = true;
 // V14.31: C2 field test is automatic; no manual 'next upload' activation required.
 // ==== PETA BACKGROUND (foto udara/hasil olah ArcGIS) -- BARU 5 Sep ====
 // Bukan baca GeoPDF/GeoTIFF asli (butuh mesin libproj+libgdal spt Avenza, mustahil di
