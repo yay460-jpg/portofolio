@@ -43,6 +43,21 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
 <!-- [PARTISI -- 4 Sep, Tahap 4] Grouping & Tab Validasi. -->
 <script src="scripts/validasi.js"></script>
 <!-- [PARTISI -- 4 Sep, Tahap 4] Tab Peta + North Arrow + Mode Ukur. -->
+<script src="scripts/map/map-state.js"></script>
+<script src="scripts/map/map-device-profile.js"></script>
+<script src="scripts/map/map-coordinate.js"></script>
+<script src="scripts/map/map-package.js"></script>
+<script src="scripts/map/map-tile-pyramid.js"></script>
+  <script src="scripts/map/map-tile-store.js"></script>
+  <script src="scripts/map/map-tile-queue.js"></script>
+<script src="scripts/map/map-runtime-loader.js"></script>
+<script src="scripts/map/map-missing-detail-resolver.js"></script>
+<script src="scripts/map/map-runtime-tile-creation.js"></script>
+<script src="scripts/map/map-background-lifecycle.js"></script>
+<script src="scripts/map/map-upload-save-lifecycle.js"></script>
+<script src="scripts/map/map-surface-lifecycle.js"></script>
+<script src="scripts/map/map-interaction.js"></script>
+    <script src="scripts/map/map-ui.js"></script>
 <script src="scripts/peta.js"></script>
 <!-- [PARTISI -- 4 Sep, Tahap 4] Modal Chat Tim. -->
 <script src="scripts/chat.js"></script>
@@ -122,7 +137,7 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
     .mg1-boot-progress span { animation:none; width:100%; }
   }
   /* V14.16 -- Handoff visual: boot fade-out lalu jeda navy sebelum Dashboard. */
-  .mg1-boot { transition: opacity 320ms cubic-bezier(.22,1,.36,1); }
+  .mg1-boot { transition: opacity 220ms cubic-bezier(.22,1,.36,1); }
   .mg1-boot.mg1-boot-exit { opacity:0; }
 
   /* V14.15 -- Boot selesai -> Dashboard entrance SEKALI. Tidak dipakai saat pindah tab. */
@@ -208,7 +223,7 @@ function renderSplash() {
 }
 
 function startMg1BootAnimation_() {
-  const durationMs = 7200;
+  const durationMs = 6200;
   window.__mg1BootAnimationDone__ = false;
   window.__mg1BootAnimationPromise__ = new Promise(resolve => {
     window.__mg1BootAnimationResolve__ = resolve;
@@ -458,9 +473,16 @@ function render() {
   app.innerHTML = html;
   if (window.lucide) lucide.createIcons();
 
-  // STEP FLICKER FIX: dashboard entrance animation disabled.
-  // The splash handoff is now a single DOM replacement with no second opacity/transform animation.
-  window.__mg1DashboardEntranceDone__ = true;
+  // V14.15: setelah boot selesai, tampilkan entrance Dashboard SEKALI.
+  // Tidak diputar ulang ketika user pindah tab atau render data berikutnya.
+  if (!window.__mg1DashboardEntranceDone__ && currentTab === 'tabel') {
+    const shell = app.querySelector('.app-shell');
+    if (shell) {
+      window.__mg1DashboardEntranceDone__ = true;
+      shell.classList.add('mg1-dashboard-boot-enter');
+      setTimeout(() => shell.classList.remove('mg1-dashboard-boot-enter'), 900);
+    }
+  }
 
   // [BARU] Animasi count-up 4 kartu statistik Ringkasan -- SEKALI saja stlh boot selesai
   // (bukan tiap kali pindah balik ke tab Ringkasan, supaya tidak mengganggu/berulang).
@@ -499,22 +521,18 @@ function render() {
 // menghentikan app -- app tetap jalan normal tanpa PWA kalau SW gagal.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=20260906k3', { updateViaCache: 'none' }).then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=20260912n1', { updateViaCache: 'none' }).then((reg) => {
       // Force an update check so a stale HTTP-cached sw.js cannot pin an old app shell.
       reg.update().catch(() => {});
     }).catch((err) => {
       console.warn('Gagal mendaftarkan Service Worker Member App:', err);
     });
 
-    // When the new SW takes control, reload once so peta.js/index.html are served
-    // consistently from the new cache generation.
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true;
-        window.location.reload();
-      }
-    });
+    // 9.14N: JANGAN auto-reload saat Service Worker mengambil alih.
+    // Reload di controllerchange dapat membuat Android/Chrome menampilkan toolbar
+    // Custom Tab sesaat (judul + origin) dan menghasilkan flicker saat handoff boot.
+    // SW sudah memakai skipWaiting()+clients.claim(), sedangkan navigasi HTML memakai
+    // network-first, jadi reload paksa tidak diperlukan untuk menjaga shell terbaru.
   });
 }
 
@@ -598,21 +616,31 @@ window.addEventListener('DOMContentLoaded', () => {
     // loadRingkasanData yg sudah dijelaskan di bawah). IndexedDB lokal, biasanya cepat
     // (milidetik), tapi tetap tidak di-await supaya tidak menunda splash->konten.
     loadBackgroundMapsFromDb_().then(() => render());
-    // FIX (27 Agu): splash TIDAK boleh langsung diganti Ringkasan sebelum data beneran
-    // siap -- sebelumnya render() dipanggil DULUAN di sini, jadi user sempat lihat
-    // Ringkasan kosong (0 Ton dkk) sesaat sebelum data asli masuk, dikira error/rusak.
-    // loadRingkasanData() sendiri SUDAH memanggil render() di baris terakhirnya begitu
-    // data selesai (sukses ATAU gagal) -- splash otomatis tetap tampil sampai saat itu,
-    // tidak perlu render() terpisah di sini lagi.
-    await loadRingkasanData();
+    // FIX 9.14M: data dashboard TIDAK boleh menjadi critical-path boot.
+    // Sebelumnya boot menunggu loadRingkasanData() selesai. Fungsi itu melakukan
+    // fetch COGConfig -> Produksi -> Validasi secara berurutan, masing-masing bisa
+    // menunggu timeout network sampai 20 detik. Pada jaringan/backend bermasalah,
+    // splash dapat tertahan puluhan detik walaupun animasi boot sendiri sudah selesai.
+    // Sekarang data dimuat di background; render() dari loadRingkasanData() tetap
+    // tertahan oleh __mg1BootAnimationDone__ sampai animasi boot selesai. Boot selalu
+    // punya jalur keluar mandiri, sementara hasil data akan merender setelah tersedia.
+    loadRingkasanData().catch(err => {
+      console.error('Boot background data load gagal:', err);
+    });
     await bootAnimationReady;
 
-    // STEP FLICKER FIX: no fade-out and no blank navy handoff gap.
-    // Dashboard is committed once, directly after the boot gate is satisfied.
+    // V14.16: beri handoff singkat antara boot dan Dashboard tanpa blank/flicker.
+    // Boot fade-out 220ms -> jeda navy 180ms -> Dashboard entrance sekali.
+    const bootScreen = document.querySelector('.mg1-boot');
+    if (bootScreen) {
+      bootScreen.classList.add('mg1-boot-exit');
+      await new Promise(resolve => setTimeout(resolve, 220));
+    }
+    await new Promise(resolve => setTimeout(resolve, 180));
+
     window.__mg1BootAnimationDone__ = true;
-    window.__mg1DashboardEntranceDone__ = true;
     render();
-  }, 900);
+  }, 250);
 });
 </script>
 </body>
