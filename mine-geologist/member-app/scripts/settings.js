@@ -108,10 +108,16 @@ async function loadLithositeChangelogFull_() {
   render();
 
   try {
+    // [FIX -- 11 Sep] Naikkan 20000 -> 35000. Ditemukan via Apps Script Executions log
+    // (bukan dugaan): doGet/doPost sheet apa pun KONSISTEN 7-11 detik SEMUA (overhead
+    // seragam platform, bukan spesifik endpoint ini) -- 20 detik kadang mepet/keburu
+    // motong request yg SEBENARNYA akan berhasil kalau dikasih sedikit lagi margin.
+    // Ini TIDAK mempercepat backend (baseline 7-11 detik tetap apa adanya) -- cuma
+    // mengurangi kemungkinan false-timeout pada request yg genuinely masih berjalan.
     const response = await fetchWithTimeout(
       GOOGLE_SCRIPT_READ_URL + '?sheet=lithositechangelog&t=' + Date.now(),
       {},
-      20000
+      35000
     );
     const result = await response.json();
 
@@ -127,7 +133,7 @@ async function loadLithositeChangelogFull_() {
     // Gagal muat riwayat LENGKAP TIDAK PERNAH menghapus preview yg sudah tampil --
     // cuma tampilkan pesan error di bawah daftar + tombol tetap ada utk dicoba lagi.
     lithositeChangelogError = (err && err.name === 'AbortError')
-      ? 'Permintaan riwayat lengkap melebihi 20 detik. Periksa koneksi atau izin akses.'
+      ? 'Permintaan riwayat lengkap melebihi 35 detik. Server sedang lambat, coba lagi sesaat.'
       : (err && err.message ? err.message : 'Tidak bisa memuat riwayat update lengkap.');
   } finally {
     lithositeChangelogLoading = false;
@@ -145,9 +151,23 @@ function renderLithositeChangelogItems_(items) {
     return '<div class="text-[10px] text-white/30">Tidak ada catatan perubahan.</div>';
   }
   return items.map(function(item) {
-    const text = currentLang === 'en'
-      ? (item.en || item.id || '')
-      : (item.id || item.en || '');
+    // [FIX -- 10 Sep] SEBELUMNYA baris ini pakai variabel `currentLang` yang TIDAK
+    // PERNAH dideklarasikan di mana pun di Member App -- app ini murni Bahasa
+    // Indonesia (belum ada toggle bahasa, lihat baris "menyusul di versi berikutnya"
+    // di modal Pengaturan), beda dari Master yang memang bilingual. Referensi ini
+    // dorman selama ini karena `items` sebelumnya SELALU kosong (fetch keburu
+    // timeout) -- begitu data hardcode 3 versi bikin baris ini benar-benar
+    // dieksekusi, ReferenceError ini meledak dan bikin render() gagal total setiap
+    // dipanggil, termasuk saat modal Pengaturan lain coba ditutup. Diperbaiki:
+    // selalu utamakan teks Indonesia (item.id), fallback ke Inggris (item.en) kalau
+    // teks Indonesia belum diisi untuk versi tsb.
+    // [FIX -- 10 Sep] Diperbaiki 2x: (1) hapus referensi `currentLang` yang tidak
+    // pernah ada; (2) urutan prioritas dibalik jadi item.en DULU -- kolom "Item_ID"
+    // di sheet LithositeChangelog itu KODE/SLUG identifier (mis. "MAP_PERSISTENCE"),
+    // BUKAN teks Bahasa Indonesia, jadi tidak layak jadi teks utama yang dibaca user.
+    // "Item_EN" berisi kalimat asli yang memang dimaksudkan utk dibaca -- item.id
+    // cuma fallback kalau item.en kosong (lebih baik tampil kode drpd kosong sama sekali).
+    const text = item.en || item.id || '';
     return '<div class="flex items-start gap-2.5 text-[11px] leading-relaxed text-white/75">' +
       '<span class="mt-1 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>' +
       '<span>' + escapeHtml_(text) + '</span>' +
