@@ -1690,6 +1690,24 @@ function ensureRuntimeTiles_NonBlocking_(visibleKeys, pyramid) {
 let mg1RuntimeInvalidationScheduled_ = false;
 let mg1RuntimeInvalidationRaf_ = null;
 let mg1IsSurfaceInvalidationInProgress_ = false;
+let mg1CoalescePending_ = 0;
+let mg1CoalesceTimer_ = null;
+
+// STEP 8.29C: coalesce runtime/missing tile updates before one atomic surface swap.
+// Geometry/tile selection unchanged; only invalidation timing is grouped.
+function scheduleCoalescedInvalidation_(n) {
+  const count = Math.max(0, Number(n) || 0);
+  if (count > 0) mg1CoalescePending_ += count;
+  // STEP 8.29C-R1: fixed 500ms window. Never reset an active window.
+  if (mg1CoalesceTimer_) return;
+  if (mg1CoalescePending_ <= 0) return;
+  mg1CoalesceTimer_ = setTimeout(() => {
+    const pending = mg1CoalescePending_;
+    mg1CoalescePending_ = 0;
+    mg1CoalesceTimer_ = null;
+    if (pending > 0) scheduleSurfaceInvalidationOnce_();
+  }, 500);
+}
 
 function scheduleSurfaceInvalidationOnce_() {
   if (mg1RuntimeInvalidationScheduled_) return;
@@ -1742,7 +1760,7 @@ async function processRuntimeQueueBatch_(pyramid, maxItems) {
       ? await consumeLithositeRuntimeDetailQueue_(pyramid, max)
       : { processed:0, loaded:0, failed:0, pending:0 };
     if (result.loaded > 0) {
-      scheduleSurfaceInvalidationOnce_();
+      scheduleCoalescedInvalidation_(result.loaded);
     }
     return result;
   } catch(e) {
@@ -2141,7 +2159,13 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   // sharpness testing. Keep the 768px tile budget and viewport culling.
   // This is intentionally temporary: deep-zoom factor 2x is NOT enabled.
   const c2Factor = isLowC2 ? 1.55 : 1;
-  const tileSize = isLowC2 ? 768 : GEOPDF_TILE_SIZE_;
+  // STEP 8.28: C1/C2 grid contract must use the same tile size.
+  // LOW remains locked at 768px; BALANCED remains 256px; HIGH uses its
+  // profiled 512px tile size. Do not derive this independently from C1.
+  const tileSize = Math.min(
+    GEOPDF_TILE_SIZE_MAX_SAFE_,
+    Math.max(64, Number(deviceProfile && deviceProfile.tileSize) || GEOPDF_TILE_SIZE_)
+  );
   // V14.32: during a NEW GeoPDF upload there is no activeBackgroundMapId yet.
   // Build C1 directly from the incoming GeoReference so C2 can use the actual
   // viewport plan (e.g. Visible=6) before the new map is saved to IndexedDB.
@@ -3951,7 +3975,7 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
     };
     geoReference.render.tilePyramid = {
       mode: 'pdfjs-direct-tile-render',
-      tileSize: GEOPDF_TILE_SIZE_,
+      tileSize: Number(tilePyramid && tilePyramid.tileSize) || GEOPDF_TILE_SIZE_,
       levels: GEOPDF_TILE_LEVEL_FACTORS_.slice(),
       baseScale: scale,
       source: 'GeoPDF direct PDF.js tile render',
@@ -4040,11 +4064,13 @@ function preloadSvgImages_(svgElement, timeoutMs = 3000) {
     });
   });
 
+  let timeoutId = null;
   const timerGuard = new Promise(resolve => {
-    setTimeout(() => resolve('TIMEOUT'), Math.max(0, Number(timeoutMs) || 3000));
+    timeoutId = setTimeout(() => resolve('TIMEOUT'), Math.max(0, Number(timeoutMs) || 3000));
   });
 
   return Promise.race([Promise.all(decodePromises), timerGuard]).then(result => {
+    try { if (timeoutId) clearTimeout(timeoutId); } catch (_) {}
     if (result === 'TIMEOUT') return false;
     return Array.isArray(result) && result.every(Boolean);
   });
@@ -5260,7 +5286,6 @@ function renderMineGridSvg(points) {
               // STEP 8.21D - ALWAYS set diagnostics, even when visibleResult not ok, to debug undefined
               if (typeof window !== 'undefined') {
                 try { window.mg1LastPyramid = pyramid; } catch(_) {}
-                try { window.mg1LastCompositorStats = { runtimeUsed: mg1RuntimeUsedCount_, fallback: mg1FallbackCount_ }; } catch(_) {}
                 try {
                   window.mg1LastVisibleResult = visibleResult;
                   window.mg1LastRuntimeResult = runtimeResult;
@@ -5337,6 +5362,11 @@ function renderMineGridSvg(points) {
 
         appendLevel(baseLevel, 'base', '0.94');
         if (detailLevel && detailLevel !== baseLevel) appendLevel(detailLevel, 'detail', '0.98');
+        // STEP 8.29A: compositor diagnostics are snapshotted only after all layers are appended.
+        try { window.mg1LastCompositorStats = { runtimeUsed: mg1RuntimeUsedCount_, fallback: mg1FallbackCount_ }; } catch(_) {}
+        try {
+          if (window.mg1LastRuntimeOrchestration) window.mg1LastRuntimeOrchestration.runtimeUsed = mg1RuntimeUsedCount_;
+        } catch(_) {}
       } else {
         svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + ' pointer-events="none" draggable="false" oncontextmenu="return false;"/>';
       }
@@ -6130,12 +6160,16 @@ function renderKmlUploadForm_() {
       });
     });
 
-    const timerGuard = new Promise(resolve => setTimeout(() => {
-      console.warn(`[V22] Preload timeout ${timeoutMs}ms`);
-      resolve('TIMEOUT');
-    }, timeoutMs));
+    let timeoutId = null;
+    const timerGuard = new Promise(resolve => {
+      timeoutId = setTimeout(() => {
+        console.warn(`[V22] Preload timeout ${timeoutMs}ms`);
+        resolve('TIMEOUT');
+      }, timeoutMs);
+    });
 
     return Promise.race([Promise.all(decodePromises), timerGuard]).then(result => {
+      try { if (timeoutId) clearTimeout(timeoutId); } catch(_) {}
       if(result === 'TIMEOUT') {
         console.warn('[V22] Preload TIMEOUT - akan batalkan swap, tahan map lama');
         return false; // false = timeout, jangan swap
@@ -7604,7 +7638,7 @@ async function processMissingCreationBatch_(pyramid, mapId, missingKeys, batchSi
     }
 
     if (created > 0) {
-      try { if (typeof scheduleSurfaceInvalidationOnce_ === 'function') scheduleSurfaceInvalidationOnce_(); } catch(_) {}
+      try { if (typeof scheduleCoalescedInvalidation_ === 'function') scheduleCoalescedInvalidation_(created); } catch(_) {}
     }
 
     // Jika masih ada missing lain, schedule next batch (jangan flood PDF.js)
