@@ -268,7 +268,6 @@ function getDeviceTileProfile_() {
 
   try { localStorage.setItem('mg1_device_tile_profile_v2', JSON.stringify(profile)); } catch (_) {}
   window.mg1DeviceTileProfile = profile;
-  console.log('[ADAPTIVE] Device Profile V2:', profile);
   return profile;
 }
 
@@ -297,30 +296,7 @@ function getDeviceTileEngineProfile_() {
   });
   try { localStorage.setItem('mg1_tile_engine_profile_v1', JSON.stringify(profile)); } catch (_) {}
   window.mg1DeviceTileEngineProfile = profile;
-  console.log('[ADAPTIVE] Tile Engine Profile V1:', profile);
   return profile;
-}
-
-// STEP B - diagnostic helper. Hanya menampilkan parameter kandidat; belum dipakai renderer.
-function appendDeviceTileEngineProfileDiagnostic_(profile) {
-  try {
-    const el = document.getElementById('mg1-device-profile-diagnostic');
-    if (!el || !profile) return;
-    const existing = document.getElementById('mg1-device-tile-engine-profile');
-    if (existing) existing.remove();
-    const box = document.createElement('div');
-    box.id = 'mg1-device-tile-engine-profile';
-    box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.82;';
-    box.textContent = 'STEP B — TILE PROFILE: ' + profile.tier +
-      ' | Tile: ' + profile.tileSize + 'px' +
-      ' | Max: ' + profile.maxFactor + 'x' +
-      ' | Batch: ' + profile.batchSize +
-      ' | Delay: ' + profile.batchDelayMs + 'ms' +
-      ' | Prefetch: ' + profile.prefetchRadius +
-      ' | Cache: ' + profile.cacheLimit +
-      ' | STATUS: PARAMETER ONLY';
-    el.insertBefore(box, el.lastElementChild);
-  } catch (e) { console.warn('[ADAPTIVE] Tile profile diagnostic gagal:', e); }
 }
 
 // STEP C1 - VIEWPORT TILE PLANNER V1
@@ -546,68 +522,8 @@ function planPassivePrefetchAfterPan_(dx, dy) {
   }
 }
 
-function appendPassivePrefetchPlannerDiagnostic_(result) {
-  try {
-    const el = document.getElementById('mg1-device-profile-diagnostic');
-    if (!el) return;
-    const old = document.getElementById('mg1-passive-prefetch-planner');
-    if (old) old.remove();
-    const box = document.createElement('div');
-    box.id = 'mg1-passive-prefetch-planner';
-    box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.86;';
-    if (!result || !result.ok) {
-      box.textContent = 'STEP D1 — PASSIVE PREFETCH PLANNER | ' + ((result && result.reason) || 'Planner belum dijalankan.');
-    } else {
-      const keys = (result.candidates || []).map(c => c.key).join(', ');
-      box.textContent = 'STEP D1 — PASSIVE PREFETCH PLANNER | Direction: ' + result.direction +
-        ' | Candidates: ' + (result.candidates || []).length +
-        ' | Tile: ' + (result.plan ? result.plan.tileSize : '-') + 'px' +
-        ' | Keys: ' + (keys || '-') +
-        ' | STATUS: PLANNER ONLY';
-    }
-    const close = el.querySelector('button[data-mg1-close]');
-    if (close) el.insertBefore(box, close); else el.appendChild(box);
-  } catch (e) { console.warn('[ADAPTIVE] D1 diagnostic gagal:', e); }
-}
-
-function appendViewportTilePlannerDiagnostic_() {
-  try {
-    const el = document.getElementById('mg1-device-profile-diagnostic');
-    if (!el) return;
-    const existing = document.getElementById('mg1-viewport-tile-planner');
-    if (existing) existing.remove();
-    const plan = getViewportTilePlan_();
-    window.mg1LastViewportTilePlan = plan;
-    const box = document.createElement('div');
-    box.id = 'mg1-viewport-tile-planner';
-    box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.86;';
-    if (!plan.ok) {
-      box.textContent = 'STEP C1 — VIEWPORT PLANNER | ' + plan.reason;
-    } else {
-      box.textContent = 'STEP C1 — VIEWPORT PLANNER | Zoom: ' + plan.zoom + 'x | Factor: ' + plan.factor + 'x | Tile: ' + plan.tileSize + 'px | Visible: ' + plan.visible.count + ' | Prefetch: ' + plan.prefetchRadius + ' | Required: ' + plan.required.count + ' | Full level: ' + plan.totalLevelTiles + ' | STATUS: PLANNER ONLY';
-    }
-    const close = el.querySelector('button[data-mg1-close]');
-    if (close) el.insertBefore(box, close);
-    else el.appendChild(box);
-  } catch (e) { console.warn('[ADAPTIVE] Planner diagnostic gagal:', e); }
-}
-
 if (typeof window.mg1AdaptiveC2Enabled !== 'boolean') window.mg1AdaptiveC2Enabled = true;
 // V14.31: C2 field test is automatic; no manual 'next upload' activation required.
-// STEP A hanya profiling saat app siap. Tidak memanggil buildTilePyramidDirect_.
-if (!window.__mg1DeviceTileProfilerV1Started) {
-  window.__mg1DeviceTileProfilerV1Started = true;
-  setTimeout(function () {
-    try {
-      var profile = getDeviceTileProfile_();
-      var tileEngineProfile = getDeviceTileEngineProfile_();
-      appendDeviceTileEngineProfileDiagnostic_(tileEngineProfile);
-    } catch (e) {
-      console.warn('[ADAPTIVE] Device profiler gagal:', e);
-    }
-  }, 50);
-}
-
 // ==== PETA BACKGROUND (foto udara/hasil olah ArcGIS) -- BARU 5 Sep ====
 // Bukan baca GeoPDF/GeoTIFF asli (butuh mesin libproj+libgdal spt Avenza, mustahil di
 // browser PWA) -- pendekatan lebih ringan: gambar biasa (PNG/JPG) + 2 titik referensi
@@ -2342,26 +2258,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   if (adaptiveC2) {
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
     c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
-    window.mg1LastC2RenderStats = c2Stats;
     out.adaptive = { mode:'viewport-only-selected-factor-test', prefetchRadius:0, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
-    try {
-      const diag = document.getElementById('mg1-device-profile-diagnostic');
-      if (diag) {
-        let box = document.getElementById('mg1-c2-render-diagnostic');
-        if (!box) {
-          box = document.createElement('div');
-          box.id = 'mg1-c2-render-diagnostic';
-          box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.9;';
-          const close = diag.querySelector('button[data-mg1-close]');
-          if (close) diag.insertBefore(box, close); else diag.appendChild(box);
-        }
-        var plannedVisible = window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.visible.count : 0;
-        // V14.47: report the hard 1.55x test factor and effective raster density.
-        var renderFactor = adaptiveC2 ? (isLowC2 ? c2Factor : 1) : (window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.factor : 0.5);
-        var effectiveScale = adaptiveC2 ? (Number(baseScale) * Number(renderFactor)) : (Number(baseScale) * Number(renderFactor));
-        box.textContent = 'STEP C2 — ADAPTIVE RENDER | Render Factor: ' + Number(renderFactor).toFixed(2) + 'x | Effective Scale: ' + Number(effectiveScale).toFixed(2) + 'x | Tile: ' + tileSize + 'px | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
-      }
-    } catch (_) {}
   }
   return out;
 }
@@ -4971,8 +4868,6 @@ function commitMapPan_(extraDx, extraDy) {
     // scheduleMapPanVisual_ sehingga gesture 60 FPS tetap bebas dari planner.
     try {
       const d1 = planPassivePrefetchAfterPan_(d1Dx, d1Dy);
-      window.mg1LastPassivePrefetchPlan = d1;
-      appendPassivePrefetchPlannerDiagnostic_(d1);
     } catch (_) {}
   }
 }
