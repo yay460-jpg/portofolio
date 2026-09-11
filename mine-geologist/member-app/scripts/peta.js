@@ -169,13 +169,6 @@ const GEOPDF_TILE_MAX_LEVEL_ = GEOPDF_TILE_LEVEL_FACTORS_.length - 1;
 // prefetch, cache, gesture, atau parameter existing V13.1/V14.x.
 // Tujuan: mengukur kemampuan perangkat dan menghasilkan diagnostic LOW/BALANCED/HIGH
 // untuk field test sebelum parameter adaptive dipakai pada STEP B/C.
-// ============================================================================
-// IMPORTANT — LOCKED DEVICE TIER DETECTION CORE
-// This function is FUNCTIONAL, not temporary diagnostic UI.
-// It detects/classifies the device tier (LOW / BALANCED / HIGH) using hardware
-// hints + raster benchmark. DO NOT delete, rename, bypass, or replace it
-// without a dedicated cross-file audit. Its result feeds tile-engine selection.
-// ============================================================================
 function getDeviceTileProfile_() {
   const mem = Number(navigator.deviceMemory) || 0;
   const cores = Number(navigator.hardwareConcurrency) || 0;
@@ -275,18 +268,12 @@ function getDeviceTileProfile_() {
 
   try { localStorage.setItem('mg1_device_tile_profile_v2', JSON.stringify(profile)); } catch (_) {}
   window.mg1DeviceTileProfile = profile;
+  console.log('[ADAPTIVE] Device Profile V2:', profile);
   return profile;
 }
 
 // STEP B - TILE ENGINE PROFILE V1
 // Parameter profile saja. TIDAK dipakai oleh renderer pada tahap ini.
-// ============================================================================
-// IMPORTANT — LOCKED TILE ENGINE PROFILE CORE
-// This function converts the detected tier into the functional tile-engine
-// contract. LOW=768px, BALANCED=256px, HIGH=512px.
-// DO NOT delete, rename, or alter these tier mappings without a dedicated
-// geometry/runtime audit. Renderer and persistence depend on this contract.
-// ============================================================================
 function getDeviceTileEngineProfile_() {
   let deviceProfile = window.mg1DeviceTileProfile;
   if (!deviceProfile) {
@@ -310,8 +297,30 @@ function getDeviceTileEngineProfile_() {
   });
   try { localStorage.setItem('mg1_tile_engine_profile_v1', JSON.stringify(profile)); } catch (_) {}
   window.mg1DeviceTileEngineProfile = profile;
-  // IMPORTANT: functional runtime state; do not remove.
+  console.log('[ADAPTIVE] Tile Engine Profile V1:', profile);
   return profile;
+}
+
+// STEP B - diagnostic helper. Hanya menampilkan parameter kandidat; belum dipakai renderer.
+function appendDeviceTileEngineProfileDiagnostic_(profile) {
+  try {
+    const el = document.getElementById('mg1-device-profile-diagnostic');
+    if (!el || !profile) return;
+    const existing = document.getElementById('mg1-device-tile-engine-profile');
+    if (existing) existing.remove();
+    const box = document.createElement('div');
+    box.id = 'mg1-device-tile-engine-profile';
+    box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.82;';
+    box.textContent = 'STEP B — TILE PROFILE: ' + profile.tier +
+      ' | Tile: ' + profile.tileSize + 'px' +
+      ' | Max: ' + profile.maxFactor + 'x' +
+      ' | Batch: ' + profile.batchSize +
+      ' | Delay: ' + profile.batchDelayMs + 'ms' +
+      ' | Prefetch: ' + profile.prefetchRadius +
+      ' | Cache: ' + profile.cacheLimit +
+      ' | STATUS: PARAMETER ONLY';
+    el.insertBefore(box, el.lastElementChild);
+  } catch (e) { console.warn('[ADAPTIVE] Tile profile diagnostic gagal:', e); }
 }
 
 // STEP C1 - VIEWPORT TILE PLANNER V1
@@ -537,8 +546,68 @@ function planPassivePrefetchAfterPan_(dx, dy) {
   }
 }
 
-// STEP C1 - VIEWPORT TILE PLANNER V1 !== 'boolean') window.mg1AdaptiveC2Enabled = true;
+function appendPassivePrefetchPlannerDiagnostic_(result) {
+  try {
+    const el = document.getElementById('mg1-device-profile-diagnostic');
+    if (!el) return;
+    const old = document.getElementById('mg1-passive-prefetch-planner');
+    if (old) old.remove();
+    const box = document.createElement('div');
+    box.id = 'mg1-passive-prefetch-planner';
+    box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.86;';
+    if (!result || !result.ok) {
+      box.textContent = 'STEP D1 — PASSIVE PREFETCH PLANNER | ' + ((result && result.reason) || 'Planner belum dijalankan.');
+    } else {
+      const keys = (result.candidates || []).map(c => c.key).join(', ');
+      box.textContent = 'STEP D1 — PASSIVE PREFETCH PLANNER | Direction: ' + result.direction +
+        ' | Candidates: ' + (result.candidates || []).length +
+        ' | Tile: ' + (result.plan ? result.plan.tileSize : '-') + 'px' +
+        ' | Keys: ' + (keys || '-') +
+        ' | STATUS: PLANNER ONLY';
+    }
+    const close = el.querySelector('button[data-mg1-close]');
+    if (close) el.insertBefore(box, close); else el.appendChild(box);
+  } catch (e) { console.warn('[ADAPTIVE] D1 diagnostic gagal:', e); }
+}
+
+function appendViewportTilePlannerDiagnostic_() {
+  try {
+    const el = document.getElementById('mg1-device-profile-diagnostic');
+    if (!el) return;
+    const existing = document.getElementById('mg1-viewport-tile-planner');
+    if (existing) existing.remove();
+    const plan = getViewportTilePlan_();
+    window.mg1LastViewportTilePlan = plan;
+    const box = document.createElement('div');
+    box.id = 'mg1-viewport-tile-planner';
+    box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.86;';
+    if (!plan.ok) {
+      box.textContent = 'STEP C1 — VIEWPORT PLANNER | ' + plan.reason;
+    } else {
+      box.textContent = 'STEP C1 — VIEWPORT PLANNER | Zoom: ' + plan.zoom + 'x | Factor: ' + plan.factor + 'x | Tile: ' + plan.tileSize + 'px | Visible: ' + plan.visible.count + ' | Prefetch: ' + plan.prefetchRadius + ' | Required: ' + plan.required.count + ' | Full level: ' + plan.totalLevelTiles + ' | STATUS: PLANNER ONLY';
+    }
+    const close = el.querySelector('button[data-mg1-close]');
+    if (close) el.insertBefore(box, close);
+    else el.appendChild(box);
+  } catch (e) { console.warn('[ADAPTIVE] Planner diagnostic gagal:', e); }
+}
+
+if (typeof window.mg1AdaptiveC2Enabled !== 'boolean') window.mg1AdaptiveC2Enabled = true;
 // V14.31: C2 field test is automatic; no manual 'next upload' activation required.
+// STEP A hanya profiling saat app siap. Tidak memanggil buildTilePyramidDirect_.
+if (!window.__mg1DeviceTileProfilerV1Started) {
+  window.__mg1DeviceTileProfilerV1Started = true;
+  setTimeout(function () {
+    try {
+      var profile = getDeviceTileProfile_();
+      var tileEngineProfile = getDeviceTileEngineProfile_();
+      appendDeviceTileEngineProfileDiagnostic_(tileEngineProfile);
+    } catch (e) {
+      console.warn('[ADAPTIVE] Device profiler gagal:', e);
+    }
+  }, 50);
+}
+
 // ==== PETA BACKGROUND (foto udara/hasil olah ArcGIS) -- BARU 5 Sep ====
 // Bukan baca GeoPDF/GeoTIFF asli (butuh mesin libproj+libgdal spt Avenza, mustahil di
 // browser PWA) -- pendekatan lebih ringan: gambar biasa (PNG/JPG) + 2 titik referensi
@@ -2273,7 +2342,26 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   if (adaptiveC2) {
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
     c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
+    window.mg1LastC2RenderStats = c2Stats;
     out.adaptive = { mode:'viewport-only-selected-factor-test', prefetchRadius:0, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
+    try {
+      const diag = document.getElementById('mg1-device-profile-diagnostic');
+      if (diag) {
+        let box = document.getElementById('mg1-c2-render-diagnostic');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'mg1-c2-render-diagnostic';
+          box.style.cssText = 'margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-size:10px;line-height:1.5;opacity:.9;';
+          const close = diag.querySelector('button[data-mg1-close]');
+          if (close) diag.insertBefore(box, close); else diag.appendChild(box);
+        }
+        var plannedVisible = window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.visible.count : 0;
+        // V14.47: report the hard 1.55x test factor and effective raster density.
+        var renderFactor = adaptiveC2 ? (isLowC2 ? c2Factor : 1) : (window.mg1LastViewportTilePlan && window.mg1LastViewportTilePlan.ok ? window.mg1LastViewportTilePlan.factor : 0.5);
+        var effectiveScale = adaptiveC2 ? (Number(baseScale) * Number(renderFactor)) : (Number(baseScale) * Number(renderFactor));
+        box.textContent = 'STEP C2 — ADAPTIVE RENDER | Render Factor: ' + Number(renderFactor).toFixed(2) + 'x | Effective Scale: ' + Number(effectiveScale).toFixed(2) + 'x | Tile: ' + tileSize + 'px | C1 Visible: ' + plannedVisible + ' | Planned: ' + c2Stats.planned + ' | Rendered: ' + c2Stats.rendered + ' | Failed: ' + c2Stats.failed + ' | Skipped: ' + c2Stats.skipped + ' | Time: ' + c2Stats.elapsedMs + ' ms | STATUS: ' + c2Stats.status;
+      }
+    } catch (_) {}
   }
   return out;
 }
@@ -4883,6 +4971,8 @@ function commitMapPan_(extraDx, extraDy) {
     // scheduleMapPanVisual_ sehingga gesture 60 FPS tetap bebas dari planner.
     try {
       const d1 = planPassivePrefetchAfterPan_(d1Dx, d1Dy);
+      window.mg1LastPassivePrefetchPlan = d1;
+      appendPassivePrefetchPlannerDiagnostic_(d1);
     } catch (_) {}
   }
 }
@@ -5808,8 +5898,8 @@ function renderMapUploadForm_() {
       '<input type="text" value="' + f.name + '" oninput="updateMapUploadField_(\'name\', this.value)" placeholder="cth. Foto Udara Avanza Sep 2026" class="w-full bg-[#0b1329] border border-white/10 rounded-lg px-2.5 py-2 text-[12px] text-white focus:outline-none focus:border-blue-400/60">' +
     '</div>' +
     '<div class="mb-3">' +
-      '<label class="block text-[10px] text-white/40 mb-1 font-medium">Gambar Peta (PNG/JPG, GeoTIFF, atau GeoPDF -- koordinat auto-terisi kalau ada)</label>' +
-      '<input type="file" accept="image/*,.tif,.tiff,.pdf" onchange="handleMapImageFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
+      '<label class="block text-[10px] text-white/40 mb-1 font-medium">File Peta (GeoPDF / GeoTIFF / KML -- koordinat auto-terisi)</label>' +
+      '<input type="file" accept=".pdf,.tif,.tiff,.kml,application/pdf" onchange="handleMapImageFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
       '<img id="map-upload-preview" src="' + (f.fileDataUrl || '') + '" class="w-full h-24 object-cover rounded-lg mt-2' + (f.fileDataUrl ? '' : ' hidden') + '">' +
     '</div>' +
     '<p class="text-[10px] text-white/40 mb-2 leading-relaxed">Masukkan Timur/Utara pojok KIRI-ATAS dan KANAN-BAWAH gambar (dari ArcGIS/data survey) -- ini yang dipakai app utk menempel gambar ke posisi yang benar.</p>' +
@@ -6421,7 +6511,7 @@ function renderKmlUploadForm_() {
         <div style="position:sticky;top:0;z-index:2;background:rgba(14,25,51,0.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:18px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;">
           <div>
             <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:-0.02em;">Tambah Peta Baru</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">GeoPDF / GeoTIFF / PNG-JPG + koordinat auto</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">GeoPDF / GeoTIFF / KML + koordinat auto</div>
           </div>
           <button id="mg1-new-modal-close" style="width:32px;height:32px;border-radius:9999px;background:rgba(255,255,255,0.08);border:none;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.6);font-size:16px;">✕</button>
         </div>
@@ -6431,8 +6521,8 @@ function renderKmlUploadForm_() {
             <input id="mg1-new-modal-name" placeholder="cth. Foto Udara Avenza Sep 2025" style="width:100%;background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 12px;font-size:13px;color:#fff;outline:none;transition:border 0.2s;" />
           </div>
           <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;font-weight:600;">GAMBAR PETA (PNG,JPG,GeoTIFF,GeoPDF)</label>
-            <input type="file" id="mg1-new-modal-file" accept=".png,.jpg,.jpeg,.tif,.tiff,.pdf" style="display:none;" />
+            <label style="display:block;font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;font-weight:600;">FILE PETA (GeoPDF, GeoTIFF, KML)</label>
+            <input type="file" id="mg1-new-modal-file" accept=".pdf,.tif,.tiff,.kml,application/pdf" style="display:none;" />
             <button id="mg1-new-modal-pick" style="width:100%;background:rgba(37,99,235,0.12);border:1px dashed rgba(37,99,235,0.4);border-radius:12px;padding:12px;font-size:12px;font-weight:700;color:#60a5fa;">+ Pilih File</button>
             <div id="mg1-new-modal-file-label" style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.35);">Tidak ada file dipilih</div>
           </div>
@@ -7106,8 +7196,39 @@ function renderKmlUploadForm_() {
     }, 200);
   };
 
+  // === BRANDED CONFIRM - replace native confirm() that shows github.io origin ===
+  function showBrandedConfirm_(title, message, onConfirm) {
+    try { const old = document.getElementById('mg1-branded-confirm'); if(old) old.remove(); } catch(_){}
+    const el = document.createElement('div');
+    el.id = 'mg1-branded-confirm';
+    el.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    el.innerHTML = `
+      <div id="mg1-confirm-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);"></div>
+      <div style="position:relative;width:100%;max-width:340px;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:20px 20px 16px;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+          <div style="width:36px;height:36px;border-radius:12px;background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.3);display:flex;align-items:center;justify-content:center;font-size:18px;">🗑</div>
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:-0.02em;">${title||'MINE GEOLOGIST'}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">Konfirmasi tindakan</div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.85);line-height:1.5;margin-bottom:18px;">${message||''}</div>
+        <div style="display:flex;gap:10px;">
+          <button id="mg1-confirm-cancel" style="flex:1;height:42px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);font-size:13px;font-weight:700;">Batal</button>
+          <button id="mg1-confirm-ok" style="flex:1;height:42px;border-radius:12px;background:#ef4444;border:none;color:#fff;font-size:13px;font-weight:800;">Hapus</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(el);
+    const close = () => { try { el.remove(); } catch(_){} };
+    el.querySelector('#mg1-confirm-backdrop').onclick = close;
+    el.querySelector('#mg1-confirm-cancel').onclick = close;
+    el.querySelector('#mg1-confirm-ok').onclick = () => { close(); try { onConfirm&&onConfirm(); } catch(e){ console.warn(e); } };
+  }
+
   window._v23DeleteMap = async function(id) {
-    if(!confirm('Hapus peta ini?')) return;
+    showBrandedConfirm_('Hapus Peta?', 'Peta ini akan dihapus dari penyimpanan HP (IndexedDB). Tindakan tidak bisa dibatalkan.', async function() {
+
     try {
       if(typeof dbDeleteMap_ === 'function') await dbDeleteMap_(id);
       if(activeBackgroundMapId === id) {
@@ -7127,6 +7248,7 @@ function renderKmlUploadForm_() {
     } catch(e) {
       console.error('[V23] delete fail', e);
     }
+    });
   };
 
   // Intercept render() untuk skip jika flag _v23SkipNextRender
