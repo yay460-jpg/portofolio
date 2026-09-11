@@ -5899,7 +5899,7 @@ function renderMapUploadForm_() {
     '</div>' +
     '<div class="mb-3">' +
       '<label class="block text-[10px] text-white/40 mb-1 font-medium">File Peta (GeoPDF / GeoTIFF / KML -- koordinat auto-terisi)</label>' +
-      '<input type="file" accept=".pdf,.tif,.tiff,.kml,application/pdf" onchange="handleMapImageFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
+      '<input type="file" accept=".pdf,.kml,.tif,.tiff,application/pdf,application/octet-stream" onchange="handleMapImageFileSelected_(this)" class="w-full text-[11px] text-white/60">' +
       '<img id="map-upload-preview" src="' + (f.fileDataUrl || '') + '" class="w-full h-24 object-cover rounded-lg mt-2' + (f.fileDataUrl ? '' : ' hidden') + '">' +
     '</div>' +
     '<p class="text-[10px] text-white/40 mb-2 leading-relaxed">Masukkan Timur/Utara pojok KIRI-ATAS dan KANAN-BAWAH gambar (dari ArcGIS/data survey) -- ini yang dipakai app utk menempel gambar ke posisi yang benar.</p>' +
@@ -6522,7 +6522,7 @@ function renderKmlUploadForm_() {
           </div>
           <div style="margin-bottom:12px;">
             <label style="display:block;font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;font-weight:600;">FILE PETA (GeoPDF, GeoTIFF, KML)</label>
-            <input type="file" id="mg1-new-modal-file" accept=".pdf,.tif,.tiff,.kml,application/pdf" style="display:none;" />
+            <input type="file" id="mg1-new-modal-file" accept=".pdf,.kml,.tif,.tiff,application/pdf,application/octet-stream" style="display:none;" />
             <button id="mg1-new-modal-pick" style="width:100%;background:rgba(37,99,235,0.12);border:1px dashed rgba(37,99,235,0.4);border-radius:12px;padding:12px;font-size:12px;font-weight:700;color:#60a5fa;">+ Pilih File</button>
             <div id="mg1-new-modal-file-label" style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.35);">Tidak ada file dipilih</div>
           </div>
@@ -7201,7 +7201,7 @@ function renderKmlUploadForm_() {
     try { const old = document.getElementById('mg1-branded-confirm'); if(old) old.remove(); } catch(_){}
     const el = document.createElement('div');
     el.id = 'mg1-branded-confirm';
-    el.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    el.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;';
     el.innerHTML = `
       <div id="mg1-confirm-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(6px);"></div>
       <div style="position:relative;width:100%;max-width:340px;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:20px 20px 16px;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
