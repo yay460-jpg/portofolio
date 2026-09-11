@@ -458,16 +458,9 @@ function render() {
   app.innerHTML = html;
   if (window.lucide) lucide.createIcons();
 
-  // V14.15: setelah boot selesai, tampilkan entrance Dashboard SEKALI.
-  // Tidak diputar ulang ketika user pindah tab atau render data berikutnya.
-  if (!window.__mg1DashboardEntranceDone__ && currentTab === 'tabel') {
-    const shell = app.querySelector('.app-shell');
-    if (shell) {
-      window.__mg1DashboardEntranceDone__ = true;
-      shell.classList.add('mg1-dashboard-boot-enter');
-      setTimeout(() => shell.classList.remove('mg1-dashboard-boot-enter'), 900);
-    }
-  }
+  // STEP FLICKER FIX: dashboard entrance animation disabled.
+  // The splash handoff is now a single DOM replacement with no second opacity/transform animation.
+  window.__mg1DashboardEntranceDone__ = true;
 
   // [BARU] Animasi count-up 4 kartu statistik Ringkasan -- SEKALI saja stlh boot selesai
   // (bukan tiap kali pindah balik ke tab Ringkasan, supaya tidak mengganggu/berulang).
@@ -614,16 +607,10 @@ window.addEventListener('DOMContentLoaded', () => {
     await loadRingkasanData();
     await bootAnimationReady;
 
-    // V14.16: beri handoff yang terlihat antara boot dan Dashboard.
-    // Boot fade-out 320ms -> jeda navy 500ms -> Dashboard entrance sekali.
-    const bootScreen = document.querySelector('.mg1-boot');
-    if (bootScreen) {
-      bootScreen.classList.add('mg1-boot-exit');
-      await new Promise(resolve => setTimeout(resolve, 320));
-    }
-    await new Promise(resolve => setTimeout(resolve, 500));
-
+    // STEP FLICKER FIX: no fade-out and no blank navy handoff gap.
+    // Dashboard is committed once, directly after the boot gate is satisfied.
     window.__mg1BootAnimationDone__ = true;
+    window.__mg1DashboardEntranceDone__ = true;
     render();
   }, 900);
 });
