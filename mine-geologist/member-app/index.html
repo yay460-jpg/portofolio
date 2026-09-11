@@ -399,6 +399,7 @@ function _computeJustOpenedModals() {
     jsa: !!jsaModalOpen,
     settings: !!settingsModalOpen,
     lithositeChangelog: !!lithositeChangelogOpen,
+    developerProfile: !!developerProfileOpen,
     issue: !!issueModalOpen,
     digging: !!diggingModalOpen,
     mapDetail: !!mapDetailIdTp
@@ -471,6 +472,7 @@ function render() {
   html += renderReportModal(justOpened.report);
   html += renderSettingsModal(justOpened.settings);
   html += renderLithositeChangelogModal(justOpened.lithositeChangelog);
+  html += renderDeveloperProfileModal(justOpened.developerProfile);
   app.innerHTML = html;
   // 9.14P: render Dashboard lebih dulu di bawah boot overlay. Dengan begitu saat
   // boot selesai kita tidak perlu membangun ulang seluruh Dashboard di frame handoff.
