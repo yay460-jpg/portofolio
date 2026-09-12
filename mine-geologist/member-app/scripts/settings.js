@@ -212,12 +212,10 @@ function renderLithositeChangelogModal(justOpened) {
     '</div>';
   }
 
+  // [TEMPORARY -- 12 Sep] Riwayat lengkap belum diaktifkan. Preview tetap tampil.
   if (lithositeChangelogHasMore) {
-    body += '<button onclick="loadLithositeChangelogFull_()"' + (lithositeChangelogLoading ? ' disabled' : '') +
-      ' class="mt-3 w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] font-bold text-white/75 flex items-center justify-center gap-2">' +
-      (lithositeChangelogLoading
-        ? '<span class="w-3.5 h-3.5 border-2 border-white/20 border-t-blue-400 rounded-full spin"></span><span>Memuat riwayat lengkap...</span>'
-        : '<span>' + (lithositeChangelogError ? 'Coba Lagi' : 'Lihat Selengkapnya') + '</span>') +
+    body += '<button disabled aria-disabled="true" class="mt-3 w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] font-bold text-white/25 flex items-center justify-center gap-2 cursor-not-allowed opacity-50">' +
+      '<span>Lihat Selengkapnya</span>' +
     '</button>';
   }
 
@@ -265,6 +263,12 @@ function renderSettingsModal(justOpened) {
       '<div><div class="text-[13px] font-bold text-white">Versi App</div><div class="text-[11px] text-white/40">' + APP_VERSION + '</div></div>' +
       '<button onclick="openLithositeChangelogModal()" aria-label="Lihat riwayat update" class="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-400/15 flex items-center justify-center active:scale-95 transition-transform">' +
         icon('info','w-4 h-4 text-blue-300') +
+      '</button>' +
+    '</div>' +
+    '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4 flex items-center justify-between mt-2.5">' +
+      '<div><div class="text-[13px] font-bold text-white">Developer</div><div class="text-[11px] text-white/40">Profil pengembang Lithosite Member</div></div>' +
+      '<button onclick="openDeveloperProfileModal_()" aria-label="Buka Profile Developer" class="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-400/15 flex items-center justify-center active:scale-95 transition-transform">' +
+        icon('user-round','w-4 h-4 text-blue-300') +
       '</button>' +
     '</div>' +
     '<div class="rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-4 flex items-center justify-between mt-2.5">' +
