@@ -98,7 +98,7 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
   .card { background: rgba(15,23,42,0.55); border: 1px solid rgba(255,255,255,0.06); }
   .glow-gold { box-shadow: 0 0 24px rgba(37,99,235,0.18); }
   /* V14.14 -- Lithosite-Oneplus boot visual, adapted from uploaded source artifact. */
-  .mg1-boot { position:absolute; inset:0; z-index:9999; width:100%; height:100%; min-height:100svh; overflow:hidden; background:#070b1c; color:#fff; display:flex; align-items:center; justify-content:center; isolation:isolate; }
+  .mg1-boot { position:relative; width:100%; height:100%; min-height:100svh; overflow:hidden; background:#070b1c; color:#fff; display:flex; align-items:center; justify-content:center; isolation:isolate; }
   .mg1-boot::before { content:""; position:absolute; inset:0; pointer-events:none; background:none; }
   .mg1-boot::after { content:""; position:absolute; inset:0; pointer-events:none; background:none; }
   .mg1-boot-glow { display:none; }
@@ -113,9 +113,9 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
   .mg1-boot-wordmark { position:absolute; left:50%; top:50%; width:min(92vw,390px); transform:translate(-50%,-50%); display:flex; justify-content:center; align-items:center; gap:clamp(1px,.7vw,5px); z-index:4; }
   .mg1-boot-letter { display:block; font-family:Inter,system-ui,-apple-system,sans-serif; font-size:clamp(38px,12vw,68px); line-height:.9; font-weight:900; letter-spacing:-.055em; opacity:0; transform:translateX(calc((var(--i) - 4) * 62px)) rotate(calc((var(--i) - 4) * 9deg)) scale(.72); animation:mg1BootLetter 1.05s cubic-bezier(.22,1,.36,1) calc(3.72s + var(--i) * .07s) forwards; text-shadow:0 0 24px rgba(255,255,255,.12); }
   .mg1-boot-bottom { position:absolute; left:50%; top:62%; transform:translateX(-50%); width:min(72vw,220px); display:flex; flex-direction:column; align-items:center; z-index:5; }
-  .mg1-boot-tagline { font-size:9px; font-weight:700; letter-spacing:.34em; color:#888; white-space:nowrap; opacity:0; animation:mg1BootTagline .7s ease-out 5.0s forwards; }
+  .mg1-boot-tagline { font-size:9px; font-weight:700; letter-spacing:.34em; color:#888; white-space:nowrap; opacity:0; animation:mg1BootTagline .8s ease-out 5.45s forwards; }
   .mg1-boot-progress { margin-top:18px; width:100%; height:2px; background:rgba(255,255,255,.1); border-radius:999px; overflow:hidden; }
-  .mg1-boot-progress span { display:block; width:0; height:100%; background:#fff; box-shadow:0 0 10px rgba(255,255,255,.9); animation:mg1BootProgress 5.8s linear forwards; }
+  .mg1-boot-progress span { display:block; width:0; height:100%; background:#fff; box-shadow:0 0 10px rgba(255,255,255,.9); animation:mg1BootProgress 6.2s linear forwards; }
   .mg1-boot-brand { position:absolute; left:50%; bottom:28px; transform:translateX(-50%); font-size:8px; letter-spacing:.42em; color:rgba(255,255,255,.22); white-space:nowrap; }
   @keyframes mg1BootOrbit { to { transform:translate(-50%,-50%) rotate(360deg); } }
   @keyframes mg1BootLogo { 0% { opacity:0; transform:translate(-50%,-50%) scale(.25); } 55% { opacity:1; transform:translate(-50%,-50%) scale(1.12); } 100% { opacity:1; transform:translate(-50%,-50%) scale(1); } }
@@ -136,8 +136,8 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
     .mg1-boot-tagline { animation:none; opacity:1; }
     .mg1-boot-progress span { animation:none; width:100%; }
   }
-  /* 9.14P -- Boot overlay di atas Dashboard; handoff langsung tanpa blank/jeda. */
-  .mg1-boot { transition: opacity 160ms cubic-bezier(.22,1,.36,1); }
+  /* V14.16 -- Handoff visual: boot fade-out lalu jeda navy sebelum Dashboard. */
+  .mg1-boot { transition: opacity 320ms cubic-bezier(.22,1,.36,1); }
   .mg1-boot.mg1-boot-exit { opacity:0; }
 
   /* V14.15 -- Boot selesai -> Dashboard entrance SEKALI. Tidak dipakai saat pindah tab. */
@@ -223,7 +223,7 @@ function renderSplash() {
 }
 
 function startMg1BootAnimation_() {
-  const durationMs = 5800;
+  const durationMs = 7200;
   window.__mg1BootAnimationDone__ = false;
   window.__mg1BootAnimationPromise__ = new Promise(resolve => {
     window.__mg1BootAnimationResolve__ = resolve;
@@ -399,7 +399,6 @@ function _computeJustOpenedModals() {
     jsa: !!jsaModalOpen,
     settings: !!settingsModalOpen,
     lithositeChangelog: !!lithositeChangelogOpen,
-    developerProfile: !!developerProfileOpen,
     issue: !!issueModalOpen,
     digging: !!diggingModalOpen,
     mapDetail: !!mapDetailIdTp
@@ -447,9 +446,8 @@ function runDashboardCountUp_() {
 }
 
 function render() {
+  if (window.__mg1BootAnimationDone__ === false) return;
   const app = document.getElementById('app');
-  const bootIsActive = window.__mg1BootAnimationDone__ === false;
-  const existingBootScreen = app.querySelector('.mg1-boot');
   const justOpened = _computeJustOpenedModals();
   // Gerbang Login WAJIB tidak dipasang di sini (app tetap langsung buka ke shell utama) --
   // Login sekarang jadi OPSIONAL lewat avatar di header (renderLoginModal), sesuai arahan.
@@ -472,17 +470,13 @@ function render() {
   html += renderReportModal(justOpened.report);
   html += renderSettingsModal(justOpened.settings);
   html += renderLithositeChangelogModal(justOpened.lithositeChangelog);
-  html += renderDeveloperProfileModal(justOpened.developerProfile);
   app.innerHTML = html;
-  // 9.14P: render Dashboard lebih dulu di bawah boot overlay. Dengan begitu saat
-  // boot selesai kita tidak perlu membangun ulang seluruh Dashboard di frame handoff.
-  if (bootIsActive && existingBootScreen) app.appendChild(existingBootScreen);
   if (window.lucide) lucide.createIcons();
 
   // V14.15: setelah boot selesai, tampilkan entrance Dashboard SEKALI.
   // Tidak diputar ulang ketika user pindah tab atau render data berikutnya.
-  if (!bootIsActive && !window.__mg1DashboardEntranceDone__ && currentTab === 'tabel') {
-    const shell = app;
+  if (!window.__mg1DashboardEntranceDone__ && currentTab === 'tabel') {
+    const shell = app.querySelector('.app-shell');
     if (shell) {
       window.__mg1DashboardEntranceDone__ = true;
       shell.classList.add('mg1-dashboard-boot-enter');
@@ -498,7 +492,7 @@ function render() {
   // saat data ASLI datang & render ulang, angka asli tidak pernah dianimasikan/ditampilkan.
   // Sekarang: tunggu sampai globalDiggingToday BENAR-BENAR punya isi (data asli termuat)
   // baru animasi dijalankan & flag dikunci.
-  if (!bootIsActive && !window.__mg1DashboardCountUpDone__ && document.getElementById('mg1-countup-1') &&
+  if (!window.__mg1DashboardCountUpDone__ && document.getElementById('mg1-countup-1') &&
       typeof globalDiggingToday !== 'undefined' && globalDiggingToday.length > 0) {
     window.__mg1DashboardCountUpDone__ = true;
     runDashboardCountUp_();
@@ -527,18 +521,22 @@ function render() {
 // menghentikan app -- app tetap jalan normal tanpa PWA kalau SW gagal.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=20260912n1', { updateViaCache: 'none' }).then((reg) => {
+    navigator.serviceWorker.register('./sw.js?v=20260906k3', { updateViaCache: 'none' }).then((reg) => {
       // Force an update check so a stale HTTP-cached sw.js cannot pin an old app shell.
       reg.update().catch(() => {});
     }).catch((err) => {
       console.warn('Gagal mendaftarkan Service Worker Member App:', err);
     });
 
-    // 9.14N: JANGAN auto-reload saat Service Worker mengambil alih.
-    // Reload di controllerchange dapat membuat Android/Chrome menampilkan toolbar
-    // Custom Tab sesaat (judul + origin) dan menghasilkan flicker saat handoff boot.
-    // SW sudah memakai skipWaiting()+clients.claim(), sedangkan navigasi HTML memakai
-    // network-first, jadi reload paksa tidak diperlukan untuk menjaga shell terbaru.
+    // When the new SW takes control, reload once so peta.js/index.html are served
+    // consistently from the new cache generation.
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
   });
 }
 
@@ -622,37 +620,27 @@ window.addEventListener('DOMContentLoaded', () => {
     // loadRingkasanData yg sudah dijelaskan di bawah). IndexedDB lokal, biasanya cepat
     // (milidetik), tapi tetap tidak di-await supaya tidak menunda splash->konten.
     loadBackgroundMapsFromDb_().then(() => render());
-    // FIX 9.14M: data dashboard TIDAK boleh menjadi critical-path boot.
-    // Sebelumnya boot menunggu loadRingkasanData() selesai. Fungsi itu melakukan
-    // fetch COGConfig -> Produksi -> Validasi secara berurutan, masing-masing bisa
-    // menunggu timeout network sampai 20 detik. Pada jaringan/backend bermasalah,
-    // splash dapat tertahan puluhan detik walaupun animasi boot sendiri sudah selesai.
-    // Sekarang data dimuat di background; render() dari loadRingkasanData() sekarang tetap dapat menyiapkan Dashboard
-    // di bawah overlay boot; overlay-lah yang menahan tampilan sampai animasi selesai. Boot selalu
-    // punya jalur keluar mandiri, sementara hasil data akan merender setelah tersedia.
-    loadRingkasanData().catch(err => {
-      console.error('Boot background data load gagal:', err);
-    });
+    // FIX (27 Agu): splash TIDAK boleh langsung diganti Ringkasan sebelum data beneran
+    // siap -- sebelumnya render() dipanggil DULUAN di sini, jadi user sempat lihat
+    // Ringkasan kosong (0 Ton dkk) sesaat sebelum data asli masuk, dikira error/rusak.
+    // loadRingkasanData() sendiri SUDAH memanggil render() di baris terakhirnya begitu
+    // data selesai (sukses ATAU gagal) -- splash otomatis tetap tampil sampai saat itu,
+    // tidak perlu render() terpisah di sini lagi.
+    await loadRingkasanData();
     await bootAnimationReady;
 
-    // 9.14P: Dashboard sudah diprerender di bawah boot overlay.
-    // Handoff satu langkah: fade singkat -> lepas overlay -> mulai entrance Dashboard.
+    // V14.16: beri handoff yang terlihat antara boot dan Dashboard.
+    // Boot fade-out 320ms -> jeda navy 500ms -> Dashboard entrance sekali.
     const bootScreen = document.querySelector('.mg1-boot');
-    window.__mg1BootAnimationDone__ = true;
     if (bootScreen) {
       bootScreen.classList.add('mg1-boot-exit');
-      await new Promise(resolve => setTimeout(resolve, 160));
-      bootScreen.remove();
+      await new Promise(resolve => setTimeout(resolve, 320));
     }
-    const shell = document.getElementById('app');
-    if (shell && !window.__mg1DashboardEntranceDone__ && currentTab === 'tabel') {
-      window.__mg1DashboardEntranceDone__ = true;
-      shell.classList.add('mg1-dashboard-boot-enter');
-      setTimeout(() => shell.classList.remove('mg1-dashboard-boot-enter'), 900);
-    } else if (!shell) {
-      render();
-    }
-  }, 250);
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    window.__mg1BootAnimationDone__ = true;
+    render();
+  }, 900);
 });
 </script>
 </body>

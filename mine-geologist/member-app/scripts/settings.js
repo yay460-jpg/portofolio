@@ -140,69 +140,15 @@ function closeLithositeChangelogModal() {
   render();
 }
 
-// ==== MODAL: PROFIL DEVELOPER ====
-// Android/Member App: tampilan navy mengikuti tema Lithosite.
-// Isi identitas dibatasi pada copy yang sudah disepakati; tidak menambah nama/foto/jabatan.
-let developerProfileOpen = false;
-function openDeveloperProfileModal() {
-  developerProfileOpen = true;
-  lithositeChangelogOpen = false;
-  render();
-}
-function closeDeveloperProfileModal() {
-  developerProfileOpen = false;
-  render();
-}
-function renderDeveloperProfileModal(justOpened) {
-  if (!developerProfileOpen) return '';
-
-  const body =
-    '<div class="rounded-[16px] bg-[#0b1329] border border-blue-400/15 p-5">' +
-      '<div class="w-16 h-16 rounded-2xl bg-[#101c3a] border border-blue-400/15 flex items-center justify-center mx-auto mb-4">' +
-        icon('user-round','w-7 h-7 text-blue-300') +
-      '</div>' +
-      '<div class="text-center">' +
-        '<div class="text-[16px] font-black text-white">Developer</div>' +
-        '<div class="text-[11px] text-white/45 mt-1">Lithosite · Member Android</div>' +
-      '</div>' +
-      '<div class="mt-5 rounded-[12px] bg-[#070b1c] border border-white/[0.06] p-4 text-center">' +
-        '<div class="text-[12px] leading-relaxed text-white/75 italic">Merancang &amp; mengembangkan dashboard operasional tambang ini.</div>' +
-      '</div>' +
-    '</div>' +
-    '<div class="text-[9px] text-white/25 text-center mt-3">Profil Developer</div>';
-
-  return renderSimpleModal(
-    'Profil Developer',
-    'Member Android · Lithosite',
-    body,
-    'closeDeveloperProfileModal()',
-    undefined,
-    justOpened
-  ).replace('z-40', 'z-[70]');
-}
-
 function renderLithositeChangelogItems_(items) {
+  const lithositeLang = document.documentElement.lang === 'en' ? 'en' : 'id';
   if (!Array.isArray(items) || !items.length) {
     return '<div class="text-[10px] text-white/30">Tidak ada catatan perubahan.</div>';
   }
   return items.map(function(item) {
-    // [FIX -- 10 Sep] SEBELUMNYA baris ini pakai variabel `currentLang` yang TIDAK
-    // PERNAH dideklarasikan di mana pun di Member App -- app ini murni Bahasa
-    // Indonesia (belum ada toggle bahasa, lihat baris "menyusul di versi berikutnya"
-    // di modal Pengaturan), beda dari Master yang memang bilingual. Referensi ini
-    // dorman selama ini karena `items` sebelumnya SELALU kosong (fetch keburu
-    // timeout) -- begitu data hardcode 3 versi bikin baris ini benar-benar
-    // dieksekusi, ReferenceError ini meledak dan bikin render() gagal total setiap
-    // dipanggil, termasuk saat modal Pengaturan lain coba ditutup. Diperbaiki:
-    // selalu utamakan teks Indonesia (item.id), fallback ke Inggris (item.en) kalau
-    // teks Indonesia belum diisi untuk versi tsb.
-    // [FIX -- 10 Sep] Diperbaiki 2x: (1) hapus referensi `currentLang` yang tidak
-    // pernah ada; (2) urutan prioritas dibalik jadi item.en DULU -- kolom "Item_ID"
-    // di sheet LithositeChangelog itu KODE/SLUG identifier (mis. "MAP_PERSISTENCE"),
-    // BUKAN teks Bahasa Indonesia, jadi tidak layak jadi teks utama yang dibaca user.
-    // "Item_EN" berisi kalimat asli yang memang dimaksudkan utk dibaca -- item.id
-    // cuma fallback kalau item.en kosong (lebih baik tampil kode drpd kosong sama sekali).
-    const text = item.en || item.id || '';
+    const text = lithositeLang === 'en'
+      ? (item.en || item.id || '')
+      : (item.id || item.en || '');
     return '<div class="flex items-start gap-2.5 text-[11px] leading-relaxed text-white/75">' +
       '<span class="mt-1 w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>' +
       '<span>' + escapeHtml_(text) + '</span>' +
@@ -232,10 +178,7 @@ function renderLithositeChangelogModal(justOpened) {
       '<div class="space-y-2.5">' + renderLithositeChangelogItems_(latest.items) + '</div>' +
     '</div>';
 
-    // Preview mode: tampilkan SATU versi terbaru saja agar modal tidak terasa penuh.
-    // Setelah user menekan "Lihat Selengkapnya" dan data lengkap berhasil dimuat,
-    // barulah riwayat versi sebelumnya ditampilkan.
-    if (!lithositeChangelogHasMore && older.length) {
+    if (older.length) {
       body += '<div class="mt-3">' +
         '<div class="text-[10px] font-bold uppercase tracking-wider text-white/25 mb-2">Riwayat Sebelumnya</div>' +
         '<div class="space-y-2.5">';
@@ -278,12 +221,6 @@ function renderLithositeChangelogModal(justOpened) {
     '</button>';
   }
 
-  // Profil Developer selalu berada tepat di bawah tombol riwayat.
-  body += '<button onclick="openDeveloperProfileModal()" class="mt-2.5 w-full py-2.5 rounded-xl bg-[#0b1329] border border-blue-400/15 text-[11px] font-bold text-blue-200 flex items-center justify-center gap-2 active:scale-[0.99] transition-transform">' +
-    icon('user-round','w-4 h-4 text-blue-300') +
-    '<span>Profil Developer</span>' +
-  '</button>';
-
   return renderSimpleModal(
     'Riwayat Update Dashboard',
     'Daftar perubahan dan pengembangan Lithosite',
@@ -299,6 +236,7 @@ function renderLithositeChangelogModal(justOpened) {
 }
 function renderSettingsModal(justOpened) {
   if (!settingsModalOpen) return '';
+  const lithositeLang = document.documentElement.lang === 'en' ? 'en' : 'id';
   const hasCustomAvatar = !!getCustomAvatarDataUrl();
   const body = '' +
     // BARU (27 Agu): Foto Profil -- disimpan LOKAL di HP masing-masing (localStorage,
