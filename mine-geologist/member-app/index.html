@@ -65,6 +65,7 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
 <script src="scripts/issue.js"></script>
 <!-- [PARTISI -- 4 Sep, Tahap 4] Report/Settings/Account Menu. -->
 <script src="scripts/settings.js"></script>
+<script src="scripts/developer-profile.js"></script>
 <style>
   * { -webkit-tap-highlight-color: transparent; }
   /* FIX (4 Sep, revisi ke-2): Fix pertama (overscroll-behavior di html/.app-main) TERNYATA
@@ -470,7 +471,20 @@ function render() {
   html += renderReportModal(justOpened.report);
   html += renderSettingsModal(justOpened.settings);
   html += renderLithositeChangelogModal(justOpened.lithositeChangelog);
+  html += renderDeveloperProfileModal();
   app.innerHTML = html;
+
+  // MAP ASPECT-RATIO FIX: setelah DOM Peta benar-benar terpasang, sinkronkan
+  // mapViewportRatio_ dengan ukuran viewport aktual. Pada device tertentu (terutama
+  // Android/LOW) render pertama dapat terjadi sebelum resize event memberi ukuran
+  // viewport, sehingga ratio masih 1:1 dan background map terlihat tertarik melebar.
+  // Tidak mengubah GeoReference/tile engine; hanya memastikan display-fit memakai
+  // rasio viewport aktual. scheduleMapViewportFit_ sendiri aman karena hanya render
+  // ulang bila selisih ratio >= 0.01.
+  if (currentTab === 'peta' && typeof scheduleMapViewportFit_ === 'function') {
+    scheduleMapViewportFit_();
+  }
+
   if (window.lucide) lucide.createIcons();
 
   // V14.15: setelah boot selesai, tampilkan entrance Dashboard SEKALI.
