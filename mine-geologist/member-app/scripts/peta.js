@@ -2634,6 +2634,33 @@ function renderMineGridSvg(points) {
           if (!level || !Array.isArray(level.tiles)) return;
           const pxScaleX = imgW / Math.max(1, Number(level.width) || 1);
           const pxScaleY = imgH / Math.max(1, Number(level.height) || 1);
+          // LOW-only diagnostic: capture the actual compositor ratios without changing
+          // geometry, renderer, tile size, or aspect-ratio behavior. HIGH is untouched.
+          try {
+            const profileTier = String(window.mg1DeviceTileEngineProfile && window.mg1DeviceTileEngineProfile.tier || '').toUpperCase();
+            if (profileTier === 'LOW' && typeof window !== 'undefined') {
+              const levelW = Math.max(1, Number(level.width) || 1);
+              const levelH = Math.max(1, Number(level.height) || 1);
+              window.mg1LastLowCompositorRatio = {
+                tier: profileTier,
+                factor: Number(level.factor) || null,
+                tileSize: tileSize,
+                imgW: Number(imgW) || 0,
+                imgH: Number(imgH) || 0,
+                imageRatio: Number((imgW / Math.max(1, imgH)).toFixed(6)),
+                levelW: levelW,
+                levelH: levelH,
+                levelRatio: Number((levelW / levelH).toFixed(6)),
+                pxScaleX: Number(pxScaleX.toFixed(6)),
+                pxScaleY: Number(pxScaleY.toFixed(6)),
+                ratioDelta: Number((pxScaleX - pxScaleY).toFixed(6)),
+                aspectStretch: Number((pxScaleX / Math.max(1e-9, pxScaleY)).toFixed(6))
+              };
+              if (window.mg1LastLowCompositorRatio.aspectStretch !== 1) {
+                console.log('[LOW-COMPOSITOR-RATIO]', window.mg1LastLowCompositorRatio);
+              }
+            }
+          } catch (_) {}
           for (const t of level.tiles) {
             const tx = imgX + t.x * tileSize * pxScaleX;
             const ty = imgY + t.y * tileSize * pxScaleY;
