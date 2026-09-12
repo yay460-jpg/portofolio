@@ -2634,60 +2634,6 @@ function renderMineGridSvg(points) {
           if (!level || !Array.isArray(level.tiles)) return;
           const pxScaleX = imgW / Math.max(1, Number(level.width) || 1);
           const pxScaleY = imgH / Math.max(1, Number(level.height) || 1);
-
-          // TEMP LOW-ONLY diagnostic: floating trigger for compositor aspect data.
-          try {
-            const tier = (typeof deviceProfile !== 'undefined' && deviceProfile) ? String(deviceProfile.tier || '') : '';
-            if (tier.toUpperCase() === 'LOW') {
-              const levelW = Number(level.width) || 0;
-              const levelH = Number(level.height) || 0;
-              const imageRatio = imgH ? imgW / imgH : null;
-              const levelRatio = levelH ? levelW / levelH : null;
-              const ratioDelta = (imageRatio != null && levelRatio != null) ? imageRatio - levelRatio : null;
-              const aspectStretch = pxScaleY ? pxScaleX / pxScaleY : null;
-              window.mg1LastLowCompositorRatio = { tier, factor: level.factor, tileSize, imgW, imgH, imageRatio, levelW, levelH, levelRatio, pxScaleX, pxScaleY, ratioDelta, aspectStretch };
-
-              let trigger = document.getElementById('mg1-low-compositor-trigger');
-              let panel = document.getElementById('mg1-low-compositor-diagnostic');
-              if (!trigger) {
-                trigger = document.createElement('button');
-                trigger.id = 'mg1-low-compositor-trigger';
-                trigger.type = 'button';
-                trigger.textContent = '🔍';
-                trigger.title = 'LOW compositor diagnostic';
-                trigger.setAttribute('aria-label', 'LOW compositor diagnostic');
-                trigger.style.cssText = 'position:fixed;right:10px;bottom:10px;z-index:2147483647;width:42px;height:42px;border:1px solid rgba(255,255,255,.45);border-radius:50%;background:rgba(0,0,0,.82);color:#fff;font:20px/1 sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.35);padding:0;cursor:pointer;';
-                document.body.appendChild(trigger);
-              }
-              if (!panel) {
-                panel = document.createElement('pre');
-                panel.id = 'mg1-low-compositor-diagnostic';
-                panel.hidden = true;
-                panel.style.cssText = 'position:fixed;left:8px;right:8px;bottom:60px;z-index:2147483647;margin:0;padding:10px;background:rgba(0,0,0,.88);color:#fff;font:12px/1.35 monospace;white-space:pre-wrap;border:1px solid rgba(255,255,255,.35);border-radius:8px;pointer-events:none;max-height:45vh;overflow:auto;';
-                document.body.appendChild(panel);
-              }
-              const d = window.mg1LastLowCompositorRatio;
-              const n = v => Number.isFinite(v) ? v.toFixed(6) : 'n/a';
-              panel.textContent = [
-                'LOW COMPOSITOR DIAGNOSTIC', '',
-                `tier          ${d.tier}`,
-                `factor        ${d.factor}`,
-                `tileSize      ${d.tileSize}`, '',
-                `imageRatio    ${n(d.imageRatio)}`,
-                `levelRatio    ${n(d.levelRatio)}`,
-                `pxScaleX      ${n(d.pxScaleX)}`,
-                `pxScaleY      ${n(d.pxScaleY)}`, '',
-                `ratioDelta    ${n(d.ratioDelta)}`,
-                `aspectStretch ${n(d.aspectStretch)}`
-              ].join('\n');
-              if (!trigger.dataset.bound) {
-                trigger.dataset.bound = '1';
-                trigger.addEventListener('click', () => {
-                  panel.hidden = !panel.hidden;
-                });
-              }
-            }
-          } catch (_) {}
           for (const t of level.tiles) {
             const tx = imgX + t.x * tileSize * pxScaleX;
             const ty = imgY + t.y * tileSize * pxScaleY;
@@ -2774,12 +2720,17 @@ function renderMineGridSvg(points) {
   if (gpsState_.active && gpsState_.status === 'ok' && gpsState_.native) {
     const gpsRaw = projectToSvg(gpsState_.native.x, gpsState_.native.y, bounds, viewW, viewH);
     const gpsMarkerScale = Math.max(0.4, Math.min(1.25, 1 / Math.max(1, Number(mapZoom) || 1)));
+    // LOW aspect compensation: the map surface is fitted to the real viewport ratio.
+    // Counter-scale Y so screen-space circular markers remain circular when W/H != 1.
+    const markerAspectRatio = (mapViewportRatio_ > 0 && Number.isFinite(mapViewportRatio_)) ? mapViewportRatio_ : 1;
     const gpsRingR = 11 * gpsMarkerScale;
     const gpsDotR = 4 * gpsMarkerScale;
     const gpsStroke = Math.max(1, 2 * gpsMarkerScale);
     svg += '<g aria-label="Posisi GPS" pointer-events="none">' +
+      '<g transform="translate(' + gpsRaw.x.toFixed(3) + ' ' + gpsRaw.y.toFixed(3) + ') scale(1 ' + markerAspectRatio.toFixed(6) + ') translate(' + (-gpsRaw.x).toFixed(3) + ' ' + (-gpsRaw.y).toFixed(3) + ')">' +
       '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="' + gpsRingR.toFixed(2) + '" fill="none" stroke="#22d3ee" stroke-width="' + gpsStroke.toFixed(2) + '" opacity="0.85"/>' +
       '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="' + gpsDotR.toFixed(2) + '" fill="#22d3ee" stroke="#0b1329" stroke-width="' + gpsStroke.toFixed(2) + '"/>' +
+      '</g>' +
       '</g>';
   }
   // STEP 8E: marker hasil tap. Pointer-events none agar tidak mengganggu tap berikutnya.
@@ -2791,7 +2742,7 @@ function renderMineGridSvg(points) {
     // sehingga deep zoom mengecilkan crosshair tanpa menggeser titik koordinat.
     const tapZoom = Math.max(1, Number(mapZoom) || 1);
     const tapScale = 1 / Math.pow(tapZoom, 1.25);
-    const tapVisualTransform = 'translate(' + tp.x.toFixed(3) + ' ' + tp.y.toFixed(3) + ') scale(' + tapScale.toFixed(6) + ') translate(' + (-tp.x).toFixed(3) + ' ' + (-tp.y).toFixed(3) + ')';
+    const tapVisualTransform = 'translate(' + tp.x.toFixed(3) + ' ' + tp.y.toFixed(3) + ') scale(' + tapScale.toFixed(6) + ' ' + (tapScale * markerAspectRatio).toFixed(6) + ') translate(' + (-tp.x).toFixed(3) + ' ' + (-tp.y).toFixed(3) + ')';
     svg += '<g aria-label="Koordinat tap" pointer-events="none" transform="' + tapVisualTransform + '">' +
       '<circle cx="' + tp.x + '" cy="' + tp.y + '" r="7" fill="none" stroke="#facc15" stroke-width="2"/>' +
       '<line x1="' + (tp.x-10) + '" y1="' + tp.y + '" x2="' + (tp.x+10) + '" y2="' + tp.y + '" stroke="#facc15" stroke-width="1"/>' +
@@ -2820,7 +2771,7 @@ function renderMineGridSvg(points) {
     const fillColor = { merah:'#f43f5e', abu:'#94a3b8', kuning:'#f59e0b', biru:'#3b82f6', hijau:'#22c55e' }[
       (globalCOGConfig && globalCOGConfig['Warna_' + p.classGrade]) || GRADE_COLOR_DEFAULTS[p.classGrade] || 'abu'
     ];
-    const visualTransform = 'translate(' + raw.x.toFixed(3) + ' ' + raw.y.toFixed(3) + ') scale(' + tpMarkerScale.toFixed(6) + ') translate(' + (-raw.x).toFixed(3) + ' ' + (-raw.y).toFixed(3) + ')';
+    const visualTransform = 'translate(' + raw.x.toFixed(3) + ' ' + raw.y.toFixed(3) + ') scale(' + tpMarkerScale.toFixed(6) + ' ' + (tpMarkerScale * markerAspectRatio).toFixed(6) + ') translate(' + (-raw.x).toFixed(3) + ' ' + (-raw.y).toFixed(3) + ')';
     // v90.2.115: TP dgn koordinat konflik ditandai cincin kuning putus-putus.
     const conflictRing = p.coordConflict
       ? '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpRingR + '" fill="none" stroke="#f59e0b" stroke-width="' + tpRingStroke + '" stroke-dasharray="3,2"/>'
