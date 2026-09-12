@@ -3868,63 +3868,58 @@ async function deleteKmlOverlayEntry_(id) {
     }, 200);
   };
 
-  function showMapDeleteConfirmV2_(onConfirm) {
-    const old = document.getElementById('mg1-map-delete-confirm-v2');
-    if (old) old.remove();
+  function showMapDeleteConfirmV2_() {
+    return new Promise(function(resolve) {
+      const old = document.getElementById('mg1-map-delete-confirm-v2');
+      if (old) old.remove();
 
-    const root = document.createElement('div');
-    root.id = 'mg1-map-delete-confirm-v2';
-    root.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(2,7,18,0.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
-    root.innerHTML = `
-      <div style="width:min(360px,100%);background:#0e1933;border:1px solid rgba(255,255,255,0.10);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,0.45);padding:18px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          <div style="width:34px;height:34px;border-radius:10px;background:rgba(244,63,94,0.12);display:flex;align-items:center;justify-content:center;color:#fb7185;font-size:18px;">🗑</div>
-          <div>
-            <div style="font-size:14px;font-weight:800;color:#fff;">Hapus Data Map?</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.38);margin-top:2px;">Data peta akan dihapus dari perangkat ini.</div>
+      const root = document.createElement('div');
+      root.id = 'mg1-map-delete-confirm-v2';
+      root.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+      root.innerHTML = `
+        <div style="width:min(100%,390px);background:#0e1933;border:1px solid rgba(255,255,255,.10);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.45);overflow:hidden;">
+          <div style="padding:18px 18px 14px;">
+            <div style="font-size:15px;font-weight:800;color:#fff;">Hapus Data Map?</div>
+            <div style="margin-top:6px;font-size:10px;line-height:1.5;color:rgba(255,255,255,.42);">Data peta akan dihapus dari perangkat ini.</div>
           </div>
-        </div>
-        <div style="font-size:11px;line-height:1.6;color:rgba(255,255,255,0.58);margin:0 0 16px;">Tindakan ini tidak dapat dibatalkan. Yakin ingin menghapus data map?</div>
-        <div style="display:flex;gap:8px;">
-          <button id="mg1-map-delete-cancel-v2" type="button" style="flex:1;padding:10px 12px;border-radius:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);color:rgba(255,255,255,0.72);font-size:11px;font-weight:800;">Batal</button>
-          <button id="mg1-map-delete-ok-v2" type="button" style="flex:1;padding:10px 12px;border-radius:11px;background:#e11d48;border:1px solid rgba(244,63,94,0.55);color:#fff;font-size:11px;font-weight:800;">Oke</button>
-        </div>
-      </div>`;
+          <div style="display:flex;gap:10px;padding:0 18px 18px;">
+            <button type="button" id="mg1-map-delete-cancel-v2" style="flex:1;height:42px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.78);font-size:12px;font-weight:700;">Batal</button>
+            <button type="button" id="mg1-map-delete-ok-v2" style="flex:1;height:42px;border-radius:12px;background:#e11d48;border:1px solid rgba(255,255,255,.06);color:#fff;font-size:12px;font-weight:800;">Oke</button>
+          </div>
+        </div>`;
+      document.body.appendChild(root);
 
-    document.body.appendChild(root);
-    const close = () => { try { root.remove(); } catch(_) {} };
-    root.querySelector('#mg1-map-delete-cancel-v2').onclick = close;
-    root.querySelector('#mg1-map-delete-ok-v2').onclick = async () => {
-      const btn = root.querySelector('#mg1-map-delete-ok-v2');
-      btn.disabled = true;
-      btn.textContent = 'Menghapus...';
-      try { await onConfirm(); } finally { close(); }
-    };
-    root.addEventListener('click', (e) => { if (e.target === root) close(); });
+      const finish = function(result) {
+        if (root.parentNode) root.remove();
+        resolve(result);
+      };
+      root.querySelector('#mg1-map-delete-cancel-v2').onclick = function() { finish(false); };
+      root.querySelector('#mg1-map-delete-ok-v2').onclick = function() { finish(true); };
+      root.onclick = function(e) { if (e.target === root) finish(false); };
+    });
   }
 
-  window._v23DeleteMap = function(id) {
-    showMapDeleteConfirmV2_(async function() {
-      try {
-        if(typeof dbDeleteMap_ === 'function') await dbDeleteMap_(id);
-        if(activeBackgroundMapId === id) {
-          activeBackgroundMapId = null;
-          try { localStorage.removeItem('mg1_active_bg_map_id'); } catch(_){}
-        }
-        if(typeof loadBackgroundMapsFromDb_ === 'function') await loadBackgroundMapsFromDb_();
-        // Refresh manage modal list tanpa render()
-        openManageModal();
-        // Jika peta aktif dihapus, update viewport
-        if(!activeBackgroundMapId) {
-          const vp = document.getElementById('mg1-map-viewport');
-          if(vp && typeof window.buildNewMapSurfaceV22 === 'function' && typeof window.executeAtomicSurfaceSwap_ === 'function') {
-            await window.executeAtomicSurfaceSwap_(vp, window.buildNewMapSurfaceV22);
-          }
-        }
-      } catch(e) {
-        console.error('[V2 DELETE MAP] delete fail', e);
+  window._v23DeleteMap = async function(id) {
+    if(!(await showMapDeleteConfirmV2_())) return;
+    try {
+      if(typeof dbDeleteMap_ === 'function') await dbDeleteMap_(id);
+      if(activeBackgroundMapId === id) {
+        activeBackgroundMapId = null;
+        try { localStorage.removeItem('mg1_active_bg_map_id'); } catch(_){}
       }
-    });
+      if(typeof loadBackgroundMapsFromDb_ === 'function') await loadBackgroundMapsFromDb_();
+      // Refresh manage modal list tanpa render()
+      openManageModal();
+      // Jika peta aktif dihapus, update viewport
+      if(!activeBackgroundMapId) {
+        const vp = document.getElementById('mg1-map-viewport');
+        if(vp && typeof window.buildNewMapSurfaceV22 === 'function' && typeof window.executeAtomicSurfaceSwap_ === 'function') {
+          await window.executeAtomicSurfaceSwap_(vp, window.buildNewMapSurfaceV22);
+        }
+      }
+    } catch(e) {
+      console.error('[V23] delete fail', e);
+    }
   };
 
   // Intercept render() untuk skip jika flag _v23SkipNextRender
