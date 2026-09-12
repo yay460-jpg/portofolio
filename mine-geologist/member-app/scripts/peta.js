@@ -3875,7 +3875,7 @@ async function deleteKmlOverlayEntry_(id) {
 
       const root = document.createElement('div');
       root.id = 'mg1-map-delete-confirm-v2';
-      root.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+      root.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
       root.innerHTML = `
         <div style="width:min(100%,390px);background:#0e1933;border:1px solid rgba(255,255,255,.10);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.45);overflow:hidden;">
           <div style="padding:18px 18px 14px;">

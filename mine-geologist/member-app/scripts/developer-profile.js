@@ -81,9 +81,12 @@ function renderDeveloperProfileModal() {
           '<div class="mx-auto w-[230px] h-[230px] flex items-end justify-center overflow-hidden">' +
             '<img id="developer-profile-image" src="../assets/lithosite-member-developer.png" alt="Lithosite Developer" class="w-[230px] h-[230px] object-contain opacity-0 scale-90 -translate-y-2 transition-all duration-500 ease-out">' +
           '</div>' +
-          '<div id="developer-profile-text" class="mt-2 opacity-0 translate-y-2 transition-all duration-500 ease-out">' +
-            '<div class="text-[17px] font-black text-white">Developer</div>' +
-            '<div class="mt-2 text-[11px] leading-relaxed text-white/55">Merancang &amp; mengembangkan dashboard operasional tambang ini.</div>' +
+          '<div id="developer-profile-text" class="mt-2 opacity-0 translate-y-2 transition-all duration-500 ease-out text-left">' +
+            '<div class="text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">Aplikasi</div>' +
+            '<div class="mt-0.5 text-[13px] font-semibold leading-snug text-white">Manajemen Program (Web &amp; Mobile)</div>' +
+            '<div class="mt-3 text-[9px] font-bold uppercase tracking-[0.14em] text-white/35">Tujuan</div>' +
+            '<div class="mt-0.5 text-[12px] leading-relaxed text-white/60">Membantu mengatur tugas, deadline, dan kolaborasi secara real-time</div>' +
+            '<div class="mt-4 text-right text-[11px] leading-relaxed text-white/55">Regards,-<br><span class="font-semibold text-white/75">Yaya</span></div>' +
           '</div>' +
         '</div>' +
       '</div>' +
