@@ -10,7 +10,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'lithosite-member-app-build-20260910b';
+const CACHE_NAME = 'lithosite-member-app-build-20260911a';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
@@ -18,6 +18,12 @@ const CACHE_NAME = 'lithosite-member-app-build-20260910b';
 // [PARTISI -- 4 Sep, Tahap 6] index.html Tahap 5 dipecah jadi 10 file (1 shared/ +
 // 9 scripts/) -- SEMUA WAJIB masuk sini, pelajaran lama (member-card-expand.js
 // Master sempat kelewat 1x) jangan terulang di sini.
+// [FIX -- 11 Sep] Pelajaran itu KETERULANG: peta.js displit jadi 15 file di
+// scripts/map/* (4 Sep-11 Sep) + developer-profile.js ditambahkan, TAPI daftar di
+// bawah ini tidak pernah diupdate ikut mereka -- 16 file baru berjalan tanpa
+// precache sama sekali (selalu network-only, TIDAK bisa dipakai offline, dan tidak
+// pernah dianggap "berubah" oleh mekanisme deteksi update berbasis CACHE_NAME).
+// Sekarang ditambahkan SEMUA, urutan mengikuti urutan <script> asli di index.html.
 const APP_SHELL = [
   './',
   './index.html',
@@ -28,16 +34,33 @@ const APP_SHELL = [
   '../assets/icon-192.png',
   '../assets/icon-512.png',
   '../assets/lithosite-logo.png',
+  '../assets/lithosite-member-developer.png',
   '../shared/geo-engine.js',
   './scripts/config.js',
   './scripts/auth.js',
   './scripts/kpi.js',
   './scripts/digging.js',
   './scripts/validasi.js',
+  './scripts/map/map-state.js',
+  './scripts/map/map-device-profile.js',
+  './scripts/map/map-coordinate.js',
+  './scripts/map/map-package.js',
+  './scripts/map/map-tile-pyramid.js',
+  './scripts/map/map-tile-store.js',
+  './scripts/map/map-tile-queue.js',
+  './scripts/map/map-runtime-loader.js',
+  './scripts/map/map-missing-detail-resolver.js',
+  './scripts/map/map-runtime-tile-creation.js',
+  './scripts/map/map-background-lifecycle.js',
+  './scripts/map/map-upload-save-lifecycle.js',
+  './scripts/map/map-surface-lifecycle.js',
+  './scripts/map/map-interaction.js',
+  './scripts/map/map-ui.js',
   './scripts/peta.js',
   './scripts/chat.js',
   './scripts/issue.js',
   './scripts/settings.js',
+  './scripts/developer-profile.js',
   './vendor/pdfjs/pdf.min.js',
   './vendor/pdfjs/pdf.worker.min.js'
 ];
