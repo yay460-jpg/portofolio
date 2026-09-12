@@ -2635,7 +2635,7 @@ function renderMineGridSvg(points) {
           const pxScaleX = imgW / Math.max(1, Number(level.width) || 1);
           const pxScaleY = imgH / Math.max(1, Number(level.height) || 1);
 
-          // TEMP LOW-ONLY diagnostic: show compositor aspect data on the device screen.
+          // TEMP LOW-ONLY diagnostic: floating trigger for compositor aspect data.
           try {
             const tier = (typeof deviceProfile !== 'undefined' && deviceProfile) ? String(deviceProfile.tier || '') : '';
             if (tier.toUpperCase() === 'LOW') {
@@ -2646,11 +2646,24 @@ function renderMineGridSvg(points) {
               const ratioDelta = (imageRatio != null && levelRatio != null) ? imageRatio - levelRatio : null;
               const aspectStretch = pxScaleY ? pxScaleX / pxScaleY : null;
               window.mg1LastLowCompositorRatio = { tier, factor: level.factor, tileSize, imgW, imgH, imageRatio, levelW, levelH, levelRatio, pxScaleX, pxScaleY, ratioDelta, aspectStretch };
+
+              let trigger = document.getElementById('mg1-low-compositor-trigger');
               let panel = document.getElementById('mg1-low-compositor-diagnostic');
+              if (!trigger) {
+                trigger = document.createElement('button');
+                trigger.id = 'mg1-low-compositor-trigger';
+                trigger.type = 'button';
+                trigger.textContent = '🔍';
+                trigger.title = 'LOW compositor diagnostic';
+                trigger.setAttribute('aria-label', 'LOW compositor diagnostic');
+                trigger.style.cssText = 'position:fixed;right:10px;bottom:10px;z-index:2147483647;width:42px;height:42px;border:1px solid rgba(255,255,255,.45);border-radius:50%;background:rgba(0,0,0,.82);color:#fff;font:20px/1 sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.35);padding:0;cursor:pointer;';
+                document.body.appendChild(trigger);
+              }
               if (!panel) {
                 panel = document.createElement('pre');
                 panel.id = 'mg1-low-compositor-diagnostic';
-                panel.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:2147483647;margin:0;padding:10px;background:rgba(0,0,0,.88);color:#fff;font:12px/1.35 monospace;white-space:pre-wrap;border:1px solid rgba(255,255,255,.35);border-radius:8px;pointer-events:none;max-height:45vh;overflow:auto;';
+                panel.hidden = true;
+                panel.style.cssText = 'position:fixed;left:8px;right:8px;bottom:60px;z-index:2147483647;margin:0;padding:10px;background:rgba(0,0,0,.88);color:#fff;font:12px/1.35 monospace;white-space:pre-wrap;border:1px solid rgba(255,255,255,.35);border-radius:8px;pointer-events:none;max-height:45vh;overflow:auto;';
                 document.body.appendChild(panel);
               }
               const d = window.mg1LastLowCompositorRatio;
@@ -2667,6 +2680,12 @@ function renderMineGridSvg(points) {
                 `ratioDelta    ${n(d.ratioDelta)}`,
                 `aspectStretch ${n(d.aspectStretch)}`
               ].join('\n');
+              if (!trigger.dataset.bound) {
+                trigger.dataset.bound = '1';
+                trigger.addEventListener('click', () => {
+                  panel.hidden = !panel.hidden;
+                });
+              }
             }
           } catch (_) {}
           for (const t of level.tiles) {
