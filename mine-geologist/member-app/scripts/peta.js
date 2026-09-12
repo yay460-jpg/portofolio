@@ -2634,31 +2634,39 @@ function renderMineGridSvg(points) {
           if (!level || !Array.isArray(level.tiles)) return;
           const pxScaleX = imgW / Math.max(1, Number(level.width) || 1);
           const pxScaleY = imgH / Math.max(1, Number(level.height) || 1);
-          // LOW-only diagnostic: capture the actual compositor ratios without changing
-          // geometry, renderer, tile size, or aspect-ratio behavior. HIGH is untouched.
+
+          // TEMP LOW-ONLY diagnostic: show compositor aspect data on the device screen.
           try {
-            const profileTier = String(window.mg1DeviceTileEngineProfile && window.mg1DeviceTileEngineProfile.tier || '').toUpperCase();
-            if (profileTier === 'LOW' && typeof window !== 'undefined') {
-              const levelW = Math.max(1, Number(level.width) || 1);
-              const levelH = Math.max(1, Number(level.height) || 1);
-              window.mg1LastLowCompositorRatio = {
-                tier: profileTier,
-                factor: Number(level.factor) || null,
-                tileSize: tileSize,
-                imgW: Number(imgW) || 0,
-                imgH: Number(imgH) || 0,
-                imageRatio: Number((imgW / Math.max(1, imgH)).toFixed(6)),
-                levelW: levelW,
-                levelH: levelH,
-                levelRatio: Number((levelW / levelH).toFixed(6)),
-                pxScaleX: Number(pxScaleX.toFixed(6)),
-                pxScaleY: Number(pxScaleY.toFixed(6)),
-                ratioDelta: Number((pxScaleX - pxScaleY).toFixed(6)),
-                aspectStretch: Number((pxScaleX / Math.max(1e-9, pxScaleY)).toFixed(6))
-              };
-              if (window.mg1LastLowCompositorRatio.aspectStretch !== 1) {
-                console.log('[LOW-COMPOSITOR-RATIO]', window.mg1LastLowCompositorRatio);
+            const tier = (typeof deviceProfile !== 'undefined' && deviceProfile) ? String(deviceProfile.tier || '') : '';
+            if (tier.toUpperCase() === 'LOW') {
+              const levelW = Number(level.width) || 0;
+              const levelH = Number(level.height) || 0;
+              const imageRatio = imgH ? imgW / imgH : null;
+              const levelRatio = levelH ? levelW / levelH : null;
+              const ratioDelta = (imageRatio != null && levelRatio != null) ? imageRatio - levelRatio : null;
+              const aspectStretch = pxScaleY ? pxScaleX / pxScaleY : null;
+              window.mg1LastLowCompositorRatio = { tier, factor: level.factor, tileSize, imgW, imgH, imageRatio, levelW, levelH, levelRatio, pxScaleX, pxScaleY, ratioDelta, aspectStretch };
+              let panel = document.getElementById('mg1-low-compositor-diagnostic');
+              if (!panel) {
+                panel = document.createElement('pre');
+                panel.id = 'mg1-low-compositor-diagnostic';
+                panel.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:2147483647;margin:0;padding:10px;background:rgba(0,0,0,.88);color:#fff;font:12px/1.35 monospace;white-space:pre-wrap;border:1px solid rgba(255,255,255,.35);border-radius:8px;pointer-events:none;max-height:45vh;overflow:auto;';
+                document.body.appendChild(panel);
               }
+              const d = window.mg1LastLowCompositorRatio;
+              const n = v => Number.isFinite(v) ? v.toFixed(6) : 'n/a';
+              panel.textContent = [
+                'LOW COMPOSITOR DIAGNOSTIC', '',
+                `tier          ${d.tier}`,
+                `factor        ${d.factor}`,
+                `tileSize      ${d.tileSize}`, '',
+                `imageRatio    ${n(d.imageRatio)}`,
+                `levelRatio    ${n(d.levelRatio)}`,
+                `pxScaleX      ${n(d.pxScaleX)}`,
+                `pxScaleY      ${n(d.pxScaleY)}`, '',
+                `ratioDelta    ${n(d.ratioDelta)}`,
+                `aspectStretch ${n(d.aspectStretch)}`
+              ].join('\n');
             }
           } catch (_) {}
           for (const t of level.tiles) {
