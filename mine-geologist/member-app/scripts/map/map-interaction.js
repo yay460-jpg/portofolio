@@ -12,8 +12,9 @@ function captureMapViewportCenter_(bounds) {
   if (!(rangeT > 0) || !(rangeU > 0)) return;
   const centerSvgX = viewBox.x + viewBox.w / 2;
   const centerSvgY = viewBox.y + viewBox.h / 2;
-  const nativeX = bounds.minT + (centerSvgX / 320) * rangeT;
-  const nativeY = bounds.minU + ((320 - centerSvgY) / 320) * rangeU;
+  const { viewW, viewH } = getMapSvgViewportSize_();
+  const nativeX = bounds.minT + (centerSvgX / viewW) * rangeT;
+  const nativeY = bounds.minU + ((viewH - centerSvgY) / viewH) * rangeU;
   if (Number.isFinite(nativeX) && Number.isFinite(nativeY)) {
     mapViewportState_.centerNative = { x: nativeX, y: nativeY };
   }
@@ -51,7 +52,7 @@ function composeMapTransform_(scale, rotationDeg, dx, dy) {
 }
 
 function nativeFromClientPoint_(event, bounds, rect) {
-  const viewW = 320, viewH = 320;
+  const { viewW, viewH } = getMapSvgViewportSize_();
   const viewBox = getMapViewBox_(bounds);
   const sx = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.w;
   const sy = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.h;
@@ -241,9 +242,10 @@ function getMapCenterNative_(bounds) {
   const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
   if (!(rangeT > 0) || !(rangeU > 0)) return null;
   const sx = vb.x + vb.w / 2, sy = vb.y + vb.h / 2;
+  const { viewW, viewH } = getMapSvgViewportSize_();
   return {
-    x: bounds.minT + (sx / 320) * rangeT,
-    y: bounds.minU + ((320 - sy) / 320) * rangeU
+    x: bounds.minT + (sx / viewW) * rangeT,
+    y: bounds.minU + ((viewH - sy) / viewH) * rangeU
   };
 }
 
@@ -283,11 +285,12 @@ function commitMapPan_(extraDx, extraDy) {
   const bounds = mapPanState_.baseBounds;
   if (bounds && mapPanState_.baseCenterNative && mapPanState_.baseRectW > 0 && mapPanState_.baseRectH > 0) {
     const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
-    const zoomedW = 320 / Math.max(0.0001, mapZoom), zoomedH = 320 / Math.max(0.0001, mapZoom);
+    const { viewW, viewH } = getMapSvgViewportSize_();
+    const zoomedW = viewW / Math.max(0.0001, mapZoom), zoomedH = viewH / Math.max(0.0001, mapZoom);
     const totalDx = mapPanState_.dx + (extraDx || 0);
     const totalDy = mapPanState_.dy + (extraDy || 0);
-    const deltaNativeX = -(totalDx / mapPanState_.baseRectW) * (zoomedW / 320) * rangeT;
-    const deltaNativeY = (totalDy / mapPanState_.baseRectH) * (zoomedH / 320) * rangeU;
+    const deltaNativeX = -(totalDx / mapPanState_.baseRectW) * (zoomedW / viewW) * rangeT;
+    const deltaNativeY = (totalDy / mapPanState_.baseRectH) * (zoomedH / viewH) * rangeU;
     const nx = mapPanState_.baseCenterNative.x + deltaNativeX;
     const ny = mapPanState_.baseCenterNative.y + deltaNativeY;
     if (Number.isFinite(nx) && Number.isFinite(ny)) mapViewportState_.centerNative = { x: nx, y: ny };
@@ -350,23 +353,24 @@ function commitMapPinchViewport_(bounds) {
     compassRotationOffsetDeg_ = normalizeSignedDeg_(mapRotationDeg_ + compassState_.smoothedHeadingDeg);
   }
   const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
-  const zoomedW = 320 / Math.max(0.0001, mapZoom), zoomedH = 320 / Math.max(0.0001, mapZoom);
+  const { viewW, viewH } = getMapSvgViewportSize_();
+  const zoomedW = viewW / Math.max(0.0001, mapZoom), zoomedH = viewH / Math.max(0.0001, mapZoom);
   if (!(rangeT > 0) || !(rangeU > 0)) return;
   const anchor = mapPinchState_.anchorNative;
-  const anchorX = ((anchor.x - bounds.minT) / rangeT) * 320;
-  const anchorY = 320 - ((anchor.y - bounds.minU) / rangeU) * 320;
+  const anchorX = ((anchor.x - bounds.minT) / rangeT) * viewW;
+  const anchorY = viewH - ((anchor.y - bounds.minU) / rangeU) * viewH;
   const fx = Math.max(0, Math.min(1, mapPinchState_.midX));
   const fy = Math.max(0, Math.min(1, mapPinchState_.midY));
-  const pX = fx * 320, pY = fy * 320;
-  const cX = 160, cY = 160;
+  const pX = fx * viewW, pY = fy * viewH;
+  const cX = viewW / 2, cY = viewH / 2;
   const rad = -mapRotationDeg_ * Math.PI / 180;
   const dx = pX - cX, dy = pY - cY;
   const qX = cX + (dx * Math.cos(rad) - dy * Math.sin(rad));
   const qY = cY + (dx * Math.sin(rad) + dy * Math.cos(rad));
-  const centerSvgX = anchorX - (qX - cX) * (zoomedW / 320);
-  const centerSvgY = anchorY - (qY - cY) * (zoomedH / 320);
-  const centerNativeX = bounds.minT + (centerSvgX / 320) * rangeT;
-  const centerNativeY = bounds.minU + ((320 - centerSvgY) / 320) * rangeU;
+  const centerSvgX = anchorX - (qX - cX) * (zoomedW / viewW);
+  const centerSvgY = anchorY - (qY - cY) * (zoomedH / viewH);
+  const centerNativeX = bounds.minT + (centerSvgX / viewW) * rangeT;
+  const centerNativeY = bounds.minU + ((viewH - centerSvgY) / viewH) * rangeU;
   if (Number.isFinite(centerNativeX) && Number.isFinite(centerNativeY)) {
     mapViewportState_.centerNative = { x: centerNativeX, y: centerNativeY };
   }
