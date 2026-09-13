@@ -34,10 +34,23 @@
 
   async function getEntry_(id) {
     if (!id) throw new Error('Map lifecycle requires id');
+
+    // V24.1 save is intentionally RAM-first: a newly saved map can be visible
+    // in Map Library before its deferred IndexedDB write completes. Lifecycle
+    // actions must therefore resolve the runtime-visible entry as a fallback
+    // when the canonical DB lookup has not caught up yet.
     if (global.MG1MapLibrary && typeof global.MG1MapLibrary.find === 'function') {
       var found = await global.MG1MapLibrary.find(id);
       if (found) return found;
     }
+
+    if (Array.isArray(global.backgroundMapsList)) {
+      var ramFound = global.backgroundMapsList.find(function (m) {
+        return m && String(m.id) === String(id);
+      });
+      if (ramFound) return ramFound;
+    }
+
     var maps = await getMaps_();
     return maps.find(function (m) { return m && String(m.id) === String(id); }) || null;
   }
