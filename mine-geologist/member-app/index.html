@@ -59,6 +59,10 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
 <script src="scripts/map/map-interaction.js"></script>
     <script src="scripts/map/map-ui.js"></script>
 <script src="scripts/peta.js"></script>
+<script src="scripts/map/map-library-contract.js"></script>
+<script src="scripts/map/map-library.js"></script>
+<script src="scripts/map/map-library-capability.js"></script>
+<script src="scripts/map/map-management-compat.js"></script>
 <!-- [PARTISI -- 4 Sep, Tahap 4] Modal Chat Tim. -->
 <script src="scripts/chat.js"></script>
 <!-- [PARTISI -- 4 Sep, Tahap 4] Modal Issue & Action. -->
@@ -473,18 +477,6 @@ function render() {
   html += renderLithositeChangelogModal(justOpened.lithositeChangelog);
   html += renderDeveloperProfileModal();
   app.innerHTML = html;
-
-  // MAP ASPECT-RATIO FIX: setelah DOM Peta benar-benar terpasang, sinkronkan
-  // mapViewportRatio_ dengan ukuran viewport aktual. Pada device tertentu (terutama
-  // Android/LOW) render pertama dapat terjadi sebelum resize event memberi ukuran
-  // viewport, sehingga ratio masih 1:1 dan background map terlihat tertarik melebar.
-  // Tidak mengubah GeoReference/tile engine; hanya memastikan display-fit memakai
-  // rasio viewport aktual. scheduleMapViewportFit_ sendiri aman karena hanya render
-  // ulang bila selisih ratio >= 0.01.
-  if (currentTab === 'peta' && typeof scheduleMapViewportFit_ === 'function') {
-    scheduleMapViewportFit_();
-  }
-
   if (window.lucide) lucide.createIcons();
 
   // V14.15: setelah boot selesai, tampilkan entrance Dashboard SEKALI.
