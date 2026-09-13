@@ -97,6 +97,27 @@ function getMapViewportRatio_() {
   return w / h;
 }
 
+// LOW VIEWPORT GEOMETRY CONTRACT:
+// LOW portrait memakai viewport SVG yang mengikuti rasio layar aktual.
+// HIGH tetap memakai kontrak 320x320 dan tidak disentuh.
+const LOW_PORTRAIT_VERTICAL_EXPAND_ = 0.12;
+
+function isLowMapDevice_() {
+  try {
+    const profile = window.mg1DeviceTileEngineProfile ||
+      (typeof getDeviceTileEngineProfile_ === 'function' ? getDeviceTileEngineProfile_() : null);
+    return String(profile && profile.tier || '').toUpperCase() === 'LOW';
+  } catch (_) { return false; }
+}
+
+function getMapSvgViewportSize_() {
+  const base = 320;
+  if (!isLowMapDevice_()) return { viewW: base, viewH: base };
+  const ratio = getMapViewportRatio_();
+  if (!(ratio > 0)) return { viewW: base, viewH: base };
+  return { viewW: base, viewH: base / ratio };
+}
+
 function scheduleMapViewportFit_() {
   // KEYBOARD FIX: Android visual viewport resize fires while a form input is focused.
   // The map-fit listener must never rebuild the whole app during keyboard activity,
@@ -216,6 +237,7 @@ function getViewportTilePlan_(geoReferenceOverride) {
     const tilesX = Math.ceil(levelWidth / tileSize);
     const tilesY = Math.ceil(levelHeight / tileSize);
 
+    const { viewW, viewH } = getMapSvgViewportSize_();
     const viewBox = getMapViewBox_(bounds);
     const corners = [
       {x:viewBox.x, y:viewBox.y},
@@ -232,14 +254,14 @@ function getViewportTilePlan_(geoReferenceOverride) {
       let sx = c.x, sy = c.y;
       if (Math.abs(mapRotationDeg_) > 0.0001) {
         const rad = -mapRotationDeg_ * Math.PI / 180;
-        const cx = 160, cy = 160;
+        const cx = viewW / 2, cy = viewH / 2;
         const dx = sx - cx, dy = sy - cy;
         sx = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
         sy = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
       }
       return {
-        x: bounds.minT + (sx / 320) * rangeT,
-        y: bounds.minU + ((320 - sy) / 320) * rangeU
+        x: bounds.minT + (sx / viewW) * rangeT,
+        y: bounds.minU + ((viewH - sy) / viewH) * rangeU
       };
     });
 
@@ -1228,7 +1250,7 @@ function handleMapTap_(event) {
     if (!bounds) return;
     const rect = (svgEl.parentElement || svgEl).getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    const viewW = 320, viewH = 320;
+    const { viewW, viewH } = getMapSvgViewportSize_();
     const viewBox = getMapViewBox_(bounds);
     let svgX = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.w;
     let svgY = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.h;
@@ -2387,8 +2409,15 @@ function computeResponsiveDisplayBounds_(points) {
   let minT = base.minT, maxT = base.maxT;
   let minU = base.minU, maxU = base.maxU;
 
-  if (currentRatio > ratio) {
-    // World terlalu lebar dibanding viewport: tambah range Utara.
+  // LOW portrait: sisi Timur-Barat tetap, hanya beri ruang vertikal terbatas.
+  // Tidak memaksa full-fit portrait yang sebelumnya menghasilkan expansion terlalu besar.
+  const isPortrait = ratio > 0 && ratio < 0.9;
+  if (isLowMapDevice_() && isPortrait && currentRatio > ratio) {
+    const verticalPad = h * LOW_PORTRAIT_VERTICAL_EXPAND_;
+    const extra = verticalPad / 2;
+    minU -= extra; maxU += extra;
+  } else if (currentRatio > ratio) {
+    // World terlalu lebar dibanding viewport landscape: tambah range Utara.
     const targetH = w / ratio;
     const extra = (targetH - h) / 2;
     minU -= extra; maxU += extra;
@@ -2404,7 +2433,7 @@ function computeResponsiveDisplayBounds_(points) {
 // STEP 5.3/5.6: viewBox zoom memakai native coordinate sebagai sumber kebenaran.
 // Tap anchor dipakai untuk tombol +/-; pinch anchor dipakai selama gesture 2-jari.
 function getMapViewBox_(bounds) {
-  const viewW = 320, viewH = 320;
+  const { viewW, viewH } = getMapSvgViewportSize_();
   const zoomedW = viewW / mapZoom, zoomedH = viewH / mapZoom;
   let centerX = viewW / 2, centerY = viewH / 2;
   const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
@@ -2499,16 +2528,14 @@ function renderMineGridSvg(points) {
   var mg1FallbackCount_ = 0;
   ensureMapContextBlocker_();
   const bounds = computeResponsiveDisplayBounds_(points);
-  const viewW = 320, viewH = 320;
+  const { viewW, viewH } = getMapSvgViewportSize_();
   if (!bounds) return '';
   // Zoom diterapkan lewat viewBox SVG (bukan transform per-titik) -- viewBox lebih kecil
   // = area yg sama ditampilkan lebih besar (efek perbesar). STEP 5.3: pusat viewBox
   // mengikuti persistent viewport state; titik tap tidak pernah menjadi anchor.
   const viewBox = getMapViewBox_(bounds);
   const valid = points.filter(p => p.hasValidCoord);
-  // LOW aspect compensation: keep screen-space markers circular on portrait viewports.
-  const markerAspectRatio = (mapViewportRatio_ > 0 && Number.isFinite(mapViewportRatio_)) ? mapViewportRatio_ : 1;
-  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="pointer-events:auto; touch-action:none; overflow:hidden; will-change:transform; transition:none; transform-origin:50% 50%; transform:rotate(' + mapRotationDeg_.toFixed(4) + 'deg); -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" ontouchstart="handleMapTouchStart_(event)" ontouchmove="handleMapTouchMove_(event)" ontouchend="handleMapTouchEnd_(event)" ontouchcancel="handleMapTouchEnd_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
+  let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" preserveAspectRatio="xMidYMid meet" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="pointer-events:auto; touch-action:none; overflow:hidden; will-change:transform; transition:none; transform-origin:50% 50%; transform:rotate(' + mapRotationDeg_.toFixed(4) + 'deg); -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" ontouchstart="handleMapTouchStart_(event)" ontouchmove="handleMapTouchMove_(event)" ontouchend="handleMapTouchEnd_(event)" ontouchcancel="handleMapTouchEnd_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
   // [BARU -- 5 Sep] Peta background (foto udara/olah ArcGIS) -- digambar PALING BAWAH
   // (sebelum grid helper & marker) supaya tidak menutupi apa pun. Posisi & ukuran dihitung
   // dari 2 sudut referensi pakai projectToSvg() yg SAMA dgn yg plot titik TP -- kalau titik
@@ -2726,10 +2753,8 @@ function renderMineGridSvg(points) {
     const gpsDotR = 4 * gpsMarkerScale;
     const gpsStroke = Math.max(1, 2 * gpsMarkerScale);
     svg += '<g aria-label="Posisi GPS" pointer-events="none">' +
-      '<g transform="translate(' + gpsRaw.x.toFixed(3) + ' ' + gpsRaw.y.toFixed(3) + ') scale(1 ' + markerAspectRatio.toFixed(6) + ') translate(' + (-gpsRaw.x).toFixed(3) + ' ' + (-gpsRaw.y).toFixed(3) + ')">' +
       '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="' + gpsRingR.toFixed(2) + '" fill="none" stroke="#22d3ee" stroke-width="' + gpsStroke.toFixed(2) + '" opacity="0.85"/>' +
       '<circle cx="' + gpsRaw.x + '" cy="' + gpsRaw.y + '" r="' + gpsDotR.toFixed(2) + '" fill="#22d3ee" stroke="#0b1329" stroke-width="' + gpsStroke.toFixed(2) + '"/>' +
-      '</g>' +
       '</g>';
   }
   // STEP 8E: marker hasil tap. Pointer-events none agar tidak mengganggu tap berikutnya.
@@ -2741,7 +2766,7 @@ function renderMineGridSvg(points) {
     // sehingga deep zoom mengecilkan crosshair tanpa menggeser titik koordinat.
     const tapZoom = Math.max(1, Number(mapZoom) || 1);
     const tapScale = 1 / Math.pow(tapZoom, 1.25);
-    const tapVisualTransform = 'translate(' + tp.x.toFixed(3) + ' ' + tp.y.toFixed(3) + ') scale(' + tapScale.toFixed(6) + ' ' + (tapScale * markerAspectRatio).toFixed(6) + ') translate(' + (-tp.x).toFixed(3) + ' ' + (-tp.y).toFixed(3) + ')';
+    const tapVisualTransform = 'translate(' + tp.x.toFixed(3) + ' ' + tp.y.toFixed(3) + ') scale(' + tapScale.toFixed(6) + ') translate(' + (-tp.x).toFixed(3) + ' ' + (-tp.y).toFixed(3) + ')';
     svg += '<g aria-label="Koordinat tap" pointer-events="none" transform="' + tapVisualTransform + '">' +
       '<circle cx="' + tp.x + '" cy="' + tp.y + '" r="7" fill="none" stroke="#facc15" stroke-width="2"/>' +
       '<line x1="' + (tp.x-10) + '" y1="' + tp.y + '" x2="' + (tp.x+10) + '" y2="' + tp.y + '" stroke="#facc15" stroke-width="1"/>' +
@@ -2770,7 +2795,7 @@ function renderMineGridSvg(points) {
     const fillColor = { merah:'#f43f5e', abu:'#94a3b8', kuning:'#f59e0b', biru:'#3b82f6', hijau:'#22c55e' }[
       (globalCOGConfig && globalCOGConfig['Warna_' + p.classGrade]) || GRADE_COLOR_DEFAULTS[p.classGrade] || 'abu'
     ];
-    const visualTransform = 'translate(' + raw.x.toFixed(3) + ' ' + raw.y.toFixed(3) + ') scale(' + tpMarkerScale.toFixed(6) + ' ' + (tpMarkerScale * markerAspectRatio).toFixed(6) + ') translate(' + (-raw.x).toFixed(3) + ' ' + (-raw.y).toFixed(3) + ')';
+    const visualTransform = 'translate(' + raw.x.toFixed(3) + ' ' + raw.y.toFixed(3) + ') scale(' + tpMarkerScale.toFixed(6) + ') translate(' + (-raw.x).toFixed(3) + ' ' + (-raw.y).toFixed(3) + ')';
     // v90.2.115: TP dgn koordinat konflik ditandai cincin kuning putus-putus.
     const conflictRing = p.coordConflict
       ? '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpRingR + '" fill="none" stroke="#f59e0b" stroke-width="' + tpRingStroke + '" stroke-dasharray="3,2"/>'
