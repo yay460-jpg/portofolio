@@ -2522,6 +2522,15 @@ function getMapViewBox_(bounds) {
 // 20/25/50/100/...) terdekat yg TIDAK melebihi target -- supaya batang selalu menunjukkan
 // jarak asli yg benar pada zoom berapapun, bukan dekorasi statis.
 const NICE_SCALE_METERS = [1,2,5,10,20,25,50,100,200,250,500,1000,2000,5000];
+function getMapScaleBarMeters_(bounds) {
+  if (!bounds) return null;
+  const totalMetersVisible = (bounds.maxT - bounds.minT) / Math.max(0.0001, Number(mapZoom) || 1);
+  if (!(totalMetersVisible > 0)) return null;
+  const target = totalMetersVisible * 0.25;
+  let niceMeters = NICE_SCALE_METERS[0];
+  for (const m of NICE_SCALE_METERS) { if (m <= target) niceMeters = m; else break; }
+  return niceMeters;
+}
 function renderMineGridSvg(points) {
   // STEP 8.21D MINIMAL FIX: hoist counters to top to avoid TDZ - diagnostic/compositor only
   var mg1RuntimeUsedCount_ = 0;
@@ -2766,9 +2775,10 @@ function renderMineGridSvg(points) {
     // sehingga deep zoom mengecilkan crosshair tanpa menggeser titik koordinat.
     const tapZoom = Math.max(1, Number(mapZoom) || 1);
     const tapScale = 1 / Math.pow(tapZoom, 1.25);
+    const tapSolidAt25m = (getMapScaleBarMeters_(bounds) || Infinity) <= 25;
     const tapVisualTransform = 'translate(' + tp.x.toFixed(3) + ' ' + tp.y.toFixed(3) + ') scale(' + tapScale.toFixed(6) + ') translate(' + (-tp.x).toFixed(3) + ' ' + (-tp.y).toFixed(3) + ')';
     svg += '<g aria-label="Koordinat tap" pointer-events="none" transform="' + tapVisualTransform + '">' +
-      '<circle cx="' + tp.x + '" cy="' + tp.y + '" r="7" fill="none" stroke="#facc15" stroke-width="2"/>' +
+      '<circle cx="' + tp.x + '" cy="' + tp.y + '" r="7" fill="#facc15" fill-opacity="' + (tapSolidAt25m ? '1' : '0') + '" stroke="#facc15" stroke-width="2"/>' +
       '<line x1="' + (tp.x-10) + '" y1="' + tp.y + '" x2="' + (tp.x+10) + '" y2="' + tp.y + '" stroke="#facc15" stroke-width="1"/>' +
       '<line x1="' + tp.x + '" y1="' + (tp.y-10) + '" x2="' + tp.x + '" y2="' + (tp.y+10) + '" stroke="#facc15" stroke-width="1"/>' +
       '</g>';
@@ -2784,16 +2794,12 @@ function renderMineGridSvg(points) {
   const tpMarkerScale = Math.max(0.35 / tpMarkerZoom, tpCounterScale);
   const tpMarkerR = 7;
   const tpCoreR = 2.5;
-  // V42.1: marker biru/kuning menjadi solid saat skala detail mencapai 25 m.
-  // Threshold mengikuti skala batang (25% lebar viewport), bukan hardcode mapZoom,
-  // sehingga tetap konsisten dengan viewport LOW/HIGH tanpa mengubah koordinat/anchor.
-  const tpSolidZoomTargetMeters = (bounds.maxT - bounds.minT) / Math.max(1, Number(mapZoom) || 1) * 0.25;
-  const tpSolid25mActive = tpSolidZoomTargetMeters <= 25.000001;
   const tpStroke = 2;
   const tpRingR = 10.5;
   const tpRingStroke = 1.5;
   const tpMeasureStroke = 2;
   const tpHitR = 9;
+  const tpSolidAt25m = (getMapScaleBarMeters_(bounds) || Infinity) <= 25;
   valid.forEach(p => {
     const raw = projectToSvg(parseFloat(p.timur), parseFloat(p.utara), bounds, viewW, viewH);
     const preset = getGradeColorPreset(p.classGrade);
@@ -2817,7 +2823,7 @@ function renderMineGridSvg(points) {
       '<g transform="' + visualTransform + '" pointer-events="none">' +
       conflictRing +
       measureSelectedRing +
-      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpMarkerR + '" fill="' + fillColor + '" fill-opacity="' + ((tpSolid25mActive && (p.classGrade === 'biru' || p.classGrade === 'kuning')) ? '1' : '0.25') + '" stroke="' + fillColor + '" stroke-width="' + tpStroke + '"/>' +
+      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpMarkerR + '" fill="' + fillColor + '" fill-opacity="' + (tpSolidAt25m ? '1' : '0.25') + '" stroke="' + fillColor + '" stroke-width="' + tpStroke + '"/>' +
       '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpCoreR + '" fill="' + fillColor + '"/>' +
       '</g>' +
       '</g>';
