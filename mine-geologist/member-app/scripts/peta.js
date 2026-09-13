@@ -100,7 +100,7 @@ function getMapViewportRatio_() {
 // LOW VIEWPORT GEOMETRY CONTRACT:
 // LOW portrait memakai viewport SVG yang mengikuti rasio layar aktual.
 // HIGH tetap memakai kontrak 320x320 dan tidak disentuh.
-const LOW_PORTRAIT_VERTICAL_EXPAND_ = 0.44;
+const LOW_PORTRAIT_VERTICAL_EXPAND_ = 0.42;
 
 function isLowMapDevice_() {
   try {
