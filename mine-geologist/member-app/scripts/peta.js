@@ -2506,6 +2506,8 @@ function renderMineGridSvg(points) {
   // mengikuti persistent viewport state; titik tap tidak pernah menjadi anchor.
   const viewBox = getMapViewBox_(bounds);
   const valid = points.filter(p => p.hasValidCoord);
+  // LOW aspect compensation: keep screen-space markers circular on portrait viewports.
+  const markerAspectRatio = (mapViewportRatio_ > 0 && Number.isFinite(mapViewportRatio_)) ? mapViewportRatio_ : 1;
   let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="pointer-events:auto; touch-action:none; overflow:hidden; will-change:transform; transition:none; transform-origin:50% 50%; transform:rotate(' + mapRotationDeg_.toFixed(4) + 'deg); -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" ontouchstart="handleMapTouchStart_(event)" ontouchmove="handleMapTouchMove_(event)" ontouchend="handleMapTouchEnd_(event)" ontouchcancel="handleMapTouchEnd_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
   // [BARU -- 5 Sep] Peta background (foto udara/olah ArcGIS) -- digambar PALING BAWAH
   // (sebelum grid helper & marker) supaya tidak menutupi apa pun. Posisi & ukuran dihitung
@@ -2720,9 +2722,6 @@ function renderMineGridSvg(points) {
   if (gpsState_.active && gpsState_.status === 'ok' && gpsState_.native) {
     const gpsRaw = projectToSvg(gpsState_.native.x, gpsState_.native.y, bounds, viewW, viewH);
     const gpsMarkerScale = Math.max(0.4, Math.min(1.25, 1 / Math.max(1, Number(mapZoom) || 1)));
-    // LOW aspect compensation: the map surface is fitted to the real viewport ratio.
-    // Counter-scale Y so screen-space circular markers remain circular when W/H != 1.
-    const markerAspectRatio = (mapViewportRatio_ > 0 && Number.isFinite(mapViewportRatio_)) ? mapViewportRatio_ : 1;
     const gpsRingR = 11 * gpsMarkerScale;
     const gpsDotR = 4 * gpsMarkerScale;
     const gpsStroke = Math.max(1, 2 * gpsMarkerScale);
