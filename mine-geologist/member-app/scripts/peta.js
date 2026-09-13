@@ -2789,6 +2789,14 @@ function renderMineGridSvg(points) {
   const tpRingStroke = 1.5;
   const tpMeasureStroke = 2;
   const tpHitR = 9;
+  // LOW/TP visual cue: blue Validasi TP becomes solid when the displayed
+  // scale reaches 25 m (or deeper). Zooming back out beyond 25 m restores
+  // the normal translucent marker. Coordinate/anchor logic remains unchanged.
+  const totalMetersVisibleForTp = (bounds.maxT - bounds.minT) / Math.max(1, Number(mapZoom) || 1);
+  const tpScaleSteps = [1,2,5,10,20,25,50,100,200,250,500,1000,2000,5000];
+  let tpNiceMeters = tpScaleSteps[0];
+  for (const m of tpScaleSteps) { if (m <= totalMetersVisibleForTp * 0.25) tpNiceMeters = m; else break; }
+  const blueTpSolidAt25m = tpNiceMeters <= 25;
   valid.forEach(p => {
     const raw = projectToSvg(parseFloat(p.timur), parseFloat(p.utara), bounds, viewW, viewH);
     const preset = getGradeColorPreset(p.classGrade);
@@ -2805,6 +2813,8 @@ function renderMineGridSvg(points) {
       ? '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpRingR + '" fill="none" stroke="#facc15" stroke-width="' + tpMeasureStroke + '"/>'
       : '';
     const safeId = p.idTp.replace(/'/g,"\\'");
+    const isBlueTp = String(p.classGrade || '').toLowerCase() === 'biru' || fillColor === '#3b82f6';
+    const tpFillOpacity = (isBlueTp && blueTpSolidAt25m) ? '1' : '0.25';
     // Visual marker di-counter-scale terhadap viewBox dengan anchor (x,y) yang terkunci.
     // Hit target sengaja berada di luar group visual agar ukuran area sentuh tetap nyaman.
     svg += '<g onclick="handleMapPointTap_(\'' + safeId + '\')" style="cursor:pointer;">' +
@@ -2812,7 +2822,7 @@ function renderMineGridSvg(points) {
       '<g transform="' + visualTransform + '" pointer-events="none">' +
       conflictRing +
       measureSelectedRing +
-      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpMarkerR + '" fill="' + fillColor + '" fill-opacity="0.25" stroke="' + fillColor + '" stroke-width="' + tpStroke + '"/>' +
+      '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpMarkerR + '" fill="' + fillColor + '" fill-opacity="' + tpFillOpacity + '" stroke="' + fillColor + '" stroke-width="' + tpStroke + '"/>' +
       '<circle cx="' + raw.x + '" cy="' + raw.y + '" r="' + tpCoreR + '" fill="' + fillColor + '"/>' +
       '</g>' +
       '</g>';
