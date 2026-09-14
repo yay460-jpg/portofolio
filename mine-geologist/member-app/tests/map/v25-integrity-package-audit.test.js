@@ -1,0 +1,26 @@
+const assert=require('assert');
+const fs=require('fs');
+const root='/mnt/data/v25src/member-app/scripts/map';
+const pkg=fs.readFileSync(root+'/map-package.js','utf8');
+const compat=fs.readFileSync(root+'/map-management-compat.js','utf8');
+const transfer=fs.readFileSync(root+'/map-package-transfer.js','utf8');
+const layer=fs.readFileSync(root+'/map-layer-store.js','utf8');
+const lifecycle=fs.readFileSync(root+'/map-lifecycle-completion.js','utf8');
+
+assert(pkg.includes("indexedDB.open(MAP_DB_NAME_, 4)"));
+assert(pkg.includes("FEATURE_DB_STORE_ = 'features'"));
+assert(pkg.includes("layerStore.createIndex('mapId', 'mapId'"));
+assert(pkg.includes("featureStore.createIndex('layerId', 'layerId'"));
+assert(pkg.includes("stores.push(FEATURE_DB_STORE_)"));
+assert(pkg.includes("featureIndex = tx.objectStore(FEATURE_DB_STORE_).index('layerId')"));
+assert(!compat.includes("indexedDB.open(d.dbName,2)"));
+assert(compat.includes("indexedDB.open(d.dbName,4)"));
+assert(compat.includes("contains('layers')"));
+assert(compat.includes("contains('features')"));
+assert(transfer.includes('var SCHEMA_VERSION = 1;'));
+assert(transfer.includes('function commitPackage_'));
+assert(!transfer.includes('cloneLayersForMap'));
+assert(lifecycle.includes('cloneLayersForMap(source.id, newId)'));
+assert(layer.includes('features.add(featureCopy)'));
+assert(layer.includes("featureIndex = features.index('layerId')"));
+console.log('PASS v25-integrity-package-audit.test.js');

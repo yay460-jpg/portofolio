@@ -1,0 +1,100 @@
+<!doctype html><meta charset="utf-8"><title>MG1 V25 Browser Runtime Regression</title>
+<pre id="out">RUNNING</pre>
+<script src="../../scripts/map/map-package.js"></script>
+<script src="../../scripts/map/map-layer-contract.js"></script>
+<script src="../../scripts/map/map-layer-store.js"></script>
+<script src="../../scripts/map/map-layer-library.js"></script>
+<script src="../../scripts/map/map-feature-contract.js"></script>
+<script src="../../scripts/map/map-feature-store.js"></script>
+<script src="../../scripts/map/map-feature-library.js"></script>
+<script>
+(async function () {
+  const out = document.getElementById('out');
+  const lines = [];
+  function ok(name) { lines.push('PASS ' + name); }
+  function fail(name, e) { lines.push('FAIL ' + name + ': ' + (e && e.stack || e)); }
+  async function expectReject(fn, code, name) {
+    try { await fn(); fail(name, new Error('expected ' + code)); }
+    catch (e) { if (e.code !== code) throw e; ok(name); }
+  }
+  try {
+    await new Promise(r => indexedDB.deleteDatabase('mg1_v25_browser_regression_probe').onsuccess = r);
+  } catch (_) {}
+
+  // Isolated browser regression DB. Production source remains unchanged.
+  // Schema mirrors production V25 IndexedDB v4 exactly for the semantic stores.
+  const realOpen = window.openMapDb_;
+  window.openMapDb_ = function () {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('mg1_v25_browser_regression_probe', 4);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('maps')) db.createObjectStore('maps', {keyPath:'id'});
+        if (!db.objectStoreNames.contains('kmlOverlays')) db.createObjectStore('kmlOverlays', {keyPath:'id'});
+        if (!db.objectStoreNames.contains('layers')) { const s=db.createObjectStore('layers',{keyPath:'id'}); s.createIndex('mapId','mapId',{unique:false}); }
+        if (!db.objectStoreNames.contains('mapLayerState')) db.createObjectStore('mapLayerState',{keyPath:'mapId'});
+        if (!db.objectStoreNames.contains('features')) { const s=db.createObjectStore('features',{keyPath:'id'}); s.createIndex('layerId','layerId',{unique:false}); }
+      };
+      req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
+    });
+  };
+
+  const S = MG1MapLayerStore, L = MG1MapLayerLibrary;
+  const db = await openMapDb_();
+  let tx = db.transaction('maps','readwrite'); tx.objectStore('maps').put({id:'map-A',name:'Map A'}); await new Promise((r,j)=>{tx.oncomplete=r;tx.onerror=()=>j(tx.error)});
+  await L.createLayer('map-A',{id:'layer-A1',name:'Base',order:1});
+  await L.createLayer('map-A',{id:'layer-A2',name:'Target',order:2});
+  await L.setActiveLayer('map-A','layer-A2');
+  await L.setVisibility('layer-A2',false);
+  await expectReject(()=>L.setActiveLayer('map-A','layer-A2'),'MG1_LAYER_NOT_VISIBLE','hidden active layer rejected');
+  await L.setVisibility('layer-A2',true);
+  await L.setActiveLayer('map-A','layer-A2');
+  ok('visibility toggle + active restore');
+
+  await MG1MapFeatureLibrary.createFeature('layer-A2',{id:'feature-A1',type:'point',geometry:{type:'Point',coordinates:[1,2]},properties:{name:'F1'}});
+  if ((await MG1MapFeatureLibrary.getFeatures('layer-A2')).length !== 1) throw new Error('Feature create/query failed');
+  ok('feature create + layer ownership');
+
+  // Close/reopen simulates a page reload boundary.
+  db.close();
+  const reopened = await openMapDb_();
+  const layers = await S.getLayers('map-A');
+  if (layers.length !== 2 || layers[1].visible !== true) throw new Error('Layer records did not persist');
+  if (await S.getActiveLayer('map-A') !== 'layer-A2') throw new Error('active Layer did not persist');
+  if ((await MG1MapFeatureLibrary.getFeatures('layer-A2')).length !== 1) throw new Error('Feature did not persist');
+  ok('reload/reopen persistence');
+
+  tx = reopened.transaction('maps','readwrite'); tx.objectStore('maps').put({id:'map-B',name:'Map B'}); await new Promise((r,j)=>{tx.oncomplete=r;tx.onerror=()=>j(tx.error)});
+  const cloned = await S.cloneLayersForMap('map-A','map-B');
+  if (cloned.clonedCount !== 2 || !cloned.activeLayerId) throw new Error('clone state mismatch');
+  if (await S.getActiveLayer('map-B') !== cloned.activeLayerId) throw new Error('cloned active state mismatch');
+  const bLayers = await S.getLayers('map-B');
+  if (bLayers.length !== 2 || bLayers.some(x=>x.mapId!=='map-B') || bLayers.some(x=>x.id==='layer-A2')) throw new Error('clone identity mismatch');
+  const clonedTargetLayer = bLayers.find(x => x.order === 2);
+  const clonedFeatures = await MG1MapFeatureLibrary.getFeatures(clonedTargetLayer.id);
+  if (clonedFeatures.length !== 1 || clonedFeatures[0].id === 'feature-A1' || clonedFeatures[0].layerId !== clonedTargetLayer.id) throw new Error('feature clone identity/ownership mismatch');
+  ok('duplicate layer + feature subtree + active mapping');
+
+  await dbDeleteMap_('map-B');
+  if ((await S.getLayers('map-B')).length !== 0 || (await S.getActiveLayer('map-B')) !== null) throw new Error('map delete cascade failed');
+  if ((await MG1MapFeatureLibrary.getFeatures(clonedTargetLayer.id)).length !== 0) throw new Error('map delete did not cascade cloned features');
+  ok('map delete cascades layers + features + active state');
+
+  await S.deleteLayer('layer-A2');
+  if (await S.getActiveLayer('map-A') !== null) throw new Error('layer delete did not clear active state');
+  if ((await MG1MapFeatureLibrary.getFeatures('layer-A2')).length !== 0) throw new Error('layer delete did not cascade features');
+  ok('layer delete cascades features + clears active state');
+
+  // Ensure original Map remains after all Layer operations.
+  const finalDb = await openMapDb_();
+  const mapA = await new Promise((resolve,reject)=>{const t=finalDb.transaction('maps','readonly');const q=t.objectStore('maps').get('map-A');q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});
+  if (!mapA) throw new Error('Map A was unexpectedly removed');
+  ok('parent Map survives Layer lifecycle');
+  finalDb.close();
+  out.textContent = lines.join('\n') + '\nALL_V25_BROWSER_PASS';
+} catch (e) {
+  lines.push('FAIL FATAL: ' + (e && e.stack || e));
+  out.textContent = lines.join('\n');
+}
+})();
+</script>
