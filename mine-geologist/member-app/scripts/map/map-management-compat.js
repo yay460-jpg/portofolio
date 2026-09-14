@@ -801,6 +801,20 @@
       <button type="button" data-action="cancel" style="width:100%;margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.78);font-size:12px;font-weight:800;">Batal</button>
     </div>`;
     document.body.appendChild(root);
+    // Pre-build the share package while the action sheet is open. The final
+    // navigator.share() call must happen without an await beforehand so the
+    // Android native Share Sheet retains the user's transient activation.
+    try {
+      if (window.MG1MapPackageTransfer && typeof window.MG1MapPackageTransfer.prepareShare === 'function') {
+        window.MG1MapPackageTransfer.prepareShare([String(entry.id)]).then(function () {
+          console.log('[V24.5 S2.5.1] Share package prepared', {id: entry.id});
+        }).catch(function (e) {
+          console.warn('[V24.5 S2.5.1] Share package preparation unavailable', e);
+        });
+      }
+    } catch (e) {
+      console.warn('[V24.5 S2.5.1] Share package preparation unavailable', e);
+    }
     const panel = root.querySelector('#mg1-map-action-panel');
     const close = () => { panel.style.transform='translateY(110%)'; setTimeout(()=>root.remove(),230); };
     root.addEventListener('click', ev => { if (ev.target === root) close(); });
@@ -826,6 +840,9 @@
             } else {
               if (e && e.code === 'SHARE_CANCELLED') {
                 console.log('[V24.5 S2.5.1] Map share cancelled', {id: entry.id});
+              } else if (e && e.code === 'SHARE_PREPARE_PENDING') {
+                console.info('[V24.5 S2.5.1] Share package still preparing', {id: entry.id});
+                if (typeof window.MG1LithositeToast === 'function') window.MG1LithositeToast('Paket peta masih disiapkan, tekan Bagikan lagi', 'info');
               } else if (e && (e.code === 'SHARE_UNAVAILABLE' || e.code === 'SHARE_FILE_UNSUPPORTED')) {
                 console.warn('[V24.5 S2.5.1] Map share unavailable', e);
                 if (typeof window.MG1LithositeToast === 'function') window.MG1LithositeToast('Bagikan tidak tersedia pada browser/perangkat ini', 'error');
