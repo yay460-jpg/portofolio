@@ -69,8 +69,23 @@ function mg1FeaturePropertiesFromForm_(layerId) {
   return properties;
 }
 function updateSemanticFeatureDraft_(layerId, field, value) {
-  if (!mg1FeatureDraft_[layerId]) mg1FeatureDraft_[layerId] = { type: 'point', properties: '{}', geometry: '' };
-  mg1FeatureDraft_[layerId][field] = value;
+  if (!mg1FeatureDraft_[layerId]) mg1FeatureDraft_[layerId] = { type:'point', properties:'{}', geometry:'', name:'', fields:{} };
+  if (field.indexOf('field:') === 0) {
+    if (!mg1FeatureDraft_[layerId].fields) mg1FeatureDraft_[layerId].fields = {};
+    mg1FeatureDraft_[layerId].fields[field.slice(6)] = value;
+  } else {
+    mg1FeatureDraft_[layerId][field] = value;
+  }
+}
+function setSemanticFeatureGeometryFromMap_(layerId, geometry) {
+  if (!mg1FeatureDraft_[layerId]) mg1FeatureDraft_[layerId] = { type:'point', properties:'{}', geometry:'', name:'', fields:{} };
+  mg1FeatureDraft_[layerId].geometry = JSON.stringify(geometry);
+  mg1FeatureDraft_[layerId].type = 'point';
+  mg1FeatureError_ = '';
+}
+function setSemanticFeatureDrawingError_(message) {
+  mg1FeatureError_ = String(message || 'Pemilihan objek di peta belum tersedia.');
+  render();
 }
 async function createSemanticFeatureFromForm_(layerId) {
   const draft = mg1FeatureDraft_[layerId] || { type:'point', properties:'{}', geometry:'' };
@@ -80,11 +95,15 @@ async function createSemanticFeatureFromForm_(layerId) {
       const nameInput = document.querySelector('.mg1-feature-create-form[data-layer-id="' + CSS.escape(String(layerId)) + '"] [data-feature-name]');
       if (nameInput && String(nameInput.value || '').trim()) properties.name = String(nameInput.value).trim();
     }
+    if (!properties.name && draft.name) properties.name = String(draft.name).trim();
     if (!properties.name) throw new Error('Nama data wajib diisi');
+    var geometry = null;
+    if (draft.geometry) { try { geometry = JSON.parse(draft.geometry); } catch (_) { throw new Error('Lokasi objek belum valid. Silakan pilih di peta lagi.'); } }
+    if (!geometry) throw new Error('Pilih lokasi di peta terlebih dahulu.');
     mg1FeatureBusy_ = true;
     mg1FeatureError_ = '';
     render();
-    await MG1MapFeatureManagement.create(layerId, { type:draft.type || 'point', geometry:null, properties:properties, schemaVersion:1 });
+    await MG1MapFeatureManagement.create(layerId, { type:draft.type || 'point', geometry:geometry, properties:properties, schemaVersion:1 });
     mg1FeatureDraft_[layerId] = { type:draft.type || 'point', properties:'{}', geometry:'' };
     await refreshSemanticFeatures_(layerId);
   } catch (err) {
@@ -179,11 +198,11 @@ function renderSemanticFeaturePanel_(layer) {
   html += '<div class="border-t border-white/[0.05] pt-2 mt-1 mg1-feature-create-form" data-layer-id="' + mg1EscapeHtml_(layer.id) + '">' +
     '<div class="flex items-center justify-between mb-2"><div><div class="text-[10px] text-white/60 font-semibold">Tambah Data</div><div class="text-[9px] text-white/25">' + mg1EscapeHtml_(preset.label) + '</div></div><button onclick="refreshSemanticFeatures_(\'' + mg1EscapeHtml_(layer.id) + '\')" ' + (mg1FeatureBusy_ ? 'disabled' : '') + ' class="text-[9px] text-blue-300 disabled:opacity-30">Refresh</button></div>' +
     '<div class="grid gap-1.5">' +
-    '<input data-feature-name type="text" placeholder="Nama data, contoh: DH-001" class="w-full bg-[#0b1329] border border-white/10 rounded px-2 py-2 text-[10px] text-white focus:outline-none focus:border-blue-400/60" />' +
-    '<div class="flex gap-1.5"><div class="flex-1 rounded-lg bg-[#0b1329] border border-white/10 px-2 py-1.5"><div class="text-[8px] text-white/25 mb-0.5">Bentuk objek</div><select onchange="updateSemanticFeatureDraft_(\'' + mg1EscapeHtml_(layer.id) + '\',\'type\',this.value)" class="w-full bg-transparent text-[10px] text-white outline-none"><option value="point" ' + (draft.type==='point'?'selected':'') + '>Titik</option><option value="line" ' + (draft.type==='line'?'selected':'') + '>Garis</option><option value="polygon" ' + (draft.type==='polygon'?'selected':'') + '>Area</option></select></div><button type="button" disabled title="Pemilihan lokasi di peta akan diaktifkan pada tahap berikutnya" class="px-3 rounded-lg bg-white/5 border border-white/10 text-[9px] text-white/30">📍 Pilih di Peta</button></div>' +
-    '<div class="rounded-lg bg-blue-500/5 border border-blue-500/10 px-2.5 py-2 text-[9px] text-blue-200/60">Lokasi objek belum digambar. Data dapat disiapkan sekarang; penempatan Titik/Garis/Area di peta akan dihubungkan pada tahap rendering berikutnya.</div>';
+    '<input data-feature-name type="text" value="' + mg1EscapeHtml_(draft.name || '') + '" oninput="updateSemanticFeatureDraft_(\'' + mg1EscapeHtml_(layer.id) + '\',\'name\',this.value)" placeholder="Nama data, contoh: DH-001" class="w-full bg-[#0b1329] border border-white/10 rounded px-2 py-2 text-[10px] text-white focus:outline-none focus:border-blue-400/60" />' +
+    '<div class="flex gap-1.5"><div class="flex-1 rounded-lg bg-[#0b1329] border border-white/10 px-2 py-1.5"><div class="text-[8px] text-white/25 mb-0.5">Bentuk objek</div><select onchange="updateSemanticFeatureDraft_(\'' + mg1EscapeHtml_(layer.id) + '\',\'type\',this.value)" class="w-full bg-transparent text-[10px] text-white outline-none"><option value="point" ' + (draft.type==='point'?'selected':'') + '>Titik</option><option value="line" ' + (draft.type==='line'?'selected':'') + '>Garis</option><option value="polygon" ' + (draft.type==='polygon'?'selected':'') + '>Area</option></select></div><button type="button" onclick="MG1MapFeatureDrawing.start(\'' + mg1EscapeHtml_(layer.id) + '\',\'' + mg1EscapeHtml_(draft.type || 'point') + '\')" class="px-3 rounded-lg bg-blue-500/10 border border-blue-400/20 text-[9px] text-blue-200 hover:bg-blue-500/20">📍 Pilih di Peta</button></div>' +
+    '<div class="rounded-lg bg-blue-500/5 border border-blue-500/10 px-2.5 py-2 text-[9px] ' + (draft.geometry ? 'text-emerald-300/80' : 'text-blue-200/60') + '">' + (draft.geometry ? '✓ Lokasi sudah dipilih di peta. Siap disimpan.' : 'Pilih lokasi di peta. Untuk saat ini tersedia untuk Titik.') + '</div>';
   preset.fields.forEach(function(field){
-    html += '<input data-feature-field="' + mg1EscapeHtml_(field[0]) + '" type="text" placeholder="' + mg1EscapeHtml_(field[1] + (field[2] ? ' · contoh: ' + field[2] : '')) + '" class="w-full bg-[#0b1329] border border-white/10 rounded px-2 py-2 text-[10px] text-white focus:outline-none focus:border-blue-400/60" />';
+    html += '<input data-feature-field="' + mg1EscapeHtml_(field[0]) + '" type="text" value="' + mg1EscapeHtml_((draft.fields && draft.fields[field[0]]) || '') + '" oninput="updateSemanticFeatureDraft_(\'' + mg1EscapeHtml_(layer.id) + '\',\'field:' + mg1EscapeHtml_(field[0]) + '\',this.value)" placeholder="' + mg1EscapeHtml_(field[1] + (field[2] ? ' · contoh: ' + field[2] : '')) + '" class="w-full bg-[#0b1329] border border-white/10 rounded px-2 py-2 text-[10px] text-white focus:outline-none focus:border-blue-400/60" />';
   });
   html += '<button onclick="createSemanticFeatureFromForm_(\'' + mg1EscapeHtml_(layer.id) + '\')" ' + (mg1FeatureBusy_ ? 'disabled' : '') + ' class="w-full py-2 rounded-lg bg-blue-500 text-white text-[10px] font-bold disabled:opacity-40">Simpan Data</button></div></div>';
   return html;
