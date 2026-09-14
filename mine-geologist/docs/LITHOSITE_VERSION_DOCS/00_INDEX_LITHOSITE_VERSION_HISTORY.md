@@ -37,15 +37,15 @@ Ringkasan
 | V24.1 RAM-first save lifecycle | **100%** | LOCKED |
 | V24.2 Protected runtime baseline | **100%** | LOCKED |
 | V24.3 Map Library / Management scope | **100%** | FINAL LOCKED |
-| V24.4 Map Lifecycle Completion | **0%** | NEXT |
-| Duplicate / Copy Map | **0%** | V24.4 |
-| Update / Replace Map | **0%** | V24.4 |
-| Failure / Recovery Boundary | **0%** | V24.4 |
-| Lifecycle Regression Test | **0%** | V24.4 |
-| Import / Export Package | **0%** | Future scope |
-| Package Integrity | **0%** | Future scope |
-| Storage / Capacity Management | **0%** | Future scope |
-| Transfer / Sharing | **0%** | Future scope |
+| V24.4 Map Lifecycle Completion | **100%** | FINAL LOCKED |
+| Duplicate / Copy Map | **100%** | V24.4 PASS |
+| Update / Replace Map | **100%** | V24.4 PASS |
+| Failure / Recovery Boundary | **100%** | V24.4 PASS |
+| Lifecycle Regression Test | **100%** | V24.4 PASS |
+| Import / Export Package | **100%** | V24.5 FINAL LOCKED |
+| Package Integrity | **100%** | V24.5 FINAL LOCKED |
+| Storage / Capacity Management | **100%** | V24.5 FINAL LOCKED |
+| Transfer / Sharing | **PARTIAL** | Backup/Restore PASS; native Share Sheet CANCELLED/DEFERRED |
 
 ### Current position
 
@@ -68,7 +68,11 @@ V24.2 ████████████████████ 100%  🔒 Pr
  ↓
 V24.3 ████████████████████ 100%  🔒 Final Locked
  ↓
-V24.4 ░░░░░░░░░░░░░░░░░░░░ 0%    Next
+V24.4 ████████████████████ 100%  🔒 Final Locked
+ ↓
+V24.5 ████████████████████ 100%  🔒 Final Release Locked
+ ↓
+V25   ░░░░░░░░░░░░░░░░░░░░ 0%    Next — Advanced Map Library / Layer Architecture
 ```
 
 **Jangan menjumlahkan persentase antar-versi**. Setiap angka adalah completion terhadap scope versi/area masing-masing.
@@ -106,6 +110,8 @@ V24.4 ░░░░░░░░░░░░░░░░░░░░ 0%    Next
 | V24.1 | RAM-first / Instant Save | LOCKED | **100%** | [V24.1](./V24.1_ram_first_instant_save.md) |
 | V24.2 | Protected Map Runtime Baseline | LOCKED | **100%** | [V24.2](./V24.2_protected_map_runtime_baseline.md) |
 | V24.3 | Map Library / Map Management | FINAL LOCKED | **100%** | [V24.3](./V24.3_map_library_map_management.md) |
+| V24.4 | Map Lifecycle Completion | FINAL LOCKED | **100%** | [V24.4](./V24.4_map_lifecycle_completion.md) |
+| V24.5 | Map Package / Storage / Recovery | FINAL RELEASE LOCKED | **100%** | [V24.5](./V24.5_map_package_storage_recovery.md) |
 
 ## Struktur Folder Dokumen
 
@@ -124,7 +130,9 @@ LITHOSITE_VERSION_DOCS/
 ├── V24.1_RAM_First_Instant_Save.md
 ├── V24.2_Protected_Map_Runtime_Baseline.md
 ├── V24.3_Map_Library_Map_Management.md
-└── V24.3_MAP_LIBRARY_DETAILED.md
+├── V24.4_Map_Lifecycle_Completion.md
+├── V24.5_Map_Package_Storage_Recovery.md
+└── V24.5_FINAL_RELEASE_LOCKED.md
 ```
 
 ## Search Strategy
@@ -139,6 +147,12 @@ Cari dari index berdasarkan:
 - `RAM-first`
 - `Label`
 - `Collection`
+- `Map Package`
+- `Backup / Restore`
+- `SHA-256`
+- `Storage / Capacity`
+- `Safe Cleanup`
+- `Recovery Journal`
 - `Technical Debt`
 - `Before Architecture`
 - `After Architecture`
@@ -151,4 +165,4 @@ Versi baru **tidak mengubah dokumen versi lama** kecuali ada koreksi historis ya
 
 ## Ringkasan
 
-> **Dokumentasi sekarang dipisahkan per versi agar history teknis, flow, arsitektur, ownership, validation, dan progress dapat dicari tanpa membuka satu dokumen besar. V24.3 adalah current final locked stage; V24.4 dimulai dari 0% dan scope-nya Map Lifecycle Completion.**
+> **V24.5 adalah current final release locked stage.** V24.4 telah menyelesaikan Map Lifecycle Completion (Duplicate/Copy, Update/Replace, Failure/Recovery Boundary, dan Lifecycle Regression). V24.5 kemudian menyelesaikan Map Package Transfer, SHA-256 integrity, Storage/Capacity Management, Safe Cleanup, Package Management Hardening, serta Recovery/Failure Hardening. Backup/Restore runtime tervalidasi; native in-app Share Sheet dibatalkan/deferred dan bukan capability stable release. Protected V24.2 runtime tetap tidak diubah. Tahap berikutnya dimulai sebagai V25 dengan **cross-file Ownership/Dependency Mapping + State Contract**, berfokus pada **Advanced Map Library → Layer → Features**, bukan membongkar Tile Engine.
