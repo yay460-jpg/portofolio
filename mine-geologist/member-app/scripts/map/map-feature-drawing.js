@@ -33,17 +33,35 @@
     return el;
   }
 
+  function getMapSvg_( ) {
+    try {
+      var vp = document.getElementById('mg1-map-viewport');
+      return vp ? vp.querySelector('svg[data-map-gesture="true"]') : null;
+    } catch (_) { return null; }
+  }
+
+  function nativeToSvg_(nativeX, nativeY) {
+    if (typeof global.computeResponsiveDisplayBounds_ !== 'function' || typeof global.buildMapData !== 'function') throw new Error('Map coordinate engine belum siap.');
+    var bounds = global.computeResponsiveDisplayBounds_(global.buildMapData());
+    if (!bounds) throw new Error('Batas peta belum tersedia.');
+    var size = global.getMapSvgViewportSize_();
+    var rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
+    if (!(rangeT > 0) || !(rangeU > 0)) throw new Error('Rentang koordinat peta belum valid.');
+    return {
+      x: ((Number(nativeX) - bounds.minT) / rangeT) * size.viewW,
+      y: size.viewH - ((Number(nativeY) - bounds.minU) / rangeU) * size.viewH
+    };
+  }
+
   function mapCoordinateFromClick_(event, svgEl) {
     if (typeof global.computeResponsiveDisplayBounds_ !== 'function' || typeof global.buildMapData !== 'function') throw new Error('Map coordinate engine belum siap.');
     var bounds = global.computeResponsiveDisplayBounds_(global.buildMapData());
     if (!bounds) throw new Error('Batas peta belum tersedia.');
-    var rect = (svgEl.parentElement || svgEl).getBoundingClientRect();
+    var rect = svgEl.getBoundingClientRect();
     if (!(rect.width > 0) || !(rect.height > 0)) throw new Error('Viewport peta tidak tersedia.');
     var size = global.getMapSvgViewportSize_();
     var viewBox = global.getMapViewBox_(bounds);
-    var svgX = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.w;
-    var svgY = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.h;
-    if (!Number.isFinite(svgX) || !Number.isFinite(svgY)) throw new Error('Posisi klik tidak valid.');
+    var px = event.clientX - rect.left, py = event.clientY - rect.top;
     var rotation = 0;
     try {
       var transform = global.getComputedStyle ? global.getComputedStyle(svgEl).transform : '';
@@ -52,16 +70,88 @@
     } catch (_) {}
     if (Math.abs(rotation) > 0.0001) {
       var rad = -rotation * Math.PI / 180;
-      var cx = size.viewW / 2, cy = size.viewH / 2;
-      var dx = svgX - cx, dy = svgY - cy;
-      svgX = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
-      svgY = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
+      var cx = rect.width / 2, cy = rect.height / 2;
+      var dx = px - cx, dy = py - cy;
+      px = cx + dx * Math.cos(rad) - dy * Math.sin(rad);
+      py = cy + dx * Math.sin(rad) + dy * Math.cos(rad);
     }
-    var rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
-    var nativeX = bounds.minT + (svgX / size.viewW) * rangeT;
-    var nativeY = bounds.minU + ((size.viewH - svgY) / size.viewH) * rangeU;
+    var svgX = viewBox.x + (px / rect.width) * viewBox.w;
+    var svgY = viewBox.y + (py / rect.height) * viewBox.h;
+    var nativeX = bounds.minT + (svgX / size.viewW) * (bounds.maxT - bounds.minT);
+    var nativeY = bounds.minU + ((size.viewH - svgY) / size.viewH) * (bounds.maxU - bounds.minU);
     if (!Number.isFinite(nativeX) || !Number.isFinite(nativeY)) throw new Error('Koordinat peta tidak valid.');
     return { x:nativeX, y:nativeY, svgX:svgX, svgY:svgY };
+  }
+
+  var overlaySyncScheduled_ = false;
+  var overlaySyncToken_ = 0;
+
+  function renderPointOverlay_(svg, records) {
+    if (!svg) return;
+    var old = svg.querySelector('#mg1-semantic-feature-overlay');
+    if (old) old.remove();
+    if (!records.length) return;
+    var ns = 'http://www.w3.org/2000/svg';
+    var group = document.createElementNS(ns, 'g');
+    group.id = 'mg1-semantic-feature-overlay';
+    group.setAttribute('pointer-events', 'none');
+    group.setAttribute('aria-hidden', 'true');
+    records.forEach(function(rec) {
+      try {
+        var pos = nativeToSvg_(rec.x, rec.y);
+        if (!Number.isFinite(pos.x) || !Number.isFinite(pos.y)) return;
+        var g = document.createElementNS(ns, 'g');
+        g.setAttribute('transform', 'translate(' + pos.x + ' ' + pos.y + ')');
+        var halo = document.createElementNS(ns, 'circle');
+        halo.setAttribute('r', '7'); halo.setAttribute('fill', '#0b1329'); halo.setAttribute('stroke', '#22d3ee'); halo.setAttribute('stroke-width', '2'); halo.setAttribute('opacity', '0.95');
+        var dot = document.createElementNS(ns, 'circle');
+        dot.setAttribute('r', '3.2'); dot.setAttribute('fill', '#22d3ee');
+        g.appendChild(halo); g.appendChild(dot);
+        if (rec.name) {
+          var text = document.createElementNS(ns, 'text');
+          text.setAttribute('x', '10'); text.setAttribute('y', '4'); text.setAttribute('font-size', '7'); text.setAttribute('font-family', 'sans-serif'); text.setAttribute('font-weight', '700'); text.setAttribute('fill', '#ffffff'); text.setAttribute('stroke', '#0b1329'); text.setAttribute('stroke-width', '2'); text.setAttribute('paint-order', 'stroke');
+          text.textContent = String(rec.name).slice(0, 28);
+          g.appendChild(text);
+        }
+        group.appendChild(g);
+      } catch (_) {}
+    });
+    svg.appendChild(group);
+  }
+
+  async function syncPointOverlay_() {
+    if (overlaySyncScheduled_) return;
+    overlaySyncScheduled_ = true;
+    var token = ++overlaySyncToken_;
+    requestAnimationFrame(async function() {
+      overlaySyncScheduled_ = false;
+      try {
+        var svg = getMapSvg_();
+        if (!svg || typeof global.MG1MapLayerManagement === 'undefined' || typeof global.MG1MapFeatureManagement === 'undefined') return;
+        var mapId = null;
+        try {
+          if (typeof global.getSemanticActiveMapId_ === 'function') mapId = global.getSemanticActiveMapId_();
+          if (!mapId && global.localStorage) mapId = global.localStorage.getItem('mg1_active_bg_map_id');
+        } catch (_) {}
+        if (!mapId) return;
+        var layers = await global.MG1MapLayerManagement.list(mapId, { sortBy:'order', direction:'asc' });
+        if (token !== overlaySyncToken_) return;
+        var records = [];
+        for (var i=0; i<layers.length; i++) {
+          var layer = layers[i];
+          if (!layer || layer.visible === false) continue;
+          var features = await global.MG1MapFeatureManagement.list(layer.id, { sortBy:'id', direction:'asc' });
+          for (var j=0; j<features.length; j++) {
+            var f = features[j], geom = f && f.geometry;
+            if (!f || !geom || geom.type !== 'Point' || !Array.isArray(geom.coordinates) || geom.coordinates.length < 2) continue;
+            records.push({ x:Number(geom.coordinates[0]), y:Number(geom.coordinates[1]), name:(f.properties && (f.properties.name || f.properties.hole_id || f.properties.category)) || f.id });
+          }
+        }
+        if (token === overlaySyncToken_) renderPointOverlay_(getMapSvg_(), records);
+      } catch (err) {
+        console.warn('[V25.21 FEATURE DRAWING] Point overlay sync skipped', err);
+      }
+    });
   }
 
   function pickPoint_(event) {
@@ -75,6 +165,7 @@
       var geometry = { type:'Point', coordinates:[point.x, point.y], coordinateSpace:'native' };
       if (typeof global.setSemanticFeatureGeometryFromMap_ !== 'function') throw new Error('Feature UI adapter belum siap.');
       global.setSemanticFeatureGeometryFromMap_(drawingState.layerId, geometry);
+      syncPointOverlay_();
       var layerId = drawingState.layerId;
       drawingState = { active:false, layerId:null, type:null };
       clearStatus_();
@@ -107,7 +198,18 @@
   }
 
   document.addEventListener('click', pickPoint_, true);
+  document.addEventListener('DOMContentLoaded', function(){ syncPointOverlay_(); });
+  setTimeout(function(){ syncPointOverlay_(); }, 0);
+  try {
+    var vpObserver = new MutationObserver(function(mutations) {
+      for (var i=0;i<mutations.length;i++) { if (mutations[i].type === 'childList') { syncPointOverlay_(); break; } }
+    });
+    var initialVp = document.getElementById('mg1-map-viewport');
+    if (initialVp) vpObserver.observe(initialVp, { childList:true });
+  } catch (_) {}
 
-  global.MG1MapFeatureDrawing = Object.freeze({ version:'25.21-s01', start:start, cancel:cancel, isActive:function(){return drawingState.active;} });
+  window.addEventListener('resize', function(){ syncPointOverlay_(); });
+
+  global.MG1MapFeatureDrawing = Object.freeze({ version:'25.21-s02', start:start, cancel:cancel, isActive:function(){return drawingState.active;}, sync:syncPointOverlay_ });
   console.log('[V25.21 MAP FEATURE] Drawing adapter ready — Point pick only');
 })(window);

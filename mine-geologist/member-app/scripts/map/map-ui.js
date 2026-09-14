@@ -14,6 +14,11 @@ let mg1FeatureDraft_ = {};
 let mg1FeatureBusy_ = false;
 let mg1FeatureError_ = '';
 
+function getSemanticActiveMapId_() {
+  try { return (typeof activeBackgroundMapId !== 'undefined' && activeBackgroundMapId) ? activeBackgroundMapId : null; } catch (_) { return null; }
+}
+window.getSemanticActiveMapId_ = getSemanticActiveMapId_;
+
 function mg1FeatureStateForLayer_(layerId) {
   if (!mg1LayerFeatureState_[layerId]) mg1LayerFeatureState_[layerId] = { open: false, list: [], loaded: false };
   return mg1LayerFeatureState_[layerId];
@@ -106,6 +111,7 @@ async function createSemanticFeatureFromForm_(layerId) {
     await MG1MapFeatureManagement.create(layerId, { type:draft.type || 'point', geometry:geometry, properties:properties, schemaVersion:1 });
     mg1FeatureDraft_[layerId] = { type:draft.type || 'point', properties:'{}', geometry:'' };
     await refreshSemanticFeatures_(layerId);
+    if (window.MG1MapFeatureDrawing && typeof window.MG1MapFeatureDrawing.sync === 'function') window.MG1MapFeatureDrawing.sync();
   } catch (err) {
     mg1FeatureError_ = (err && err.message) ? err.message : String(err);
   } finally {
@@ -132,6 +138,7 @@ async function createSemanticFeature_(layerId) {
     await MG1MapFeatureManagement.create(layerId, { type:draft.type || 'point', geometry:geometry, properties:properties, schemaVersion:1 });
     mg1FeatureDraft_[layerId] = { type:draft.type || 'point', properties:'{}', geometry:'' };
     await refreshSemanticFeatures_(layerId);
+    if (window.MG1MapFeatureDrawing && typeof window.MG1MapFeatureDrawing.sync === 'function') window.MG1MapFeatureDrawing.sync();
   } catch (err) {
     mg1FeatureError_ = (err && err.message) ? err.message : String(err);
   } finally { mg1FeatureBusy_ = false; render(); }
@@ -154,6 +161,7 @@ async function updateSemanticFeature_(featureId, layerId, propertiesText, geomet
   try {
     await MG1MapFeatureManagement.update(featureId, { properties: properties, geometry: geometry });
     await refreshSemanticFeatures_(layerId);
+    if (window.MG1MapFeatureDrawing && typeof window.MG1MapFeatureDrawing.sync === 'function') window.MG1MapFeatureDrawing.sync();
   } catch (err) {
     mg1FeatureError_ = (err && err.message) ? err.message : String(err);
   } finally {
@@ -269,6 +277,7 @@ async function toggleSemanticLayerVisibility_(layerId, visible) {
   try {
     await MG1MapLayerManagement.setVisibility(layerId, !!visible);
     mg1LayerList_ = await MG1MapLayerManagement.list(activeBackgroundMapId, { sortBy: 'order', direction: 'asc' });
+    if (window.MG1MapFeatureDrawing && typeof window.MG1MapFeatureDrawing.sync === 'function') window.MG1MapFeatureDrawing.sync();
   } catch (err) {
     mg1LayerError_ = (err && err.message) ? err.message : String(err);
   } finally {
@@ -283,6 +292,7 @@ async function activateSemanticLayer_(layerId) {
   try {
     await MG1MapLayerManagement.activate(activeBackgroundMapId, layerId);
     mg1LayerList_ = await MG1MapLayerManagement.list(activeBackgroundMapId, { sortBy: 'order', direction: 'asc' });
+    if (window.MG1MapFeatureDrawing && typeof window.MG1MapFeatureDrawing.sync === 'function') window.MG1MapFeatureDrawing.sync();
   } catch (err) {
     mg1LayerError_ = (err && err.message) ? err.message : String(err);
   } finally {
@@ -299,6 +309,7 @@ async function removeSemanticLayer_(layerId) {
     delete mg1LayerFeatureState_[layerId];
     delete mg1FeatureDraft_[layerId];
     mg1LayerList_ = await MG1MapLayerManagement.list(activeBackgroundMapId, { sortBy: 'order', direction: 'asc' });
+    if (window.MG1MapFeatureDrawing && typeof window.MG1MapFeatureDrawing.sync === 'function') window.MG1MapFeatureDrawing.sync();
   } catch (err) {
     mg1LayerError_ = (err && err.message) ? err.message : String(err);
   } finally {
