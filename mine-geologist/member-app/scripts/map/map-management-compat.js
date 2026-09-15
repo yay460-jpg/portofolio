@@ -677,10 +677,9 @@
 
           <div id="mg1-manage-options-panel" style="display:none;margin:-4px 0 12px;padding:10px;background:#101d39;border:1px solid rgba(255,255,255,.08);border-radius:12px;">
             <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.38);letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Pengaturan Library</div>
-            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
               <button type="button" id="mg1-manage-sort-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Nama A–Z</button>
-              <button type="button" id="mg1-manage-label-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Semua Label</button>
-              <button type="button" id="mg1-manage-collection-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Semua koleksi</button>
+              <button type="button" id="mg1-manage-label-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Label &amp; Koleksi</button>
             </div>
             <div style="height:1px;background:rgba(255,255,255,.06);margin:10px 0;"></div>
             <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.38);letter-spacing:.05em;text-transform:uppercase;margin:0 0 7px;">Storage Summary</div>
@@ -756,29 +755,6 @@
     }).join('');
   }
 
-  function mg1IconSvg_(kind, size) {
-    const s = Number(size) || 38;
-    const common = `width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="display:block;overflow:visible;"`;
-    const p = 'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
-    switch (kind) {
-      case 'info': return `<svg ${common}><circle cx="12" cy="12" r="9" ${p}/><path d="M12 10.5v6" ${p}/><circle cx="12" cy="7.5" r=".7" fill="currentColor" stroke="none"/></svg>`;
-      case 'duplicate': return `<svg ${common}><rect x="8" y="8" width="11" height="11" rx="2" ${p}/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4H6.5A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" ${p}/></svg>`;
-      case 'replace': return `<svg ${common}><path d="M4 6h9l3-2v16l-3-2H4z" ${p}/><path d="M9 6v12" ${p}/><path d="M17 8.5a5 5 0 0 1 2.5 6.7" ${p}/><path d="M19.2 8.2l.3 3-3-.4" ${p}/><path d="M7 15.5a5 5 0 0 1-2.5-6.7" ${p}/><path d="M4.8 15.8l-.3-3 3 .4" ${p}/></svg>`;
-      case 'rename': return `<svg ${common}><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3z" ${p}/><path d="m14.5 7.5 2 2" ${p}/></svg>`;
-      case 'label': return `<svg ${common}><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H13l7 7-7 7H5.5A1.5 1.5 0 0 1 4 16.5z" ${p}/><circle cx="9" cy="9" r="1.2" ${p}/></svg>`;
-      case 'collection': return `<svg ${common}><rect x="4" y="4" width="6" height="6" rx="1" ${p}/><rect x="14" y="4" width="6" height="6" rx="1" ${p}/><rect x="4" y="14" width="6" height="6" rx="1" ${p}/><rect x="14" y="14" width="6" height="6" rx="1" ${p}/></svg>`;
-      case 'download': return `<svg ${common}><path d="M12 3v11" ${p}/><path d="m8 10 4 4 4-4" ${p}/><path d="M5 19h14" ${p}/></svg>`;
-      case 'delete': return `<svg ${common}><path d="M5 7h14" ${p}/><path d="M9 7V4h6v3" ${p}/><path d="M7 7l.8 13h8.4L17 7" ${p}/><path d="M10 11v5M14 11v5" ${p}/></svg>`;
-      case 'sortAsc': return `<svg ${common}><path d="M5 7h9M5 12h7M5 17h5" ${p}/><path d="m17 5 2 2-2 2M19 7h-4" ${p}/></svg>`;
-      case 'sortDesc': return `<svg ${common}><path d="M5 7h9M5 12h7M5 17h5" ${p}/><path d="m17 15 2 2-2 2M19 17h-4" ${p}/></svg>`;
-      case 'newest': return `<svg ${common}><circle cx="12" cy="12" r="8.5" ${p}/><path d="M12 7v5l3 2" ${p}/><path d="m17.5 4.5 1-1M20 7h1.2" ${p}/></svg>`;
-      case 'oldest': return `<svg ${common}><circle cx="12" cy="12" r="8.5" ${p}/><path d="M12 7v5l3 2" ${p}/></svg>`;
-      case 'noLabel': return `<svg ${common}><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H13l7 7-7 7H5.5A1.5 1.5 0 0 1 4 16.5z" ${p}/><path d="M8 8l3 3" ${p}/></svg>`;
-      case 'noCollection': return `<svg ${common}><rect x="4" y="4" width="6" height="6" rx="1" ${p}/><rect x="14" y="4" width="6" height="6" rx="1" ${p}/><rect x="4" y="14" width="6" height="6" rx="1" ${p}/><path d="M14 14l6 6" ${p}/></svg>`;
-      default: return `<svg ${common}><circle cx="12" cy="12" r="9" ${p}/></svg>`;
-    }
-  }
-
   function showMapActionSheet_(entry, activeId, onDone) {
     if (!entry || !entry.id) return;
     if (window.MG1MapPackageTransfer && typeof window.MG1MapPackageTransfer.warmPackage === 'function') window.MG1MapPackageTransfer.warmPackage([String(entry.id)]);
@@ -786,34 +762,14 @@
     const isActive = !!activeId && String(activeId) === String(entry.id);
     const root = document.createElement('div'); root.id='mg1-map-action-sheet';
     root.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,8,20,.68);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);';
-    const mg1IconSvg_=(name, size=54)=>{
-      const p='stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"';
-      const m={
-        info:`<circle ${p} cx="24" cy="24" r="19"/><path ${p} d="M24 21v11"/><path ${p} d="M24 15h.01"/>`,
-        duplicate:`<path ${p} d="M8 16l12-7 12 7-12 7-12-7Z"/><path ${p} d="M8 24l12 7 12-7"/><path ${p} d="M8 32l12 7 12-7"/>`,
-        replace:`<path ${p} d="M7 12h28l-5 24H2L7 12Z"/><path ${p} d="M7 12l5-7h28l-5 7"/><path ${p} d="M34 18c7 1 11 5 11 11"/><path ${p} d="M43 25l2 4 4-2"/><path ${p} d="M14 34c-7-1-11-5-11-11"/><path ${p} d="M5 27l-2-4-4 2"/>`,
-        rename:`<path ${p} d="M7 41l3-11L31 9l8 8-21 21-11 3Z"/><path ${p} d="M27 13l8 8"/><path ${p} d="M7 41l8-2"/>`,
-        label:`<path ${p} d="M5 23V9a4 4 0 0 1 4-4h14l16 16-16 16H9a4 4 0 0 1-4-4V23Z"/><circle ${p} cx="17" cy="13" r="2.5"/>`,
-        collection:`<rect ${p} x="7" y="7" width="12" height="12"/><rect ${p} x="29" y="7" width="12" height="12"/><rect ${p} x="7" y="29" width="12" height="12"/><rect ${p} x="29" y="29" width="12" height="12"/>`,
-        download:`<path ${p} d="M24 5v25"/><path ${p} d="m14 21 10 10 10-10"/><path ${p} d="M7 39h34"/>`,
-        delete:`<path ${p} d="M9 13h30"/><path ${p} d="M17 13V8h14v5"/><path ${p} d="M13 13l2 29h18l2-29"/><path ${p} d="M20 20v15M28 20v15"/>`,
-        sortAsc:`<path ${p} d="M8 36V12"/><path ${p} d="m3 17 5-5 5 5"/><path ${p} d="M20 12h9M20 20h7M20 28h5"/><path ${p} d="M34 12v24"/><path ${p} d="m29 31 5 5 5-5"/>`,
-        sortDesc:`<path ${p} d="M8 12v24"/><path ${p} d="m3 31 5 5 5-5"/><path ${p} d="M20 12h9M20 20h7M20 28h5"/><path ${p} d="M34 36V12"/><path ${p} d="m29 17 5-5 5 5"/>`,
-        newest:`<circle ${p} cx="24" cy="25" r="15"/><path ${p} d="M24 16v10l7 4"/><path ${p} d="m35 7 2 4 4 2-4 2-2 4-2-4-4-2 4-2 2-4Z"/>`,
-        oldest:`<circle ${p} cx="24" cy="25" r="15"/><path ${p} d="M24 16v10l7 4"/>`,
-        noLabel:`<path ${p} d="M5 23V9a4 4 0 0 1 4-4h14l16 16-16 16H9a4 4 0 0 1-4-4V23Z"/><circle ${p} cx="17" cy="13" r="2.5"/><path ${p} d="M5 5l38 38"/>`,
-        noCollection:`<rect ${p} x="7" y="7" width="12" height="12"/><rect ${p} x="29" y="7" width="12" height="12"/><rect ${p} x="7" y="29" width="12" height="12"/><rect ${p} x="29" y="29" width="12" height="12"/><path ${p} d="M5 5l38 38"/>`
-      };
-      return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" aria-hidden="true" focusable="false">${m[name]||m.info}</svg>`;
-    };
-    const tile=(icon,label,action)=>`<button type="button" data-action="${action}" style="min-height:132px;border-radius:18px;background:linear-gradient(180deg,rgba(53,86,140,.82),rgba(35,61,104,.88));border:1px solid rgba(96,165,250,.10);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:14px 7px;text-align:center;font-size:14px;font-weight:800;line-height:1.15;cursor:pointer;"><span style="display:flex;align-items:center;justify-content:center;width:62px;height:62px;color:#3f8cff;line-height:1;text-shadow:0 6px 20px rgba(37,99,235,.22);">${icon}</span><span>${label}</span></button>`;
-    const compact=(icon,label,action,danger=false)=>`<button type="button" data-action="${action}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 12px;background:transparent;border:0;color:${danger?'#ff7474':'#f4f7ff'};font-size:15px;font-weight:800;line-height:1.2;text-align:center;cursor:pointer;"><span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;color:${danger?'#ff6262':'#3f8cff'};">${icon}</span><span>${label}</span></button>`;
+    const tile=(icon,label,action)=>`<button type="button" data-action="${action}" style="min-height:132px;border-radius:18px;background:linear-gradient(180deg,rgba(53,86,140,.82),rgba(35,61,104,.88));border:1px solid rgba(96,165,250,.10);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:14px 7px;text-align:center;font-size:14px;font-weight:800;line-height:1.15;cursor:pointer;"><span style="display:flex;align-items:center;justify-content:center;width:62px;height:62px;color:#3f8cff;font-size:46px;line-height:1;text-shadow:0 6px 20px rgba(37,99,235,.22);">${icon}</span><span>${label}</span></button>`;
+    const compact=(icon,label,action,danger=false)=>`<button type="button" data-action="${action}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 12px;background:transparent;border:0;color:${danger?'#ff7474':'#f4f7ff'};font-size:15px;font-weight:800;line-height:1.2;text-align:center;cursor:pointer;"><span style="font-size:28px;line-height:1;color:${danger?'#ff6262':'#3f8cff'};">${icon}</span><span>${label}</span></button>`;
     root.innerHTML=`<div id="mg1-map-action-panel" role="dialog" aria-modal="true" aria-label="Aksi peta" style="width:min(100%,560px);max-height:92vh;overflow:auto;background:#101f42;border:1px solid rgba(96,165,250,.20);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:12px 22px 22px;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);box-sizing:border-box;">
       <div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 26px;"></div>
       <div style="display:flex;align-items:center;gap:16px;padding:0 2px 22px;"><div style="width:70px;height:70px;border-radius:14px;background:#0b1329;overflow:hidden;flex:0 0 auto;border:1px solid rgba(96,165,250,.18);">${entry.imageDataUrl?`<img src="${entry.imageDataUrl}" alt="" style="width:100%;height:100%;object-fit:cover;">`:''}</div><div style="min-width:0;flex:1;"><div style="display:flex;align-items:center;gap:8px;min-width:0;"><div style="font-size:18px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml_(entry.name||'Tanpa nama')}</div>${isActive?'<span style="display:inline-flex;align-items:center;gap:5px;flex-shrink:0;font-size:11px;font-weight:800;color:#6ee7b7;"><span style="width:8px;height:8px;border-radius:50%;background:#34d399;"></span>AKTIF</span>':''}</div><div style="font-size:11px;color:rgba(255,255,255,.42);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml_(entry.id||'')}</div></div></div>
       ${!isActive?'<button type="button" data-action="activate" style="width:100%;margin-bottom:14px;padding:12px 14px;border-radius:14px;background:rgba(16,185,129,.10);border:1px solid rgba(52,211,153,.25);color:#6ee7b7;font-size:12px;font-weight:800;">✓ Aktifkan Peta</button>':''}
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">${tile(mg1IconSvg_('info'),'Info','info')}${tile(mg1IconSvg_('duplicate'),'Duplikat','duplicate')}${tile(mg1IconSvg_('replace'),'Ganti Data','replace')}${tile(mg1IconSvg_('rename'),'Edit Nama','rename')}${tile(mg1IconSvg_('label'),'Edit Label','label')}${tile(mg1IconSvg_('collection'),'Ganti Koleksi','collection')}</div>
-      <div style="height:1px;background:rgba(255,255,255,.10);margin:24px 2px 8px;"></div><div style="display:flex;flex-direction:column;align-items:center;">${compact(mg1IconSvg_('download',30),'Backup / Export Peta','export')}${compact(mg1IconSvg_('delete',30),'Hapus Peta','delete',true)}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">${tile('ⓘ','Info','info')}${tile('▱','Duplikat','duplicate')}${tile('🗺↻','Ganti Data','replace')}${tile('✎','Edit Nama','rename')}${tile('◇','Edit Label','label')}${tile('▦','Ganti Koleksi','collection')}</div>
+      <div style="height:1px;background:rgba(255,255,255,.10);margin:24px 2px 8px;"></div><div style="display:flex;flex-direction:column;align-items:center;">${compact('⇩','Backup / Export Peta','export')}${compact('▣','Hapus Peta','delete',true)}</div>
       <button type="button" data-action="cancel" style="width:100%;margin-top:14px;padding:15px;border-radius:15px;background:rgba(255,255,255,.055);border:1px solid rgba(96,165,250,.22);color:#f4f7ff;font-size:14px;font-weight:800;cursor:pointer;">Batal</button>
     </div>`;
     document.body.appendChild(root); const panel=root.querySelector('#mg1-map-action-panel');
@@ -831,11 +787,20 @@
 
   function showMapLibraryChoiceModal_(kind,current,onSelect){
     const old=document.getElementById('mg1-library-choice-modal');if(old)old.remove();
-    const cfg={sort:{title:'Urutkan Peta',subtitle:'Pilih cara pengurutan daftar peta',items:[['name-asc',mg1IconSvg_('sortAsc',42),'Nama A–Z'],['name-desc',mg1IconSvg_('sortDesc',42),'Nama Z–A'],['newest',mg1IconSvg_('newest',42),'Terbaru'],['oldest',mg1IconSvg_('oldest',42),'Terlama']]},label:{title:'Filter Label',subtitle:'Tampilkan peta berdasarkan label',items:[['__all__',mg1IconSvg_('label',38),'Semua Label'],['__none__',mg1IconSvg_('noLabel',38),'Tanpa Label']]},collection:{title:'Filter Koleksi',subtitle:'Tampilkan peta berdasarkan koleksi',items:[['__all__',mg1IconSvg_('collection',38),'Semua koleksi'],['__none__',mg1IconSvg_('noCollection',38),'Tanpa koleksi']]}}[kind];if(!cfg)return;
+    const isFilter=kind==='filter';
+    const cfg=isFilter?{title:'Filter Peta',subtitle:'Pilih label dan koleksi peta'}:{title:'Urutkan Peta',subtitle:'Pilih cara pengurutan daftar peta'};
+    if(kind!=='sort'&&!isFilter)return;
     const root=document.createElement('div');root.id='mg1-library-choice-modal';root.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,8,20,.70);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);';
-    const option=(value,icon,label)=>{const selected=String(current||'')===String(value);return `<button type="button" data-choice="${escapeHtml_(value)}" style="min-height:${kind==='sort'?'132':'118'}px;border-radius:18px;background:${selected?'linear-gradient(180deg,#2f86ff,#1e70ee)':'#0b1834'};border:1px solid ${selected?'rgba(96,165,250,.75)':'rgba(59,130,246,.95)'};box-shadow:${selected?'0 10px 28px rgba(37,99,235,.30),inset 0 1px 0 rgba(255,255,255,.08)':'inset 0 1px 0 rgba(255,255,255,.025)'};color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px 8px;cursor:pointer;position:relative;"><span style="font-size:${kind==='sort'?'42':'38'}px;line-height:1;color:${selected?'#fff':'#4d93ff'};">${icon}</span><span style="font-size:14px;font-weight:800;">${label}</span><span style="position:absolute;right:14px;top:14px;width:20px;height:20px;border:2px solid ${selected?'#fff':'#9fc5ff'};border-radius:50%;box-sizing:border-box;">${selected?'<span style="display:block;width:8px;height:8px;margin:4px;border-radius:50%;background:#fff;"></span>':''}</span></button>`;};
-    root.innerHTML=`<div role="dialog" aria-modal="true" aria-label="${cfg.title}" style="width:min(100%,560px);background:#0e1d3d;border:1px solid rgba(96,165,250,.28);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:12px 22px 24px;box-sizing:border-box;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);"><div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 24px;"></div><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px;"><div><div style="font-size:19px;font-weight:800;color:#fff;">${cfg.title}</div><div style="font-size:12px;color:#9fc5ff;margin-top:6px;">${cfg.subtitle}</div></div><button type="button" data-close style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(96,165,250,.25);color:#dbeafe;font-size:22px;line-height:1;cursor:pointer;">×</button></div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;">${cfg.items.map(x=>option(x[0],x[1],x[2])).join('')}</div></div>`;
-    document.body.appendChild(root);const panel=root.firstElementChild;const close=()=>{panel.style.transform='translateY(110%)';setTimeout(()=>root.remove(),220);};root.querySelector('[data-close]').onclick=close;root.addEventListener('click',ev=>{if(ev.target===root)close();});root.querySelectorAll('[data-choice]').forEach(btn=>btn.onclick=()=>{const v=btn.getAttribute('data-choice');close();if(typeof onSelect==='function')onSelect(v);});requestAnimationFrame(()=>requestAnimationFrame(()=>{panel.style.transform='translateY(0)';}));
+    const sortItems=[['name-asc','A↓Z','Nama A–Z'],['name-desc','Z↓A','Nama Z–A'],['newest','◔✦','Terbaru'],['oldest','◷','Terlama']];
+    const filterItems=[['label','◇','Semua Label','__all__'],['label','◇̸','Tanpa Label','__none__'],['collection','▦','Semua koleksi','__all__'],['collection','▦̸','Tanpa koleksi','__none__']];
+    let filterState=isFilter?{label:(current&&current.label)||'__all__',collection:(current&&current.collection)||'__all__'}:null;
+    const option=(item)=>{const group=item[3]||null;const value=group?item[3]:item[0];const selected=isFilter?String(filterState[group])===String(value):String(current||'')===String(value);return `<button type="button" data-choice="${escapeHtml_(value)}" data-group="${group||''}" style="min-height:${isFilter?'104':'132'}px;border-radius:18px;background:${selected?'linear-gradient(180deg,#2f86ff,#1e70ee)':'#0b1834'};border:1px solid ${selected?'rgba(96,165,250,.75)':'rgba(59,130,246,.95)'};box-shadow:${selected?'0 10px 28px rgba(37,99,235,.30),inset 0 1px 0 rgba(255,255,255,.08)':'inset 0 1px 0 rgba(255,255,255,.025)'};color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 4px;cursor:pointer;position:relative;min-width:0;"><span style="font-size:${isFilter?'30':'42'}px;line-height:1;color:${selected?'#fff':'#4d93ff'};">${item[1]}</span><span style="font-size:${isFilter?'11':'14'}px;font-weight:800;white-space:nowrap;">${item[2]}</span><span style="position:absolute;right:7px;top:7px;width:16px;height:16px;border:2px solid ${selected?'#fff':'#9fc5ff'};border-radius:50%;box-sizing:border-box;">${selected?'<span style="display:block;width:6px;height:6px;margin:3px;border-radius:50%;background:#fff;"></span>':''}</span></button>`;};
+    const items=isFilter?filterItems:sortItems;
+    root.innerHTML=`<div role="dialog" aria-modal="true" aria-label="${cfg.title}" style="width:min(100%,680px);background:#0e1d3d;border:1px solid rgba(96,165,250,.28);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:12px 22px 24px;box-sizing:border-box;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);"><div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 24px;"></div><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px;"><div><div style="font-size:19px;font-weight:800;color:#fff;">${cfg.title}</div><div style="font-size:12px;color:#9fc5ff;margin-top:6px;">${cfg.subtitle}</div></div><button type="button" data-close style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(96,165,250,.25);color:#dbeafe;font-size:22px;line-height:1;cursor:pointer;">×</button></div><div data-choice-grid style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;">${items.map(option).join('')}</div>${isFilter?'<button type="button" data-done style="display:block;width:100%;height:40px;margin-top:14px;border:1px solid rgba(96,165,250,.30);border-radius:12px;background:#162b52;color:#fff;font-size:12px;font-weight:800;cursor:pointer;">Selesai</button>':''}</div>`;
+    document.body.appendChild(root);const panel=root.firstElementChild;const close=()=>{panel.style.transform='translateY(110%)';setTimeout(()=>root.remove(),220);};root.querySelector('[data-close]').onclick=close;if(root.querySelector('[data-done]'))root.querySelector('[data-done]').onclick=()=>{close();if(typeof onSelect==='function')onSelect(filterState);};root.addEventListener('click',ev=>{if(ev.target===root)close();});
+    const bindChoices=()=>{root.querySelectorAll('[data-choice]').forEach(btn=>btn.onclick=()=>{const v=btn.getAttribute('data-choice');const g=btn.getAttribute('data-group');if(isFilter){filterState[g]=v;root.querySelector('[data-choice-grid]').innerHTML=filterItems.map(option).join('');bindChoices();}else{close();if(typeof onSelect==='function')onSelect(v);}});};
+    bindChoices();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{panel.style.transform='translateY(0)';}));
   }
   function formatMapDate_(value) {
     if (!value) return '—';
@@ -1132,7 +1097,7 @@
     const filterEl = el.querySelector('#mg1-manage-filter');
     const sortEl = el.querySelector('#mg1-manage-sort-btn');
     const labelEl = el.querySelector('#mg1-manage-label-btn');
-    const collectionEl = el.querySelector('#mg1-manage-collection-btn');
+    const collectionEl = null;
     let manageFilter_ = 'all';
     let manageLabel_ = '__all__';
     let manageCollection_ = '__all__';
@@ -1179,7 +1144,7 @@
       if (!labelEl) return;
       const names = collectLabelNames_(maps); const current = manageLabel_;
       if (current !== '__all__' && current !== '__none__' && !names.some(function(v){ return v === current; })) manageLabel_ = '__all__';
-      if (labelEl) labelEl.textContent = manageLabel_ === '__none__' ? 'Tanpa Label' : (manageLabel_ === '__all__' ? 'Semua Label' : String(manageLabel_));
+      if (labelEl) labelEl.textContent = 'Label & Koleksi';
     }
 
     function applyManageSort_(maps, sort) {
@@ -1350,25 +1315,17 @@
         });
       };
     }
-    if(labelEl && !labelEl.__mg1Bound) {
-      labelEl.__mg1Bound = true;
-      labelEl.onclick = function() {
-        showMapLibraryChoiceModal_('label', manageLabel_, function(value) {
-          manageLabel_ = value || '__all__';
-          labelEl.textContent = manageLabel_ === '__none__' ? 'Tanpa Label' : (manageLabel_ === '__all__' ? 'Semua Label' : manageLabel_);
-          refreshManageList_(searchEl ? searchEl.value : '');
-        });
-      };
-    }
-    if(collectionEl && !collectionEl.__mg1Bound) {
-      collectionEl.__mg1Bound = true;
-      collectionEl.onclick = function() {
-        showMapLibraryChoiceModal_('collection', manageCollection_, function(value) {
-          manageCollection_ = value || '__all__';
-          collectionEl.textContent = manageCollection_ === '__none__' ? 'Tanpa koleksi' : (manageCollection_ === '__all__' ? 'Semua koleksi' : manageCollection_);
-          refreshManageList_(searchEl ? searchEl.value : '');
-        });
-      };
+    if((labelEl || collectionEl) && !el.__mg1FilterBound) {
+      el.__mg1FilterBound = true;
+      const openFilter=()=>showMapLibraryChoiceModal_('filter',{label:manageLabel_,collection:manageCollection_},function(state){
+        manageLabel_=state.label||'__all__';
+        manageCollection_=state.collection||'__all__';
+        if(labelEl)labelEl.textContent='Label & Koleksi';
+        if(collectionEl)collectionEl.textContent=manageCollection_==='__none__'?'Tanpa koleksi':(manageCollection_==='__all__'?'Semua koleksi':manageCollection_);
+        refreshManageList_(searchEl?searchEl.value:'');
+      });
+      if(labelEl)labelEl.onclick=openFilter;
+      if(collectionEl)collectionEl.onclick=openFilter;
     }
     if(listEl && !listEl.__mg1InfoBound) {
       listEl.__mg1InfoBound = true;
