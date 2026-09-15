@@ -3026,19 +3026,16 @@ function renderMapDetailModal(mapData) {
   return '<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-[5px] px-2 sm:px-4" onclick="closeMapDetail()">' +
     '<div class="w-full max-w-[1140px] bg-[#071a36] border border-blue-400/40 rounded-[24px] sm:rounded-[30px] px-3 sm:px-5 lg:px-6 pt-3 sm:pt-4 pb-4 sm:pb-5 shadow-2xl overflow-y-auto" style="max-height:calc(var(--mg1-vvh,100svh) * .94);" onclick="event.stopPropagation()">' +
       '<div class="mx-auto mb-3 sm:mb-4 h-1.5 w-12 sm:w-16 rounded-full bg-white/35"></div>' +
-      '<div class="rounded-2xl border border-blue-300/20 bg-[#081a36] px-4 sm:px-5 py-3 sm:py-4 mb-3 sm:mb-4">' +
-        '<div class="flex items-start justify-between gap-3">' +
+      '<div class="border-b border-blue-300/20 px-1 pb-3 sm:pb-4 mb-3 sm:mb-4">' +
+        '<div class="flex items-center justify-between gap-3">' +
           '<div class="min-w-0 flex-1">' +
-            '<div class="text-white font-black tracking-tight text-[21px] sm:text-[24px] lg:text-[28px] leading-none truncate">' + escapeHtml_(p.idTp || '—') + '</div>' +
-            '<div class="mt-1.5 flex items-center gap-x-2 text-[10px] sm:text-[11px] lg:text-[13px] text-[#9fc5ff]">' +
-              '<span>' + escapeHtml_(detailDate) + '</span><span class="text-blue-300/70">•</span>' +
+            '<div class="text-white font-black tracking-tight text-[19px] sm:text-[22px] lg:text-[26px] leading-none truncate">' + escapeHtml_(p.idTp || '—') + '</div>' +
+            '<div class="mt-1.5 flex items-center gap-x-2 text-[10px] sm:text-[11px] lg:text-[13px] text-[#9fc5ff] whitespace-nowrap overflow-hidden">' +
+              '<span class="shrink-0">' + escapeHtml_(detailDate) + '</span><span class="text-blue-300/70 shrink-0">•</span>' +
               '<span class="truncate">' + escapeHtml_(detailUser) + '</span>' +
             '</div>' +
           '</div>' +
-          '<div class="flex items-center gap-2 flex-none">' +
-            '<div class="rounded-xl bg-[#2f7ff0] px-3 py-1.5 text-[14px] sm:text-[15px] font-bold text-white">MG</div>' +
-            '<button type="button" onclick="closeMapDetail()" aria-label="Tutup" class="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-blue-400/35 bg-[#081a36] text-blue-200 text-[22px] sm:text-[24px] leading-none">×</button>' +
-          '</div>' +
+          '<div class="rounded-lg bg-[#2f7ff0] px-2.5 py-1 text-[12px] sm:text-[13px] font-bold text-white shrink-0">MG</div>' +
         '</div>' +
       '</div>' +
       (p.coordConflict ? '<div class="mb-3 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 font-semibold">Konflik data: beberapa baris kedalaman TP ini punya nilai Timur/Utara berbeda. Marker memakai nilai pertama yang ditemukan.</div>' : '') +
