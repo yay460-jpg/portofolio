@@ -3038,18 +3038,18 @@ function renderMapDetailModal(mapData) {
         '</div>' +
       '</div>' +
       (p.coordConflict ? '<div class="mb-3 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 font-semibold flex items-start gap-1.5">' + icon('alert-triangle','w-3.5 h-3.5 shrink-0 mt-0.5') + '<span>Konflik data: beberapa baris kedalaman TP ini punya nilai Timur/Utara berbeda. Marker memakai nilai pertama yang ditemukan.</span></div>' : '') +
-      '<div class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">' +
-        '<div class="lg:col-span-3 space-y-2 sm:space-y-2.5">' +
-          '<div class="grid grid-cols-2 lg:grid-cols-1 gap-2">' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Blok</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.blok||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Area</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.area||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Bench</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.bench||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Tipe</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.tipeLaterit||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Timur (X)</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.timur||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Utara (Y)</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.utara||'-') + '</div></div>' +
+      '<div class="grid grid-cols-12 gap-2.5 sm:gap-3">' +
+        '<div class="col-span-5 min-w-0">' +
+          '<div class="grid grid-cols-2 gap-1.5 sm:gap-2">' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2 sm:px-3 py-2 sm:py-2.5"><div class="text-[10px] sm:text-[11px] text-[#7fa8e5]">Blok</div><div class="text-[14px] sm:text-[17px] font-black text-white">' + escapeHtml_(p.blok||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2 sm:px-3 py-2 sm:py-2.5"><div class="text-[10px] sm:text-[11px] text-[#7fa8e5]">Area</div><div class="text-[14px] sm:text-[17px] font-black text-white">' + escapeHtml_(p.area||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2 sm:px-3 py-2 sm:py-2.5"><div class="text-[10px] sm:text-[11px] text-[#7fa8e5]">Bench</div><div class="text-[14px] sm:text-[17px] font-black text-white">' + escapeHtml_(p.bench||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2 sm:px-3 py-2 sm:py-2.5"><div class="text-[10px] sm:text-[11px] text-[#7fa8e5]">Tipe</div><div class="text-[14px] sm:text-[17px] font-black text-white">' + escapeHtml_(p.tipeLaterit||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2 sm:px-3 py-2 sm:py-2.5"><div class="text-[10px] sm:text-[11px] text-[#7fa8e5]">Timur (X)</div><div class="text-[14px] sm:text-[17px] font-black text-white">' + escapeHtml_(p.timur||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2 sm:px-3 py-2 sm:py-2.5"><div class="text-[10px] sm:text-[11px] text-[#7fa8e5]">Utara (Y)</div><div class="text-[14px] sm:text-[17px] font-black text-white">' + escapeHtml_(p.utara||'-') + '</div></div>' +
           '</div>' +
         '</div>' +
-        '<div class="lg:col-span-9 min-w-0">' +
+        '<div class="col-span-7 min-w-0">' +
           photoPreview +
           '<div class="mt-3 flex items-center justify-between gap-3">' +
             '<div class="text-[14px] sm:text-[16px] lg:text-[18px] font-black tracking-wide text-white">KEDALAMAN (' + escapeHtml_(p.depthCount) + '/' + escapeHtml_(p.maxDepth) + ' m)</div>' +
