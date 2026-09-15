@@ -97,25 +97,34 @@ function getMapViewportRatio_() {
   return w / h;
 }
 
-// LOW VIEWPORT GEOMETRY CONTRACT:
-// LOW portrait memakai viewport SVG yang mengikuti rasio layar aktual.
-// HIGH tetap memakai kontrak 320x320 dan tidak disentuh.
-const LOW_PORTRAIT_VERTICAL_EXPAND_ = 0.42;
+// V24.5 VIEWPORT GEOMETRY CONTRACT V1
+// Internal SVG coordinate-space is ALWAYS square and device-independent.
+// Device tier may change tile/render budget, but MUST NOT change viewport geometry.
+const MG1_VIEWPORT_GEOMETRY_VERSION_ = 1;
+const MG1_VIEWPORT_SIZE_ = 320;
 
-function isLowMapDevice_() {
-  try {
-    const profile = window.mg1DeviceTileEngineProfile ||
-      (typeof getDeviceTileEngineProfile_ === 'function' ? getDeviceTileEngineProfile_() : null);
-    return String(profile && profile.tier || '').toUpperCase() === 'LOW';
-  } catch (_) { return false; }
+function getMapViewportGeometryContract_(baseBounds) {
+  const size = MG1_VIEWPORT_SIZE_;
+  const viewport = {
+    width: size,
+    height: size,
+    aspectRatio: 1
+  };
+  const bounds = baseBounds ? computeResponsiveDisplayBounds_(null, baseBounds, viewport) : null;
+  const safeBounds = bounds || baseBounds || null;
+  if (!safeBounds) return null;
+  const viewBox = getMapViewBox_(safeBounds, viewport);
+  return {
+    version: MG1_VIEWPORT_GEOMETRY_VERSION_,
+    viewport,
+    bounds: safeBounds,
+    viewBox
+  };
 }
 
 function getMapSvgViewportSize_() {
-  const base = 320;
-  if (!isLowMapDevice_()) return { viewW: base, viewH: base };
-  const ratio = getMapViewportRatio_();
-  if (!(ratio > 0)) return { viewW: base, viewH: base };
-  return { viewW: base, viewH: base / ratio };
+  // Compatibility helper only. Geometry consumers must use getMapViewportGeometryContract_().
+  return { viewW:MG1_VIEWPORT_SIZE_, viewH:MG1_VIEWPORT_SIZE_ };
 }
 
 // [REFACTOR -- 15 Sep, permintaan user setelah audit bug viewH] Sebelumnya logika
@@ -211,20 +220,8 @@ function getViewportTilePlan_(geoReferenceOverride) {
       }
       const base = computeMineGridBounds(buildMapData(), extras);
       if (base) {
-        const ratio = mapViewportRatio_ > 0 ? mapViewportRatio_ : 1;
-        const w = base.maxT - base.minT, h = base.maxU - base.minU;
-        let minT = base.minT, maxT = base.maxT, minU = base.minU, maxU = base.maxU;
-        if (w > 0 && h > 0) {
-          const currentRatio = w / h;
-          if (currentRatio > ratio) {
-            const extra = ((w / ratio) - h) / 2;
-            minU -= extra; maxU += extra;
-          } else if (currentRatio < ratio) {
-            const extra = ((h * ratio) - w) / 2;
-            minT -= extra; maxT += extra;
-          }
-        }
-        bounds = { minT, maxT, minU, maxU };
+        // V24.5 CONTRACT: incoming maps use the exact same viewport geometry rule.
+        bounds = computeResponsiveDisplayBounds_(null, base);
       }
     }
     if (!bounds) return { ok:false, reason:'Map bounds belum tersedia.' };
@@ -251,8 +248,10 @@ function getViewportTilePlan_(geoReferenceOverride) {
     const tilesX = Math.ceil(levelWidth / tileSize);
     const tilesY = Math.ceil(levelHeight / tileSize);
 
-    const { viewW, viewH } = getMapSvgViewportSize_();
-    const viewBox = getMapViewBox_(bounds);
+    const geometry = getMapViewportGeometryContract_(bounds);
+    if (!geometry) return { ok:false, reason:'Viewport geometry contract belum tersedia.' };
+    const { width:viewW, height:viewH } = geometry.viewport;
+    const viewBox = geometry.viewBox;
     const corners = [
       {x:viewBox.x, y:viewBox.y},
       {x:viewBox.x + viewBox.w, y:viewBox.y},
@@ -324,6 +323,8 @@ function getViewportTilePlan_(geoReferenceOverride) {
       zoom:Number(mapZoom.toFixed(2)),
       factor:Number(factor),
       tileSize,
+      viewportGeometryVersion: geometry.version,
+      viewport: { width:viewW, height:viewH, aspectRatio:geometry.viewport.aspectRatio },
       levelWidth,
       levelHeight,
       tilesX,
@@ -1260,12 +1261,13 @@ function handleMapTap_(event) {
     // kadang tetap sintesis 1 event klik dari sisa sentuhan multi-jari.
     if (mapPinchState_.active || mapPanState_.active || Date.now() < Math.max(mapPinchState_.suppressTapUntil, mapPanState_.suppressTapUntil || 0)) return;
     const svgEl = event.currentTarget;
-    const bounds = computeResponsiveDisplayBounds_(buildMapData());
-    if (!bounds) return;
+    const geometry = getMapViewportGeometryContract_(computeMapViewBounds(buildMapData()));
+    if (!geometry) return;
+    const bounds = geometry.bounds;
     const rect = (svgEl.parentElement || svgEl).getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    const { viewW, viewH } = getMapSvgViewportSize_();
-    const viewBox = getMapViewBox_(bounds);
+    const { width:viewW, height:viewH } = geometry.viewport;
+    const viewBox = geometry.viewBox;
     let svgX = viewBox.x + ((event.clientX - rect.left) / rect.width) * viewBox.w;
     let svgY = viewBox.y + ((event.clientY - rect.top) / rect.height) * viewBox.h;
     if (!Number.isFinite(svgX) || !Number.isFinite(svgY)) return;
@@ -2410,11 +2412,12 @@ function computeMapViewBounds(points) {
 
 // STEP 04: display-only bounds mengikuti aspect ratio viewport.
 // Tidak mengubah GeoReference/native bounds; hanya menambah ruang pada sumbu pendek.
-function computeResponsiveDisplayBounds_(points) {
-  const base = computeMapViewBounds(points);
+function computeResponsiveDisplayBounds_(points, baseBoundsOverride, viewportOverride) {
+  const base = baseBoundsOverride || computeMapViewBounds(points);
   if (!base) return null;
 
-  const ratio = mapViewportRatio_ > 0 ? mapViewportRatio_ : 1;
+  const viewport = viewportOverride || { width:MG1_VIEWPORT_SIZE_, height:MG1_VIEWPORT_SIZE_, aspectRatio:1 };
+  const ratio = Number(viewport.aspectRatio) > 0 ? Number(viewport.aspectRatio) : 1;
   const w = base.maxT - base.minT;
   const h = base.maxU - base.minU;
   if (!(w > 0) || !(h > 0)) return base;
@@ -2423,31 +2426,29 @@ function computeResponsiveDisplayBounds_(points) {
   let minT = base.minT, maxT = base.maxT;
   let minU = base.minU, maxU = base.maxU;
 
-  // LOW portrait: sisi Timur-Barat tetap, hanya beri ruang vertikal terbatas.
-  // Tidak memaksa full-fit portrait yang sebelumnya menghasilkan expansion terlalu besar.
-  const isPortrait = ratio > 0 && ratio < 0.9;
-  if (isLowMapDevice_() && isPortrait && currentRatio > ratio) {
-    const verticalPad = h * LOW_PORTRAIT_VERTICAL_EXPAND_;
-    const extra = verticalPad / 2;
-    minU -= extra; maxU += extra;
-  } else if (currentRatio > ratio) {
-    // World terlalu lebar dibanding viewport landscape: tambah range Utara.
+  // V24.5 CONTRACT: X and Y use exactly the same aspect-fit rule.
+  // No LOW portrait branch, no Y-only compensation, no device-tier geometry.
+  if (currentRatio > ratio) {
     const targetH = w / ratio;
-    const extra = (targetH - h) / 2;
-    minU -= extra; maxU += extra;
+    const extraU = (targetH - h) / 2;
+    minU -= extraU;
+    maxU += extraU;
   } else if (currentRatio < ratio) {
-    // World terlalu tinggi dibanding viewport: tambah range Timur.
     const targetW = h * ratio;
-    const extra = (targetW - w) / 2;
-    minT -= extra; maxT += extra;
+    const extraT = (targetW - w) / 2;
+    minT -= extraT;
+    maxT += extraT;
   }
+
   return { minT, maxT, minU, maxU };
 }
 
+
 // STEP 5.3/5.6: viewBox zoom memakai native coordinate sebagai sumber kebenaran.
 // Tap anchor dipakai untuk tombol +/-; pinch anchor dipakai selama gesture 2-jari.
-function getMapViewBox_(bounds) {
-  const { viewW, viewH } = getMapSvgViewportSize_();
+function getMapViewBox_(bounds, viewportOverride) {
+  const viewport = viewportOverride || { width:MG1_VIEWPORT_SIZE_, height:MG1_VIEWPORT_SIZE_ };
+  const viewW = viewport.width, viewH = viewport.height;
   const zoomedW = viewW / mapZoom, zoomedH = viewH / mapZoom;
   let centerX = viewW / 2, centerY = viewH / 2;
   const rangeT = bounds.maxT - bounds.minT, rangeU = bounds.maxU - bounds.minU;
@@ -2550,13 +2551,15 @@ function renderMineGridSvg(points) {
   var mg1RuntimeUsedCount_ = 0;
   var mg1FallbackCount_ = 0;
   ensureMapContextBlocker_();
-  const bounds = computeResponsiveDisplayBounds_(points);
-  const { viewW, viewH } = getMapSvgViewportSize_();
-  if (!bounds) return '';
+  const baseBounds = computeMapViewBounds(points);
+  const geometry = getMapViewportGeometryContract_(baseBounds);
+  if (!geometry) return '';
+  const bounds = geometry.bounds;
+  const { width:viewW, height:viewH } = geometry.viewport;
   // Zoom diterapkan lewat viewBox SVG (bukan transform per-titik) -- viewBox lebih kecil
   // = area yg sama ditampilkan lebih besar (efek perbesar). STEP 5.3: pusat viewBox
   // mengikuti persistent viewport state; titik tap tidak pernah menjadi anchor.
-  const viewBox = getMapViewBox_(bounds);
+  const viewBox = geometry.viewBox;
   const valid = points.filter(p => p.hasValidCoord);
   let svg = '<svg viewBox="' + viewBox.x + ' ' + viewBox.y + ' ' + viewBox.w + ' ' + viewBox.h + '" preserveAspectRatio="xMidYMid meet" class="w-full h-full" data-map-gesture="true" oncontextmenu="return false" onselectstart="return false" ondragstart="return false" style="pointer-events:auto; touch-action:none; overflow:hidden; will-change:transform; transition:none; transform-origin:50% 50%; transform:rotate(' + mapRotationDeg_.toFixed(4) + 'deg); -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-user-drag:none;" onclick="handleMapTap_(event)" ontouchstart="handleMapTouchStart_(event)" ontouchmove="handleMapTouchMove_(event)" ontouchend="handleMapTouchEnd_(event)" ontouchcancel="handleMapTouchEnd_(event)" onpointerdown="handleMapPointerDown_(event)" onpointermove="handleMapPointerMove_(event)" onpointerup="handleMapPointerUp_(event)" onpointercancel="handleMapPointerCancel_(event)">';
   // [BARU -- 5 Sep] Peta background (foto udara/olah ArcGIS) -- digambar PALING BAWAH
@@ -2623,14 +2626,13 @@ function renderMineGridSvg(points) {
               : { ok:false, keys:[] };
             // STEP 8.21D: record visibleResult regardless of ok
             try { if (typeof window !== 'undefined') { window.mg1LastVisibleResult = visibleResult; window.mg1LastDetailFactor = detailLevel ? detailLevel.factor : null; window.mg1LastTargetFactor = targetFactor; } } catch(_) {}
-            // [FIX] Reconcile whenever the viewport result is valid, including a valid
-            // empty visible set. A planner failure must NOT be interpreted as empty viewport.
-            if (visibleResult.ok) {
+            if (visibleResult.ok && visibleResult.keys.length) {
+              // [BARU -- 15 Sep] Buang dulu entri pending yg sudah tidak relevan thd
+              // visible-keys RENDER INI, sebelum enqueue yg baru -- lihat komentar
+              // lengkap di reconcileLithositeTileQueueWithVisible_ (map-tile-queue.js).
               if (typeof reconcileLithositeTileQueueWithVisible_ === 'function') {
                 reconcileLithositeTileQueueWithVisible_(pyramid, visibleResult.keys);
               }
-            }
-            if (visibleResult.ok && visibleResult.keys.length) {
               const runtimeResult = typeof ensureRuntimeTiles_NonBlocking_ === 'function' ? ensureRuntimeTiles_NonBlocking_(visibleResult.keys, pyramid) : { ok:false, queued:0, missing:[], alreadyReady:0, alreadyLoading:0 };
               if (runtimeResult.ok && runtimeResult.queued > 0) {
                 // Background consumer - jangan await di render path, jangan block compositor
