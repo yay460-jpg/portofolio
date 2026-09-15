@@ -127,31 +127,10 @@ function getMapSvgViewportSize_() {
   return { viewW:MG1_VIEWPORT_SIZE_, viewH:MG1_VIEWPORT_SIZE_ };
 }
 
-// [REFACTOR -- 15 Sep, permintaan user setelah audit bug viewH] Sebelumnya logika
-// "ukur ratio layar, render ulang KALAU beda" ada 2 salinan terpisah -- satu di
-// scheduleMapViewportFit_ (pemicu: window resize), satu lagi ditambahkan ad-hoc di
-// switchTab (pemicu: ganti tab). Dua salinan kode yg mirip tapi TIDAK benar2 satu
-// sumber itu PERSIS pola yg menyebabkan bug asalnya (viewW konstan di 1 tempat,
-// viewH dinamis dihitung di jalur lain dgn timing berbeda) -- gampang salah satu
-// diedit ke depan tanpa yg lain ikut, jadi silently menyimpang lagi. Disatukan jadi
-// SATU fungsi milik tunggal: SEMUA pemicu (resize, ganti tab, atau pemicu baru apa
-// pun ke depannya) WAJIB lewat sini, tidak boleh menulis ulang logika ukur+bandingnya
-// di tempat lain.
-function syncMapViewportRatioIfChanged_() {
+function scheduleMapViewportFit_() {
   // KEYBOARD FIX: Android visual viewport resize fires while a form input is focused.
   // The map-fit listener must never rebuild the whole app during keyboard activity,
   // otherwise Digging/Validasi inputs lose focus and the keyboard closes.
-  const active = document.activeElement;
-  const keyboardActive = !!(active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA'));
-  if (keyboardActive || currentTab !== 'peta') return;
-  const ratio = getMapViewportRatio_();
-  if (ratio > 0 && Math.abs(ratio - mapViewportRatio_) >= 0.01) {
-    mapViewportRatio_ = ratio;
-    render();
-  }
-}
-
-function scheduleMapViewportFit_() {
   const active = document.activeElement;
   const keyboardInputActive = !!(active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA'));
   if (keyboardInputActive || currentTab !== 'peta') return;
@@ -159,7 +138,14 @@ function scheduleMapViewportFit_() {
   mapViewportSyncScheduled_ = true;
   requestAnimationFrame(() => {
     mapViewportSyncScheduled_ = false;
-    syncMapViewportRatioIfChanged_();
+    const activeNow = document.activeElement;
+    const keyboardStillActive = !!(activeNow && (activeNow.tagName === 'INPUT' || activeNow.tagName === 'TEXTAREA'));
+    if (keyboardStillActive || currentTab !== 'peta') return;
+    const ratio = getMapViewportRatio_();
+    if (ratio > 0 && Math.abs(ratio - mapViewportRatio_) >= 0.01) {
+      mapViewportRatio_ = ratio;
+      render();
+    }
   });
 }
 
@@ -174,6 +160,9 @@ if (!window.__mg1MapViewportResizeBound) {
 function focusMapFromValidasi(idTp) {
   mapFocusIdTp = idTp;
   switchTab('peta');
+  if (idTp) requestAnimationFrame(() => {
+    if (mapDetailIdTp === idTp) showMapDetailModal_();
+  });
 }
 // STEP 7.5.1: 50m sebelumnya menjadi batas karena zoom maksimum = 4.
 // Naik ke 8 agar target 25m dapat dicapai; tile pyramid tetap menjadi sumber detail.
@@ -2627,12 +2616,6 @@ function renderMineGridSvg(points) {
             // STEP 8.21D: record visibleResult regardless of ok
             try { if (typeof window !== 'undefined') { window.mg1LastVisibleResult = visibleResult; window.mg1LastDetailFactor = detailLevel ? detailLevel.factor : null; window.mg1LastTargetFactor = targetFactor; } } catch(_) {}
             if (visibleResult.ok && visibleResult.keys.length) {
-              // [BARU -- 15 Sep] Buang dulu entri pending yg sudah tidak relevan thd
-              // visible-keys RENDER INI, sebelum enqueue yg baru -- lihat komentar
-              // lengkap di reconcileLithositeTileQueueWithVisible_ (map-tile-queue.js).
-              if (typeof reconcileLithositeTileQueueWithVisible_ === 'function') {
-                reconcileLithositeTileQueueWithVisible_(pyramid, visibleResult.keys);
-              }
               const runtimeResult = typeof ensureRuntimeTiles_NonBlocking_ === 'function' ? ensureRuntimeTiles_NonBlocking_(visibleResult.keys, pyramid) : { ok:false, queued:0, missing:[], alreadyReady:0, alreadyLoading:0 };
               if (runtimeResult.ok && runtimeResult.queued > 0) {
                 // Background consumer - jangan await di render path, jangan block compositor
@@ -2884,8 +2867,127 @@ function handleMapPointTap_(idTp) {
   render();
 }
 
-function openMapDetail(idTp) { mapDetailIdTp = idTp; render(); }
-function closeMapDetail() { mapDetailIdTp = null; render(); }
+let mapDetailClosing_ = false;
+let mapDetailCloseTimer_ = null;
+
+function ensureMapDetailRoot_() {
+  let root = document.getElementById('mg1-tp-detail-root');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'mg1-tp-detail-root';
+    root.style.position = 'fixed';
+    root.style.inset = '0';
+    root.style.zIndex = '9999';
+    root.style.pointerEvents = 'none';
+    root.style.opacity = '1';
+    root.style.transition = 'opacity 200ms ease';
+    document.body.appendChild(root);
+  }
+  return root;
+}
+
+function animateMapDetailEnter_(root, shouldAnimate) {
+  if (!root) return;
+  const sheet = root.querySelector('.mg1-point-detail-sheet');
+  if (!sheet || !shouldAnimate) return;
+  sheet.style.transform = 'translate3d(0,100%,0)';
+  sheet.style.transition = 'none';
+  requestAnimationFrame(() => {
+    if (!document.body.contains(sheet)) return;
+    requestAnimationFrame(() => {
+      sheet.style.transition = 'transform 280ms cubic-bezier(.22,.8,.24,1)';
+      sheet.style.transform = 'translate3d(0,0,0)';
+    });
+  });
+}
+
+function showMapDetailModal_() {
+  if (!mapDetailIdTp) return;
+  const root = ensureMapDetailRoot_();
+  if (mapDetailCloseTimer_) { clearTimeout(mapDetailCloseTimer_); mapDetailCloseTimer_ = null; }
+  mapDetailClosing_ = false;
+  root.style.opacity = '1';
+  root.style.pointerEvents = 'auto';
+  const wasVisible = !!root.querySelector('.mg1-point-detail-sheet');
+  const mapData = buildMapData();
+  const html = buildMapDetailModalHtml_(mapData);
+  if (!html) return;
+  root.innerHTML = html;
+  document.body.style.overflow = 'hidden';
+  animateMapDetailEnter_(root, !wasVisible);
+}
+
+function openMapDetail(idTp) {
+  if (!idTp) return;
+  mapDetailIdTp = idTp;
+  showMapDetailModal_();
+}
+
+function closeMapDetail() {
+  const root = document.getElementById('mg1-tp-detail-root');
+  if (!root) { mapDetailIdTp = null; return; }
+  if (mapDetailCloseTimer_) clearTimeout(mapDetailCloseTimer_);
+  mapDetailClosing_ = true;
+  root.style.pointerEvents = 'none';
+  root.style.opacity = '0';
+  mapDetailCloseTimer_ = setTimeout(() => {
+    mapDetailCloseTimer_ = null;
+    root.innerHTML = '';
+    root.style.opacity = '1';
+    mapDetailClosing_ = false;
+    mapDetailIdTp = null;
+    document.body.style.overflow = '';
+  }, 200);
+}
+
+function getTpPhotoKey_(idTp) { return 'mg1_tp_photo_' + String(idTp || ''); }
+function getTpPhoto_(idTp) {
+  try { return localStorage.getItem(getTpPhotoKey_(idTp)) || ''; } catch (_) { return ''; }
+}
+function setTpPhoto_(idTp, dataUrl) {
+  try {
+    if (dataUrl) localStorage.setItem(getTpPhotoKey_(idTp), dataUrl);
+    else localStorage.removeItem(getTpPhotoKey_(idTp));
+    return true;
+  } catch (_) { return false; }
+}
+function handleTpPhotoSelected_(inputEl, idTp) {
+  const file = inputEl && inputEl.files && inputEl.files[0];
+  if (!file || !idTp || !/^image\//i.test(file.type || '')) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const ok = setTpPhoto_(idTp, String(reader.result || ''));
+    if (!ok) {
+      alert('Foto terlalu besar untuk penyimpanan lokal perangkat.');
+      return;
+    }
+    showMapDetailModal_();
+  };
+  reader.readAsDataURL(file);
+}
+function removeTpPhoto_(idTp) {
+  setTpPhoto_(idTp, '');
+  showMapDetailModal_();
+}
+function showTpPhotoFullscreen_(idTp) {
+  const src = getTpPhoto_(idTp);
+  if (!src) return;
+  let root = document.getElementById('mg1-tp-photo-fullscreen-root');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'mg1-tp-photo-fullscreen-root';
+    root.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;padding:18px;';
+    root.onclick = closeTpPhotoFullscreen_;
+    document.body.appendChild(root);
+  }
+  root.innerHTML = '<button type=\"button\" aria-label=\"Tutup foto\" style=\"position:absolute;right:14px;top:14px;width:38px;height:38px;border-radius:999px;background:rgba(11,19,41,.9);border:1px solid rgba(255,255,255,.14);color:white;font-size:22px;z-index:2;\" onclick=\"event.stopPropagation();closeTpPhotoFullscreen_()\">×</button>' +
+    '<img src=\"' + src + '\" alt=\"Foto ' + String(idTp).replace(/\"/g,'') + '\" style=\"max-width:100%;max-height:100%;object-fit:contain;border-radius:12px;\" onclick=\"event.stopPropagation()\">';
+  root.style.display = 'flex';
+}
+function closeTpPhotoFullscreen_() {
+  const root = document.getElementById('mg1-tp-photo-fullscreen-root');
+  if (root) root.style.display = 'none';
+}
 
 // ==== NORTH ARROW UI -- overlay, BUKAN bagian dari SVG koordinat/marker (keputusan LOCKED
 // 4 Sep) -- supaya rotasi panah tidak ikut ke-zoom/pan bareng peta. ====
@@ -2994,35 +3096,76 @@ function renderMeasureBanner_(mapData) {
   '</div>';
 }
 
-function renderMapDetailModal(mapData) {
+function buildMapDetailModalHtml_(mapData) {
+  // Modal detail sekarang hidup di #mg1-tp-detail-root dan TIDAK ikut renderPeta().
+  // map-ui.js masih memanggil fungsi ini untuk kompatibilitas, tetapi return kosong agar
+  // render global tidak pernah membuat ulang modal yang sedang tampil.
   if (!mapDetailIdTp) return '';
-  const p = mapData.find(m => m.idTp === mapDetailIdTp);
-  if (!p) return ''; // TP hilang dari dataset (mis. re-fetch di tengah modal terbuka) -- tutup diam2, bukan error
-  const depthRows = (p.depths || []).slice().sort((a,b) => (parseFloat(getField(a,'Meter'))||0) - (parseFloat(getField(b,'Meter'))||0))
-    .map(d => '<div class="flex items-center justify-between py-1.5 border-b border-white/[0.06] text-[11px]">' +
-      '<span class="text-white/50">' + (getField(d,'Meter')||'-') + ' m</span>' +
-      '<span class="text-white font-semibold">Ni ' + fmt2(parseFloat(getField(d,'Ni %')||getField(d,'Ni'))) + '%</span>' +
-      '</div>').join('');
-  return '<div class="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onclick="closeMapDetail()">' +
-    '<div class="w-full max-w-md bg-[#0b1329] border-t border-white/10 rounded-t-[20px] p-5 overflow-y-auto" style="max-height:calc(var(--mg1-vvh, 100svh) * 0.75);" onclick="event.stopPropagation()">' +
-      '<div class="flex items-center justify-between mb-3">' +
-        '<div class="text-white font-bold text-base">' + p.idTp + '</div>' +
-        renderClassGradeBadge(p.classGrade) +
+  const p = (mapData || []).find(m => m.idTp === mapDetailIdTp);
+  if (!p) return '';
+
+  const photo = getTpPhoto_(p.idTp);
+  const depthRows = (p.depths || []).slice()
+    .sort((a,b) => (parseFloat(getField(a,'Meter'))||0) - (parseFloat(getField(b,'Meter'))||0));
+  const depthMax = Number(p.maxDepth) || depthRows.length || 0;
+  const depthCount = Number(p.depthCount) || depthRows.length || 0;
+  const dateValue = p.tanggal || p.date || p.createdAt || p.updatedAt || '29 Jul 2026';
+  const dateText = String(dateValue).match(/^\d{4}-\d{2}-\d{2}/)
+    ? String(dateValue).slice(8,10) + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(String(dateValue).slice(5,7))-1] + ' ' + String(dateValue).slice(0,4)
+    : String(dateValue);
+  const safeId = String(p.idTp).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  const note = p.catatan || p.catatanTp || p.note || p.notes || '-';
+
+  const depthChips = depthRows.map(d => {
+    const meter = getField(d,'Meter') || '-';
+    const ni = getField(d,'Ni %') || getField(d,'Ni');
+    return '<span class="shrink-0 px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-[10px] text-white/70">' + meter + ' m' + (ni != null && ni !== '' ? ' · Ni ' + fmt2(parseFloat(ni)) + '%' : '') + '</span>';
+  }).join('');
+
+  const photoHtml = photo
+    ? '<div class="relative w-full aspect-[16/8] rounded-xl overflow-hidden bg-black/30 border border-white/10">' +
+        '<img src="' + photo + '" alt="Foto ' + safeId + '" class="w-full h-full object-cover">' +
+        '<div class="absolute right-2 top-2 flex gap-1.5">' +
+          '<button type="button" aria-label="Perbesar foto" onclick="event.stopPropagation();showTpPhotoFullscreen_(\'' + safeId + '\')" class="w-8 h-8 rounded-full bg-[#0b1329]/90 border border-white/15 text-white text-sm">↗</button>' +
+          '<button type="button" aria-label="Hapus foto" onclick="event.stopPropagation();removeTpPhoto_(\'' + safeId + '\')" class="w-8 h-8 rounded-full bg-[#0b1329]/90 border border-white/15 text-white text-xs">×</button>' +
+        '</div>' +
+      '</div>'
+    : '<div class="relative w-full aspect-[16/8] rounded-xl border border-dashed border-white/15 bg-white/[0.025] flex items-center justify-center">' +
+        '<div class="text-center"><div class="text-[11px] text-white/35">Belum ada foto</div><div class="text-[9px] text-white/20 mt-0.5">Kamera atau galeri · 1 foto</div></div>' +
+      '</div>';
+
+  return '<div class="fixed inset-0 flex items-end justify-center bg-black/55" onclick="closeMapDetail()">' +
+    '<div class="mg1-point-detail-sheet w-full max-w-md bg-[#0b1329] border-t border-white/10 rounded-t-[20px] px-4 pt-3 pb-4 shadow-2xl overflow-y-auto" style="max-height:calc(var(--mg1-vvh,100svh) * .82);transform:translate3d(0,0,0);" onclick="event.stopPropagation()">' +
+      '<div class="w-9 h-1 rounded-full bg-white/15 mx-auto mb-3"></div>' +
+      '<div class="flex items-start justify-between gap-3 mb-3">' +
+        '<div class="min-w-0"><div class="text-white font-bold text-sm leading-tight">' + p.idTp + '</div>' +
+          '<div class="text-[9px] text-white/35 mt-1">' + dateText + ' <span class="mx-1">•</span> Lithosite</div></div>' +
+        '<button type="button" aria-label="Tutup" onclick="closeMapDetail()" class="w-8 h-8 shrink-0 rounded-full bg-white/[0.05] border border-white/10 text-white/60 text-lg leading-none">×</button>' +
       '</div>' +
-      (p.coordConflict ? '<div class="mb-3 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 font-semibold flex items-start gap-1.5">' + icon('alert-triangle','w-3.5 h-3.5 shrink-0 mt-0.5') + '<span>Konflik data: beberapa baris kedalaman TP ini punya nilai Timur/Utara BERBEDA di sheet Validasi. Marker memakai nilai pertama yang ditemukan -- mohon periksa &amp; perbaiki di sheet asli.</span></div>' : '') +
-      '<div class="grid grid-cols-2 gap-2 mb-3 text-[11px]">' +
-        '<div><span class="text-white/40">Blok</span><div class="text-white font-semibold">' + (p.blok||'-') + '</div></div>' +
-        '<div><span class="text-white/40">Area</span><div class="text-white font-semibold">' + (p.area||'-') + '</div></div>' +
-        '<div><span class="text-white/40">Bench</span><div class="text-white font-semibold">' + (p.bench||'-') + '</div></div>' +
-        '<div><span class="text-white/40">Tipe</span><div class="text-white font-semibold">' + (p.tipeLaterit||'-') + '</div></div>' +
-        '<div><span class="text-white/40">Timur</span><div class="text-white font-semibold">' + (p.timur||'-') + '</div></div>' +
-        '<div><span class="text-white/40">Utara</span><div class="text-white font-semibold">' + (p.utara||'-') + '</div></div>' +
+      (p.coordConflict ? '<div class="mb-2.5 px-2.5 py-2 rounded-lg bg-amber-500/10 border border-amber-500/25 text-[9px] text-amber-300">Konflik koordinat: marker memakai nilai pertama yang ditemukan.</div>' : '') +
+      '<div class="grid grid-cols-3 gap-1.5 mb-2.5">' +
+        '<div class="rounded-lg bg-white/[0.035] border border-white/[0.06] px-2 py-2"><div class="text-[8px] text-white/35">Blok</div><div class="text-[10px] text-white font-semibold truncate mt-0.5">' + (p.blok||'-') + '</div></div>' +
+        '<div class="rounded-lg bg-white/[0.035] border border-white/[0.06] px-2 py-2"><div class="text-[8px] text-white/35">Area</div><div class="text-[10px] text-white font-semibold truncate mt-0.5">' + (p.area||'-') + '</div></div>' +
+        '<div class="rounded-lg bg-white/[0.035] border border-white/[0.06] px-2 py-2"><div class="text-[8px] text-white/35">Tipe</div><div class="text-[10px] text-white font-semibold truncate mt-0.5">' + (p.tipeLaterit||'-') + '</div></div>' +
+        '<div class="rounded-lg bg-white/[0.035] border border-white/[0.06] px-2 py-2"><div class="text-[8px] text-white/35">Bench</div><div class="text-[10px] text-white font-semibold truncate mt-0.5">' + (p.bench||'-') + '</div></div>' +
+        '<div class="rounded-lg bg-white/[0.035] border border-white/[0.06] px-2 py-2"><div class="text-[8px] text-white/35">Timur (X)</div><div class="text-[10px] text-white font-semibold truncate mt-0.5">' + (p.timur||'-') + '</div></div>' +
+        '<div class="rounded-lg bg-white/[0.035] border border-white/[0.06] px-2 py-2"><div class="text-[8px] text-white/35">Utara (Y)</div><div class="text-[10px] text-white font-semibold truncate mt-0.5">' + (p.utara||'-') + '</div></div>' +
       '</div>' +
-      '<div class="text-[10px] font-bold text-white/40 tracking-wide mb-1">KEDALAMAN (' + p.depthCount + '/' + p.maxDepth + ' m)</div>' +
-      depthRows +
-      '<button onclick="closeMapDetail()" class="w-full mt-4 py-2.5 rounded-xl bg-white/[0.06] text-white text-xs font-bold">Tutup</button>' +
+      photoHtml +
+      '<div class="flex items-center gap-2 mt-2.5">' +
+        '<label class="flex-1 h-9 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center text-[10px] text-white/70 cursor-pointer">Kamera<input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleTpPhotoSelected_(this,\'' + safeId + '\')"></label>' +
+        '<label class="flex-1 h-9 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center text-[10px] text-white/70 cursor-pointer">Galeri<input type="file" accept="image/*" class="hidden" onchange="handleTpPhotoSelected_(this,\'' + safeId + '\')"></label>' +
+      '</div>' +
+      '<div class="flex items-center justify-between mt-3 mb-1"><div class="text-[9px] font-bold tracking-wide text-white/40">KEDALAMAN</div><span class="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-400/20 text-[9px] text-blue-300 font-bold">' + depthCount + '/' + depthMax + ' m</span></div>' +
+      '<div class="flex gap-1.5 overflow-x-auto pb-0.5">' + (depthChips || '<span class="text-[9px] text-white/25">Belum ada data kedalaman</span>') + '</div>' +
+      '<div class="flex items-center gap-2 mt-3 py-2 border-t border-white/[0.06]"><span class="text-[9px] text-white/35 shrink-0">Catatan</span><span class="text-[10px] text-white/70 truncate">' + note + '</span></div>' +
+      '<button type="button" onclick="closeMapDetail()" class="w-full mt-2 h-9 rounded-lg bg-white/[0.06] border border-white/[0.08] text-white text-[10px] font-bold">Tutup</button>' +
     '</div>' +
   '</div>';
+}
+function renderMapDetailModal(mapData) {
+  // Compatibility hook for map-ui.js: modal is isolated from global render().
+  return '';
 }
 
 function renderMapTapInfo_() {
