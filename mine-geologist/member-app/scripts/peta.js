@@ -2862,8 +2862,133 @@ function handleMapPointTap_(idTp) {
   render();
 }
 
-function openMapDetail(idTp) { mapDetailIdTp = idTp; render(); }
-function closeMapDetail() { mapDetailIdTp = null; render(); }
+// ==== POINT DETAIL PHOTO -- single photo, camera/gallery, fullscreen viewer ====
+const MG1_POINT_PHOTO_DB_NAME_ = 'mg1_point_photos';
+const MG1_POINT_PHOTO_DB_VERSION_ = 1;
+const MG1_POINT_PHOTO_STORE_ = 'photos';
+let mapDetailPhotoState_ = { idTp:null, url:'', loading:false, error:'' };
+let mapDetailPhotoViewerOpen_ = false;
+
+function openPointPhotoDb_() {
+  return new Promise((resolve, reject) => {
+    try {
+      const req = indexedDB.open(MG1_POINT_PHOTO_DB_NAME_, MG1_POINT_PHOTO_DB_VERSION_);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(MG1_POINT_PHOTO_STORE_)) {
+          db.createObjectStore(MG1_POINT_PHOTO_STORE_, { keyPath:'idTp' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error('Database foto tidak tersedia.'));
+    } catch (e) { reject(e); }
+  });
+}
+
+function revokeMapDetailPhotoUrl_() {
+  if (mapDetailPhotoState_.url && /^blob:/.test(mapDetailPhotoState_.url)) {
+    try { URL.revokeObjectURL(mapDetailPhotoState_.url); } catch (_) {}
+  }
+  mapDetailPhotoState_.url = '';
+}
+
+async function loadMapDetailPhoto_(idTp) {
+  revokeMapDetailPhotoUrl_();
+  mapDetailPhotoState_ = { idTp:idTp, url:'', loading:true, error:'' };
+  render();
+  try {
+    const db = await openPointPhotoDb_();
+    const row = await new Promise((resolve, reject) => {
+      const tx = db.transaction(MG1_POINT_PHOTO_STORE_, 'readonly');
+      const req = tx.objectStore(MG1_POINT_PHOTO_STORE_).get(idTp);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+    try { db.close(); } catch (_) {}
+    if (mapDetailPhotoState_.idTp !== idTp) return;
+    if (row && row.blob) mapDetailPhotoState_.url = URL.createObjectURL(row.blob);
+    mapDetailPhotoState_.loading = false;
+    render();
+  } catch (e) {
+    if (mapDetailPhotoState_.idTp !== idTp) return;
+    mapDetailPhotoState_.loading = false;
+    mapDetailPhotoState_.error = 'Foto belum tersedia.';
+    render();
+  }
+}
+
+function openMapDetail(idTp) {
+  mapDetailIdTp = idTp;
+  mapDetailPhotoViewerOpen_ = false;
+  loadMapDetailPhoto_(idTp);
+  render();
+}
+function closeMapDetail() {
+  mapDetailPhotoViewerOpen_ = false;
+  revokeMapDetailPhotoUrl_();
+  mapDetailPhotoState_ = { idTp:null, url:'', loading:false, error:'' };
+  mapDetailIdTp = null;
+  render();
+}
+function openMapDetailPhotoViewer_() {
+  if (!mapDetailPhotoState_.url) return;
+  mapDetailPhotoViewerOpen_ = true;
+  render();
+}
+function closeMapDetailPhotoViewer_() {
+  mapDetailPhotoViewerOpen_ = false;
+  render();
+}
+
+async function handleMapDetailPhotoSelected_(inputEl) {
+  const file = inputEl && inputEl.files && inputEl.files[0];
+  if (!file || !mapDetailIdTp) return;
+  // One photo only; selecting another replaces the existing one.
+  if (!String(file.type || '').startsWith('image/')) {
+    mapDetailPhotoState_.error = 'File harus berupa foto JPG/PNG.';
+    render();
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    mapDetailPhotoState_.error = 'Ukuran foto maksimal 5MB.';
+    render();
+    return;
+  }
+  const idTp = mapDetailIdTp;
+  mapDetailPhotoState_.loading = true;
+  mapDetailPhotoState_.error = '';
+  render();
+  try {
+    const db = await openPointPhotoDb_();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(MG1_POINT_PHOTO_STORE_, 'readwrite');
+      tx.objectStore(MG1_POINT_PHOTO_STORE_).put({
+        idTp: idTp,
+        blob: file,
+        mime: file.type || 'image/jpeg',
+        name: file.name || 'foto',
+        updatedAt: new Date().toISOString()
+      });
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error('Gagal menyimpan foto.'));
+      tx.onabort = () => reject(tx.error || new Error('Penyimpanan foto dibatalkan.'));
+    });
+    try { db.close(); } catch (_) {}
+    if (mapDetailPhotoState_.idTp !== idTp) return;
+    revokeMapDetailPhotoUrl_();
+    mapDetailPhotoState_.url = URL.createObjectURL(file);
+    mapDetailPhotoState_.loading = false;
+    render();
+  } catch (e) {
+    if (mapDetailPhotoState_.idTp !== idTp) return;
+    mapDetailPhotoState_.loading = false;
+    mapDetailPhotoState_.error = 'Foto gagal disimpan.';
+    render();
+  } finally {
+    try { inputEl.value = ''; } catch (_) {}
+  }
+}
+
 
 // ==== NORTH ARROW UI -- overlay, BUKAN bagian dari SVG koordinat/marker (keputusan LOCKED
 // 4 Sep) -- supaya rotasi panah tidak ikut ke-zoom/pan bareng peta. ====
@@ -2992,7 +3117,6 @@ function renderMapDetailModal(mapData) {
   const depthRows = (p.depths || []).slice().sort((a,b) =>
     (parseFloat(getField(a,'Meter'))||0) - (parseFloat(getField(b,'Meter'))||0)
   );
-
   const depthChips = depthRows.map(d =>
     '<div class="min-w-0 flex-1 rounded-xl border border-blue-400/55 bg-[#081a36] px-1.5 py-1.5 text-center" style="min-width:0;">' +
       '<div class="text-[10px] sm:text-[11px] font-medium text-white">' + escapeHtml_(getField(d,'Meter') || '-') + ' m</div>' +
@@ -3002,20 +3126,22 @@ function renderMapDetailModal(mapData) {
 
   const firstDepth = depthRows.length ? depthRows[0] : null;
   const note = firstDepth ? (getField(firstDepth, 'Catatan') || '') : '';
-  const photoUrl = p.photoUrl || p.fotoUrl || p.photo || p.foto || '';
+  const photoUrl = mapDetailPhotoState_.idTp === p.idTp ? mapDetailPhotoState_.url : '';
   const detailDate = formatPointDate_(p.tanggal);
   const detailUser = p.userName || (typeof sessionInfo !== 'undefined' && sessionInfo ? sessionInfo.userName : '') || '—';
 
   const photoPreview = photoUrl
     ? '<div class="relative overflow-hidden rounded-2xl border border-blue-400/55 bg-[#08152d]" style="aspect-ratio:16/7.0;">' +
-        '<img src="' + photoUrl + '" alt="Foto ' + escapeHtml_(p.idTp || '') + '" class="w-full h-full object-cover" draggable="false" />' +
-        '<button type="button" aria-label="Perbesar foto" class="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#071226]/90 text-white text-[20px] border border-white/10">↗</button>' +
+        '<img src="' + escapeHtml_(photoUrl) + '" alt="Foto ' + escapeHtml_(p.idTp || '') + '" class="w-full h-full object-cover" draggable="false" />' +
+        '<button type="button" aria-label="Lihat foto penuh" onclick="openMapDetailPhotoViewer_()" class="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#071226]/90 text-white text-[19px] border border-white/10">↗</button>' +
       '</div>'
-    : '<div class="relative overflow-hidden rounded-2xl border-2 border-dashed border-blue-400/75 bg-[#08152d] flex flex-col items-center justify-center text-center" style="aspect-ratio:16/7.0;">' +
+    : '<label class="relative overflow-hidden rounded-2xl border-2 border-dashed border-blue-400/75 bg-[#08152d] flex flex-col items-center justify-center text-center cursor-pointer select-none" style="aspect-ratio:16/7.0;" for="mg1-point-photo-input">' +
+        '<input id="mg1-point-photo-input" type="file" accept="image/*" capture="environment" class="hidden" onchange="handleMapDetailPhotoSelected_(this)" />' +
         '<div class="h-14 w-14 rounded-full bg-[#2f7ff0] flex items-center justify-center text-white text-2xl mb-2">▢</div>' +
-        '<div class="text-[14px] sm:text-[16px] font-bold text-[#438cff]">Tambah Foto</div>' +
-        '<div class="text-[9px] sm:text-[10px] text-white/45 mt-0.5">JPG · PNG · Maks 5MB</div>' +
-      '</div>';
+        '<div class="text-[14px] sm:text-[16px] font-bold text-[#438cff]">' + (mapDetailPhotoState_.loading ? 'Memproses Foto…' : 'Tambah Foto') + '</div>' +
+        '<div class="text-[9px] sm:text-[10px] text-white/45 mt-0.5">Kamera / Galeri · JPG · PNG · Maks 5MB</div>' +
+        (mapDetailPhotoState_.error ? '<div class="mt-1 text-[9px] text-rose-300">' + escapeHtml_(mapDetailPhotoState_.error) + '</div>' : '') +
+      '</label>';
 
   const infoCard = (label, value) =>
     '<div class="min-w-0 rounded-xl border border-blue-300/20 bg-[#071a36] px-2.5 py-2">' +
@@ -3023,19 +3149,20 @@ function renderMapDetailModal(mapData) {
       '<div class="text-[13px] sm:text-[15px] font-bold text-white truncate">' + escapeHtml_(value || '-') + '</div>' +
     '</div>';
 
-  return '<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-[5px] px-2 sm:px-4" onclick="closeMapDetail()">' +
-    '<div class="w-full max-w-[1140px] bg-[#071a36] border border-blue-400/40 rounded-[24px] sm:rounded-[30px] px-3 sm:px-5 lg:px-6 pt-3 sm:pt-4 pb-4 sm:pb-5 shadow-2xl overflow-y-auto" style="max-height:calc(var(--mg1-vvh,100svh) * .94);" onclick="event.stopPropagation()">' +
+  const baseModal = '<div class="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-[5px] px-2 sm:px-4" onclick="closeMapDetail()">' +
+    '<div class="w-full max-w-[1140px] bg-[#071a36] border border-blue-400/40 rounded-t-[24px] sm:rounded-t-[30px] px-3 sm:px-5 lg:px-6 pt-3 sm:pt-4 pb-4 sm:pb-5 shadow-2xl overflow-y-auto" style="max-height:calc(var(--mg1-vvh,100svh) * .94); animation:mg1PointModalUp .22s ease-out both;" onclick="event.stopPropagation()">' +
       '<div class="mx-auto mb-3 sm:mb-4 h-1.5 w-12 sm:w-16 rounded-full bg-white/35"></div>' +
       '<div class="border-b border-blue-300/20 px-1 pb-3 sm:pb-4 mb-3 sm:mb-4">' +
         '<div class="flex items-center justify-between gap-3">' +
           '<div class="min-w-0 flex-1">' +
-            '<div class="text-white font-black tracking-tight text-[19px] sm:text-[22px] lg:text-[26px] leading-none truncate">' + escapeHtml_(p.idTp || '—') + '</div>' +
-            '<div class="mt-1.5 flex items-center gap-x-2 text-[10px] sm:text-[11px] lg:text-[13px] text-[#9fc5ff] whitespace-nowrap overflow-hidden">' +
-              '<span class="shrink-0">' + escapeHtml_(detailDate) + '</span><span class="text-blue-300/70 shrink-0">•</span>' +
-              '<span class="truncate">' + escapeHtml_(detailUser) + '</span>' +
+            '<div class="flex items-baseline gap-x-2 whitespace-nowrap overflow-hidden">' +
+              '<span class="text-white font-black tracking-tight text-[17px] sm:text-[20px] lg:text-[24px] leading-none truncate">' + escapeHtml_(p.idTp || '—') + '</span>' +
+              '<span class="text-[9px] sm:text-[10px] text-[#9fc5ff] truncate">' + escapeHtml_(detailDate) + '</span>' +
+              '<span class="text-blue-300/70 text-[9px] shrink-0">•</span>' +
+              '<span class="text-[9px] sm:text-[10px] text-[#9fc5ff] truncate">' + escapeHtml_(detailUser) + '</span>' +
             '</div>' +
           '</div>' +
-          '<div class="rounded-lg bg-[#2f7ff0] px-2.5 py-1 text-[12px] sm:text-[13px] font-bold text-white shrink-0">MG</div>' +
+          '<div class="rounded-lg bg-[#2f7ff0] px-2.5 py-1 text-[11px] sm:text-[12px] font-bold text-white shrink-0">MG</div>' +
         '</div>' +
       '</div>' +
       (p.coordConflict ? '<div class="mb-3 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 font-semibold">Konflik data: beberapa baris kedalaman TP ini punya nilai Timur/Utara berbeda. Marker memakai nilai pertama yang ditemukan.</div>' : '') +
@@ -3063,6 +3190,13 @@ function renderMapDetailModal(mapData) {
       '</div>' +
     '</div>' +
   '</div>';
+
+  const viewer = mapDetailPhotoViewerOpen_ && photoUrl
+    ? '<div class="fixed inset-0 z-[60] bg-black/95 flex items-center justify-center p-3" onclick="closeMapDetailPhotoViewer_()">' +
+        '<img src="' + escapeHtml_(photoUrl) + '" alt="Foto penuh ' + escapeHtml_(p.idTp || '') + '" class="max-w-full max-h-full object-contain" onclick="event.stopPropagation()" />' +
+        '<button type="button" aria-label="Tutup foto penuh" onclick="closeMapDetailPhotoViewer_()" class="absolute right-4 top-4 h-11 w-11 rounded-full bg-[#071226]/90 border border-white/20 text-white text-xl">×</button>' +
+      '</div>' : '';
+  return '<style>@keyframes mg1PointModalUp{from{transform:translateY(100%)}to{transform:translateY(0)}}@media(prefers-reduced-motion:reduce){.mg1PointModalUp{animation:none!important}}</style>' + baseModal + viewer;
 }
 
 function renderMapTapInfo_() {
