@@ -1,6 +1,6 @@
 /* ============================================================
  * LITHOSITE -- MEMBER APP (Android Prototype) SERVICE WORKER
- * V24.5 FINAL LOCKED REVISION D -- POINT DETAIL MODAL ISOLATION FIX
+ * V24.5 FINAL LOCKED REVISION B -- UI / OFFLINE SHELL
  *
  * Terpisah TOTAL dari sw.js dashboard utama (index.html/member.html/supervisor.html)
  * -- CACHE_NAME beda, daftar precache beda -- supaya update salah satu tidak pernah
@@ -11,7 +11,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260915d';
+const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260915b';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
