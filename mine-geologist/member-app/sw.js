@@ -11,7 +11,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260915b';
+const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260915c';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
