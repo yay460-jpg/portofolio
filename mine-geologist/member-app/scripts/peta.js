@@ -2971,6 +2971,18 @@ function renderMeasureBanner_(mapData) {
   '</div>';
 }
 
+function formatPointDate_(value) {
+  if (!value) return '—';
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    const hasTime = /T|\d{1,2}:\d{2}/.test(String(value));
+    return d.toLocaleString('id-ID', hasTime
+      ? { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }
+      : { day:'2-digit', month:'short', year:'numeric' });
+  } catch (_) { return String(value); }
+}
+
 function renderMapDetailModal(mapData) {
   if (!mapDetailIdTp) return '';
   const p = mapData.find(m => m.idTp === mapDetailIdTp);
@@ -2978,61 +2990,82 @@ function renderMapDetailModal(mapData) {
 
   const depthRows = (p.depths || []).slice().sort((a,b) => (parseFloat(getField(a,'Meter'))||0) - (parseFloat(getField(b,'Meter'))||0));
   const depthChips = depthRows.map(d =>
-    '<div class="min-w-0 flex-1 rounded-xl bg-[#2f7ff0] px-1.5 py-2 text-center text-[9px] font-bold text-white shadow-sm">' +
-      '<div>' + (getField(d,'Meter') || '-') + ' m</div>' +
-      '<div class="text-white/95">Ni ' + fmt2(parseFloat(getField(d,'Ni %') || getField(d,'Ni'))) + '%</div>' +
+    '<div class="min-w-0 flex-1 rounded-xl border border-blue-400/50 bg-[#0c1c39] px-2 py-2.5 text-center" style="min-width:0;">' +
+      '<div class="text-[11px] sm:text-[12px] font-medium text-white">' + (getField(d,'Meter') || '-') + ' m</div>' +
+      '<div class="text-[13px] sm:text-[14px] font-black text-white mt-0.5">Ni ' + fmt2(parseFloat(getField(d,'Ni %') || getField(d,'Ni'))) + '%</div>' +
     '</div>'
   ).join('');
 
   const firstDepth = depthRows.length ? depthRows[0] : null;
   const note = firstDepth ? (getField(firstDepth, 'Catatan') || '') : '';
   const photoUrl = p.photoUrl || p.fotoUrl || p.photo || p.foto || '';
-  const photoPreview = photoUrl
-    ? '<div class="relative mb-2 overflow-hidden rounded-2xl border border-blue-400/30 bg-[#08152d]" style="aspect-ratio:16/8;">' +
-        '<img src="' + photoUrl + '" alt="Foto ' + p.idTp + '" class="w-full h-full object-cover" draggable="false" />' +
-        '<div class="absolute right-2 top-2 rounded-full bg-[#08152d]/85 px-2 py-1 text-[10px] text-white">↗</div>' +
-      '</div>'
-    : '';
+  const detailUser = (typeof sessionInfo !== 'undefined' && sessionInfo && sessionInfo.userName)
+    ? String(sessionInfo.userName) : 'Lithosite';
+  const detailDate = formatPointDate_(p.tanggal);
 
-  return '<div class="fixed inset-0 z-50 flex items-end justify-center bg-black/65 backdrop-blur-[2px]" onclick="closeMapDetail()">' +
-    '<div class="w-full max-w-2xl bg-[#0b1938] border border-blue-400/20 rounded-t-[26px] px-4 sm:px-5 pt-3 pb-5 shadow-2xl overflow-y-auto" style="max-height:calc(var(--mg1-vvh, 100svh) * 0.92);" onclick="event.stopPropagation()">' +
-      '<div class="mx-auto mb-3 h-1.5 w-12 rounded-full bg-white/30"></div>' +
-      '<div class="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-[#10244b] px-4 py-3 mb-3">' +
-        '<div class="text-white font-black text-[25px] sm:text-[30px] tracking-tight">' + p.idTp + '</div>' +
-        '<div class="rounded-xl bg-[#2f7ff0] px-3 py-1.5 text-[17px] font-black text-white">MG</div>' +
+  const locationIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px;display:block;fill:#438cff;flex:none;">' +
+    '<path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.8A2.8 2.8 0 1 1 12 6a2.8 2.8 0 0 1 0 5.8Z"/></svg>';
+  const photoPreview = photoUrl
+    ? '<div class="relative overflow-hidden rounded-2xl border border-blue-400/55 bg-[#08152d]" style="aspect-ratio:16/7.6;">' +
+        '<img src="' + photoUrl + '" alt="Foto ' + p.idTp + '" class="w-full h-full object-cover" draggable="false" />' +
+        '<div class="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#071226]/90 text-white text-[20px] border border-white/10">↗</div>' +
+      '</div>'
+    : '<div class="relative overflow-hidden rounded-2xl border-2 border-dashed border-blue-400/75 bg-[#08152d] flex flex-col items-center justify-center text-center" style="aspect-ratio:16/7.6;">' +
+        '<div class="h-16 w-16 rounded-full bg-[#2f7ff0] flex items-center justify-center text-white text-3xl mb-2">▢</div>' +
+        '<div class="text-[17px] sm:text-[19px] font-black text-[#438cff]">Tambah Foto</div>' +
+        '<div class="text-[10px] sm:text-[11px] text-white/45 mt-0.5">JPG · PNG · Maks 5MB</div>' +
+      '</div>';
+
+  return '<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-[5px] px-2 sm:px-4" onclick="closeMapDetail()">' +
+    '<div class="w-full max-w-[1120px] bg-[#071a36] border border-blue-400/35 rounded-[24px] sm:rounded-[30px] px-3 sm:px-5 lg:px-6 pt-3 sm:pt-4 pb-4 sm:pb-5 shadow-2xl overflow-y-auto" style="max-height:calc(var(--mg1-vvh,100svh) * .94);" onclick="event.stopPropagation()">' +
+      '<div class="mx-auto mb-3 sm:mb-4 h-1.5 w-12 sm:w-16 rounded-full bg-white/35"></div>' +
+      '<div class="rounded-2xl border border-blue-300/20 bg-[#081a36] px-4 sm:px-5 py-3 sm:py-4 mb-3 sm:mb-4">' +
+        '<div class="flex items-center justify-between gap-3">' +
+          '<div class="min-w-0 flex-1">' +
+            '<div class="text-white font-black tracking-tight text-[24px] sm:text-[32px] lg:text-[38px] leading-none truncate">' + escapeHtml_(p.idTp || '—') + '</div>' +
+            '<div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] sm:text-[13px] lg:text-[15px] text-[#9fc5ff]">' +
+              locationIcon +
+              '<span>Blok ' + escapeHtml_(p.blok || '-') + '</span><span class="text-blue-300/70">•</span>' +
+              '<span>Area ' + escapeHtml_(p.area || '-') + '</span><span class="text-blue-300/70">•</span>' +
+              '<span>' + escapeHtml_(detailDate) + '</span><span class="text-blue-300/70">•</span>' +
+              '<span>' + escapeHtml_(detailUser) + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="flex items-center gap-2 flex-none">' +
+            '<div class="rounded-xl bg-[#2f7ff0] px-3 sm:px-4 py-2 text-[15px] sm:text-[18px] font-black text-white">MG</div>' +
+            '<button type="button" onclick="closeMapDetail()" aria-label="Tutup" class="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-blue-400/35 bg-[#081a36] text-blue-200 text-[25px] sm:text-[30px] leading-none">×</button>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
       (p.coordConflict ? '<div class="mb-3 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 font-semibold flex items-start gap-1.5">' + icon('alert-triangle','w-3.5 h-3.5 shrink-0 mt-0.5') + '<span>Konflik data: beberapa baris kedalaman TP ini punya nilai Timur/Utara berbeda. Marker memakai nilai pertama yang ditemukan.</span></div>' : '') +
-      '<div class="grid grid-cols-12 gap-3">' +
-        '<div class="col-span-5 space-y-2.5">' +
-          '<div class="grid grid-cols-2 gap-2">' +
-            '<div class="rounded-xl border border-blue-300/15 bg-[#0a1731] px-3 py-2.5"><div class="text-[11px] text-white/50">Blok</div><div class="text-[20px] font-black text-white">' + (p.blok||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/15 bg-[#0a1731] px-3 py-2.5"><div class="text-[11px] text-white/50">Area</div><div class="text-[20px] font-black text-white">' + (p.area||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/15 bg-[#0a1731] px-3 py-2.5"><div class="text-[11px] text-white/50">Bench</div><div class="text-[20px] font-black text-white">' + (p.bench||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/15 bg-[#0a1731] px-3 py-2.5"><div class="text-[11px] text-white/50">Tipe</div><div class="text-[20px] font-black text-white">' + (p.tipeLaterit||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/15 bg-[#0a1731] px-3 py-2.5"><div class="text-[11px] text-white/50">Timur (X)</div><div class="text-[18px] font-black text-white">' + (p.timur||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/15 bg-[#0a1731] px-3 py-2.5"><div class="text-[11px] text-white/50">Utara (Y)</div><div class="text-[18px] font-black text-white">' + (p.utara||'-') + '</div></div>' +
-          '</div>' +
-          '<div class="rounded-xl border border-blue-300/15 bg-[#0a1731] px-3 py-2 flex items-center gap-2 min-h-[42px]">' +
-            '<span class="text-blue-400 text-[11px] font-bold shrink-0">Catatan</span>' +
-            '<span class="h-4 w-px bg-white/10 shrink-0"></span>' +
-            '<span class="text-[10px] text-white/45 truncate">' + (note || 'Tambahkan catatan (opsional)...') + '</span>' +
+      '<div class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">' +
+        '<div class="lg:col-span-3 space-y-2 sm:space-y-2.5">' +
+          '<div class="grid grid-cols-2 lg:grid-cols-1 gap-2">' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Blok</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.blok||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Area</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.area||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Bench</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.bench||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Tipe</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.tipeLaterit||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Timur (X)</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.timur||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Utara (Y)</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.utara||'-') + '</div></div>' +
           '</div>' +
         '</div>' +
-        '<div class="col-span-7">' +
+        '<div class="lg:col-span-9 min-w-0">' +
           photoPreview +
-          '<div class="min-h-[155px] rounded-2xl border-2 border-dashed border-blue-400/80 bg-[#08152d] flex flex-col items-center justify-center text-center px-3">' +
-            '<div class="h-16 w-16 rounded-full bg-[#2f7ff0] flex items-center justify-center text-white text-3xl mb-2">▢</div>' +
-            '<div class="text-[19px] font-black text-[#438cff]">Tambah Foto</div>' +
-            '<div class="text-[11px] text-white/45 mt-0.5">JPG · PNG · Maks 5MB</div>' +
+          '<div class="mt-3 flex items-center justify-between gap-3">' +
+            '<div class="text-[14px] sm:text-[16px] lg:text-[18px] font-black tracking-wide text-white">KEDALAMAN (' + escapeHtml_(p.depthCount) + '/' + escapeHtml_(p.maxDepth) + ' m)</div>' +
+            '<div class="rounded-full bg-[#2f7ff0] px-3 py-1.5 text-[11px] sm:text-[12px] font-black text-white">' + escapeHtml_(p.depthCount) + '/' + escapeHtml_(p.maxDepth) + ' m</div>' +
+          '</div>' +
+          '<div class="mt-2 flex gap-1.5 sm:gap-2">' + (depthChips || '<div class="text-[10px] text-white/35">Belum ada data kedalaman.</div>') + '</div>' +
+          '<div class="mt-3 rounded-xl border border-blue-300/20 bg-[#071a36] px-3 sm:px-4 py-2.5 flex items-center gap-2.5 min-h-[48px]">' +
+            '<span class="text-blue-400 text-[13px] font-bold shrink-0">Catatan</span>' +
+            '<span class="h-5 w-px bg-white/15 shrink-0"></span>' +
+            '<span class="text-[10px] sm:text-[11px] text-white/70 truncate">' + escapeHtml_(note || 'Tambahkan catatan (opsional)...') + '</span>' +
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="mt-4 flex items-center justify-between gap-3">' +
-        '<div class="text-[14px] font-black tracking-wide text-white">KEDALAMAN (' + p.depthCount + '/' + p.maxDepth + ' m)</div>' +
-        '<div class="rounded-full bg-[#2f7ff0] px-3 py-1.5 text-[12px] font-black text-white">' + p.depthCount + '/' + p.maxDepth + ' m</div>' +
+      '<div class="mt-4 sm:mt-5 border-t border-white/10 pt-3 sm:pt-4">' +
+        '<button onclick="closeMapDetail()" class="w-full py-3 sm:py-3.5 rounded-2xl bg-[#2f7ff0] text-white text-[15px] sm:text-[17px] font-black">Tutup</button>' +
       '</div>' +
-      '<div class="mt-2 flex gap-1.5">' + (depthChips || '<div class="text-[10px] text-white/35">Belum ada data kedalaman.</div>') + '</div>' +
-      '<button onclick="closeMapDetail()" class="w-full mt-5 py-3 rounded-2xl bg-[#2f7ff0] text-white text-[16px] font-black">Tutup</button>' +
     '</div>' +
   '</div>';
 }
