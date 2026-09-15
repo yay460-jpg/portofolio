@@ -114,7 +114,19 @@ async function handleLogout() {
     }
   }
   clearSession();
-  location.reload();
+
+  // V24.5 LOGOUT HARD-REFRESH: jangan hanya reload URL yang sama.
+  // Query nonce memaksa navigation request baru sehingga HTML shell tidak
+  // terikat pada dokumen lama; Service Worker V24.5 tetap network-first
+  // untuk navigation dan akan fallback ke cache hanya bila offline.
+  // Guard mencegah double navigation bila controllerchange juga men-trigger reload.
+  if (!window.__mg1LogoutReloading) {
+    window.__mg1LogoutReloading = true;
+    const url = new URL(window.location.href);
+    url.searchParams.set('logout_refresh', String(Date.now()));
+    url.hash = '';
+    window.location.replace(url.href);
+  }
 }
 
 // ==== RENDER: LOGIN (modal, dipicu dari avatar header) ====
