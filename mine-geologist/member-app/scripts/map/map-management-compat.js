@@ -756,6 +756,29 @@
     }).join('');
   }
 
+  function mg1IconSvg_(kind, size) {
+    const s = Number(size) || 38;
+    const common = `width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="display:block;overflow:visible;"`;
+    const p = 'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+    switch (kind) {
+      case 'info': return `<svg ${common}><circle cx="12" cy="12" r="9" ${p}/><path d="M12 10.5v6" ${p}/><circle cx="12" cy="7.5" r=".7" fill="currentColor" stroke="none"/></svg>`;
+      case 'duplicate': return `<svg ${common}><rect x="8" y="8" width="11" height="11" rx="2" ${p}/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4H6.5A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" ${p}/></svg>`;
+      case 'replace': return `<svg ${common}><path d="M4 6h9l3-2v16l-3-2H4z" ${p}/><path d="M9 6v12" ${p}/><path d="M17 8.5a5 5 0 0 1 2.5 6.7" ${p}/><path d="M19.2 8.2l.3 3-3-.4" ${p}/><path d="M7 15.5a5 5 0 0 1-2.5-6.7" ${p}/><path d="M4.8 15.8l-.3-3 3 .4" ${p}/></svg>`;
+      case 'rename': return `<svg ${common}><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17v3z" ${p}/><path d="m14.5 7.5 2 2" ${p}/></svg>`;
+      case 'label': return `<svg ${common}><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H13l7 7-7 7H5.5A1.5 1.5 0 0 1 4 16.5z" ${p}/><circle cx="9" cy="9" r="1.2" ${p}/></svg>`;
+      case 'collection': return `<svg ${common}><rect x="4" y="4" width="6" height="6" rx="1" ${p}/><rect x="14" y="4" width="6" height="6" rx="1" ${p}/><rect x="4" y="14" width="6" height="6" rx="1" ${p}/><rect x="14" y="14" width="6" height="6" rx="1" ${p}/></svg>`;
+      case 'download': return `<svg ${common}><path d="M12 3v11" ${p}/><path d="m8 10 4 4 4-4" ${p}/><path d="M5 19h14" ${p}/></svg>`;
+      case 'delete': return `<svg ${common}><path d="M5 7h14" ${p}/><path d="M9 7V4h6v3" ${p}/><path d="M7 7l.8 13h8.4L17 7" ${p}/><path d="M10 11v5M14 11v5" ${p}/></svg>`;
+      case 'sortAsc': return `<svg ${common}><path d="M5 7h9M5 12h7M5 17h5" ${p}/><path d="m17 5 2 2-2 2M19 7h-4" ${p}/></svg>`;
+      case 'sortDesc': return `<svg ${common}><path d="M5 7h9M5 12h7M5 17h5" ${p}/><path d="m17 15 2 2-2 2M19 17h-4" ${p}/></svg>`;
+      case 'newest': return `<svg ${common}><circle cx="12" cy="12" r="8.5" ${p}/><path d="M12 7v5l3 2" ${p}/><path d="m17.5 4.5 1-1M20 7h1.2" ${p}/></svg>`;
+      case 'oldest': return `<svg ${common}><circle cx="12" cy="12" r="8.5" ${p}/><path d="M12 7v5l3 2" ${p}/></svg>`;
+      case 'noLabel': return `<svg ${common}><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H13l7 7-7 7H5.5A1.5 1.5 0 0 1 4 16.5z" ${p}/><path d="M8 8l3 3" ${p}/></svg>`;
+      case 'noCollection': return `<svg ${common}><rect x="4" y="4" width="6" height="6" rx="1" ${p}/><rect x="14" y="4" width="6" height="6" rx="1" ${p}/><rect x="4" y="14" width="6" height="6" rx="1" ${p}/><path d="M14 14l6 6" ${p}/></svg>`;
+      default: return `<svg ${common}><circle cx="12" cy="12" r="9" ${p}/></svg>`;
+    }
+  }
+
   function showMapActionSheet_(entry, activeId, onDone) {
     if (!entry || !entry.id) return;
     if (window.MG1MapPackageTransfer && typeof window.MG1MapPackageTransfer.warmPackage === 'function') window.MG1MapPackageTransfer.warmPackage([String(entry.id)]);
