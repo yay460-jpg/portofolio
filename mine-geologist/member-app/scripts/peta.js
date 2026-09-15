@@ -2993,9 +2993,9 @@ function renderMapDetailModal(mapData) {
   );
 
   const depthChips = depthRows.map(d =>
-    '<div class="min-w-0 flex-1 rounded-xl border border-blue-400/55 bg-[#081a36] px-2 py-2.5 text-center" style="min-width:0;">' +
-      '<div class="text-[11px] sm:text-[12px] font-medium text-white">' + escapeHtml_(getField(d,'Meter') || '-') + ' m</div>' +
-      '<div class="text-[13px] sm:text-[14px] font-black text-white mt-0.5">Ni ' + fmt2(parseFloat(getField(d,'Ni %') || getField(d,'Ni'))) + '%</div>' +
+    '<div class="min-w-0 flex-1 rounded-xl border border-blue-400/55 bg-[#081a36] px-1.5 py-1.5 text-center" style="min-width:0;">' +
+      '<div class="text-[10px] sm:text-[11px] font-medium text-white">' + escapeHtml_(getField(d,'Meter') || '-') + ' m</div>' +
+      '<div class="text-[11px] sm:text-[12px] font-bold text-white mt-0.5">Ni ' + fmt2(parseFloat(getField(d,'Ni %') || getField(d,'Ni'))) + '%</div>' +
     '</div>'
   ).join('');
 
@@ -3004,7 +3004,7 @@ function renderMapDetailModal(mapData) {
   const photoUrl = p.photoUrl || p.fotoUrl || p.photo || p.foto || '';
   const detailDate = formatPointDate_(p.tanggal);
 
-  const locationIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" style="width:24px;height:24px;display:block;fill:#438cff;flex:none;">' +
+  const locationIcon = '<svg viewBox="0 0 24 24" aria-hidden="true" style="width:20px;height:20px;display:block;fill:#438cff;flex:none;">' +
     '<path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.8A2.8 2.8 0 1 1 12 6a2.8 2.8 0 0 1 0 5.8Z"/></svg>';
 
   const photoPreview = photoUrl
@@ -3014,8 +3014,8 @@ function renderMapDetailModal(mapData) {
       '</div>'
     : '<div class="relative overflow-hidden rounded-2xl border-2 border-dashed border-blue-400/75 bg-[#08152d] flex flex-col items-center justify-center text-center" style="aspect-ratio:16/7.0;">' +
         '<div class="h-16 w-16 rounded-full bg-[#2f7ff0] flex items-center justify-center text-white text-3xl mb-2">▢</div>' +
-        '<div class="text-[17px] sm:text-[19px] font-black text-[#438cff]">Tambah Foto</div>' +
-        '<div class="text-[10px] sm:text-[11px] text-white/45 mt-0.5">JPG · PNG · Maks 5MB</div>' +
+        '<div class="text-[14px] sm:text-[16px] font-bold text-[#438cff]">Tambah Foto</div>' +
+        '<div class="text-[9px] sm:text-[10px] text-white/45 mt-0.5">JPG · PNG · Maks 5MB</div>' +
       '</div>';
 
   return '<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-[5px] px-2 sm:px-4" onclick="closeMapDetail()">' +
@@ -3024,8 +3024,8 @@ function renderMapDetailModal(mapData) {
       '<div class="rounded-2xl border border-blue-300/20 bg-[#081a36] px-4 sm:px-5 py-3 sm:py-4 mb-3 sm:mb-4">' +
         '<div class="flex items-start justify-between gap-3">' +
           '<div class="min-w-0 flex-1">' +
-            '<div class="text-white font-black tracking-tight text-[24px] sm:text-[32px] lg:text-[38px] leading-none truncate">' + escapeHtml_(p.idTp || '—') + '</div>' +
-            '<div class="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] sm:text-[13px] lg:text-[15px] text-[#9fc5ff]">' +
+            '<div class="text-white font-black tracking-tight text-[22px] sm:text-[26px] lg:text-[30px] leading-none truncate">' + escapeHtml_(p.idTp || '—') + '</div>' +
+            '<div class="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] sm:text-[11px] lg:text-[13px] text-[#9fc5ff]">' +
               locationIcon +
               '<span>Blok ' + escapeHtml_(p.blok || '-') + '</span><span class="text-blue-300/70">•</span>' +
               '<span>Area ' + escapeHtml_(p.area || '-') + '</span><span class="text-blue-300/70">•</span>' +
@@ -3034,39 +3034,39 @@ function renderMapDetailModal(mapData) {
             '</div>' +
           '</div>' +
           '<div class="flex items-center gap-2 flex-none">' +
-            '<div class="rounded-xl bg-[#2f7ff0] px-3 sm:px-4 py-2 text-[15px] sm:text-[18px] font-black text-white">MG</div>' +
-            '<button type="button" onclick="closeMapDetail()" aria-label="Tutup" class="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-blue-400/35 bg-[#081a36] text-blue-200 text-[25px] sm:text-[30px] leading-none">×</button>' +
+            '<div class="rounded-xl bg-[#2f7ff0] px-3 py-1.5 text-[14px] sm:text-[15px] font-bold text-white">MG</div>' +
+            '<button type="button" onclick="closeMapDetail()" aria-label="Tutup" class="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border border-blue-400/35 bg-[#081a36] text-blue-200 text-[22px] sm:text-[24px] leading-none">×</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
       (p.coordConflict ? '<div class="mb-3 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 font-semibold flex items-start gap-1.5">' + icon('alert-triangle','w-3.5 h-3.5 shrink-0 mt-0.5') + '<span>Konflik data: beberapa baris kedalaman TP ini punya nilai Timur/Utara berbeda. Marker memakai nilai pertama yang ditemukan.</span></div>' : '') +
-      '<div class="grid grid-cols-12 gap-3 sm:gap-4">' +
-        '<div class="col-span-3 min-w-0">' +
-          '<div class="space-y-2 sm:space-y-2.5">' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Blok</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.blok||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Area</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.area||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Bench</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.bench||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Tipe</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.tipeLaterit||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Timur (X)</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.timur||'-') + '</div></div>' +
-            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-3 py-2.5"><div class="text-[11px] text-[#7fa8e5]">Utara (Y)</div><div class="text-[17px] sm:text-[19px] font-black text-white">' + escapeHtml_(p.utara||'-') + '</div></div>' +
+      '<div class="grid grid-cols-2 lg:grid-cols-12 gap-2.5 sm:gap-3 lg:gap-4">' +
+        '<div class="col-span-2 lg:col-span-3 min-w-0">' +
+          '<div class="grid grid-cols-2 lg:grid-cols-1 gap-2 sm:gap-2.5">' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2.5 py-2"><div class="text-[10px] text-[#7fa8e5]">Blok</div><div class="text-[15px] sm:text-[16px] font-bold text-white">' + escapeHtml_(p.blok||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2.5 py-2"><div class="text-[10px] text-[#7fa8e5]">Area</div><div class="text-[15px] sm:text-[16px] font-bold text-white">' + escapeHtml_(p.area||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2.5 py-2"><div class="text-[10px] text-[#7fa8e5]">Bench</div><div class="text-[15px] sm:text-[16px] font-bold text-white">' + escapeHtml_(p.bench||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2.5 py-2"><div class="text-[10px] text-[#7fa8e5]">Tipe</div><div class="text-[15px] sm:text-[16px] font-bold text-white">' + escapeHtml_(p.tipeLaterit||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2.5 py-2"><div class="text-[10px] text-[#7fa8e5]">Timur (X)</div><div class="text-[15px] sm:text-[16px] font-bold text-white">' + escapeHtml_(p.timur||'-') + '</div></div>' +
+            '<div class="rounded-xl border border-blue-300/20 bg-[#071a36] px-2.5 py-2"><div class="text-[10px] text-[#7fa8e5]">Utara (Y)</div><div class="text-[15px] sm:text-[16px] font-bold text-white">' + escapeHtml_(p.utara||'-') + '</div></div>' +
           '</div>' +
         '</div>' +
-        '<div class="col-span-9 min-w-0">' +
+        '<div class="col-span-2 lg:col-span-9 min-w-0">' +
           photoPreview +
           '<div class="mt-3 flex items-center justify-between gap-3">' +
-            '<div class="text-[14px] sm:text-[16px] lg:text-[18px] font-black tracking-wide text-white">KEDALAMAN (' + escapeHtml_(p.depthCount) + '/' + escapeHtml_(p.maxDepth) + ' m)</div>' +
-            '<div class="rounded-full bg-[#2f7ff0] px-3 py-1.5 text-[11px] sm:text-[12px] font-black text-white">' + escapeHtml_(p.depthCount) + '/' + escapeHtml_(p.maxDepth) + ' m</div>' +
+            '<div class="text-[12px] sm:text-[14px] lg:text-[16px] font-bold tracking-wide text-white">KEDALAMAN (' + escapeHtml_(p.depthCount) + '/' + escapeHtml_(p.maxDepth) + ' m)</div>' +
+            '<div class="rounded-full bg-[#2f7ff0] px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-white">' + escapeHtml_(p.depthCount) + '/' + escapeHtml_(p.maxDepth) + ' m</div>' +
           '</div>' +
           '<div class="mt-2 flex gap-1.5 sm:gap-2">' + (depthChips || '<div class="text-[10px] text-white/35">Belum ada data kedalaman.</div>') + '</div>' +
-          '<div class="mt-3 rounded-xl border border-blue-300/20 bg-[#071a36] px-3 sm:px-4 py-2.5 flex items-center gap-2.5 min-h-[48px]">' +
-            '<span class="text-blue-400 text-[13px] font-bold shrink-0">Catatan</span>' +
+          '<div class="mt-2.5 rounded-xl border border-blue-300/20 bg-[#071a36] px-2.5 sm:px-3 py-2 flex items-center gap-2 min-h-[42px]">' +
+            '<span class="text-blue-400 text-[11px] font-bold shrink-0">Catatan</span>' +
             '<span class="h-5 w-px bg-white/15 shrink-0"></span>' +
-            '<span class="text-[10px] sm:text-[11px] text-white/70 truncate">' + escapeHtml_(note || 'Tambahkan catatan (opsional)...') + '</span>' +
+            '<span class="text-[9px] sm:text-[10px] text-white/70 truncate">' + escapeHtml_(note || 'Tambahkan catatan (opsional)...') + '</span>' +
           '</div>' +
         '</div>' +
       '</div>' +
       '<div class="mt-4 sm:mt-5 border-t border-white/10 pt-3 sm:pt-4">' +
-        '<button onclick="closeMapDetail()" class="w-full py-3 sm:py-3.5 rounded-2xl bg-[#2f7ff0] text-white text-[15px] sm:text-[17px] font-black">Tutup</button>' +
+        '<button onclick="closeMapDetail()" class="w-full py-2.5 sm:py-3 rounded-2xl bg-[#2f7ff0] text-white text-[14px] sm:text-[15px] font-bold">Tutup</button>' +
       '</div>' +
     '</div>' +
   '</div>';
