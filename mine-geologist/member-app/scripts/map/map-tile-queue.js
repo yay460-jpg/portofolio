@@ -56,6 +56,45 @@ function dequeueLithositeTileKey_(pyramid) {
   return key;
 }
 
+// [BARU -- 15 Sep, hasil audit dependency mapViewportRatio_ -> getVisibleDetailKeysFromPlan_
+// -> pending queue] Tiap render menghitung ulang visibleResult.keys (bisa beda dari render
+// sebelumnya, mis. gara2 ratio baru saja dikoreksi setelah pindah tab). SEBELUMNYA pending[]
+// yg sudah dienqueue dari render sebelumnya TIDAK PERNAH dibuang -- kalau render pertama
+// (ratio salah) sempat enqueue 376 tile, render kedua (ratio benar) cuma enqueue 6 tile
+// baru, ke-376 tile lama yg TIDAK LAGI relevan tetap nangkring di depan antrian FIFO,
+// menunda 6 tile yg genuinely dibutuhkan + boros bandwidth/decode utk tile yg sudah tidak
+// perlu ditampilkan. Fix ini HANYA membuang entri PENDING (belum mulai diproses) yg tidak
+// lagi ada di visible-keys terbaru -- TIDAK menyentuh loading (biarkan selesai, jangan
+// dibatalkan di tengah jalan), cache/loadedSet/failedSet/storedSet (tidak relevan, itu
+// state hasil, bukan antrian). pending & pendingSet WAJIB diubah bareng dalam 1 fungsi ini
+// -- kalau cuma salah satu yg diubah, pendingSet bisa "mengunci" key yg sebenarnya sudah
+// dibuang dari pending[], bikin key itu tidak pernah bisa di-enqueue ulang.
+// Audit sebelum fix ini (dicatat supaya tidak diulang): dipastikan pending[] MURNI berisi
+// visible-runtime tiles -- 1 jalur enqueue lain (requestLithositeDetailTileResolved_ di
+// map-missing-detail-resolver.js) TERNYATA dead code (0 caller), dan "prefetch" di kode
+// cuma dipakai getViewportTilePlan_() (C1 upload-time, pyramid sudah jadi permanen saat
+// upload) -- TIDAK campur ke queue runtime ini. Jadi aman direkonsiliasi murni thd
+// visible-keys tanpa risiko membuang tile prefetch yg sengaja diantrikan lebih awal.
+function reconcileLithositeTileQueueWithVisible_(pyramid, visibleKeys) {
+  const q = ensureLithositeTileQueue_(pyramid);
+  if (!q || !Array.isArray(visibleKeys)) return { removed: 0 };
+  const visibleSet = Object.create(null);
+  for (let i = 0; i < visibleKeys.length; i++) visibleSet[String(visibleKeys[i])] = true;
+  const kept = [];
+  let removed = 0;
+  for (let i = 0; i < q.pending.length; i++) {
+    const key = q.pending[i];
+    if (visibleSet[key]) {
+      kept.push(key);
+    } else {
+      delete q.pendingSet[key]; // WAJIB bareng -- jangan biarkan pendingSet nyisa tanpa pending
+      removed++;
+    }
+  }
+  q.pending = kept;
+  return { removed: removed, kept: kept.length };
+}
+
 function markLithositeTileLoaded_(pyramid, tileKey) {
   const q = ensureLithositeTileQueue_(pyramid);
   if (!q || !tileKey) return false;
