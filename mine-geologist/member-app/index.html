@@ -722,13 +722,11 @@ window.addEventListener('DOMContentLoaded', () => {
         '<hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:7px 0">' +
         '<div style="font-weight:700;margin-bottom:4px">GEO PDF PERFORMANCE</div>' +
         '<div>Status: <b>' + dStatus + '</b></div>' +
-        '<div>Full pyramid: <b>' + (d && d.workload && d.workload.fullPyramid != null ? d.workload.fullPyramid : '-') + '</b> tiles</div>' +
-        '<div>Planned workload: <b>' + (r && r.planned != null ? r.planned : '-') + '</b> tiles</div>' +
-        '<div>Progress: <b>' + (d && d.workload && d.workload.progress != null ? d.workload.progress : '-') + '</b> / ' + (r && r.planned != null ? r.planned : '-') + '</div>' +
+        '<div>Planned: <b>' + (r && r.planned != null ? r.planned : '-') + '</b> tiles</div>' +
         '<div>Actual rendered: <b>' + (r && r.rendered != null ? r.rendered : '-') + '</b></div>' +
         '<div>Skipped: ' + (r && r.skipped != null ? r.skipped : '-') + '</div>' +
         '<div>Failed: ' + (r && r.failed != null ? r.failed : '-') + '</div>' +
-        '<div>Culled from full: ' + (d && d.workload && d.workload.fullPyramid != null && r && r.planned != null ? (d.workload.fullPyramid - r.planned) : '-') + ' tiles</div>' +
+        '<div>Reduction: ' + (r && r.planned != null && r.rendered != null ? (r.planned - r.rendered) : '-') + ' tiles</div>' +
         '<div>Elapsed: ' + (r && r.elapsedMs != null ? r.elapsedMs + ' ms' : '-') + '</div>' +
         '<div>Avg rendered tile: ' + (r && r.avgRenderMs != null ? r.avgRenderMs + ' ms' : '-') + '</div>' +
         '<div style="margin-top:6px;font-weight:700">C1</div>' +
