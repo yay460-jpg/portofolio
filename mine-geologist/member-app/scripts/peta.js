@@ -175,6 +175,8 @@ const GEOPDF_TILE_SIZE_ = 256;
 // tidak pernah kena kecuali GEOPDF_TILE_SIZE_ diubah jadi sangat besar di masa depan.
 const GEOPDF_TILE_SIZE_MAX_SAFE_ = 768;
 const GEOPDF_TILE_LEVEL_FACTORS_ = [0.25, 0.5, 1, 2];
+// ENGINE V2 TILE BUDGET POLICY: quality floor only. Profile remains the source of maxTiles.
+const TILE_BUDGET_POLICY_ = Object.freeze({ MIN: 25, VERSION: 2 });
 
 // STEP C1 - VIEWPORT TILE PLANNER V1
 // Planner ONLY. Tidak merender tile, tidak mengubah renderer V13.1, tidak mengubah
@@ -1893,7 +1895,7 @@ async function tryParseGeoPdf_(file, onProgress, onGeoReferenceReady) {
     // full-page raster/crop yang kemudian di-upscale menjadi sumber deep-zoom.
     const tileStartedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     report('Membangun tile pyramid langsung dari PDF...');
-    const tilePyramid = await buildTilePyramidDirect_(page, vpBBox, scale, report, geoReference, true);
+    const tilePyramid = await buildTilePyramidDirect_(page, vpBBox, scale, report, geoReference, 'upload');
     const tileFinishedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
     // IndexedDB/form lama masih membutuhkan imageDataUrl sebagai preview/fallback.
