@@ -176,17 +176,6 @@ const GEOPDF_TILE_SIZE_ = 256;
 const GEOPDF_TILE_SIZE_MAX_SAFE_ = 768;
 const GEOPDF_TILE_LEVEL_FACTORS_ = [0.25, 0.5, 1, 2];
 
-// V24.5 LOW quality fix: keep tile geometry/count unchanged, but render
-// LOW detail tiles with a bounded HiDPI backing buffer. Physical device DPR
-// is intentionally not used directly because values around 3x can multiply
-// canvas memory several times on older Android GPUs.
-function getLithositeTileRenderDpr_(factor, deviceProfile) {
-  const tier = String(deviceProfile && deviceProfile.tier || '').toUpperCase();
-  const f = Number(factor);
-  if (tier === 'LOW' && Number.isFinite(f) && f >= 0.5) return 1.5;
-  return 1;
-}
-
 // STEP C1 - VIEWPORT TILE PLANNER V1
 // Planner ONLY. Tidak merender tile, tidak mengubah renderer V13.1, tidak mengubah
 // gesture, tidak mengubah DPR, dan tidak menulis cache tile. Tujuan: menghitung tile
@@ -938,8 +927,10 @@ function ensureRuntimeTiles_NonBlocking_(visibleKeys, pyramid) {
         const enqueued = typeof requestLithositeDetailTile_ === 'function' ? requestLithositeDetailTile_(pyramid, k) : false;
         if (enqueued) queued++;
       } else if (avail.status === 'missing') {
-        missing.push(k);
-        // Untuk 8.10B patch pertama, MISSING hanya ditandai, tidak creation
+        const tracker = pyramid.missingCreationTracker;
+        const failedSet = tracker && tracker.failedSet;
+        if (!(failedSet && failedSet[k])) missing.push(k);
+        // Failed runtime creations stay on BASE fallback instead of entering a retry loop.
       }
     } catch(e) {
       missing.push(k);
@@ -1017,11 +1008,6 @@ function scheduleSurfaceInvalidationOnce_() {
 
 async function processRuntimeQueueBatch_(pyramid, maxItems) {
   if (!pyramid) return { processed:0, loaded:0, failed:0, pending:0 };
-  if (pyramid.__runtimeQueueConsumerActive) {
-    const q = pyramid.tileQueue;
-    return { processed:0, loaded:0, failed:0, pending:q && Array.isArray(q.pending) ? q.pending.length : 0, busy:true };
-  }
-  pyramid.__runtimeQueueConsumerActive = true;
   try {
     const max = Number.isFinite(Number(maxItems)) ? Number(maxItems) : 3;
     const result = typeof consumeLithositeRuntimeDetailQueue_ === 'function' 
@@ -1034,8 +1020,6 @@ async function processRuntimeQueueBatch_(pyramid, maxItems) {
   } catch(e) {
     console.warn('[8.10B-4] processRuntimeQueueBatch failed', e);
     return { processed:0, loaded:0, failed:0, pending:0, error: String(e) };
-  } finally {
-    pyramid.__runtimeQueueConsumerActive = false;
   }
 }
 
@@ -3306,14 +3290,17 @@ function ensureMissingCreationTracker_(pyramid) {
       lastMissingCount: 0
     };
   }
-  if (!pyramid.missingCreationTracker || pyramid.missingCreationTracker.version !== 1) {
+  if (!pyramid.missingCreationTracker || pyramid.missingCreationTracker.version !== 2) {
     pyramid.missingCreationTracker = {
-      version: 1,
+      version: 2,
       creatingSet: Object.create(null),
       failedSet: Object.create(null),
-      running: false,
-      scheduled: false
+      running: false
     };
+  } else {
+    if (!pyramid.missingCreationTracker.creatingSet) pyramid.missingCreationTracker.creatingSet = Object.create(null);
+    if (!pyramid.missingCreationTracker.failedSet) pyramid.missingCreationTracker.failedSet = Object.create(null);
+    if (typeof pyramid.missingCreationTracker.running !== 'boolean') pyramid.missingCreationTracker.running = false;
   }
   return mg1MissingCreationTracker_;
 }
@@ -3328,18 +3315,24 @@ async function processMissingCreationBatch_(pyramid, mapId, missingKeys, batchSi
     const tracker = ensureMissingCreationTracker_(pyramid);
     if (!tracker) return { processed:0, created:0, failed:0 };
     const state = pyramid.missingCreationTracker || tracker;
-    if (!state.creatingSet) state.creatingSet = Object.create(null);
-    if (!state.failedSet) state.failedSet = Object.create(null);
-    if (state.running || state.scheduled) return { processed:0, created:0, failed:0, busy:true };
-    state.running = true;
-    const creatingSet = state.creatingSet;
-    const failedSet = state.failedSet;
+    const creatingSet = state.creatingSet || tracker.creatingSet;
+    const failedSet = state.failedSet || (state.failedSet = Object.create(null));
     const bs = Math.max(1, Math.min(2, Number(batchSize) || 1));
 
+    // ROOT-FIX V24.5: only one missing-creation batch may run per pyramid.
+    // Re-render cycles can call this while PDF.js is still busy; overlapping batches
+    // cause sustained CPU/GPU work and device heat.
+    if (state.running) return { processed:0, created:0, failed:0, reason:'creation batch already running' };
+    state.running = true;
+
+    // Filter: jangan buat yang sedang in-flight, previously failed, or already available
     const toCreate = [];
     for (let i=0;i<missingKeys.length && toCreate.length<bs;i++) {
       const k = String(missingKeys[i]);
-      if (!k || creatingSet[k] || failedSet[k]) continue;
+      if (!k) continue;
+      if (creatingSet[k]) continue; // in-flight protection
+      if (failedSet[k]) continue; // keep BASE fallback; do not retry endlessly
+      // cek sudah available sekarang?
       try {
         const av = typeof resolveLithositeDetailTileAvailability_ === 'function' ? resolveLithositeDetailTileAvailability_(pyramid, k) : null;
         if (av && av.status === 'available') continue;
@@ -3348,7 +3341,9 @@ async function processMissingCreationBatch_(pyramid, mapId, missingKeys, batchSi
     }
     if (!toCreate.length) return { processed:0, created:0, failed:0 };
 
+    // Mark in-flight
     for (const k of toCreate) creatingSet[k] = true;
+
     let created = 0, failed = 0, processed = 0;
     for (const k of toCreate) {
       try {
@@ -3374,18 +3369,10 @@ async function processMissingCreationBatch_(pyramid, mapId, missingKeys, batchSi
       try { if (typeof scheduleCoalescedInvalidation_ === 'function') scheduleCoalescedInvalidation_(created); } catch(_) {}
     }
 
-    const remaining = missingKeys.filter(k => {
-      const key = String(k);
-      return key && !creatingSet[key] && !failedSet[key];
-    });
-    if (remaining.length > 0) {
-      state.scheduled = true;
-      setTimeout(() => {
-        state.scheduled = false;
-        try { processMissingCreationBatch_(pyramid, mapId, remaining, bs); } catch(_) {}
-      }, 250);
-    }
-    return { processed, created, failed, remaining:remaining.length };
+    // ROOT-FIX V24.5: DO NOT recursively schedule another PDF.js batch here.
+    // The next render/invalidation will request the next visible missing tiles.
+    // This prevents overlapping timer chains from keeping the phone busy forever.
+    return { processed, created, failed };
   } catch(e) {
     return { processed:0, created:0, failed:0, error: e && e.message };
   } finally {
