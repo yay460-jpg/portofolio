@@ -66,11 +66,11 @@ function attachLithositePersistentBaseLayer_(pyramid) {
   return pyramid;
 }
 
-async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoReference, isUpload) {
+async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoReference, phase) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
-  // Upload contract: build the complete persistent pyramid; C2 viewport culling is runtime-only.
-  const adaptiveC2 = !isUpload && window.mg1AdaptiveC2Enabled === true;
+  const isUploadPhase = String(phase || 'runtime').toLowerCase() === 'upload';
+  const adaptiveC2 = !isUploadPhase && window.mg1AdaptiveC2Enabled === true;
   const deviceProfile = window.mg1DeviceTileEngineProfile || null;
   // Engine V2 final render density follows the profiled factor contract.
   // LOW is capped by its profile at 1x; no temporary density multiplier.
@@ -82,21 +82,13 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     GEOPDF_TILE_SIZE_MAX_SAFE_,
     Math.max(64, Number(deviceProfile && deviceProfile.tileSize) || GEOPDF_TILE_SIZE_)
   );
-  // V14.32: during a NEW GeoPDF upload there is no activeBackgroundMapId yet.
-  // Build C1 directly from the incoming GeoReference so C2 can use the actual
-  // viewport plan (e.g. Visible=6) before the new map is saved to IndexedDB.
-  if (adaptiveC2) {
-    try { window.mg1LastViewportTilePlan = getViewportTilePlan_(geoReference); } catch (_) {}
-  }
-  // Engine V2: Keep BASE 0.25x always + DETAIL c2Factor
-  // Fix blank space on pan: base layer (2 tiles) never deleted, detail on top
-  // Avenza behavior: "Saya geser peta → peta tetap ada"
-  const V2_KEEP_BASE_DETAIL = true; // BASE + DETAIL are separate visual layers
-  const renderFactors = isUpload
+  // ENGINE V2 LIFECYCLE BOUNDARY:
+  // UPLOAD is a pure full-pyramid builder. Viewport/C1/C2 selection belongs to
+  // runtime and must never reduce the persistent pyramid during upload.
+  // The builder is currently invoked by the GeoPDF upload path with phase='upload'.
+  const renderFactors = isUploadPhase
     ? factors
-    : (adaptiveC2
-      ? (V2_KEEP_BASE_DETAIL ? [0.25, c2Factor] : [c2Factor])
-      : factors);
+    : (adaptiveC2 ? [0.25, c2Factor] : factors);
   const c2Stats = {
     enabled: adaptiveC2,
     planned: 0,
@@ -133,17 +125,19 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     const tilesY = Math.ceil(height / tileSize);
     return { factor: Number(factor), scale, width, height, tilesX, tilesY, total: tilesX * tilesY };
   });
-  // V15.1 SEAMLESS: BASE is a permanent full-map safety layer.
-  // DETAIL remains viewport-cropped. This is the critical difference from V14.x:
-  // when the detail set changes, BASE still covers the entire GeoPDF extent.
-  const c2Windows = adaptiveC2
+  // UPLOAD: no viewport culling. The persistent store receives the complete
+  // pyramid described by levelPlan. RUNTIME: C2 may select a subset, but that
+  // selection must happen outside the upload builder lifecycle.
+  const c2Windows = (!isUploadPhase && adaptiveC2)
     ? levelPlan.map((plan, li) => li === 0
         ? null
-        : getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, Math.max(1, Number(deviceProfile && deviceProfile.prefetchRadius) || 1)))
+        : getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0))
     : [];
-  const effectiveTotals = adaptiveC2
-    ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total))
-    : levelPlan.map(item => item.total);
+  const effectiveTotals = isUploadPhase
+    ? levelPlan.map(plan => plan.total)
+    : (adaptiveC2
+      ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total))
+      : levelPlan.map(item => item.total));
   const grandTotalTiles = Math.max(1, effectiveTotals.reduce((sum, item) => sum + item, 0));
   if (adaptiveC2) c2Stats.planned = grandTotalTiles;
   let globalDone = 0;
@@ -162,7 +156,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     const tilesX = plan.tilesX;
     const tilesY = plan.tilesY;
     const tiles = [];
-    const c2Window = adaptiveC2 ? c2Windows[li] : null;
+    const c2Window = (!isUploadPhase && adaptiveC2) ? c2Windows[li] : null;
     const total = adaptiveC2 && c2Window ? c2Window.required.count : tilesX * tilesY;
     let done = 0;
     const viewport = page.getViewport({ scale });
@@ -185,7 +179,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
         const th = Math.min(tileSize, height - y);
         // BASE (li===0) is intentionally NOT culled: it must cover the full map.
         // DETAIL (li>0) may use the viewport window for the low-end device budget.
-        if (adaptiveC2 && li > 0 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
+        if (!isUploadPhase && adaptiveC2 && li > 0 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
           c2Stats.skipped++;
           continue;
         }
@@ -203,7 +197,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
           canvas.height = th;
           const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
           if (!ctx) throw new Error('Canvas tile tidak tersedia.');
-          ctx.imageSmoothingEnabled = false;
+          ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
 
           // Render hanya quadrant yang diminta. offsetX/offsetY pada viewport menjaga skala
