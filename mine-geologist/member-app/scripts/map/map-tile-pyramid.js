@@ -69,6 +69,11 @@ function attachLithositePersistentBaseLayer_(pyramid) {
 async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoReference) {
   if (!page || !vpBBox || vpBBox.length !== 4) throw new Error('Data GeoPDF untuk tile pyramid tidak lengkap.');
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
+  // C2 automatic activation: initialize the global gate only when no explicit
+  // boolean decision exists. An explicit false remains respected.
+  if (typeof window.mg1AdaptiveC2Enabled !== 'boolean') {
+    window.mg1AdaptiveC2Enabled = true;
+  }
   const adaptiveC2 = window.mg1AdaptiveC2Enabled === true;
   const deviceProfile = window.mg1DeviceTileEngineProfile || null;
   // V14.38 C4b: increase actual PDF raster density for LOW devices without
