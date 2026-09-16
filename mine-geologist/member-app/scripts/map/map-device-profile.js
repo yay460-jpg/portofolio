@@ -14,6 +14,50 @@
 // hints + raster benchmark. DO NOT delete, rename, bypass, or replace it
 // without a dedicated cross-file audit. Its result feeds tile-engine selection.
 // ============================================================================
+// V3 FINAL: get cached profile WITHOUT triggering benchmark re-profile on upload path
+// Jangan panggil getDeviceTileProfile_() di path upload untuk S7
+function getCachedTileEngineProfileNoBenchmark_() {
+  try {
+    if (window.mg1DeviceTileEngineProfile) return window.mg1DeviceTileEngineProfile;
+    const cachedEngine = localStorage.getItem('mg1_tile_engine_profile_v1');
+    if (cachedEngine) {
+      const p = JSON.parse(cachedEngine);
+      if (p && p.tier) {
+        window.mg1DeviceTileEngineProfile = p;
+        return p;
+      }
+    }
+    const cachedDevice = localStorage.getItem('mg1_device_tile_profile_v2');
+    if (cachedDevice) {
+      const dp = JSON.parse(cachedDevice);
+      if (dp && dp.tier) {
+        // Convert cached device tier to engine profile WITHOUT re-benchmark
+        const tier = String(dp.tier).toUpperCase();
+        const profiles = {
+          LOW: { tier:'LOW', tileSize:768, maxFactor:1, usableFactors:[0.5,1], fullUploadFactors:[0.25,0.5,1,2], batchSize:2, batchDelayMs:25, prefetchRadius:1, cacheLimit:40, maxTiles:40 },
+          BALANCED: { tier:'BALANCED', tileSize:256, maxFactor:2, usableFactors:[0.25,0.5,1,2], fullUploadFactors:[0.25,0.5,1,2], batchSize:8, batchDelayMs:12, prefetchRadius:2, cacheLimit:150, maxTiles:150 },
+          HIGH: { tier:'HIGH', tileSize:512, maxFactor:2, usableFactors:[0.25,0.5,1,2], fullUploadFactors:[0.25,0.5,1,2], batchSize:16, batchDelayMs:0, prefetchRadius:3, cacheLimit:300, maxTiles:300 }
+        };
+        const base = profiles[tier] || profiles.BALANCED;
+        const minFloor = 25;
+        const profile = Object.assign({}, base, {
+          sourceProfilerVersion: dp.profilerVersion || 'A2',
+          benchmarkMs: Number(dp.benchMs) || null,
+          effectiveBudget: Math.max(minFloor, Number(base.maxTiles) || minFloor),
+          effectiveCeiling: Math.max(minFloor, Number(base.maxTiles) || minFloor),
+          floor: minFloor,
+          ceiling: Math.max(minFloor, Number(base.maxTiles) || minFloor),
+          budgetFloor: minFloor
+        });
+        window.mg1DeviceTileEngineProfile = profile;
+        return profile;
+      }
+    }
+  } catch(_) {}
+  return null; // Jangan buat LOW palsu, return null agar caller tahu profile belum ada
+}
+
+
 function getDeviceTileProfile_() {
   const mem = Number(navigator.deviceMemory) || 0;
   const cores = Number(navigator.hardwareConcurrency) || 0;
@@ -40,6 +84,7 @@ function getDeviceTileProfile_() {
         ctx.fillStyle = 'rgb(' + ((i * 31) % 255) + ',80,180)';
         ctx.fillRect((i * 13) % 448, (i * 17) % 448, 64, 64);
       }
+
       ctx.drawImage(canvas, 0, 0, 512, 512, 0, 0, 256, 256);
     }
 
@@ -137,18 +182,36 @@ function getDeviceTileEngineProfile_() {
     try { deviceProfile = getDeviceTileProfile_(); } catch (_) { deviceProfile = { tier: 'BALANCED' }; }
   }
   const tier = String(deviceProfile.tier || 'BALANCED').toUpperCase();
+  // ENGINE V2 FINAL - No re-profile on upload path
+  const TILE_BUDGET_POLICY_ = Object.freeze({ MIN:25, VERSION:2 });
+  try { if(typeof window!=='undefined') window.TILE_BUDGET_POLICY_=TILE_BUDGET_POLICY_; } catch(_){}
+  try { if(typeof globalThis!=='undefined') globalThis.TILE_BUDGET_POLICY_=TILE_BUDGET_POLICY_; } catch(_){}
+
   const profiles = {
-    LOW: { tier:'LOW', tileSize:768, maxFactor:1, usableFactors:[0.5,1], batchSize:2, batchDelayMs:25, prefetchRadius:0, cacheLimit:40 },
-    BALANCED: { tier:'BALANCED', tileSize:256, maxFactor:2, usableFactors:[0.25,0.5,1,2], batchSize:8, batchDelayMs:12, prefetchRadius:2, cacheLimit:150 },
-    HIGH: { tier:'HIGH', tileSize:512, maxFactor:2, usableFactors:[0.25,0.5,1,2], batchSize:16, batchDelayMs:0, prefetchRadius:3, cacheLimit:300 }
+    // LOW: tileSize 768 LOCKED per core contract, fullUploadFactors untuk UPLOAD full pyramid
+    // runtime usableFactors tetap [0.5,1] sesuai kemampuan, upload full [0.25,0.5,1,2]
+    // maxTiles = runtime budget ceiling, bukan upload cap. Upload tetap full levelPlan walau > maxTiles
+    LOW: { tier:'LOW', tileSize:768, maxFactor:1, usableFactors:[0.5,1], fullUploadFactors:[0.25,0.5,1,2], batchSize:2, batchDelayMs:25, prefetchRadius:1, cacheLimit:40, maxTiles:40 },
+    BALANCED: { tier:'BALANCED', tileSize:256, maxFactor:2, usableFactors:[0.25,0.5,1,2], fullUploadFactors:[0.25,0.5,1,2], batchSize:8, batchDelayMs:12, prefetchRadius:2, cacheLimit:150, maxTiles:150 },
+    HIGH: { tier:'HIGH', tileSize:512, maxFactor:2, usableFactors:[0.25,0.5,1,2], fullUploadFactors:[0.25,0.5,1,2], batchSize:16, batchDelayMs:0, prefetchRadius:3, cacheLimit:300, maxTiles:300 }
   };
   const profile = Object.assign({}, profiles[tier] || profiles.BALANCED, {
     sourceProfilerVersion: deviceProfile.profilerVersion || 'A2',
     benchmarkMs: Number(deviceProfile.benchMs) || null
   });
+  // V2: effectiveBudget = max(MIN, maxTiles) - POLICY floor, bukan upload cap
+  // maxTiles=40 LOW adalah runtime ceiling, upload tetap full walau geometry 52
+  try {
+    const minFloor = (typeof TILE_BUDGET_POLICY_ !== 'undefined' ? TILE_BUDGET_POLICY_.MIN : 25);
+    profile.effectiveBudget = Math.max(minFloor, Number(profile.maxTiles) || minFloor);
+    profile.effectiveCeiling = Math.max(minFloor, Number(profile.maxTiles) || minFloor);
+    profile.floor = minFloor;
+    profile.ceiling = Math.max(minFloor, Number(profile.maxTiles) || minFloor);
+    profile.budgetFloor = minFloor;
+    profile.isFloored = Number(profile.maxTiles) < minFloor;
+  } catch(_){}
   try { localStorage.setItem('mg1_tile_engine_profile_v1', JSON.stringify(profile)); } catch (_) {}
   window.mg1DeviceTileEngineProfile = profile;
-  // IMPORTANT: functional runtime state; do not remove.
   return profile;
 }
 
