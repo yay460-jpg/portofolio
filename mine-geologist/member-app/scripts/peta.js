@@ -267,7 +267,7 @@ function applyTileBudgetFloorV5_(visibleKeys, visibleResult, profile) {
       let r = 0;
       let expandedKeys = [...visibleKeys];
       // Cari max radius yang masuk akal
-      const maxRadius = Math.min(20, Math.max(tilesX, tilesY, 10)); // BOOTFIX: cap radius to 20 to prevent boot loop
+      const maxRadius = Math.min(20, Math.max(tilesX, tilesY, 10));
       
       while (expandedKeys.length < targetCount && r < maxRadius) {
         r++;
