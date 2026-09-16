@@ -697,6 +697,11 @@ window.addEventListener('DOMContentLoaded', () => {
       var p = profile || {};
       var e = engine || {};
       var samples = Array.isArray(p.benchmarkSamples) ? p.benchmarkSamples.join(', ') : '-';
+      var d = window.mg1GeoPdfPerformanceDiagnostic || null;
+      var dStatus = d ? (d.status || 'RUNNING') : 'Belum ada proses GeoPDF';
+      var c1 = d && d.c1 ? d.c1 : null;
+      var c2 = d && d.c2 ? d.c2 : null;
+      var r = d && d.render ? d.render : null;
       panel.innerHTML =
         '<div style="font-weight:700;margin-bottom:7px">DEVICE PROFILER</div>' +
         '<div>Tier: <b>' + (p.tier || '-') + '</b></div>' +
@@ -714,22 +719,47 @@ window.addEventListener('DOMContentLoaded', () => {
         '<div>Delay: ' + (e.batchDelayMs == null ? '-' : e.batchDelayMs + ' ms') + '</div>' +
         '<div>Prefetch: ' + (e.prefetchRadius == null ? '-' : e.prefetchRadius) + '</div>' +
         '<div>Cache: ' + (e.cacheLimit || '-') + '</div>' +
-        '<div style="margin-top:8px;opacity:.65">Diagnostic-only. Tidak mengubah renderer.</div>';
+        '<hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:7px 0">' +
+        '<div style="font-weight:700;margin-bottom:4px">GEO PDF PERFORMANCE</div>' +
+        '<div>Status: <b>' + dStatus + '</b></div>' +
+        '<div>Planned: <b>' + (r && r.planned != null ? r.planned : '-') + '</b> tiles</div>' +
+        '<div>Actual rendered: <b>' + (r && r.rendered != null ? r.rendered : '-') + '</b></div>' +
+        '<div>Skipped: ' + (r && r.skipped != null ? r.skipped : '-') + '</div>' +
+        '<div>Failed: ' + (r && r.failed != null ? r.failed : '-') + '</div>' +
+        '<div>Reduction: ' + (r && r.planned != null && r.rendered != null ? (r.planned - r.rendered) : '-') + ' tiles</div>' +
+        '<div>Elapsed: ' + (r && r.elapsedMs != null ? r.elapsedMs + ' ms' : '-') + '</div>' +
+        '<div>Avg rendered tile: ' + (r && r.avgRenderMs != null ? r.avgRenderMs + ' ms' : '-') + '</div>' +
+        '<div style="margin-top:6px;font-weight:700">C1</div>' +
+        '<div>Visible: ' + (c1 && c1.visible != null ? c1.visible : '-') + ' · Required: ' + (c1 && c1.required != null ? c1.required : '-') + '</div>' +
+        '<div>Full level: ' + (c1 && c1.fullLevel != null ? c1.fullLevel : '-') + ' · Factor: ' + (c1 && c1.factor != null ? c1.factor : '-') + '× · Tile: ' + (c1 && c1.tileSize != null ? c1.tileSize : '-') + ' px</div>' +
+        '<div style="margin-top:6px;font-weight:700">C2</div>' +
+        '<div>Base full: ' + (c2 && c2.baseFull != null ? c2.baseFull : '-') + '</div>' +
+        '<div>Detail full: ' + (c2 && c2.detailFull != null ? c2.detailFull : '-') + '</div>' +
+        '<div>Detail selected: ' + (c2 && c2.detailSelected != null ? c2.detailSelected : '-') + '</div>' +
+        '<div>Detail factor: ' + (c2 && c2.detailFactor != null ? c2.detailFactor : '-') + '×</div>' +
+        '<div>Window: ' + (c2 && c2.windowValid != null ? (c2.windowValid ? 'VALID' : 'INVALID') : '-') + '</div>' +
+        '<div>Fallback: ' + (c2 && c2.fallbackReason ? c2.fallbackReason : '-') + '</div>' +
+        '<div style="margin-top:8px;opacity:.65">Temporary diagnostic. Tidak mengubah renderer / C1 / C2.</div>';
     }
 
-    btn.addEventListener('click', function () {
-      if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
-      panel.style.display = 'block';
-      panel.innerHTML = '<b>DEVICE PROFILER</b><div style="margin-top:6px">Mengukur perangkat…</div>';
+    var refreshTimer_ = null;
+    function refresh_() {
       try {
-        if (typeof getDeviceTileProfile_ !== 'function') throw new Error('Profiler function tidak tersedia.');
-        var profile = getDeviceTileProfile_();
-        var engine = (typeof getDeviceTileEngineProfile_ === 'function') ? getDeviceTileEngineProfile_() : null;
+        var profile = window.mg1DeviceTileProfile || (typeof getDeviceTileProfile_ === 'function' ? getDeviceTileProfile_() : null);
+        var engine = window.mg1DeviceTileEngineProfile || (typeof getDeviceTileEngineProfile_ === 'function' ? getDeviceTileEngineProfile_() : null);
         render_(profile, engine);
-      } catch (err) {
-        panel.innerHTML = '<b>DEVICE PROFILER</b><div style="margin-top:6px">Gagal: ' +
-          String(err && err.message || err).replace(/[&<>]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}) + '</div>';
+      } catch (_) {}
+    }
+    btn.addEventListener('click', function () {
+      if (panel.style.display === 'block') {
+        panel.style.display = 'none';
+        if (refreshTimer_) { clearInterval(refreshTimer_); refreshTimer_ = null; }
+        return;
       }
+      panel.style.display = 'block';
+      refresh_();
+      if (refreshTimer_) clearInterval(refreshTimer_);
+      refreshTimer_ = setInterval(refresh_, 500);
     });
   }
 
