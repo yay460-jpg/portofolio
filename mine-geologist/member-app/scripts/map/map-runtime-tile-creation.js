@@ -99,16 +99,21 @@ async function createLithositeMissingDetailTileFromPdf_(mapId, pyramid, tileKey)
     const pageLeftPx = leftPt * scale;
     const pageTopPx = viewport.height - (topPt * scale);
     const canvas = document.createElement('canvas');
-    canvas.width = tw; canvas.height = th;
+    const deviceProfile = (typeof window !== 'undefined' && window.mg1DeviceTileEngineProfile) ? window.mg1DeviceTileEngineProfile : null;
+    const renderDpr = (typeof getLithositeTileRenderDpr_ === 'function') ? getLithositeTileRenderDpr_(parsed.factor, deviceProfile) : 1;
+    const rasterW = Math.max(1, Math.ceil(tw * renderDpr));
+    const rasterH = Math.max(1, Math.ceil(th * renderDpr));
+    canvas.width = rasterW; canvas.height = rasterH;
     try {
       const ctx = canvas.getContext('2d', { alpha:false, willReadFrequently:false });
       if (!ctx) throw new Error('Canvas tile tidak tersedia.');
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
+      const renderScale = scale * renderDpr;
       const tileViewport = page.getViewport({
-        scale,
-        offsetX: -(pageLeftPx + x),
-        offsetY: -(pageTopPx + y)
+        scale: renderScale,
+        offsetX: -((pageLeftPx + x) * renderDpr),
+        offsetY: -((pageTopPx + y) * renderDpr)
       });
       await page.render({ canvasContext:ctx, viewport:tileViewport, intent:'display', useRequestAnimationFrame:true }).promise;
       const tile = normalizeLithositeTile_({ x:parsed.x, y:parsed.y, width:tw, height:th, dataUrl:canvas.toDataURL('image/png') }, parsed.factor);

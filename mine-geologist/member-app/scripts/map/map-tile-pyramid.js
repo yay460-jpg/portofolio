@@ -196,8 +196,11 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
         let canvas = null;
         try {
           canvas = document.createElement('canvas');
-          canvas.width = tw;
-          canvas.height = th;
+          const renderDpr = (typeof getLithositeTileRenderDpr_ === 'function') ? getLithositeTileRenderDpr_(factor, deviceProfile) : 1;
+          const rasterW = Math.max(1, Math.ceil(tw * renderDpr));
+          const rasterH = Math.max(1, Math.ceil(th * renderDpr));
+          canvas.width = rasterW;
+          canvas.height = rasterH;
           const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
           if (!ctx) throw new Error('Canvas tile tidak tersedia.');
           ctx.imageSmoothingEnabled = true;
@@ -205,10 +208,11 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
 
           // Render hanya quadrant yang diminta. offsetX/offsetY pada viewport menjaga skala
           // PDF tetap asli; canvas kecil menjadi clipping surface, bukan target resize halaman.
+          const renderScale = scale * renderDpr;
           const tileViewport = page.getViewport({
-            scale,
-            offsetX: -(pageLeftPx + x),
-            offsetY: -(pageTopPx + y)
+            scale: renderScale,
+            offsetX: -((pageLeftPx + x) * renderDpr),
+            offsetY: -((pageTopPx + y) * renderDpr)
           });
           await page.render({
             canvasContext: ctx,
