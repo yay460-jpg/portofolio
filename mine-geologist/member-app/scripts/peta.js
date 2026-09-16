@@ -187,7 +187,7 @@ function applyTileBudgetFloorV5_(visibleKeys, visibleResult, profile) {
   try {
     const policy = (typeof TILE_BUDGET_POLICY_ !== 'undefined' ? TILE_BUDGET_POLICY_ : (typeof window!=='undefined' && window.TILE_BUDGET_POLICY_ ? window.TILE_BUDGET_POLICY_ : {MIN:25, VERSION:2}));
     const floor = Number(policy.MIN) || 25;
-    const profileMax = Number(profile?.maxTiles ?? profile?.cacheLimit ?? 40);
+    const profileMax = Number(profile?.maxTiles ?? profile?.effectiveCeiling ?? 40);
     const ceiling = Math.max(floor, profileMax);
 
     const c1Count = Array.isArray(visibleKeys) ? visibleKeys.length : 0;
