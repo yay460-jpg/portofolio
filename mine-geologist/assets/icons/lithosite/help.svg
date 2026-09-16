@@ -1,10 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 98 98" width="98" height="98">
-<defs>
- <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-  <stop offset="0" stop-color="#0B61B9"/>
-  <stop offset="1" stop-color="#07417D"/>
- </linearGradient>
-</defs>
-<circle cx="49" cy="49" r="47" fill="url(#g)"/>
-<path d="M 49.0,23.0 L 48.0,24.0 L 43.0,24.0 L 36.0,27.0 L 29.0,34.0 L 26.0,41.0 L 25.0,50.0 L 26.0,55.0 L 33.0,66.0 L 42.0,71.0 L 53.0,72.0 L 60.0,70.0 L 68.0,64.0 L 73.0,55.0 L 74.0,45.0 L 70.0,34.0 L 63.0,27.0 L 56.0,24.0 Z M 46.0,60.0 L 51.0,59.0 L 53.0,61.0 L 53.0,64.0 L 51.0,66.0 L 48.0,66.0 L 46.0,64.0 Z M 46.0,30.0 L 54.0,30.0 L 61.0,37.0 L 61.0,43.0 L 53.0,52.0 L 52.0,56.0 L 47.0,56.0 L 46.0,51.0 L 54.0,42.0 L 54.0,38.0 L 53.0,37.0 L 47.0,37.0 L 44.0,42.0 L 40.0,42.0 L 38.0,40.0 L 39.0,36.0 Z" fill="#fff" fill-rule="evenodd" stroke="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="98" height="98" viewBox="0 0 98 98">
+  <title>Lithosite help</title>
+  <defs>
+    <linearGradient id="bg" x1="18" y1="12" x2="82" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="rgb(26,150,253)"/>
+      <stop offset="1" stop-color="rgb(18,108,182)"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="4" stdDeviation="1.5" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <circle cx="49" cy="49" r="47" fill="url(#bg)" filter="url(#soft)"/>
+  <g transform="translate(0,0)">
+    <path d="M 48.00 24.00 L 32.00 32.00 L 27.00 41.00 L 26.00 52.00 L 35.00 68.00 L 42.00 72.00 L 55.00 73.00 L 70.00 64.00 L 74.00 57.00 L 75.00 45.00 L 66.00 29.00 Z" fill="#FFFFFF"/>
+    <path d="M 47.00 31.00 L 55.00 31.00 L 62.00 38.00 L 62.00 44.00 L 54.00 53.00 L 53.00 57.00 L 48.00 57.00 L 47.00 52.00 L 54.00 45.00 L 55.00 39.00 L 50.00 37.00 L 45.00 42.00 L 40.00 41.00 L 41.00 36.00 Z" fill="#FFFFFF"/>
+    <path d="M 49.00 60.00 L 52.00 60.00 L 54.00 62.00 L 54.00 65.00 L 52.00 67.00 L 49.00 67.00 L 47.00 65.00 L 47.00 62.00 Z" fill="#FFFFFF"/>
+  </g>
 </svg>

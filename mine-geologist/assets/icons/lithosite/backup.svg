@@ -1,10 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 98 98" width="98" height="98">
-<defs>
- <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-  <stop offset="0" stop-color="#0A5DB6"/>
-  <stop offset="1" stop-color="#063F7A"/>
- </linearGradient>
-</defs>
-<circle cx="49" cy="49" r="47" fill="url(#g)"/>
-<path d="M 30.0,58.0 L 30.0,65.0 L 41.0,70.0 L 58.0,70.0 L 66.0,67.0 L 69.0,64.0 L 69.0,58.0 L 59.0,62.0 L 54.0,62.0 L 53.0,63.0 L 40.0,62.0 Z M 30.0,45.0 L 31.0,53.0 L 43.0,57.0 L 61.0,56.0 L 66.0,54.0 L 69.0,51.0 L 69.0,45.0 L 63.0,48.0 L 54.0,50.0 L 39.0,49.0 Z M 30.0,32.0 L 30.0,38.0 L 33.0,41.0 L 42.0,44.0 L 61.0,43.0 L 67.0,40.0 L 69.0,37.0 L 69.0,34.0 L 65.0,29.0 L 54.0,26.0 L 39.0,27.0 Z" fill="#fff" fill-rule="evenodd" stroke="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="98" height="98" viewBox="0 0 98 98">
+  <title>Lithosite backup</title>
+  <defs>
+    <linearGradient id="bg" x1="18" y1="12" x2="82" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="rgb(23,149,253)"/>
+      <stop offset="1" stop-color="rgb(16,107,182)"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="4" stdDeviation="1.5" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <circle cx="49" cy="49" r="47" fill="url(#bg)" filter="url(#soft)"/>
+  <g transform="translate(0,0)">
+    <path d="M 30.00 35.00 L 32.00 41.00 L 42.00 45.00 L 58.00 45.00 L 65.00 43.00 L 70.00 38.00 L 69.00 32.00 L 57.00 27.00 L 39.00 28.00 L 34.00 30.00 Z" fill="#FFFFFF"/>
+    <path d="M 31.00 59.00 L 31.00 66.00 L 33.00 68.00 L 47.00 72.00 L 60.00 71.00 L 70.00 65.00 L 70.00 59.00 L 59.00 63.00 L 42.00 63.00 Z" fill="#FFFFFF"/>
+    <path d="M 31.00 46.00 L 31.00 53.00 L 43.00 58.00 L 58.00 58.00 L 65.00 56.00 L 70.00 52.00 L 70.00 46.00 L 52.00 51.00 L 41.00 50.00 Z" fill="#FFFFFF"/>
+  </g>
 </svg>

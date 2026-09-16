@@ -1,10 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 98 98" width="98" height="98">
-<defs>
- <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-  <stop offset="0" stop-color="#A42339"/>
-  <stop offset="1" stop-color="#6E1827"/>
- </linearGradient>
-</defs>
-<circle cx="49" cy="49" r="47" fill="url(#g)"/>
-<path d="M 50.0,39.0 L 50.0,51.0 L 57.0,55.0 L 60.0,55.0 L 53.0,49.0 L 53.0,39.0 Z M 49.0,26.0 L 39.0,30.0 L 33.0,36.0 L 30.0,43.0 L 30.0,48.0 L 28.0,50.0 L 24.0,50.0 L 24.0,51.0 L 31.0,58.0 L 33.0,58.0 L 40.0,51.0 L 40.0,50.0 L 35.0,50.0 L 34.0,45.0 L 37.0,38.0 L 41.0,34.0 L 47.0,31.0 L 60.0,32.0 L 67.0,38.0 L 70.0,43.0 L 69.0,57.0 L 64.0,63.0 L 56.0,67.0 L 48.0,67.0 L 45.0,65.0 L 41.0,66.0 L 41.0,68.0 L 48.0,71.0 L 57.0,71.0 L 66.0,67.0 L 71.0,62.0 L 75.0,52.0 L 75.0,46.0 L 71.0,36.0 L 64.0,29.0 L 55.0,26.0 Z" fill="#fff" fill-rule="evenodd" stroke="none"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="98" height="98" viewBox="0 0 98 98">
+  <title>Lithosite restore</title>
+  <defs>
+    <linearGradient id="bg" x1="18" y1="12" x2="82" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="rgb(244,60,85)"/>
+      <stop offset="1" stop-color="rgb(175,43,61)"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="4" stdDeviation="1.5" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <circle cx="49" cy="49" r="47" fill="url(#bg)" filter="url(#soft)"/>
+  <g transform="translate(0,0)">
+    <path d="M 45.00 28.00 L 25.00 52.00 L 34.00 59.00 L 41.00 52.00 L 35.00 49.00 L 41.00 36.00 L 49.00 32.00 L 64.00 35.00 L 71.00 45.00 L 67.00 62.00 L 57.00 68.00 L 41.00 67.00 L 59.00 72.00 L 72.00 63.00 L 75.00 43.00 L 65.00 30.00 Z" fill="#FFFFFF"/>
+    <path d="M 51.00 40.00 L 51.00 52.00 L 55.00 55.00 L 61.00 57.00 L 61.00 55.00 L 54.00 50.00 L 54.00 40.00 Z" fill="#FFFFFF"/>
+  </g>
 </svg>

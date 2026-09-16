@@ -1,7 +1,8 @@
-# Lithosite Icon Pack V1.0 — lightweight SVG
+# Lithosite Icon Pack V1.0 — Vector Native
 
-Vector-style SVG icons derived from the Lithosite master icon sheet.
-No embedded raster/base64 image data is used.
+Vector-native SVG export derived from the Lithosite master icon sheet.
+Each file contains SVG geometry (circle/background + traced white glyph),
+with no embedded PNG/base64 image.
 
-Selected for current Lithosite UI: 43 icons.
-`duplicate.svg` is intentionally not included because it is absent from the master sheet.
+Selected for current Lithosite core UI: 43 icons.
+`duplicate.svg` is intentionally absent because it is not present in the master sheet.
