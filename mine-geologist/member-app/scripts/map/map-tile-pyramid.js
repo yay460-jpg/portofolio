@@ -110,6 +110,15 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     skipped: 0,
     startedAt: (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()
   };
+  // TEMP PERFORMANCE DIAGNOSTIC: telemetry only; no rendering decisions changed.
+  const perfDiag = {
+    status: 'RUNNING',
+    startedAt: c2Stats.startedAt,
+    c1: null,
+    c2: null,
+    render: { planned: 0, rendered: 0, skipped: 0, failed: 0, elapsedMs: null, avgRenderMs: null }
+  };
+  try { window.mg1GeoPdfPerformanceDiagnostic = perfDiag; } catch (_) {}
   const c2Prefetch = deviceProfile ? Math.max(1, Number(deviceProfile.prefetchRadius) || 0) : 1; // V15: min 1 ring prefetch for no blank
   const vpWPt = Math.abs(vpBBox[2] - vpBBox[0]);
   const vpHPt = Math.abs(vpBBox[3] - vpBBox[1]);
@@ -147,11 +156,41 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
         ? null
         : getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0))
     : [];
+
+  // TEMP PERFORMANCE DIAGNOSTIC: expose the already-computed C1/C2 state.
+  try {
+    const planner = window.mg1LastViewportTilePlan || null;
+    const baseFull = levelPlan.length ? Number(levelPlan[0].total) : 0;
+    const detailFull = levelPlan.slice(1).reduce((sum, plan) => sum + Number(plan.total || 0), 0);
+    const detailSelected = levelPlan.slice(1).reduce((sum, plan, idx) => {
+      const w = c2Windows[idx + 1];
+      return sum + Number(w && w.required ? w.required.count : plan.total || 0);
+    }, 0);
+    const detailWindows = c2Windows.slice(1);
+    const windowValid = detailWindows.length ? detailWindows.every(Boolean) : true;
+    const fallbackReason = !adaptiveC2
+      ? 'C2 disabled'
+      : (!planner || !planner.ok)
+        ? ('C1 invalid: ' + ((planner && planner.reason) || 'planner unavailable'))
+        : (detailWindows.some(w => !w) ? 'C2 detail window returned null' : 'NONE');
+    perfDiag.c1 = planner && planner.ok ? {
+      visible: planner.visible && planner.visible.count,
+      required: planner.required && planner.required.count,
+      fullLevel: planner.totalLevelTiles,
+      factor: planner.factor,
+      tileSize: planner.tileSize,
+      zoom: planner.zoom
+    } : { visible: null, required: null, fullLevel: null, factor: null, tileSize: null, zoom: null };
+    perfDiag.c2 = { baseFull, detailFull, detailSelected, detailFactor: levelPlan.length > 1 ? levelPlan[levelPlan.length - 1].factor : null, windowValid, fallbackReason };
+  } catch (_) {}
+
   const effectiveTotals = adaptiveC2
     ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total))
     : levelPlan.map(item => item.total);
   const grandTotalTiles = Math.max(1, effectiveTotals.reduce((sum, item) => sum + item, 0));
   if (adaptiveC2) c2Stats.planned = grandTotalTiles;
+  perfDiag.render.planned = grandTotalTiles;
+  try { perfDiag.render.skipped = c2Stats.skipped; perfDiag.render.failed = c2Stats.failed; } catch (_) {}
   let globalDone = 0;
   if (onProgress) onProgress('Menyiapkan tile pyramid' + (adaptiveC2 ? ' adaptif' : '') + ': 0/' + grandTotalTiles + ' (0%)', 0);
 
@@ -193,6 +232,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
         // DETAIL (li>0) may use the viewport window for the low-end device budget.
         if (adaptiveC2 && li > 0 && c2Window && c2Window.keys.indexOf(tx + ',' + ty) === -1) {
           c2Stats.skipped++;
+          perfDiag.render.skipped = c2Stats.skipped;
           continue;
         }
         // V14.38: tile guard follows the raised 768px safety ceiling. Only one
@@ -229,8 +269,10 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
           const dataUrl = canvas.toDataURL('image/png');
           tiles.push(normalizeLithositeTile_({ x: tx, y: ty, width: tw, height: th, dataUrl }, factor));
           if (adaptiveC2) c2Stats.rendered++;
+          perfDiag.render.rendered = c2Stats.rendered;
         } catch (tileErr) {
           if (adaptiveC2) c2Stats.failed++;
+          perfDiag.render.failed = c2Stats.failed;
           // [BARU -- pengaman ringan] 1 tile gagal (mis. render() pdf.js gagal sesaat di
           // Android tertentu) TIDAK BOLEH menggagalkan seluruh upload GeoPDF. Tile ini
           // dilewati -- akan tampil sbg celah kecil di zoom dalam, jauh lebih baik drpd
@@ -265,7 +307,23 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   if (adaptiveC2) {
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
     c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
+    perfDiag.render.rendered = c2Stats.rendered;
+    perfDiag.render.failed = c2Stats.failed;
+    perfDiag.render.skipped = c2Stats.skipped;
+    perfDiag.render.elapsedMs = c2Stats.elapsedMs;
+    perfDiag.render.avgRenderMs = c2Stats.rendered > 0 ? Math.round((c2Stats.elapsedMs / c2Stats.rendered) * 10) / 10 : null;
+    perfDiag.status = c2Stats.status === 'ACTIVE' ? 'DONE' : c2Stats.status;
     out.adaptive = { mode:'viewport-only-selected-factor-test', prefetchRadius:0, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
   }
+  try {
+    if (!adaptiveC2) {
+      const elapsed = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - perfDiag.startedAt);
+      perfDiag.render.elapsedMs = elapsed;
+      perfDiag.render.planned = grandTotalTiles;
+      perfDiag.render.rendered = out.levels.reduce((sum, l) => sum + (Array.isArray(l.tiles) ? l.tiles.length : 0), 0);
+      perfDiag.render.avgRenderMs = perfDiag.render.rendered ? Math.round((elapsed / perfDiag.render.rendered) * 10) / 10 : null;
+      perfDiag.status = 'DONE';
+    }
+  } catch (_) {}
   return out;
 }
