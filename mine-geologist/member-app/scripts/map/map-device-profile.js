@@ -121,6 +121,27 @@ const TILE_BUDGET_POLICY_ = Object.freeze({ MIN: 25, VERSION: 2 });
 try { if(typeof window!=='undefined'){ window.TILE_BUDGET_POLICY_=TILE_BUDGET_POLICY_; } } catch(_){}
 try { if(typeof globalThis!=='undefined'){ globalThis.TILE_BUDGET_POLICY_=TILE_BUDGET_POLICY_; } } catch(_){}
 
+// V6 BOOTFIX: reject incompatible legacy engine-profile cache before any runtime read.
+function clearIncompatibleTileProfileCache_() {
+  try {
+    const raw = localStorage.getItem('mg1_tile_engine_profile_v1');
+    if (!raw) return false;
+    const cached = JSON.parse(raw);
+    const validMaxTiles = Number.isFinite(Number(cached && cached.maxTiles));
+    const validUploadFactors = Array.isArray(cached && cached.fullUploadFactors) && cached.fullUploadFactors.length > 0;
+    if (!validMaxTiles || !validUploadFactors) {
+      localStorage.removeItem('mg1_tile_engine_profile_v1');
+      try { if (typeof window !== 'undefined') window.mg1TileProfileCacheClearedV6 = true; } catch (_) {}
+      return true;
+    }
+  } catch (_) {
+    try { localStorage.removeItem('mg1_tile_engine_profile_v1'); } catch (_) {}
+    return true;
+  }
+  return false;
+}
+try { clearIncompatibleTileProfileCache_(); } catch (_) {}
+
 // STEP B - TILE ENGINE PROFILE V1
 // Parameter profile saja. TIDAK dipakai oleh renderer pada tahap ini.
 // ============================================================================
@@ -130,22 +151,6 @@ try { if(typeof globalThis!=='undefined'){ globalThis.TILE_BUDGET_POLICY_=TILE_B
 // DO NOT delete, rename, or alter these tier mappings without a dedicated
 // geometry/runtime audit. Renderer and persistence depend on this contract.
 // ============================================================================
-function clearIncompatibleTileProfileCache_() {
-  try {
-    const cached = localStorage.getItem('mg1_tile_engine_profile_v1');
-    if (cached) {
-      const p = JSON.parse(cached);
-      // Old cache without explicit maxTiles/fullUploadFactors is incompatible
-      if (!p || typeof p.maxTiles === 'undefined' || !Array.isArray(p.fullUploadFactors)) {
-        console.warn('[V6 BOOT FIX] Clearing incompatible old tile engine profile cache');
-        localStorage.removeItem('mg1_tile_engine_profile_v1');
-        window.mg1DeviceTileEngineProfile = null;
-      }
-    }
-  } catch(_){}
-}
-try { clearIncompatibleTileProfileCache_(); } catch(_){}
-
 function getDeviceTileEngineProfile_() {
   let deviceProfile = window.mg1DeviceTileProfile;
   if (!deviceProfile) {
