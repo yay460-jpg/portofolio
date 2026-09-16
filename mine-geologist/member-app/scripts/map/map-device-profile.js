@@ -130,6 +130,22 @@ try { if(typeof globalThis!=='undefined'){ globalThis.TILE_BUDGET_POLICY_=TILE_B
 // DO NOT delete, rename, or alter these tier mappings without a dedicated
 // geometry/runtime audit. Renderer and persistence depend on this contract.
 // ============================================================================
+function clearIncompatibleTileProfileCache_() {
+  try {
+    const cached = localStorage.getItem('mg1_tile_engine_profile_v1');
+    if (cached) {
+      const p = JSON.parse(cached);
+      // Old cache without explicit maxTiles/fullUploadFactors is incompatible
+      if (!p || typeof p.maxTiles === 'undefined' || !Array.isArray(p.fullUploadFactors)) {
+        console.warn('[V6 BOOT FIX] Clearing incompatible old tile engine profile cache');
+        localStorage.removeItem('mg1_tile_engine_profile_v1');
+        window.mg1DeviceTileEngineProfile = null;
+      }
+    }
+  } catch(_){}
+}
+try { clearIncompatibleTileProfileCache_(); } catch(_){}
+
 function getDeviceTileEngineProfile_() {
   let deviceProfile = window.mg1DeviceTileProfile;
   if (!deviceProfile) {
