@@ -178,6 +178,271 @@ const GEOPDF_TILE_LEVEL_FACTORS_ = [0.25, 0.5, 1, 2];
 // ENGINE V2 TILE BUDGET POLICY: quality floor only. Profile remains the source of maxTiles.
 const TILE_BUDGET_POLICY_ = Object.freeze({ MIN: 25, VERSION: 2 });
 
+// V5 WIRING FINAL - C2 SELECT -> Store RESOLVE -> HIT/MISS -> creation
+// Ini yang belum terhubung di V5: C2 budget floor harus diterapkan pada visibleKeys sebelum loader
+
+function applyTileBudgetFloorV5_(visibleKeys, visibleResult, profile) {
+  // V6 FIX: 16 harus benar-benar jadi 25 keys, bukan hanya targetCount=25
+  // Expansion dilakukan di sini (runtime) dari Store yang sudah full, bukan hanya telemetry
+  try {
+    const policy = (typeof TILE_BUDGET_POLICY_ !== 'undefined' ? TILE_BUDGET_POLICY_ : (typeof window!=='undefined' && window.TILE_BUDGET_POLICY_ ? window.TILE_BUDGET_POLICY_ : {MIN:25, VERSION:2}));
+    const floor = Number(policy.MIN) || 25;
+    const profileMax = Number(profile?.maxTiles ?? profile?.cacheLimit ?? 40);
+    const ceiling = Math.max(floor, profileMax);
+
+    const c1Count = Array.isArray(visibleKeys) ? visibleKeys.length : 0;
+    
+    // Ambil info geometry dari visibleResult
+    let vMinX, vMaxX, vMinY, vMaxY, tilesX, tilesY;
+    try {
+      if (visibleResult && visibleResult.visible) {
+        vMinX = Number(visibleResult.visible.minX);
+        vMaxX = Number(visibleResult.visible.maxX);
+        vMinY = Number(visibleResult.visible.minY);
+        vMaxY = Number(visibleResult.visible.maxY);
+        tilesX = Number(visibleResult.visible.tilesX) || Number(visibleResult.pyramidTileSize) || 100;
+        tilesY = Number(visibleResult.visible.tilesY) || Number(visibleResult.pyramidTileSize) || 100;
+        // tilesX/Y sebenarnya jumlah tile, bukan pixel
+        if (visibleResult.visibleTiles && visibleResult.visibleTiles.length) {
+          // Hitung tilesX/Y dari visibleTiles jika perlu
+        }
+      }
+    } catch(_){}
+
+    // Fallback jika geometry tidak tersedia: pakai keys yang ada untuk estimasi bounds
+    if (!(Number.isFinite(vMinX) && Number.isFinite(vMaxX) && Number.isFinite(vMinY) && Number.isFinite(vMaxY))) {
+      // Parse keys "Lx_X2_Y3" atau "2,3" untuk dapat bounds
+      let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+      for (const k of visibleKeys) {
+        const m = String(k).match(/_X(\d+)_Y(\d+)/);
+        let x,y;
+        if (m) { x=Number(m[1]); y=Number(m[2]); }
+        else {
+          const parts = String(k).split(',');
+          if (parts.length>=2) { x=Number(parts[0]); y=Number(parts[1]); }
+          else continue;
+        }
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          minX=Math.min(minX,x); maxX=Math.max(maxX,x);
+          minY=Math.min(minY,y); maxY=Math.max(maxY,y);
+        }
+      }
+      if (Number.isFinite(minX)) {
+        vMinX=minX; vMaxX=maxX; vMinY=minY; vMaxY=maxY;
+        tilesX = (maxX-minX+1)*2; tilesY = (maxY-minY+1)*2; // estimasi
+      } else {
+        // Tidak bisa expand tanpa geometry - kembalikan apa adanya dengan warning
+        return {
+          keys: visibleKeys,
+          originalCount: c1Count,
+          targetCount: Math.min(Math.max(c1Count, floor), ceiling),
+          isFloored: c1Count < floor,
+          isCapped: c1Count > ceiling,
+          floor, ceiling, profileMax,
+          error: 'no geometry for expansion',
+          note: `C1 ${c1Count} < floor ${floor} but no geometry to expand - needs map-tile-pyramid.v5 expansion`
+        };
+      }
+    }
+
+    // Jika sudah di range floor..ceiling, keep
+    if (c1Count >= floor && c1Count <= ceiling) {
+      return {
+        keys: visibleKeys,
+        originalCount: c1Count,
+        targetCount: c1Count,
+        isFloored: false,
+        isCapped: false,
+        floor, ceiling, profileMax,
+        visibleCount: c1Count,
+        note: `C1 ${c1Count} in [floor ${floor}, ceiling ${ceiling}] - keep`
+      };
+    }
+
+    // Jika perlu expand: 16 -> 25 (floor)
+    if (c1Count < floor) {
+      const targetCount = Math.min(floor, ceiling);
+      // Expand radius bertahap sampai targetCount tercapai
+      // Ini yang V5 sebelumnya tidak lakukan - hanya set targetCount tapi keys tetap 16
+      let r = 0;
+      let expandedKeys = [...visibleKeys];
+      // Cari max radius yang masuk akal
+      const maxRadius = Math.max(tilesX, tilesY, 10);
+      
+      while (expandedKeys.length < targetCount && r < maxRadius) {
+        r++;
+        const minX = Math.max(0, vMinX - r);
+        const maxX = (tilesX ? Math.min(tilesX-1, vMaxX + r) : vMaxX + r);
+        const minY = Math.max(0, vMinY - r);
+        const maxY = (tilesY ? Math.min(tilesY-1, vMaxY + r) : vMaxY + r);
+        const keys = [];
+        for (let ty=minY; ty<=maxY; ty++) {
+          for (let tx=minX; tx<=maxX; tx++) {
+            // Buat key dengan format yang sama seperti input
+            // Jika input format "Lx_X2_Y3", buat format sama, jika "2,3" buat "2,3"
+            const sampleKey = visibleKeys[0] || '';
+            let key;
+            if (String(sampleKey).includes('_X') && String(sampleKey).includes('_Y')) {
+              // Format Lfactor_Xx_Yy - butuh factor
+              const factorMatch = String(sampleKey).match(/^L([^_]+)_/);
+              const factor = factorMatch ? factorMatch[1] : '1';
+              key = `L${factor}_X${tx}_Y${ty}`;
+            } else {
+              key = `${tx},${ty}`;
+            }
+            keys.push(key);
+          }
+        }
+        expandedKeys = keys;
+        if (expandedKeys.length >= targetCount) break;
+      }
+
+      // Jika expanded masih > target (misal expand dari 16 langsung jadi 36 karena radius 1), potong prefetch terjauh, pertahankan visible asli
+      if (expandedKeys.length > targetCount) {
+        // Pisahkan visible asli vs prefetch baru
+        const originalSet = new Set(visibleKeys);
+        const visibleMandatory = expandedKeys.filter(k => originalSet.has(k));
+        const newPrefetch = expandedKeys.filter(k => !originalSet.has(k));
+        const neededNew = targetCount - visibleMandatory.length;
+        
+        // Sort new prefetch by distance to center
+        let centerX = (vMinX + vMaxX)/2, centerY = (vMinY + vMaxY)/2;
+        const sortedNewPrefetch = newPrefetch.sort((a,b)=>{
+          const mA = String(a).match(/_X(\d+)_Y(\d+)/) || String(a).split(',').map((v,i)=> i===0?`_X${v}`:`_Y${v}`);
+          let ax,ay,bx,by;
+          const ma = String(a).match(/_X(\d+)_Y(\d+)/);
+          const mb = String(b).match(/_X(\d+)_Y(\d+)/);
+          if (ma) { ax=Number(ma[1]); ay=Number(ma[2]); } else { const p=String(a).split(','); ax=Number(p[0]); ay=Number(p[1]); }
+          if (mb) { bx=Number(mb[1]); by=Number(mb[2]); } else { const p=String(b).split(','); bx=Number(p[0]); by=Number(p[1]); }
+          return Math.hypot(ax-centerX, ay-centerY) - Math.hypot(bx-centerX, by-centerY);
+        }).slice(0, Math.max(0, neededNew));
+
+        const finalKeys = [...visibleMandatory, ...sortedNewPrefetch];
+        return {
+          keys: finalKeys,
+          originalCount: c1Count,
+          targetCount: finalKeys.length,
+          isFloored: true,
+          isCapped: false,
+          floor, ceiling, profileMax,
+          visibleCount: visibleMandatory.length,
+          expandedRadius: r,
+          note: `C1 ${c1Count} < floor ${floor} -> expanded radius ${r} to ${finalKeys.length} keys (was ${expandedKeys.length} before trim), visible ${visibleMandatory.length} + new prefetch ${sortedNewPrefetch.length}`
+        };
+      }
+
+      return {
+        keys: expandedKeys,
+        originalCount: c1Count,
+        targetCount: expandedKeys.length,
+        isFloored: true,
+        isCapped: false,
+        floor, ceiling, profileMax,
+        expandedRadius: r,
+        note: `C1 ${c1Count} < floor ${floor} -> expanded to ${expandedKeys.length} keys radius ${r}`
+      };
+    }
+
+    // Jika perlu cap: 50 -> 40, visible mandatory
+    if (c1Count > ceiling) {
+      const visibleTiles = visibleResult && Array.isArray(visibleResult.visibleTiles) ? visibleResult.visibleTiles : [];
+      const visibleKeySet = new Set(visibleTiles.map(t=>t.key));
+      const hasVisibleTilesInfo = visibleKeySet.size > 0;
+      
+      let visibleMandatory;
+      let prefetchOnly;
+      if (hasVisibleTilesInfo) {
+        visibleMandatory = visibleKeys.filter(k=>visibleKeySet.has(k));
+        prefetchOnly = visibleKeys.filter(k=>!visibleKeySet.has(k));
+      } else {
+        // Fallback: anggap semua visibleKeys adalah visible mandatory jika tidak ada info
+        // Tapi untuk cap, kita tetap harus potong - pakai center-biased
+        visibleMandatory = [];
+        prefetchOnly = [...visibleKeys];
+      }
+
+      if (visibleMandatory.length > ceiling) {
+        return {
+          keys: visibleMandatory,
+          originalCount: c1Count,
+          targetCount: visibleMandatory.length,
+          isFloored: false,
+          isCapped: false,
+          visibleExceedsCeiling: true,
+          floor, ceiling, profileMax,
+          note: `visible ${visibleMandatory.length} > ceiling ${ceiling} - keep visible, coverage priority`
+        };
+      }
+
+      const neededPrefetch = Math.max(0, ceiling - visibleMandatory.length);
+      let centerX=0, centerY=0;
+      try {
+        if (visibleResult && visibleResult.visible) {
+          centerX = (visibleResult.visible.minX + visibleResult.visible.maxX)/2;
+          centerY = (visibleResult.visible.minY + visibleResult.visible.maxY)/2;
+        }
+      } catch(_){}
+
+      const sortedPrefetch = prefetchOnly.sort((a,b)=>{
+        const ma = String(a).match(/_X(\d+)_Y(\d+)/);
+        const mb = String(b).match(/_X(\d+)_Y(\d+)/);
+        let ax,ay,bx,by;
+        if (ma) { ax=Number(ma[1]); ay=Number(ma[2]); } else { const p=String(a).split(','); ax=Number(p[0]); ay=Number(p[1]); }
+        if (mb) { bx=Number(mb[1]); by=Number(mb[2]); } else { const p=String(b).split(','); bx=Number(p[0]); by=Number(p[1]); }
+        return Math.hypot(ax-centerX, ay-centerY) - Math.hypot(bx-centerX, by-centerY);
+      }).slice(0, neededPrefetch);
+
+      const finalKeys = [...visibleMandatory, ...sortedPrefetch];
+      return {
+        keys: finalKeys,
+        originalCount: c1Count,
+        targetCount: finalKeys.length,
+        isFloored: false,
+        isCapped: true,
+        floor, ceiling, profileMax,
+        visibleCount: visibleMandatory.length,
+        prefetchCount: sortedPrefetch.length,
+        note: `C1 ${c1Count} > ceiling ${ceiling} -> keep visible ${visibleMandatory.length} + ${neededPrefetch} nearest prefetch = ${finalKeys.length}`
+      };
+    }
+
+    return {
+      keys: visibleKeys,
+      originalCount: c1Count,
+      targetCount: c1Count,
+      isFloored: false,
+      isCapped: false,
+      floor, ceiling, profileMax,
+      note: 'no change'
+    };
+
+  } catch(e) {
+    return { keys: visibleKeys, originalCount: visibleKeys.length, targetCount: visibleKeys.length, error: e && e.message, floor:25, ceiling:40 };
+  }
+}
+
+
+function createTileTelemetryV5Final_() {
+  return {
+    visible: 0,
+    selected: 0,
+    storeHit: 0,
+    storeMiss: 0,
+    runtimeCreated: 0,
+    floor: 25,
+    ceiling: 40,
+    profileMax: 40,
+    isFloored: false,
+    isCapped: false,
+    visibleExceedsCeiling: false,
+    hitRatio: 0,
+    isFullHit: false
+  };
+}
+
+try { if(typeof window!=='undefined'){ window.TILE_BUDGET_POLICY_ = TILE_BUDGET_POLICY_; window.TILE_BUDGET_POLICY = TILE_BUDGET_POLICY_; } } catch(_){}
+try { if(typeof globalThis!=='undefined'){ globalThis.TILE_BUDGET_POLICY_ = TILE_BUDGET_POLICY_; } } catch(_){}
+
 // STEP C1 - VIEWPORT TILE PLANNER V1
 // Planner ONLY. Tidak merender tile, tidak mengubah renderer V13.1, tidak mengubah
 // gesture, tidak mengubah DPR, dan tidak menulis cache tile. Tujuan: menghitung tile
@@ -895,6 +1160,12 @@ function getVisibleDetailKeysFromPlan_(pyramid, detailLevel, bounds, viewBox, im
 
 // === STEP 8.10B-3: Orchestrator non-blocking untuk existing stored tiles ===
 // SYNC, tidak await, tidak block renderMineGridSvg
+function ensureRuntimeTiles_NonBlocking_V5_Wrapped_(visibleKeys, pyramid, visibleResult, profile) {
+  // V5 WIRING: terapkan floor/ceiling sebelum loader, visible mandatory
+  const budgetApplied = typeof applyTileBudgetFloorV5_ === 'function' ? applyTileBudgetFloorV5_(visibleKeys, visibleResult, profile) : {keys: visibleKeys};
+  return ensureRuntimeTiles_NonBlocking_(budgetApplied.keys, pyramid);
+}
+
 function ensureRuntimeTiles_NonBlocking_(visibleKeys, pyramid) {
   if (!pyramid || !Array.isArray(visibleKeys) || !visibleKeys.length) {
     return { ok:false, readyMap: Object.create(null), queued:0, missing:[], total:0, reason:'visibleKeys empty' };
@@ -2555,16 +2826,51 @@ function renderMineGridSvg(points) {
               : { ok:false, keys:[] };
             // STEP 8.21D: record visibleResult regardless of ok
             try { if (typeof window !== 'undefined') { window.mg1LastVisibleResult = visibleResult; window.mg1LastDetailFactor = detailLevel ? detailLevel.factor : null; window.mg1LastTargetFactor = targetFactor; } } catch(_) {}
-            // V24.5 queue lifecycle: reconcile pending runtime work against the current
-            // visible set. Valid empty viewport is still a valid result; planner failure
-            // must never be treated as an empty viewport.
-            if (visibleResult.ok) {
-              if (typeof reconcileLithositeTileQueueWithVisible_ === 'function') {
-                reconcileLithositeTileQueueWithVisible_(pyramid, visibleResult.keys);
-              }
-            }
+            // V6 CONTRACT: C1 raw keys are only the viewport measurement.
+            // Apply C2 floor/cap first, then use ONE selected set for queue + loader.
+            // This removes the old dual-definition bug where Queue saw raw C1 while
+            // Loader saw the budgeted set.
             if (visibleResult.ok && visibleResult.keys.length) {
-              const runtimeResult = typeof ensureRuntimeTiles_NonBlocking_ === 'function' ? ensureRuntimeTiles_NonBlocking_(visibleResult.keys, pyramid) : { ok:false, queued:0, missing:[], alreadyReady:0, alreadyLoading:0 };
+              const runtimeResult = typeof ensureRuntimeTiles_NonBlocking_ === 'function' ? (function(){
+                try {
+                  const prof = (typeof window!=='undefined' && window.mg1DeviceTileEngineProfile)
+                    ? window.mg1DeviceTileEngineProfile
+                    : (typeof getDeviceTileEngineProfile_==='function' ? getDeviceTileEngineProfile_() : null);
+                  const budgeted = typeof applyTileBudgetFloorV5_==='function'
+                    ? applyTileBudgetFloorV5_(visibleResult.keys, visibleResult, prof)
+                    : { keys: visibleResult.keys, originalCount: visibleResult.keys.length };
+                  const selectedKeys = Array.isArray(budgeted.keys) ? budgeted.keys : visibleResult.keys;
+
+                  if (typeof window !== 'undefined') {
+                    window.TILE_TELEMETRY_V5_ = window.TILE_TELEMETRY_V5_ || {};
+                    window.TILE_TELEMETRY_V5_.visible = budgeted.originalCount ?? visibleResult.keys.length;
+                    window.TILE_TELEMETRY_V5_.selected = selectedKeys.length;
+                    window.TILE_TELEMETRY_V5_.floor = budgeted.floor;
+                    window.TILE_TELEMETRY_V5_.ceiling = budgeted.ceiling;
+                    window.TILE_TELEMETRY_V5_.isFloored = !!budgeted.isFloored;
+                    window.TILE_TELEMETRY_V5_.isCapped = !!budgeted.isCapped;
+                    window.TILE_TELEMETRY_V5_.expandedRadius = budgeted.expandedRadius || 0;
+                    window.TILE_TELEMETRY_V5_.visibleCount = budgeted.visibleCount ?? null;
+                    window.TILE_TELEMETRY_V5_.prefetchCount = budgeted.prefetchCount ?? null;
+                  }
+
+                  // SINGLE SOURCE OF TRUTH: queue reconciliation and loader receive
+                  // exactly the same selected C2 set.
+                  if (typeof reconcileLithositeTileQueueWithVisible_ === 'function') {
+                    reconcileLithositeTileQueueWithVisible_(pyramid, selectedKeys);
+                  }
+                  return ensureRuntimeTiles_NonBlocking_(selectedKeys, pyramid);
+                } catch(e) {
+                  // Safe fallback: preserve the original C1 set if C2 wiring fails.
+                  // Do not invent a partial budgeted set.
+                  try {
+                    if (typeof reconcileLithositeTileQueueWithVisible_ === 'function') {
+                      reconcileLithositeTileQueueWithVisible_(pyramid, visibleResult.keys);
+                    }
+                  } catch(_) {}
+                  return ensureRuntimeTiles_NonBlocking_(visibleResult.keys, pyramid);
+                }
+              })() : { ok:false, queued:0, missing:[], alreadyReady:0, alreadyLoading:0 };
               if (runtimeResult.ok && runtimeResult.queued > 0) {
                 // Background consumer - jangan await di render path, jangan block compositor
                 setTimeout(() => {
