@@ -472,7 +472,7 @@ function renderAccountMenu() {
     '</button>';
   }
   return '' +
-  '<div class="fixed inset-0 z-40" onclick="closeAccountMenu()">' +
+  '<div class="mg1-account-overlay inset-0 z-40" onclick="closeAccountMenu()">' +
     '<div class="absolute right-4 top-[60px] w-[240px] rounded-[14px] bg-[#0e1933] border border-white/10 shadow-[0_12px_32px_rgba(0,0,0,0.5)] overflow-hidden fade-in" onclick="event.stopPropagation()">' +
       (hasSession ? '<div class="px-4 py-3 border-b border-white/[0.06]"><div class="text-[13px] font-bold text-white truncate">' + sessionInfo.userName + '</div><div class="text-[10px] text-white/40">' + sessionInfo.roleId + '</div></div>' : '') +
       item(hasSession ? 'log-out' : 'log-in', hasSession ? 'Logout' : 'Login', hasSession ? 'handleLogout(); closeAccountMenu();' : 'openLoginModal(); closeAccountMenu();') +
