@@ -106,6 +106,8 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
   }
   .app-shell { max-width: 480px; margin: 0 auto; height: 100svh; height: calc(var(--mg1-vvh, 100svh)); position: relative; background: #070b1c; display: flex; flex-direction: column; overflow: hidden; }
   .app-main { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; background: #070b1c; overscroll-behavior: contain; }
+  /* Global shell boundary: account overlay stays inside the app shell on Android and desktop. */
+  #app > .mg1-account-overlay { position:absolute; inset:0; }
   ::-webkit-scrollbar { width: 0; height: 0; }
   .card { background: rgba(15,23,42,0.55); border: 1px solid rgba(255,255,255,0.06); }
   .glow-gold { box-shadow: 0 0 24px rgba(37,99,235,0.18); }
