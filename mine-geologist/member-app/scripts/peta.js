@@ -393,8 +393,8 @@ function planPassivePrefetchAfterPan_(dx, dy) {
   }
 }
 
-// STEP C1 - VIEWPORT TILE PLANNER V1 !== 'boolean') window.mg1AdaptiveC2Enabled = true;
 // V14.31: C2 field test is automatic; no manual 'next upload' activation required.
+if (typeof window.mg1AdaptiveC2Enabled !== 'boolean') window.mg1AdaptiveC2Enabled = true;
 // ==== PETA BACKGROUND (foto udara/hasil olah ArcGIS) -- BARU 5 Sep ====
 // Bukan baca GeoPDF/GeoTIFF asli (butuh mesin libproj+libgdal spt Avenza, mustahil di
 // browser PWA) -- pendekatan lebih ringan: gambar biasa (PNG/JPG) + 2 titik referensi
