@@ -12,61 +12,6 @@
 (function(){
   console.log('[V19 NEW MODAL] Loading isolated no-flicker modal');
 
-  // V24.5 GLOBAL UI BOUNDARY
-  // Satu presentation layer untuk Android + laptop.
-  // Layer mengikuti geometri App Shell (max 480px), sehingga modal/sheet
-  // tidak pernah memakai lebar viewport desktop sebagai coordinate space.
-  let mg1OverlayBoundaryBound_ = false;
-
-  function syncMG1OverlayLayer_() {
-    const layer = document.getElementById('mg1-global-overlay-layer');
-    const shell = document.querySelector('.app-shell') || document.getElementById('app');
-    if (!layer || !shell) return;
-    const rect = shell.getBoundingClientRect();
-    layer.style.left = rect.left + 'px';
-    layer.style.top = rect.top + 'px';
-    layer.style.width = rect.width + 'px';
-    layer.style.height = rect.height + 'px';
-  }
-
-  function getMG1OverlayLayer_() {
-    const shell = document.querySelector('.app-shell') || document.getElementById('app');
-    if (!shell) return document.body;
-
-    let layer = document.getElementById('mg1-global-overlay-layer');
-    if (!layer || layer.parentNode !== document.body) {
-      if (layer && layer.parentNode) layer.parentNode.removeChild(layer);
-      layer = document.createElement('div');
-      layer.id = 'mg1-global-overlay-layer';
-      layer.setAttribute('aria-hidden', 'false');
-      layer.style.cssText = [
-        'position:fixed', 'overflow:hidden', 'pointer-events:none',
-        'z-index:2147483640', 'box-sizing:border-box', 'isolation:isolate',
-        'margin:0', 'padding:0'
-      ].join(';');
-      document.body.appendChild(layer);
-    }
-
-    syncMG1OverlayLayer_();
-
-    if (!mg1OverlayBoundaryBound_) {
-      mg1OverlayBoundaryBound_ = true;
-      const sync = () => syncMG1OverlayLayer_();
-      window.addEventListener('resize', sync, { passive: true });
-      window.addEventListener('orientationchange', sync, { passive: true });
-      if (window.visualViewport) window.visualViewport.addEventListener('resize', sync, { passive: true });
-      requestAnimationFrame(sync);
-    }
-    return layer;
-  }
-
-  function mountMG1Overlay_(node) {
-    const layer = getMG1OverlayLayer_();
-    layer.appendChild(node);
-    node.style.pointerEvents = 'auto';
-    return node;
-  }
-
   // State isolated - tidak pakai mapUploadFormState global
   const state = {
     open: false,
@@ -97,7 +42,7 @@
       toast = document.createElement('div');
       toast.id = 'mg1-lithosite-toast';
       toast.style.cssText = [
-        'position:absolute', 'left:50%', 'bottom:28px', 'transform:translate(-50%,14px)',
+        'position:fixed', 'left:50%', 'bottom:28px', 'transform:translate(-50%,14px)',
         'z-index:2147483647', 'min-width:260px', 'max-width:min(88vw,420px)',
         'padding:12px 16px', 'border-radius:14px', 'border:1px solid rgba(255,255,255,.10)',
         'background:rgba(14,25,51,.96)', 'box-shadow:0 16px 44px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06)',
@@ -106,7 +51,7 @@
         'letter-spacing:-.01em', 'color:#fff', 'opacity:0', 'pointer-events:none',
         'transition:opacity 180ms ease, transform 220ms cubic-bezier(.16,1,.3,1)'
       ].join(';');
-      mountMG1Overlay_(toast);
+      document.body.appendChild(toast);
     }
     const ok = type === 'success';
     const icon = ok ? '✓' : '⚠';
@@ -150,7 +95,7 @@
 
     const root = document.createElement('div');
     root.id = 'mg1-new-map-modal-root';
-    root.style.cssText = 'position:absolute;inset:0;z-index:2147483647;display:none;';
+    root.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:none;';
     root.innerHTML = `
       <div id="mg1-new-modal-backdrop" style="position:absolute;inset:0;background:rgba(3,8,20,0.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);opacity:0;transition:opacity 220ms ease;"></div>
       <div id="mg1-new-modal-panel" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-44%) scale(0.96);width:min(92vw,420px);max-height:86vh;overflow:auto;background:#0e1933;border:1px solid rgba(255,255,255,0.12);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);opacity:0;transition:all 280ms cubic-bezier(0.16,1,0.3,1);">
@@ -193,7 +138,7 @@
         </div>
       </div>
     `;
-    mountMG1Overlay_(root);
+    document.body.appendChild(root);
     // cache els
     els.root = root;
     els.backdrop = document.getElementById('mg1-new-modal-backdrop');
@@ -702,12 +647,43 @@
   let manageModalEl = null;
   let uploadModalEl = null;
 
+  // Global shell boundary: keep Map Library presentation inside the actual app shell
+  // on both Android and desktop. The overlay may remain under <body> to survive app.innerHTML
+  // renders, but its fixed viewport is explicitly synchronized to .app-shell.
+  function syncMG1OverlayToShell_(el) {
+    if (!el) return;
+    const shell = document.querySelector('.app-shell');
+    if (!shell) return;
+    const r = shell.getBoundingClientRect();
+    if (!Number.isFinite(r.left) || !Number.isFinite(r.top) || !Number.isFinite(r.width) || !Number.isFinite(r.height)) return;
+    el.style.position = 'fixed';
+    el.style.left = Math.max(0, r.left) + 'px';
+    el.style.top = Math.max(0, r.top) + 'px';
+    el.style.width = Math.max(0, r.width) + 'px';
+    el.style.height = Math.max(0, r.height) + 'px';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+  }
+
+  let mg1ShellBoundaryBound_ = false;
+  function bindMG1ShellBoundary_() {
+    if (mg1ShellBoundaryBound_) return;
+    mg1ShellBoundaryBound_ = true;
+    const sync = () => {
+      const el = document.getElementById('mg1-manage-modal-isolated');
+      if (el && el.style.display !== 'none') syncMG1OverlayToShell_(el);
+    };
+    window.addEventListener('resize', sync, {passive:true});
+    window.addEventListener('orientationchange', sync, {passive:true});
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', sync, {passive:true});
+  }
+
   function ensureManageModalDom() {
     if(manageModalEl && document.body.contains(manageModalEl)) return manageModalEl;
 
     const el = document.createElement('div');
     el.id = 'mg1-manage-modal-isolated';
-    el.style.cssText = 'position:absolute;inset:0;z-index:2147483646;display:none;';
+    el.style.cssText = 'position:fixed;z-index:2147483646;display:none;overflow:hidden;';
     el.innerHTML = `
       <div id="mg1-manage-backdrop" style="position:absolute;inset:0;background:rgba(3,8,20,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;transition:opacity 200ms ease;"></div>
       <div id="mg1-manage-panel" style="position:absolute;left:0;right:0;bottom:0;max-height:82vh;background:#0e1933;border-top:1px solid rgba(255,255,255,0.10);border-radius:22px 22px 0 0;transform:translateY(100%);transition:transform 300ms cubic-bezier(0.16,1,0.3,1);overflow:auto;box-shadow:0 -18px 60px rgba(0,0,0,.28);">
@@ -732,10 +708,9 @@
 
           <div id="mg1-manage-options-panel" style="display:none;margin:-4px 0 12px;padding:10px;background:#101d39;border:1px solid rgba(255,255,255,.08);border-radius:12px;">
             <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.38);letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Pengaturan Library</div>
-            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
               <button type="button" id="mg1-manage-sort-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Nama A–Z</button>
-              <button type="button" id="mg1-manage-label-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Semua Label</button>
-              <button type="button" id="mg1-manage-collection-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Semua koleksi</button>
+              <button type="button" id="mg1-manage-label-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Label &amp; Koleksi</button>
             </div>
             <div style="height:1px;background:rgba(255,255,255,.06);margin:10px 0;"></div>
             <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.38);letter-spacing:.05em;text-transform:uppercase;margin:0 0 7px;">Storage Summary</div>
@@ -757,7 +732,7 @@
         </div>
       </div>
     `;
-    mountMG1Overlay_(el);
+    document.body.appendChild(el);
 
     el.querySelector('#mg1-manage-backdrop').onclick = () => closeManageModal();
     el.querySelector('#mg1-manage-close').onclick = () => closeManageModal();
@@ -817,18 +792,18 @@
     const old = document.getElementById('mg1-map-action-sheet'); if (old) old.remove();
     const isActive = !!activeId && String(activeId) === String(entry.id);
     const root = document.createElement('div'); root.id='mg1-map-action-sheet';
-    root.style.cssText='position:absolute;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,8,20,.68);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);';
-    const tile=(icon,label,action)=>`<button type="button" data-action="${action}" style="min-height:132px;border-radius:18px;background:linear-gradient(180deg,rgba(53,86,140,.82),rgba(35,61,104,.88));border:1px solid rgba(96,165,250,.10);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:14px 7px;text-align:center;font-size:14px;font-weight:800;line-height:1.15;cursor:pointer;"><span style="display:flex;align-items:center;justify-content:center;width:62px;height:62px;color:#3f8cff;font-size:46px;line-height:1;text-shadow:0 6px 20px rgba(37,99,235,.22);">${icon}</span><span>${label}</span></button>`;
-    const compact=(icon,label,action,danger=false)=>`<button type="button" data-action="${action}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 12px;background:transparent;border:0;color:${danger?'#ff7474':'#f4f7ff'};font-size:15px;font-weight:800;line-height:1.2;text-align:center;cursor:pointer;"><span style="font-size:28px;line-height:1;color:${danger?'#ff6262':'#3f8cff'};">${icon}</span><span>${label}</span></button>`;
-    root.innerHTML=`<div id="mg1-map-action-panel" role="dialog" aria-modal="true" aria-label="Aksi peta" style="width:min(100%,560px);max-height:92vh;overflow:auto;background:#101f42;border:1px solid rgba(96,165,250,.20);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:12px 22px 22px;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);box-sizing:border-box;">
-      <div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 26px;"></div>
-      <div style="display:flex;align-items:center;gap:16px;padding:0 2px 22px;"><div style="width:70px;height:70px;border-radius:14px;background:#0b1329;overflow:hidden;flex:0 0 auto;border:1px solid rgba(96,165,250,.18);">${entry.imageDataUrl?`<img src="${entry.imageDataUrl}" alt="" style="width:100%;height:100%;object-fit:cover;">`:''}</div><div style="min-width:0;flex:1;"><div style="display:flex;align-items:center;gap:8px;min-width:0;"><div style="font-size:18px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml_(entry.name||'Tanpa nama')}</div>${isActive?'<span style="display:inline-flex;align-items:center;gap:5px;flex-shrink:0;font-size:11px;font-weight:800;color:#6ee7b7;"><span style="width:8px;height:8px;border-radius:50%;background:#34d399;"></span>AKTIF</span>':''}</div><div style="font-size:11px;color:rgba(255,255,255,.42);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml_(entry.id||'')}</div></div></div>
-      ${!isActive?'<button type="button" data-action="activate" style="width:100%;margin-bottom:14px;padding:12px 14px;border-radius:14px;background:rgba(16,185,129,.10);border:1px solid rgba(52,211,153,.25);color:#6ee7b7;font-size:12px;font-weight:800;">✓ Aktifkan Peta</button>':''}
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">${tile('ⓘ','Info','info')}${tile('▱','Duplikat','duplicate')}${tile('🗺↻','Ganti Data','replace')}${tile('✎','Edit Nama','rename')}${tile('◇','Edit Label','label')}${tile('▦','Ganti Koleksi','collection')}</div>
-      <div style="height:1px;background:rgba(255,255,255,.10);margin:24px 2px 8px;"></div><div style="display:flex;flex-direction:column;align-items:center;">${compact('⇩','Backup / Export Peta','export')}</div>
-      <div style="display:flex;gap:10px;margin-top:8px;"><button type="button" data-action="delete" style="flex:1;min-width:0;padding:14px 12px;border-radius:15px;background:rgba(239,68,68,.10);border:1px solid rgba(248,113,113,.24);color:#ff7474;font-size:14px;font-weight:800;cursor:pointer;">Hapus</button><button type="button" data-action="cancel" style="flex:1;min-width:0;padding:14px 12px;border-radius:15px;background:rgba(255,255,255,.055);border:1px solid rgba(96,165,250,.22);color:#f4f7ff;font-size:14px;font-weight:800;cursor:pointer;">Batal</button></div>
+    root.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,8,20,.68);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);';
+    const tile=(icon,label,action)=>`<button type="button" data-action="${action}" style="min-width:0;min-height:78px;border-radius:13px;background:linear-gradient(180deg,rgba(53,86,140,.72),rgba(35,61,104,.82));border:1px solid rgba(96,165,250,.12);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px 3px;text-align:center;font-size:10px;font-weight:500;line-height:1.1;cursor:pointer;box-sizing:border-box;overflow:hidden;"><span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;color:#4b93ff;font-size:26px;line-height:1;text-shadow:0 4px 12px rgba(37,99,235,.18);">${icon}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">${label}</span></button>`;
+    const compact=(icon,label,action,danger=false)=>`<button type="button" data-action="${action}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 12px;background:transparent;border:0;color:${danger?'#ff7474':'#f4f7ff'};font-size:13px;font-weight:500;line-height:1.2;text-align:center;cursor:pointer;"><span style="font-size:28px;line-height:1;color:${danger?'#ff6262':'#3f8cff'};">${icon}</span><span>${label}</span></button>`;
+    root.innerHTML=`<div id="mg1-map-action-panel" role="dialog" aria-modal="true" aria-label="Aksi peta" style="width:min(100%,560px);max-height:92vh;overflow:auto;background:#101f42;border:1px solid rgba(96,165,250,.20);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:10px 12px 16px;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);box-sizing:border-box;">
+      <div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 18px;"></div>
+      <div style="display:flex;align-items:center;gap:16px;padding:0 2px 16px;"><div style="width:70px;height:70px;border-radius:14px;background:#0b1329;overflow:hidden;flex:0 0 auto;border:1px solid rgba(96,165,250,.18);">${entry.imageDataUrl?`<img src="${entry.imageDataUrl}" alt="" style="width:100%;height:100%;object-fit:cover;">`:''}</div><div style="min-width:0;flex:1;"><div style="display:flex;align-items:center;gap:8px;min-width:0;"><div style="font-size:16px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml_(entry.name||'Tanpa nama')}</div>${isActive?'<span style="display:inline-flex;align-items:center;gap:5px;flex-shrink:0;font-size:10px;font-weight:500;color:#6ee7b7;"><span style="width:8px;height:8px;border-radius:50%;background:#34d399;"></span>AKTIF</span>':''}</div><div style="font-size:10px;color:rgba(255,255,255,.42);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml_(entry.id||'')}</div></div></div>
+      ${!isActive?'<button type="button" data-action="activate" style="width:100%;margin-bottom:14px;padding:12px 14px;border-radius:14px;background:rgba(16,185,129,.10);border:1px solid rgba(52,211,153,.25);color:#6ee7b7;font-size:11px;font-weight:500;">✓ Aktifkan Peta</button>':''}
+      <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;width:100%;">${tile('ⓘ','Info','info')}${tile('▱','Duplikat','duplicate')}${tile('↻','Ganti Data','replace')}${tile('✎','Edit Nama','rename')}${tile('◇','Edit Label','label')}${tile('▦','Koleksi','collection')}${tile('⇩','Backup','export')}</div>
+      <div style="height:1px;background:rgba(255,255,255,.10);margin:18px 2px 6px;"></div><div style="display:flex;flex-direction:column;align-items:center;"><button type="button" data-action="delete" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 10px;background:transparent;border:0;color:#ff7474;font-size:13px;font-weight:500;line-height:1.2;text-align:center;cursor:pointer;"><span style="font-size:22px;line-height:1;color:#ff6262;">▣</span><span>Hapus Peta</span></button></div>
+      <button type="button" data-action="cancel" style="width:100%;margin-top:14px;padding:15px;border-radius:15px;background:rgba(255,255,255,.055);border:1px solid rgba(96,165,250,.22);color:#f4f7ff;font-size:13px;font-weight:500;cursor:pointer;">Batal</button>
     </div>`;
-    mountMG1Overlay_(root); const panel=root.querySelector('#mg1-map-action-panel');
+    document.body.appendChild(root); const panel=root.querySelector('#mg1-map-action-panel');
     const close=()=>{panel.style.transform='translateY(110%)';setTimeout(()=>root.remove(),260);};
     root.addEventListener('click',ev=>{if(ev.target===root)close();}); root.querySelector('[data-action="cancel"]').onclick=close;
     root.querySelectorAll('[data-action]').forEach(btn=>{const action=btn.getAttribute('data-action');if(action==='cancel')return;btn.onclick=async()=>{
@@ -843,11 +818,20 @@
 
   function showMapLibraryChoiceModal_(kind,current,onSelect){
     const old=document.getElementById('mg1-library-choice-modal');if(old)old.remove();
-    const cfg={sort:{title:'Urutkan Peta',subtitle:'Pilih cara pengurutan daftar peta',items:[['name-asc','A↓Z','Nama A–Z'],['name-desc','Z↓A','Nama Z–A'],['newest','◔✦','Terbaru'],['oldest','◷','Terlama']]},label:{title:'Filter Label',subtitle:'Tampilkan peta berdasarkan label',items:[['__all__','◇','Semua Label'],['__none__','◇̸','Tanpa Label']]},collection:{title:'Filter Koleksi',subtitle:'Tampilkan peta berdasarkan koleksi',items:[['__all__','▦','Semua koleksi'],['__none__','▦̸','Tanpa koleksi']]}}[kind];if(!cfg)return;
-    const root=document.createElement('div');root.id='mg1-library-choice-modal';root.style.cssText='position:absolute;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,8,20,.70);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);';
-    const option=(value,icon,label)=>{const selected=String(current||'')===String(value);return `<button type="button" data-choice="${escapeHtml_(value)}" style="min-height:${kind==='sort'?'132':'118'}px;border-radius:18px;background:${selected?'linear-gradient(180deg,#2f86ff,#1e70ee)':'#0b1834'};border:1px solid ${selected?'rgba(96,165,250,.75)':'rgba(59,130,246,.95)'};box-shadow:${selected?'0 10px 28px rgba(37,99,235,.30),inset 0 1px 0 rgba(255,255,255,.08)':'inset 0 1px 0 rgba(255,255,255,.025)'};color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px 8px;cursor:pointer;position:relative;"><span style="font-size:${kind==='sort'?'32':'38'}px;line-height:1;color:${selected?'#fff':'#4d93ff'};">${icon}</span><span style="font-size:14px;font-weight:800;">${label}</span><span style="position:absolute;right:14px;top:14px;width:20px;height:20px;border:2px solid ${selected?'#fff':'#9fc5ff'};border-radius:50%;box-sizing:border-box;">${selected?'<span style="display:block;width:8px;height:8px;margin:4px;border-radius:50%;background:#fff;"></span>':''}</span></button>`;};
-    root.innerHTML=`<div role="dialog" aria-modal="true" aria-label="${cfg.title}" style="width:min(100%,560px);background:#0e1d3d;border:1px solid rgba(96,165,250,.28);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:12px 22px 24px;box-sizing:border-box;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);"><div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 24px;"></div><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px;"><div><div style="font-size:19px;font-weight:800;color:#fff;">${cfg.title}</div><div style="font-size:12px;color:#9fc5ff;margin-top:6px;">${cfg.subtitle}</div></div><button type="button" data-close style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(96,165,250,.25);color:#dbeafe;font-size:22px;line-height:1;cursor:pointer;">×</button></div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;">${cfg.items.map(x=>option(x[0],x[1],x[2])).join('')}</div></div>`;
-    mountMG1Overlay_(root);const panel=root.firstElementChild;const close=()=>{panel.style.transform='translateY(110%)';setTimeout(()=>root.remove(),220);};root.querySelector('[data-close]').onclick=close;root.addEventListener('click',ev=>{if(ev.target===root)close();});root.querySelectorAll('[data-choice]').forEach(btn=>btn.onclick=()=>{const v=btn.getAttribute('data-choice');close();if(typeof onSelect==='function')onSelect(v);});requestAnimationFrame(()=>requestAnimationFrame(()=>{panel.style.transform='translateY(0)';}));
+    const isFilter=kind==='filter';
+    const cfg=isFilter?{title:'Filter Peta',subtitle:'Pilih label dan koleksi peta'}:{title:'Urutkan Peta',subtitle:'Pilih cara pengurutan daftar peta'};
+    if(kind!=='sort'&&!isFilter)return;
+    const root=document.createElement('div');root.id='mg1-library-choice-modal';root.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,8,20,.70);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);';
+    const sortItems=[['name-asc','A↓Z','Nama A–Z'],['name-desc','Z↓A','Nama Z–A'],['newest','◔✦','Terbaru'],['oldest','◷','Terlama']];
+    const filterItems=[['label','◇','Semua Label','__all__'],['label','◇̸','Tanpa Label','__none__'],['collection','▦','Semua koleksi','__all__'],['collection','▦̸','Tanpa koleksi','__none__']];
+    let filterState=isFilter?{label:(current&&current.label)||'__all__',collection:(current&&current.collection)||'__all__'}:null;
+    const option=(item)=>{const group=item[3]||null;const value=group?item[3]:item[0];const selected=isFilter?String(filterState[group])===String(value):String(current||'')===String(value);return `<button type="button" data-choice="${escapeHtml_(value)}" data-group="${group||''}" style="min-height:${isFilter?'104':'132'}px;border-radius:18px;background:${selected?'linear-gradient(180deg,#2f86ff,#1e70ee)':'#0b1834'};border:1px solid ${selected?'rgba(96,165,250,.75)':'rgba(59,130,246,.95)'};box-shadow:${selected?'0 10px 28px rgba(37,99,235,.30),inset 0 1px 0 rgba(255,255,255,.08)':'inset 0 1px 0 rgba(255,255,255,.025)'};color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 4px;cursor:pointer;position:relative;min-width:0;"><span style="font-size:${isFilter?'30':'42'}px;line-height:1;color:${selected?'#fff':'#4d93ff'};">${item[1]}</span><span style="font-size:${isFilter?'10':'12'}px;font-weight:500;white-space:nowrap;">${item[2]}</span><span style="position:absolute;right:7px;top:7px;width:16px;height:16px;border:2px solid ${selected?'#fff':'#9fc5ff'};border-radius:50%;box-sizing:border-box;">${selected?'<span style="display:block;width:6px;height:6px;margin:3px;border-radius:50%;background:#fff;"></span>':''}</span></button>`;};
+    const items=isFilter?filterItems:sortItems;
+    root.innerHTML=`<div role="dialog" aria-modal="true" aria-label="${cfg.title}" style="width:min(100%,680px);background:#0e1d3d;border:1px solid rgba(96,165,250,.28);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:12px 22px 24px;box-sizing:border-box;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);"><div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 24px;"></div><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px;"><div><div style="font-size:17px;font-weight:600;color:#fff;">${cfg.title}</div><div style="font-size:11px;color:#9fc5ff;margin-top:6px;">${cfg.subtitle}</div></div><button type="button" data-close style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(96,165,250,.25);color:#dbeafe;font-size:22px;line-height:1;cursor:pointer;">×</button></div><div data-choice-grid style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;">${items.map(option).join('')}</div>${isFilter?'<button type="button" data-done style="display:block;width:100%;height:40px;margin-top:14px;border:1px solid rgba(96,165,250,.30);border-radius:12px;background:#162b52;color:#fff;font-size:12px;font-weight:500;cursor:pointer;">Selesai</button>':''}</div>`;
+    document.body.appendChild(root);const panel=root.firstElementChild;const close=()=>{panel.style.transform='translateY(110%)';setTimeout(()=>root.remove(),220);};root.querySelector('[data-close]').onclick=close;if(root.querySelector('[data-done]'))root.querySelector('[data-done]').onclick=()=>{close();if(typeof onSelect==='function')onSelect(filterState);};root.addEventListener('click',ev=>{if(ev.target===root)close();});
+    const bindChoices=()=>{root.querySelectorAll('[data-choice]').forEach(btn=>btn.onclick=()=>{const v=btn.getAttribute('data-choice');const g=btn.getAttribute('data-group');if(isFilter){filterState[g]=v;root.querySelector('[data-choice-grid]').innerHTML=filterItems.map(option).join('');bindChoices();}else{close();if(typeof onSelect==='function')onSelect(v);}});};
+    bindChoices();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{panel.style.transform='translateY(0)';}));
   }
   function formatMapDate_(value) {
     if (!value) return '—';
@@ -878,7 +862,7 @@
     const isActive = !!activeId && String(activeId) === String(entry.id);
     const el = document.createElement('div');
     el.id = 'mg1-map-info-modal';
-    el.style.cssText = 'position:absolute;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:rgba(3,8,20,0.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+    el.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:rgba(3,8,20,0.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
     el.innerHTML = `
       <div role="dialog" aria-modal="true" aria-label="Info peta" style="width:min(420px,100%);max-height:80vh;overflow:auto;background:#0e1933;border:1px solid rgba(255,255,255,0.1);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.45);padding:16px;color:#fff;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;">
@@ -903,7 +887,7 @@
           <button type="button" data-contact-us style="margin-top:9px;width:100%;padding:8px 10px;border-radius:9px;border:1px solid rgba(96,165,250,0.24);background:rgba(59,130,246,0.10);color:#93c5fd;font-size:10px;font-weight:800;">✉ Contact Us</button>
         </div>
       </div>`;
-    mountMG1Overlay_(el);
+    document.body.appendChild(el);
     const close = () => el.remove();
     el.querySelector('[data-info-close]').onclick = close;
     const contactBtn = el.querySelector('[data-contact-us]');
@@ -914,9 +898,9 @@
         return;
       }
       const notice = document.createElement('div');
-      notice.style.cssText = 'position:absolute;inset:0;z-index:2147483648;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:rgba(3,8,20,0.58);backdrop-filter:blur(5px);';
+      notice.style.cssText = 'position:fixed;inset:0;z-index:2147483648;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:rgba(3,8,20,0.58);backdrop-filter:blur(5px);';
       notice.innerHTML = '<div role=\"dialog\" aria-modal=\"true\" style=\"width:min(320px,100%);background:#0e1933;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px;color:#fff;box-shadow:0 18px 50px rgba(0,0,0,.4);\"><div style=\"font-size:13px;font-weight:800;margin-bottom:7px;\">Contact Us</div><div style=\"font-size:11px;line-height:1.5;color:rgba(255,255,255,.58);\">Email kontak Lithosite belum dikonfigurasi. Slot ini siap digunakan untuk alamat support atau partner resmi.</div><button type=\"button\" data-contact-close style=\"margin-top:12px;width:100%;padding:8px;border:0;border-radius:9px;background:rgba(255,255,255,.08);color:#fff;font-size:10px;font-weight:800;\">Tutup</button></div>';
-      mountMG1Overlay_(notice);
+      document.body.appendChild(notice);
       const done = () => notice.remove();
       notice.querySelector('[data-contact-close]').onclick = done;
       notice.addEventListener('click', function(ev){ if(ev.target === notice) done(); });
@@ -931,7 +915,7 @@
     if (old) old.remove();
     const root = document.createElement('div');
     root.id = 'mg1-map-rename-modal';
-    root.style.cssText = 'position:absolute;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:rgba(3,8,20,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+    root.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:rgba(3,8,20,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
     root.innerHTML = `
       <div role="dialog" aria-modal="true" aria-label="Ganti nama peta" style="width:min(360px,100%);background:#0e1933;border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.45);padding:16px;color:#fff;">
         <div style="font-size:13px;font-weight:800;margin-bottom:10px;">Ganti Nama Peta</div>
@@ -941,7 +925,7 @@
           <button type="button" data-rename-save style="flex:1;padding:9px;border-radius:9px;background:#2563eb;border:0;color:#fff;font-size:10px;font-weight:800;">Simpan</button>
         </div>
       </div>`;
-    mountMG1Overlay_(root);
+    document.body.appendChild(root);
     const input = root.querySelector('#mg1-map-rename-input');
     const close = () => root.remove();
     root.querySelector('[data-rename-cancel]').onclick = close;
@@ -998,7 +982,7 @@
     if (!entry || !entry.id) return;
     const old = document.getElementById('mg1-map-label-modal'); if (old) old.remove();
     const root = document.createElement('div'); root.id = 'mg1-map-label-modal';
-    root.style.cssText = 'position:absolute;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:rgba(3,8,20,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+    root.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:rgba(3,8,20,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
     const labels = getMapLabels_(entry);
     const presets = ['Production','Exploration','Geology','Topography','Survey'];
     root.innerHTML = `
@@ -1015,7 +999,7 @@
           <button type="button" data-label-save style="flex:1;padding:9px;border-radius:9px;background:#2563eb;border:0;color:#fff;font-size:10px;font-weight:800;">Simpan</button>
         </div>
       </div>`;
-    mountMG1Overlay_(root);
+    document.body.appendChild(root);
     const chips = root.querySelector('#mg1-map-label-chips');
     const input = root.querySelector('#mg1-map-label-input');
     const selected = labels.slice(0,12);
@@ -1089,7 +1073,7 @@
     var presets = ['Current Maps','Historical Maps','Drill Maps','Geological Maps','Operational Maps'];
     var selected = normalizeCollectionNames_(entry.collectionNames || []);
     var root = document.createElement('div'); root.id = 'mg1-map-collection-modal';
-    root.style.cssText = 'position:absolute;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:rgba(3,8,20,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+    root.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;background:rgba(3,8,20,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
     root.innerHTML = '<div role="dialog" aria-modal="true" aria-label="Atur koleksi peta" style="width:min(380px,100%);background:#0e1933;border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.45);padding:16px;color:#fff;">'
       + '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;"><div><div style="font-size:13px;font-weight:800;">Atur Koleksi</div><div style="font-size:9px;color:rgba(255,255,255,.4);margin-top:2px;">Satu peta boleh masuk beberapa koleksi.</div></div><button type="button" data-collection-close style="width:28px;height:28px;border-radius:9999px;background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.7);">✕</button></div>'
       + '<div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:8px;">' + escapeHtml_(entry.name || 'Tanpa nama') + '</div>'
@@ -1099,7 +1083,7 @@
       + '<div style="margin-top:10px;"><input id="mg1-map-collection-custom" type="text" maxlength="80" autocomplete="off" placeholder="Koleksi custom…" aria-label="Koleksi custom" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:9px 10px;color:#fff;font-size:10px;outline:none;"></div>'
       + '<div style="display:flex;gap:8px;margin-top:12px;"><button type="button" data-collection-cancel style="flex:1;padding:9px;border-radius:9px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.75);font-size:10px;font-weight:800;">Batal</button><button type="button" data-collection-save style="flex:1;padding:9px;border-radius:9px;background:#2563eb;border:0;color:#fff;font-size:10px;font-weight:800;">Simpan</button></div>'
       + '</div>';
-    mountMG1Overlay_(root);
+    document.body.appendChild(root);
     var input = root.querySelector('#mg1-map-collection-custom');
     var close = function(){ root.remove(); };
     root.querySelector('[data-collection-close]').onclick = close;
@@ -1144,7 +1128,7 @@
     const filterEl = el.querySelector('#mg1-manage-filter');
     const sortEl = el.querySelector('#mg1-manage-sort-btn');
     const labelEl = el.querySelector('#mg1-manage-label-btn');
-    const collectionEl = el.querySelector('#mg1-manage-collection-btn');
+    const collectionEl = null;
     let manageFilter_ = 'all';
     let manageLabel_ = '__all__';
     let manageCollection_ = '__all__';
@@ -1191,7 +1175,7 @@
       if (!labelEl) return;
       const names = collectLabelNames_(maps); const current = manageLabel_;
       if (current !== '__all__' && current !== '__none__' && !names.some(function(v){ return v === current; })) manageLabel_ = '__all__';
-      if (labelEl) labelEl.textContent = manageLabel_ === '__none__' ? 'Tanpa Label' : (manageLabel_ === '__all__' ? 'Semua Label' : String(manageLabel_));
+      if (labelEl) labelEl.textContent = 'Label & Koleksi';
     }
 
     function applyManageSort_(maps, sort) {
@@ -1362,25 +1346,17 @@
         });
       };
     }
-    if(labelEl && !labelEl.__mg1Bound) {
-      labelEl.__mg1Bound = true;
-      labelEl.onclick = function() {
-        showMapLibraryChoiceModal_('label', manageLabel_, function(value) {
-          manageLabel_ = value || '__all__';
-          labelEl.textContent = manageLabel_ === '__none__' ? 'Tanpa Label' : (manageLabel_ === '__all__' ? 'Semua Label' : manageLabel_);
-          refreshManageList_(searchEl ? searchEl.value : '');
-        });
-      };
-    }
-    if(collectionEl && !collectionEl.__mg1Bound) {
-      collectionEl.__mg1Bound = true;
-      collectionEl.onclick = function() {
-        showMapLibraryChoiceModal_('collection', manageCollection_, function(value) {
-          manageCollection_ = value || '__all__';
-          collectionEl.textContent = manageCollection_ === '__none__' ? 'Tanpa koleksi' : (manageCollection_ === '__all__' ? 'Semua koleksi' : manageCollection_);
-          refreshManageList_(searchEl ? searchEl.value : '');
-        });
-      };
+    if((labelEl || collectionEl) && !el.__mg1FilterBound) {
+      el.__mg1FilterBound = true;
+      const openFilter=()=>showMapLibraryChoiceModal_('filter',{label:manageLabel_,collection:manageCollection_},function(state){
+        manageLabel_=state.label||'__all__';
+        manageCollection_=state.collection||'__all__';
+        if(labelEl)labelEl.textContent='Label & Koleksi';
+        if(collectionEl)collectionEl.textContent=manageCollection_==='__none__'?'Tanpa koleksi':(manageCollection_==='__all__'?'Semua koleksi':manageCollection_);
+        refreshManageList_(searchEl?searchEl.value:'');
+      });
+      if(labelEl)labelEl.onclick=openFilter;
+      if(collectionEl)collectionEl.onclick=openFilter;
     }
     if(listEl && !listEl.__mg1InfoBound) {
       listEl.__mg1InfoBound = true;
@@ -1419,29 +1395,9 @@
       });
     }
 
-    // Re-sync the global boundary at the exact moment the modal opens.
-    // This also recovers from the initial render race on Android/WebView where
-    // the shell can report zero geometry during boot.
-    const boundaryLayer = getMG1OverlayLayer_();
-    if (boundaryLayer) {
-      boundaryLayer.style.display = 'block';
-      boundaryLayer.style.pointerEvents = 'none';
-      syncMG1OverlayLayer_();
-      const shell = document.querySelector('.app-shell') || document.getElementById('app');
-      const rect = shell ? shell.getBoundingClientRect() : null;
-      if (!rect || rect.width <= 0 || rect.height <= 0) {
-        console.warn('[V24.5 SHELL] overlay boundary geometry unavailable at open');
-      }
-    }
-    el.style.position = 'absolute';
-    el.style.left = '0';
-    el.style.top = '0';
-    el.style.right = 'auto';
-    el.style.bottom = 'auto';
-    el.style.width = '100%';
-    el.style.height = '100%';
+    bindMG1ShellBoundary_();
+    syncMG1OverlayToShell_(el);
     el.style.display = 'block';
-    el.style.pointerEvents = 'auto';
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         backdrop.style.opacity = '1';
@@ -1576,7 +1532,7 @@
 
       const root = document.createElement('div');
       root.id = 'mg1-map-delete-confirm-v2';
-      root.style.cssText = 'position:absolute;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+      root.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
       root.innerHTML = `
         <div style="width:min(100%,390px);background:#0e1933;border:1px solid rgba(255,255,255,.10);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.45);overflow:hidden;">
           <div style="padding:18px 18px 14px;">
@@ -1588,7 +1544,7 @@
             <button type="button" id="mg1-map-delete-ok-v2" style="flex:1;height:42px;border-radius:12px;background:#e11d48;border:1px solid rgba(255,255,255,.06);color:#fff;font-size:12px;font-weight:800;">Oke</button>
           </div>
         </div>`;
-      mountMG1Overlay_(root);
+      document.body.appendChild(root);
 
       const finish = function(result) {
         if (root.parentNode) root.remove();
