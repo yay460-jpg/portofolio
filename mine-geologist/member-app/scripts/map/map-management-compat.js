@@ -16,19 +16,47 @@
   // Satu presentation layer untuk Android + laptop.
   // Layer mengikuti geometri App Shell (max 480px), sehingga modal/sheet
   // tidak pernah memakai lebar viewport desktop sebagai coordinate space.
+  let mg1OverlayBoundaryBound_ = false;
+
+  function syncMG1OverlayLayer_() {
+    const layer = document.getElementById('mg1-global-overlay-layer');
+    const shell = document.querySelector('.app-shell') || document.getElementById('app');
+    if (!layer || !shell) return;
+    const rect = shell.getBoundingClientRect();
+    layer.style.left = rect.left + 'px';
+    layer.style.top = rect.top + 'px';
+    layer.style.width = rect.width + 'px';
+    layer.style.height = rect.height + 'px';
+  }
+
   function getMG1OverlayLayer_() {
+    const shell = document.querySelector('.app-shell') || document.getElementById('app');
+    if (!shell) return document.body;
+
     let layer = document.getElementById('mg1-global-overlay-layer');
-    if (layer && document.body.contains(layer)) return layer;
-    layer = document.createElement('div');
-    layer.id = 'mg1-global-overlay-layer';
-    layer.setAttribute('aria-hidden', 'false');
-    layer.style.cssText = [
-      'position:fixed', 'left:50%', 'top:0', 'width:min(480px,100vw)',
-      'height:calc(var(--mg1-vvh, 100svh))', 'transform:translateX(-50%)',
-      'overflow:hidden', 'pointer-events:none', 'z-index:2147483640',
-      'box-sizing:border-box', 'isolation:isolate'
-    ].join(';');
-    document.body.appendChild(layer);
+    if (!layer || layer.parentNode !== document.body) {
+      if (layer && layer.parentNode) layer.parentNode.removeChild(layer);
+      layer = document.createElement('div');
+      layer.id = 'mg1-global-overlay-layer';
+      layer.setAttribute('aria-hidden', 'false');
+      layer.style.cssText = [
+        'position:fixed', 'overflow:hidden', 'pointer-events:none',
+        'z-index:2147483640', 'box-sizing:border-box', 'isolation:isolate',
+        'margin:0', 'padding:0'
+      ].join(';');
+      document.body.appendChild(layer);
+    }
+
+    syncMG1OverlayLayer_();
+
+    if (!mg1OverlayBoundaryBound_) {
+      mg1OverlayBoundaryBound_ = true;
+      const sync = () => syncMG1OverlayLayer_();
+      window.addEventListener('resize', sync, { passive: true });
+      window.addEventListener('orientationchange', sync, { passive: true });
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', sync, { passive: true });
+      requestAnimationFrame(sync);
+    }
     return layer;
   }
 
