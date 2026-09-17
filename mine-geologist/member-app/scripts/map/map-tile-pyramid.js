@@ -145,7 +145,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   const c2Windows = adaptiveC2
     ? levelPlan.map((plan, li) => li === 0
         ? null
-        : getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, c2Prefetch))
+        : getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0))
     : [];
   const effectiveTotals = adaptiveC2
     ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total))
@@ -265,7 +265,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   if (adaptiveC2) {
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
     c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
-    out.adaptive = { mode:'viewport-only-selected-factor-test', prefetchRadius:c2Prefetch, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
+    out.adaptive = { mode:'viewport-only-selected-factor-test', prefetchRadius:0, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
   }
   return out;
 }
