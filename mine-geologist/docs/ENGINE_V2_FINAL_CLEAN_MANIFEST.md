@@ -1,59 +1,82 @@
-# MG1 / Lithosite V24.5 — ENGINE V2 FINAL CLEAN
+# MG1 / Lithosite V24.5 — ENGINE V2 FINAL CLEAN 50/80
 
-Status: **FINAL CLEAN / LOCKED**
+**Status: FINAL CLEAN / LOCKED**
 
-Basis:
-- V24.5 current baseline previously cross-checked.
-- Engine V2 adaptive runtime validated with C1 → C2 test instrumentation.
-- The test instrumentation is **not included** in this final runtime.
+## Final architecture
 
-## Engine V2 retained
+```text
+👑 RAJA
+Device Profiler / Capability
+        ↓
+C1 Geometry Demand
+        ↓
+👤 WAKIL RAJA
+Quality Selection — floor 50
+        ↓
+🛡️ GUARD RAJA
+Authority + Safety Validation
+        ↓
+approvedSelection.selectedKeys
+        ↓
+Queue → Loader → Store / RAM
+```
 
-- Device Profiler Engine V2
-- Tile Engine Profile
-- C1 Viewport Planner
-- C2 Adaptive Window
-- BASE + DETAIL
-- Tile Identity
-- Runtime Queue
-- Runtime Tile Loader / Runtime Tile Creation
-- Persistent Tile Store / IndexedDB V2
-- GeoReference handoff
-- Geometry Contract V1
-- V24.5 map lifecycle / storage / management contracts
+## Locked parameters
 
-## Removed from final runtime
+| Tier | tileSize | maxTiles | cacheLimit | cache/max ratio |
+|---|---:|---:|---:|---:|
+| LOW | 768 | 50 | 80 | 1.60x |
+| BALANCED | 256 | 100 | 150 | 1.50x |
+| HIGH | 512 | 200 | 300 | 1.50x |
 
-- C1 → C2 test instrumentation and published test object
-- Profiler UI/icon diagnostic layer
-- Removed/dead Engine V2 experimental paths identified in the cleanup pass
-- Stale 1.55x experiment wording
+Global policy:
+- `QUALITY_FLOOR = 50`
+- `MAX_EXPANSION_RADIUS = 20`
+- `fullUploadFactors = [0.25, 0.5, 1, 2]`
 
-## Validation evidence
+## Final behavior contract
 
-Latest field test:
-- C1: `ok=true`, tier `BALANCED`, zoom `1.25`, factor `0.25`, tileSize `256`
-- C2: `enabled=true`, `baseFull=true`
-- DETAIL: `70 total`, `70 selected`, `0 skipped`
-- Render: `76 planned`, `76 rendered`, `0 failed`
-- Map displayed successfully.
+- C1 is geometry demand only.
+- Wakil applies the quality floor; it does not replace Raja's device capability decision.
+- Guard validates authority and safety before runtime execution.
+- Visible tiles remain mandatory.
+- `maxTiles` is capability/processing ceiling; `cacheLimit` is cache/storage eviction capacity.
+- Upload phase is full-factor/store preparation and is not viewport-only C2 culling.
+- Runtime phase selects from the prepared Store according to C1 + quality policy + Guard.
+- Queue, Loader, and Telemetry consume the same approved selection source.
+- Canonical tile IDs come from `makeLithositeTileId_()`.
+- Expansion is bounded to radius 20.
 
-The 70/70 result is accepted as a valid result for the available GeoPDF; it is not a requirement that every test produce skipped tiles.
+## Root-heat correction
 
-## Protection rules
+Superseded pattern:
 
-- Do not mix V25 DB4 into V24.5.
-- Do not reintroduce temporary geometry compensation or percentage tuning.
-- Do not hard-pin a global tile budget of 100.
-- Do not reintroduce Profiler UI as a runtime dependency.
-- Test instrumentation remains outside production runtime.
+`viewport-only upload (~18) → runtime floor 50 → large MISS/PDF re-render workload`
 
-## Modified runtime hashes
+Locked pattern:
 
-- `scripts/peta.js` — `ba6a4814a44b3af365089dd52961c563e897a5f04a7334fc6461885e03d52f2a`
-- `scripts/map/map-interaction.js` — `d7277b2478aaa01a6c1a20854620cb4bb5831b20e56a5bed9cd265fb1a24afc7`
-- `scripts/map/map-tile-pyramid.js` — `80b20ce24ab2f67602f094214e509d8ff69a0a3c4b7f25e65ea12efacff34cf7`
-- `scripts/map/map-tile-queue.js` — `4280d0308ce1c772b2d73cb627f472d8ae8243f5862e86e0909d445235fd512a`
-- `scripts/map/map-runtime-loader.js` — `78c317d4c00e1d7b9aba083128fa56760ecbb14e652c9a6cd89d85587834b5a5`
-- `scripts/map/map-missing-detail-resolver.js` — `6fa3cb14794dab5133655b2135fd4f21aac6edfbed573528fb4902e62ba7a47e`
-- `sw.js` — `40b2f4e5e33e5e21d78f1cb3a5bb5bbf4eb32d0094e84362254cd991813f5f46`
+`full-factor upload/store preparation → runtime selection up to floor 50 → reuse stored tiles → cache capacity 80`
+
+The latter is the intended contract. Runtime testing remains the final empirical proof of HIT/MISS and thermal behavior.
+
+## Modified runtime files in this baseline update
+
+Exactly three files differ from the source V24.5 baseline:
+
+- `scripts/map/map-device-profile.js`
+- `scripts/map/map-tile-pyramid.js`
+- `scripts/peta.js`
+
+## SHA-256 of modified files
+
+- `scripts/map/map-device-profile.js` — `b6bc0b7f46eec051a0c15af996820f2074b3f0ba058a4b800e95cfb4396f2e3d`
+- `scripts/map/map-tile-pyramid.js` — `c79372537b60a63103eee53434ce2b716b25b260296597fc970e168bf1035c5c`
+- `scripts/peta.js` — `d19e23e0fcb3601b15825d457be4b42fa269d13d6f1e2ea947fbf77c9a82bd81`
+
+## Explicitly excluded from this baseline
+
+- V6 `MIN=25` / FloorFix branch
+- experimental budget branches not present in the locked contract
+- Layout/UI redesign changes
+- V25 DB4/runtime files
+- temporary profiler/test instrumentation
