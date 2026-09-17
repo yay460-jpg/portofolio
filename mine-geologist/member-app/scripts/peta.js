@@ -1000,6 +1000,68 @@ function ensureRuntimeTiles_NonBlocking_(visibleKeys, pyramid) {
   return { ok:true, readyMap, queued, missing, total: visibleKeys.length, alreadyReady, alreadyLoading };
 }
 
+// === STEP C3 - IDLE TILE EXPANSION (background sharpen, paced, C2-only) ===
+// Tujuan: saat C2 aktif (viewport-only budget, mis. LOW tier), tampilan diam (user
+// TIDAK pan/zoom) tetap dapat "menajam sendiri" pelan-pelan di background, dengan
+// memperlakukan viewport terakhir seolah dikelilingi 1 ring tambahan -- TANPA pernah
+// membangun seluruh pyramid sekaligus dan TANPA mengubah pacing yang sudah ada.
+// Reuse murni: ensureRuntimeTiles_NonBlocking_ (klasifikasi ready/loading/missing) +
+// processMissingCreationBatch_ (throttle asli: maks 2 tile/batch, jeda 250ms,
+// in-flight protected). Tidak ada renderer/gesture/C1/C2 budget yang diubah.
+let mg1IdleExpandTimer_ = null;
+const MG1_IDLE_EXPAND_MS_ = 700;
+const MG1_IDLE_EXPAND_RING_ = 1;
+
+function scheduleIdleTileExpansion_() {
+  try {
+    if (window.mg1AdaptiveC2Enabled !== true) return; // hanya relevan saat C2 aktif
+    if (mg1IdleExpandTimer_) { clearTimeout(mg1IdleExpandTimer_); mg1IdleExpandTimer_ = null; }
+    mg1IdleExpandTimer_ = setTimeout(runIdleTileExpansion_, MG1_IDLE_EXPAND_MS_);
+  } catch (_) {}
+}
+
+function runIdleTileExpansion_() {
+  mg1IdleExpandTimer_ = null;
+  try {
+    const visibleResult = window.mg1LastVisibleResult;
+    const pyramid = window.mg1LastPyramid;
+    if (!visibleResult || !visibleResult.ok || !pyramid) return;
+    const v = visibleResult.visible;
+    const factor = visibleResult.factor;
+    if (!v || !Number.isFinite(factor) || !(v.tilesX > 0) || !(v.tilesY > 0)) return;
+
+    const r = MG1_IDLE_EXPAND_RING_;
+    const minX = Math.max(0, v.minX - r), maxX = Math.min(v.tilesX - 1, v.maxX + r);
+    const minY = Math.max(0, v.minY - r), maxY = Math.min(v.tilesY - 1, v.maxY + r);
+    if (minX > maxX || minY > maxY) return;
+
+    const visibleSet = new Set(Array.isArray(visibleResult.keys) ? visibleResult.keys : []);
+    const candidates = [];
+    for (let ty = minY; ty <= maxY; ty++) {
+      for (let tx = minX; tx <= maxX; tx++) {
+        // Ring saja -- tile yang sudah visible ditangani jalur normal (baris 2613-2644).
+        if (tx >= v.minX && tx <= v.maxX && ty >= v.minY && ty <= v.maxY) continue;
+        const key = typeof makeLithositeTileId_ === 'function' ? makeLithositeTileId_(factor, tx, ty) : null;
+        if (key && !visibleSet.has(key)) candidates.push(key);
+      }
+    }
+    if (!candidates.length) return;
+
+    const mapId = (typeof activeBackgroundMapId !== 'undefined' && activeBackgroundMapId) ? activeBackgroundMapId : null;
+    if (!mapId) return;
+
+    const runtimeResult = typeof ensureRuntimeTiles_NonBlocking_ === 'function'
+      ? ensureRuntimeTiles_NonBlocking_(candidates, pyramid)
+      : { ok:false, queued:0, missing:[] };
+    if (runtimeResult.ok && runtimeResult.queued > 0 && typeof processRuntimeQueueBatch_ === 'function') {
+      setTimeout(() => { try { processRuntimeQueueBatch_(pyramid, 3); } catch (_) {} }, 0);
+    }
+    if (runtimeResult.ok && Array.isArray(runtimeResult.missing) && runtimeResult.missing.length && typeof processMissingCreationBatch_ === 'function') {
+      processMissingCreationBatch_(pyramid, mapId, runtimeResult.missing, 2);
+    }
+  } catch (_) {}
+}
+
 // === STEP 8.10B-4: Background consumer + surface-only invalidation ===
 let mg1RuntimeInvalidationScheduled_ = false;
 let mg1RuntimeInvalidationRaf_ = null;
@@ -2679,6 +2741,14 @@ function renderMineGridSvg(points) {
         } catch(e) {
           console.warn('[8.10B-FIX] runtime hook failed', e);
         }
+        // STEP C3 - IDLE TILE EXPANSION (background sharpen, paced, C2-only)
+        // Reset tiap render dipanggil (debounce). Kalau tidak ada render baru selama
+        // MG1_IDLE_EXPAND_MS_, perluas cakupan detail-tile 1 ring di luar viewport
+        // TERAKHIR -- seolah user pan sedikit ke segala arah -- tapi tetap lewat
+        // processMissingCreationBatch_ yang SUDAH throttle (maks 2 tile/250ms,
+        // in-flight protected). Tidak mengubah renderer, gesture, C1/C2, atau
+        // budget upload-time -- ini murni tambahan jalur background sesudahnya.
+        try { scheduleIdleTileExpansion_(); } catch(_) {}
 
         const tileSize = Number(pyramid.tileSize) || GEOPDF_TILE_SIZE_;
         // STEP 8.11-PATCH: compositor memakai runtime cache bila READY, fallback t.dataUrl
