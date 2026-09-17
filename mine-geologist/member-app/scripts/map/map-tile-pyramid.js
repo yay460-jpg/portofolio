@@ -31,93 +31,6 @@ function makeLithositeTileId_(factor, x, y) {
   return 'L' + fs + '_X' + Number(x) + '_Y' + Number(y);
 }
 
-// V24.5 ENGINE — WAKIL RAJA + GUARD RAJA
-// Quality policy is deliberately separate from device profiling and C1 geometry.
-// WAKIL requests a quality floor; GUARD enforces capability, visibility priority,
-// bounded expansion and tile-identity integrity before Queue/Loader may execute.
-function selectLithositeQualityWithGuard_(visibleKeys, detailLevel, deviceProfile, options) {
-  const visible = Array.isArray(visibleKeys) ? visibleKeys.map(String).filter(Boolean) : [];
-  const profile = deviceProfile || {};
-  const floor = Math.max(0, Math.floor(Number(options && options.qualityFloor) || 50));
-  const expansionRadius = Math.min(20, Math.max(0, Math.floor(Number(options && options.maxExpansionRadius) || 20)));
-  const maxTilesRaw = Number(profile.maxTiles);
-  const maxTiles = Number.isFinite(maxTilesRaw) && maxTilesRaw > 0 ? Math.floor(maxTilesRaw) : null;
-  const visibleUnique = [];
-  const visibleSet = Object.create(null);
-  for (let i = 0; i < visible.length; i++) {
-    if (!visibleSet[visible[i]]) { visibleSet[visible[i]] = true; visibleUnique.push(visible[i]); }
-  }
-
-  const factor = Number(detailLevel && detailLevel.factor);
-  const tilesX = Math.max(0, Math.floor(Number(detailLevel && detailLevel.tilesX) || 0));
-  const tilesY = Math.max(0, Math.floor(Number(detailLevel && detailLevel.tilesY) || 0));
-  const approved = visibleUnique.slice();
-  const prefetch = [];
-  const prefetchSet = Object.create(null);
-  const conflict = maxTiles !== null && floor > maxTiles;
-  const target = maxTiles === null ? floor : Math.max(0, Math.min(floor, maxTiles));
-
-  // Visible coverage has absolute priority. A capability ceiling must never cut visible tiles.
-  if (visibleUnique.length < target && Number.isFinite(factor) && tilesX > 0 && tilesY > 0) {
-    let vMinX = tilesX, vMaxX = -1, vMinY = tilesY, vMaxY = -1;
-    for (let i = 0; i < visibleUnique.length; i++) {
-      const m = /^L(-?\d+(?:\.\d+)?)_X(-?\d+)_Y(-?\d+)$/.exec(visibleUnique[i]);
-      if (!m) continue;
-      if (Number(m[1]) !== factor) continue;
-      const x = Number(m[2]), y = Number(m[3]);
-      if (!Number.isInteger(x) || !Number.isInteger(y)) continue;
-      vMinX = Math.min(vMinX, x); vMaxX = Math.max(vMaxX, x);
-      vMinY = Math.min(vMinY, y); vMaxY = Math.max(vMaxY, y);
-    }
-
-    if (vMaxX >= 0 && vMaxY >= 0) {
-      for (let r = 1; r <= expansionRadius && approved.length < target; r++) {
-        const x0 = Math.max(0, vMinX - r), x1 = Math.min(tilesX - 1, vMaxX + r);
-        const y0 = Math.max(0, vMinY - r), y1 = Math.min(tilesY - 1, vMaxY + r);
-        for (let y = y0; y <= y1 && approved.length < target; y++) {
-          for (let x = x0; x <= x1 && approved.length < target; x++) {
-            if (x > vMinX - r && x < vMaxX + r && y > vMinY - r && y < vMaxY + r) continue;
-            const key = makeLithositeTileId_(factor, x, y);
-            if (visibleSet[key] || prefetchSet[key]) continue;
-            prefetchSet[key] = true;
-            prefetch.push(key);
-            approved.push(key);
-          }
-        }
-      }
-    }
-  }
-
-  const invalid = [];
-  const finalSet = Object.create(null);
-  const finalKeys = [];
-  for (let i = 0; i < approved.length; i++) {
-    const key = approved[i];
-    const valid = /^L(-?\d+(?:\.\d+)?)_X(-?\d+)_Y(-?\d+)$/.test(key);
-    if (!valid || finalSet[key]) { if (!valid) invalid.push(key); continue; }
-    finalSet[key] = true;
-    finalKeys.push(key);
-  }
-
-  return {
-    ok: invalid.length === 0,
-    selectedKeys: finalKeys,
-    visibleKeys: visibleUnique,
-    prefetchKeys: finalKeys.filter(k => !visibleSet[k]),
-    selectedCount: finalKeys.length,
-    visibleCount: visibleUnique.length,
-    floor,
-    maxTiles,
-    conflict,
-    visibleExceedsCeiling: maxTiles !== null && visibleUnique.length > maxTiles,
-    expansionRadius,
-    expanded: finalKeys.length > visibleUnique.length,
-    floorSatisfied: finalKeys.length >= floor,
-    reason: conflict ? 'QUALITY_FLOOR_EXCEEDS_CAPABILITY' : (visibleUnique.length >= floor ? 'VISIBLE_DEMAND_SATISFIES_FLOOR' : 'FLOOR_EXPANDED_WITHIN_CAPABILITY'),
-    invalidKeys: invalid
-  };
-}
-
 function normalizeLithositeTile_(tile, factor) {
   if (!tile) return null;
   const x = Number(tile.x), y = Number(tile.y);
@@ -158,6 +71,12 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
   const adaptiveC2 = window.mg1AdaptiveC2Enabled === true;
   const deviceProfile = window.mg1DeviceTileEngineProfile || null;
+  // V24.5: buildTilePyramidDirect_ is the upload/store phase. Upload must materialize
+  // the complete profiled upload factor set so runtime quality selection does not turn
+  // into avoidable PDF re-render/MISS work. Runtime viewport culling happens separately.
+  const isUploadPhase = true;
+  const fullUploadFactors = Array.isArray(deviceProfile && deviceProfile.fullUploadFactors)
+    ? deviceProfile.fullUploadFactors.slice() : [0.25,0.5,1,2];
   // Engine V2 final render density follows the profiled factor contract.
   // LOW is capped by its profile at 1x; no temporary density multiplier.
   const c2Factor = 1;
@@ -178,9 +97,12 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   // Fix blank space on pan: base layer (2 tiles) never deleted, detail on top
   // Avenza behavior: "Saya geser peta → peta tetap ada"
   const V2_KEEP_BASE_DETAIL = true; // BASE + DETAIL are separate visual layers
-  const renderFactors = adaptiveC2
-    ? (V2_KEEP_BASE_DETAIL ? [0.25, c2Factor] : [c2Factor])
-    : factors;
+  const renderFactors = isUploadPhase
+    ? fullUploadFactors.filter(function(f, i, arr) {
+        const n = Number(f);
+        return Number.isFinite(n) && n > 0 && arr.findIndex(x => Number(x) === n) === i;
+      }).sort((a,b) => Number(a)-Number(b))
+    : (adaptiveC2 ? (V2_KEEP_BASE_DETAIL ? [0.25, c2Factor] : [c2Factor]) : factors);
   const c2Stats = {
     enabled: adaptiveC2,
     planned: 0,
@@ -220,7 +142,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   // V15.1 SEAMLESS: BASE is a permanent full-map safety layer.
   // DETAIL remains viewport-cropped. This is the critical difference from V14.x:
   // when the detail set changes, BASE still covers the entire GeoPDF extent.
-  const c2Windows = adaptiveC2
+  const c2Windows = (!isUploadPhase && adaptiveC2)
     ? levelPlan.map((plan, li) => li === 0
         ? null
         : getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0))
@@ -229,7 +151,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total))
     : levelPlan.map(item => item.total);
   const grandTotalTiles = Math.max(1, effectiveTotals.reduce((sum, item) => sum + item, 0));
-  if (adaptiveC2) c2Stats.planned = grandTotalTiles;
+  if (adaptiveC2 && !isUploadPhase) c2Stats.planned = grandTotalTiles;
   let globalDone = 0;
   if (onProgress) onProgress('Menyiapkan tile pyramid' + (adaptiveC2 ? ' adaptif' : '') + ': 0/' + grandTotalTiles + ' (0%)', 0);
 
@@ -340,7 +262,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   // V15.3 STEP B: publish the BASE lifecycle only after all requested tiles
   // have been assembled. BASE remains full-coverage; DETAIL may stay partial.
   attachLithositePersistentBaseLayer_(out);
-  if (adaptiveC2) {
+  if (adaptiveC2 && !isUploadPhase) {
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
     c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
     out.adaptive = { mode:'viewport-only-selected-factor-test', prefetchRadius:0, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };

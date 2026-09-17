@@ -136,17 +136,37 @@ function getDeviceTileEngineProfile_() {
   if (!deviceProfile) {
     try { deviceProfile = getDeviceTileProfile_(); } catch (_) { deviceProfile = { tier: 'BALANCED' }; }
   }
+  // Old engine-profile cache must never become authority when the V24.5 Raja
+  // contract fields are absent. The current device profiler remains authoritative.
+  try {
+    const cachedEngine = JSON.parse(localStorage.getItem('mg1_tile_engine_profile_v1') || 'null');
+    if (cachedEngine && (!Number.isFinite(Number(cachedEngine.maxTiles)) || !Array.isArray(cachedEngine.fullUploadFactors))) {
+      localStorage.removeItem('mg1_tile_engine_profile_v1');
+    }
+  } catch (_) { try { localStorage.removeItem('mg1_tile_engine_profile_v1'); } catch (__) {} }
   const tier = String(deviceProfile.tier || 'BALANCED').toUpperCase();
+  // V24.5 RAJA contract: capability ceiling is explicit and independent from cache eviction.
   const profiles = {
-    LOW: { tier:'LOW', tileSize:768, maxFactor:1, usableFactors:[0.5,1], batchSize:2, batchDelayMs:25, prefetchRadius:0, cacheLimit:40, maxTiles:40 },
-    BALANCED: { tier:'BALANCED', tileSize:256, maxFactor:2, usableFactors:[0.25,0.5,1,2], batchSize:8, batchDelayMs:12, prefetchRadius:2, cacheLimit:150, maxTiles:100 },
-    HIGH: { tier:'HIGH', tileSize:512, maxFactor:2, usableFactors:[0.25,0.5,1,2], batchSize:16, batchDelayMs:0, prefetchRadius:3, cacheLimit:300, maxTiles:200 }
+    LOW: { tier:'LOW', tileSize:768, maxFactor:1, usableFactors:[0.5,1], fullUploadFactors:[0.25,0.5,1,2], batchSize:2, batchDelayMs:25, prefetchRadius:0, cacheLimit:80, maxTiles:50 },
+    BALANCED: { tier:'BALANCED', tileSize:256, maxFactor:2, usableFactors:[0.25,0.5,1,2], fullUploadFactors:[0.25,0.5,1,2], batchSize:8, batchDelayMs:12, prefetchRadius:2, cacheLimit:150, maxTiles:100 },
+    HIGH: { tier:'HIGH', tileSize:512, maxFactor:2, usableFactors:[0.25,0.5,1,2], fullUploadFactors:[0.25,0.5,1,2], batchSize:16, batchDelayMs:0, prefetchRadius:3, cacheLimit:300, maxTiles:200 }
   };
   const profile = Object.assign({}, profiles[tier] || profiles.BALANCED, {
     sourceProfilerVersion: deviceProfile.profilerVersion || 'A2',
     benchmarkMs: Number(deviceProfile.benchMs) || null
   });
   try { localStorage.setItem('mg1_tile_engine_profile_v1', JSON.stringify(profile)); } catch (_) {}
+  // Single-source policy contract. Raja owns capability; Wakil supplies the floor.
+  window.TILE_BUDGET_POLICY_ = Object.freeze({ QUALITY_FLOOR: 50, MAX_EXPANSION_RADIUS: 20 });
+  profile.qualityFloorPolicy = window.TILE_BUDGET_POLICY_.QUALITY_FLOOR;
+  profile.maxExpansionRadius = window.TILE_BUDGET_POLICY_.MAX_EXPANSION_RADIUS;
+  profile.getEffectiveCeiling = function(qualityFloor) {
+    const floor = Math.max(0, Math.floor(Number(qualityFloor) || 0));
+    const maxTiles = Math.max(0, Math.floor(Number(profile.maxTiles) || 0));
+    // Policy ceiling is the max of requested quality floor and Raja capability.
+    // It is descriptive; it MUST NOT mutate the actual capability boundary.
+    return Math.max(floor, maxTiles);
+  };
   window.mg1DeviceTileEngineProfile = profile;
   // IMPORTANT: functional runtime state; do not remove.
   return profile;
