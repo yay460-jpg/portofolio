@@ -94,8 +94,11 @@ function renderPeta() {
   if (gpsState_.active) {
     const gpsText = gpsState_.status === 'ok'
       ? ('GPS: ' + gpsState_.lat.toFixed(6) + ', ' + gpsState_.lon.toFixed(6) + (gpsState_.accuracyM != null ? ' ±' + gpsState_.accuracyM.toFixed(0) + 'm' : ''))
-      : (gpsState_.status === 'searching' ? 'GPS: mencari posisi...' : 'GPS: ' + (gpsState_.error || 'belum tersedia'));
-    html += '<div class="text-[10px] ' + (gpsState_.status === 'ok' ? 'text-cyan-300' : 'text-amber-300') + ' text-center shrink-0">' + gpsText + '</div>';
+      : (gpsState_.status === 'gps-only'
+        ? ('GPS: ' + gpsState_.lat.toFixed(6) + ', ' + gpsState_.lon.toFixed(6) + (gpsState_.accuracyM != null ? ' ±' + gpsState_.accuracyM.toFixed(0) + 'm' : '') + ' · belum ada GeoReference')
+        : (gpsState_.status === 'searching' ? 'GPS: mencari posisi...' : 'GPS: ' + (gpsState_.error || 'belum tersedia')));
+    const gpsTone = (gpsState_.status === 'ok' || gpsState_.status === 'gps-only') ? 'text-cyan-300' : 'text-amber-300';
+    html += '<div class="text-[10px] ' + gpsTone + ' text-center shrink-0">' + gpsText + '</div>';
   }
   html += '<div class="text-[10px] text-white/30 text-center shrink-0">Koordinat grid tambang (Timur/Utara) -- bukan GPS. Tap titik utk detail.</div>';
   html += '</main>';

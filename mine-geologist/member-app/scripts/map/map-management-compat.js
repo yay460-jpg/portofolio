@@ -1419,7 +1419,29 @@
       });
     }
 
+    // Re-sync the global boundary at the exact moment the modal opens.
+    // This also recovers from the initial render race on Android/WebView where
+    // the shell can report zero geometry during boot.
+    const boundaryLayer = getMG1OverlayLayer_();
+    if (boundaryLayer) {
+      boundaryLayer.style.display = 'block';
+      boundaryLayer.style.pointerEvents = 'none';
+      syncMG1OverlayLayer_();
+      const shell = document.querySelector('.app-shell') || document.getElementById('app');
+      const rect = shell ? shell.getBoundingClientRect() : null;
+      if (!rect || rect.width <= 0 || rect.height <= 0) {
+        console.warn('[V24.5 SHELL] overlay boundary geometry unavailable at open');
+      }
+    }
+    el.style.position = 'absolute';
+    el.style.left = '0';
+    el.style.top = '0';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+    el.style.width = '100%';
+    el.style.height = '100%';
     el.style.display = 'block';
+    el.style.pointerEvents = 'auto';
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         backdrop.style.opacity = '1';
