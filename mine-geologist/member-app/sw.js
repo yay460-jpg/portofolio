@@ -1,6 +1,6 @@
 /* ============================================================
  * LITHOSITE -- MEMBER APP (Android Prototype) SERVICE WORKER
- * V24.5 BASELINE FINAL — Geometry V1 + Modal V2 -- UI / OFFLINE SHELL
+ * V24.5 RUNTIME UPDATE — Geometry V1 + Modal V2 -- UI / OFFLINE SHELL
  *
  * Terpisah TOTAL dari sw.js dashboard utama (index.html/member.html/supervisor.html)
  * -- CACHE_NAME beda, daftar precache beda -- supaya update salah satu tidak pernah
@@ -11,7 +11,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260916f';
+const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260917-toolbar1';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
@@ -28,6 +28,10 @@ const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260916f';
 // itu TIDAK PERNAH tersimpan walau sudah sukses dimuat berkali-kali saat online ->
 // begitu app ditutup & dibuka lagi tanpa internet, tab Peta (dan sebagian besar app,
 // krn renderPeta dkk ada di map-ui.js) GAGAL TOTAL.
+// [UPDATE -- 17 Sep] Toolbar GPS/Layers + Global Shell Boundary + Settings overlay.
+// peta.js, map-ui.js, map-management-compat.js, settings.js, dan index.html
+// sudah tercakup di APP_SHELL di bawah; cache version dinaikkan agar browser
+// mengambil runtime terbaru dan tidak memakai cache lama.
 // Urutan di bawah dibuat PERSIS mengikuti urutan <script> di index.html supaya
 // gampang dicek ulang berdampingan tiap kali ada file baru ditambahkan.
 const APP_SHELL = [
