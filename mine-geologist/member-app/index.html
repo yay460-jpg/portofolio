@@ -582,58 +582,40 @@ if ('serviceWorker' in navigator) {
   if (typeof window === 'undefined' || !window.visualViewport) return;
   const vv = window.visualViewport;
   let inputFocused = false;
-  let keyboardOpen = false;
   let rafPending = false;
-  let baselineViewportHeight = vv.height;
-
-  const dispatchKeyboardViewport_ = () => {
-    try {
-      window.dispatchEvent(new CustomEvent('mg1:keyboard-viewport', {
-        detail: { open: keyboardOpen, height: vv.height }
-      }));
-    } catch (_) {}
-  };
-
   const applyVvh_ = () => {
     rafPending = false;
-    const currentHeight = vv.height;
-
-    // Android may close the IME while the search input keeps focus.
-    // Therefore focus state alone cannot decide whether the viewport is
-    // keyboard-sized. Treat a large visualViewport recovery as the real
-    // keyboard-close signal and restore the stable shell height.
-    if (inputFocused && currentHeight < (baselineViewportHeight - 120)) {
-      keyboardOpen = true;
-      document.documentElement.style.setProperty('--mg1-vvh', currentHeight + 'px');
+    if (isMapContext_()) {
+      document.documentElement.style.setProperty('--mg1-vvh', '100svh');
+      return;
+    }
+    if (inputFocused) {
+      document.documentElement.style.setProperty('--mg1-vvh', vv.height + 'px');
     } else {
-      keyboardOpen = false;
-      if (currentHeight > baselineViewportHeight) baselineViewportHeight = currentHeight;
       document.documentElement.style.setProperty('--mg1-vvh', '100svh');
     }
-
-    dispatchKeyboardViewport_();
   };
-
   const scheduleApply_ = () => {
     if (rafPending) return;
     rafPending = true;
     requestAnimationFrame(applyVvh_);
   };
-
   vv.addEventListener('resize', scheduleApply_);
-  window.addEventListener('orientationchange', () => {
-    setTimeout(() => {
-      baselineViewportHeight = vv.height;
-      keyboardOpen = false;
-      scheduleApply_();
-    }, 250);
-  }, {passive:true});
 
   const isTextField_ = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+  const isMapContext_ = () => {
+    try {
+      const manage = document.getElementById('mg1-manage-modal-isolated');
+      const upload = document.getElementById('mg1-new-map-modal-root');
+      const overlayOpen = !!((manage && manage.style.display !== 'none') || (upload && upload.style.display !== 'none'));
+      return overlayOpen || (typeof currentTab !== 'undefined' && currentTab === 'peta');
+    } catch (_) { return false; }
+  };
 
   document.addEventListener('focusin', (event) => {
     const el = event.target;
     if (!isTextField_(el)) return;
+    if (isMapContext_()) return;
     inputFocused = true;
     scheduleApply_();
     setTimeout(() => {
@@ -646,12 +628,8 @@ if ('serviceWorker' in navigator) {
     // sempat "kedip" balik ke 100svh dulu di antaranya.
     setTimeout(() => {
       const stillTextField = isTextField_(document.activeElement);
-      if (!stillTextField) {
-        inputFocused = false;
-        keyboardOpen = false;
-        scheduleApply_();
-      }
-    }, 80);
+      if (!stillTextField || isMapContext_()) { inputFocused = false; scheduleApply_(); }
+    }, 50);
   });
 })();
 
