@@ -756,34 +756,174 @@
   }
 
   function renderManageList_(listEl, maps, activeId) {
-    if(!listEl) return;
-    if(!maps || maps.length === 0) {
-      listEl.innerHTML = '<div style="text-align:center;padding:28px 0;color:rgba(255,255,255,.32);font-size:11px;">Tidak ada peta yang cocok.</div>';
+    if (!listEl) return;
+
+    // V24.5 Map Library performance: reconcile existing cards instead of rebuilding
+    // the entire list. Search/filter/sort must not recreate large imageDataUrl <img>
+    // nodes on every keystroke. Cached DOM nodes keep already-decoded thumbnails alive.
+    const rows = Array.isArray(maps) ? maps : [];
+    let cardCache = listEl.__mg1CardCache;
+    if (!(cardCache instanceof Map)) {
+      cardCache = new Map();
+      listEl.__mg1CardCache = cardCache;
+    }
+
+    let emptyEl = listEl.__mg1EmptyEl || null;
+    if (!rows.length) {
+      if (!emptyEl) {
+        emptyEl = document.createElement('div');
+        emptyEl.style.cssText = 'text-align:center;padding:28px 0;color:rgba(255,255,255,.32);font-size:11px;';
+        emptyEl.textContent = 'Tidak ada peta yang cocok.';
+        listEl.__mg1EmptyEl = emptyEl;
+      }
+      cardCache.forEach(function(card) { if (card.parentNode === listEl) card.remove(); });
+      if (emptyEl.parentNode !== listEl) listEl.appendChild(emptyEl);
       return;
     }
-    listEl.innerHTML = maps.map(m => {
-      const isActive = !!activeId && String(m.id) === String(activeId);
-      const cardStyle = isActive
+    if (emptyEl && emptyEl.parentNode === listEl) emptyEl.remove();
+
+    const visibleIds = new Set();
+    const fragment = document.createDocumentFragment();
+
+    function setCardState_(card, m, isActive) {
+      const name = String(m && m.name || 'Tanpa nama');
+      const id = String(m && m.id || '');
+      const labels = getMapLabels_(m);
+      const metadata = id.slice(0, 12)
+        + ' • '
+        + (m && m.tilePyramid ? ((m.tilePyramid.levels && m.tilePyramid.levels.length) || 0) + ' level' : 'single')
+        + (labels.length ? ' • 🏷️ ' + labels.slice(0, 2).join(' · ') : '')
+        + (Array.isArray(m && m.collectionNames) && m.collectionNames.length ? ' • ' + m.collectionNames.slice(0, 2).map(function(v){ return '◈ ' + String(v || ''); }).join(' · ') : '');
+
+      card.style.cssText = isActive
         ? 'display:flex;align-items:center;gap:10px;background:rgba(16,185,129,.075);border:1px solid rgba(16,185,129,.42);border-radius:14px;padding:10px;margin-bottom:8px;'
         : 'display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.035);border-radius:14px;padding:10px;margin-bottom:8px;';
-      const safeId = escapeHtml_(m.id || '');
-      const safeName = escapeHtml_(m.name || 'Tanpa nama');
-      const metadata = `${safeId.slice(0,12)} • ${m.tilePyramid ? (m.tilePyramid.levels?.length||0)+' level' : 'single'}${getMapLabels_(m).length ? ` • 🏷️ ${getMapLabels_(m).slice(0,2).map(function(v){ return escapeHtml_(v); }).join(' · ')}` : ''}${Array.isArray(m.collectionNames) && m.collectionNames.length ? ` • ${m.collectionNames.slice(0,2).map(function(v){ return '◈ ' + escapeHtml_(v); }).join(' · ')}` : ''}`;
-      return `
-        <div style="${cardStyle}" data-map-card="${safeId}">
-          <div style="width:52px;height:52px;border-radius:10px;background:#0b1329;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.06);">
-            ${m.imageDataUrl && window.MG1LithositeSecurity && window.MG1LithositeSecurity.isSafeImageDataUrl(m.imageDataUrl) ? `<img src="${m.imageDataUrl}" alt="" style="width:100%;height:100%;object-fit:cover;">` : ''}
-          </div>
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:7px;min-width:0;">
-              <div style="font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safeName}</div>
-              ${isActive ? '<span style="display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-size:9px;font-weight:800;color:#6ee7b7;"><span style="width:7px;height:7px;border-radius:50%;background:#34d399;"></span>AKTIF</span>' : ''}
-            </div>
-            <div style="font-size:9px;color:rgba(255,255,255,.38);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${metadata}</div>
-          </div>
-          <button type="button" aria-label="Menu ${safeName}" data-map-menu="${safeId}" style="width:38px;height:38px;border-radius:9999px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.72);font-size:18px;letter-spacing:2px;line-height:1;flex-shrink:0;">•••</button>
-        </div>`;
-    }).join('');
+      card.dataset.mapCard = id;
+      if (card.__mg1NameEl) card.__mg1NameEl.textContent = name;
+      if (card.__mg1MetadataEl) card.__mg1MetadataEl.textContent = metadata;
+
+      let activeEl = card.__mg1ActiveEl;
+      if (isActive && !activeEl) {
+        activeEl = document.createElement('span');
+        activeEl.style.cssText = 'display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-size:9px;font-weight:800;color:#6ee7b7;';
+        const dot = document.createElement('span');
+        dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:#34d399;';
+        activeEl.appendChild(dot);
+        activeEl.appendChild(document.createTextNode('AKTIF'));
+        card.__mg1TitleRow.appendChild(activeEl);
+        card.__mg1ActiveEl = activeEl;
+      } else if (!isActive && activeEl) {
+        activeEl.remove();
+        card.__mg1ActiveEl = null;
+      }
+
+      if (card.__mg1MenuEl) {
+        card.__mg1MenuEl.dataset.mapMenu = id;
+        card.__mg1MenuEl.setAttribute('aria-label', 'Menu ' + name);
+      }
+
+      const img = card.__mg1ThumbImg;
+      const safeImage = !!(m && m.imageDataUrl && window.MG1LithositeSecurity && typeof window.MG1LithositeSecurity.isSafeImageDataUrl === 'function' && window.MG1LithositeSecurity.isSafeImageDataUrl(m.imageDataUrl));
+      if (img) {
+        const nextSrc = safeImage ? String(m.imageDataUrl) : '';
+        if (img.__mg1Source !== nextSrc) {
+          img.__mg1Source = nextSrc;
+          img.removeAttribute('src');
+          delete img.dataset.mg1LazySrc;
+          img.style.display = 'none';
+          if (nextSrc) img.dataset.mg1LazySrc = nextSrc;
+        }
+      }
+      card.__mg1MapRef = m;
+    }
+
+    function ensureCard_(m) {
+      const id = String(m && m.id || '');
+      let card = cardCache.get(id);
+      if (card) return card;
+
+      card = document.createElement('div');
+      const thumbWrap = document.createElement('div');
+      thumbWrap.style.cssText = 'width:52px;height:52px;border-radius:10px;background:#0b1329;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.06);';
+      const thumb = document.createElement('img');
+      thumb.alt = '';
+      thumb.decoding = 'async';
+      thumb.loading = 'lazy';
+      thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:none;';
+      thumbWrap.appendChild(thumb);
+
+      const body = document.createElement('div');
+      body.style.cssText = 'flex:1;min-width:0;';
+      const titleRow = document.createElement('div');
+      titleRow.style.cssText = 'display:flex;align-items:center;gap:7px;min-width:0;';
+      const nameEl = document.createElement('div');
+      nameEl.style.cssText = 'font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      const metadataEl = document.createElement('div');
+      metadataEl.style.cssText = 'font-size:9px;color:rgba(255,255,255,.38);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      titleRow.appendChild(nameEl);
+      body.appendChild(titleRow);
+      body.appendChild(metadataEl);
+
+      const menu = document.createElement('button');
+      menu.type = 'button';
+      menu.style.cssText = 'width:38px;height:38px;border-radius:9999px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.72);font-size:18px;letter-spacing:2px;line-height:1;flex-shrink:0;';
+      menu.textContent = '•••';
+
+      card.appendChild(thumbWrap);
+      card.appendChild(body);
+      card.appendChild(menu);
+      card.__mg1ThumbImg = thumb;
+      card.__mg1TitleRow = titleRow;
+      card.__mg1NameEl = nameEl;
+      card.__mg1MetadataEl = metadataEl;
+      card.__mg1MenuEl = menu;
+      cardCache.set(id, card);
+      return card;
+    }
+
+    rows.forEach(function(m) {
+      const id = String(m && m.id || '');
+      if (!id) return;
+      visibleIds.add(id);
+      const card = ensureCard_(m);
+      setCardState_(card, m, !!activeId && id === String(activeId));
+      fragment.appendChild(card);
+    });
+
+    cardCache.forEach(function(card, id) {
+      if (!visibleIds.has(id) && card.parentNode === listEl) card.remove();
+    });
+    listEl.appendChild(fragment);
+
+    if (!listEl.__mg1LazyObserverBound) {
+      listEl.__mg1LazyObserverBound = true;
+      if (window.IntersectionObserver) {
+        const io = new IntersectionObserver(function(entries) {
+          entries.forEach(function(entry) {
+            if (!entry.isIntersecting) return;
+            const img = entry.target;
+            const src = img && img.dataset ? img.dataset.mg1LazySrc : '';
+            if (src) {
+              img.src = src;
+              img.style.display = 'block';
+              delete img.dataset.mg1LazySrc;
+            }
+            io.unobserve(img);
+          });
+        }, {root: listEl, rootMargin: '160px 0px'});
+        listEl.__mg1LazyObserver = io;
+      }
+    }
+    cardCache.forEach(function(card) {
+      const img = card.__mg1ThumbImg;
+      if (!img || !img.dataset.mg1LazySrc) return;
+      if (listEl.__mg1LazyObserver) listEl.__mg1LazyObserver.observe(img);
+      else {
+        img.src = img.dataset.mg1LazySrc;
+        img.style.display = 'block';
+        delete img.dataset.mg1LazySrc;
+      }
+    });
   }
 
   function showMapActionSheet_(entry, activeId, onDone) {
@@ -1132,6 +1272,10 @@
     let manageLabel_ = '__all__';
     let manageCollection_ = '__all__';
     let manageSort_ = 'name-asc';
+    let manageMapsCache_ = null;
+    let manageMapsLoadPromise_ = null;
+    let manageSearchTimer_ = null;
+    let manageRefreshSeq_ = 0;
 
     function applyManageFilter_(maps, activeId, filter) {
       if(filter === 'active') return maps.filter(m => activeId && String(m.id) === String(activeId));
@@ -1286,30 +1430,59 @@
       }
     }
 
-    async function refreshManageList_(query) {
+    function filterManageQuery_(maps, query) {
+      const q = String(query || '').trim().toLowerCase();
+      if (!q) return Array.isArray(maps) ? maps : [];
+      return (Array.isArray(maps) ? maps : []).filter(function(entry) {
+        if (!entry) return false;
+        const labels = getMapLabels_(entry);
+        const collections = Array.isArray(entry.collectionNames) ? entry.collectionNames : [];
+        return String(entry.name || '').toLowerCase().includes(q)
+          || String(entry.id || '').toLowerCase().includes(q)
+          || labels.some(function(v){ return String(v || '').toLowerCase().includes(q); })
+          || collections.some(function(v){ return String(v || '').toLowerCase().includes(q); });
+      });
+    }
+
+    async function getManageMapsCache_(forceReload) {
+      if (!forceReload && Array.isArray(manageMapsCache_)) return manageMapsCache_;
+      if (!forceReload && manageMapsLoadPromise_) return manageMapsLoadPromise_;
+      manageMapsLoadPromise_ = (async function() {
+        const maps = (window.MG1MapLibrary && typeof window.MG1MapLibrary.getAll === 'function')
+          ? await window.MG1MapLibrary.getAll()
+          : (typeof backgroundMapsList !== 'undefined' ? backgroundMapsList : []);
+        manageMapsCache_ = Array.isArray(maps) ? maps.slice() : [];
+        return manageMapsCache_;
+      })();
+      try { return await manageMapsLoadPromise_; }
+      finally { manageMapsLoadPromise_ = null; }
+    }
+
+    async function refreshManageList_(query, options) {
+      options = options || {};
+      const forceReload = !!options.forceReload;
+      const refreshStorage = options.refreshStorage !== false;
+      const seq = ++manageRefreshSeq_;
       try {
-        const maps = (window.MG1MapLibraryCapability && typeof window.MG1MapLibraryCapability.list === 'function')
-          ? await window.MG1MapLibraryCapability.list({query: query || ''})
-          : ((window.MG1MapLibrary && typeof window.MG1MapLibrary.getAll === 'function')
-            ? await window.MG1MapLibrary.getAll()
-            : (typeof backgroundMapsList !== 'undefined' ? backgroundMapsList : []));
-        const total = (window.MG1MapLibraryCapability && typeof window.MG1MapLibraryCapability.list === 'function')
-          ? await window.MG1MapLibraryCapability.list()
-          : maps;
+        // One canonical IndexedDB read per Library session. Search/filter/sort then
+        // operate on the in-memory snapshot, avoiding repeated multi-MB payload reads.
+        const allMaps = await getManageMapsCache_(forceReload);
+        if (seq !== manageRefreshSeq_) return;
+        const queryMaps = filterManageQuery_(allMaps, query);
         const activeId = getManageActiveId_();
-        syncManageLabelOptions_(maps);
-        syncManageCollectionOptions_(maps);
-        const filtered = applyManageCollection_(applyManageLabel_(applyManageFilter_(maps, activeId, manageFilter_), manageLabel_), manageCollection_);
+        syncManageLabelOptions_(allMaps);
+        syncManageCollectionOptions_(allMaps);
+        const filtered = applyManageCollection_(applyManageLabel_(applyManageFilter_(queryMaps, activeId, manageFilter_), manageLabel_), manageCollection_);
         const sorted = applyManageSort_(filtered, manageSort_);
         const q = String(query || '').trim();
         const scopedLabel = manageFilter_ === 'active' ? 'aktif' : (manageFilter_ === 'inactive' ? 'tidak aktif' : 'peta');
         countEl.textContent = q || manageFilter_ !== 'all' || manageSort_ !== 'name-asc' || manageLabel_ !== '__all__' || manageCollection_ !== '__all__'
-          ? `${sorted.length} dari ${total.length} ${scopedLabel}`
+          ? `${sorted.length} dari ${allMaps.length} ${scopedLabel}`
           : `${sorted.length} peta tersimpan`;
         renderManageList_(listEl, sorted, activeId);
-        refreshStorageSummary_();
+        if (refreshStorage) refreshStorageSummary_();
       } catch(e) {
-        console.warn('[V24.3 MAP LIBRARY] manage list update fail', e);
+        console.warn('[V24.5 MAP LIBRARY] manage list update fail', e);
       }
     }
 
@@ -1323,7 +1496,14 @@
     refreshManageList_('');
     if(searchEl && !searchEl.__mg1Bound) {
       searchEl.__mg1Bound = true;
-      searchEl.addEventListener('input', function() { refreshManageList_(this.value); });
+      searchEl.addEventListener('input', function() {
+        const value = this.value;
+        if (manageSearchTimer_) clearTimeout(manageSearchTimer_);
+        manageSearchTimer_ = setTimeout(function() {
+          manageSearchTimer_ = null;
+          refreshManageList_(value, {refreshStorage:false});
+        }, 220);
+      });
     }
     if(filterEl && !filterEl.__mg1Bound) {
       filterEl.__mg1Bound = true;
@@ -1332,7 +1512,7 @@
         if(!btn) return;
         manageFilter_ = btn.dataset.filter || 'all';
         syncManageFilterButtons_();
-        refreshManageList_(searchEl ? searchEl.value : '');
+        refreshManageList_(searchEl ? searchEl.value : '', {refreshStorage:false});
       });
     }
     if(sortEl && !sortEl.__mg1Bound) {
@@ -1341,7 +1521,7 @@
         showMapLibraryChoiceModal_('sort', manageSort_, function(value) {
           manageSort_ = value || 'name-asc';
           sortEl.textContent = ({'name-asc':'Nama A–Z','name-desc':'Nama Z–A','newest':'Terbaru','oldest':'Terlama'})[manageSort_] || 'Nama A–Z';
-          refreshManageList_(searchEl ? searchEl.value : '');
+          refreshManageList_(searchEl ? searchEl.value : '', {refreshStorage:false});
         });
       };
     }
@@ -1352,7 +1532,7 @@
         manageCollection_=state.collection||'__all__';
         if(labelEl)labelEl.textContent='Label & Koleksi';
         if(collectionEl)collectionEl.textContent=manageCollection_==='__none__'?'Tanpa koleksi':(manageCollection_==='__all__'?'Semua koleksi':manageCollection_);
-        refreshManageList_(searchEl?searchEl.value:'');
+        refreshManageList_(searchEl?searchEl.value:'', {refreshStorage:false});
       });
       if(labelEl)labelEl.onclick=openFilter;
       if(collectionEl)collectionEl.onclick=openFilter;
@@ -1366,7 +1546,7 @@
         try {
           const maps = (window.MG1MapLibrary && typeof window.MG1MapLibrary.getAll === 'function') ? await window.MG1MapLibrary.getAll() : [];
           const entry = maps.find(function(m){ return m && String(m.id) === String(id); });
-          if (entry) showMapActionSheet_(entry, getManageActiveId_(), async function(){ await refreshManageList_(searchEl ? searchEl.value : ''); });
+          if (entry) showMapActionSheet_(entry, getManageActiveId_(), async function(){ await refreshManageList_(searchEl ? searchEl.value : '', {forceReload:true, refreshStorage:true}); });
         } catch (e) { console.warn('[V24.3 MAP LIBRARY] map action menu failed', e); }
       });
     }
@@ -1381,7 +1561,7 @@
         scopeBtn.style.background = active ? 'rgba(245,158,11,.13)' : 'rgba(16,185,129,.13)';
         scopeBtn.style.borderColor = active ? 'rgba(245,158,11,.28)' : 'rgba(52,211,153,.30)';
         scopeBtn.style.color = active ? '#fbbf24' : '#6ee7b7';
-        refreshManageList_(searchEl ? searchEl.value : '');
+        refreshManageList_(searchEl ? searchEl.value : '', {refreshStorage:false});
       });
     }
 
