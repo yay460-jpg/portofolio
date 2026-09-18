@@ -785,7 +785,7 @@
     const visibleIds = new Set();
     const fragment = document.createDocumentFragment();
 
-    function setCardState_(card, m, isActive) {
+    function setCardState_(card, m, isActive, ordinal) {
       const name = String(m && m.name || 'Tanpa nama');
       const id = String(m && m.id || '');
       const labels = getMapLabels_(m);
@@ -822,17 +822,11 @@
         card.__mg1MenuEl.setAttribute('aria-label', 'Menu ' + name);
       }
 
-      const img = card.__mg1ThumbImg;
-      const safeImage = !!(m && m.imageDataUrl && window.MG1LithositeSecurity && typeof window.MG1LithositeSecurity.isSafeImageDataUrl === 'function' && window.MG1LithositeSecurity.isSafeImageDataUrl(m.imageDataUrl));
-      if (img) {
-        const nextSrc = safeImage ? String(m.imageDataUrl) : '';
-        if (img.__mg1Source !== nextSrc) {
-          img.__mg1Source = nextSrc;
-          img.removeAttribute('src');
-          delete img.dataset.mg1LazySrc;
-          img.style.display = 'none';
-          if (nextSrc) img.dataset.mg1LazySrc = nextSrc;
-        }
+      const thumb = card.__mg1ThumbEl;
+      if (thumb) {
+        const n = Math.max(1, Number(ordinal) || 1);
+        thumb.textContent = String(n).padStart(2, '0');
+        thumb.setAttribute('aria-label', 'Peta ' + n);
       }
       card.__mg1MapRef = m;
     }
@@ -844,12 +838,10 @@
 
       card = document.createElement('div');
       const thumbWrap = document.createElement('div');
-      thumbWrap.style.cssText = 'width:52px;height:52px;border-radius:10px;background:#0b1329;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.06);';
-      const thumb = document.createElement('img');
-      thumb.alt = '';
-      thumb.decoding = 'async';
-      thumb.loading = 'lazy';
-      thumb.style.cssText = 'width:100%;height:100%;object-fit:cover;display:none;';
+      thumbWrap.style.cssText = 'width:52px;height:52px;border-radius:10px;background:#0b1329;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;';
+      const thumb = document.createElement('div');
+      thumb.setAttribute('aria-hidden', 'true');
+      thumb.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;letter-spacing:.5px;color:rgba(255,255,255,.72);font-variant-numeric:tabular-nums;';
       thumbWrap.appendChild(thumb);
 
       const body = document.createElement('div');
@@ -872,7 +864,7 @@
       card.appendChild(thumbWrap);
       card.appendChild(body);
       card.appendChild(menu);
-      card.__mg1ThumbImg = thumb;
+      card.__mg1ThumbEl = thumb;
       card.__mg1TitleRow = titleRow;
       card.__mg1NameEl = nameEl;
       card.__mg1MetadataEl = metadataEl;
@@ -881,12 +873,12 @@
       return card;
     }
 
-    rows.forEach(function(m) {
+    rows.forEach(function(m, index) {
       const id = String(m && m.id || '');
       if (!id) return;
       visibleIds.add(id);
       const card = ensureCard_(m);
-      setCardState_(card, m, !!activeId && id === String(activeId));
+      setCardState_(card, m, !!activeId && id === String(activeId), index + 1);
       fragment.appendChild(card);
     });
 
@@ -895,35 +887,7 @@
     });
     listEl.appendChild(fragment);
 
-    if (!listEl.__mg1LazyObserverBound) {
-      listEl.__mg1LazyObserverBound = true;
-      if (window.IntersectionObserver) {
-        const io = new IntersectionObserver(function(entries) {
-          entries.forEach(function(entry) {
-            if (!entry.isIntersecting) return;
-            const img = entry.target;
-            const src = img && img.dataset ? img.dataset.mg1LazySrc : '';
-            if (src) {
-              img.src = src;
-              img.style.display = 'block';
-              delete img.dataset.mg1LazySrc;
-            }
-            io.unobserve(img);
-          });
-        }, {root: listEl, rootMargin: '160px 0px'});
-        listEl.__mg1LazyObserver = io;
-      }
-    }
-    cardCache.forEach(function(card) {
-      const img = card.__mg1ThumbImg;
-      if (!img || !img.dataset.mg1LazySrc) return;
-      if (listEl.__mg1LazyObserver) listEl.__mg1LazyObserver.observe(img);
-      else {
-        img.src = img.dataset.mg1LazySrc;
-        img.style.display = 'block';
-        delete img.dataset.mg1LazySrc;
-      }
-    });
+
   }
 
   function showMapActionSheet_(entry, activeId, onDone) {
@@ -1474,12 +1438,15 @@
         syncManageCollectionOptions_(allMaps);
         const filtered = applyManageCollection_(applyManageLabel_(applyManageFilter_(queryMaps, activeId, manageFilter_), manageLabel_), manageCollection_);
         const sorted = applyManageSort_(filtered, manageSort_);
+        // Map Library panel display cap: show at most 3 maps.
+        // This is display-only; the full IndexedDB collection remains untouched.
+        const visible = sorted.slice(0, 3);
         const q = String(query || '').trim();
         const scopedLabel = manageFilter_ === 'active' ? 'aktif' : (manageFilter_ === 'inactive' ? 'tidak aktif' : 'peta');
         countEl.textContent = q || manageFilter_ !== 'all' || manageSort_ !== 'name-asc' || manageLabel_ !== '__all__' || manageCollection_ !== '__all__'
-          ? `${sorted.length} dari ${allMaps.length} ${scopedLabel}`
-          : `${sorted.length} peta tersimpan`;
-        renderManageList_(listEl, sorted, activeId);
+          ? `${visible.length} dari ${sorted.length} ${scopedLabel}`
+          : `${visible.length} dari ${allMaps.length} peta tersimpan`;
+        renderManageList_(listEl, visible, activeId);
         if (refreshStorage) refreshStorageSummary_();
       } catch(e) {
         console.warn('[V24.5 MAP LIBRARY] manage list update fail', e);
