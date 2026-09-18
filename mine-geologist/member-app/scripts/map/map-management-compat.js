@@ -669,25 +669,9 @@
   function bindMG1ShellBoundary_() {
     if (mg1ShellBoundaryBound_) return;
     mg1ShellBoundaryBound_ = true;
-    let syncRaf_ = 0;
     const sync = () => {
-      if (syncRaf_) cancelAnimationFrame(syncRaf_);
-      syncRaf_ = requestAnimationFrame(() => {
-        syncRaf_ = requestAnimationFrame(() => {
-          syncRaf_ = 0;
-          const el = document.getElementById('mg1-manage-modal-isolated');
-          if (el && el.style.display !== 'none') {
-            syncMG1OverlayToShell_(el);
-            const panel = el.querySelector('#mg1-manage-panel');
-            if (panel) {
-              panel.style.left = '0';
-              panel.style.right = '0';
-              panel.style.bottom = '0';
-              panel.style.top = 'auto';
-            }
-          }
-        });
-      });
+      const el = document.getElementById('mg1-manage-modal-isolated');
+      if (el && el.style.display !== 'none') syncMG1OverlayToShell_(el);
     };
     window.addEventListener('resize', sync, {passive:true});
     window.addEventListener('orientationchange', sync, {passive:true});

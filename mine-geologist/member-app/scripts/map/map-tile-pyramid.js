@@ -71,6 +71,12 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   const factors = GEOPDF_TILE_LEVEL_FACTORS_;
   const adaptiveC2 = window.mg1AdaptiveC2Enabled === true;
   const deviceProfile = window.mg1DeviceTileEngineProfile || null;
+  // V24.5: buildTilePyramidDirect_ is the upload/store phase. Upload must materialize
+  // the complete profiled upload factor set so runtime quality selection does not turn
+  // into avoidable PDF re-render/MISS work. Runtime viewport culling happens separately.
+  const isUploadPhase = true;
+  const fullUploadFactors = Array.isArray(deviceProfile && deviceProfile.fullUploadFactors)
+    ? deviceProfile.fullUploadFactors.slice() : [0.25,0.5,1,2];
   // Engine V2 final render density follows the profiled factor contract.
   // LOW is capped by its profile at 1x; no temporary density multiplier.
   const c2Factor = 1;
@@ -91,9 +97,12 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   // Fix blank space on pan: base layer (2 tiles) never deleted, detail on top
   // Avenza behavior: "Saya geser peta → peta tetap ada"
   const V2_KEEP_BASE_DETAIL = true; // BASE + DETAIL are separate visual layers
-  const renderFactors = adaptiveC2
-    ? (V2_KEEP_BASE_DETAIL ? [0.25, c2Factor] : [c2Factor])
-    : factors;
+  const renderFactors = isUploadPhase
+    ? fullUploadFactors.filter(function(f, i, arr) {
+        const n = Number(f);
+        return Number.isFinite(n) && n > 0 && arr.findIndex(x => Number(x) === n) === i;
+      }).sort((a,b) => Number(a)-Number(b))
+    : (adaptiveC2 ? (V2_KEEP_BASE_DETAIL ? [0.25, c2Factor] : [c2Factor]) : factors);
   const c2Stats = {
     enabled: adaptiveC2,
     planned: 0,
@@ -133,7 +142,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   // V15.1 SEAMLESS: BASE is a permanent full-map safety layer.
   // DETAIL remains viewport-cropped. This is the critical difference from V14.x:
   // when the detail set changes, BASE still covers the entire GeoPDF extent.
-  const c2Windows = adaptiveC2
+  const c2Windows = (!isUploadPhase && adaptiveC2)
     ? levelPlan.map((plan, li) => li === 0
         ? null
         : getAdaptiveC2TileWindowFromPlan_(window.mg1LastViewportTilePlan || null, plan, 0))
@@ -142,7 +151,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
     ? levelPlan.map((plan, li) => (c2Windows[li] ? c2Windows[li].required.count : plan.total))
     : levelPlan.map(item => item.total);
   const grandTotalTiles = Math.max(1, effectiveTotals.reduce((sum, item) => sum + item, 0));
-  if (adaptiveC2) c2Stats.planned = grandTotalTiles;
+  if (adaptiveC2 && !isUploadPhase) c2Stats.planned = grandTotalTiles;
   let globalDone = 0;
   if (onProgress) onProgress('Menyiapkan tile pyramid' + (adaptiveC2 ? ' adaptif' : '') + ': 0/' + grandTotalTiles + ' (0%)', 0);
 
@@ -253,7 +262,7 @@ async function buildTilePyramidDirect_(page, vpBBox, baseScale, onProgress, geoR
   // V15.3 STEP B: publish the BASE lifecycle only after all requested tiles
   // have been assembled. BASE remains full-coverage; DETAIL may stay partial.
   attachLithositePersistentBaseLayer_(out);
-  if (adaptiveC2) {
+  if (adaptiveC2 && !isUploadPhase) {
     c2Stats.elapsedMs = Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - c2Stats.startedAt);
     c2Stats.status = (c2Stats.failed === 0 && c2Stats.rendered === c2Stats.planned) ? 'ACTIVE' : 'ACTIVE WITH TILE ERRORS';
     out.adaptive = { mode:'viewport-only-selected-factor-test', prefetchRadius:0, lowestLevelFull:false, status:c2Stats.status, stats:c2Stats };
