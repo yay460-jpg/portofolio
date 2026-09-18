@@ -676,16 +676,6 @@
     window.addEventListener('resize', sync, {passive:true});
     window.addEventListener('orientationchange', sync, {passive:true});
     if (window.visualViewport) window.visualViewport.addEventListener('resize', sync, {passive:true});
-    // Keyboard viewport owner (index.html) restores --mg1-vvh when Android
-    // closes the IME. Re-sync the isolated Map Library after that shell geometry
-    // changes; do not call render() and do not rebuild the app surface.
-    window.addEventListener('mg1:keyboard-viewport', () => {
-      requestAnimationFrame(() => {
-        sync();
-        setTimeout(sync, 80);
-        setTimeout(sync, 220);
-      });
-    }, {passive:true});
   }
 
   function ensureManageModalDom() {
@@ -696,7 +686,7 @@
     el.style.cssText = 'position:fixed;z-index:2147483646;display:none;overflow:hidden;';
     el.innerHTML = `
       <div id="mg1-manage-backdrop" style="position:absolute;inset:0;background:rgba(3,8,20,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;transition:opacity 200ms ease;"></div>
-      <div id="mg1-manage-panel" style="position:absolute;left:0;right:0;bottom:0;max-height:82vh;background:#0e1933;border-top:1px solid rgba(255,255,255,0.10);border-radius:22px 22px 0 0;transform:translateY(100%);transition:transform 300ms cubic-bezier(0.16,1,0.3,1);overflow:auto;box-shadow:0 -18px 60px rgba(0,0,0,.28);">
+      <div id="mg1-manage-panel" style="position:absolute;left:0;right:0;bottom:0;max-height:84%;background:#0e1933;border-top:1px solid rgba(255,255,255,0.10);border-radius:22px 22px 0 0;transform:translateY(100%);transition:transform 300ms cubic-bezier(0.16,1,0.3,1);overflow:auto;box-shadow:0 -18px 60px rgba(0,0,0,.28);">
         <div style="padding:18px 16px 14px;">
           <div style="width:38px;height:4px;background:rgba(255,255,255,.22);border-radius:9999px;margin:0 auto 14px;"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
