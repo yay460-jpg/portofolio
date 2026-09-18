@@ -119,32 +119,34 @@ Warna/tema TETAP seperti prototype ini semula (#070b1c + biru), tidak diubah. --
   .mg1-boot-glow { display:none; }
   .mg1-boot-glow-blue { background:#38bdf8; top:-110px; left:50%; transform:translateX(-50%); }
   .mg1-boot-glow-orange { background:#f97316; right:-130px; bottom:-120px; }
-
-
-
-
+  .mg1-boot-orbit { position:absolute; left:50%; top:50%; width:170px; height:170px; transform:translate(-50%,-50%); border-radius:50%; animation:mg1BootOrbit 2.4s linear infinite; }
+  .mg1-orbit-dot { position:absolute; left:50%; top:50%; width:18px; height:18px; margin:-9px; border-radius:50%; box-shadow:0 0 18px currentColor,0 0 36px currentColor; }
+  .mg1-orbit-blue { background:#38bdf8; color:#38bdf8; transform:translateX(78px); }
+  .mg1-orbit-orange { background:#f97316; color:#f97316; transform:translateX(-78px); }
   .mg1-boot-wordmark { position:absolute; left:50%; top:50%; width:min(92vw,390px); transform:translate(-50%,-50%); display:flex; justify-content:center; align-items:center; gap:clamp(1px,.7vw,5px); z-index:4; }
   .mg1-boot-letter:nth-child(-n+5) { color:#38bdf8; text-shadow:0 0 24px rgba(56,189,248,.16); }
   .mg1-boot-letter:nth-child(n+6) { color:#f97316; text-shadow:0 0 24px rgba(249,115,22,.16); }
-  .mg1-boot-letter { display:block; font-family:Inter,system-ui,-apple-system,sans-serif; font-size:clamp(38px,12vw,68px); line-height:.9; font-weight:900; letter-spacing:-.055em; opacity:0; transform:translateX(calc((var(--i) - 4) * 62px)) rotate(calc((var(--i) - 4) * 9deg)) scale(.72); animation:mg1BootLetter 1.05s cubic-bezier(.22,1,.36,1) calc(3.72s + var(--i) * .07s) forwards; text-shadow:0 0 24px rgba(255,255,255,.12); }
+  .mg1-boot-letter { display:block; font-family:Inter,system-ui,-apple-system,sans-serif; font-size:clamp(38px,12vw,68px); line-height:.9; font-weight:900; letter-spacing:-.055em; opacity:0; transform:translateX(calc((var(--i) - 4) * 62px)) rotate(calc((var(--i) - 4) * 9deg)) scale(.72); animation:mg1BootLetter 1.05s cubic-bezier(.22,1,.36,1) calc(.35s + var(--i) * .07s) forwards; text-shadow:0 0 24px rgba(255,255,255,.12); }
   .mg1-boot-bottom { position:absolute; left:50%; top:62%; transform:translateX(-50%); width:min(72vw,220px); display:flex; flex-direction:column; align-items:center; z-index:5; }
-  .mg1-boot-tagline { font-size:9px; font-weight:700; letter-spacing:.34em; color:#888; white-space:nowrap; opacity:0; animation:mg1BootTagline .8s ease-out 5.45s forwards; }
+  .mg1-boot-tagline { font-size:9px; font-weight:700; letter-spacing:.34em; color:#888; white-space:nowrap; opacity:0; animation:mg1BootTagline .8s ease-out 1.35s forwards; }
   .mg1-boot-progress { margin-top:18px; width:100%; height:2px; background:rgba(255,255,255,.1); border-radius:999px; overflow:hidden; }
   .mg1-boot-progress span { display:block; width:0; height:100%; background:#fff; box-shadow:0 0 10px rgba(255,255,255,.9); animation:mg1BootProgress 6.2s linear forwards; }
-  .mg1-boot-brand { position:absolute; left:50%; bottom:28px; transform:translateX(-50%); font-size:8px; letter-spacing:.42em; color:rgba(255,255,255,.22); white-space:nowrap; }
- 55% { opacity:1; transform:translate(-50%,calc(-50% + 6px)) scale(1.12); } 100% { opacity:1; transform:translate(-50%,calc(-50% + 6px)) scale(1); } }
+  .mg1-boot-brand { position:absolute; left:50%; bottom:28px; transform:translateX(-50%); font-size:8px; font-weight:700; letter-spacing:.42em; white-space:nowrap; opacity:.7; }
+  .mg1-boot-brand-blue { color:rgba(56,189,248,.42); }
+  .mg1-boot-brand-orange { color:rgba(249,115,22,.42); }
+  @keyframes mg1BootOrbit { to { transform:translate(-50%,-50%) rotate(360deg); } } 55% { opacity:1; transform:translate(-50%,calc(-50% + 6px)) scale(1.12); } 100% { opacity:1; transform:translate(-50%,calc(-50% + 6px)) scale(1); } }
   @keyframes mg1BootLetter { 0% { opacity:0; transform:translateX(calc((var(--i) - 4) * 62px)) rotate(calc((var(--i) - 4) * 9deg)) scale(.72); } 100% { opacity:1; transform:translateX(0) rotate(0) scale(1); } }
   @keyframes mg1BootTagline { to { opacity:1; transform:translateY(0); } }
   @keyframes mg1BootProgress { to { width:100%; } }
   @media (max-width:380px) {
     .mg1-boot-wordmark { width:94vw; }
     .mg1-boot-letter { font-size:clamp(30px,10vw,48px); }
-
-
-
+    .mg1-boot-orbit { width:140px; height:140px; }
+    .mg1-orbit-blue { transform:translateX(64px); }
+    .mg1-orbit-orange { transform:translateX(-64px); }
   }
   @media (prefers-reduced-motion: reduce) {
-
+    .mg1-boot-orbit { animation:none; }
     .mg1-boot-letter { animation:none; opacity:1; transform:none; }
     .mg1-boot-tagline { animation:none; opacity:1; }
     .mg1-boot-progress span { animation:none; width:100%; }
@@ -209,6 +211,10 @@ function renderSplash() {
   '<div id="mg1-boot" class="mg1-boot" aria-label="Memuat MINE GEOLOGIST">' +
     '<div class="mg1-boot-glow mg1-boot-glow-blue"></div>' +
     '<div class="mg1-boot-glow mg1-boot-glow-orange"></div>' +
+    '<div class="mg1-boot-orbit" aria-hidden="true">' +
+      '<span class="mg1-orbit-dot mg1-orbit-blue"></span>' +
+      '<span class="mg1-orbit-dot mg1-orbit-orange"></span>' +
+    '</div>' +
 '<div class="mg1-boot-wordmark" aria-hidden="true">' +
       '<span class="mg1-boot-letter" style="--i:0">L</span>' +
       '<span class="mg1-boot-letter" style="--i:1">I</span>' +
@@ -224,7 +230,10 @@ function renderSplash() {
       '<div class="mg1-boot-tagline">MINE BEYOND LIMITS</div>' +
       '<div class="mg1-boot-progress"><span></span></div>' +
     '</div>' +
-    '<div class="mg1-boot-brand">LITHOSITE</div>' +
+    '<div class="mg1-boot-brand" aria-hidden="true">' +
+      '<span class="mg1-boot-brand-blue">LITHO</span>' +
+      '<span class="mg1-boot-brand-orange">SITE</span>' +
+    '</div>' +
   '</div>';
 }
 
