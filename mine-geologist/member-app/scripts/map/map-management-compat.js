@@ -966,8 +966,8 @@
           <div style="font-size:13px;font-weight:800;">Info Peta</div>
           <button type="button" data-info-close style="width:28px;height:28px;border-radius:9999px;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.7);">✕</button>
         </div>
+        ${entry.imageDataUrl && window.MG1LithositeSecurity && window.MG1LithositeSecurity.isSafeImageDataUrl(entry.imageDataUrl) ? `<div style="height:120px;border-radius:10px;overflow:hidden;background:#0b1329;margin-bottom:12px;"><img src="${entry.imageDataUrl}" alt="Preview peta" style="display:block;width:100%;height:100%;object-fit:cover;"></div>` : ''}
         <div style="font-size:14px;font-weight:800;margin-bottom:10px;">${escapeHtml_(entry.name || 'Tanpa nama')}</div>
-        ${entry.imageDataUrl && window.MG1LithositeSecurity && window.MG1LithositeSecurity.isSafeImageDataUrl(entry.imageDataUrl) ? `<div style="margin-bottom:12px;border-radius:12px;overflow:hidden;border:1px solid rgba(96,165,250,.16);background:#0b1329;"><img src="${entry.imageDataUrl}" alt="Preview peta" style="display:block;width:100%;height:auto;max-height:236px;object-fit:contain;"></div>` : ''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           ${[
             ['Status', isActive ? '● AKTIF' : 'Tidak aktif'],
