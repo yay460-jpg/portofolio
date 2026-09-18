@@ -676,6 +676,16 @@
     window.addEventListener('resize', sync, {passive:true});
     window.addEventListener('orientationchange', sync, {passive:true});
     if (window.visualViewport) window.visualViewport.addEventListener('resize', sync, {passive:true});
+    // Keyboard viewport owner (index.html) restores --mg1-vvh when Android
+    // closes the IME. Re-sync the isolated Map Library after that shell geometry
+    // changes; do not call render() and do not rebuild the app surface.
+    window.addEventListener('mg1:keyboard-viewport', () => {
+      requestAnimationFrame(() => {
+        sync();
+        setTimeout(sync, 80);
+        setTimeout(sync, 220);
+      });
+    }, {passive:true});
   }
 
   function ensureManageModalDom() {
