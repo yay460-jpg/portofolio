@@ -825,7 +825,9 @@
       const thumb = card.__mg1ThumbEl;
       if (thumb) {
         const n = Math.max(1, Number(ordinal) || 1);
+        const thumbColors = {1:'#3b82f6',2:'#f97316',3:'#10b981'};
         thumb.textContent = String(n).padStart(2, '0');
+        thumb.style.color = thumbColors[n] || 'rgba(255,255,255,.72)';
         thumb.setAttribute('aria-label', 'Peta ' + n);
       }
       card.__mg1MapRef = m;
@@ -2032,6 +2034,26 @@
     const state=pack.state, isNewModal=pack.isNewModal;
     if(!state) return;
     if(!state.fileDataUrl || !String(state.name||'').trim()) return;
+
+    // Map Library panel policy: maximum 3 stored maps.
+    // Guard only applies to a NEW map; existing-map flows remain untouched.
+    if(isNewModal){
+      try {
+        let maps = null;
+        if(window.MG1MapLibrary && typeof window.MG1MapLibrary.getAll === 'function'){
+          maps = await window.MG1MapLibrary.getAll();
+        } else if(Array.isArray(window.backgroundMapsList)){
+          maps = window.backgroundMapsList;
+        }
+        if(Array.isArray(maps) && maps.length >= 3){
+          showLithositeToast_('Maksimal 3 peta. Hapus 1 dulu', 'error');
+          return;
+        }
+      } catch(e) {
+        console.warn('[V24.5 MAP LIBRARY] 3-map guard check failed; upload continues', e);
+      }
+    }
+
     window.__v24SaveInFlight=true;
 
     const id='bgmap_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
