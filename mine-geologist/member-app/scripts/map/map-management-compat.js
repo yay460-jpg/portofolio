@@ -36,7 +36,8 @@
 
   // V24.5 Lithosite toast — replaces native alert() for Map Package feedback.
   let toastTimer = null;
-  function showLithositeToast_(message, type='success') {
+  function showLithositeToast_(message, type='success', options) {
+    const opts = options || {};
     let toast = document.getElementById('mg1-lithosite-toast');
     if(!toast) {
       toast = document.createElement('div');
@@ -44,8 +45,8 @@
       toast.style.cssText = [
         'position:fixed', 'left:50%', 'bottom:28px', 'transform:translate(-50%,14px)',
         'z-index:2147483647', 'min-width:260px', 'max-width:min(88vw,420px)',
-        'padding:12px 16px', 'border-radius:14px', 'border:1px solid rgba(255,255,255,.10)',
-        'background:rgba(14,25,51,.96)', 'box-shadow:0 16px 44px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06)',
+        'padding:11px 15px', 'border-radius:14px', 'border:1px solid rgba(255,255,255,.10)',
+        'background:rgba(14,25,51,.97)', 'box-shadow:0 16px 44px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06)',
         'backdrop-filter:blur(16px)', '-webkit-backdrop-filter:blur(16px)',
         'display:flex', 'align-items:center', 'gap:10px', 'font-size:12px', 'font-weight:800',
         'letter-spacing:-.01em', 'color:#fff', 'opacity:0', 'pointer-events:none',
@@ -53,21 +54,37 @@
       ].join(';');
       document.body.appendChild(toast);
     }
+    const loading = type === 'loading';
     const ok = type === 'success';
-    const icon = ok ? '✓' : '⚠';
+    const icon = loading
+      ? '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(96,165,250,.28);border-top-color:#60a5fa;border-radius:50%;animation:mg1LithositeToastSpin .8s linear infinite;"></span>'
+      : (ok ? '✓' : '⚠');
+    if(loading && !document.getElementById('mg1-lithosite-toast-style')) {
+      const style = document.createElement('style');
+      style.id = 'mg1-lithosite-toast-style';
+      style.textContent = '@keyframes mg1LithositeToastSpin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(style);
+    }
+    const badge = loading
+      ? 'rgba(96,165,250,.14)'
+      : (ok ? 'rgba(52,211,153,.14)' : 'rgba(251,113,133,.14)');
+    const iconColor = loading ? '#60a5fa' : (ok ? '#6ee7b7' : '#fb7185');
     toast.innerHTML = '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;background:' +
-      (ok ? 'rgba(52,211,153,.14)' : 'rgba(251,113,133,.14)') + ';color:' +
-      (ok ? '#6ee7b7' : '#fb7185') + ';font-size:13px;flex:0 0 auto;">' + icon + '</span>' +
-      '<span style="line-height:1.35;">' + String(message).replace(/[&<>]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}) + '</span>';
+      badge + ';color:' + iconColor + ';font-size:13px;flex:0 0 auto;">' + icon + '</span>' +
+      '<span style="display:flex;flex-direction:column;gap:2px;min-width:0;line-height:1.25;">' +
+      '<span style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:rgba(147,197,253,.72);">Lithosite</span>' +
+      '<span>' + String(message).replace(/[&<>]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}) + '</span></span>';
     if(toastTimer) clearTimeout(toastTimer);
     requestAnimationFrame(function(){
       toast.style.opacity = '1';
       toast.style.transform = 'translate(-50%,0)';
     });
-    toastTimer = setTimeout(function(){
-      toast.style.opacity = '0';
-      toast.style.transform = 'translate(-50%,14px)';
-    }, 2600);
+    if(!opts.persist) {
+      toastTimer = setTimeout(function(){
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%,14px)';
+      }, opts.duration || 2600);
+    }
   }
 
   // Cross-IIFE bridge: the management action panel lives in a second IIFE.
@@ -809,7 +826,7 @@
       if(action==='activate'){close();await window.MG1MapLibrary.activate(entry.id);if(typeof onDone==='function')await onDone();return;}
       if(action==='duplicate'){close();if(window.MG1MapLifecycleCompletion&&typeof window.MG1MapLifecycleCompletion.duplicate==='function'){await window.MG1MapLifecycleCompletion.duplicate(entry.id);if(typeof onDone==='function')await onDone();}return;}
       if(action==='replace'){close();if(window.MG1MapLifecycleCompletion&&typeof window.MG1MapLifecycleCompletion.beginReplace==='function')await window.MG1MapLifecycleCompletion.beginReplace(entry.id);return;}
-      if(action==='export'){close();if(!window.MG1MapPackageTransfer||typeof window.MG1MapPackageTransfer.exportMaps!=='function')return;try{const result=await window.MG1MapPackageTransfer.exportMaps([String(entry.id)]);console.log('[V24.5 UI] Map Backup export PASS',{id:entry.id,name:entry.name,count:result.count,bytes:result.bytes,integrity:result.integrity});if(typeof window.MG1LithositeToast==='function')window.MG1LithositeToast('Backup berhasil — file .mg1map tersimpan','success');}catch(e){console.error('[V24.5 UI] Map Backup export failed',e);if(typeof window.MG1LithositeToast==='function')window.MG1LithositeToast('Backup / Export gagal — '+String(e&&e.message||e),'error');}return;}
+      if(action==='export'){close();if(!window.MG1MapPackageTransfer||typeof window.MG1MapPackageTransfer.exportMaps!=='function')return;try{if(typeof window.MG1LithositeToast==='function')window.MG1LithositeToast('Memproses backup peta...','loading',{persist:true});const result=await window.MG1MapPackageTransfer.exportMaps([String(entry.id)]);console.log('[V24.5 UI] Map Backup export PASS',{id:entry.id,name:entry.name,count:result.count,bytes:result.bytes,integrity:result.integrity});if(typeof window.MG1LithositeToast==='function')window.MG1LithositeToast('Backup berhasil — file .mg1map tersimpan','success');}catch(e){console.error('[V24.5 UI] Map Backup export failed',e);if(typeof window.MG1LithositeToast==='function')window.MG1LithositeToast('Backup / Export gagal — '+String(e&&e.message||e),'error');}return;}
       close(); if(action==='info')showMapInfo_(entry); else if(action==='rename')showMapRename_(entry,onDone); else if(action==='label')showMapLabel_(entry,onDone); else if(action==='collection')showMapCollections_(entry,onDone); else if(action==='delete')await window.MG1MapLibrary.remove(entry.id);
     };});
     requestAnimationFrame(()=>requestAnimationFrame(()=>{panel.style.transform='translateY(0)';}));
