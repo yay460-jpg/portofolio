@@ -133,14 +133,18 @@ function scheduleMapViewportFit_() {
   // otherwise Digging/Validasi inputs lose focus and the keyboard closes.
   const active = document.activeElement;
   const keyboardInputActive = !!(active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA'));
-  if (keyboardInputActive || currentTab !== 'peta') return;
+  const mapManageOverlayOpen = !!(document.getElementById('mg1-manage-modal-isolated') && document.getElementById('mg1-manage-modal-isolated').style.display !== 'none');
+  const mapUploadOverlayOpen = !!(document.getElementById('mg1-new-map-modal-root') && document.getElementById('mg1-new-map-modal-root').style.display !== 'none');
+  if (keyboardInputActive || mapManageOverlayOpen || mapUploadOverlayOpen || currentTab !== 'peta') return;
   if (mapViewportSyncScheduled_) return;
   mapViewportSyncScheduled_ = true;
   requestAnimationFrame(() => {
     mapViewportSyncScheduled_ = false;
     const activeNow = document.activeElement;
     const keyboardStillActive = !!(activeNow && (activeNow.tagName === 'INPUT' || activeNow.tagName === 'TEXTAREA'));
-    if (keyboardStillActive || currentTab !== 'peta') return;
+    const manageOverlayStillOpen = !!(document.getElementById('mg1-manage-modal-isolated') && document.getElementById('mg1-manage-modal-isolated').style.display !== 'none');
+    const uploadOverlayStillOpen = !!(document.getElementById('mg1-new-map-modal-root') && document.getElementById('mg1-new-map-modal-root').style.display !== 'none');
+    if (keyboardStillActive || manageOverlayStillOpen || uploadOverlayStillOpen || currentTab !== 'peta') return;
     const ratio = getMapViewportRatio_();
     if (ratio > 0 && Math.abs(ratio - mapViewportRatio_) >= 0.01) {
       mapViewportRatio_ = ratio;
