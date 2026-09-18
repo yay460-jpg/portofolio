@@ -90,6 +90,9 @@
       els.progressBar = document.getElementById('mg1-new-modal-progress');
       els.progressFill = document.getElementById('mg1-new-modal-progress-fill');
       els.saveBtn = document.getElementById('mg1-new-modal-save');
+    els.pickArea = document.getElementById('mg1-new-modal-pick');
+    els.pickContent = document.getElementById('mg1-new-modal-pick-content');
+
       return;
     }
 
@@ -98,51 +101,49 @@
     root.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:none;';
     root.innerHTML = `
       <div id="mg1-new-modal-backdrop" style="position:absolute;inset:0;background:rgba(3,8,20,0.78);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);opacity:0;transition:opacity 220ms ease;"></div>
-      <div id="mg1-new-modal-panel" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-44%) scale(0.96);width:min(94vw,480px);max-height:90vh;overflow:auto;background:#0e1933;border:1px solid rgba(255,255,255,0.12);border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);opacity:0;transition:all 280ms cubic-bezier(0.16,1,0.3,1);">
-        <div style="padding:18px 18px 12px;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.02em;">Tambah / Pulihkan Peta</div>
-          <button id="mg1-new-modal-close" style="width:36px;height:36px;border-radius:9999px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.68);font-size:20px;line-height:1;">✕</button>
+      <div id="mg1-new-modal-panel" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-44%) scale(0.96);width:min(92vw,420px);max-height:86vh;overflow:auto;background:#0e1933;border:1px solid rgba(255,255,255,0.12);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);opacity:0;transition:all 280ms cubic-bezier(0.16,1,0.3,1);">
+        <div style="position:sticky;top:0;z-index:2;background:rgba(14,25,51,0.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:18px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;">
+          <div>
+            <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:-0.02em;">Tambah / Pulihkan Peta</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">Tambah file peta baru atau pulihkan backup .mg1map</div>
+          </div>
+          <button id="mg1-new-modal-close" style="width:32px;height:32px;border-radius:9999px;background:rgba(255,255,255,0.08);border:none;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.6);font-size:16px;">✕</button>
         </div>
-        <div style="padding:10px 24px 22px;">
-          <div style="margin-bottom:16px;">
-            <label style="display:block;font-size:11px;color:rgba(159,197,255,.58);margin-bottom:8px;font-weight:700;letter-spacing:0.08em;">NAMA PETA</label>
-            <input id="mg1-new-modal-name" placeholder="Map Lithosite" style="width:100%;box-sizing:border-box;background:#0b1329;border:1px solid rgba(96,165,250,.20);border-radius:14px;padding:14px 14px;font-size:15px;font-weight:700;color:#fff;outline:none;transition:border .2s;" />
+        <div style="padding:16px 18px 18px;">
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;font-weight:600;letter-spacing:0.04em;">NAMA PETA</label>
+            <input id="mg1-new-modal-name" placeholder="cth. Foto Udara Avenza Sep 2025" style="width:100%;background:#0b1329;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px 12px;font-size:13px;color:#fff;outline:none;transition:border 0.2s;" />
           </div>
-
-          <div style="margin-bottom:14px;">
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;font-weight:600;">GAMBAR PETA (PNG,JPG,GeoTIFF,GeoPDF)</label>
             <input type="file" id="mg1-new-modal-file" accept=".png,.jpg,.jpeg,.tif,.tiff,.pdf" style="display:none;" />
-            <button id="mg1-new-modal-pick" type="button" style="width:100%;min-height:148px;background:#0b1329;border:1px dashed rgba(59,130,246,.78);border-radius:18px;padding:18px;font-size:15px;font-weight:800;color:#4d8dff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
-              <span style="width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(37,99,235,.10);border:1px solid rgba(59,130,246,.45);font-size:27px;font-weight:400;line-height:1;">+</span>
-              <span>Pilih File Peta Baru</span>
-              <span id="mg1-new-modal-file-label" style="font-size:11px;font-weight:600;color:rgba(255,255,255,.34);line-height:1.4;">Tidak ada file dipilih</span>
-            </button>
+            <button id="mg1-new-modal-pick" type="button" style="width:100%;height:260px;box-sizing:border-box;border:1px dashed rgba(59,130,246,.65);border-radius:18px;background:#0b1329;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;overflow:hidden;padding:0;cursor:pointer;">
+            <span id="mg1-new-modal-pick-content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:100%;height:100%;">
+              <span style="width:56px;height:56px;border-radius:999px;border:1px solid rgba(59,130,246,.55);background:rgba(37,99,235,.08);display:flex;align-items:center;justify-content:center;font-size:34px;color:#60a5fa;line-height:1;">+</span>
+              <span style="font-size:16px;font-weight:800;color:#60a5fa;">Pilih File Peta Baru</span>
+              <span id="mg1-new-modal-file-label" style="font-size:11px;font-weight:600;color:rgba(255,255,255,.42);">PDF, GeoTIFF, atau gambar</span>
+            </span>
+          </button>
+            <div id="mg1-new-modal-file-label" style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.35);">Tidak ada file dipilih</div>
           </div>
-
+          <div style="display:flex;align-items:center;gap:8px;margin:4px 0 12px;">
+            <div style="height:1px;flex:1;background:rgba(255,255,255,.08);"></div>
+            <span style="font-size:9px;color:rgba(255,255,255,.28);font-weight:700;">ATAU</span>
+            <div style="height:1px;flex:1;background:rgba(255,255,255,.08);"></div>
+          </div>
           <input type="file" id="mg1-new-modal-restore-file" accept=".mg1map,application/json" style="display:none;" />
-          <button id="mg1-new-modal-restore" type="button" style="display:block;width:100%;padding:4px 0 12px;background:none;border:0;color:rgba(159,197,255,.62);font-size:11px;font-weight:700;text-decoration:underline;text-underline-offset:3px;">atau import backup .mg1map</button>
-
-          <div style="margin-bottom:14px;background:rgba(6,48,29,.62);border:1px solid rgba(34,197,94,.30);border-radius:18px;overflow:hidden;">
-            <button id="mg1-new-modal-coords-toggle" type="button" style="width:100%;border:0;background:transparent;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;color:#4ade80;font-size:12px;font-weight:800;">
-              <span style="display:flex;align-items:center;gap:9px;"><span style="width:24px;height:24px;border-radius:50%;background:rgba(34,197,94,.15);display:inline-flex;align-items:center;justify-content:center;font-size:15px;">✓</span><span>Koordinat auto-detect • 4 titik</span></span>
-              <span id="mg1-new-modal-coords-chevron" style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.07);display:inline-flex;align-items:center;justify-content:center;font-size:16px;">⌄</span>
-            </button>
-            <div id="mg1-new-modal-coords" style="display:none;margin:0 12px 12px;background:#0b1329;border:1px solid rgba(96,165,250,.16);border-radius:14px;padding:12px 10px;"></div>
-          </div>
-
-          <div id="mg1-new-modal-preview" style="display:none;margin-bottom:14px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);background:#0b1329;"></div>
-
-          <div id="mg1-new-modal-progress" style="display:none;margin-bottom:16px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div id="mg1-new-modal-status" style="font-size:11px;font-weight:700;color:rgba(159,197,255,.72);"></div>
-              <div id="mg1-new-modal-progress-percent" style="font-size:11px;font-weight:700;color:rgba(159,197,255,.72);">0%</div>
+          <button id="mg1-new-modal-restore" type="button" style="width:100%;background:rgba(16,185,129,.09);border:1px solid rgba(52,211,153,.22);border-radius:12px;padding:11px 12px;font-size:11px;font-weight:800;color:#6ee7b7;">↥ Import / Restore Backup Peta</button>
+          <div style="margin:7px 2px 12px;font-size:9px;line-height:1.45;color:rgba(255,255,255,.28);">Gunakan file <b style="color:rgba(255,255,255,.42);">.mg1map</b> yang sebelumnya di-Backup / Export. Ini mengembalikan peta beserta data package-nya ke Library.</div>
+          <div id="mg1-new-modal-preview" style="display:none;"></div>
+          <div id="mg1-new-modal-coords" style="display:none;margin-bottom:12px;background:rgba(255,255,255,0.04);border-radius:12px;padding:10px 12px;"></div>
+          <div id="mg1-new-modal-progress" style="display:none;margin-bottom:12px;">
+            <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:9999px;overflow:hidden;">
+              <div id="mg1-new-modal-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#60a5fa);transition:width 0.2s ease;"></div>
             </div>
-            <div style="height:5px;background:rgba(255,255,255,.08);border-radius:9999px;overflow:hidden;">
-              <div id="mg1-new-modal-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#60a5fa);transition:width .2s ease;"></div>
-            </div>
+            <div id="mg1-new-modal-status" style="margin-top:8px;font-size:11px;font-weight:500;color:rgba(255,255,255,0.7);"></div>
           </div>
-
-          <button id="mg1-new-modal-save" style="width:100%;background:linear-gradient(180deg,#3478ff,#2563eb);border:none;border-radius:16px;padding:15px;font-size:15px;font-weight:800;color:#fff;box-shadow:0 6px 20px rgba(37,99,235,.28);transition:all .2s;opacity:.5;pointer-events:none;">Simpan Peta Baru</button>
-          <div style="margin-top:12px;text-align:center;font-size:10px;color:rgba(255,255,255,.28);line-height:1.4;">PDF akan dikonversi menjadi tiles offline</div>
+          <button id="mg1-new-modal-save" style="width:100%;background:linear-gradient(180deg,#2563eb,#1d4ed8);border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:800;color:#fff;box-shadow:0 4px 16px rgba(37,99,235,0.4);transition:all 0.2s;opacity:0.5;pointer-events:none;">Simpan Peta Baru</button>
+          <div style="margin-top:10px;text-align:center;font-size:9px;color:rgba(255,255,255,0.25);line-height:1.4;">Koordinat auto-detect dari GeoPDF/GeoTIFF. Cek ulang sebelum Simpan.<br/>Peta disimpan di HP (IndexedDB) - tidak perlu internet lagi.</div>
         </div>
       </div>
     `;
@@ -174,13 +175,6 @@
     els.fileInput.onchange = onFileSelected;
     els.nameInput.oninput = (e) => { state.name = e.target.value; validate(); };
     els.saveBtn.onclick = onSave;
-    const coordsToggle = document.getElementById('mg1-new-modal-coords-toggle');
-    if (coordsToggle) coordsToggle.onclick = function() {
-      const open = els.coords.style.display !== 'none';
-      els.coords.style.display = open ? 'none' : 'block';
-      const chev = document.getElementById('mg1-new-modal-coords-chevron');
-      if (chev) chev.textContent = open ? '⌄' : '⌃';
-    };
   }
 
   function open() {
@@ -263,8 +257,6 @@
         if(els.progressFill) {
           els.progressFill.style.width = Math.max(0,Math.min(100,progress)) + '%';
         }
-        const percentEl = document.getElementById('mg1-new-modal-progress-percent');
-        if(percentEl) percentEl.textContent = Math.round(Math.max(0,Math.min(100,progress))) + '%';
         lastProgress = progress;
       });
     }
@@ -340,12 +332,26 @@
     }
   }
 
+
+  function showPreviewInsidePickArea_(imageDataUrl) {
+    const area = document.getElementById('mg1-new-modal-pick');
+    if(!area || !imageDataUrl) return;
+    area.style.height = '260px';
+    area.style.padding = '0';
+    area.style.borderStyle = 'solid';
+    area.style.borderColor = 'rgba(255,255,255,0.10)';
+    area.style.cursor = 'pointer';
+    area.innerHTML =
+      '<img src="' + String(imageDataUrl).replace(/"/g,'&quot;') +
+      '" alt="Preview peta" style="width:100%;height:100%;object-fit:contain;display:block;background:#0b1329;">';
+    area.title = 'Klik untuk memilih file peta lain';
+  }
+
   async function handleImage(file) {
     const reader = new FileReader();
     reader.onload = () => {
       state.fileDataUrl = reader.result;
-      els.preview.style.display = 'block';
-      els.preview.innerHTML = `<img src="${reader.result}" style="width:100%;display:block;" />`;
+      showPreviewInsidePickArea_(reader.result);
       setStatus('Gambar siap. Isi koordinat manual 2 sudut.', true, 100);
       showManualCoordsForm();
     };
@@ -361,8 +367,7 @@
           state.fileDataUrl = res.imageDataUrl;
           state.cornerTL = res.cornerTL;
           state.cornerBR = res.cornerBR;
-          els.preview.style.display = 'block';
-          els.preview.innerHTML = `<img src="${res.imageDataUrl}" style="width:100%;display:block;" />`;
+          showPreviewInsidePickArea_(res.imageDataUrl);
           showCoords(res.cornerTL, res.cornerBR, true);
           setStatus('✓ Koordinat GeoTIFF terbaca otomatis.', true, 100);
           return;
@@ -424,9 +429,10 @@
         state.cornerTL = result.cornerTL;
         state.cornerBR = result.cornerBR;
         
+        // Reveal preview only after GeoPDF processing reaches 100%.
+        reporter('✓ Koordinat & gambar terbaca otomatis dari GeoPDF.', 100);
         // preview
-        els.preview.style.display = 'block';
-        els.preview.innerHTML = `<img src="${result.imageDataUrl}" style="width:100%;display:block;" />`;
+        showPreviewInsidePickArea_(result.imageDataUrl);
         showCoords(result.cornerTL, result.cornerBR, true);
         setStatus('✓ Koordinat & gambar terbaca otomatis dari GeoPDF.', true, 100);
         
@@ -458,24 +464,14 @@
 
   function showCoords(tl, br, auto) {
     els.coords.style.display = 'block';
-    const coordsChevron = document.getElementById('mg1-new-modal-coords-chevron');
-    if (coordsChevron) coordsChevron.textContent = '⌃';
-    const tlE = tl && tl.timur != null ? tl.timur : '—';
-    const tlN = tl && tl.utara != null ? tl.utara : '—';
-    const brE = br && br.timur != null ? br.timur : '—';
-    const brN = br && br.utara != null ? br.utara : '—';
-    // V24.5 UI: tampilkan bounding box sebagai 4 sudut tanpa mengubah data/CRS.
-    const points = [
-      ['TL', tlE, tlN],
-      ['TR', brE, tlN],
-      ['BL', tlE, brN],
-      ['BR', brE, brN]
-    ];
     els.coords.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px;row-gap:13px;font-size:11px;">
-        ${points.map(function(p){ return `<div style="display:flex;align-items:baseline;gap:8px;min-width:0;"><span style="color:rgba(159,197,255,.62);font-weight:800;flex:0 0 auto;">${p[0]}</span><span style="color:#fff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p[1]} / ${p[2]}</span></div>`; }).join('')}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KIRI-ATAS Timur</div><div style="color:#fff;font-weight:600;">${tl.timur}</div></div>
+        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KIRI-ATAS Utara</div><div style="color:#fff;font-weight:600;">${tl.utara}</div></div>
+        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KANAN-BAWAH Timur</div><div style="color:#fff;font-weight:600;">${br.timur}</div></div>
+        <div><div style="color:rgba(255,255,255,0.35);font-size:9px;">KANAN-BAWAH Utara</div><div style="color:#fff;font-weight:600;">${br.utara}</div></div>
       </div>
-      <div style="margin-top:9px;font-size:9px;color:${auto?'#4ade80':'#fbbf24'};">${auto?'✓ Koordinat auto-detect dari file':'Isi manual 2 sudut'}</div>
+      <div style="margin-top:8px;font-size:9px;color:${auto?'#4ade80':'#fbbf24'};">${auto?'✓ Koordinat auto-detect dari file':'Isi manual 2 sudut'}</div>
     `;
   }
 
