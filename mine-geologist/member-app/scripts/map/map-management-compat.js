@@ -90,9 +90,6 @@
       els.progressBar = document.getElementById('mg1-new-modal-progress');
       els.progressFill = document.getElementById('mg1-new-modal-progress-fill');
       els.saveBtn = document.getElementById('mg1-new-modal-save');
-    els.pickArea = document.getElementById('mg1-new-modal-pick');
-    els.pickContent = document.getElementById('mg1-new-modal-pick-content');
-
       return;
     }
 
@@ -105,7 +102,7 @@
         <div style="position:sticky;top:0;z-index:2;background:rgba(14,25,51,0.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding:18px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;">
           <div>
             <div style="font-size:14px;font-weight:800;color:#fff;letter-spacing:-0.02em;">Tambah / Pulihkan Peta</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">Tambah file peta baru atau pulihkan backup .mg1map</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px;">Tambah peta atau pulihkan backup.</div>
           </div>
           <button id="mg1-new-modal-close" style="width:32px;height:32px;border-radius:9999px;background:rgba(255,255,255,0.08);border:none;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.6);font-size:16px;">✕</button>
         </div>
@@ -117,14 +114,13 @@
           <div style="margin-bottom:12px;">
             <label style="display:block;font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;font-weight:600;">GAMBAR PETA (PNG,JPG,GeoTIFF,GeoPDF)</label>
             <input type="file" id="mg1-new-modal-file" accept=".png,.jpg,.jpeg,.tif,.tiff,.pdf" style="display:none;" />
-            <button id="mg1-new-modal-pick" type="button" style="width:100%;height:260px;box-sizing:border-box;border:1px dashed rgba(59,130,246,.65);border-radius:18px;background:#0b1329;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;overflow:hidden;padding:0;cursor:pointer;">
-            <span id="mg1-new-modal-pick-content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:100%;height:100%;">
-              <span style="width:56px;height:56px;border-radius:999px;border:1px solid rgba(59,130,246,.55);background:rgba(37,99,235,.08);display:flex;align-items:center;justify-content:center;font-size:34px;color:#60a5fa;line-height:1;">+</span>
-              <span style="font-size:16px;font-weight:800;color:#60a5fa;">Pilih File Peta Baru</span>
-              <span id="mg1-new-modal-file-label" style="font-size:11px;font-weight:600;color:rgba(255,255,255,.42);">PDF, GeoTIFF, atau gambar</span>
-            </span>
-          </button>
-            <div id="mg1-new-modal-file-label" style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.35);">Tidak ada file dipilih</div>
+            <button id="mg1-new-modal-pick" type="button" style="width:100%;height:190px;box-sizing:border-box;border:1px dashed rgba(59,130,246,.65);border-radius:16px;background:#0b1329;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;overflow:hidden;padding:0;cursor:pointer;">
+              <span id="mg1-new-modal-pick-content" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;width:100%;height:100%;">
+                <span style="width:48px;height:48px;border-radius:999px;border:1px solid rgba(59,130,246,.55);background:rgba(37,99,235,.08);display:flex;align-items:center;justify-content:center;font-size:30px;color:#60a5fa;line-height:1;">+</span>
+                <span style="font-size:15px;font-weight:800;color:#60a5fa;">Pilih File Peta Baru</span>
+                <span id="mg1-new-modal-file-label" style="font-size:10px;font-weight:600;color:rgba(255,255,255,.42);">PDF / GeoTIFF / JPG / PNG</span>
+              </span>
+            </button>
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin:4px 0 12px;">
             <div style="height:1px;flex:1;background:rgba(255,255,255,.08);"></div>
@@ -133,8 +129,7 @@
           </div>
           <input type="file" id="mg1-new-modal-restore-file" accept=".mg1map,application/json" style="display:none;" />
           <button id="mg1-new-modal-restore" type="button" style="width:100%;background:rgba(16,185,129,.09);border:1px solid rgba(52,211,153,.22);border-radius:12px;padding:11px 12px;font-size:11px;font-weight:800;color:#6ee7b7;">↥ Import / Restore Backup Peta</button>
-          <div style="margin:7px 2px 12px;font-size:9px;line-height:1.45;color:rgba(255,255,255,.28);">Gunakan file <b style="color:rgba(255,255,255,.42);">.mg1map</b> yang sebelumnya di-Backup / Export. Ini mengembalikan peta beserta data package-nya ke Library.</div>
-          <div id="mg1-new-modal-preview" style="display:none;"></div>
+          <div style="margin:7px 2px 12px;font-size:9px;line-height:1.45;color:rgba(255,255,255,.28);">Pulihkan peta dan data dari file <b style="color:rgba(255,255,255,.42);">.mg1map</b>.</div>
           <div id="mg1-new-modal-coords" style="display:none;margin-bottom:12px;background:rgba(255,255,255,0.04);border-radius:12px;padding:10px 12px;"></div>
           <div id="mg1-new-modal-progress" style="display:none;margin-bottom:12px;">
             <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:9999px;overflow:hidden;">
@@ -143,7 +138,7 @@
             <div id="mg1-new-modal-status" style="margin-top:8px;font-size:11px;font-weight:500;color:rgba(255,255,255,0.7);"></div>
           </div>
           <button id="mg1-new-modal-save" style="width:100%;background:linear-gradient(180deg,#2563eb,#1d4ed8);border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:800;color:#fff;box-shadow:0 4px 16px rgba(37,99,235,0.4);transition:all 0.2s;opacity:0.5;pointer-events:none;">Simpan Peta Baru</button>
-          <div style="margin-top:10px;text-align:center;font-size:9px;color:rgba(255,255,255,0.25);line-height:1.4;">Koordinat auto-detect dari GeoPDF/GeoTIFF. Cek ulang sebelum Simpan.<br/>Peta disimpan di HP (IndexedDB) - tidak perlu internet lagi.</div>
+          <div style="margin-top:10px;text-align:center;font-size:9px;color:rgba(255,255,255,0.25);line-height:1.4;">Koordinat terdeteksi otomatis. Cek sebelum Simpan.<br/>Peta tersimpan offline di perangkat.</div>
         </div>
       </div>
     `;
@@ -332,18 +327,17 @@
     }
   }
 
-
   function showPreviewInsidePickArea_(imageDataUrl) {
     const area = document.getElementById('mg1-new-modal-pick');
     if(!area || !imageDataUrl) return;
-    area.style.height = '260px';
-    area.style.padding = '0';
+    area.style.height = '190px';
+    area.style.padding = '8px';
     area.style.borderStyle = 'solid';
-    area.style.borderColor = 'rgba(255,255,255,0.10)';
+    area.style.borderColor = 'rgba(255,255,255,.10)';
     area.style.cursor = 'pointer';
     area.innerHTML =
       '<img src="' + String(imageDataUrl).replace(/"/g,'&quot;') +
-      '" alt="Preview peta" style="width:100%;height:100%;object-fit:contain;display:block;background:#0b1329;">';
+      '" alt="Preview peta" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:11px;background:#0b1329;">';
     area.title = 'Klik untuk memilih file peta lain';
   }
 
@@ -429,8 +423,6 @@
         state.cornerTL = result.cornerTL;
         state.cornerBR = result.cornerBR;
         
-        // Reveal preview only after GeoPDF processing reaches 100%.
-        reporter('✓ Koordinat & gambar terbaca otomatis dari GeoPDF.', 100);
         // preview
         showPreviewInsidePickArea_(result.imageDataUrl);
         showCoords(result.cornerTL, result.cornerBR, true);
@@ -670,15 +662,46 @@
   let manageModalEl = null;
   let uploadModalEl = null;
 
+  // Global shell boundary: keep Map Library presentation inside the actual app shell
+  // on both Android and desktop. The overlay may remain under <body> to survive app.innerHTML
+  // renders, but its fixed viewport is explicitly synchronized to .app-shell.
+  function syncMG1OverlayToShell_(el) {
+    if (!el) return;
+    const shell = document.querySelector('.app-shell');
+    if (!shell) return;
+    const r = shell.getBoundingClientRect();
+    if (!Number.isFinite(r.left) || !Number.isFinite(r.top) || !Number.isFinite(r.width) || !Number.isFinite(r.height)) return;
+    el.style.position = 'fixed';
+    el.style.left = Math.max(0, r.left) + 'px';
+    el.style.top = Math.max(0, r.top) + 'px';
+    el.style.width = Math.max(0, r.width) + 'px';
+    el.style.height = Math.max(0, r.height) + 'px';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+  }
+
+  let mg1ShellBoundaryBound_ = false;
+  function bindMG1ShellBoundary_() {
+    if (mg1ShellBoundaryBound_) return;
+    mg1ShellBoundaryBound_ = true;
+    const sync = () => {
+      const el = document.getElementById('mg1-manage-modal-isolated');
+      if (el && el.style.display !== 'none') syncMG1OverlayToShell_(el);
+    };
+    window.addEventListener('resize', sync, {passive:true});
+    window.addEventListener('orientationchange', sync, {passive:true});
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', sync, {passive:true});
+  }
+
   function ensureManageModalDom() {
     if(manageModalEl && document.body.contains(manageModalEl)) return manageModalEl;
 
     const el = document.createElement('div');
     el.id = 'mg1-manage-modal-isolated';
-    el.style.cssText = 'position:fixed;inset:0;z-index:2147483646;display:none;';
+    el.style.cssText = 'position:fixed;z-index:2147483646;display:none;overflow:hidden;';
     el.innerHTML = `
       <div id="mg1-manage-backdrop" style="position:absolute;inset:0;background:rgba(3,8,20,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;transition:opacity 200ms ease;"></div>
-      <div id="mg1-manage-panel" style="position:absolute;left:0;right:0;bottom:0;max-height:82vh;background:#0e1933;border-top:1px solid rgba(255,255,255,0.10);border-radius:22px 22px 0 0;transform:translateY(100%);transition:transform 300ms cubic-bezier(0.16,1,0.3,1);overflow:auto;box-shadow:0 -18px 60px rgba(0,0,0,.28);">
+      <div id="mg1-manage-panel" style="position:absolute;left:0;right:0;bottom:0;max-height:84%;background:#0e1933;border-top:1px solid rgba(255,255,255,0.10);border-radius:22px 22px 0 0;transform:translateY(100%);transition:transform 300ms cubic-bezier(0.16,1,0.3,1);overflow:auto;box-shadow:0 -18px 60px rgba(0,0,0,.28);">
         <div style="padding:18px 16px 14px;">
           <div style="width:38px;height:4px;background:rgba(255,255,255,.22);border-radius:9999px;margin:0 auto 14px;"></div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -700,24 +723,9 @@
 
           <div id="mg1-manage-options-panel" style="display:none;margin:-4px 0 12px;padding:10px;background:#101d39;border:1px solid rgba(255,255,255,.08);border-radius:12px;">
             <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.38);letter-spacing:.05em;text-transform:uppercase;margin:0 0 8px;">Pengaturan Library</div>
-            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
               <button type="button" id="mg1-manage-sort-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Nama A–Z</button>
-              <button type="button" id="mg1-manage-label-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Semua Label</button>
-              <button type="button" id="mg1-manage-collection-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Semua koleksi</button>
-            </div>
-            <div style="height:1px;background:rgba(255,255,255,.06);margin:10px 0;"></div>
-            <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.38);letter-spacing:.05em;text-transform:uppercase;margin:0 0 7px;">Storage Summary</div>
-            <div id="mg1-manage-storage" style="padding:10px 10px;border:1px solid rgba(96,165,250,.12);border-radius:11px;background:rgba(255,255,255,.025);display:none;">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-              <div style="min-width:0;">
-                <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.82);">Penyimpanan Peta</div>
-                <div id="mg1-manage-storage-detail" style="font-size:9px;color:rgba(255,255,255,.40);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Membaca kapasitas...</div>
-              </div>
-              <span id="mg1-manage-storage-state" style="display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;padding:4px 7px;border-radius:999px;font-size:8px;font-weight:800;letter-spacing:.03em;background:rgba(255,255,255,.07);color:rgba(255,255,255,.58);">—</span>
-            </div>
-            <div style="margin-top:9px;height:5px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;"><div id="mg1-manage-storage-bar" style="height:100%;width:0%;border-radius:999px;background:#60a5fa;transition:width 220ms ease;"></div></div>
-            <div id="mg1-manage-storage-meta" style="display:flex;justify-content:space-between;gap:10px;margin-top:5px;font-size:8px;color:rgba(255,255,255,.28);"><span>Payload peta: —</span><span>Kuota: —</span></div>
-            <div id="mg1-manage-storage-hint" role="status" aria-live="polite" style="display:none;margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.06);font-size:8px;line-height:1.35;color:rgba(255,255,255,.48);"></div>
+              <button type="button" id="mg1-manage-label-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Label &amp; Koleksi</button>
             </div>
           </div>
           <div id="mg1-manage-list"></div>
@@ -749,52 +757,163 @@
   }
 
   function renderManageList_(listEl, maps, activeId) {
-    if(!listEl) return;
-    if(!maps || maps.length === 0) {
-      listEl.innerHTML = '<div style="text-align:center;padding:28px 0;color:rgba(255,255,255,.32);font-size:11px;">Tidak ada peta yang cocok.</div>';
+    if (!listEl) return;
+
+    // V24.5 Map Library performance: reconcile existing cards instead of rebuilding
+    // the entire list. Search/filter/sort must not recreate large imageDataUrl <img>
+    // nodes on every keystroke. Cached DOM nodes keep already-decoded thumbnails alive.
+    const rows = Array.isArray(maps) ? maps : [];
+    let cardCache = listEl.__mg1CardCache;
+    if (!(cardCache instanceof Map)) {
+      cardCache = new Map();
+      listEl.__mg1CardCache = cardCache;
+    }
+
+    let emptyEl = listEl.__mg1EmptyEl || null;
+    if (!rows.length) {
+      if (!emptyEl) {
+        emptyEl = document.createElement('div');
+        emptyEl.style.cssText = 'text-align:center;padding:28px 0;color:rgba(255,255,255,.32);font-size:11px;';
+        emptyEl.textContent = 'Tidak ada peta yang cocok.';
+        listEl.__mg1EmptyEl = emptyEl;
+      }
+      cardCache.forEach(function(card) { if (card.parentNode === listEl) card.remove(); });
+      if (emptyEl.parentNode !== listEl) listEl.appendChild(emptyEl);
       return;
     }
-    listEl.innerHTML = maps.map(m => {
-      const isActive = !!activeId && String(m.id) === String(activeId);
-      const cardStyle = isActive
+    if (emptyEl && emptyEl.parentNode === listEl) emptyEl.remove();
+
+    const visibleIds = new Set();
+    const fragment = document.createDocumentFragment();
+
+    function setCardState_(card, m, isActive, ordinal) {
+      const name = String(m && m.name || 'Tanpa nama');
+      const id = String(m && m.id || '');
+      const labels = getMapLabels_(m);
+      const metadata = id.slice(0, 12)
+        + ' • '
+        + (m && m.tilePyramid ? ((m.tilePyramid.levels && m.tilePyramid.levels.length) || 0) + ' level' : 'single')
+        + (labels.length ? ' • 🏷️ ' + labels.slice(0, 2).join(' · ') : '')
+        + (Array.isArray(m && m.collectionNames) && m.collectionNames.length ? ' • ' + m.collectionNames.slice(0, 2).map(function(v){ return '◈ ' + String(v || ''); }).join(' · ') : '');
+
+      card.style.cssText = isActive
         ? 'display:flex;align-items:center;gap:10px;background:rgba(16,185,129,.075);border:1px solid rgba(16,185,129,.42);border-radius:14px;padding:10px;margin-bottom:8px;'
         : 'display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.035);border-radius:14px;padding:10px;margin-bottom:8px;';
-      const safeId = escapeHtml_(m.id || '');
-      const safeName = escapeHtml_(m.name || 'Tanpa nama');
-      const metadata = `${safeId.slice(0,12)} • ${m.tilePyramid ? (m.tilePyramid.levels?.length||0)+' level' : 'single'}${getMapLabels_(m).length ? ` • 🏷️ ${getMapLabels_(m).slice(0,2).map(function(v){ return escapeHtml_(v); }).join(' · ')}` : ''}${Array.isArray(m.collectionNames) && m.collectionNames.length ? ` • ${m.collectionNames.slice(0,2).map(function(v){ return '◈ ' + escapeHtml_(v); }).join(' · ')}` : ''}`;
-      return `
-        <div style="${cardStyle}" data-map-card="${safeId}">
-          <div style="width:52px;height:52px;border-radius:10px;background:#0b1329;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.06);">
-            ${m.imageDataUrl ? `<img src="${m.imageDataUrl}" alt="" style="width:100%;height:100%;object-fit:cover;">` : ''}
-          </div>
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:7px;min-width:0;">
-              <div style="font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${safeName}</div>
-              ${isActive ? '<span style="display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-size:9px;font-weight:800;color:#6ee7b7;"><span style="width:7px;height:7px;border-radius:50%;background:#34d399;"></span>AKTIF</span>' : ''}
-            </div>
-            <div style="font-size:9px;color:rgba(255,255,255,.38);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${metadata}</div>
-          </div>
-          <button type="button" aria-label="Menu ${safeName}" data-map-menu="${safeId}" style="width:38px;height:38px;border-radius:9999px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.72);font-size:18px;letter-spacing:2px;line-height:1;flex-shrink:0;">•••</button>
-        </div>`;
-    }).join('');
+      card.dataset.mapCard = id;
+      if (card.__mg1NameEl) card.__mg1NameEl.textContent = name;
+      if (card.__mg1MetadataEl) card.__mg1MetadataEl.textContent = metadata;
+
+      let activeEl = card.__mg1ActiveEl;
+      if (isActive && !activeEl) {
+        activeEl = document.createElement('span');
+        activeEl.style.cssText = 'display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-size:9px;font-weight:800;color:#6ee7b7;';
+        const dot = document.createElement('span');
+        dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:#34d399;';
+        activeEl.appendChild(dot);
+        activeEl.appendChild(document.createTextNode('AKTIF'));
+        card.__mg1TitleRow.appendChild(activeEl);
+        card.__mg1ActiveEl = activeEl;
+      } else if (!isActive && activeEl) {
+        activeEl.remove();
+        card.__mg1ActiveEl = null;
+      }
+
+      if (card.__mg1MenuEl) {
+        card.__mg1MenuEl.dataset.mapMenu = id;
+        card.__mg1MenuEl.setAttribute('aria-label', 'Menu ' + name);
+      }
+
+      const thumb = card.__mg1ThumbEl;
+      if (thumb) {
+        const n = Math.max(1, Number(ordinal) || 1);
+        const thumbColors = {1:'#3b82f6',2:'#f97316',3:'#10b981'};
+        thumb.textContent = String(n).padStart(2, '0');
+        thumb.style.color = thumbColors[n] || 'rgba(255,255,255,.72)';
+        thumb.setAttribute('aria-label', 'Peta ' + n);
+      }
+      card.__mg1MapRef = m;
+    }
+
+    function ensureCard_(m) {
+      const id = String(m && m.id || '');
+      let card = cardCache.get(id);
+      if (card) return card;
+
+      card = document.createElement('div');
+      const thumbWrap = document.createElement('div');
+      thumbWrap.style.cssText = 'width:52px;height:52px;border-radius:10px;background:#0b1329;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;contain:layout paint;';
+      const thumb = document.createElement('div');
+      thumb.setAttribute('aria-hidden', 'true');
+      thumb.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;letter-spacing:.5px;color:rgba(255,255,255,.72);font-variant-numeric:tabular-nums;';
+      thumbWrap.appendChild(thumb);
+
+      const body = document.createElement('div');
+      body.style.cssText = 'flex:1;min-width:0;';
+      const titleRow = document.createElement('div');
+      titleRow.style.cssText = 'display:flex;align-items:center;gap:7px;min-width:0;';
+      const nameEl = document.createElement('div');
+      nameEl.style.cssText = 'font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      const metadataEl = document.createElement('div');
+      metadataEl.style.cssText = 'font-size:9px;color:rgba(255,255,255,.38);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      titleRow.appendChild(nameEl);
+      body.appendChild(titleRow);
+      body.appendChild(metadataEl);
+
+      const menu = document.createElement('button');
+      menu.type = 'button';
+      menu.style.cssText = 'width:38px;height:38px;border-radius:9999px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);color:rgba(255,255,255,.72);font-size:18px;letter-spacing:2px;line-height:1;flex-shrink:0;';
+      menu.textContent = '•••';
+
+      card.appendChild(thumbWrap);
+      card.appendChild(body);
+      card.appendChild(menu);
+      card.__mg1ThumbEl = thumb;
+      card.__mg1TitleRow = titleRow;
+      card.__mg1NameEl = nameEl;
+      card.__mg1MetadataEl = metadataEl;
+      card.__mg1MenuEl = menu;
+      cardCache.set(id, card);
+      return card;
+    }
+
+    rows.forEach(function(m, index) {
+      const id = String(m && m.id || '');
+      if (!id) return;
+      visibleIds.add(id);
+      const card = ensureCard_(m);
+      setCardState_(card, m, !!activeId && id === String(activeId), index + 1);
+      fragment.appendChild(card);
+    });
+
+    cardCache.forEach(function(card, id) {
+      if (!visibleIds.has(id) && card.parentNode === listEl) card.remove();
+    });
+    listEl.appendChild(fragment);
+
+
   }
 
   function showMapActionSheet_(entry, activeId, onDone) {
     if (!entry || !entry.id) return;
-    if (window.MG1MapPackageTransfer && typeof window.MG1MapPackageTransfer.warmPackage === 'function') window.MG1MapPackageTransfer.warmPackage([String(entry.id)]);
+    // Warm-up is optional. Never let package preparation prevent the action sheet
+    // itself from opening.
+    if (window.MG1MapPackageTransfer && typeof window.MG1MapPackageTransfer.warmPackage === 'function') {
+      try { window.MG1MapPackageTransfer.warmPackage([String(entry.id)]); } catch (e) {
+        console.warn('[V24.5 MAP LIBRARY] package warm-up skipped', e);
+      }
+    }
     const old = document.getElementById('mg1-map-action-sheet'); if (old) old.remove();
     const isActive = !!activeId && String(activeId) === String(entry.id);
     const root = document.createElement('div'); root.id='mg1-map-action-sheet';
     root.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,8,20,.68);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);';
-    const tile=(icon,label,action)=>`<button type="button" data-action="${action}" style="min-height:132px;border-radius:18px;background:linear-gradient(180deg,rgba(53,86,140,.82),rgba(35,61,104,.88));border:1px solid rgba(96,165,250,.10);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:14px 7px;text-align:center;font-size:14px;font-weight:800;line-height:1.15;cursor:pointer;"><span style="display:flex;align-items:center;justify-content:center;width:62px;height:62px;color:#3f8cff;font-size:46px;line-height:1;text-shadow:0 6px 20px rgba(37,99,235,.22);">${icon}</span><span>${label}</span></button>`;
-    const compact=(icon,label,action,danger=false)=>`<button type="button" data-action="${action}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 12px;background:transparent;border:0;color:${danger?'#ff7474':'#f4f7ff'};font-size:15px;font-weight:800;line-height:1.2;text-align:center;cursor:pointer;"><span style="font-size:28px;line-height:1;color:${danger?'#ff6262':'#3f8cff'};">${icon}</span><span>${label}</span></button>`;
-    root.innerHTML=`<div id="mg1-map-action-panel" role="dialog" aria-modal="true" aria-label="Aksi peta" style="width:min(100%,560px);max-height:92vh;overflow:auto;background:#101f42;border:1px solid rgba(96,165,250,.20);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:12px 22px 22px;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);box-sizing:border-box;">
-      <div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 26px;"></div>
-      <div style="display:flex;align-items:center;gap:16px;padding:0 2px 22px;"><div style="width:70px;height:70px;border-radius:14px;background:#0b1329;overflow:hidden;flex:0 0 auto;border:1px solid rgba(96,165,250,.18);">${entry.imageDataUrl?`<img src="${entry.imageDataUrl}" alt="" style="width:100%;height:100%;object-fit:cover;">`:''}</div><div style="min-width:0;flex:1;"><div style="display:flex;align-items:center;gap:8px;min-width:0;"><div style="font-size:18px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml_(entry.name||'Tanpa nama')}</div>${isActive?'<span style="display:inline-flex;align-items:center;gap:5px;flex-shrink:0;font-size:11px;font-weight:800;color:#6ee7b7;"><span style="width:8px;height:8px;border-radius:50%;background:#34d399;"></span>AKTIF</span>':''}</div><div style="font-size:11px;color:rgba(255,255,255,.42);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml_(entry.id||'')}</div></div></div>
-      ${!isActive?'<button type="button" data-action="activate" style="width:100%;margin-bottom:14px;padding:12px 14px;border-radius:14px;background:rgba(16,185,129,.10);border:1px solid rgba(52,211,153,.25);color:#6ee7b7;font-size:12px;font-weight:800;">✓ Aktifkan Peta</button>':''}
-      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">${tile('ⓘ','Info','info')}${tile('▱','Duplikat','duplicate')}${tile('🗺↻','Ganti Data','replace')}${tile('✎','Edit Nama','rename')}${tile('◇','Edit Label','label')}${tile('▦','Ganti Koleksi','collection')}</div>
-      <div style="height:1px;background:rgba(255,255,255,.10);margin:24px 2px 8px;"></div><div style="display:flex;flex-direction:column;align-items:center;">${compact('⇩','Backup / Export Peta','export')}${compact('▣','Hapus Peta','delete',true)}</div>
-      <button type="button" data-action="cancel" style="width:100%;margin-top:14px;padding:15px;border-radius:15px;background:rgba(255,255,255,.055);border:1px solid rgba(96,165,250,.22);color:#f4f7ff;font-size:14px;font-weight:800;cursor:pointer;">Batal</button>
+    const tile=(icon,label,action)=>`<button type="button" data-action="${action}" style="min-width:0;min-height:78px;border-radius:13px;background:linear-gradient(180deg,rgba(53,86,140,.72),rgba(35,61,104,.82));border:1px solid rgba(96,165,250,.12);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:8px 3px;text-align:center;font-size:10px;font-weight:500;line-height:1.1;cursor:pointer;box-sizing:border-box;overflow:hidden;"><span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;color:#4b93ff;font-size:26px;line-height:1;text-shadow:0 4px 12px rgba(37,99,235,.18);">${icon}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">${label}</span></button>`;
+    const compact=(icon,label,action,danger=false)=>`<button type="button" data-action="${action}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;padding:14px 12px;background:transparent;border:0;color:${danger?'#ff7474':'#f4f7ff'};font-size:13px;font-weight:500;line-height:1.2;text-align:center;cursor:pointer;"><span style="font-size:28px;line-height:1;color:${danger?'#ff6262':'#3f8cff'};">${icon}</span><span>${label}</span></button>`;
+    root.innerHTML=`<div id="mg1-map-action-panel" role="dialog" aria-modal="true" aria-label="Aksi peta" style="width:min(100%,560px);max-height:92vh;overflow:auto;background:#101f42;border:1px solid rgba(96,165,250,.20);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:10px 12px 16px;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);box-sizing:border-box;">
+      <div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 18px;"></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:0 2px 16px;"><div style="min-width:0;flex:1;"><div style="display:flex;align-items:center;gap:8px;min-width:0;"><div style="font-size:16px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml_(entry.name||'Tanpa nama')}</div>${isActive?'<span style="display:inline-flex;align-items:center;gap:5px;flex-shrink:0;font-size:10px;font-weight:500;color:#6ee7b7;"><span style="width:8px;height:8px;border-radius:50%;background:#34d399;"></span>AKTIF</span>':''}</div><div style="font-size:10px;color:rgba(255,255,255,.42);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml_(entry.id||'')}</div></div></div>
+      ${!isActive?'<button type="button" data-action="activate" style="width:100%;margin-bottom:14px;padding:12px 14px;border-radius:14px;background:rgba(16,185,129,.10);border:1px solid rgba(52,211,153,.25);color:#6ee7b7;font-size:11px;font-weight:500;">✓ Aktifkan Peta</button>':''}
+      <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;width:100%;">${tile('ⓘ','Info','info')}${tile('▱','Duplikat','duplicate')}${tile('↻','Ganti Data','replace')}${tile('✎','Edit Nama','rename')}${tile('◇','Edit Label','label')}${tile('▦','Koleksi','collection')}${tile('⇩','Backup','export')}</div>
+      <div style="height:1px;background:rgba(255,255,255,.10);margin:18px 2px 10px;"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><button type="button" data-action="delete" style="width:100%;display:flex;align-items:center;justify-content:center;padding:13px 10px;border-radius:14px;background:rgba(255,98,98,.08);border:1px solid rgba(255,98,98,.22);color:#ff7474;font-size:13px;font-weight:500;line-height:1.2;text-align:center;cursor:pointer;">Hapus</button><button type="button" data-action="cancel" style="width:100%;padding:13px 10px;border-radius:14px;background:rgba(255,255,255,.055);border:1px solid rgba(96,165,250,.22);color:#f4f7ff;font-size:13px;font-weight:500;cursor:pointer;">Batal</button></div>
     </div>`;
     document.body.appendChild(root); const panel=root.querySelector('#mg1-map-action-panel');
     const close=()=>{panel.style.transform='translateY(110%)';setTimeout(()=>root.remove(),260);};
@@ -811,11 +930,20 @@
 
   function showMapLibraryChoiceModal_(kind,current,onSelect){
     const old=document.getElementById('mg1-library-choice-modal');if(old)old.remove();
-    const cfg={sort:{title:'Urutkan Peta',subtitle:'Pilih cara pengurutan daftar peta',items:[['name-asc','A↓Z','Nama A–Z'],['name-desc','Z↓A','Nama Z–A'],['newest','◔✦','Terbaru'],['oldest','◷','Terlama']]},label:{title:'Filter Label',subtitle:'Tampilkan peta berdasarkan label',items:[['__all__','◇','Semua Label'],['__none__','◇̸','Tanpa Label']]},collection:{title:'Filter Koleksi',subtitle:'Tampilkan peta berdasarkan koleksi',items:[['__all__','▦','Semua koleksi'],['__none__','▦̸','Tanpa koleksi']]}}[kind];if(!cfg)return;
+    const isFilter=kind==='filter';
+    const cfg=isFilter?{title:'Filter Peta',subtitle:'Pilih label dan koleksi peta'}:{title:'Urutkan Peta',subtitle:'Pilih cara pengurutan daftar peta'};
+    if(kind!=='sort'&&!isFilter)return;
     const root=document.createElement('div');root.id='mg1-library-choice-modal';root.style.cssText='position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;background:rgba(3,8,20,.70);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);';
-    const option=(value,icon,label)=>{const selected=String(current||'')===String(value);return `<button type="button" data-choice="${escapeHtml_(value)}" style="min-height:${kind==='sort'?'132':'118'}px;border-radius:18px;background:${selected?'linear-gradient(180deg,#2f86ff,#1e70ee)':'#0b1834'};border:1px solid ${selected?'rgba(96,165,250,.75)':'rgba(59,130,246,.95)'};box-shadow:${selected?'0 10px 28px rgba(37,99,235,.30),inset 0 1px 0 rgba(255,255,255,.08)':'inset 0 1px 0 rgba(255,255,255,.025)'};color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px 8px;cursor:pointer;position:relative;"><span style="font-size:${kind==='sort'?'42':'38'}px;line-height:1;color:${selected?'#fff':'#4d93ff'};">${icon}</span><span style="font-size:14px;font-weight:800;">${label}</span><span style="position:absolute;right:14px;top:14px;width:20px;height:20px;border:2px solid ${selected?'#fff':'#9fc5ff'};border-radius:50%;box-sizing:border-box;">${selected?'<span style="display:block;width:8px;height:8px;margin:4px;border-radius:50%;background:#fff;"></span>':''}</span></button>`;};
-    root.innerHTML=`<div role="dialog" aria-modal="true" aria-label="${cfg.title}" style="width:min(100%,560px);background:#0e1d3d;border:1px solid rgba(96,165,250,.28);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:12px 22px 24px;box-sizing:border-box;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);"><div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 24px;"></div><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px;"><div><div style="font-size:19px;font-weight:800;color:#fff;">${cfg.title}</div><div style="font-size:12px;color:#9fc5ff;margin-top:6px;">${cfg.subtitle}</div></div><button type="button" data-close style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(96,165,250,.25);color:#dbeafe;font-size:22px;line-height:1;cursor:pointer;">×</button></div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;">${cfg.items.map(x=>option(x[0],x[1],x[2])).join('')}</div></div>`;
-    document.body.appendChild(root);const panel=root.firstElementChild;const close=()=>{panel.style.transform='translateY(110%)';setTimeout(()=>root.remove(),220);};root.querySelector('[data-close]').onclick=close;root.addEventListener('click',ev=>{if(ev.target===root)close();});root.querySelectorAll('[data-choice]').forEach(btn=>btn.onclick=()=>{const v=btn.getAttribute('data-choice');close();if(typeof onSelect==='function')onSelect(v);});requestAnimationFrame(()=>requestAnimationFrame(()=>{panel.style.transform='translateY(0)';}));
+    const sortItems=[['name-asc','A↓Z','Nama A–Z'],['name-desc','Z↓A','Nama Z–A'],['newest','◔✦','Terbaru'],['oldest','◷','Terlama']];
+    const filterItems=[['label','◇','Semua Label','__all__'],['label','◇̸','Tanpa Label','__none__'],['collection','▦','Semua koleksi','__all__'],['collection','▦̸','Tanpa koleksi','__none__']];
+    let filterState=isFilter?{label:(current&&current.label)||'__all__',collection:(current&&current.collection)||'__all__'}:null;
+    const option=(item)=>{const group=item[3]||null;const value=group?item[3]:item[0];const selected=isFilter?String(filterState[group])===String(value):String(current||'')===String(value);return `<button type="button" data-choice="${escapeHtml_(value)}" data-group="${group||''}" style="min-height:${isFilter?'104':'132'}px;border-radius:18px;background:${selected?'linear-gradient(180deg,#2f86ff,#1e70ee)':'#0b1834'};border:1px solid ${selected?'rgba(96,165,250,.75)':'rgba(59,130,246,.95)'};box-shadow:${selected?'0 10px 28px rgba(37,99,235,.30),inset 0 1px 0 rgba(255,255,255,.08)':'inset 0 1px 0 rgba(255,255,255,.025)'};color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 4px;cursor:pointer;position:relative;min-width:0;"><span style="font-size:${isFilter?'30':'32'}px;line-height:1;color:${selected?'#fff':'#4d93ff'};">${item[1]}</span><span style="font-size:${isFilter?'10':'12'}px;font-weight:500;white-space:nowrap;">${item[2]}</span><span style="position:absolute;right:7px;top:7px;width:16px;height:16px;border:2px solid ${selected?'#fff':'#9fc5ff'};border-radius:50%;box-sizing:border-box;">${selected?'<span style="display:block;width:6px;height:6px;margin:3px;border-radius:50%;background:#fff;"></span>':''}</span></button>`;};
+    const items=isFilter?filterItems:sortItems;
+    root.innerHTML=`<div role="dialog" aria-modal="true" aria-label="${cfg.title}" style="width:min(100%,680px);background:#0e1d3d;border:1px solid rgba(96,165,250,.28);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:12px 22px 24px;box-sizing:border-box;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);"><div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 24px;"></div><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px;"><div><div style="font-size:17px;font-weight:600;color:#fff;">${cfg.title}</div><div style="font-size:11px;color:#9fc5ff;margin-top:6px;">${cfg.subtitle}</div></div><button type="button" data-close style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(96,165,250,.25);color:#dbeafe;font-size:22px;line-height:1;cursor:pointer;">×</button></div><div data-choice-grid style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;">${items.map(option).join('')}</div>${isFilter?'<button type="button" data-done style="display:block;width:100%;height:40px;margin-top:14px;border:1px solid rgba(96,165,250,.30);border-radius:12px;background:#162b52;color:#fff;font-size:12px;font-weight:500;cursor:pointer;">Selesai</button>':''}</div>`;
+    document.body.appendChild(root);const panel=root.firstElementChild;const close=()=>{panel.style.transform='translateY(110%)';setTimeout(()=>root.remove(),220);};root.querySelector('[data-close]').onclick=close;if(root.querySelector('[data-done]'))root.querySelector('[data-done]').onclick=()=>{close();if(typeof onSelect==='function')onSelect(filterState);};root.addEventListener('click',ev=>{if(ev.target===root)close();});
+    const bindChoices=()=>{root.querySelectorAll('[data-choice]').forEach(btn=>btn.onclick=()=>{const v=btn.getAttribute('data-choice');const g=btn.getAttribute('data-group');if(isFilter){filterState[g]=v;root.querySelector('[data-choice-grid]').innerHTML=filterItems.map(option).join('');bindChoices();}else{close();if(typeof onSelect==='function')onSelect(v);}});};
+    bindChoices();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{panel.style.transform='translateY(0)';}));
   }
   function formatMapDate_(value) {
     if (!value) return '—';
@@ -853,7 +981,7 @@
           <div style="font-size:13px;font-weight:800;">Info Peta</div>
           <button type="button" data-info-close style="width:28px;height:28px;border-radius:9999px;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.7);">✕</button>
         </div>
-        ${entry.imageDataUrl ? `<div style="height:120px;border-radius:10px;overflow:hidden;background:#0b1329;margin-bottom:12px;"><img src="${entry.imageDataUrl}" style="width:100%;height:100%;object-fit:cover;" /></div>` : ''}
+        ${entry.imageDataUrl && window.MG1LithositeSecurity && window.MG1LithositeSecurity.isSafeImageDataUrl(entry.imageDataUrl) ? `<div style="height:120px;border-radius:10px;overflow:hidden;background:#0b1329;margin-bottom:12px;"><img src="${entry.imageDataUrl}" alt="Preview peta" style="display:block;width:100%;height:100%;object-fit:cover;"></div>` : ''}
         <div style="font-size:14px;font-weight:800;margin-bottom:10px;">${escapeHtml_(entry.name || 'Tanpa nama')}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           ${[
@@ -1094,7 +1222,6 @@
   }
 
   console.log('[V24.3 MAP LIBRARY] Slice 13 collections ready — metadata-only; no new store');
-  console.log('[V24.5 S2.3.1] Storage Summary moved into three-line Library options panel');
 
   function openManageModal() {
     const el = ensureManageModalDom();
@@ -1102,21 +1229,19 @@
     const panel = el.querySelector('#mg1-manage-panel');
     const listEl = el.querySelector('#mg1-manage-list');
     const countEl = el.querySelector('#mg1-manage-count');
-    const storageEl = el.querySelector('#mg1-manage-storage');
-    const storageDetailEl = el.querySelector('#mg1-manage-storage-detail');
-    const storageStateEl = el.querySelector('#mg1-manage-storage-state');
-    const storageBarEl = el.querySelector('#mg1-manage-storage-bar');
-    const storageMetaEl = el.querySelector('#mg1-manage-storage-meta');
-    const storageHintEl = el.querySelector('#mg1-manage-storage-hint');
     const searchEl = el.querySelector('#mg1-manage-search');
     const filterEl = el.querySelector('#mg1-manage-filter');
     const sortEl = el.querySelector('#mg1-manage-sort-btn');
     const labelEl = el.querySelector('#mg1-manage-label-btn');
-    const collectionEl = el.querySelector('#mg1-manage-collection-btn');
+    const collectionEl = null;
     let manageFilter_ = 'all';
     let manageLabel_ = '__all__';
     let manageCollection_ = '__all__';
     let manageSort_ = 'name-asc';
+    let manageMapsCache_ = null;
+    let manageMapsLoadPromise_ = null;
+    let manageSearchTimer_ = null;
+    let manageRefreshSeq_ = 0;
 
     function applyManageFilter_(maps, activeId, filter) {
       if(filter === 'active') return maps.filter(m => activeId && String(m.id) === String(activeId));
@@ -1159,7 +1284,7 @@
       if (!labelEl) return;
       const names = collectLabelNames_(maps); const current = manageLabel_;
       if (current !== '__all__' && current !== '__none__' && !names.some(function(v){ return v === current; })) manageLabel_ = '__all__';
-      if (labelEl) labelEl.textContent = manageLabel_ === '__none__' ? 'Tanpa Label' : (manageLabel_ === '__all__' ? 'Semua Label' : String(manageLabel_));
+      if (labelEl) labelEl.textContent = 'Label & Koleksi';
     }
 
     function applyManageSort_(maps, sort) {
@@ -1178,123 +1303,60 @@
       return result;
     }
 
-    function formatStorageBytes_(bytes) {
-      const n = Number(bytes);
-      if (!Number.isFinite(n) || n < 0) return '—';
-      if (n < 1024) return Math.round(n) + ' B';
-      if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
-      if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
-      return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+    function filterManageQuery_(maps, query) {
+      const q = String(query || '').trim().toLowerCase();
+      if (!q) return Array.isArray(maps) ? maps : [];
+      // Library search is intentionally name-only. Labels/collections remain
+      // dedicated filter controls and are not part of the keystroke path.
+      return (Array.isArray(maps) ? maps : []).filter(function(entry) {
+        return !!entry && String(entry.name || '').toLowerCase().includes(q);
+      });
     }
 
-    function storageStateLabel_(state) {
-      return ({
-        STORAGE_EMPTY: 'KOSONG',
-        STORAGE_NORMAL: 'NORMAL',
-        STORAGE_HIGH: 'TINGGI',
-        STORAGE_CRITICAL: 'KRITIS',
-        STORAGE_FULL: 'PENUH',
-        STORAGE_UNKNOWN: 'TIDAK DIKETAHUI'
-      })[state] || '—';
+    async function getManageMapsCache_(forceReload) {
+      if (!forceReload && Array.isArray(manageMapsCache_)) return manageMapsCache_;
+      if (!forceReload && manageMapsLoadPromise_) return manageMapsLoadPromise_;
+      manageMapsLoadPromise_ = (async function() {
+        // Prefer the already-loaded compatibility snapshot. Opening Library must
+        // not perform a second full IndexedDB getAll() when the app already has it.
+        if (!forceReload && typeof backgroundMapsList !== 'undefined' && Array.isArray(backgroundMapsList)) {
+          manageMapsCache_ = backgroundMapsList;
+          return manageMapsCache_;
+        }
+        const maps = (window.MG1MapLibrary && typeof window.MG1MapLibrary.getAll === 'function')
+          ? await window.MG1MapLibrary.getAll()
+          : (typeof backgroundMapsList !== 'undefined' ? backgroundMapsList : []);
+        manageMapsCache_ = Array.isArray(maps) ? maps : [];
+        return manageMapsCache_;
+      })();
+      try { return await manageMapsLoadPromise_; }
+      finally { manageMapsLoadPromise_ = null; }
     }
 
-    function storageStateStyle_(state) {
-      if (state === 'STORAGE_FULL' || state === 'STORAGE_CRITICAL') return ['rgba(251,113,133,.14)', '#fb7185'];
-      if (state === 'STORAGE_HIGH') return ['rgba(251,191,36,.13)', '#fbbf24'];
-      if (state === 'STORAGE_NORMAL') return ['rgba(52,211,153,.13)', '#6ee7b7'];
-      if (state === 'STORAGE_EMPTY') return ['rgba(96,165,250,.12)', '#93c5fd'];
-      return ['rgba(255,255,255,.07)', 'rgba(255,255,255,.58)'];
-    }
-
-    function storageStateHint_(state) {
-      if (state === 'STORAGE_NORMAL') return '';
-      return ({
-        STORAGE_EMPTY: 'Belum ada peta tersimpan.',
-        STORAGE_HIGH: 'Kapasitas mulai tinggi. Pertimbangkan menghapus peta yang sudah tidak diperlukan.',
-        STORAGE_CRITICAL: 'Kapasitas kritis. Kosongkan ruang sebelum menyimpan peta tambahan.',
-        STORAGE_FULL: 'Penyimpanan browser penuh. Penyimpanan peta baru dapat gagal sampai ruang tersedia.',
-        STORAGE_UNKNOWN: 'Status kapasitas browser tidak dapat dibaca saat ini.'
-      })[state] || 'Status penyimpanan tidak tersedia.';
-    }
-
-    async function refreshStorageSummary_() {
-      if (!storageEl) return;
-      if (!window.MG1MapStorageCapability || typeof window.MG1MapStorageCapability.summary !== 'function') {
-        storageEl.style.display = 'none';
-        return;
-      }
-      storageEl.style.display = 'block';
-      if (storageDetailEl) storageDetailEl.textContent = 'Membaca kapasitas...';
+    async function refreshManageList_(query, options) {
+      options = options || {};
+      const forceReload = !!options.forceReload;
+      const seq = ++manageRefreshSeq_;
       try {
-        const summary = await window.MG1MapStorageCapability.summary();
-        const state = String(summary && summary.state || 'STORAGE_UNKNOWN');
-        const ratio = Number(summary && summary.usageRatio);
-        const ratioPct = Number.isFinite(ratio) && ratio >= 0 ? Math.min(100, ratio * 100) : null;
-        const label = storageStateLabel_(state);
-        const style = storageStateStyle_(state);
-        if (storageStateEl) {
-          storageStateEl.textContent = label;
-          storageStateEl.style.background = style[0];
-          storageStateEl.style.color = style[1];
-        }
-        if (storageBarEl) {
-          storageBarEl.style.width = ratioPct == null ? '0%' : (ratioPct > 0 ? Math.max(2, ratioPct) : 0) + '%';
-          storageBarEl.style.background = style[1];
-        }
-        if (storageDetailEl) {
-          const count = Number(summary && summary.mapCount) || 0;
-          const used = summary && summary.estimateAvailable ? formatStorageBytes_(summary.usageBytes) : 'tidak tersedia';
-          storageDetailEl.textContent = count + ' peta · penggunaan browser ' + used;
-        }
-        if (storageMetaEl) {
-          const payload = formatStorageBytes_(summary && summary.payloadBytes);
-          const quota = summary && summary.estimateAvailable ? formatStorageBytes_(summary.quotaBytes) : '—';
-          storageMetaEl.innerHTML = '<span>Payload peta: ' + escapeHtml_(payload) + '</span><span>Kuota: ' + escapeHtml_(quota) + '</span>';
-        }
-        const hint = storageStateHint_(state);
-        if (storageHintEl) {
-          storageHintEl.textContent = hint;
-          storageHintEl.style.display = hint ? 'block' : 'none';
-          storageHintEl.style.color = style[1];
-        }
-        console.log('[V24.5 S2.4] Storage warning hardening PASS', {state: state, mapCount: summary.mapCount, usageRatio: summary.usageRatio});
-      } catch (e) {
-        if (storageStateEl) {
-          storageStateEl.textContent = 'ERROR';
-          storageStateEl.style.background = 'rgba(251,113,133,.14)';
-          storageStateEl.style.color = '#fb7185';
-        }
-        if (storageDetailEl) storageDetailEl.textContent = 'Ringkasan penyimpanan tidak tersedia';
-        if (storageBarEl) storageBarEl.style.width = '0%';
-        if (storageMetaEl) storageMetaEl.innerHTML = '<span>Payload peta: —</span><span>Kuota: —</span>';
-        console.warn('[V24.5 S2.3] Storage Summary UI failed', e);
-      }
-    }
-
-    async function refreshManageList_(query) {
-      try {
-        const maps = (window.MG1MapLibraryCapability && typeof window.MG1MapLibraryCapability.list === 'function')
-          ? await window.MG1MapLibraryCapability.list({query: query || ''})
-          : ((window.MG1MapLibrary && typeof window.MG1MapLibrary.getAll === 'function')
-            ? await window.MG1MapLibrary.getAll()
-            : (typeof backgroundMapsList !== 'undefined' ? backgroundMapsList : []));
-        const total = (window.MG1MapLibraryCapability && typeof window.MG1MapLibraryCapability.list === 'function')
-          ? await window.MG1MapLibraryCapability.list()
-          : maps;
+        // One canonical IndexedDB read per Library session. Search/filter/sort then
+        // operate on the in-memory snapshot, avoiding repeated multi-MB payload reads.
+        const allMaps = await getManageMapsCache_(forceReload);
+        if (seq !== manageRefreshSeq_) return;
+        const queryMaps = filterManageQuery_(allMaps, query);
         const activeId = getManageActiveId_();
-        syncManageLabelOptions_(maps);
-        syncManageCollectionOptions_(maps);
-        const filtered = applyManageCollection_(applyManageLabel_(applyManageFilter_(maps, activeId, manageFilter_), manageLabel_), manageCollection_);
+        const filtered = applyManageCollection_(applyManageLabel_(applyManageFilter_(queryMaps, activeId, manageFilter_), manageLabel_), manageCollection_);
         const sorted = applyManageSort_(filtered, manageSort_);
+        // Map Library panel display cap: show at most 3 maps.
+        // This is display-only; the full IndexedDB collection remains untouched.
+        const visible = sorted.slice(0, 3);
         const q = String(query || '').trim();
         const scopedLabel = manageFilter_ === 'active' ? 'aktif' : (manageFilter_ === 'inactive' ? 'tidak aktif' : 'peta');
         countEl.textContent = q || manageFilter_ !== 'all' || manageSort_ !== 'name-asc' || manageLabel_ !== '__all__' || manageCollection_ !== '__all__'
-          ? `${sorted.length} dari ${total.length} ${scopedLabel}`
-          : `${sorted.length} peta tersimpan`;
-        renderManageList_(listEl, sorted, activeId);
-        refreshStorageSummary_();
+          ? `${visible.length} dari ${sorted.length} ${scopedLabel}`
+          : `${visible.length} dari ${allMaps.length} peta tersimpan`;
+        renderManageList_(listEl, visible, activeId);
       } catch(e) {
-        console.warn('[V24.3 MAP LIBRARY] manage list update fail', e);
+        console.warn('[V24.5 MAP LIBRARY] manage list update fail', e);
       }
     }
 
@@ -1308,7 +1370,14 @@
     refreshManageList_('');
     if(searchEl && !searchEl.__mg1Bound) {
       searchEl.__mg1Bound = true;
-      searchEl.addEventListener('input', function() { refreshManageList_(this.value); });
+      searchEl.addEventListener('input', function() {
+        const value = this.value;
+        if (manageSearchTimer_) clearTimeout(manageSearchTimer_);
+        manageSearchTimer_ = setTimeout(function() {
+          manageSearchTimer_ = null;
+          refreshManageList_(value);
+        }, 220);
+      });
     }
     if(filterEl && !filterEl.__mg1Bound) {
       filterEl.__mg1Bound = true;
@@ -1330,25 +1399,17 @@
         });
       };
     }
-    if(labelEl && !labelEl.__mg1Bound) {
-      labelEl.__mg1Bound = true;
-      labelEl.onclick = function() {
-        showMapLibraryChoiceModal_('label', manageLabel_, function(value) {
-          manageLabel_ = value || '__all__';
-          labelEl.textContent = manageLabel_ === '__none__' ? 'Tanpa Label' : (manageLabel_ === '__all__' ? 'Semua Label' : manageLabel_);
-          refreshManageList_(searchEl ? searchEl.value : '');
-        });
-      };
-    }
-    if(collectionEl && !collectionEl.__mg1Bound) {
-      collectionEl.__mg1Bound = true;
-      collectionEl.onclick = function() {
-        showMapLibraryChoiceModal_('collection', manageCollection_, function(value) {
-          manageCollection_ = value || '__all__';
-          collectionEl.textContent = manageCollection_ === '__none__' ? 'Tanpa koleksi' : (manageCollection_ === '__all__' ? 'Semua koleksi' : manageCollection_);
-          refreshManageList_(searchEl ? searchEl.value : '');
-        });
-      };
+    if((labelEl || collectionEl) && !el.__mg1FilterBound) {
+      el.__mg1FilterBound = true;
+      const openFilter=()=>showMapLibraryChoiceModal_('filter',{label:manageLabel_,collection:manageCollection_},function(state){
+        manageLabel_=state.label||'__all__';
+        manageCollection_=state.collection||'__all__';
+        if(labelEl)labelEl.textContent='Label & Koleksi';
+        if(collectionEl)collectionEl.textContent=manageCollection_==='__none__'?'Tanpa koleksi':(manageCollection_==='__all__'?'Semua koleksi':manageCollection_);
+        refreshManageList_(searchEl?searchEl.value:'');
+      });
+      if(labelEl)labelEl.onclick=openFilter;
+      if(collectionEl)collectionEl.onclick=openFilter;
     }
     if(listEl && !listEl.__mg1InfoBound) {
       listEl.__mg1InfoBound = true;
@@ -1357,10 +1418,24 @@
         if(!menuBtn) return;
         const id = menuBtn.getAttribute('data-map-menu');
         try {
-          const maps = (window.MG1MapLibrary && typeof window.MG1MapLibrary.getAll === 'function') ? await window.MG1MapLibrary.getAll() : [];
-          const entry = maps.find(function(m){ return m && String(m.id) === String(id); });
-          if (entry) showMapActionSheet_(entry, getManageActiveId_(), async function(){ await refreshManageList_(searchEl ? searchEl.value : ''); });
-        } catch (e) { console.warn('[V24.3 MAP LIBRARY] map action menu failed', e); }
+          // V24.5 S2.5.2: resolve from the card's already-rendered map reference
+          // first. The action menu must not depend on a second async Library read
+          // or on cache freshness.
+          const card = menuBtn.closest('[data-map-card]');
+          const cachedEntry = card && card.__mg1MapRef;
+          let entry = cachedEntry && String(cachedEntry.id) === String(id) ? cachedEntry : null;
+          if (!entry) {
+            const maps = await getManageMapsCache_(false);
+            entry = maps.find(function(m){ return m && String(m.id) === String(id); }) || null;
+          }
+          if (entry) {
+            showMapActionSheet_(entry, getManageActiveId_(), async function(){
+              await refreshManageList_(searchEl ? searchEl.value : '', {forceReload:true});
+            });
+          } else {
+            console.warn('[V24.5 MAP LIBRARY] map action menu: entry not found', {id:id});
+          }
+        } catch (e) { console.warn('[V24.5 MAP LIBRARY] map action menu failed', e); }
       });
     }
 
@@ -1387,6 +1462,8 @@
       });
     }
 
+    bindMG1ShellBoundary_();
+    syncMG1OverlayToShell_(el);
     el.style.display = 'block';
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -1876,6 +1953,26 @@
     const state=pack.state, isNewModal=pack.isNewModal;
     if(!state) return;
     if(!state.fileDataUrl || !String(state.name||'').trim()) return;
+
+    // Map Library panel policy: maximum 3 stored maps.
+    // Guard only applies to a NEW map; existing-map flows remain untouched.
+    if(isNewModal){
+      try {
+        let maps = null;
+        if(window.MG1MapLibrary && typeof window.MG1MapLibrary.getAll === 'function'){
+          maps = await window.MG1MapLibrary.getAll();
+        } else if(Array.isArray(window.backgroundMapsList)){
+          maps = window.backgroundMapsList;
+        }
+        if(Array.isArray(maps) && maps.length >= 3){
+          showLithositeToast_('Maksimal 3 peta. Hapus 1 dulu', 'error');
+          return;
+        }
+      } catch(e) {
+        console.warn('[V24.5 MAP LIBRARY] 3-map guard check failed; upload continues', e);
+      }
+    }
+
     window.__v24SaveInFlight=true;
 
     const id='bgmap_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
