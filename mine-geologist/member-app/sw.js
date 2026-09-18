@@ -11,7 +11,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260917-toolbar1';
+const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260918-keyboard1';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
@@ -28,7 +28,7 @@ const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260917-toolbar1';
 // itu TIDAK PERNAH tersimpan walau sudah sukses dimuat berkali-kali saat online ->
 // begitu app ditutup & dibuka lagi tanpa internet, tab Peta (dan sebagian besar app,
 // krn renderPeta dkk ada di map-ui.js) GAGAL TOTAL.
-// [UPDATE -- 17 Sep] Toolbar GPS/Layers + Global Shell Boundary + Settings overlay.
+// [UPDATE -- 18 Sep] Map Library keyboard viewport recovery + existing toolbar/shell fixes.
 // peta.js, map-ui.js, map-management-compat.js, settings.js, dan index.html
 // sudah tercakup di APP_SHELL di bawah; cache version dinaikkan agar browser
 // mengambil runtime terbaru dan tidak memakai cache lama.
