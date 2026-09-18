@@ -880,7 +880,13 @@
 
   function showMapActionSheet_(entry, activeId, onDone) {
     if (!entry || !entry.id) return;
-    if (window.MG1MapPackageTransfer && typeof window.MG1MapPackageTransfer.warmPackage === 'function') window.MG1MapPackageTransfer.warmPackage([String(entry.id)]);
+    // Warm-up is optional. Never let package preparation prevent the action sheet
+    // itself from opening.
+    if (window.MG1MapPackageTransfer && typeof window.MG1MapPackageTransfer.warmPackage === 'function') {
+      try { window.MG1MapPackageTransfer.warmPackage([String(entry.id)]); } catch (e) {
+        console.warn('[V24.5 MAP LIBRARY] package warm-up skipped', e);
+      }
+    }
     const old = document.getElementById('mg1-map-action-sheet'); if (old) old.remove();
     const isActive = !!activeId && String(activeId) === String(entry.id);
     const root = document.createElement('div'); root.id='mg1-map-action-sheet';
@@ -1397,10 +1403,24 @@
         if(!menuBtn) return;
         const id = menuBtn.getAttribute('data-map-menu');
         try {
-          const maps = await getManageMapsCache_(false);
-          const entry = maps.find(function(m){ return m && String(m.id) === String(id); });
-          if (entry) showMapActionSheet_(entry, getManageActiveId_(), async function(){ await refreshManageList_(searchEl ? searchEl.value : '', {forceReload:true}); });
-        } catch (e) { console.warn('[V24.3 MAP LIBRARY] map action menu failed', e); }
+          // V24.5 S2.5.2: resolve from the card's already-rendered map reference
+          // first. The action menu must not depend on a second async Library read
+          // or on cache freshness.
+          const card = menuBtn.closest('[data-map-card]');
+          const cachedEntry = card && card.__mg1MapRef;
+          let entry = cachedEntry && String(cachedEntry.id) === String(id) ? cachedEntry : null;
+          if (!entry) {
+            const maps = await getManageMapsCache_(false);
+            entry = maps.find(function(m){ return m && String(m.id) === String(id); }) || null;
+          }
+          if (entry) {
+            showMapActionSheet_(entry, getManageActiveId_(), async function(){
+              await refreshManageList_(searchEl ? searchEl.value : '', {forceReload:true});
+            });
+          } else {
+            console.warn('[V24.5 MAP LIBRARY] map action menu: entry not found', {id:id});
+          }
+        } catch (e) { console.warn('[V24.5 MAP LIBRARY] map action menu failed', e); }
       });
     }
 
