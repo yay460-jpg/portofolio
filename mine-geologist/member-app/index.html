@@ -585,7 +585,15 @@ if ('serviceWorker' in navigator) {
   let rafPending = false;
   const applyVvh_ = () => {
     rafPending = false;
-    if (inputFocused) {
+    // Android can close the IME while the input remains focused. In that case
+    // focusout does not fire, so the old keyboard-height value would remain
+    // and shell-bound bottom sheets could stay vertically stranded.
+    // Treat a visual viewport that has returned to the full layout viewport
+    // as keyboard-closed, even when the input is still focused.
+    const layoutH = Number(window.innerHeight) || 0;
+    const visualBottom = (Number(vv.height) || 0) + (Number(vv.offsetTop) || 0);
+    const keyboardClosed = layoutH > 0 && visualBottom >= layoutH - 8;
+    if (inputFocused && !keyboardClosed) {
       document.documentElement.style.setProperty('--mg1-vvh', vv.height + 'px');
     } else {
       document.documentElement.style.setProperty('--mg1-vvh', '100svh');
