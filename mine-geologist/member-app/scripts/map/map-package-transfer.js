@@ -48,6 +48,63 @@
     return global.MG1MapLibrary.getAll();
   }
 
+  // Security boundary: package payload is untrusted even when SHA-256 is valid.
+  function isSafeImageDataUrl_(value) {
+    if (typeof value !== 'string' || value.length === 0 || value.length > 64 * 1024 * 1024) return false;
+    var m = value.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$/i);
+    if (!m) return false;
+    var b64 = m[2];
+    if (b64.length % 4 !== 0) return false;
+    try {
+      var normalized = b64.replace(/=+$/, '');
+      return normalized.length > 0 && /^[A-Za-z0-9+/]+$/.test(normalized);
+    } catch (_) { return false; }
+  }
+
+  function isSafeTileKey_(value) {
+    if (typeof value !== 'string' || value.length > 80) return false;
+    return /^L(?:-?(?:\d+(?:\.\d+)?|\.\d+))_X-?\d+_Y-?\d+$/i.test(value);
+  }
+
+  function validateTile_(tile, levelFactor) {
+    if (!tile || typeof tile !== 'object') throw new Error('Tile payload tidak valid');
+    var x = Number(tile.x), y = Number(tile.y);
+    if (!Number.isInteger(x) || !Number.isInteger(y)) throw new Error('Tile coordinate tidak valid');
+    if (Math.abs(x) > 1000000 || Math.abs(y) > 1000000) throw new Error('Tile coordinate di luar batas');
+    if (tile.width != null && (!Number.isFinite(Number(tile.width)) || Number(tile.width) <= 0 || Number(tile.width) > 8192)) throw new Error('Tile width tidak valid');
+    if (tile.height != null && (!Number.isFinite(Number(tile.height)) || Number(tile.height) <= 0 || Number(tile.height) > 8192)) throw new Error('Tile height tidak valid');
+    var key = tile.tileKey != null ? String(tile.tileKey) : (tile.tileId != null ? String(tile.tileId) : '');
+    if (key && !isSafeTileKey_(key)) throw new Error('Tile identity tidak valid');
+    if (key) {
+      var km = key.match(/^L(-?(?:\d+(?:\.\d+)?|\.\d+))_X(-?\d+)_Y(-?\d+)$/i);
+      if (!km || Math.abs(Number(km[1]) - Number(levelFactor)) > 0.0001 || Number(km[2]) !== x || Number(km[3]) !== y) {
+        throw new Error('Tile identity tidak cocok dengan koordinat/level');
+      }
+    }
+    if (tile.dataUrl != null && !isSafeImageDataUrl_(tile.dataUrl)) throw new Error('Tile image payload tidak aman');
+  }
+
+  function validatePayloadSecurity_(entry) {
+    if (!entry || typeof entry !== 'object') throw new Error('Map entry tidak valid');
+    if (entry.imageDataUrl != null && !isSafeImageDataUrl_(entry.imageDataUrl)) throw new Error('Preview image payload tidak aman');
+    var pyramid = entry.tilePyramid;
+    if (pyramid != null) {
+      if (typeof pyramid !== 'object' || !Array.isArray(pyramid.levels)) throw new Error('Tile pyramid tidak valid');
+      if (pyramid.levels.length > 16) throw new Error('Tile pyramid terlalu banyak level');
+      pyramid.levels.forEach(function(level) {
+        if (!level || typeof level !== 'object') throw new Error('Level tile tidak valid');
+        var factor = Number(level.factor);
+        if (!Number.isFinite(factor) || factor <= 0 || factor > 16) throw new Error('Tile factor tidak valid');
+        if (level.width != null && (!Number.isFinite(Number(level.width)) || Number(level.width) <= 0 || Number(level.width) > 100000000)) throw new Error('Level width tidak valid');
+        if (level.height != null && (!Number.isFinite(Number(level.height)) || Number(level.height) <= 0 || Number(level.height) > 100000000)) throw new Error('Level height tidak valid');
+        if (!Array.isArray(level.tiles)) throw new Error('Tile list tidak valid');
+        if (level.tiles.length > 100000) throw new Error('Tile count terlalu besar');
+        level.tiles.forEach(function(tile) { validateTile_(tile, factor); });
+      });
+    }
+    return true;
+  }
+
   function sanitizeImportedEntry_(entry) {
     var clean = clone_(entry);
     // Active identity is device-local and must never travel with a package.
@@ -67,6 +124,7 @@
       throw new Error('Map entry tidak valid');
     }
     if (!entry.imageDataUrl && !entry.tilePyramid) throw new Error('Map entry tidak memiliki payload');
+    validatePayloadSecurity_(entry);
   }
 
   function buildPayload_(maps, exportedAt) {
@@ -294,6 +352,13 @@
     report(100, 'Backup berhasil dikembalikan.');
     return Object.assign({ filename: file.name }, validation, result);
   }
+
+  global.MG1LithositeSecurity = Object.freeze({
+    isSafeImageDataUrl: isSafeImageDataUrl_,
+    isSafeTileKey: isSafeTileKey_,
+    validateTile: validateTile_,
+    validatePayload: validatePayloadSecurity_
+  });
 
   global.MG1MapPackageTransfer = Object.freeze({
     version: '24.5-s2.8',

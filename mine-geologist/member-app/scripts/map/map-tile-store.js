@@ -29,7 +29,9 @@ function sanitizePyramidForStorage_(pyramid) {
             if (Number.isFinite(t.levelFactor)) ct.levelFactor = t.levelFactor;
             if (t.tileKey) ct.tileKey = String(t.tileKey);
             if (t.tileId) ct.tileId = String(t.tileId);
-            if (t.dataUrl && typeof t.dataUrl === 'string' && t.dataUrl.startsWith('data:')) ct.dataUrl = t.dataUrl;
+            if (t.dataUrl && typeof t.dataUrl === 'string' && t.dataUrl.startsWith('data:')) {
+              if (!globalThis.MG1LithositeSecurity || globalThis.MG1LithositeSecurity.isSafeImageDataUrl(t.dataUrl)) ct.dataUrl = t.dataUrl;
+            }
             return ct;
           }).filter(Boolean);
         } else {
