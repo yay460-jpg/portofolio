@@ -2637,8 +2637,6 @@ function renderMineGridSvg(points) {
               try { tileKey = makeLithositeTileId_(level.factor, t.x, t.y); } catch(_) {}
             }
             let href = t.dataUrl;
-            if (href && window.MG1LithositeSecurity && !window.MG1LithositeSecurity.isSafeImageDataUrl(href)) href = '';
-            if (tileKey && window.MG1LithositeSecurity && !window.MG1LithositeSecurity.isSafeTileKey(tileKey)) tileKey = '';
             let isRuntime = 0;
             try {
               if (tileKey && typeof getLithositeRuntimeTile_ === 'function') {
@@ -2670,9 +2668,8 @@ function renderMineGridSvg(points) {
           if (window.mg1LastRuntimeOrchestration) window.mg1LastRuntimeOrchestration.runtimeUsed = mg1RuntimeUsedCount_;
         } catch(_) {}
       } else {
-        if (!window.MG1LithositeSecurity || window.MG1LithositeSecurity.isSafeImageDataUrl(activeMap.imageDataUrl)) {
+        if (activeMap.imageDataUrl && (!window.MG1LithositeSecurity || !window.MG1LithositeSecurity.isSafeImageDataUrl(activeMap.imageDataUrl))) { activeMap = Object.assign({}, activeMap, { imageDataUrl: '' }); }
         svg += '<image href="' + activeMap.imageDataUrl + '" x="' + imgX + '" y="' + imgY + '" width="' + imgW + '" height="' + imgH + '" decoding="sync" preserveAspectRatio="none" opacity="0.9" draggable="false" oncontextmenu="return false" style="-webkit-user-drag:none; pointer-events:none;"' + clipAttr + ' pointer-events="none" draggable="false" oncontextmenu="return false;"/>';
-        }
       }
     }
   }
