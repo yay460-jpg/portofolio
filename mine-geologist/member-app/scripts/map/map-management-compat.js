@@ -712,20 +712,6 @@
               <button type="button" id="mg1-manage-sort-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Nama A–Z</button>
               <button type="button" id="mg1-manage-label-btn" style="padding:10px 7px;border-radius:10px;background:#16233f;border:1px solid rgba(96,165,250,.18);color:#fff;font-size:10px;font-weight:800;">Label &amp; Koleksi</button>
             </div>
-            <div style="height:1px;background:rgba(255,255,255,.06);margin:10px 0;"></div>
-            <div style="font-size:9px;font-weight:800;color:rgba(255,255,255,.38);letter-spacing:.05em;text-transform:uppercase;margin:0 0 7px;">Storage Summary</div>
-            <div id="mg1-manage-storage" style="padding:10px 10px;border:1px solid rgba(96,165,250,.12);border-radius:11px;background:rgba(255,255,255,.025);display:none;">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-              <div style="min-width:0;">
-                <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.82);">Penyimpanan Peta</div>
-                <div id="mg1-manage-storage-detail" style="font-size:9px;color:rgba(255,255,255,.40);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Membaca kapasitas...</div>
-              </div>
-              <span id="mg1-manage-storage-state" style="display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;padding:4px 7px;border-radius:999px;font-size:8px;font-weight:800;letter-spacing:.03em;background:rgba(255,255,255,.07);color:rgba(255,255,255,.58);">—</span>
-            </div>
-            <div style="margin-top:9px;height:5px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;"><div id="mg1-manage-storage-bar" style="height:100%;width:0%;border-radius:999px;background:#60a5fa;transition:width 220ms ease;"></div></div>
-            <div id="mg1-manage-storage-meta" style="display:flex;justify-content:space-between;gap:10px;margin-top:5px;font-size:8px;color:rgba(255,255,255,.28);"><span>Payload peta: —</span><span>Kuota: —</span></div>
-            <div id="mg1-manage-storage-hint" role="status" aria-live="polite" style="display:none;margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.06);font-size:8px;line-height:1.35;color:rgba(255,255,255,.48);"></div>
-            </div>
           </div>
           <div id="mg1-manage-list"></div>
           <div style="margin-top:8px;font-size:9px;color:rgba(255,255,255,.25);text-align:center;">Peta disimpan di HP · IndexedDB · offline</div>
@@ -840,7 +826,7 @@
 
       card = document.createElement('div');
       const thumbWrap = document.createElement('div');
-      thumbWrap.style.cssText = 'width:52px;height:52px;border-radius:10px;background:#0b1329;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;';
+      thumbWrap.style.cssText = 'width:52px;height:52px;border-radius:10px;background:#0b1329;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;contain:layout paint;';
       const thumb = document.createElement('div');
       thumb.setAttribute('aria-hidden', 'true');
       thumb.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;letter-spacing:.5px;color:rgba(255,255,255,.72);font-variant-numeric:tabular-nums;';
@@ -1215,7 +1201,6 @@
   }
 
   console.log('[V24.3 MAP LIBRARY] Slice 13 collections ready — metadata-only; no new store');
-  console.log('[V24.5 S2.3.1] Storage Summary moved into three-line Library options panel');
 
   function openManageModal() {
     const el = ensureManageModalDom();
@@ -1223,12 +1208,6 @@
     const panel = el.querySelector('#mg1-manage-panel');
     const listEl = el.querySelector('#mg1-manage-list');
     const countEl = el.querySelector('#mg1-manage-count');
-    const storageEl = el.querySelector('#mg1-manage-storage');
-    const storageDetailEl = el.querySelector('#mg1-manage-storage-detail');
-    const storageStateEl = el.querySelector('#mg1-manage-storage-state');
-    const storageBarEl = el.querySelector('#mg1-manage-storage-bar');
-    const storageMetaEl = el.querySelector('#mg1-manage-storage-meta');
-    const storageHintEl = el.querySelector('#mg1-manage-storage-hint');
     const searchEl = el.querySelector('#mg1-manage-search');
     const filterEl = el.querySelector('#mg1-manage-filter');
     const sortEl = el.querySelector('#mg1-manage-sort-btn');
@@ -1303,110 +1282,13 @@
       return result;
     }
 
-    function formatStorageBytes_(bytes) {
-      const n = Number(bytes);
-      if (!Number.isFinite(n) || n < 0) return '—';
-      if (n < 1024) return Math.round(n) + ' B';
-      if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
-      if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
-      return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
-    }
-
-    function storageStateLabel_(state) {
-      return ({
-        STORAGE_EMPTY: 'KOSONG',
-        STORAGE_NORMAL: 'NORMAL',
-        STORAGE_HIGH: 'TINGGI',
-        STORAGE_CRITICAL: 'KRITIS',
-        STORAGE_FULL: 'PENUH',
-        STORAGE_UNKNOWN: 'TIDAK DIKETAHUI'
-      })[state] || '—';
-    }
-
-    function storageStateStyle_(state) {
-      if (state === 'STORAGE_FULL' || state === 'STORAGE_CRITICAL') return ['rgba(251,113,133,.14)', '#fb7185'];
-      if (state === 'STORAGE_HIGH') return ['rgba(251,191,36,.13)', '#fbbf24'];
-      if (state === 'STORAGE_NORMAL') return ['rgba(52,211,153,.13)', '#6ee7b7'];
-      if (state === 'STORAGE_EMPTY') return ['rgba(96,165,250,.12)', '#93c5fd'];
-      return ['rgba(255,255,255,.07)', 'rgba(255,255,255,.58)'];
-    }
-
-    function storageStateHint_(state) {
-      if (state === 'STORAGE_NORMAL') return '';
-      return ({
-        STORAGE_EMPTY: 'Belum ada peta tersimpan.',
-        STORAGE_HIGH: 'Kapasitas mulai tinggi. Pertimbangkan menghapus peta yang sudah tidak diperlukan.',
-        STORAGE_CRITICAL: 'Kapasitas kritis. Kosongkan ruang sebelum menyimpan peta tambahan.',
-        STORAGE_FULL: 'Penyimpanan browser penuh. Penyimpanan peta baru dapat gagal sampai ruang tersedia.',
-        STORAGE_UNKNOWN: 'Status kapasitas browser tidak dapat dibaca saat ini.'
-      })[state] || 'Status penyimpanan tidak tersedia.';
-    }
-
-    async function refreshStorageSummary_() {
-      if (!storageEl) return;
-      if (!window.MG1MapStorageCapability || typeof window.MG1MapStorageCapability.summary !== 'function') {
-        storageEl.style.display = 'none';
-        return;
-      }
-      storageEl.style.display = 'block';
-      if (storageDetailEl) storageDetailEl.textContent = 'Membaca kapasitas...';
-      try {
-        const summary = await window.MG1MapStorageCapability.summary();
-        const state = String(summary && summary.state || 'STORAGE_UNKNOWN');
-        const ratio = Number(summary && summary.usageRatio);
-        const ratioPct = Number.isFinite(ratio) && ratio >= 0 ? Math.min(100, ratio * 100) : null;
-        const label = storageStateLabel_(state);
-        const style = storageStateStyle_(state);
-        if (storageStateEl) {
-          storageStateEl.textContent = label;
-          storageStateEl.style.background = style[0];
-          storageStateEl.style.color = style[1];
-        }
-        if (storageBarEl) {
-          storageBarEl.style.width = ratioPct == null ? '0%' : (ratioPct > 0 ? Math.max(2, ratioPct) : 0) + '%';
-          storageBarEl.style.background = style[1];
-        }
-        if (storageDetailEl) {
-          const count = Number(summary && summary.mapCount) || 0;
-          const used = summary && summary.estimateAvailable ? formatStorageBytes_(summary.usageBytes) : 'tidak tersedia';
-          storageDetailEl.textContent = count + ' peta · penggunaan browser ' + used;
-        }
-        if (storageMetaEl) {
-          const payload = formatStorageBytes_(summary && summary.payloadBytes);
-          const quota = summary && summary.estimateAvailable ? formatStorageBytes_(summary.quotaBytes) : '—';
-          storageMetaEl.innerHTML = '<span>Payload peta: ' + escapeHtml_(payload) + '</span><span>Kuota: ' + escapeHtml_(quota) + '</span>';
-        }
-        const hint = storageStateHint_(state);
-        if (storageHintEl) {
-          storageHintEl.textContent = hint;
-          storageHintEl.style.display = hint ? 'block' : 'none';
-          storageHintEl.style.color = style[1];
-        }
-        console.log('[V24.5 S2.4] Storage warning hardening PASS', {state: state, mapCount: summary.mapCount, usageRatio: summary.usageRatio});
-      } catch (e) {
-        if (storageStateEl) {
-          storageStateEl.textContent = 'ERROR';
-          storageStateEl.style.background = 'rgba(251,113,133,.14)';
-          storageStateEl.style.color = '#fb7185';
-        }
-        if (storageDetailEl) storageDetailEl.textContent = 'Ringkasan penyimpanan tidak tersedia';
-        if (storageBarEl) storageBarEl.style.width = '0%';
-        if (storageMetaEl) storageMetaEl.innerHTML = '<span>Payload peta: —</span><span>Kuota: —</span>';
-        console.warn('[V24.5 S2.3] Storage Summary UI failed', e);
-      }
-    }
-
     function filterManageQuery_(maps, query) {
       const q = String(query || '').trim().toLowerCase();
       if (!q) return Array.isArray(maps) ? maps : [];
+      // Library search is intentionally name-only. Labels/collections remain
+      // dedicated filter controls and are not part of the keystroke path.
       return (Array.isArray(maps) ? maps : []).filter(function(entry) {
-        if (!entry) return false;
-        const labels = getMapLabels_(entry);
-        const collections = Array.isArray(entry.collectionNames) ? entry.collectionNames : [];
-        return String(entry.name || '').toLowerCase().includes(q)
-          || String(entry.id || '').toLowerCase().includes(q)
-          || labels.some(function(v){ return String(v || '').toLowerCase().includes(q); })
-          || collections.some(function(v){ return String(v || '').toLowerCase().includes(q); });
+        return !!entry && String(entry.name || '').toLowerCase().includes(q);
       });
     }
 
@@ -1414,10 +1296,16 @@
       if (!forceReload && Array.isArray(manageMapsCache_)) return manageMapsCache_;
       if (!forceReload && manageMapsLoadPromise_) return manageMapsLoadPromise_;
       manageMapsLoadPromise_ = (async function() {
+        // Prefer the already-loaded compatibility snapshot. Opening Library must
+        // not perform a second full IndexedDB getAll() when the app already has it.
+        if (!forceReload && typeof backgroundMapsList !== 'undefined' && Array.isArray(backgroundMapsList)) {
+          manageMapsCache_ = backgroundMapsList;
+          return manageMapsCache_;
+        }
         const maps = (window.MG1MapLibrary && typeof window.MG1MapLibrary.getAll === 'function')
           ? await window.MG1MapLibrary.getAll()
           : (typeof backgroundMapsList !== 'undefined' ? backgroundMapsList : []);
-        manageMapsCache_ = Array.isArray(maps) ? maps.slice() : [];
+        manageMapsCache_ = Array.isArray(maps) ? maps : [];
         return manageMapsCache_;
       })();
       try { return await manageMapsLoadPromise_; }
@@ -1427,7 +1315,6 @@
     async function refreshManageList_(query, options) {
       options = options || {};
       const forceReload = !!options.forceReload;
-      const refreshStorage = options.refreshStorage !== false;
       const seq = ++manageRefreshSeq_;
       try {
         // One canonical IndexedDB read per Library session. Search/filter/sort then
@@ -1436,8 +1323,6 @@
         if (seq !== manageRefreshSeq_) return;
         const queryMaps = filterManageQuery_(allMaps, query);
         const activeId = getManageActiveId_();
-        syncManageLabelOptions_(allMaps);
-        syncManageCollectionOptions_(allMaps);
         const filtered = applyManageCollection_(applyManageLabel_(applyManageFilter_(queryMaps, activeId, manageFilter_), manageLabel_), manageCollection_);
         const sorted = applyManageSort_(filtered, manageSort_);
         // Map Library panel display cap: show at most 3 maps.
@@ -1449,7 +1334,6 @@
           ? `${visible.length} dari ${sorted.length} ${scopedLabel}`
           : `${visible.length} dari ${allMaps.length} peta tersimpan`;
         renderManageList_(listEl, visible, activeId);
-        if (refreshStorage) refreshStorageSummary_();
       } catch(e) {
         console.warn('[V24.5 MAP LIBRARY] manage list update fail', e);
       }
@@ -1470,7 +1354,7 @@
         if (manageSearchTimer_) clearTimeout(manageSearchTimer_);
         manageSearchTimer_ = setTimeout(function() {
           manageSearchTimer_ = null;
-          refreshManageList_(value, {refreshStorage:false});
+          refreshManageList_(value);
         }, 220);
       });
     }
@@ -1481,7 +1365,7 @@
         if(!btn) return;
         manageFilter_ = btn.dataset.filter || 'all';
         syncManageFilterButtons_();
-        refreshManageList_(searchEl ? searchEl.value : '', {refreshStorage:false});
+        refreshManageList_(searchEl ? searchEl.value : '');
       });
     }
     if(sortEl && !sortEl.__mg1Bound) {
@@ -1490,7 +1374,7 @@
         showMapLibraryChoiceModal_('sort', manageSort_, function(value) {
           manageSort_ = value || 'name-asc';
           sortEl.textContent = ({'name-asc':'Nama A–Z','name-desc':'Nama Z–A','newest':'Terbaru','oldest':'Terlama'})[manageSort_] || 'Nama A–Z';
-          refreshManageList_(searchEl ? searchEl.value : '', {refreshStorage:false});
+          refreshManageList_(searchEl ? searchEl.value : '');
         });
       };
     }
@@ -1501,7 +1385,7 @@
         manageCollection_=state.collection||'__all__';
         if(labelEl)labelEl.textContent='Label & Koleksi';
         if(collectionEl)collectionEl.textContent=manageCollection_==='__none__'?'Tanpa koleksi':(manageCollection_==='__all__'?'Semua koleksi':manageCollection_);
-        refreshManageList_(searchEl?searchEl.value:'', {refreshStorage:false});
+        refreshManageList_(searchEl?searchEl.value:'');
       });
       if(labelEl)labelEl.onclick=openFilter;
       if(collectionEl)collectionEl.onclick=openFilter;
@@ -1513,9 +1397,9 @@
         if(!menuBtn) return;
         const id = menuBtn.getAttribute('data-map-menu');
         try {
-          const maps = (window.MG1MapLibrary && typeof window.MG1MapLibrary.getAll === 'function') ? await window.MG1MapLibrary.getAll() : [];
+          const maps = await getManageMapsCache_(false);
           const entry = maps.find(function(m){ return m && String(m.id) === String(id); });
-          if (entry) showMapActionSheet_(entry, getManageActiveId_(), async function(){ await refreshManageList_(searchEl ? searchEl.value : '', {forceReload:true, refreshStorage:true}); });
+          if (entry) showMapActionSheet_(entry, getManageActiveId_(), async function(){ await refreshManageList_(searchEl ? searchEl.value : '', {forceReload:true}); });
         } catch (e) { console.warn('[V24.3 MAP LIBRARY] map action menu failed', e); }
       });
     }
@@ -1530,7 +1414,7 @@
         scopeBtn.style.background = active ? 'rgba(245,158,11,.13)' : 'rgba(16,185,129,.13)';
         scopeBtn.style.borderColor = active ? 'rgba(245,158,11,.28)' : 'rgba(52,211,153,.30)';
         scopeBtn.style.color = active ? '#fbbf24' : '#6ee7b7';
-        refreshManageList_(searchEl ? searchEl.value : '', {refreshStorage:false});
+        refreshManageList_(searchEl ? searchEl.value : '');
       });
     }
 
