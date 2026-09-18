@@ -58,3 +58,51 @@
     validatePayload: validatePayload_
   });
 })(window);
+
+
+  /**
+   * Global import security gate.
+   * Extension is treated only as compatibility metadata; package content remains untrusted
+   * until parsed and validated.
+   */
+  function validateImportPackage(pkg) {
+    try {
+      if (!pkg || typeof pkg !== 'object' || Array.isArray(pkg)) {
+        return { ok:false, reason:'invalid-package' };
+      }
+      const maps = Array.isArray(pkg.maps) ? pkg.maps : null;
+      if (!maps || maps.length < 1) return { ok:false, reason:'invalid-maps' };
+
+      for (const map of maps) {
+        if (!map || typeof map !== 'object') return { ok:false, reason:'invalid-map' };
+
+        if (typeof map.imageDataUrl === 'string' && map.imageDataUrl) {
+          if (typeof isSafeImageDataUrl === 'function' && !isSafeImageDataUrl(map.imageDataUrl)) {
+            return { ok:false, reason:'unsafe-image-data' };
+          }
+        }
+
+        const tiles = Array.isArray(map.tiles) ? map.tiles : [];
+        for (const tile of tiles) {
+          if (!tile || typeof tile !== 'object') return { ok:false, reason:'invalid-tile' };
+          if (typeof tile.dataUrl === 'string' && tile.dataUrl) {
+            if (typeof isSafeImageDataUrl === 'function' && !isSafeImageDataUrl(tile.dataUrl)) {
+              return { ok:false, reason:'unsafe-tile-data' };
+            }
+          }
+          if (typeof tile.tileKey === 'string' && tile.tileKey) {
+            if (typeof isSafeTileKey === 'function' && !isSafeTileKey(tile.tileKey)) {
+              return { ok:false, reason:'unsafe-tile-key' };
+            }
+          }
+        }
+      }
+      return { ok:true };
+    } catch (e) {
+      return { ok:false, reason:'security-validation-error' };
+    }
+  }
+
+  window.MG1LithositeSecurity = Object.assign(window.MG1LithositeSecurity || {}, {
+    validateImportPackage: validateImportPackage
+  });
