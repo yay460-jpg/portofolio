@@ -6,6 +6,30 @@
 let mg1PetaViewMode_ = 'location';
 let mg1TopoPrepared_ = false;
 let mg1TopoPreparing_ = false;
+let mg1TopoAdvancedOpen_ = false;
+
+function toggleTopographyAdvanced_() {
+  const panel = document.getElementById('mg1-topo-advanced-panel');
+  const button = document.getElementById('mg1-topo-advanced-toggle');
+  if (!panel || !button) return;
+  const willOpen = panel.style.display === 'none' || panel.style.display === '';
+  panel.style.display = willOpen ? 'block' : 'none';
+  mg1TopoAdvancedOpen_ = willOpen;
+  button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  button.classList.toggle('bg-blue-500/15', willOpen);
+  button.classList.toggle('border-blue-400/40', willOpen);
+}
+
+function closeTopographyAdvanced_() {
+  const panel = document.getElementById('mg1-topo-advanced-panel');
+  const button = document.getElementById('mg1-topo-advanced-toggle');
+  mg1TopoAdvancedOpen_ = false;
+  if (panel) panel.style.display = 'none';
+  if (button) {
+    button.setAttribute('aria-expanded', 'false');
+    button.classList.remove('bg-blue-500/15', 'border-blue-400/40');
+  }
+}
 
 function renderPetaModeSwitcher_() {
   return '<div class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-[#0b1329] border border-white/[0.08]">' +
@@ -30,23 +54,34 @@ function renderTopographyView_() {
     '</div>' +
     '<div id="mg1-topo-status" class="absolute left-3 top-[43px] z-10 text-[8px] text-blue-200 max-w-[72%]"></div>' +
     '<div id="mg1-topo-hint" class="absolute inset-0 flex items-center justify-center text-center text-[10px] text-white/35 pointer-events-none">3D TOPOGRAFI<br>Import <b>.ltdtm</b> atau pasangan <b>.dtm + .str</b>.</div>' +
-    '<div class="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-[78px] p-1 rounded-xl bg-[#0a1428]/90 border border-white/10 backdrop-blur">' +
-      '<button id="mg1-topo-topView" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/80">TOP</button>' +
+    '<div class="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-[58px] p-1 rounded-xl bg-[#0a1428]/90 border border-white/10 backdrop-blur">' +
       '<button id="mg1-topo-view3d" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold bg-blue-500/15 text-white">3D</button>' +
+      '<button id="mg1-topo-topView" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/80">TOP</button>' +
       '<button id="mg1-topo-fit" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/80">FIT</button>' +
       '<div class="h-px bg-white/10 my-1"></div>' +
-      '<button id="mg1-topo-shaded" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold bg-blue-500/15 text-white">SHADED</button>' +
-      '<button id="mg1-topo-elev" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/70">ELEVATION</button>' +
-      '<button id="mg1-topo-wire" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/70">TIN WIREFRAME</button>' +
-      '<button id="mg1-topo-mesh" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/70">MESH</button>' +
-      '<button id="mg1-topo-relief" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold bg-blue-500/15 text-white">RELIEF ON</button>' +
-      '<button id="mg1-topo-tint" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/70">ELEV TINT OFF</button>' +
-      '<div class="h-px bg-white/10 my-1"></div>' +
-      '<div class="px-1 text-[7px] text-white/35 flex justify-between"><span>Z EXAG.</span><span id="mg1-topo-zFactorText">1.10×</span></div>' +
-      '<input id="mg1-topo-zFactor" type="range" min="0.25" max="2.5" step="0.05" value="1.10" class="w-full">' +
-      '<button id="mg1-topo-gap" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold bg-blue-500/15 text-white">GAP GUARD</button>' +
+      '<button id="mg1-topo-shaded" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold bg-blue-500/15 text-white">SHADE</button>' +
+      '<button id="mg1-topo-elev" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/70">ELEV</button>' +
+      '<button id="mg1-topo-wire" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/70">WIRE</button>' +
     '</div>' +
-    '<div class="absolute left-2 right-2 bottom-2 z-10 flex items-center gap-1.5 p-1.5 rounded-xl bg-[#0a1428]/90 border border-white/10">' +
+    '<div id="mg1-topo-advanced-panel" class="absolute right-3 bottom-[52px] z-20 w-[250px] max-w-[calc(100%-24px)] p-3 rounded-2xl bg-[#0a1428]/95 border border-white/10 backdrop-blur-xl shadow-2xl" style="display:none">' +
+      '<div class="flex items-center justify-between mb-2">' +
+        '<div class="text-[9px] font-extrabold tracking-wide text-white">PENGATURAN 3D</div>' +
+        '<button type="button" onclick="closeTopographyAdvanced_()" aria-label="Tutup pengaturan 3D" class="w-6 h-6 rounded-full bg-white/5 border border-white/10 text-white/60 text-[11px]">×</button>' +
+      '</div>' +
+      '<div class="grid grid-cols-2 gap-2">' +
+        '<div class="col-span-2">' +
+          '<div class="flex items-center justify-between text-[7px] text-white/40 mb-1"><span>Z EXAG.</span><span id="mg1-topo-zFactorText">1.10×</span></div>' +
+          '<input id="mg1-topo-zFactor" type="range" min="0.25" max="2.5" step="0.05" value="1.10" class="w-full">' +
+        '</div>' +
+        '<button id="mg1-topo-gap" class="h-8 rounded-lg text-[8px] font-bold bg-blue-500/15 text-white border border-blue-400/10">GAP</button>' +
+        '<button id="mg1-topo-mesh" class="h-8 rounded-lg text-[8px] font-bold text-white/70 bg-white/[0.03] border border-white/10">MESH</button>' +
+        '<button id="mg1-topo-relief" class="h-8 rounded-lg text-[8px] font-bold bg-blue-500/15 text-white border border-blue-400/10">RELIEF ON</button>' +
+        '<button id="mg1-topo-tint" class="h-8 rounded-lg text-[8px] font-bold text-white/70 bg-white/[0.03] border border-white/10">TINT OFF</button>' +
+      '</div>' +
+      '<div class="mt-2 text-[7px] leading-relaxed text-white/25">Kontrol lanjutan disembunyikan agar viewport 3D tetap bersih.</div>' +
+    '</div>' +
+    '<button id="mg1-topo-advanced-toggle" type="button" onclick="toggleTopographyAdvanced_()" aria-label="Buka pengaturan 3D" aria-expanded="false" class="absolute right-3 bottom-3 z-20 w-9 h-9 rounded-full bg-[#0a1428]/95 border border-white/10 flex items-center justify-center text-white/80 text-[15px] leading-none active:scale-95 transition-transform" title="Pengaturan 3D">•••</button>' +
+    '<div class="absolute left-2 right-14 bottom-2 z-10 flex items-center gap-1.5 p-1.5 rounded-xl bg-[#0a1428]/90 border border-white/10">' +
       '<div class="min-w-0 flex-1"><div class="text-[6px] uppercase text-white/30">Elevation</div><div id="mg1-topo-z" class="text-[8px] font-bold truncate">—</div></div>' +
       '<div class="min-w-0 flex-1"><div class="text-[6px] uppercase text-white/30">Triangles</div><div id="mg1-topo-tri" class="text-[8px] font-bold truncate">—</div></div>' +
       '<div class="min-w-0 flex-1"><div class="text-[6px] uppercase text-white/30">Bounds</div><div id="mg1-topo-bounds" class="text-[8px] font-bold truncate">—</div></div>' +
@@ -108,6 +143,7 @@ function switchPetaViewMode_(mode) {
       }
     }));
   } else {
+    closeTopographyAdvanced_();
     topoSurface.style.display = 'none';
     locationSurface.style.display = '';
     // The WebGL canvas remains allocated; it is not rebuilt or destroyed on switch.
@@ -120,7 +156,8 @@ function switchPetaViewMode_(mode) {
 function renderPeta() {
   let html = renderHeader();
   html += '<main class="app-main flex-1 min-h-0 flex flex-col gap-[10px] px-4 pt-3 pb-3">';
-  html += renderPetaModeSwitcher_();
+  // Member Peta owns the mode switcher. Do not render a second copy here.
+  // The outer Peta member provides renderPetaModeSwitcher_() once.
 
   if (mg1PetaViewMode_ === 'topo') {
     html += renderTopographyView_();
