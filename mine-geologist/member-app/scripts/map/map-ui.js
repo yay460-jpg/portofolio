@@ -1,13 +1,137 @@
 /* STEP 9.12-C — Map UI Boundary. UI render functions only; behavior unchanged. */
 
+
+// PETA VIEW MODE — Peta Lokasi / 3D Topografi.
+// Switch dilakukan tanpa global render() agar surface lama tidak dibongkar pada saat transisi.
+let mg1PetaViewMode_ = 'location';
+let mg1TopoPrepared_ = false;
+let mg1TopoPreparing_ = false;
+
+function renderPetaModeSwitcher_() {
+  return '<div class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-[#0b1329] border border-white/[0.08]">' +
+    '<button type="button" id="mg1-peta-location-tab" onclick="switchPetaViewMode_(\'location\')" ' +
+      'class="py-2 rounded-lg text-[10px] font-bold tracking-wide ' +
+      (mg1PetaViewMode_ === 'location' ? 'bg-blue-500/15 text-white border border-blue-400/25' : 'text-white/40') +
+      '">PETA LOKASI</button>' +
+    '<button type="button" id="mg1-peta-topo-tab" onclick="switchPetaViewMode_(\'topo\')" ' +
+      'class="py-2 rounded-lg text-[10px] font-bold tracking-wide ' +
+      (mg1PetaViewMode_ === 'topo' ? 'bg-blue-500/15 text-white border border-blue-400/25' : 'text-white/40') +
+      '">3D TOPOGRAFI</button>' +
+    '</div>';
+}
+
+function renderTopographyView_() {
+  return '<div id="mg1-topography-root" class="relative flex-1 min-h-0 rounded-[12px] overflow-hidden bg-[#050b18] border border-white/[0.08]">' +
+    '<canvas id="mg1-topo-gl" class="absolute inset-0 w-full h-full" style="touch-action:none"></canvas>' +
+    '<div class="absolute left-3 right-3 top-2 z-10 flex items-start justify-between pointer-events-none">' +
+      '<div><div class="text-[11px] font-extrabold text-white">3D TOPOGRAFI</div>' +
+      '<div id="mg1-topo-name" class="text-[8px] text-white/35 mt-0.5">Offline STR / DTM</div></div>' +
+      '<label class="pointer-events-auto px-2.5 py-2 rounded-lg bg-[#0e192d]/90 border border-white/10 text-[9px] font-bold text-white cursor-pointer">IMPORT DTM/STR<input id="mg1-topo-pick" type="file" accept=".ltdtm,.dtm,.str" multiple class="hidden"></label>' +
+    '</div>' +
+    '<div id="mg1-topo-status" class="absolute left-3 top-[43px] z-10 text-[8px] text-blue-200 max-w-[72%]"></div>' +
+    '<div id="mg1-topo-hint" class="absolute inset-0 flex items-center justify-center text-center text-[10px] text-white/35 pointer-events-none">3D TOPOGRAFI<br>Import <b>.ltdtm</b> atau pasangan <b>.dtm + .str</b>.</div>' +
+    '<div class="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-[78px] p-1 rounded-xl bg-[#0a1428]/90 border border-white/10 backdrop-blur">' +
+      '<button id="mg1-topo-topView" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/80">TOP</button>' +
+      '<button id="mg1-topo-view3d" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold bg-blue-500/15 text-white">3D</button>' +
+      '<button id="mg1-topo-fit" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/80">FIT</button>' +
+      '<div class="h-px bg-white/10 my-1"></div>' +
+      '<button id="mg1-topo-shaded" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold bg-blue-500/15 text-white">SHADED</button>' +
+      '<button id="mg1-topo-elev" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/70">ELEVATION</button>' +
+      '<button id="mg1-topo-wire" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/70">TIN WIREFRAME</button>' +
+      '<button id="mg1-topo-mesh" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/70">MESH</button>' +
+      '<button id="mg1-topo-relief" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold bg-blue-500/15 text-white">RELIEF ON</button>' +
+      '<button id="mg1-topo-tint" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold text-white/70">ELEV TINT OFF</button>' +
+      '<div class="h-px bg-white/10 my-1"></div>' +
+      '<div class="px-1 text-[7px] text-white/35 flex justify-between"><span>Z EXAG.</span><span id="mg1-topo-zFactorText">1.10×</span></div>' +
+      '<input id="mg1-topo-zFactor" type="range" min="0.25" max="2.5" step="0.05" value="1.10" class="w-full">' +
+      '<button id="mg1-topo-gap" class="w-full h-7 my-0.5 rounded-lg text-[8px] font-bold bg-blue-500/15 text-white">GAP GUARD</button>' +
+    '</div>' +
+    '<div class="absolute left-2 right-2 bottom-2 z-10 flex items-center gap-1.5 p-1.5 rounded-xl bg-[#0a1428]/90 border border-white/10">' +
+      '<div class="min-w-0 flex-1"><div class="text-[6px] uppercase text-white/30">Elevation</div><div id="mg1-topo-z" class="text-[8px] font-bold truncate">—</div></div>' +
+      '<div class="min-w-0 flex-1"><div class="text-[6px] uppercase text-white/30">Triangles</div><div id="mg1-topo-tri" class="text-[8px] font-bold truncate">—</div></div>' +
+      '<div class="min-w-0 flex-1"><div class="text-[6px] uppercase text-white/30">Bounds</div><div id="mg1-topo-bounds" class="text-[8px] font-bold truncate">—</div></div>' +
+      '<button id="mg1-topo-save" disabled class="h-7 px-2 rounded-lg bg-[#101d36] border border-white/10 text-[8px] font-bold text-white/70">SIMPAN</button>' +
+      '<button id="mg1-topo-reset" class="h-7 px-2 rounded-lg bg-[#101d36] border border-white/10 text-[8px] font-bold text-white/70">RESET</button>' +
+    '</div>' +
+    '<div id="mg1-topo-loading" class="absolute inset-0 z-30 flex items-center justify-center bg-[#050b18]/95 backdrop-blur-sm">' +
+      '<div class="w-[230px] p-5 rounded-2xl bg-[#0b1329] border border-white/10 text-center shadow-2xl">' +
+        '<div class="mx-auto mb-3 w-7 h-7 rounded-full border-[3px] border-white/15 border-t-blue-400 animate-spin"></div>' +
+        '<div id="mg1-topo-loading-title" class="text-[11px] font-bold text-white">Menyiapkan 3D Topografi…</div>' +
+        '<div id="mg1-topo-loading-sub" class="text-[8px] text-white/35 mt-1">Prepare data dan WebGL. Mohon tunggu.</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function switchPetaViewMode_(mode) {
+  mode = mode === 'topo' ? 'topo' : 'location';
+  if (mg1PetaViewMode_ === mode && document.getElementById('mg1-peta-location-surface')) return;
+  mg1PetaViewMode_ = mode;
+
+  const locationSurface = document.getElementById('mg1-peta-location-surface');
+  const topoSurface = document.getElementById('mg1-topography-root');
+  const locTab = document.getElementById('mg1-peta-location-tab');
+  const topoTab = document.getElementById('mg1-peta-topo-tab');
+
+  if (!locationSurface || !topoSurface) {
+    render();
+    return;
+  }
+
+  if (locTab) {
+    locTab.className = 'py-2 rounded-lg text-[10px] font-bold tracking-wide ' +
+      (mode === 'location' ? 'bg-blue-500/15 text-white border border-blue-400/25' : 'text-white/40');
+  }
+  if (topoTab) {
+    topoTab.className = 'py-2 rounded-lg text-[10px] font-bold tracking-wide ' +
+      (mode === 'topo' ? 'bg-blue-500/15 text-white border border-blue-400/25' : 'text-white/40');
+  }
+
+  const loading = document.getElementById('mg1-topo-loading');
+  if (mode === 'topo') {
+    locationSurface.style.display = 'none';
+    topoSurface.style.display = 'block';
+    if (loading) {
+      loading.style.display = 'flex';
+      loading.style.opacity = '1';
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (typeof window.initTopographyViewer_ === 'function') {
+        const ok = window.initTopographyViewer_();
+        if (ok && typeof window.mg1TopoResize_ === 'function') window.mg1TopoResize_();
+      }
+      mg1TopoPrepared_ = true;
+      mg1TopoPreparing_ = false;
+      if (loading) {
+        loading.style.opacity = '0';
+        setTimeout(() => { if (loading) loading.style.display = 'none'; }, 140);
+      }
+    }));
+  } else {
+    topoSurface.style.display = 'none';
+    locationSurface.style.display = '';
+    // The WebGL canvas remains allocated; it is not rebuilt or destroyed on switch.
+    requestAnimationFrame(() => {
+      if (typeof window.mg1TopoResize_ === 'function') window.mg1TopoResize_();
+    });
+  }
+}
+
 function renderPeta() {
   let html = renderHeader();
   html += '<main class="app-main flex-1 min-h-0 flex flex-col gap-[10px] px-4 pt-3 pb-3">';
+  html += renderPetaModeSwitcher_();
+
+  if (mg1PetaViewMode_ === 'topo') {
+    html += renderTopographyView_();
+    html += '</main>' + renderBottomNav();
+    return html;
+  }
 
   // [BARU] State loading -- muncul singkat saat tab Peta pertama kali dibuka & fetch
   // mandirinya (loadValidasiDataForMapStandalone_) masih berjalan.
   if (mapDataBusy) {
-    html += renderSectionTitle('PETA LOKASI', 'memuat...');
+    html += renderSectionTitle('2D MAP LOKASI', 'memuat...');
     html += '<div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-[12px] bg-[#0b1329] border border-white/[0.08] p-8 text-center">' +
       '<span class="w-8 h-8 border-2 border-white/20 border-t-blue-400 rounded-full spin"></span>' +
       '<div class="text-white/50 text-xs">Memuat data Peta...</div>' +
@@ -21,7 +145,7 @@ function renderPeta() {
   // ikut "error" saat Produksi gagal padahal Validasi sukses, ATAU sebaliknya Validasi
   // gagal tapi Peta tidak masuk state error sama sekali (malah pakai dataset lama).
   if (mapDataErrorMsg) {
-    html += renderSectionTitle('PETA LOKASI', 'gagal memuat');
+    html += renderSectionTitle('2D MAP LOKASI', 'gagal memuat');
     html += '<div class="flex-1 min-h-0 flex flex-col items-center justify-center gap-3 rounded-[12px] bg-[#0b1329] border border-rose-500/20 p-8 text-center">' +
       icon('alert-triangle','w-10 h-10 text-rose-400') +
       '<div class="text-white font-bold text-sm">Gagal Memuat Data Peta</div>' +
@@ -44,7 +168,8 @@ function renderPeta() {
     mapFocusIdTp = null;
   }
 
-  html += renderSectionTitle('PETA LOKASI', mapData.length + ' titik TP');
+  // Title + mode switcher already rendered above.
+  html += '<div id="mg1-peta-location-surface" class="flex-1 min-h-0 flex flex-col">';
 
   // v90.2.113: state EMPTY (poin desain #7) -- 0 TP sama sekali (bukan krn error, genuinely
   // belum ada data Validasi).
@@ -54,7 +179,7 @@ function renderPeta() {
       '<div class="text-white font-bold text-sm">Belum Ada Titik TP</div>' +
       '<div class="text-[11px] text-white/40 max-w-[260px]">Data Validasi/Test Pit belum ada utk periode ini.</div>' +
     '</div>';
-    html += '</main>' + renderBottomNav();
+    html += '</div></main>' + renderBottomNav();
     return html;
   }
 
@@ -66,7 +191,7 @@ function renderPeta() {
       '<div class="text-white font-bold text-sm">Koordinat Belum Tersedia</div>' +
       '<div class="text-[11px] text-white/40 max-w-[260px]">' + mapData.length + ' titik TP ada, tapi belum satupun punya Timur/Utara terisi dari Plan/Head.</div>' +
     '</div>';
-    html += '</main>' + renderBottomNav();
+    html += '</div></main>' + renderBottomNav();
     return html;
   }
 
@@ -101,6 +226,7 @@ function renderPeta() {
     html += '<div class="text-[10px] ' + gpsTone + ' text-center shrink-0">' + gpsText + '</div>';
   }
   html += '<div class="text-[10px] text-white/30 text-center shrink-0">Koordinat grid tambang (Timur/Utara) -- bukan GPS. Tap titik utk detail.</div>';
+  html += '</div>'; // mg1-peta-location-surface
   html += '</main>';
   html += renderBottomNav();
   html += renderMapDetailModal(mapData);
