@@ -203,11 +203,32 @@ function buildMemberTopo3DPanel_() {
     '</div>';
 }
 
+function isMemberPetaViewSwitcherCandidate_(el) {
+  if (!el || el.id === 'mg1-peta-view-switch') return false;
+  const buttons = Array.from(el.querySelectorAll('button'));
+  if (buttons.length !== 2) return false;
+  const labels = buttons.map(function(btn) {
+    return String(btn.textContent || '').replace(/\\s+/g, ' ').trim().toUpperCase();
+  });
+  return labels[0] === 'PETA LOKASI' && labels[1] === '3D TOPOGRAFI';
+}
+
 function removeDuplicateMemberTopoSwitchers_(keepMain, keepSwitcher) {
   const all = Array.from(document.querySelectorAll('#mg1-peta-view-switch'));
   all.forEach(function(el) {
     if (el === keepSwitcher && el.parentElement === keepMain) return;
     el.remove();
+  });
+
+  // The existing Peta renderer may already own the two-button view switcher.
+  // Do not create a second owner: remove only a non-canonical element whose
+  // two buttons are exactly the Peta/3D Topografi pair.
+  if (!keepSwitcher) return;
+  const candidates = Array.from(keepMain.querySelectorAll('div,section,nav'));
+  candidates.forEach(function(el) {
+    if (el === keepSwitcher) return;
+    if (!isMemberPetaViewSwitcherCandidate_(el)) return;
+    try { el.remove(); } catch (_) {}
   });
 }
 
@@ -232,6 +253,11 @@ function mountMemberTopo3DPanel_() {
     // switchers/panels to survive across render cycles.
     let switcher = main.querySelector('#mg1-peta-view-switch');
     let panel = main.querySelector('#mg1-topo3d-panel');
+
+    // Remove a legacy/generic Peta/3D switcher before any new switcher is
+    // created. This keeps a single UI owner even when peta.js already renders
+    // the same two-button control.
+    removeDuplicateMemberTopoSwitchers_(main, switcher);
 
     if (switcher && panel) {
       removeDuplicateMemberTopoSwitchers_(main, switcher);
