@@ -937,11 +937,50 @@
     const sortItems=[['name-asc','A↓Z','Nama A–Z'],['name-desc','Z↓A','Nama Z–A'],['newest','◔✦','Terbaru'],['oldest','◷','Terlama']];
     const filterItems=[['label','◇','Semua Label','__all__'],['label','◇̸','Tanpa Label','__none__'],['collection','▦','Semua koleksi','__all__'],['collection','▦̸','Tanpa koleksi','__none__']];
     let filterState=isFilter?{label:(current&&current.label)||'__all__',collection:(current&&current.collection)||'__all__'}:null;
-    const option=(item)=>{const group=item[3]||null;const value=group?item[3]:item[0];const selected=isFilter?String(filterState[group])===String(value):String(current||'')===String(value);return `<button type="button" data-choice="${escapeHtml_(value)}" data-group="${group||''}" style="min-height:${isFilter?'104':'132'}px;border-radius:18px;background:${selected?'linear-gradient(180deg,#2f86ff,#1e70ee)':'#0b1834'};border:1px solid ${selected?'rgba(96,165,250,.75)':'rgba(59,130,246,.95)'};box-shadow:${selected?'0 10px 28px rgba(37,99,235,.30),inset 0 1px 0 rgba(255,255,255,.08)':'inset 0 1px 0 rgba(255,255,255,.025)'};color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px 4px;cursor:pointer;position:relative;min-width:0;"><span style="font-size:${isFilter?'30':'32'}px;line-height:1;color:${selected?'#fff':'#4d93ff'};">${item[1]}</span><span style="font-size:${isFilter?'10':'12'}px;font-weight:500;white-space:nowrap;">${item[2]}</span><span style="position:absolute;right:7px;top:7px;width:16px;height:16px;border:2px solid ${selected?'#fff':'#9fc5ff'};border-radius:50%;box-sizing:border-box;">${selected?'<span style="display:block;width:6px;height:6px;margin:3px;border-radius:50%;background:#fff;"></span>':''}</span></button>`;};
+
+    const option=(item)=>{
+      const group=item[3]||null;
+      const value=group?item[3]:item[0];
+      const selected=isFilter?String(filterState[group])===String(value):String(current||'')===String(value);
+      return `<button type="button" data-choice="${escapeHtml_(value)}" data-group="${group||''}" style="min-width:0;min-height:104px;border-radius:18px;background:${selected?'linear-gradient(180deg,#2f86ff,#1e70ee)':'#0b1834'};border:1px solid ${selected?'rgba(96,165,250,.75)':'rgba(59,130,246,.95)'};box-shadow:${selected?'0 10px 28px rgba(37,99,235,.30),inset 0 1px 0 rgba(255,255,255,.08)':'inset 0 1px 0 rgba(255,255,255,.025)'};color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 4px;cursor:pointer;position:relative;box-sizing:border-box;overflow:hidden;">
+        <span aria-hidden="true" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex:0 0 34px;font-size:22px;font-weight:500;line-height:1;letter-spacing:-.02em;color:${selected?'#fff':'#4d93ff'};font-variant-numeric:tabular-nums;">${item[1]}</span>
+        <span style="font-size:10px;font-weight:500;line-height:1.15;white-space:nowrap;text-align:center;">${item[2]}</span>
+        <span style="position:absolute;right:7px;top:7px;width:16px;height:16px;border:2px solid ${selected?'#fff':'#9fc5ff'};border-radius:50%;box-sizing:border-box;">${selected?'<span style="display:block;width:6px;height:6px;margin:3px;border-radius:50%;background:#fff;"></span>':''}</span>
+      </button>`;
+    };
+
     const items=isFilter?filterItems:sortItems;
-    root.innerHTML=`<div role="dialog" aria-modal="true" aria-label="${cfg.title}" style="width:min(100%,680px);background:#0e1d3d;border:1px solid rgba(96,165,250,.28);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:12px 22px 24px;box-sizing:border-box;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);"><div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 24px;"></div><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px;"><div><div style="font-size:17px;font-weight:600;color:#fff;">${cfg.title}</div><div style="font-size:11px;color:#9fc5ff;margin-top:6px;">${cfg.subtitle}</div></div><button type="button" data-close style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(96,165,250,.25);color:#dbeafe;font-size:22px;line-height:1;cursor:pointer;">×</button></div><div data-choice-grid style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;">${items.map(option).join('')}</div>${isFilter?'<button type="button" data-done style="display:block;width:100%;height:40px;margin-top:14px;border:1px solid rgba(96,165,250,.30);border-radius:12px;background:#162b52;color:#fff;font-size:12px;font-weight:500;cursor:pointer;">Selesai</button>':''}</div>`;
-    document.body.appendChild(root);const panel=root.firstElementChild;const close=()=>{panel.style.transform='translateY(110%)';setTimeout(()=>root.remove(),220);};root.querySelector('[data-close]').onclick=close;if(root.querySelector('[data-done]'))root.querySelector('[data-done]').onclick=()=>{close();if(typeof onSelect==='function')onSelect(filterState);};root.addEventListener('click',ev=>{if(ev.target===root)close();});
-    const bindChoices=()=>{root.querySelectorAll('[data-choice]').forEach(btn=>btn.onclick=()=>{const v=btn.getAttribute('data-choice');const g=btn.getAttribute('data-group');if(isFilter){filterState[g]=v;root.querySelector('[data-choice-grid]').innerHTML=filterItems.map(option).join('');bindChoices();}else{close();if(typeof onSelect==='function')onSelect(v);}});};
+    root.innerHTML=`<div role="dialog" aria-modal="true" aria-label="${cfg.title}" style="width:min(100%,680px);background:#0e1d3d;border:1px solid rgba(96,165,250,.28);border-radius:28px 28px 0 0;box-shadow:0 -24px 70px rgba(0,0,0,.48);padding:12px 22px 24px;box-sizing:border-box;transform:translateY(110%);transition:transform 260ms cubic-bezier(.16,1,.3,1);">
+      <div style="width:42px;height:5px;background:rgba(255,255,255,.25);border-radius:999px;margin:0 auto 24px;"></div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:22px;">
+        <div><div style="font-size:17px;font-weight:600;color:#fff;">${cfg.title}</div><div style="font-size:11px;color:#9fc5ff;margin-top:6px;">${cfg.subtitle}</div></div>
+        <button type="button" data-close style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(96,165,250,.25);color:#dbeafe;font-size:22px;line-height:1;cursor:pointer;">×</button>
+      </div>
+      <div data-choice-grid style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;">${items.map(option).join('')}</div>
+      ${isFilter?'<button type="button" data-done style="display:block;width:100%;height:40px;margin-top:14px;border:1px solid rgba(96,165,250,.30);border-radius:12px;background:#162b52;color:#fff;font-size:12px;font-weight:500;cursor:pointer;">Selesai</button>':''}
+    </div>`;
+
+    document.body.appendChild(root);
+    const panel=root.firstElementChild;
+    const close=()=>{panel.style.transform='translateY(110%)';setTimeout(()=>root.remove(),220);};
+    root.querySelector('[data-close]').onclick=close;
+    if(root.querySelector('[data-done]'))root.querySelector('[data-done]').onclick=()=>{close();if(typeof onSelect==='function')onSelect(filterState);};
+    root.addEventListener('click',ev=>{if(ev.target===root)close();});
+
+    const bindChoices=()=>{
+      root.querySelectorAll('[data-choice]').forEach(btn=>btn.onclick=()=>{
+        const v=btn.getAttribute('data-choice');
+        const g=btn.getAttribute('data-group');
+        if(isFilter){
+          filterState[g]=v;
+          root.querySelector('[data-choice-grid]').innerHTML=filterItems.map(option).join('');
+          bindChoices();
+        }else{
+          close();
+          if(typeof onSelect==='function')onSelect(v);
+        }
+      });
+    };
     bindChoices();
     requestAnimationFrame(()=>requestAnimationFrame(()=>{panel.style.transform='translateY(0)';}));
   }
