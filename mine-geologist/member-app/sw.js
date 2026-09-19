@@ -11,7 +11,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260918-maplib3';
+const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260919-topo3d1';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
@@ -48,6 +48,7 @@ const APP_SHELL = [
   './vendor/pdfjs/pdf.min.js',
   './vendor/pdfjs/pdf.worker.min.js',
   '../shared/geo-engine.js',
+  '../shared/topo3d/topo3d-engine.js',
   './scripts/config.js',
   './scripts/auth.js',
   './scripts/kpi.js',
@@ -68,6 +69,7 @@ const APP_SHELL = [
   './scripts/map/map-surface-lifecycle.js',
   './scripts/map/map-interaction.js',
   './scripts/map/map-ui.js',
+  './scripts/map/map-topography.js',
   './scripts/peta.js',
   './scripts/map/map-library-contract.js',
   './scripts/map/map-library.js',
