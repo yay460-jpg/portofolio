@@ -360,13 +360,21 @@ function mountMemberTopo3DPanel_() {
 
     switcher = document.createElement('div');
     switcher.id = 'mg1-peta-view-switch';
-    switcher.className = 'grid grid-cols-2 gap-1 p-1 rounded-xl bg-[#0b1329] border border-white/[0.08] shrink-0';
+    // Single shared view bar: it is the only element allowed to control
+    // Peta Lokasi <-> 3D Topografi.  It stays pinned at the top of the
+    // Peta content area while either view changes underneath it.
+    switcher.className = 'sticky top-0 z-40 grid grid-cols-2 gap-1 p-1 rounded-xl bg-[#0b1329]/95 border border-white/[0.08] shrink-0 backdrop-blur';
+    switcher.setAttribute('role', 'tablist');
+    switcher.setAttribute('aria-label', 'Mode Peta');
     switcher.innerHTML =
       '<button type="button" data-mode="location" onclick="setMemberTopoView_(\'location\')" class="py-2 rounded-lg text-[10px] font-bold bg-[#2563eb]/20 text-white">PETA LOKASI</button>' +
       '<button type="button" data-mode="topo" onclick="setMemberTopoView_(\'topo\')" class="py-2 rounded-lg text-[10px] font-bold text-white/40">3D TOPOGRAFI</button>';
 
     main.insertBefore(switcher, children[1] || null);
 
+    // Only the existing Peta content is a switchable view.  The switch bar
+    // and the Topo3D panel are controller/owned surfaces and must remain
+    // visible/alive across tab changes.
     Array.from(main.children).forEach(function(el) {
       if (el !== switcher) el.setAttribute('data-mg1-peta-original','1');
     });
