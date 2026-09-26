@@ -11,7 +11,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260919-topo3d-savev2';
+const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260926-topo3d-step15-play360';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
@@ -28,7 +28,9 @@ const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260919-topo3d-savev2';
 // itu TIDAK PERNAH tersimpan walau sudah sukses dimuat berkali-kali saat online ->
 // begitu app ditutup & dibuka lagi tanpa internet, tab Peta (dan sebagian besar app,
 // krn renderPeta dkk ada di map-ui.js) GAGAL TOTAL.
-// [UPDATE -- 17 Sep] Toolbar GPS/Layers + Global Shell Boundary + Settings overlay.
+// [UPDATE -- 26 Sep] Step 12 Smart Collision / Auto-Offset untuk label ID TP.
+// map-topography.js dan cache version dinaikkan agar browser tidak memakai label overlay lama.
+// Toolbar GPS/Layers + Global Shell Boundary + Settings overlay tetap unchanged.
 // peta.js, map-ui.js, map-management-compat.js, settings.js, dan index.html
 // sudah tercakup di APP_SHELL di bawah; cache version dinaikkan agar browser
 // mengambil runtime terbaru dan tidak memakai cache lama.
