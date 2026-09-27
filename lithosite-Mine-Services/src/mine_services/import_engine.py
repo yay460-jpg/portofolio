@@ -5,6 +5,7 @@ from openpyxl import load_workbook
 from .schema import DOMAIN_ENTITIES, HEADERS, PKS, SCHEMA_VERSION
 from .validation import ValidationEngine
 from .persistence import PersistenceStore
+from .audit import AuditRepository
 
 IMPORT_ERROR_CODES = {
     "FILE_UNREADABLE": "E001",
@@ -24,11 +25,12 @@ IMPORT_ERROR_CODES = {
 }
 
 class ImportCoordinator:
-    def __init__(self, store, validator=None, transaction=None):
+    def __init__(self, store, validator=None, transaction=None, audit_repository=None):
         from .transaction import TransactionManager
         self.store = store
         self.validator = validator or ValidationEngine()
         self.transaction = transaction or TransactionManager(store)
+        self.audit_repository = audit_repository or AuditRepository(store)
 
     @staticmethod
     def _error(code, message, field=None):
@@ -159,16 +161,15 @@ class ImportCoordinator:
                     for row in items:
                         self.store.insert(entity, row[PKS[entity]], row)
 
-                self.store.add_audit({
-                    "audit_id": str(uuid.uuid4()),
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "entity": "_System",
-                    "entity_id": "IMPORT",
-                    "action": "IMPORT",
-                    "old_value": None,
-                    "new_value": str({entity: len(items) for entity, items in rows.items()}),
-                    "source": "ImportCoordinator",
-                })
+                self.audit_repository.append(
+                    entity="_System",
+                    entity_id="IMPORT",
+                    action="IMPORT",
+                    request_id="IMPORT",
+                    old_value=None,
+                    new_value=str({entity: len(items) for entity, items in rows.items()}),
+                    source="ImportCoordinator",
+                )
                 self.transaction.commit()
                 return {
                     "status": "COMMITTED",
