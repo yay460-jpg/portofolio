@@ -29,16 +29,16 @@ android {
 chaquopy {
     defaultConfig {
         version = "3.13"
-        buildPython("py -3.13")
-
-        sourceSets {
-            getByName("main") {
-                setSrcDirs(listOf("../../src"))
-            }
-        }
+        buildPython("py", "-3.13")
 
         pip {
             install("openpyxl>=3.1,<4")
+        }
+    }
+
+    sourceSets {
+        getByName("main") {
+            setSrcDirs(listOf("../../src"))
         }
     }
 }
