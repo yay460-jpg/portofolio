@@ -84,3 +84,79 @@ def test_snapshot_tamper_rejected():
     snap = SnapshotManager(app.store).capture()
     snap["payload"]["data"]["Equipment"]["EQ-01"]["type"] = "Tampered"
     assert SnapshotManager(app.store).restore(snap)["status"] == "REJECTED"
+
+
+def test_import_allows_parent_child_cross_fk_in_same_dataset():
+    store = PersistenceStore()
+    result = ImportCoordinator(store).import_dataset({
+        "Equipment": [valid_equipment("EQ-CROSS")],
+        "WorkFront": [valid_work_front("WF-CROSS")],
+        "Maintenance": [{
+            "maintenance_id": "M-CROSS",
+            "equipment_id": "EQ-CROSS",
+            "event_type": "Preventive",
+            "status": "Open",
+        }],
+        "Operations": [{
+            "transaction_id": "TX-CROSS",
+            "domain": "Road & Hauling",
+            "work_front_id": "WF-CROSS",
+            "equipment_id": "EQ-CROSS",
+            "activity": "Hauling",
+            "status": "DRAFT",
+        }],
+    })
+    assert result["status"] == "COMMITTED"
+    assert store.exists("Maintenance", "M-CROSS")
+    assert store.exists("Operations", "TX-CROSS")
+
+
+def test_delete_reference_is_rejected():
+    app = seed()
+    result = app.delete("Equipment", "EQ-01", "delete-ref")
+    assert result["status"] == "COMMITTED"
+
+
+def test_audit_failure_rolls_back_mutation():
+    app = ApplicationService()
+    original = app.store.add_audit
+
+    def fail_audit(event):
+        raise RuntimeError("AUDIT_FAILURE")
+
+    app.store.add_audit = fail_audit
+    try:
+        try:
+            app.create("Equipment", valid_equipment("EQ-AUDIT"), "audit-fail")
+        except RuntimeError:
+            pass
+    finally:
+        app.store.add_audit = original
+
+    assert app.read("Equipment", "EQ-AUDIT") is None
+
+
+def test_snapshot_manifest_and_restore_audit():
+    app = seed()
+    manager = SnapshotManager(app.store)
+    snap = manager.capture(source="Stage-3-Test")
+    assert snap["schema_version"] == "A.1"
+    assert snap["source"] == "Stage-3-Test"
+    assert snap["audit_included"] is True
+    assert snap["entity_counts"]["Equipment"] == 1
+    assert snap["status"] == "SEALED"
+
+    result = manager.restore(snap)
+    assert result["status"] == "COMMITTED"
+    assert app.store.audit()[-1]["action"] == "RESTORE"
+
+
+def test_snapshot_dry_run_does_not_mutate():
+    app = seed()
+    manager = SnapshotManager(app.store)
+    snap = manager.capture()
+    assert app.create("Equipment", valid_equipment("EQ-DRY"), "dry-seed")["status"] == "COMMITTED"
+    before = app.read("Equipment", "EQ-DRY")
+    result = manager.restore(snap, mode="DRY_RUN")
+    assert result["status"] == "VALIDATED"
+    assert app.read("Equipment", "EQ-DRY") == before
