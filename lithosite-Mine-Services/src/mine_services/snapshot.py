@@ -109,7 +109,7 @@ class SnapshotManager:
                 if not isinstance(event, dict):
                     errors.append({"code": "VAL-E011", "field": "AuditLog", "message": "Audit event is invalid"})
                     continue
-                for field in HEADERS["AuditLog"]:
+                for field in ("audit_id", "timestamp", "entity", "entity_id", "action", "source"):
                     if event.get(field) in (None, ""):
                         errors.append({"code": "VAL-E003", "field": field, "message": "Audit field is required"})
 
