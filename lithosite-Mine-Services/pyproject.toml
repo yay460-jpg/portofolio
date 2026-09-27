@@ -1,0 +1,8 @@
+[project]
+name = "mine-services-reference"
+version = "0.1.0"
+description = "Mine Services Stage 3 reference implementation"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
