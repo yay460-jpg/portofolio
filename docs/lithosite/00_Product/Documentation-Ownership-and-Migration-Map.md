@@ -28,16 +28,16 @@ mine-geologist/Lithosite Android/
 |---|---|---|---|
 | `docs/lithosite/00_Product/` | Product architecture | Product | **MOVED / CANONICAL** |
 | `lithosite/02_Mine-Services/` | Mine Services lifecycle | Mine Services | Move after link audit |
-| `lithosite/Lithosite Android/01_Baseline/` | Locked technical baseline | Mine Geologist / Android | Preserve, then move |
-| `lithosite/Lithosite Android/02_Architecture/` | Architecture/security | Mine Geologist / Android | Preserve, then move |
-| `lithosite/Lithosite Android/03_Engine/` | Engine/runtime technical docs | Mine Geologist / Android | Preserve, then move |
-| `lithosite/Lithosite Android/04_Issues-Fixes/` | Issue/fix history | Mine Geologist / Android | Preserve, then move |
-| `lithosite/Lithosite Android/05_Version-History/` | Historical record | Mine Geologist / Android | Preserve, then move |
-| `lithosite/Lithosite Android/06_Guides/` | Guides | Mine Geologist / Android | Preserve, then move |
-| `lithosite/Lithosite Android/99_Archive/` | Historical archive | Mine Geologist / Android | Preserve, then move |
-| `lithosite/Lithosite Android/DOCUMENT_STYLE.md` | Documentation style | Product documentation standard | Review before consolidation |
-| `lithosite/Lithosite Android/MIGRATION_MAP.md` | Technical migration map | Mine Geologist / Android | Preserve and update links |
-| `lithosite/Lithosite Android/README.md` | Technical documentation entry | Mine Geologist / Android | Reconcile with new navigation |
+| `docs/lithosite/01_Mine-Geologist/Android/01_Baseline/` | Locked technical baseline | Mine Geologist / Android | **MOVED / CANONICAL** |
+| `docs/lithosite/01_Mine-Geologist/Android/02_Architecture/` | Architecture/security | Mine Geologist / Android | **MOVED / CANONICAL** |
+| `docs/lithosite/01_Mine-Geologist/Android/03_Engine/` | Engine/runtime technical docs | Mine Geologist / Android | **MOVED / CANONICAL** |
+| `docs/lithosite/01_Mine-Geologist/Android/04_Issues-Fixes/` | Issue/fix history | Mine Geologist / Android | **MOVED / CANONICAL** |
+| `docs/lithosite/01_Mine-Geologist/Android/05_Version-History/` | Historical record | Mine Geologist / Android | **MOVED / CANONICAL** |
+| `docs/lithosite/01_Mine-Geologist/Android/06_Guides/` | Guides | Mine Geologist / Android | **MOVED / CANONICAL** |
+| `docs/lithosite/01_Mine-Geologist/Android/99_Archive/` | Historical archive | Mine Geologist / Android | **MOVED / CANONICAL** |
+| `docs/lithosite/01_Mine-Geologist/Android/DOCUMENT_STYLE.md` | Documentation style | Product documentation standard | **MOVED / CANONICAL within Android package** |
+| `docs/lithosite/01_Mine-Geologist/Android/MIGRATION_MAP.md` | Technical migration map | Mine Geologist / Android | **MOVED / CANONICAL** |
+| `docs/lithosite/01_Mine-Geologist/Android/README.md` | Technical documentation entry | Mine Geologist / Android | **MOVED / CANONICAL** |
 | `mine-geologist/Lithosite Android/` | Compatibility copy | Compatibility runtime | Do not create new source material |
 
 ## Source-of-Truth Rule
