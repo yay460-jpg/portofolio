@@ -7,12 +7,14 @@ from .persistence import PersistenceStore
 from .schema import DOMAIN_ENTITIES, HEADERS, PKS, SCHEMA_VERSION
 from .transaction import TransactionManager
 from .validation import ValidationEngine
+from .audit import AuditRepository
 
 
 class SnapshotManager:
-    def __init__(self, store, validator=None):
+    def __init__(self, store, validator=None, audit_repository=None):
         self.store = store
         self.validator = validator or ValidationEngine()
+        self.audit_repository = audit_repository or AuditRepository(store)
 
     @staticmethod
     def _hash_payload(payload):
@@ -157,16 +159,15 @@ class SnapshotManager:
         tx.begin()
         try:
             self.store.replace(candidate_payload)
-            self.store.add_audit({
-                "audit_id": str(uuid.uuid4()),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "entity": "_System",
-                "entity_id": snapshot["snapshot_id"],
-                "action": "RESTORE",
-                "old_value": json.dumps(before, default=str, sort_keys=True),
-                "new_value": json.dumps(candidate_payload, default=str, sort_keys=True),
-                "source": "SnapshotManager",
-            })
+            self.audit_repository.append(
+                entity="_System",
+                entity_id=snapshot["snapshot_id"],
+                action="RESTORE",
+                request_id=snapshot["snapshot_id"],
+                old_value=json.dumps(before, default=str, sort_keys=True),
+                new_value=json.dumps(candidate_payload, default=str, sort_keys=True),
+                source="SnapshotManager",
+            )
             tx.commit()
             return {"status": "COMMITTED", "mode": mode, "snapshot_id": snapshot["snapshot_id"]}
         except Exception:
