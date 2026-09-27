@@ -52,3 +52,17 @@ def test_runtime_interface_mutations_share_application_contract():
 
     assert first["status"] == "COMMITTED"
     assert second["status"] == "DUPLICATE_REQUEST"
+
+
+def test_runtime_data_operations_share_audit_repository_boundary():
+    runtime = RuntimeInterface()
+
+    runtime._importer.audit_repository is runtime._application.audit_repository
+    assert runtime._snapshots.audit_repository is runtime._application.audit_repository
+
+    result = runtime.create("Equipment", valid_equipment("EQ-AUDIT"), "runtime-audit")
+    assert result["status"] == "COMMITTED"
+
+    events = runtime._application.audit_repository.all()
+    assert events[-1]["entity"] == "Equipment"
+    assert events[-1]["action"] == "CREATE"
