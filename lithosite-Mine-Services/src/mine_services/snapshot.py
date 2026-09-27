@@ -8,6 +8,7 @@ from .schema import DOMAIN_ENTITIES, HEADERS, PKS, SCHEMA_VERSION
 from .transaction import TransactionManager
 from .validation import ValidationEngine
 
+
 class SnapshotManager:
     def __init__(self, store, validator=None):
         self.store = store
@@ -55,7 +56,7 @@ class SnapshotManager:
             "checksum_algorithm",
             "status",
         }
-        if not required.issubset(snapshot):
+        if not isinstance(snapshot, dict) or not required.issubset(snapshot):
             return False
         if snapshot.get("schema_version") != SCHEMA_VERSION:
             return False
@@ -63,7 +64,24 @@ class SnapshotManager:
             return False
         if snapshot.get("status") not in {"SEALED", "READY"}:
             return False
-        return self._hash_payload(snapshot["payload"]) == snapshot.get("checksum")
+        if not isinstance(snapshot.get("entity_counts"), dict):
+            return False
+
+        payload = snapshot.get("payload")
+        if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
+            return False
+
+        for entity in DOMAIN_ENTITIES:
+            rows = payload["data"].get(entity, {})
+            if not isinstance(rows, dict):
+                return False
+            if snapshot["entity_counts"].get(entity) != len(rows):
+                return False
+
+        if snapshot.get("audit_included") is True and not isinstance(payload.get("audit", []), list):
+            return False
+
+        return self._hash_payload(payload) == snapshot.get("checksum")
 
     def _validate_payload(self, payload):
         if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
@@ -80,12 +98,8 @@ class SnapshotManager:
                 candidate.insert(entity, pk, row)
 
         errors = []
-        dataset = {
-            entity: list(candidate.all(entity))
-            for entity in DOMAIN_ENTITIES
-        }
-        for entity in DOMAIN_ENTITIES:
-            errors.extend(self.validator.validate_dataset(dataset[entity] and {entity: dataset[entity]} or {entity: []}, candidate, "RESTORE"))
+        dataset = {entity: list(candidate.all(entity)) for entity in DOMAIN_ENTITIES}
+        errors.extend(self.validator.validate_dataset(dataset, candidate, "RESTORE"))
 
         audit = payload.get("audit", [])
         if not isinstance(audit, list):
@@ -95,7 +109,7 @@ class SnapshotManager:
                 if not isinstance(event, dict):
                     errors.append({"code": "VAL-E011", "field": "AuditLog", "message": "Audit event is invalid"})
                     continue
-                for field in ("audit_id", "timestamp", "entity", "entity_id", "action", "source"):
+                for field in HEADERS["AuditLog"]:
                     if event.get(field) in (None, ""):
                         errors.append({"code": "VAL-E003", "field": field, "message": "Audit field is required"})
 
@@ -109,12 +123,23 @@ class SnapshotManager:
             return {"status": "REJECTED", "reason": "CHECKSUM_OR_SCHEMA"}
 
         before = self.store.snapshot()
+
         if mode == "REPLACE_RUNTIME":
             candidate_payload = snapshot["payload"]
         elif mode == "MERGE_RUNTIME":
             merged = self.store.snapshot()
-            for entity, rows in snapshot["payload"]["data"].items():
-                merged["data"].setdefault(entity, {}).update(rows)
+            for entity in DOMAIN_ENTITIES:
+                incoming = snapshot["payload"]["data"].get(entity, {})
+                existing = merged["data"].setdefault(entity, {})
+                collisions = set(existing).intersection(incoming)
+                if collisions:
+                    return {
+                        "status": "REJECTED",
+                        "reason": "MERGE_PK_COLLISION",
+                        "entity": entity,
+                        "ids": sorted(collisions),
+                    }
+                existing.update(incoming)
             if snapshot["payload"].get("audit"):
                 merged["audit"].extend(snapshot["payload"]["audit"])
             candidate_payload = merged
