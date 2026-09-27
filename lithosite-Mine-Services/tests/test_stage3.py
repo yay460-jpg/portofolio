@@ -202,3 +202,20 @@ def test_snapshot_dry_run_does_not_mutate():
     result = manager.restore(snap, mode="DRY_RUN")
     assert result["status"] == "VALIDATED"
     assert app.read("Equipment", "EQ-DRY") == before
+
+
+def test_snapshot_entity_counts_tamper_is_rejected():
+    app = seed()
+    manager = SnapshotManager(app.store)
+    snap = manager.capture()
+    snap["entity_counts"]["Equipment"] = 999
+    assert manager.restore(snap)["status"] == "REJECTED"
+
+
+def test_snapshot_merge_rejects_primary_key_collision():
+    app = seed()
+    manager = SnapshotManager(app.store)
+    snap = manager.capture()
+    result = manager.restore(snap, mode="MERGE_RUNTIME")
+    assert result["status"] == "REJECTED"
+    assert result["reason"] == "MERGE_PK_COLLISION"
