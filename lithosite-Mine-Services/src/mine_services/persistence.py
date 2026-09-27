@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 import json
 from openpyxl import load_workbook
-from .schema import DOMAIN_ENTITIES,HEADERS,PKS
+from .schema import DOMAIN_ENTITIES,HEADERS,PKS,SCHEMA_VERSION
 class PersistenceStore:
  def __init__(self,path=None):
   self.path=Path(path) if path else None; self._data={e:{} for e in DOMAIN_ENTITIES}; self._audit=[]; self.controlled_lists={"equipment_category":{"Heavy Equipment","Light Vehicle","Support Equipment"},"equipment_type":{"Dump Truck","Excavator","Dozer","Grader","Water Truck","Loader","Light Vehicle","Other"},"owner_type":{"Owner","Contractor"},"equipment_status":{"Active","Inactive","Retired"},"service_domain":{"Road & Hauling","Drainage & Dewatering","Land Clearing","Disposal & Stockpile","Reclamation","Other"},"work_front_status":{"Active","Inactive","Closed"},"transaction_status":{"DRAFT","VALIDATED","REJECTED","VOIDED"},"unit":{"hour","km","m","m2","m3","ton","unit"},"maintenance_event_type":{"Preventive","Corrective","Inspection","Breakdown"},"issue_severity":{"Low","Medium","High","Critical"},"issue_status":{"Open","In Progress","Closed","Void"},"hse_event_type":{"Inspection","Incident","Near Miss","Environmental","Corrective Action"},"maintenance_status":{"Open","In Progress","Completed","Cancelled"},"plan_status":{"Draft","Approved","In Progress","Completed","Cancelled"},"hse_severity":{"Low","Medium","High","Critical"},"hse_status":{"Open","In Progress","Closed","Void"}}
@@ -24,6 +24,16 @@ class PersistenceStore:
  def audit(self): return deepcopy(self._audit)
  def load(self):
   wb=load_workbook(self.path,data_only=True)
+  if "_System" not in wb.sheetnames:
+   raise ValueError("SHEET_MISSING:_System")
+  system_version=None
+  for values in wb["_System"].iter_rows(values_only=True):
+   vals=list(values)
+   for i,value in enumerate(vals):
+    if value=="schema_version" and i+1<len(vals) and vals[i+1] is not None:
+     system_version=str(vals[i+1])
+  if system_version!=SCHEMA_VERSION:
+   raise ValueError(f"SCHEMA_VERSION:{system_version}")
   for e in DOMAIN_ENTITIES:
    rows=list(wb[e].values); headers=list(rows[0])
    if headers!=HEADERS[e]: raise ValueError(f"HEADER_MISMATCH:{e}")
@@ -40,6 +50,16 @@ class PersistenceStore:
  def save(self):
   if not self.path: return
   wb=load_workbook(self.path)
+  if "_System" not in wb.sheetnames:
+   raise ValueError("SHEET_MISSING:_System")
+  system_version=None
+  for values in wb["_System"].iter_rows(values_only=True):
+   vals=list(values)
+   for i,value in enumerate(vals):
+    if value=="schema_version" and i+1<len(vals) and vals[i+1] is not None:
+     system_version=str(vals[i+1])
+  if system_version!=SCHEMA_VERSION:
+   raise ValueError(f"SCHEMA_VERSION:{system_version}")
   for e in DOMAIN_ENTITIES:
    ws=wb[e]
    if list(next(ws.iter_rows(min_row=1,max_row=1,values_only=True)))!=HEADERS[e]: raise ValueError(f"HEADER_MISMATCH:{e}")
