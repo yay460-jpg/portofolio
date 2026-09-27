@@ -6,7 +6,7 @@ from openpyxl import load_workbook
 from .schema import DOMAIN_ENTITIES,HEADERS,PKS
 class PersistenceStore:
  def __init__(self,path=None):
-  self.path=Path(path) if path else None; self._data={e:{} for e in DOMAIN_ENTITIES}; self._audit=[]; self.controlled_lists={}
+  self.path=Path(path) if path else None; self._data={e:{} for e in DOMAIN_ENTITIES}; self._audit=[]; self.controlled_lists={"equipment_category":{"Heavy Equipment","Light Vehicle","Support Equipment"},"equipment_type":{"Dump Truck","Excavator","Dozer","Grader","Water Truck","Loader","Light Vehicle","Other"},"owner_type":{"Owner","Contractor"},"equipment_status":{"Active","Inactive","Retired"},"service_domain":{"Road & Hauling","Drainage & Dewatering","Land Clearing","Disposal & Stockpile","Reclamation","Other"},"work_front_status":{"Active","Inactive","Closed"},"transaction_status":{"DRAFT","VALIDATED","REJECTED","VOIDED"},"unit":{"hour","km","m","m2","m3","ton","unit"},"maintenance_event_type":{"Preventive","Corrective","Inspection","Breakdown"},"issue_severity":{"Low","Medium","High","Critical"},"issue_status":{"Open","In Progress","Closed","Void"},"hse_event_type":{"Inspection","Incident","Near Miss","Environmental","Corrective Action"},"maintenance_status":{"Open","In Progress","Completed","Cancelled"},"plan_status":{"Draft","Approved","In Progress","Completed","Cancelled"},"hse_severity":{"Low","Medium","High","Critical"},"hse_status":{"Open","In Progress","Closed","Void"}}
   if self.path and self.path.exists(): self.load()
  def snapshot(self): return {"data":deepcopy(self._data),"audit":deepcopy(self._audit)}
  def replace(self,s): self._data=deepcopy(s["data"]); self._audit=deepcopy(s.get("audit",[]))
