@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+from openpyxl import Workbook
+
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from mine_services import (
@@ -219,3 +221,38 @@ def test_snapshot_merge_rejects_primary_key_collision():
     result = manager.restore(snap, mode="MERGE_RUNTIME")
     assert result["status"] == "REJECTED"
     assert result["reason"] == "MERGE_PK_COLLISION"
+
+
+def test_xlsx_persistence_roundtrip(tmp_path):
+    from mine_services.schema import DOMAIN_ENTITIES, HEADERS, SCHEMA_VERSION
+
+    path = tmp_path / "runtime.xlsx"
+    wb = Workbook()
+    wb.remove(wb.active)
+
+    system = wb.create_sheet("_System")
+    system.append(["schema_version", SCHEMA_VERSION])
+
+    lists = wb.create_sheet("_Lists")
+    lists.append(["equipment_category"])
+    lists.append(["Heavy Equipment"])
+
+    for entity in DOMAIN_ENTITIES:
+        ws = wb.create_sheet(entity)
+        ws.append(HEADERS[entity])
+
+    audit = wb.create_sheet("AuditLog")
+    audit.append(HEADERS["AuditLog"])
+    wb.save(path)
+
+    store = PersistenceStore(path)
+    result = ApplicationService(store).create(
+        "Equipment",
+        valid_equipment("EQ-XLSX"),
+        "xlsx-roundtrip",
+    )
+    assert result["status"] == "COMMITTED"
+
+    reloaded = PersistenceStore(path)
+    assert reloaded.exists("Equipment", "EQ-XLSX")
+    assert reloaded.get("Equipment", "EQ-XLSX")["equipment_id"] == "EQ-XLSX"
