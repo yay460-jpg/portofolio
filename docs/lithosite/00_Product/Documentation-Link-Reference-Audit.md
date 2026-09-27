@@ -118,7 +118,7 @@ No documentation change introduced a runtime dependency on documentation files.
 | Progress Dashboard consistency | PASS |
 | Group A Product Documentation migration | **PASS** |
 | Group B Mine Services migration | **PASS** |
-| Group C Mine Geologist Android migration | **LATER GATE** |
+| Group C Mine Geologist Android migration | **PASS** |
 
 ## Group B migration verification
 
