@@ -1,7 +1,7 @@
 {
-  "name": "Team Geologist - Lithosite",
-  "short_name": "Team Geologist",
-  "description": "Aplikasi Member - Lithosite",
+  "name": "Lithosite | Mine Geologist",
+  "short_name": "Lithosite | Mine Geologist",
+  "description": "Aplikasi Member - Lithosite | Mine Geologist",
   "start_url": "./index.html",
   "scope": "./",
   "id": "https://yay460-jpg.github.io/portofolio/lithosite/member-app/index.html",
