@@ -11,7 +11,7 @@
  * mengirim index.html/sw.js baru utk Member App -- browser mendeteksi update dengan
  * membandingkan BYTE file ini, bukan APP_VERSION.
  * ============================================================ */
-const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260927-topo3d-step21d-session-hardening';
+const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260927-topo3d-step22-residual-cleanup';
 
 // Precache HANYA app shell statis (HTML shell, manifest, ikon dari folder bersama).
 // SENGAJA TIDAK mencakup panggilan ke Google Apps Script (doGet/doPost) -- data
@@ -23,8 +23,9 @@ const CACHE_NAME = 'lithosite-member-app-v24.5-lock-20260927-topo3d-step21d-sess
 // [FIX -- 15 Sep] Pelajaran itu KETERULANG dalam skala jauh lebih besar: peta.js
 // displit bertahap jadi 22 file di scripts/map/* dan developer-profile.js ditambah,
 // TAPI daftar di bawah ini tidak pernah ikut diupdate. index.html memuat 34 script,
-// daftar ini cuma mendaftar 11 -- artinya 23 file berjalan TANPA precache sama
-// sekali. Digabung dgn bug kedua (lihat catatan cache.put di handler fetch), file2
+// daftar ini sempat tidak sinkron dengan index.html. APP_SHELL sekarang harus
+// mengikuti seluruh local script yang dimuat index.html agar offline shell tidak
+// kehilangan dependency runtime. Digabung dgn bug kedua (lihat catatan cache.put di handler fetch), file2
 // itu TIDAK PERNAH tersimpan walau sudah sukses dimuat berkali-kali saat online ->
 // begitu app ditutup & dibuka lagi tanpa internet, tab Peta (dan sebagian besar app,
 // krn renderPeta dkk ada di map-ui.js) GAGAL TOTAL.
@@ -60,7 +61,9 @@ const APP_SHELL = [
   './scripts/map/map-device-profile.js',
   './scripts/map/map-coordinate.js',
   './scripts/map/map-package.js',
+  './scripts/map/map-recovery.js',
   './scripts/map/map-tile-pyramid.js',
+  './scripts/map/map-security.js',
   './scripts/map/map-tile-store.js',
   './scripts/map/map-tile-queue.js',
   './scripts/map/map-runtime-loader.js',
@@ -77,8 +80,10 @@ const APP_SHELL = [
   './scripts/map/map-library.js',
   './scripts/map/map-library-capability.js',
   './scripts/map/map-storage-capability.js',
+  './scripts/map/map-storage-management.js',
   './scripts/map/map-management-compat.js',
   './scripts/map/map-lifecycle-completion.js',
+  './scripts/map/map-safe-cleanup.js',
   './scripts/map/map-package-transfer.js',
   './scripts/chat.js',
   './scripts/issue.js',
