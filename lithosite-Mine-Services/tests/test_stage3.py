@@ -43,7 +43,7 @@ def test_update_read_and_delete():
     assert app.read("Equipment", "EQ-01")["status"] == "Inactive"
     assert app.delete("Equipment", "EQ-01", "d1")["status"] == "COMMITTED"
     assert app.read("Equipment", "EQ-01") is None
-    assert app.audit.all()[-1]["action"] == "DELETE"
+    assert app.store.audit()[-1]["action"] == "DELETE"
 
 
 def test_import_is_atomic_on_validation_error():
