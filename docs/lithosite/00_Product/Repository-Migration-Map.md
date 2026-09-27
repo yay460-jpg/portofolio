@@ -28,7 +28,7 @@ portofolio/
 ├── lithosite/          # canonical production runtime
 ├── docs/
 │   └── lithosite/      # canonical product documentation
-├── mine-geologist/     # compatibility / rollback runtime
+├── mine-geologist/     # retired legacy runtime (historical only)
 └── portfolio.html
 ```
 
@@ -38,9 +38,7 @@ Canonical production runtime sekarang berada di:
 
 Runtime lama:
 
-`mine-geologist/`
-
-tetap dipertahankan sebagai compatibility / rollback runtime.
+`mine-geologist/` was the compatibility / rollback runtime during migration and is now retired from the active tree.
 
 Canonical Product documentation Group A sekarang berada di:
 
@@ -61,12 +59,12 @@ Canonical Product documentation Group A sekarang berada di:
 | **Group A Product Documentation migration** | **PASS** |
 | Group B Mine Services documentation | PASS |
 | Group C Mine Geologist / Android documentation | PASS |
-| Old runtime retirement | NOT YET |
+| Old runtime retirement | PASS |
 
 ## Locked Runtime Principles
 
 1. `lithosite/` is the canonical runtime path.
-2. `mine-geologist/` remains available for compatibility and rollback.
+2. `mine-geologist/` has been retired; historical rollback state remains recoverable from Git history.
 3. No runtime folder is moved merely for visual cleanup.
 4. No Engine V2 contract is changed by documentation normalization.
 5. No Member App runtime behavior is changed by documentation normalization.
@@ -97,13 +95,13 @@ These paths are treated as runtime contracts.
 
 ## Compatibility Runtime
 
-`mine-geologist/` remains a complete compatibility runtime.
+`mine-geologist/` was the complete compatibility runtime during migration.
 
 It is not the canonical location for new feature development.
 
-It must remain intact until the production deployment and rollback retirement gates are explicitly passed.
+The production PWA verification and retirement gate have now been completed; the former runtime is retained only in Git history.
 
-The compatibility runtime is therefore a deliberate transition mechanism, not an accidental duplicate.
+The compatibility runtime was a deliberate transition mechanism, not an accidental duplicate.
 
 ## Documentation Normalization
 
@@ -283,4 +281,4 @@ The remaining structural work is compatibility documentation cleanup and later c
 
 **Compatibility Documentation Cleanup: NOT YET**
 
-**Compatibility Runtime Retirement: NOT YET**
+**Compatibility Runtime Retirement: PASS / COMPLETED**
