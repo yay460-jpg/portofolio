@@ -208,7 +208,7 @@ Delete Map V2 sudah bagus: `🗑 → Hapus Data Map? → Batal / Oke`
 - update checking
 - Collections dapat digunakan untuk urutan penggunaan beberapa map
 
-**Posisi setelah V24.5:**
+**Posisi pada baseline terkini:**
 ```
 MG1 Map Manager    ████████████░░░░░░░░ ~60%*
 Avenza Map Library ████████████████████ 100%
@@ -252,7 +252,7 @@ Map → Digging → Validasi → KPI → operasional tambang
 
 **Avenza:** device storage, Google Drive, Dropbox, web, QR, custom scheme, sharing custom maps, GeoPackage, Nearby Share/AirDrop.
 
-**MG1 setelah V24.5:**
+**MG1 pada baseline terkini:**
 
 ```
 Import / Restore          ██████████████████░░  ~90%*
