@@ -124,8 +124,14 @@ function renderMapManagePanel_() {
     ? '<p class="text-[11px] text-white/30 text-center py-4">Belum ada peta background tersimpan.</p>'
     : backgroundMapsList.map(function(m) {
         const active = m.id === activeBackgroundMapId;
+        const safePreview = !!(m.imageDataUrl && window.MG1LithositeSecurity &&
+          typeof window.MG1LithositeSecurity.isSafeImageDataUrl === 'function' &&
+          window.MG1LithositeSecurity.isSafeImageDataUrl(m.imageDataUrl));
+        const previewHtml = safePreview
+          ? '<img src="' + m.imageDataUrl + '" class="w-11 h-11 rounded-lg object-cover shrink-0" alt="Preview peta">'
+          : '<div class="w-11 h-11 rounded-lg bg-white/[0.04] flex items-center justify-center shrink-0" aria-label="Preview peta tidak tersedia">' + icon('map','w-4 h-4 text-white/20') + '</div>';
         return '<div class="flex items-center gap-2.5 rounded-xl p-2.5 mb-1.5 ' + (active ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-white/[0.04]') + '">' +
-          '<img src="' + m.imageDataUrl + '" class="w-11 h-11 rounded-lg object-cover shrink-0">' +
+          previewHtml +
           '<div class="flex-1 min-w-0" onclick="activateBackgroundMap_(\'' + m.id + '\')">' +
             '<div class="text-[12px] font-semibold text-white truncate">' + escapeHtml_(m.name) + (active ? ' <span class="text-emerald-400 text-[9px] font-bold">&bull; AKTIF</span>' : '') + '</div>' +
             '<div class="text-[9px] text-white/30">oleh ' + escapeHtml_(m.uploadedBy || '-') + '</div>' +
