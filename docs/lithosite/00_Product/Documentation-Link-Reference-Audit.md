@@ -22,13 +22,27 @@ No runtime files were changed by this audit.
 
 **Status: PASS**
 
-The documentation reference blockers identified in the initial audit have been normalized.
+The documentation reference blockers identified in the initial audit were normalized before Group A migration.
 
 The Version-History index contains 31 Markdown navigation links and all resolve to existing files in the current repository tree.
 
 The legacy developer README now points to the current Android documentation package rather than the retired `lithosite/docs/` layout.
 
 The Progress Dashboard is synchronized with the current V24.5 locked position and V25 next-stage scope.
+
+## Group A migration verification
+
+Product documentation is now canonical at:
+
+`docs/lithosite/00_Product/`
+
+The previous:
+
+`lithosite/00_Product/`
+
+location has been removed from the repository.
+
+No runtime dependency was introduced by the move.
 
 ## Resolved findings
 
@@ -63,9 +77,9 @@ This is a current-status correction; historical version documents were not rewri
 
 **File:** `lithosite/README.md`
 
-Current relative references remain valid while Product documentation physically resides under `lithosite/00_Product/`.
+The README now references the canonical Product documentation location:
 
-These references are intentionally recorded as a migration dependency for the later Group A documentation move to `docs/lithosite/00_Product/`.
+`docs/lithosite/00_Product/`
 
 ### 4. Version-History index
 
@@ -102,28 +116,20 @@ No documentation change introduced a runtime dependency on documentation files.
 | Runtime boundary protection | PASS |
 | Legacy README path integrity | PASS |
 | Progress Dashboard consistency | PASS |
-| Documentation physical migration | **READY FOR NEXT GATE** |
+| Group A Product Documentation migration | **PASS** |
+| Group B Mine Services migration | **NEXT GATE** |
+| Group C Mine Geologist Android migration | **LATER GATE** |
 
 ## Next gate
 
-The Documentation Link & Reference Audit is now **PASS**.
+The Documentation Link & Reference Audit remains **PASS**.
 
-The next controlled step is **Group A — Product Documentation migration**:
+The next controlled step is **Group B — Mine Services documentation migration**:
 
-`lithosite/00_Product/` → `docs/lithosite/00_Product/`
+`lithosite/02_Mine-Services/` → `docs/lithosite/02_Mine-Services/`
 
-That migration must:
-
-1. move the Product documentation as one controlled group;
-2. preserve exactly one authoritative copy;
-3. update navigation and relative references after the move;
-4. leave runtime files untouched;
-5. re-run documentation link validation after the move;
-6. keep Mine Geologist Android documentation as a separate controlled migration group;
-7. keep Mine Services documentation separate from Mine Geologist implementation.
-
-No physical runtime relocation is implied by this gate.
+Group C remains separate because the Mine Geologist Android documentation contains locked baselines, Engine V2 contracts, Version History, guides, issue records, and archive material.
 
 ## Safety rule
 
-No runtime code, Service Worker, manifest, Engine V2, Member App runtime, or Mine Geologist compatibility runtime was changed as part of this audit.
+No runtime code, Service Worker, manifest, Engine V2, Member App runtime, or Mine Geologist compatibility runtime was changed as part of this migration.

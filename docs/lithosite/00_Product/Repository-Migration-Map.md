@@ -23,45 +23,54 @@ Dokumen ini tidak mengubah runtime contract.
 
 Repository saat ini:
 
-\`\`\`text
+```text
 portofolio/
-├── lithosite/          # canonical runtime + transition documentation
+├── lithosite/          # canonical production runtime
+├── docs/
+│   └── lithosite/      # canonical product documentation
 ├── mine-geologist/     # compatibility / rollback runtime
 └── portfolio.html
-\`\`\`
+```
 
 Canonical production runtime sekarang berada di:
 
-\`lithosite/\`
+`lithosite/`
 
 Runtime lama:
 
-\`mine-geologist/\`
+`mine-geologist/`
 
 tetap dipertahankan sebagai compatibility / rollback runtime.
+
+Canonical Product documentation Group A sekarang berada di:
+
+`docs/lithosite/00_Product/`
 
 ## Migration Status
 
 | Phase | Status |
 |---|---|
 | Runtime rename rehearsal | PASS |
-| Canonical \`lithosite/\` creation | PASS |
+| Canonical `lithosite/` creation | PASS |
 | PWA identity migration | PASS in migration branch |
 | Service Worker coexistence rehearsal | PASS locally |
-| Promotion to \`main\` | PASS |
+| Promotion to `main` | PASS |
 | Old runtime preservation | PASS |
-| Documentation normalization design | IN PROGRESS |
-| Physical documentation move | NOT YET |
+| Documentation normalization design | PASS |
+| Documentation Link & Reference Audit | PASS |
+| **Group A Product Documentation migration** | **PASS** |
+| Group B Mine Services documentation | NOT YET |
+| Group C Mine Geologist / Android documentation | NOT YET |
 | Old runtime retirement | NOT YET |
 
 ## Locked Runtime Principles
 
-1. \`lithosite/\` is the canonical runtime path.
-2. \`mine-geologist/\` remains available for compatibility and rollback.
+1. `lithosite/` is the canonical runtime path.
+2. `mine-geologist/` remains available for compatibility and rollback.
 3. No runtime folder is moved merely for visual cleanup.
 4. No Engine V2 contract is changed by documentation normalization.
 5. No Member App runtime behavior is changed by documentation normalization.
-6. \`shared/\` remains inside the runtime until actual cross-module ownership is proven.
+6. `shared/` remains inside the runtime until actual cross-module ownership is proven.
 7. Historical documentation is preserved.
 8. Current global/product documentation must not depend on runtime documentation paths.
 9. Version-specific history remains historical.
@@ -71,7 +80,7 @@ tetap dipertahankan sebagai compatibility / rollback runtime.
 
 The protected runtime tree is:
 
-\`\`\`text
+```text
 lithosite/
 ├── assets/
 ├── member-app/
@@ -82,13 +91,13 @@ lithosite/
 ├── index.html
 ├── manifest.json
 └── sw.js
-\`\`\`
+```
 
 These paths are treated as runtime contracts.
 
 ## Compatibility Runtime
 
-\`mine-geologist/\` remains a complete compatibility runtime.
+`mine-geologist/` remains a complete compatibility runtime.
 
 It is not the canonical location for new feature development.
 
@@ -98,9 +107,9 @@ The compatibility runtime is therefore a deliberate transition mechanism, not an
 
 ## Documentation Normalization
 
-The target documentation boundary is:
+The canonical documentation boundary is:
 
-\`\`\`text
+```text
 docs/
 └── lithosite/
     ├── 00_Product/
@@ -108,11 +117,11 @@ docs/
     ├── 02_Mine-Services/
     ├── 03_Mine-Plan/
     └── 04_Mine-Pit-Control/
-\`\`\`
+```
 
-The current documentation under \`lithosite/\` is being treated as a transition state.
+Group A is now physically implemented at `docs/lithosite/00_Product/`.
 
-No physical move occurs until the documentation ownership and link migration audits are complete.
+Remaining documentation under `lithosite/` is transition-state documentation awaiting its own controlled migration gate.
 
 ## Mine Geologist Documentation
 
@@ -133,7 +142,7 @@ Its technical authority remains unchanged.
 
 A future move to:
 
-\`docs/lithosite/01_Mine-Geologist/Android/\`
+`docs/lithosite/01_Mine-Geologist/Android/`
 
 is a documentation relocation only.
 
@@ -145,7 +154,7 @@ Mine Services remains an independent Lithosite module.
 
 Current baseline:
 
-\`\`\`text
+```text
 Stage 1 — Data Model
         ↓
 Stage 2 — Operational Transactions
@@ -161,7 +170,7 @@ Stage 6 — Reporting & Audit
 Stage 7 — Security Evolution
         ↓
 Stage 8 — Final Baseline
-\`\`\`
+```
 
 Mine Services must not depend on private Mine Geologist implementation.
 
@@ -182,27 +191,29 @@ Until then, existing runtime shared components remain where they are.
 
 ### Group A — Product
 
-\`\`\`text
+```text
 lithosite/00_Product/
         ↓
 docs/lithosite/00_Product/
-\`\`\`
+```
+
+**PASS / COMPLETE**
 
 ### Group B — Mine Services
 
-\`\`\`text
+```text
 lithosite/02_Mine-Services/
         ↓
 docs/lithosite/02_Mine-Services/
-\`\`\`
+```
 
 ### Group C — Mine Geologist / Android
 
-\`\`\`text
+```text
 lithosite/Lithosite Android/
         ↓
 docs/lithosite/01_Mine-Geologist/Android/
-\`\`\`
+```
 
 ### Group D — Compatibility Cleanup
 
@@ -234,21 +245,23 @@ Any future runtime relocation must verify:
 
 The repository is intentionally in a controlled transition state:
 
-\`\`\`text
+```text
 Canonical Lithosite Runtime
         +
 Compatibility Mine Geologist Runtime
         +
-Product Architecture
+Canonical Product Documentation
         +
 Independent Mine Services
         +
-Documentation Normalization
-\`\`\`
+Controlled Documentation Migration
+```
 
 The canonical runtime migration is complete at repository level.
 
-The remaining structural work is documentation normalization and, later, controlled retirement of the compatibility runtime.
+Group A Product Documentation migration is complete.
+
+The remaining structural work is Mine Services documentation migration, Mine Geologist Android documentation migration, and later controlled retirement of the compatibility runtime.
 
 ## Gate
 
@@ -258,6 +271,8 @@ The remaining structural work is documentation normalization and, later, control
 
 **Documentation Normalization Design: PASS**
 
-**Physical Documentation Move: NOT YET**
+**Group A Product Documentation Migration: PASS**
+
+**Group B / C Physical Documentation Move: NOT YET**
 
 **Compatibility Runtime Retirement: NOT YET**

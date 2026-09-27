@@ -2,16 +2,16 @@
 
 ## Purpose
 
-Dokumen ini menentukan siapa pemilik setiap kelompok dokumentasi yang saat ini tersebar di repository dan bagaimana dokumentasi tersebut akan diposisikan setelah normalisasi.
+Dokumen ini menentukan siapa pemilik setiap kelompok dokumentasi yang saat ini tersebar di repository dan bagaimana dokumentasi tersebut diposisikan setelah normalisasi.
 
-Tidak ada file yang dipindahkan oleh dokumen ini.
+Dokumen ini mencatat hasil migrasi dokumentasi secara bertahap dan tidak mengubah runtime contract.
 
 ## Current Documentation Sources
 
-Saat ini terdapat tiga kelompok utama dokumentasi di bawah canonical runtime:
+Setelah Group A selesai, kelompok dokumentasi utama berada di:
 
 ```text
-lithosite/00_Product/
+docs/lithosite/00_Product/
 lithosite/02_Mine-Services/
 lithosite/Lithosite Android/
 ```
@@ -26,7 +26,7 @@ mine-geologist/Lithosite Android/
 
 | Current location | Content | Future owner | Action |
 |---|---|---|---|
-| `lithosite/00_Product/` | Product architecture | Product | Move after link audit |
+| `docs/lithosite/00_Product/` | Product architecture | Product | **MOVED / CANONICAL** |
 | `lithosite/02_Mine-Services/` | Mine Services lifecycle | Mine Services | Move after link audit |
 | `lithosite/Lithosite Android/01_Baseline/` | Locked technical baseline | Mine Geologist / Android | Preserve, then move |
 | `lithosite/Lithosite Android/02_Architecture/` | Architecture/security | Mine Geologist / Android | Preserve, then move |
@@ -106,7 +106,7 @@ lithosite/00_Product/
 docs/lithosite/00_Product/
 ```
 
-Verify all links before merge.
+**Status: COMPLETE / PASS**
 
 ### Group B — Mine Services
 
@@ -117,6 +117,8 @@ docs/lithosite/02_Mine-Services/
 ```
 
 No Mine Services runtime dependency is introduced.
+
+**Status: NEXT GATE**
 
 ### Group C — Mine Geologist Android Documentation
 
@@ -143,4 +145,6 @@ Only after Groups A-C are verified:
 
 **Migration Map: PASS**
 
-**Physical Documentation Move: NOT YET APPROVED**
+**Group A Physical Documentation Move: PASS**
+
+**Group B Physical Documentation Move: NOT YET**
