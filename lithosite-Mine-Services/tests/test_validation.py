@@ -116,3 +116,56 @@ def test_idempotent_request():
     row = valid_equipment("EQ-02")
     assert app.create("Equipment", row, "same")["status"] == "COMMITTED"
     assert app.create("Equipment", row, "same")["status"] == "DUPLICATE_REQUEST"
+
+
+def test_invalid_date_type_rejected():
+    app = seed()
+    result = app.create(
+        "Maintenance",
+        {
+            "maintenance_id": "M-TYPE",
+            "equipment_id": "EQ-01",
+            "event_date": "not-a-date",
+            "event_type": "Preventive",
+            "status": "Open",
+        },
+        "type-date",
+    )
+    assert result["status"] == "REJECTED"
+    assert any(e.code == "VAL-E002" for e in result["errors"])
+
+
+def test_invalid_time_type_rejected():
+    app = seed()
+    result = app.create(
+        "Operations",
+        {
+            "transaction_id": "TX-TYPE",
+            "transaction_date": "2026-09-28",
+            "transaction_time": "not-a-time",
+            "domain": "Road & Hauling",
+            "work_front_id": "WF-01",
+            "activity": "Hauling",
+            "status": "DRAFT",
+        },
+        "type-time",
+    )
+    assert result["status"] == "REJECTED"
+    assert any(e.code == "VAL-E002" for e in result["errors"])
+
+
+def test_invalid_period_month_rejected():
+    app = seed()
+    result = app.create(
+        "Plans",
+        {
+            "plan_id": "P-TYPE",
+            "period": "2026-13",
+            "domain": "Road & Hauling",
+            "activity": "Hauling",
+            "status": "Draft",
+        },
+        "type-period",
+    )
+    assert result["status"] == "REJECTED"
+    assert any(e.code == "VAL-E009" for e in result["errors"])
