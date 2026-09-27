@@ -113,8 +113,18 @@ def test_import_allows_parent_child_cross_fk_in_same_dataset():
 
 def test_delete_reference_is_rejected():
     app = seed()
+    assert app.create(
+        "Maintenance",
+        {
+            "maintenance_id": "M-REF",
+            "equipment_id": "EQ-01",
+            "event_type": "Preventive",
+            "status": "Open",
+        },
+        "create-ref",
+    )["status"] == "COMMITTED"
     result = app.delete("Equipment", "EQ-01", "delete-ref")
-    assert result["status"] == "COMMITTED"
+    assert result["status"] == "REJECTED"
 
 
 def test_audit_failure_rolls_back_mutation():
