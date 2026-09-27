@@ -14,7 +14,7 @@ Browser (PWA)  <--fetch-->  Google Apps Script (Code.gs)  <-->  Google Sheets (2
 
 - **Tidak ada server sendiri.** Semua backend jalan di Google Apps Script (`doGet`/`doPost`), 1 URL deployment (`GOOGLE_SCRIPT_READ_URL`), dibedakan lewat parameter `?sheet=` atau `?action=`.
 - **Tidak ada database sendiri.** Google Sheets = database. 29 sheet, masing-masing 1 tabel data (Member, Produksi_GC, Sessions, dll).
-- **Frontend statis** — di-hosting di GitHub Pages (`https://yay460-jpg.github.io/portofolio/lithosite/`), berjalan sebagai PWA (bisa di-install di Windows/Android).
+- **Frontend statis** — di-hosting di GitHub Pages (`https://yay460-jpg.github.io/portofolio/lithosite-Mine-Geologist/`), berjalan sebagai PWA (bisa di-install di Windows/Android).
 
 ## 2. Struktur File
 
@@ -52,7 +52,7 @@ lithosite/
 │   ├── index.html               <- shell tipis: render()/switchTab()/header/nav/boot init
 │   ├── manifest.json, sw.js      <- PWA sendiri, CACHE_NAME terpisah dari index.html root
 │   ├── vendor/pdfjs/              <- pdf.js + pdf.worker.js DI-HOST LOKAL (bukan CDN), dipakai
-│   │   ├── pdf.min.js               GeoPDF coordinate engine -- lihat Lithosite Android/06_Guides/GeoPDF_Coordinate_Engine.md
+│   │   ├── pdf.min.js               GeoPDF coordinate engine -- lihat docs/lithosite/01_Mine-Geologist/Android/06_Guides/GeoPDF_Coordinate_Engine.md
 │   │   └── pdf.worker.min.js        Wajib ikut di-precache sw.js.
 │   └── scripts/
 │       ├── config.js              <- URL backend, APP_VERSION, fetchWithTimeout, getField, dll
@@ -154,15 +154,15 @@ Prinsip utama:
 
 ### 3.2 Security Evolution
 
-Security global didokumentasikan pada [Security Evolution](Lithosite%20Android/02_Architecture/Security_Evolution.md).
+Security global didokumentasikan pada [Security Evolution](../../docs/lithosite/01_Mine-Geologist/Android/02_Architecture/Security_Evolution.md).
 
 Halaman tersebut menjadi referensi global untuk trust boundary, content validation, dan defensive rendering.
 
 ## 4. Cara Deploy
 
 ### Frontend (GitHub Pages)
-1. Upload file yang berubah ke repo `yay460-jpg/portofolio`, folder `lithosite/`
-2. **⚠️ WAJIB naikkan `CACHE_NAME` di `sw.js`** tiap kirim file baru (format: `lithosite-build-YYYYMMDDx`, atau `lithosite-member-app-build-YYYYMMDDx` untuk `member-app/sw.js`) — Service Worker mendeteksi update dari perubahan BYTE `sw.js`, bukan dari `APP_VERSION`. Kalau lupa, browser/PWA yang sudah install akan tetap pakai file lama dari cache (termasuk `scripts/*.js` dan `vendor/pdfjs/*.js`), walau file di GitHub sudah benar — **ini pernah jadi akar bug "app macet total" yang perlu berminggu-minggu untuk didiagnosis, lihat `Lithosite Android/06_Guides/GeoPDF_Coordinate_Engine.md` bagian 7**.
+1. Upload file yang berubah ke repo `yay460-jpg/portofolio`, folder `lithosite-Mine-Geologist/`
+2. **⚠️ WAJIB naikkan `CACHE_NAME` di `sw.js`** tiap kirim file baru (format: `lithosite-build-YYYYMMDDx`, atau `lithosite-member-app-build-YYYYMMDDx` untuk `member-app/sw.js`) — Service Worker mendeteksi update dari perubahan BYTE `sw.js`, bukan dari `APP_VERSION`. Kalau lupa, browser/PWA yang sudah install akan tetap pakai file lama dari cache (termasuk `scripts/*.js` dan `vendor/pdfjs/*.js`), walau file di GitHub sudah benar — **ini pernah jadi akar bug "app macet total" yang perlu berminggu-minggu untuk didiagnosis, lihat `docs/lithosite/01_Mine-Geologist/Android/06_Guides/GeoPDF_Coordinate_Engine.md` bagian 7**.
 3. Setelah upload, PWA yang sudah terinstall butuh 1 siklus reload untuk deteksi versi baru — untuk `member-app/`, kadang butuh **clear site data / uninstall-reinstall PWA** manual kalau Service Worker lama tetap aktif (SW baru sengaja tidak `skipWaiting()` otomatis).
 
 ### Backend (Google Apps Script)
@@ -203,11 +203,11 @@ Urutan cek paling sering menyelesaikan masalah, dari yang paling murah:
 
 ## 8. Dokumentasi Tambahan
 
-Panduan teknis lebih detail untuk topik spesifik ada di folder `Lithosite Android/06_Guides/`:
+Panduan teknis lebih detail untuk topik spesifik ada di folder `docs/lithosite/01_Mine-Geologist/Android/06_Guides/`:
 
-- [Panduan Split Backend 8-File](Lithosite%20Android/06_Guides/Backend_Split_8Files.md) — cara pindahkan 8 file backend ke Apps Script editor, jebakan umum (boilerplate `myFunction` belum dihapus), checklist verifikasi.
-- [Panduan Partisi Member Android](Lithosite%20Android/06_Guides/Member_Android_Partition.md) — struktur `member-app/` + `shared/`, cara kerja arsitektur berbagi logic geospasial dengan Master, checklist precache PWA.
-- [Panduan GeoPDF Coordinate Engine](Lithosite%20Android/06_Guides/GeoPDF_Coordinate_Engine.md) — perjalanan lengkap membangun baca-koordinat-otomatis dari GeoPDF di Member Android: arsitektur akhir, semua kemampuan (CRS/datum/Neatline/GPS/dll), pola bug berulang yang wajib diwaspadai di sesi berikutnya, dan kenapa PROJ/GDAL diteliti tapi tidak diintegrasikan.
+- [Panduan Split Backend 8-File](../../docs/lithosite/01_Mine-Geologist/Android/06_Guides/Backend_Split_8Files.md) — cara pindahkan 8 file backend ke Apps Script editor, jebakan umum (boilerplate `myFunction` belum dihapus), checklist verifikasi.
+- [Panduan Partisi Member Android](../../docs/lithosite/01_Mine-Geologist/Android/06_Guides/Member_Android_Partition.md) — struktur `member-app/` + `shared/`, cara kerja arsitektur berbagi logic geospasial dengan Master, checklist precache PWA.
+- [Panduan GeoPDF Coordinate Engine](../../docs/lithosite/01_Mine-Geologist/Android/06_Guides/GeoPDF_Coordinate_Engine.md) — perjalanan lengkap membangun baca-koordinat-otomatis dari GeoPDF di Member Android: arsitektur akhir, semua kemampuan (CRS/datum/Neatline/GPS/dll), pola bug berulang yang wajib diwaspadai di sesi berikutnya, dan kenapa PROJ/GDAL diteliti tapi tidak diintegrasikan.
 
 ---
 
