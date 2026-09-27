@@ -230,6 +230,9 @@ def test_xlsx_persistence_roundtrip(tmp_path):
     wb = Workbook()
     wb.remove(wb.active)
 
+    baseline = wb.create_sheet("_Baseline")
+    baseline.append(["baseline_status", "LOCKED"])
+
     system = wb.create_sheet("_System")
     system.append(["schema_version", SCHEMA_VERSION])
 
@@ -256,3 +259,6 @@ def test_xlsx_persistence_roundtrip(tmp_path):
     reloaded = PersistenceStore(path)
     assert reloaded.exists("Equipment", "EQ-XLSX")
     assert reloaded.get("Equipment", "EQ-XLSX")["equipment_id"] == "EQ-XLSX"
+
+    verify = __import__("openpyxl").load_workbook(path, data_only=True)
+    assert verify["_Baseline"]["B1"].value == "LOCKED"
