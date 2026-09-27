@@ -1,11 +1,13 @@
 # Lithosite — Brand Adoption Baseline
 
 ## Status
+
 - Product brand: **Lithosite**
 - Brand adoption: **ACTIVE**
-- Product architecture: **ACTIVE**
-- Runtime path rename: **DEFERRED**
-- Rename Gate: required before physical runtime path migration
+- Module naming convention: **ACTIVE**
+- Canonical Mine Geologist runtime: **ACTIVE** at `lithosite/`
+- Compatibility / rollback runtime: **PRESERVED** at `mine-geologist/`
+- Compatibility retirement: **DEFERRED** until its retirement gate is passed
 
 ## 1. Product Brand
 
@@ -20,72 +22,83 @@ Initial module structure:
 
 The maturity of an individual module does not determine whether the Lithosite brand may be adopted.
 
-## 2. Brand vs Runtime Identity
+## 2. Module Brand Naming
+
+The user-facing module naming convention is:
+
+- **Lithosite | Mine Geologist**
+- **Lithosite | Mine Services**
+- **Lithosite | Mine Plan**
+- **Lithosite | Mine Pit Control**
+
+This naming convention identifies the product brand first and the module second.
+
+For the current mature module, the canonical dashboard and PWA identity use **Lithosite | Mine Geologist**.
+
+Mine Services will use **Lithosite | Mine Services** when its user-facing runtime is introduced.
+
+## 3. Brand vs Runtime Identity
 
 Brand identity and runtime path identity are separate concerns.
 
 ### Brand
 
-May be adopted immediately across:
+The Lithosite brand may be used across:
+
 - product documentation
 - architecture documentation
 - module map
-- UI/product naming where safe
+- UI and PWA naming
 - project communication
 
 ### Runtime Path
 
-The existing Mine Geologist runtime path remains unchanged until the Rename Gate is passed.
+The canonical Mine Geologist runtime is now:
 
-Example:
+`lithosite/`
 
-`mine-geologist/` remains the current runtime path.
+The previous:
 
-`Lithosite` is the product identity above that runtime.
+`mine-geologist/`
 
-## 3. Why Runtime Rename Is Deferred
+runtime remains available only as a compatibility / rollback runtime while the retirement gate is pending.
 
-The current runtime has path-sensitive dependencies including PWA manifests, Service Workers, cache scope, Member App paths, shared runtime resources, relative imports, and deployment URLs.
+The path name is therefore not used as the product brand.
 
-A physical directory rename therefore requires dependency verification rather than a simple folder rename.
+## 4. Compatibility Runtime
 
-## 4. Rename Gate
+The compatibility runtime is retained because runtime migration affects path-sensitive resources including PWA manifests, Service Workers, cache scope, Member App paths, shared runtime resources, relative imports, and deployment URLs.
 
-The runtime rename may proceed only after:
+The compatibility runtime is not the source for new Mine Geologist development.
 
-1. Repository path dependency audit passes.
-2. PWA manifest/start_url/scope audit passes.
-3. Service Worker scope and cache audit passes.
-4. Member App path audit passes.
-5. Shared Engine/Topo3D/Geo Engine path audit passes.
-6. Relative import/reference audit passes.
-7. GitHub Pages deployment path test passes.
-8. Existing installed/bookmarked runtime behavior has a migration strategy.
-9. Rollback path is documented and tested.
-10. A clean post-rename smoke test passes.
+Any future compatibility-runtime change must be explicitly justified for rollback, deployment, or security purposes and must not become a second source of truth.
 
 ## 5. Product Development Independence
 
-Mine Services does not need to reach 98% before Lithosite branding or product architecture can advance.
+Mine Services does not need to reach the same maturity level as Mine Geologist before Lithosite branding or product architecture can advance.
 
-Current state is intentionally:
+Current product structure is intentionally:
 
-`Lithosite → Mine Geologist (~98%) + Mine Services (Stage 2) + Mine Plan (planned) + Mine Pit Control (planned)`
+`Lithosite → Mine Geologist + Mine Services + Mine Plan + Mine Pit Control`
 
 Each module can mature independently while remaining under the Lithosite product layer.
 
 ## 6. Change Policy
 
-Brand adoption does not authorize uncontrolled runtime renaming.
+Brand naming changes do not authorize uncontrolled runtime restructuring.
 
-Runtime rename is a separate engineering change and must pass the Rename Gate.
+Runtime changes remain subject to repository, PWA, Service Worker, dependency, deployment, and rollback verification.
 
-Production runtime behavior must remain unchanged until that gate is explicitly passed.
+New Mine Services work must remain independent from the mature Mine Geologist runtime unless an explicit shared dependency is documented and audited.
 
 ## 7. Baseline Decision
 
-**Lithosite is now the active product brand.**
+**Lithosite is the active product brand.**
 
-**Mine Geologist remains the current runtime/module identity where path compatibility requires it.**
+**Lithosite | Mine Geologist is the current canonical user-facing module brand.**
 
-**Mine Services development proceeds independently and does not block brand adoption.**
+**Lithosite | Mine Services is the reserved user-facing module brand for the Mine Services runtime.**
+
+**The canonical Mine Geologist runtime is `lithosite/`.**
+
+**The previous `mine-geologist/` runtime remains protected as compatibility / rollback until its separate retirement gate is passed.**
