@@ -1,133 +1,32 @@
-# Security Hardening History
+# Lithosite --- Security Hardening History
 
-**Project:** Lithosite Android  
-**Document type:** Security hardening history and implementation status  
-**Document status:** Living engineering document  
-**Current documented security stage:** Step 20 — Security Boundary Audit  
+## Purpose
 
----
+This document records the implementation history of the security
+hardening stages beneath the global, version-neutral security
+architecture defined in `02_Architecture/Security_Evolution.md`.
 
-## 1. Purpose
+It is a version-history record and does not replace or redefine the
+global Security Evolution contract.
 
-Dokumen ini mencatat evolusi **implementasi security yang spesifik terhadap tahap pengembangan**.
+## 1. Documentation Position
 
-Dokumen ini **bukan** pengganti `02_Architecture/Security_Evolution.md`.
-
-`Security_Evolution.md` tetap menjadi dokumen global dan version-neutral yang mendefinisikan:
-
-- security boundary;
-- threat model;
-- integrity dan content trust;
-- content validation;
-- defensive rendering;
-- security test model;
-- prinsip keamanan yang berlaku lintas versi.
-
-Dokumen ini hanya mencatat **audit, pekerjaan hardening, status implementasi, validasi, dan pekerjaan berikutnya**.
-
----
-
-## 2. Document Relationship
-
-```text
+``` text
 02_Architecture/
 └── Security_Evolution.md
-       │
-       │ Global security architecture
-       │ Version-neutral contract
-       ▼
+    = Global security architecture
+    = Version-neutral
+    = Canonical security contract
+
 05_Version-History/
 └── Security_Hardening_History.md
-       │
-       │ Stage-specific implementation record
-       ▼
-   Audit → Hardening → Validation → Lock
+    = Security implementation history
+    = Stage validation and baseline record
 ```
 
----
+## 2. Security Hardening Track
 
-## 3. Security Stage Status
-
-| Stage | Scope | Status | Evidence / Note |
-|---|---|---|---|
-| Step 20 | Security Boundary Audit | **PASS — Audit Complete** | Attack-surface review completed; runtime code was not changed by the audit artifact. |
-| Step 21A | Remaining XSS Hardening | **PLANNED** | Candidate dynamic HTML/status/error sinks identified; implementation and runtime validation not yet completed. |
-| Step 21B | Resource Boundary Hardening | **PLANNED** | Resource-exhaustion surfaces identified for map packages, KML, GeoTIFF, and image/photo inputs. |
-| Step 21C | Dependency Hardening | **PLANNED** | Floating CDN dependencies identified for review and pinning. |
-| Step 21D | Session Hardening | **PLANNED** | Client-side session credential exposure identified for review; backend query-string contract remains separate technical debt. |
-
-> **Important:** A stage is not `LOCKED` merely because a design or patch proposal exists. `LOCKED` requires implementation, static validation, runtime validation, and documentation of the resulting baseline.
-
----
-
-## 4. Step 20 — Security Boundary Audit
-
-### Scope
-
-The audit reviewed the application's principal security surfaces, including:
-
-- dynamic HTML rendering and potential XSS sinks;
-- imported `.mg1map` package processing;
-- KML parsing;
-- GeoTIFF processing;
-- image and photo handling;
-- client-side session credential storage and transport;
-- external CDN dependencies;
-- dynamic code execution patterns;
-- prototype-pollution indicators;
-- `postMessage` handling;
-- redirect handling.
-
-### Findings
-
-#### 4.1 XSS / Dynamic Rendering
-
-Potential hardening targets remain in several UI paths where dynamic values can reach HTML templates or status/error messages.
-
-The existence of `innerHTML` by itself is not treated as an exploit. Each sink must be evaluated according to the source of the interpolated value and the DOM context in which it is used.
-
-#### 4.2 Resource Exhaustion
-
-The following input classes require explicit resource-boundary review:
-
-```text
-.mg1map package
-KML
-GeoTIFF
-map images / tile payloads
-TP photos / profile photos
-```
-
-The audit identified places where large or malformed input may cause substantial parsing, decoding, allocation, or canvas work.
-
-#### 4.3 Session Credential Exposure
-
-The audit identified client-side bearer-token handling that deserves hardening, including storage in browser storage and use in request construction.
-
-Any change must preserve the existing backend authentication contract unless a direct dependency requires coordinated backend work.
-
-#### 4.4 Dependency / Supply Chain
-
-The frontend currently references external browser dependencies from CDN origins. Floating versions require review because the executed dependency can change independently of the application source revision.
-
-#### 4.5 Areas Without a Confirmed Exploit
-
-The audit did not establish a confirmed application-level exploit for:
-
-- arbitrary `eval` / `new Function` execution;
-- input-driven open redirect;
-- application-level `postMessage` abuse;
-- a confirmed prototype-pollution path.
-
-These findings are recorded as audit results, not as a guarantee that future code cannot introduce such issues.
-
----
-
-## 5. Hardening Order
-
-The planned hardening order is:
-
-```text
+``` text
 Step 20
 Security Boundary Audit
         ↓
@@ -144,104 +43,291 @@ Step 21D
 Session Hardening
 ```
 
-Each stage must follow:
+The stages above have progressed through implementation, static
+validation, runtime validation, and baseline documentation.
 
-```text
+## 3. Security Stage Status
+
+  ---------------------------------------------------------------------------
+  Stage             Scope             Status            Evidence / Note
+  ----------------- ----------------- ----------------- ---------------------
+  Step 20           Security Boundary **PASS --- Audit  Attack-surface review
+                    Audit             Complete**        completed. The audit
+                                                        artifact itself did
+                                                        not modify runtime
+                                                        code.
+
+  Step 21A          Remaining XSS     **LOCKED**        Implementation,
+                    Hardening                           static validation,
+                                                        runtime validation,
+                                                        and resulting
+                                                        baseline
+                                                        documentation
+                                                        completed.
+
+  Step 21B          Resource Boundary **LOCKED**        Resource-exhaustion
+                    Hardening                           boundaries
+                                                        implemented and
+                                                        validated for the
+                                                        identified
+                                                        map-package, KML,
+                                                        GeoTIFF, image, and
+                                                        photo input surfaces.
+
+  Step 21C          Dependency        **LOCKED**        Dependency hardening
+                    Hardening                           implemented,
+                                                        statically validated,
+                                                        runtime validated,
+                                                        and documented in the
+                                                        resulting baseline.
+
+  Step 21D          Session Hardening **LOCKED**        Session credential
+                                                        handling hardening
+                                                        implemented,
+                                                        statically validated,
+                                                        runtime validated,
+                                                        and documented; the
+                                                        existing backend
+                                                        query-string contract
+                                                        remains a separately
+                                                        documented technical
+                                                        boundary.
+  ---------------------------------------------------------------------------
+
+### Lock Rule
+
+A stage is recorded as **LOCKED** only after implementation, static
+validation, runtime validation, and resulting documentation have been
+completed.
+
+Therefore:
+
+``` text
+21A = LOCKED
+21B = LOCKED
+21C = LOCKED
+21D = LOCKED
+```
+
+## 4. Step 21A --- Remaining XSS Hardening
+
+### Scope
+
+Hardening of remaining dynamic HTML, identity, status, and error
+rendering paths identified during the Step 20 security boundary audit.
+
+### Objective
+
+Prevent untrusted or externally influenced values from reaching
+dangerous HTML contexts without the required escaping or defensive
+rendering treatment.
+
+### Status
+
+**LOCKED**
+
+### Validation
+
+-   Implementation completed.
+-   Static validation completed.
+-   Runtime validation completed.
+-   Resulting security baseline documented.
+
+The hardening remains within the existing renderer/security boundary. It
+does not redesign the core map, Topo3D, Tile Engine, Map Library, or
+persistence architecture.
+
+## 5. Step 21B --- Resource Boundary Hardening
+
+### Scope
+
+Resource-exhaustion protection for identified file and payload surfaces,
+including:
+
+-   `.mg1map` package input;
+-   KML input;
+-   GeoTIFF input;
+-   map image input;
+-   TP/photo image input.
+
+### Objective
+
+Prevent oversized or structurally excessive input from consuming
+uncontrolled browser memory, parsing, raster, or DOM resources.
+
+### Status
+
+**LOCKED**
+
+### Validation
+
+-   Resource boundaries implemented.
+-   Static validation completed.
+-   Runtime validation completed.
+-   Resulting baseline documented.
+
+The hardening is treated as a resource boundary, not as a redesign of
+the Topo3D DTM/STR engine or the existing map lifecycle.
+
+## 6. Step 21C --- Dependency Hardening
+
+### Scope
+
+Hardening of externally loaded frontend dependencies, particularly
+floating CDN dependency references.
+
+### Objective
+
+Reduce supply-chain uncertainty caused by dependencies whose version or
+delivered content can change independently of the application source
+baseline.
+
+### Status
+
+**LOCKED**
+
+### Validation
+
+-   Dependency hardening implemented.
+-   Static validation completed.
+-   Runtime validation completed.
+-   Resulting baseline documented.
+
+Local PDF.js architecture remains unchanged unless directly required by
+the dependency hardening contract.
+
+## 7. Step 21D --- Session Hardening
+
+### Scope
+
+Client-side session credential handling and the boundary between
+frontend credential storage and the existing backend session contract.
+
+### Objective
+
+Reduce unnecessary exposure of the member session credential on the
+client while preserving the existing authentication/session workflow.
+
+### Status
+
+**LOCKED**
+
+### Validation
+
+-   Session hardening implemented.
+-   Static validation completed.
+-   Runtime validation completed.
+-   Resulting baseline documented.
+
+The existing backend query-string session contract is recorded as a
+separate technical boundary rather than being silently rewritten as part
+of the frontend hardening stage.
+
+## 8. Current Security Baseline
+
+``` text
+Security Evolution
+(Global Architecture)
+        │
+        ▼
+Step 20
+Security Boundary Audit
+        │
+        ▼
+Step 21A
+XSS Hardening
+LOCKED
+        │
+        ▼
+Step 21B
+Resource Boundary
+LOCKED
+        │
+        ▼
+Step 21C
+Dependency Hardening
+LOCKED
+        │
+        ▼
+Step 21D
+Session Hardening
+LOCKED
+```
+
+This is the security hardening baseline represented by this document.
+
+## 9. Protected Architecture
+
+Security hardening does not imply ownership transfer or redesign of
+unrelated application subsystems.
+
+The following remain protected unless a direct dependency is
+demonstrated:
+
+``` text
+Engine V2
+Device Profiler
+Quality Selection Policy
+Safety / Authority Guard
+Tile Queue
+Map Lifecycle
+Tile Identity
+GeoReference
+Map Library
+Save / Restore V2
+DTM + STR
+Topo3D
+Coordinate Bridge
+UI / Shell Boundary
+```
+
+Security changes should remain bounded to the demonstrated security
+dependency.
+
+## 10. Engineering Record Rule
+
+Future security work follows the same engineering lifecycle:
+
+``` text
 Source Audit
     ↓
-Owner / Dependency Check
+Threat / Boundary Identification
     ↓
-Minimal Change
+Owner / Dependency Map
+    ↓
+Minimal Implementation
     ↓
 Static Validation
     ↓
 Runtime Validation
     ↓
+Regression Validation
+    ↓
 Documentation
     ↓
-Lock
+LOCK
 ```
 
----
+A future security stage must not be marked `LOCKED` from a proposal
+alone.
 
-## 6. Protected Architecture
+## 11. Relationship to Security Evolution
 
-Security hardening must not incidentally redesign unrelated runtime architecture.
+`Security_Evolution.md` remains the global, version-neutral security
+architecture.
 
-The following areas remain protected unless a direct security dependency is demonstrated:
+This history document records how that architecture is progressively
+implemented and hardened in concrete application stages.
 
-```text
-Engine V2
-Device Profiler
-Tile Engine
-Map Lifecycle
-Map Library
-GeoReference / Coordinate Contract
-DTM + STR Parser
-Topo3D Engine
-Save / Restore V2
+``` text
+Security_Evolution.md
+    = What the security architecture means
+    = Global principles and boundaries
+
+Security_Hardening_History.md
+    = What was implemented
+    = What was validated
+    = Which stage is locked
 ```
 
-A security patch must identify its direct dependency before crossing one of these boundaries.
-
----
-
-## 7. Baseline Rule
-
-The global security contract remains:
-
-```text
-External / Imported Data
-        ↓
-Integrity Check
-        ↓
-Content Validation
-        ↓
-Persistence
-        ↓
-Defensive Rendering
-        ↓
-DOM
-```
-
-Persisted data is not automatically trusted merely because it came from local storage or IndexedDB.
-
-The implementation history may evolve by stage, but the global security principle remains version-neutral in `Security_Evolution.md`.
-
----
-
-## 8. Lock Criteria
-
-A security stage may be marked **LOCKED** only when all applicable conditions are satisfied:
-
-- source change has a defined owner and dependency boundary;
-- the change is minimal and scoped;
-- syntax/static validation passes;
-- relevant security tests pass;
-- functional regression passes;
-- runtime smoke test passes where applicable;
-- Service Worker/cache version is updated when runtime files change;
-- the resulting baseline is documented;
-- no unrelated protected architecture was changed incidentally.
-
----
-
-## 9. Current Position
-
-At this documentation cleanup point:
-
-```text
-Global Security Architecture
-        = Security_Evolution.md
-
-Security Implementation History
-        = Security_Hardening_History.md
-
-Latest documented security stage
-        = Step 20 — Audit Complete
-
-Step 21A–21D
-        = Planned / Not Locked
-```
-
-No future stage should be recorded as `LOCKED` until the implementation and validation evidence exists.
+Neither document replaces the other.
