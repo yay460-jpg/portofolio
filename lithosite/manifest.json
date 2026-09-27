@@ -1,6 +1,6 @@
 {
-  "name": "Mine Geologist",
-  "short_name": "Mine Geologist",
+  "name": "Lithosite | Mine Geologist",
+  "short_name": "Lithosite | Mine Geologist",
   "description": "Dashboard operasional tambang nikel laterit - Lithosite",
   "start_url": "./index.html",
   "scope": "./",
