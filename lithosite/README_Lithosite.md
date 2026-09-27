@@ -14,7 +14,7 @@ Browser (PWA)  <--fetch-->  Google Apps Script (Code.gs)  <-->  Google Sheets (2
 
 - **Tidak ada server sendiri.** Semua backend jalan di Google Apps Script (`doGet`/`doPost`), 1 URL deployment (`GOOGLE_SCRIPT_READ_URL`), dibedakan lewat parameter `?sheet=` atau `?action=`.
 - **Tidak ada database sendiri.** Google Sheets = database. 29 sheet, masing-masing 1 tabel data (Member, Produksi_GC, Sessions, dll).
-- **Frontend statis** — di-hosting di GitHub Pages (`https://yay460-jpg.github.io/portofolio/mine-geologist/`), berjalan sebagai PWA (bisa di-install di Windows/Android).
+- **Frontend statis** — di-hosting di GitHub Pages (`https://yay460-jpg.github.io/portofolio/lithosite/`), berjalan sebagai PWA (bisa di-install di Windows/Android).
 
 ## 2. Struktur File
 
@@ -162,7 +162,7 @@ Halaman tersebut menjadi referensi global untuk trust boundary, content validati
 ## 4. Cara Deploy
 
 ### Frontend (GitHub Pages)
-1. Upload file yang berubah ke repo `yay460-jpg/portofolio`, folder `mine-geologist/`
+1. Upload file yang berubah ke repo `yay460-jpg/portofolio`, folder `lithosite/`
 2. **⚠️ WAJIB naikkan `CACHE_NAME` di `sw.js`** tiap kirim file baru (format: `mine-geologist-build-YYYYMMDDx`, atau `lithosite-member-app-build-YYYYMMDDx` untuk `member-app/sw.js`) — Service Worker mendeteksi update dari perubahan BYTE `sw.js`, bukan dari `APP_VERSION`. Kalau lupa, browser/PWA yang sudah install akan tetap pakai file lama dari cache (termasuk `scripts/*.js` dan `vendor/pdfjs/*.js`), walau file di GitHub sudah benar — **ini pernah jadi akar bug "app macet total" yang perlu berminggu-minggu untuk didiagnosis, lihat `docs/panduan-geopdf-coordinate-engine.md` bagian 7**.
 3. Setelah upload, PWA yang sudah terinstall butuh 1 siklus reload untuk deteksi versi baru — untuk `member-app/`, kadang butuh **clear site data / uninstall-reinstall PWA** manual kalau Service Worker lama tetap aktif (SW baru sengaja tidak `skipWaiting()` otomatis).
 
