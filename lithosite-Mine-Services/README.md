@@ -9,7 +9,7 @@ Mine Services is a Lithosite module.
 - Phase A: LOCKED
 - Stage 2.1–2.6: PASS
 - Stage 3: PASS
-- Stage 4: IN PROGRESS
+- Stage 4: PASS — BASELINED
 
 ## Structure
 
