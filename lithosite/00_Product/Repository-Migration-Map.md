@@ -2,288 +2,262 @@
 
 ## Purpose
 
-This document defines the controlled migration path from the current repository layout to a product-level Lithosite structure.
+Dokumen ini mendefinisikan migrasi repository Lithosite secara bertahap setelah canonical runtime berhasil diperkenalkan.
 
-The migration is designed to preserve the existing Mine Geologist runtime, production paths, Service Worker behavior, Member Android application, Map Engine, Topo3D runtime, and established documentation baseline.
+Migrasi ini menjaga:
 
-This is a structural migration document. It does not redefine current runtime contracts.
+- runtime Mine Geologist;
+- canonical Lithosite runtime;
+- PWA identity dan scope;
+- Service Worker boundary;
+- Member App;
+- Map Engine;
+- Topo3D;
+- Engine V2;
+- established technical documentation;
+- rollback compatibility.
+
+Dokumen ini tidak mengubah runtime contract.
 
 ## Current Repository Position
 
-The current repository is:
+Repository saat ini:
 
-`yay460-jpg/portofolio`
-
-The existing application runtime is located under:
-
-`mine-geologist/`
-
-Although the directory name is Mine Geologist, the directory already contains Lithosite-branded runtime components, Member Android, Map Engine, Topo3D, assets, and Lithosite Android documentation.
-
-Therefore, `mine-geologist/` is treated as an existing runtime container, not as a directory that should be renamed immediately.
-
-## Locked Migration Principles
-
-1. Do not rename `mine-geologist/` during this migration phase.
-2. Do not move the current Mine Geologist runtime files merely for naming consistency.
-3. Do not change production URLs unless a separate migration plan explicitly covers redirects, PWA identity, Service Worker scope, cache migration, and deployment verification.
-4. Do not modify Engine V2 contracts as part of repository restructuring.
-5. Do not modify Member Android runtime behavior as part of repository restructuring.
-6. Do not move `shared/` components into a global location until their actual dependency ownership is verified.
-7. Do not rewrite historical documentation.
-8. Global product documentation must not use version numbers in filenames.
-9. Version-specific documentation remains under the appropriate version-history/baseline structure.
-10. Structural changes must be introduced through a dedicated branch and reviewed before merging to `main`.
-
-## Current Runtime Classification
-
-| Path | Classification | Migration Action |
-|---|---|---|
-| `mine-geologist/index.html` | Mine Geologist runtime entry | Keep in place |
-| `mine-geologist/scripts/` | Mine Geologist runtime | Keep in place |
-| `mine-geologist/modules/` | Mine Geologist feature modules | Keep in place |
-| `mine-geologist/member-app/` | Member Android runtime | Keep in place |
-| `mine-geologist/shared/geo-engine.js` | Geospatial runtime dependency | Keep in place; ownership review later |
-| `mine-geologist/shared/topo3d/` | Topo3D runtime dependency | Keep in place; ownership review later |
-| `mine-geologist/assets/` | Existing application assets | Keep in place |
-| `mine-geologist/style/` | Existing runtime styles | Keep in place |
-| `mine-geologist/Lithosite Android/` | Existing technical documentation | Keep in place |
-| `portfolio.html` | Portfolio presentation layer | Keep separate from Lithosite runtime |
-
-## Product Layer Target
-
-A product-level Lithosite documentation layer may be introduced without moving the existing runtime:
-
-```text
+\`\`\`text
 portofolio/
-├── portfolio.html
-├── mine-geologist/                 # Existing runtime; initially preserved
-│   ├── index.html
-│   ├── scripts/
-│   ├── modules/
-│   ├── member-app/
-│   ├── shared/
-│   ├── assets/
-│   ├── style/
-│   └── Lithosite Android/
-│
-└── lithosite/                      # Product-level architecture
-    ├── README.md
+├── lithosite/          # canonical runtime + transition documentation
+├── mine-geologist/     # compatibility / rollback runtime
+└── portfolio.html
+\`\`\`
+
+Canonical production runtime sekarang berada di:
+
+\`lithosite/\`
+
+Runtime lama:
+
+\`mine-geologist/\`
+
+tetap dipertahankan sebagai compatibility / rollback runtime.
+
+## Migration Status
+
+| Phase | Status |
+|---|---|
+| Runtime rename rehearsal | PASS |
+| Canonical \`lithosite/\` creation | PASS |
+| PWA identity migration | PASS in migration branch |
+| Service Worker coexistence rehearsal | PASS locally |
+| Promotion to \`main\` | PASS |
+| Old runtime preservation | PASS |
+| Documentation normalization design | IN PROGRESS |
+| Physical documentation move | NOT YET |
+| Old runtime retirement | NOT YET |
+
+## Locked Runtime Principles
+
+1. \`lithosite/\` is the canonical runtime path.
+2. \`mine-geologist/\` remains available for compatibility and rollback.
+3. No runtime folder is moved merely for visual cleanup.
+4. No Engine V2 contract is changed by documentation normalization.
+5. No Member App runtime behavior is changed by documentation normalization.
+6. \`shared/\` remains inside the runtime until actual cross-module ownership is proven.
+7. Historical documentation is preserved.
+8. Current global/product documentation must not depend on runtime documentation paths.
+9. Version-specific history remains historical.
+10. Every physical documentation move requires link verification and rollback.
+
+## Canonical Runtime Boundary
+
+The protected runtime tree is:
+
+\`\`\`text
+lithosite/
+├── assets/
+├── member-app/
+├── modules/
+├── scripts/
+├── shared/
+├── style/
+├── index.html
+├── manifest.json
+└── sw.js
+\`\`\`
+
+These paths are treated as runtime contracts.
+
+## Compatibility Runtime
+
+\`mine-geologist/\` remains a complete compatibility runtime.
+
+It is not the canonical location for new feature development.
+
+It must remain intact until the production deployment and rollback retirement gates are explicitly passed.
+
+The compatibility runtime is therefore a deliberate transition mechanism, not an accidental duplicate.
+
+## Documentation Normalization
+
+The target documentation boundary is:
+
+\`\`\`text
+docs/
+└── lithosite/
     ├── 00_Product/
-    │   ├── Product-Architecture.md
-    │   ├── Module-Map.md
-    │   ├── Product-Roadmap.md
-    │   └── Security-Evolution.md
     ├── 01_Mine-Geologist/
-    │   └── README.md
     ├── 02_Mine-Services/
-    │   └── README.md
     ├── 03_Mine-Plan/
-    │   └── README.md
     └── 04_Mine-Pit-Control/
-        └── README.md
-```
+\`\`\`
 
-The target structure above is a product/documentation layer. It does not imply that the current runtime must immediately be relocated.
+The current documentation under \`lithosite/\` is being treated as a transition state.
 
-## Migration Phases
+No physical move occurs until the documentation ownership and link migration audits are complete.
 
-### Phase 0 — Freeze and Audit
+## Mine Geologist Documentation
 
-Status: Active
+Established Android/MG1 documentation currently contains:
 
-- Preserve `main` as the current runtime baseline.
-- Audit directory structure and runtime entry points.
-- Identify production paths and PWA dependencies.
-- Identify shared runtime dependencies.
-- Do not change runtime files.
+- baseline contracts;
+- Engine V2;
+- architecture;
+- security evolution;
+- performance;
+- UI/Topography;
+- issue/fix records;
+- version history;
+- guides;
+- archive.
 
-### Phase 1 — Product Architecture Layer
+Its technical authority remains unchanged.
 
-Status: Planned
+A future move to:
 
-Create the Lithosite product-level documentation structure.
+\`docs/lithosite/01_Mine-Geologist/Android/\`
 
-Expected documents:
+is a documentation relocation only.
 
-- `lithosite/README.md`
-- `lithosite/00_Product/Product-Architecture.md`
-- `lithosite/00_Product/Module-Map.md`
-- `lithosite/00_Product/Product-Roadmap.md`
-- `lithosite/00_Product/Security-Evolution.md`
-- Module-level README files for Mine Geologist, Mine Services, Mine Plan, and Mine Pit Control.
+It must not alter technical content or runtime behavior.
 
-This phase should not alter the existing Mine Geologist runtime.
+## Mine Services
 
-### Phase 2 — Module Boundary Definition
+Mine Services remains an independent Lithosite module.
 
-Status: Planned
+Current baseline:
 
-Define ownership boundaries:
+\`\`\`text
+Stage 1 — Data Model
+        ↓
+Stage 2 — Operational Transactions
+        ↓
+Stage 3 — Fleet & Maintenance
+        ↓
+Stage 4 — Planning & Budget
+        ↓
+Stage 5 — K3 & Environment
+        ↓
+Stage 6 — Reporting & Audit
+        ↓
+Stage 7 — Security Evolution
+        ↓
+Stage 8 — Final Baseline
+\`\`\`
 
-- Mine Geologist
-- Mine Services
-- Mine Plan
-- Mine Pit Control
-- Product-level shared services
-
-Dependency ownership must be based on source references, not directory names.
-
-### Phase 3 — Mine Services Introduction
-
-Status: Planned
-
-Mine Services becomes an independent product module.
-
-Its documentation and runtime must not be placed under Mine Geologist.
-
-Mine Services Stage 1 Data Model remains the starting baseline.
-
-### Phase 4 — Runtime Consolidation
-
-Status: Future / Conditional
-
-Only after dependency mapping and deployment verification may runtime directories be reconsidered.
-
-Any future movement of `mine-geologist/` must explicitly verify:
-
-- GitHub Pages URL
-- `manifest.json`
-- PWA `scope`
-- PWA `id`
-- Service Worker registration scope
-- Service Worker cache names
-- relative asset paths
-- Member Android paths
-- external links
-- documentation links
-- browser-installed PWA behavior
-- offline behavior
-
-No runtime relocation is approved by this map alone.
-
-## Mine Geologist Boundary
-
-Mine Geologist is treated as an existing mature module.
-
-Its internal architecture is preserved.
-
-The following remain inside the current runtime until a separately approved migration:
-
-- Web dashboard
-- Member Android
-- Map Engine
-- Engine V2
-- Topo3D
-- Map Library
-- existing feature modules
-- existing Service Workers
-- existing assets required by runtime
-
-The product layer references Mine Geologist without requiring an immediate internal rewrite.
-
-## Mine Services Boundary
-
-Mine Services is a separate product module.
-
-Initial structure:
-
-```text
-02_Mine-Services/
-├── README.md
-├── 01_Baseline/
-├── 02_Architecture/
-├── 03_Operations/
-├── 04_KPI/
-├── 05_Planning/
-├── 06_HSE/
-├── 07_Reporting/
-├── 08_Audit/
-└── 09_Security-Evolution/
-```
-
-Its Stage 1 Data Model is the current starting point.
-
-Mine Services must not modify Mine Geologist contracts simply to reuse existing naming or folders.
+Mine Services must not depend on private Mine Geologist implementation.
 
 ## Shared Runtime Rule
 
-A component may be promoted to product-level shared infrastructure only when all of the following are established:
+A component becomes Lithosite-global only when:
 
-- more than one product module requires it;
-- its API/contract can be defined independently;
+- multiple product modules actually consume it;
+- the public contract is independently defined;
 - ownership is clear;
-- lifecycle behavior is documented;
-- security implications are documented;
-- moving it does not break an existing runtime;
+- lifecycle is documented;
+- security implications are audited;
 - migration can be verified independently.
 
-Until those conditions are met, existing shared runtime files remain in their current location.
+Until then, existing runtime shared components remain where they are.
 
-## Production Safety Gate
+## Documentation Migration Sequence
 
-No structural change may be merged to `main` until these checks pass:
+### Group A — Product
 
-1. Main application loads.
-2. Mine Geologist runtime loads.
-3. Member Android loads.
-4. Map runtime loads.
-5. Map Library loads.
-6. Topo3D loads where applicable.
-7. Service Worker registers correctly.
-8. Offline shell remains valid.
-9. Manifest remains valid.
-10. Relative assets resolve.
-11. No broken script imports.
-12. No broken documentation links caused by the migration.
-13. Existing locked Engine V2 behavior remains unchanged.
+\`\`\`text
+lithosite/00_Product/
+        ↓
+docs/lithosite/00_Product/
+\`\`\`
 
-## Change Ownership
+### Group B — Mine Services
 
-Repository restructuring and product architecture are separate from feature development.
+\`\`\`text
+lithosite/02_Mine-Services/
+        ↓
+docs/lithosite/02_Mine-Services/
+\`\`\`
 
-The following rule applies:
+### Group C — Mine Geologist / Android
 
-```text
-Structure change
-    ↓
-Audit
-    ↓
-Migration Map
-    ↓
-Dedicated branch
-    ↓
-Path/dependency verification
-    ↓
-Runtime verification
-    ↓
-Review
-    ↓
-Merge to main
-```
+\`\`\`text
+lithosite/Lithosite Android/
+        ↓
+docs/lithosite/01_Mine-Geologist/Android/
+\`\`\`
 
-Feature development resumes only after the structural baseline is stable.
+### Group D — Compatibility Cleanup
+
+Only after Groups A-C pass:
+
+- remove duplicate documentation;
+- reconcile old README links;
+- verify no runtime references documentation;
+- retain exactly one authoritative copy.
+
+## Runtime Safety Gate
+
+Any future runtime relocation must verify:
+
+1. GitHub Pages path;
+2. manifest identity;
+3. PWA scope;
+4. Service Worker scope;
+5. Service Worker cache namespace;
+6. relative assets;
+7. Member App paths;
+8. external links;
+9. installed PWA behavior;
+10. offline shell;
+11. Engine V2 regression;
+12. rollback.
 
 ## Current Decision
 
-The current approved structural position is:
+The repository is intentionally in a controlled transition state:
 
-```text
-Existing Mine Geologist runtime
+\`\`\`text
+Canonical Lithosite Runtime
         +
-Lithosite product architecture layer
+Compatibility Mine Geologist Runtime
         +
-Independent Mine Services module
+Product Architecture
         +
-Future Mine Plan module
+Independent Mine Services
         +
-Future Mine Pit Control module
-```
+Documentation Normalization
+\`\`\`
 
-The current `mine-geologist/` runtime is therefore preserved while the product architecture grows above it.
+The canonical runtime migration is complete at repository level.
 
-## Next Step
+The remaining structural work is documentation normalization and, later, controlled retirement of the compatibility runtime.
 
-Before moving or renaming any runtime directory, complete the Product Architecture Layer and Module Map.
+## Gate
 
-After that, continue Mine Services from its Stage 1 Data Model toward Stage 2 Transactions without coupling it to the Mine Geologist runtime structure.
+**Runtime Migration: PASS**
+
+**Canonical Runtime: PASS**
+
+**Documentation Normalization Design: PASS**
+
+**Physical Documentation Move: NOT YET**
+
+**Compatibility Runtime Retirement: NOT YET**
