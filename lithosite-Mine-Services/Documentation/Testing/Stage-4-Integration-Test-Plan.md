@@ -18,6 +18,7 @@ Verify that Lithosite integration adapters have a single runtime boundary and th
 - RuntimeInterface does not expose PersistenceStore.
 - RuntimeInterface does not expose ValidationEngine.
 - RuntimeInterface does not expose AuditRepository.
+- ApplicationService, ImportCoordinator, and SnapshotManager share the same AuditRepository boundary.
 - Mutations still require request IDs.
 - Duplicate request IDs remain idempotent.
 
