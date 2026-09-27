@@ -1,22 +1,149 @@
-import hashlib,json,uuid
-from datetime import datetime,timezone
+import hashlib
+import json
+import uuid
+from datetime import datetime, timezone
+
+from .persistence import PersistenceStore
+from .schema import DOMAIN_ENTITIES, HEADERS, PKS, SCHEMA_VERSION
+from .transaction import TransactionManager
+from .validation import ValidationEngine
+
 class SnapshotManager:
- def __init__(self,store):self.store=store
- def capture(self):
-  payload=self.store.snapshot();raw=json.dumps(payload,sort_keys=True,default=str,separators=(",",":"),ensure_ascii=False).encode()
-  return {"snapshot_id":str(uuid.uuid4()),"schema_version":"A.1","created_at":datetime.now(timezone.utc).isoformat(),"payload":payload,"checksum":hashlib.sha256(raw).hexdigest(),"checksum_algorithm":"SHA-256","status":"SEALED"}
- def verify(self,s):
-  raw=json.dumps(s["payload"],sort_keys=True,default=str,separators=(",",":"),ensure_ascii=False).encode();return s.get("schema_version")=="A.1" and hashlib.sha256(raw).hexdigest()==s.get("checksum")
- def restore(self,s,mode="REPLACE_RUNTIME"):
-  if not self.verify(s):return {"status":"REJECTED","reason":"CHECKSUM_OR_SCHEMA"}
-  if mode=="DRY_RUN":return {"status":"VALIDATED","mode":mode}
-  before=self.store.snapshot()
-  try:
-   if mode=="REPLACE_RUNTIME":self.store.replace(s["payload"])
-   elif mode=="MERGE_RUNTIME":
-    merged=self.store.snapshot()
-    for e,rows in s["payload"]["data"].items():merged["data"].setdefault(e,{}).update(rows)
-    merged["audit"].extend(s["payload"].get("audit",[]));self.store.replace(merged)
-   else:return {"status":"REJECTED","reason":"MODE_INVALID"}
-   self.store.save();return {"status":"COMMITTED","mode":mode}
-  except Exception:self.store.replace(before);raise
+    def __init__(self, store, validator=None):
+        self.store = store
+        self.validator = validator or ValidationEngine()
+
+    @staticmethod
+    def _hash_payload(payload):
+        raw = json.dumps(
+            payload,
+            sort_keys=True,
+            default=str,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode()
+        return hashlib.sha256(raw).hexdigest()
+
+    def capture(self, source="runtime"):
+        payload = self.store.snapshot()
+        return {
+            "snapshot_id": str(uuid.uuid4()),
+            "schema_version": SCHEMA_VERSION,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "source": source,
+            "entity_counts": {
+                entity: len(payload["data"].get(entity, {}))
+                for entity in DOMAIN_ENTITIES
+            },
+            "audit_included": True,
+            "payload": payload,
+            "checksum": self._hash_payload(payload),
+            "checksum_algorithm": "SHA-256",
+            "status": "SEALED",
+        }
+
+    def verify(self, snapshot):
+        required = {
+            "snapshot_id",
+            "schema_version",
+            "created_at",
+            "source",
+            "entity_counts",
+            "audit_included",
+            "payload",
+            "checksum",
+            "checksum_algorithm",
+            "status",
+        }
+        if not required.issubset(snapshot):
+            return False
+        if snapshot.get("schema_version") != SCHEMA_VERSION:
+            return False
+        if snapshot.get("checksum_algorithm") != "SHA-256":
+            return False
+        if snapshot.get("status") not in {"SEALED", "READY"}:
+            return False
+        return self._hash_payload(snapshot["payload"]) == snapshot.get("checksum")
+
+    def _validate_payload(self, payload):
+        if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
+            return [{"code": "VAL-E011", "field": None, "message": "Snapshot payload is invalid"}]
+
+        candidate = PersistenceStore()
+        for entity in DOMAIN_ENTITIES:
+            rows = payload["data"].get(entity, {})
+            if not isinstance(rows, dict):
+                return [{"code": "VAL-E011", "field": entity, "message": "Snapshot entity payload is invalid"}]
+            for pk, row in rows.items():
+                if not isinstance(row, dict) or row.get(PKS[entity]) != pk:
+                    return [{"code": "VAL-E003", "field": PKS[entity], "message": "Snapshot primary key mismatch"}]
+                candidate.insert(entity, pk, row)
+
+        errors = []
+        dataset = {
+            entity: list(candidate.all(entity))
+            for entity in DOMAIN_ENTITIES
+        }
+        for entity in DOMAIN_ENTITIES:
+            errors.extend(self.validator.validate_dataset(dataset[entity] and {entity: dataset[entity]} or {entity: []}, candidate, "RESTORE"))
+
+        audit = payload.get("audit", [])
+        if not isinstance(audit, list):
+            errors.append({"code": "VAL-E011", "field": "AuditLog", "message": "Snapshot audit payload is invalid"})
+        else:
+            for event in audit:
+                if not isinstance(event, dict):
+                    errors.append({"code": "VAL-E011", "field": "AuditLog", "message": "Audit event is invalid"})
+                    continue
+                for field in ("audit_id", "timestamp", "entity", "entity_id", "action", "source"):
+                    if event.get(field) in (None, ""):
+                        errors.append({"code": "VAL-E003", "field": field, "message": "Audit field is required"})
+
+        return errors
+
+    def restore(self, snapshot, mode="REPLACE_RUNTIME"):
+        if mode not in {"REPLACE_RUNTIME", "MERGE_RUNTIME", "DRY_RUN"}:
+            return {"status": "REJECTED", "reason": "MODE_INVALID"}
+
+        if not self.verify(snapshot):
+            return {"status": "REJECTED", "reason": "CHECKSUM_OR_SCHEMA"}
+
+        before = self.store.snapshot()
+        if mode == "REPLACE_RUNTIME":
+            candidate_payload = snapshot["payload"]
+        elif mode == "MERGE_RUNTIME":
+            merged = self.store.snapshot()
+            for entity, rows in snapshot["payload"]["data"].items():
+                merged["data"].setdefault(entity, {}).update(rows)
+            if snapshot["payload"].get("audit"):
+                merged["audit"].extend(snapshot["payload"]["audit"])
+            candidate_payload = merged
+        else:
+            candidate_payload = snapshot["payload"]
+
+        errors = self._validate_payload(candidate_payload)
+        if errors:
+            return {"status": "REJECTED", "reason": "VALIDATION_FAILED", "errors": errors}
+
+        if mode == "DRY_RUN":
+            return {"status": "VALIDATED", "mode": mode}
+
+        tx = TransactionManager(self.store)
+        tx.begin()
+        try:
+            self.store.replace(candidate_payload)
+            self.store.add_audit({
+                "audit_id": str(uuid.uuid4()),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "entity": "_System",
+                "entity_id": snapshot["snapshot_id"],
+                "action": "RESTORE",
+                "old_value": json.dumps(before, default=str, sort_keys=True),
+                "new_value": json.dumps(candidate_payload, default=str, sort_keys=True),
+                "source": "SnapshotManager",
+            })
+            tx.commit()
+            return {"status": "COMMITTED", "mode": mode, "snapshot_id": snapshot["snapshot_id"]}
+        except Exception:
+            tx.rollback()
+            return {"status": "REJECTED", "reason": "ATOMIC_ABORT"}
