@@ -32,6 +32,37 @@ def test_adapter_routes_mutation_through_runtime_interface():
     assert runtime.read("Equipment", "EQ-ADAPTER") is not None
 
 
+def test_adapter_routes_update_and_delete_commands():
+    runtime = RuntimeInterface()
+    adapter = RuntimeAdapter(runtime)
+    created = adapter.handle({
+        "request_id": "adapter-update-create",
+        "operation": "CREATE",
+        "entity": "Equipment",
+        "row": valid_equipment("EQ-UPDATE"),
+    })
+    assert created["status"] == "COMMITTED"
+
+    updated = adapter.handle({
+        "request_id": "adapter-update",
+        "operation": "UPDATE",
+        "entity": "Equipment",
+        "entity_id": "EQ-UPDATE",
+        "patch": {"status": "Inactive"},
+    })
+    assert updated["status"] == "COMMITTED"
+    assert runtime.read("Equipment", "EQ-UPDATE")["status"] == "Inactive"
+
+    deleted = adapter.handle({
+        "request_id": "adapter-delete",
+        "operation": "DELETE",
+        "entity": "Equipment",
+        "entity_id": "EQ-UPDATE",
+    })
+    assert deleted["status"] == "COMMITTED"
+    assert runtime.read("Equipment", "EQ-UPDATE") is None
+
+
 def test_adapter_preserves_runtime_errors_without_redefining_them():
     adapter = RuntimeAdapter(RuntimeInterface())
 
@@ -64,6 +95,12 @@ def test_adapter_validates_envelope_before_runtime():
         "operation": "DROP_DATABASE",
     })
     assert unsupported["errors"][0]["code"] == "ADP-002"
+
+    missing_path = adapter.handle({
+        "request_id": "adapter-missing-path",
+        "operation": "IMPORT_XLSX",
+    })
+    assert missing_path["errors"][0]["code"] == "ADP-003"
 
 
 def test_adapter_read_backup_and_dry_run_restore():
@@ -115,3 +152,5 @@ def test_adapter_sanitizes_unexpected_runtime_failure():
     assert result["status"] == "REJECTED"
     assert result["errors"][0]["code"] == "ADP-005"
     assert "secret internal detail" not in result["errors"][0]["message"]
+    assert not hasattr(adapter, "store")
+    assert not hasattr(adapter, "validator")
