@@ -32,6 +32,10 @@ class ApplicationService:
   if request_id in self._requests:return {"status":"DUPLICATE_REQUEST"}
   old=self.store.get(entity,pk)
   if old is None:return {"status":"REJECTED","errors":[ValidationError("ENTITY_NOT_FOUND",None,"Entity not found")]}
+  refs={"Equipment":[("Operations","equipment_id"),("Maintenance","equipment_id"),("Issues","equipment_id")],"WorkFront":[("Operations","work_front_id"),("Issues","work_front_id"),("Plans","work_front_id"),("HSE","work_front_id")]}
+  for child,field in refs.get(entity,[]):
+   if any(row.get(field)==pk for row in self.store.all(child)):
+    return {"status":"REJECTED","errors":[ValidationError("FK_REFERENCE_EXISTS",field,f"Cannot delete referenced {entity}")]}
   self.tx.begin()
   try:self.store.delete(entity,pk);self._audit(entity,pk,"DELETE",request_id,old,None);self.tx.commit();self._requests.add(request_id);return {"status":"COMMITTED","entity_id":pk}
   except Exception:self.tx.rollback();raise
