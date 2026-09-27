@@ -9,7 +9,7 @@ This directory is the concrete Android host implementation boundary for Mine Ser
 - Python 3.13
 - Mine Services RuntimeAdapter
 - offline XLSX persistence
-- A.1 database seed from ../Database/Mine-Services-Database.xlsx
+- A.1 database seed from ../../Database/Mine-Services-Database.xlsx
 
 ## Build Preconditions
 
