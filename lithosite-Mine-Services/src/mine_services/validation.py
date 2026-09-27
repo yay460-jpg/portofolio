@@ -83,7 +83,7 @@ class ValidationEngine:
             errors.append(ValidationError("VAL-E010", pk, "Primary key is immutable"))
 
         for field in row:
-            if field in SYSTEM_FIELDS and context in {"CREATE", "IMPORT", "RESTORE"}:
+            if field in SYSTEM_FIELDS and context in {"CREATE", "IMPORT", "UPDATE"}:
                 errors.append(ValidationError("VAL-E010", field, "System field is generated"))
 
         for field in NUMERIC:
