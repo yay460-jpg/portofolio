@@ -124,6 +124,12 @@ No documentation change introduced a runtime dependency on documentation files.
 
 Mine Services documentation is now canonical at `docs/lithosite/02_Mine-Services/`. The previous `lithosite/02_Mine-Services/` location has been removed. Version-specific `v1` contract identifiers were preserved because they identify contract revisions rather than release branding.
 
+## Group C migration verification
+
+Mine Geologist / Android documentation is now canonical at `docs/lithosite/01_Mine-Geologist/Android/`. The previous `lithosite/Lithosite Android/` documentation location has been removed. Version-specific baseline, history, issue, and archive filenames were preserved.
+
+The global `Architecture_Position.md` remains version-neutral. V24.5 identifiers remain only where they identify baseline/history/issue records.
+
 ## Next gate
 
 The Documentation Link & Reference Audit remains **PASS**.
