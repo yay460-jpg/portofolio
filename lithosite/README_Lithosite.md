@@ -19,7 +19,7 @@ Browser (PWA)  <--fetch-->  Google Apps Script (Code.gs)  <-->  Google Sheets (2
 ## 2. Struktur File
 
 ```
-mine-geologist/
+lithosite/
 ├── index.html              <- markup saja, semua isi/logic ada di file .js
 ├── manifest.json            <- konfigurasi PWA
 ├── sw.js                    <- Service Worker (caching offline + deteksi update)
@@ -163,7 +163,7 @@ Halaman tersebut menjadi referensi global untuk trust boundary, content validati
 
 ### Frontend (GitHub Pages)
 1. Upload file yang berubah ke repo `yay460-jpg/portofolio`, folder `lithosite/`
-2. **⚠️ WAJIB naikkan `CACHE_NAME` di `sw.js`** tiap kirim file baru (format: `mine-geologist-build-YYYYMMDDx`, atau `lithosite-member-app-build-YYYYMMDDx` untuk `member-app/sw.js`) — Service Worker mendeteksi update dari perubahan BYTE `sw.js`, bukan dari `APP_VERSION`. Kalau lupa, browser/PWA yang sudah install akan tetap pakai file lama dari cache (termasuk `scripts/*.js` dan `vendor/pdfjs/*.js`), walau file di GitHub sudah benar — **ini pernah jadi akar bug "app macet total" yang perlu berminggu-minggu untuk didiagnosis, lihat `docs/panduan-geopdf-coordinate-engine.md` bagian 7**.
+2. **⚠️ WAJIB naikkan `CACHE_NAME` di `sw.js`** tiap kirim file baru (format: `lithosite-build-YYYYMMDDx`, atau `lithosite-member-app-build-YYYYMMDDx` untuk `member-app/sw.js`) — Service Worker mendeteksi update dari perubahan BYTE `sw.js`, bukan dari `APP_VERSION`. Kalau lupa, browser/PWA yang sudah install akan tetap pakai file lama dari cache (termasuk `scripts/*.js` dan `vendor/pdfjs/*.js`), walau file di GitHub sudah benar — **ini pernah jadi akar bug "app macet total" yang perlu berminggu-minggu untuk didiagnosis, lihat `docs/panduan-geopdf-coordinate-engine.md` bagian 7**.
 3. Setelah upload, PWA yang sudah terinstall butuh 1 siklus reload untuk deteksi versi baru — untuk `member-app/`, kadang butuh **clear site data / uninstall-reinstall PWA** manual kalau Service Worker lama tetap aktif (SW baru sengaja tidak `skipWaiting()` otomatis).
 
 ### Backend (Google Apps Script)
