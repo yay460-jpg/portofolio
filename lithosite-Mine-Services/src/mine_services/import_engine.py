@@ -112,30 +112,37 @@ class ImportCoordinator:
         return self.import_dataset(rows)
 
     def import_dataset(self, rows):
-        pre_errors = self.validator.validate_dataset(rows, self.store, "IMPORT")
-        if pre_errors:
+        staged = PersistenceStore()
+        staged.replace(self.store.snapshot())
+
+        duplicate_errors = []
+        seen = {}
+        for entity, items in rows.items():
+            if entity not in DOMAIN_ENTITIES:
+                duplicate_errors.append(self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], f"Unknown entity: {entity}", entity))
+                continue
+            pk = PKS[entity]
+            seen.setdefault(entity, set())
+            for row in items:
+                key = row.get(pk)
+                if key in seen[entity]:
+                    duplicate_errors.append(self._error(IMPORT_ERROR_CODES["PK_DUPLICATE"], "Primary key duplicate in dataset", pk))
+                seen[entity].add(key)
+                if key not in (None, "") and staged.exists(entity, key):
+                    duplicate_errors.append(self._error(IMPORT_ERROR_CODES["PK_DUPLICATE"], "Primary key already exists", pk))
+
+        if duplicate_errors:
             return {
                 "status": "REJECTED",
                 "lifecycle": "REJECTED",
                 "rows_committed": 0,
-                "errors": [self._map_validation_error(error) for error in pre_errors],
+                "errors": duplicate_errors,
             }
-
-        staged = PersistenceStore()
-        staged.replace(self.store.snapshot())
 
         try:
             for entity, items in rows.items():
                 for row in items:
-                    pk = PKS[entity]
-                    if staged.exists(entity, row.get(pk)):
-                        return {
-                            "status": "REJECTED",
-                            "lifecycle": "REJECTED",
-                            "rows_committed": 0,
-                            "errors": [self._error(IMPORT_ERROR_CODES["PK_DUPLICATE"], "Primary key already exists", pk)],
-                        }
-                    staged.insert(entity, row[pk], row)
+                    staged.insert(entity, row[PKS[entity]], row)
 
             errors = self.validator.validate_dataset(rows, staged, "IMPORT")
             if errors:
