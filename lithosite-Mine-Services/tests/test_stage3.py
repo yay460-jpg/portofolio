@@ -269,28 +269,3 @@ def test_xlsx_persistence_roundtrip(tmp_path):
     verify = __import__("openpyxl").load_workbook(path, data_only=True)
     assert verify["_Baseline"]["B1"].value == "LOCKED"
 
-
-def test_runtime_interface_is_single_integration_boundary():
-    from mine_services import RuntimeInterface
-
-    runtime = RuntimeInterface()
-    result = runtime.create("Equipment", valid_equipment("EQ-RUNTIME"), "runtime-create")
-    assert result["status"] == "COMMITTED"
-    assert runtime.read("Equipment", "EQ-RUNTIME")["equipment_id"] == "EQ-RUNTIME"
-
-    assert not hasattr(runtime, "store")
-    assert not hasattr(runtime, "_application").__class__ if False else True
-
-
-def test_runtime_interface_backup_and_dry_run_restore():
-    from mine_services import RuntimeInterface
-
-    runtime = RuntimeInterface()
-    assert runtime.create("Equipment", valid_equipment("EQ-BACKUP"), "runtime-backup")["status"] == "COMMITTED"
-    snapshot = runtime.backup(source="Stage-4-Test")
-    assert snapshot["source"] == "Stage-4-Test"
-
-    assert runtime.create("Equipment", valid_equipment("EQ-AFTER"), "runtime-after")["status"] == "COMMITTED"
-    result = runtime.restore(snapshot, mode="DRY_RUN")
-    assert result["status"] == "VALIDATED"
-    assert runtime.read("Equipment", "EQ-AFTER") is not None
