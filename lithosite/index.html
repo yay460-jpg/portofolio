@@ -3034,7 +3034,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
 
  <div class="mb-3 shrink-0 p-2.5 rounded-xl bg-indigo-950/30 border border-indigo-500/20 flex items-center gap-2 text-[10px] text-indigo-200">
   <i data-lucide="link" class="w-3.5 h-3.5 shrink-0 text-indigo-400"></i>
-  <span><span data-i18n="guide_pwa_url_label">URL aplikasi (produksi/PWA):</span> <span class="font-mono select-all text-indigo-300">https://yay460-jpg.github.io/portofolio/mine-geologist/</span></span>
+  <span><span data-i18n="guide_pwa_url_label">URL aplikasi (produksi/PWA):</span> <span class="font-mono select-all text-indigo-300">https://yay460-jpg.github.io/portofolio/lithosite/</span></span>
  </div>
 
  <div class="flex-1 overflow-y-auto pr-1 space-y-2 text-xs">
@@ -3299,7 +3299,7 @@ globalBlockModelData, globalRcaLogData, & globalCOGConfig (bukan data contoh sta
    <p data-i18n="guide_step11_p1">BARU: dashboard ini sekarang punya Service Worker (file <code class="text-cyan-300">sw.js</code>, taruh di folder yang SAMA PERSIS dengan index.html) yang memunculkan toast "Versi baru tersedia" ke semua user begitu file di-update di GitHub -- ini yang sebelumnya TIDAK PERNAH ada di proyek ini.</p>
    <p class="text-cyan-300 font-semibold" data-i18n="guide_step11_p2">WAJIB dilakukan SETIAP kali deploy versi baru (jangan sampai lupa, ini bukan otomatis):</p>
    <p data-i18n="guide_step11_p3">1. Update nomor versi di baris <code class="text-cyan-300">const APP_VERSION</code> pada index.html (dashboard.html) seperti biasa.</p>
-   <p data-i18n="guide_step11_p4">2. Buka file <code class="text-cyan-300">sw.js</code>, ganti baris <code class="text-cyan-300">const CACHE_NAME = 'mine-geologist-vX.X.X';</code> supaya angkanya SAMA PERSIS dengan APP_VERSION yang baru. Kalau baris ini TIDAK diubah, browser akan menganggap sw.js "tidak berubah" (dibandingkan byte-per-byte) dan toast update TIDAK AKAN PERNAH muncul, walau index.html-nya sendiri sudah beda total.</p>
+   <p data-i18n="guide_step11_p4">2. Buka file <code class="text-cyan-300">sw.js</code>, ganti baris <code class="text-cyan-300">const CACHE_NAME = 'lithosite-vX.X.X';</code> supaya angkanya SAMA PERSIS dengan APP_VERSION yang baru. Kalau baris ini TIDAK diubah, browser akan menganggap sw.js "tidak berubah" (dibandingkan byte-per-byte) dan toast update TIDAK AKAN PERNAH muncul, walau index.html-nya sendiri sudah beda total.</p>
    <p data-i18n="guide_step11_p5">3. Upload ULANG kedua file (index.html dan sw.js) ke folder yang sama di GitHub Pages. Tunggu sekitar 1 menit -- toast "Versi baru tersedia" akan muncul otomatis di pojok kanan bawah untuk semua user yang sedang membuka dashboard (desktop maupun Android), tanpa perlu reload paksa (user pilih sendiri kapan klik "Muat Ulang").</p>
    <p data-i18n="guide_step11_p6">Catatan: Service Worker ini sengaja HANYA menyimpan cache untuk file statis (HTML shell, manifest, ikon) -- data live (dashboard, chat, RCA, dsb dari Google Sheets) TIDAK PERNAH ikut di-cache, selalu diambil segar dari server setiap saat.</p>
    </div>
