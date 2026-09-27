@@ -18,11 +18,11 @@ Do not skip heading levels without a clear reason.
 
 Prefer concise names such as:
 
-- `Tile_Budget_Contract.md`
+- `V24.5_Tile_Budget_Contract.md`
 - `Pyramid_Engine_Migration.md`
 - `Backend_Split_8Files.md`
 
-Avoid redundant prefixes, dates, and words such as `FINAL`, `UPDATED(1)`, or `NEW` when the document status can be represented inside the document. Version-specific contracts belong in `01_Baseline` or `05_Version-History` and may retain a version identifier in the filename when it materially identifies that document. Global/current architecture and system documents should not carry a release version in their filename.
+Avoid redundant prefixes, dates, and words such as `FINAL`, `UPDATED(1)`, or `NEW` when the document status can be represented inside the document. Historical snapshots may retain dates when the date is part of their identity.
 
 ## Status language
 

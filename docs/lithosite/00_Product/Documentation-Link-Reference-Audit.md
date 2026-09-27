@@ -28,7 +28,7 @@ The Version-History index contains 31 Markdown navigation links and all resolve 
 
 The legacy developer README now points to the current Android documentation package rather than the retired `lithosite/docs/` layout.
 
-The Progress Dashboard is synchronized with the current locked position and V25 next-stage scope.
+The Progress Dashboard is synchronized with the current V24.5 locked position and V25 next-stage scope.
 
 ## Group A migration verification
 
@@ -65,10 +65,10 @@ Relative-link validation: **PASS**.
 
 Resolved:
 
-- Current position aligned to the locked Map Package / Storage / Recovery baseline.
+- Current position aligned to V24.5 Map Package / Storage / Recovery — Final Release Locked.
 - Protected V24.2 baseline retained as locked.
 - V25 identified as the next stage.
-- The current release scope is recorded as completed.
+- V24.5 scope is recorded as completed.
 - Native in-app Share Sheet remains explicitly deferred rather than being represented as a stable capability.
 
 This is a current-status correction; historical version documents were not rewritten.
