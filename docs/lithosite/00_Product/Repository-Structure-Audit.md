@@ -123,12 +123,9 @@ For the remaining runtime and documentation groups:
 
 ## Next Structural Gates
 
-1. Group B Mine Services documentation link/reference audit.
-2. Group B physical migration.
-3. Group C Mine Geologist Android documentation link/reference audit.
-4. Group C physical migration.
-5. Compatibility documentation cleanup.
-6. Final runtime-only repository verification.
+1. Compatibility documentation cleanup.
+2. Final runtime-only repository verification.
+3. Compatibility runtime retirement — separate deployment/rollback gate.
 
 ## Current Gate
 
