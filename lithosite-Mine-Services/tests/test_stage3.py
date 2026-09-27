@@ -237,8 +237,14 @@ def test_xlsx_persistence_roundtrip(tmp_path):
     system.append(["schema_version", SCHEMA_VERSION])
 
     lists = wb.create_sheet("_Lists")
-    lists.append(["equipment_category"])
-    lists.append(["Heavy Equipment"])
+    defaults = PersistenceStore().controlled_lists
+    list_headers = list(defaults)
+    lists.append(list_headers)
+    for row_index in range(max(len(values) for values in defaults.values())):
+        lists.append([
+            sorted(defaults[header])[row_index] if row_index < len(defaults[header]) else None
+            for header in list_headers
+        ])
 
     for entity in DOMAIN_ENTITIES:
         ws = wb.create_sheet(entity)
