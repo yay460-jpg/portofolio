@@ -134,9 +134,9 @@ The global `Architecture_Position.md` remains version-neutral. V24.5 identifiers
 
 The Documentation Link & Reference Audit remains **PASS**.
 
-The next controlled step is **Group C — Mine Geologist / Android documentation migration**
+The next controlled step is **Compatibility Documentation Cleanup**.
 
-Group C remains separate because the Mine Geologist Android documentation contains locked baselines, Engine V2 contracts, Version History, guides, issue records, and archive material.
+Group C is complete. The Mine Geologist Android documentation remains separated from runtime, while its locked baselines, Engine V2 contracts, Version History, guides, issue records, and archive material remain intact.
 
 ## Safety rule
 
