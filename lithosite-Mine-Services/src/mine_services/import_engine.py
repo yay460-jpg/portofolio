@@ -1,43 +1,186 @@
-from openpyxl import load_workbook
-from datetime import datetime,timezone
+from datetime import datetime, timezone
 import uuid
-from .schema import DOMAIN_ENTITIES,HEADERS,PKS
+from openpyxl import load_workbook
+
+from .schema import DOMAIN_ENTITIES, HEADERS, PKS, SCHEMA_VERSION
 from .validation import ValidationEngine
 from .persistence import PersistenceStore
+
+IMPORT_ERROR_CODES = {
+    "FILE_UNREADABLE": "E001",
+    "SCHEMA_VERSION": "E002",
+    "SHEET_MISSING": "E003",
+    "SHEET_UNEXPECTED": "E004",
+    "HEADER_MISMATCH": "E005",
+    "TYPE_INVALID": "E006",
+    "REQUIRED_MISSING": "E007",
+    "PK_DUPLICATE": "E008",
+    "FK_NOT_FOUND": "E009",
+    "ENUM_INVALID": "E010",
+    "RANGE_INVALID": "E011",
+    "CONDITIONAL_INVALID": "E012",
+    "PERIOD_INVALID": "E013",
+    "ATOMIC_ABORT": "E014",
+}
+
 class ImportCoordinator:
- def __init__(self,store,validator=None,transaction=None):
-  from .transaction import TransactionManager
-  self.store=store;self.validator=validator or ValidationEngine();self.transaction=transaction or TransactionManager(store)
- def read_xlsx(self,path):
-  wb=load_workbook(path,data_only=True);missing=(set(DOMAIN_ENTITIES)|{"_System","_Lists"})-set(wb.sheetnames)
-  if missing:return None,[{"code":"VAL-E011","message":f"Missing sheets: {sorted(missing)}"}]
-  rows={}
-  for e in DOMAIN_ENTITIES:
-   vals=list(wb[e].values);headers=list(vals[0])
-   if headers!=HEADERS[e]:return None,[{"code":"VAL-E011","field":e,"message":"Header mismatch"}]
-   rows[e]=[dict(zip(headers,v)) for v in vals[1:] if not all(x is None for x in v)]
-  return rows,[]
- def import_xlsx(self,path):
-  rows,errors=self.read_xlsx(path)
-  if errors:return {"status":"REJECTED","rows_committed":0,"errors":errors}
-  return self.import_dataset(rows)
- def import_dataset(self,rows):
-  pre=self.validator.validate_dataset(rows,self.store,"IMPORT")
-  if pre:return {"status":"REJECTED","rows_committed":0,"errors":pre}
-  staged=PersistenceStore();staged.replace(self.store.snapshot())
-  for entity,items in rows.items():
-   for row in items:
-    pk=PKS[entity]
-    if staged.exists(entity,row.get(pk)):return {"status":"REJECTED","rows_committed":0,"errors":[{"code":"VAL-E004","field":pk,"message":"Primary key already exists"}]}
-    staged.insert(entity,row[pk],row)
-  errors=self.validator.validate_dataset(rows,staged,"IMPORT")
-  if errors:return {"status":"REJECTED","rows_committed":0,"errors":errors}
-  self.transaction.begin()
-  try:
-   for entity,items in rows.items():
-    for row in items:self.store.insert(entity,row[PKS[entity]],row)
-   event={"audit_id":str(uuid.uuid4()),"timestamp":datetime.now(timezone.utc).isoformat(),"entity":"_System","entity_id":"IMPORT","action":"IMPORT","old_value":None,"new_value":str({e:len(v) for e,v in rows.items()}),"source":"ImportCoordinator"}
-   self.store.add_audit(event);self.transaction.commit()
-   return {"status":"COMMITTED","rows_committed":sum(len(v) for v in rows.values()),"errors":[]}
-  except Exception:
-   self.transaction.rollback();return {"status":"REJECTED","rows_committed":0,"errors":[{"code":"VAL-E012","message":"Atomic import aborted"}]}
+    def __init__(self, store, validator=None, transaction=None):
+        from .transaction import TransactionManager
+        self.store = store
+        self.validator = validator or ValidationEngine()
+        self.transaction = transaction or TransactionManager(store)
+
+    @staticmethod
+    def _error(code, message, field=None):
+        return {"code": code, "field": field, "message": message}
+
+    @staticmethod
+    def _map_validation_error(error):
+        mapping = {
+            "VAL-E002": IMPORT_ERROR_CODES["TYPE_INVALID"],
+            "VAL-E003": IMPORT_ERROR_CODES["REQUIRED_MISSING"],
+            "VAL-E004": IMPORT_ERROR_CODES["PK_DUPLICATE"],
+            "VAL-E005": IMPORT_ERROR_CODES["FK_NOT_FOUND"],
+            "VAL-E006": IMPORT_ERROR_CODES["ENUM_INVALID"],
+            "VAL-E007": IMPORT_ERROR_CODES["RANGE_INVALID"],
+            "VAL-E008": IMPORT_ERROR_CODES["CONDITIONAL_INVALID"],
+            "VAL-E009": IMPORT_ERROR_CODES["PERIOD_INVALID"],
+            "VAL-E010": IMPORT_ERROR_CODES["REQUIRED_MISSING"],
+            "VAL-E011": IMPORT_ERROR_CODES["HEADER_MISMATCH"],
+        }
+        return {
+            "code": mapping.get(error.code, IMPORT_ERROR_CODES["ATOMIC_ABORT"]),
+            "field": error.field,
+            "message": error.message,
+        }
+
+    @staticmethod
+    def _schema_version_from_system(ws):
+        values = list(ws.values)
+        for row in values:
+            for index, value in enumerate(row):
+                if value == "schema_version" and index + 1 < len(row):
+                    candidate = row[index + 1]
+                    if candidate is not None:
+                        return str(candidate)
+        for row in values:
+            if len(row) == 1 and row[0] is not None:
+                text = str(row[0])
+                if text == SCHEMA_VERSION:
+                    return text
+        return None
+
+    def read_xlsx(self, path):
+        try:
+            wb = load_workbook(path, data_only=True)
+        except Exception as exc:
+            return None, [self._error(IMPORT_ERROR_CODES["FILE_UNREADABLE"], f"Workbook could not be opened: {exc}")]
+
+        required = set(DOMAIN_ENTITIES) | {"_System", "_Lists"}
+        missing = required - set(wb.sheetnames)
+        if missing:
+            return None, [self._error(IMPORT_ERROR_CODES["SHEET_MISSING"], f"Missing sheets: {sorted(missing)}")]
+
+        allowed = required | {"_Baseline", "AuditLog"}
+        unexpected = set(wb.sheetnames) - allowed
+        if unexpected:
+            return None, [self._error(IMPORT_ERROR_CODES["SHEET_UNEXPECTED"], f"Unexpected sheets: {sorted(unexpected)}")]
+
+        version = self._schema_version_from_system(wb["_System"])
+        if version != SCHEMA_VERSION:
+            return None, [self._error(IMPORT_ERROR_CODES["SCHEMA_VERSION"], f"Expected schema {SCHEMA_VERSION}, got {version}")]
+
+        rows = {}
+        for entity in DOMAIN_ENTITIES:
+            values = list(wb[entity].values)
+            if not values:
+                return None, [self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], "Sheet is empty", entity)]
+            headers = list(values[0])
+            if headers != HEADERS[entity]:
+                return None, [self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], "Header mismatch", entity)]
+            rows[entity] = [
+                dict(zip(headers, values_row))
+                for values_row in values[1:]
+                if not all(value is None for value in values_row)
+            ]
+        return rows, []
+
+    def import_xlsx(self, path):
+        rows, errors = self.read_xlsx(path)
+        if errors:
+            return {"status": "REJECTED", "lifecycle": "REJECTED", "rows_committed": 0, "errors": errors}
+        return self.import_dataset(rows)
+
+    def import_dataset(self, rows):
+        pre_errors = self.validator.validate_dataset(rows, self.store, "IMPORT")
+        if pre_errors:
+            return {
+                "status": "REJECTED",
+                "lifecycle": "REJECTED",
+                "rows_committed": 0,
+                "errors": [self._map_validation_error(error) for error in pre_errors],
+            }
+
+        staged = PersistenceStore()
+        staged.replace(self.store.snapshot())
+
+        try:
+            for entity, items in rows.items():
+                for row in items:
+                    pk = PKS[entity]
+                    if staged.exists(entity, row.get(pk)):
+                        return {
+                            "status": "REJECTED",
+                            "lifecycle": "REJECTED",
+                            "rows_committed": 0,
+                            "errors": [self._error(IMPORT_ERROR_CODES["PK_DUPLICATE"], "Primary key already exists", pk)],
+                        }
+                    staged.insert(entity, row[pk], row)
+
+            errors = self.validator.validate_dataset(rows, staged, "IMPORT")
+            if errors:
+                return {
+                    "status": "REJECTED",
+                    "lifecycle": "REJECTED",
+                    "rows_committed": 0,
+                    "errors": [self._map_validation_error(error) for error in errors],
+                }
+
+            self.transaction.begin()
+            try:
+                for entity, items in rows.items():
+                    for row in items:
+                        self.store.insert(entity, row[PKS[entity]], row)
+
+                self.store.add_audit({
+                    "audit_id": str(uuid.uuid4()),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "entity": "_System",
+                    "entity_id": "IMPORT",
+                    "action": "IMPORT",
+                    "old_value": None,
+                    "new_value": str({entity: len(items) for entity, items in rows.items()}),
+                    "source": "ImportCoordinator",
+                })
+                self.transaction.commit()
+                return {
+                    "status": "COMMITTED",
+                    "lifecycle": "AUDITED",
+                    "rows_committed": sum(len(items) for items in rows.values()),
+                    "errors": [],
+                }
+            except Exception:
+                self.transaction.rollback()
+                return {
+                    "status": "REJECTED",
+                    "lifecycle": "REJECTED",
+                    "rows_committed": 0,
+                    "errors": [self._error(IMPORT_ERROR_CODES["ATOMIC_ABORT"], "Atomic import aborted")],
+                }
+        except Exception:
+            return {
+                "status": "REJECTED",
+                "lifecycle": "REJECTED",
+                "rows_committed": 0,
+                "errors": [self._error(IMPORT_ERROR_CODES["ATOMIC_ABORT"], "Atomic import aborted")],
+            }
