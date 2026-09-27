@@ -154,7 +154,7 @@ Prinsip utama:
 
 ### 3.2 Security Evolution
 
-Security global didokumentasikan pada [Security Evolution](../../docs/lithosite/01_Mine-Geologist/Android/02_Architecture/Security_Evolution.md).
+Security global didokumentasikan pada [Security Evolution](../docs/lithosite/01_Mine-Geologist/Android/02_Architecture/Security_Evolution.md).
 
 Halaman tersebut menjadi referensi global untuk trust boundary, content validation, dan defensive rendering.
 
@@ -205,9 +205,9 @@ Urutan cek paling sering menyelesaikan masalah, dari yang paling murah:
 
 Panduan teknis lebih detail untuk topik spesifik ada di folder `docs/lithosite/01_Mine-Geologist/Android/06_Guides/`:
 
-- [Panduan Split Backend 8-File](../../docs/lithosite/01_Mine-Geologist/Android/06_Guides/Backend_Split_8Files.md) — cara pindahkan 8 file backend ke Apps Script editor, jebakan umum (boilerplate `myFunction` belum dihapus), checklist verifikasi.
-- [Panduan Partisi Member Android](../../docs/lithosite/01_Mine-Geologist/Android/06_Guides/Member_Android_Partition.md) — struktur `member-app/` + `shared/`, cara kerja arsitektur berbagi logic geospasial dengan Master, checklist precache PWA.
-- [Panduan GeoPDF Coordinate Engine](../../docs/lithosite/01_Mine-Geologist/Android/06_Guides/GeoPDF_Coordinate_Engine.md) — perjalanan lengkap membangun baca-koordinat-otomatis dari GeoPDF di Member Android: arsitektur akhir, semua kemampuan (CRS/datum/Neatline/GPS/dll), pola bug berulang yang wajib diwaspadai di sesi berikutnya, dan kenapa PROJ/GDAL diteliti tapi tidak diintegrasikan.
+- [Panduan Split Backend 8-File](../docs/lithosite/01_Mine-Geologist/Android/06_Guides/Backend_Split_8Files.md) — cara pindahkan 8 file backend ke Apps Script editor, jebakan umum (boilerplate `myFunction` belum dihapus), checklist verifikasi.
+- [Panduan Partisi Member Android](../docs/lithosite/01_Mine-Geologist/Android/06_Guides/Member_Android_Partition.md) — struktur `member-app/` + `shared/`, cara kerja arsitektur berbagi logic geospasial dengan Master, checklist precache PWA.
+- [Panduan GeoPDF Coordinate Engine](../docs/lithosite/01_Mine-Geologist/Android/06_Guides/GeoPDF_Coordinate_Engine.md) — perjalanan lengkap membangun baca-koordinat-otomatis dari GeoPDF di Member Android: arsitektur akhir, semua kemampuan (CRS/datum/Neatline/GPS/dll), pola bug berulang yang wajib diwaspadai di sesi berikutnya, dan kenapa PROJ/GDAL diteliti tapi tidak diintegrasikan.
 
 ---
 
