@@ -8,21 +8,18 @@ Audit ini adalah **structure-only**. Tidak ada perubahan runtime, Engine V2, Ser
 
 ## Audit Position
 
-Repository saat ini memiliki dua runtime:
+Repository saat ini memiliki dua runtime dan satu canonical documentation boundary:
 
 ```text
 portofolio/
-├── lithosite/          # canonical runtime baru
+├── lithosite/          # canonical runtime
+├── docs/
+│   └── lithosite/      # canonical product documentation
 ├── mine-geologist/     # compatibility / rollback runtime
 └── portfolio.html
 ```
 
-Di dalam `lithosite/` saat ini terdapat dua kelompok yang secara konsep berbeda:
-
-1. runtime application;
-2. product / architecture documentation.
-
-Kondisi ini menjelaskan mengapa struktur terlihat bercampur.
+Di dalam `lithosite/` masih terdapat runtime dan documentation transition groups yang belum dimigrasikan, khususnya Mine Services dan established Android/MG1 documentation.
 
 ## Current Classification
 
@@ -37,47 +34,45 @@ Kondisi ini menjelaskan mengapa struktur terlihat bercampur.
 | `lithosite/style/` | runtime styles | Runtime | Keep |
 | `lithosite/member-app/` | separate PWA runtime | Runtime | Keep |
 | `lithosite/shared/` | shared runtime dependencies | Runtime / candidate core | Audit before promotion |
-| `lithosite/00_Product/` | product architecture documentation | Governance / Documentation | Boundary review |
-| `lithosite/02_Mine-Services/` | Mine Services documentation | Module documentation | Boundary review |
-| `lithosite/Lithosite Android/` | established technical documentation | Technical documentation | Preserve; future consolidation only |
+| `docs/lithosite/00_Product/` | product architecture documentation | Governance / Documentation | **Canonical / PASS** |
+| `lithosite/02_Mine-Services/` | Mine Services documentation | Module documentation | Group B pending |
+| `lithosite/Lithosite Android/` | established technical documentation | Technical documentation | Preserve; Group C pending |
 | `lithosite/README_Lithosite.md` | legacy developer/runtime documentation | Documentation | Review and reconcile |
 | `mine-geologist/` | compatibility runtime | Legacy / rollback runtime | Preserve |
 
 ## Findings
 
-### 1. Runtime and documentation are mixed
+### 1. Group A Product Documentation is now separated from runtime
 
-The canonical `lithosite/` runtime now contains:
+The Product documentation has been moved from:
 
-```text
-Runtime
-+
-Product documentation
-+
-Mine Services documentation
-+
-Technical Android documentation
-```
+`lithosite/00_Product/`
 
-This is structurally understandable during migration, but it is not the desired long-term product boundary.
+to:
 
-### 2. Existing product documents contain historical migration assumptions
+`docs/lithosite/00_Product/`
 
-Some product migration documents still describe `lithosite/` as a documentation/product layer while the current repository now contains the canonical runtime there.
+The runtime root `lithosite/` no longer owns the Product architecture documentation.
 
-Those documents must be reconciled before any physical reorganization.
+### 2. Remaining documentation groups are intentionally still in transition
 
-### 3. README_Lithosite.md is not yet a clean canonical product README
+`lithosite/02_Mine-Services/` and `lithosite/Lithosite Android/` remain in the canonical runtime tree temporarily.
 
-The file still describes the application primarily as Mine Geologist and contains references to documentation paths inherited from the previous runtime layout.
+They require separate migration audits and must not be moved together with runtime code.
 
-It must not be treated as the final Lithosite product architecture document.
+### 3. README_Lithosite.md remains a runtime-adjacent developer document
+
+The file still describes the Mine Geologist runtime in detail.
+
+It is not treated as the Product architecture source of truth.
+
+Its references have been normalized to the current Android documentation package.
 
 ### 4. Lithosite Android documentation is an established technical domain
 
 `Lithosite Android/` already contains its own Baseline, Architecture, Engine, Issues-Fixes, Version-History, Guides, Archive, and migration documentation.
 
-It should not be flattened into the new product layer without a dedicated documentation migration map.
+It should not be flattened into the Product layer without a dedicated documentation migration map.
 
 ### 5. Runtime folders are internally meaningful
 
@@ -118,7 +113,7 @@ Documentation must describe runtime contracts, but runtime code must not depend 
 
 ## No-Move Rule
 
-At this stage:
+For the remaining runtime and documentation groups:
 
 - no runtime directory is moved;
 - no runtime file is renamed;
@@ -130,21 +125,19 @@ At this stage:
 
 ## Next Structural Gates
 
-Before physical reorganization:
-
-1. Layer and boundary map must be approved.
-2. Module ownership must be explicit.
-3. Documentation ownership must be explicit.
-4. Runtime dependency direction must be verified.
-5. Product-global candidates must be audited from actual consumers.
-6. A target repository tree must be approved.
-7. A path migration matrix must be prepared.
-8. Only then may a dedicated normalization branch move files.
+1. Group B Mine Services documentation link/reference audit.
+2. Group B physical migration.
+3. Group C Mine Geologist Android documentation link/reference audit.
+4. Group C physical migration.
+5. Compatibility documentation cleanup.
+6. Final runtime-only repository verification.
 
 ## Current Gate
 
 **Repository Structure Audit: PASS**
 
-**Physical normalization: NOT YET APPROVED**
+**Group A Product Documentation Migration: PASS**
+
+**Group B / C Physical normalization: NOT YET APPROVED**
 
 **Runtime modification: NOT IN SCOPE**
