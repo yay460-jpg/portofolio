@@ -5,6 +5,7 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from mine_services import (
     ApplicationService,
+    AuditRepository,
     ImportCoordinator,
     PersistenceStore,
     SnapshotManager,
@@ -125,25 +126,56 @@ def test_delete_reference_is_rejected():
     )["status"] == "COMMITTED"
     result = app.delete("Equipment", "EQ-01", "delete-ref")
     assert result["status"] == "REJECTED"
+    assert result["errors"][0]["code"] == "APP-004"
 
 
 def test_audit_failure_rolls_back_mutation():
     app = ApplicationService()
-    original = app.store.add_audit
+    original = app.audit_repository.append
 
-    def fail_audit(event):
+    def fail_audit(**kwargs):
         raise RuntimeError("AUDIT_FAILURE")
 
-    app.store.add_audit = fail_audit
+    app.audit_repository.append = fail_audit
     try:
-        try:
-            app.create("Equipment", valid_equipment("EQ-AUDIT"), "audit-fail")
-        except RuntimeError:
-            pass
+        result = app.create("Equipment", valid_equipment("EQ-AUDIT"), "audit-fail")
     finally:
-        app.store.add_audit = original
+        app.audit_repository.append = original
 
+    assert result["status"] == "REJECTED"
+    assert result["errors"][0]["code"] == "APP-005"
     assert app.read("Equipment", "EQ-AUDIT") is None
+
+
+def test_application_service_uses_audit_repository_boundary():
+    store = PersistenceStore()
+    audit = AuditRepository(store)
+    app = ApplicationService(store=store, audit_repository=audit)
+
+    result = app.create("Equipment", valid_equipment("EQ-AUDIT-BOUNDARY"), "audit-boundary")
+
+    assert result["status"] == "COMMITTED"
+    assert audit.all()[-1]["action"] == "CREATE"
+    assert audit.all()[-1]["source"] == "audit-boundary"
+
+
+def test_request_id_is_required_and_idempotent():
+    app = ApplicationService()
+    missing = app.create("Equipment", valid_equipment("EQ-REQ"), "")
+    assert missing["status"] == "REJECTED"
+    assert missing["errors"][0]["code"] == "APP-001"
+
+    first = app.create("Equipment", valid_equipment("EQ-IDEMP"), "same-request")
+    second = app.create("Equipment", valid_equipment("EQ-IDEMP-2"), "same-request")
+    assert first["status"] == "COMMITTED"
+    assert second["status"] == "DUPLICATE_REQUEST"
+
+
+def test_application_not_found_returns_app_error():
+    app = ApplicationService()
+    result = app.update("Equipment", "NO-SUCH", {"status": "Inactive"}, "missing")
+    assert result["status"] == "REJECTED"
+    assert result["errors"][0]["code"] == "APP-002"
 
 
 def test_snapshot_manifest_and_restore_audit():
