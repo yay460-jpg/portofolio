@@ -10,6 +10,7 @@ Mine Services is a Lithosite module.
 - Stage 2.1–2.6: PASS
 - Stage 3: PASS
 - Stage 4: PASS — BASELINED
+- Stage 5: IN PROGRESS — Runtime Adapter
 
 ## Structure
 
