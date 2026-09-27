@@ -2,13 +2,13 @@
 
 ## Scope
 
-Audit the legacy `mine-geologist/` tree before any compatibility cleanup or retirement decision.
+Audit the legacy `mine-geologist/` tree before compatibility cleanup and retirement.
 
-This audit is read-only with respect to runtime behavior. It does not approve deletion, renaming, or modification of the compatibility runtime.
+This document records the completed preservation audit and the evidence used before retirement.
 
 ## Current Role
 
-`mine-geologist/` is the compatibility / rollback runtime.
+`mine-geologist/` was the compatibility / rollback runtime during migration.
 
 The canonical production runtime is `lithosite/`.
 
@@ -57,7 +57,7 @@ The compatibility runtime retains its own dashboard and member-app manifests and
 
 **Compatibility Runtime Audit: PASS for preservation.**
 
-This is not a retirement approval.
+The preservation audit was followed by real-device PWA verification of the canonical Lithosite runtime. The compatibility runtime was then retired in the controlled retirement commit.
 
 The compatibility runtime currently has a clear technical purpose:
 1. preserve rollback capability;
@@ -67,13 +67,14 @@ The compatibility runtime currently has a clear technical purpose:
 
 ## Next Gate
 
-Before retirement:
+Before retirement, the following were completed:
 1. controlled rollback rehearsal;
 2. verify both runtime entry points locally;
 3. verify Service Worker isolation;
 4. verify manifest identity isolation;
 5. verify canonical runtime remains the production/source-of-truth target;
 6. record rollback results;
-7. only then decide whether retirement is safe.
+7. real-device PWA verification of the canonical Lithosite runtime; 
+8. controlled retirement of the compatibility tree after the evidence above passed.
 
 No runtime deletion is authorized by this document.

@@ -6,8 +6,8 @@
 - Brand adoption: **ACTIVE**
 - Module naming convention: **ACTIVE**
 - Canonical Mine Geologist runtime: **ACTIVE** at `lithosite/`
-- Compatibility / rollback runtime: **PRESERVED** at `mine-geologist/`
-- Compatibility retirement: **DEFERRED** until its retirement gate is passed
+- Compatibility / rollback runtime: **RETIRED**
+- Compatibility retirement: **COMPLETED** after repository and real-device PWA verification
 
 ## 1. Product Brand
 
@@ -57,21 +57,17 @@ The canonical Mine Geologist runtime is now:
 
 `lithosite/`
 
-The previous:
-
-`mine-geologist/`
-
-runtime remains available only as a compatibility / rollback runtime while the retirement gate is pending.
+The previous `mine-geologist/` runtime has been retired after the canonical Lithosite runtime passed repository and real-device PWA verification.
 
 The path name is therefore not used as the product brand.
 
-## 4. Compatibility Runtime
+## 4. Compatibility Runtime Retirement
 
-The compatibility runtime is retained because runtime migration affects path-sensitive resources including PWA manifests, Service Workers, cache scope, Member App paths, shared runtime resources, relative imports, and deployment URLs.
+The former `mine-geologist/` compatibility runtime has been retired from the active repository tree.
 
-The compatibility runtime is not the source for new Mine Geologist development.
+The canonical `lithosite/` runtime is now the sole current Mine Geologist runtime source of truth.
 
-Any future compatibility-runtime change must be explicitly justified for rollback, deployment, or security purposes and must not become a second source of truth.
+Historical compatibility state remains recoverable through Git history rather than a second live runtime tree.
 
 ## 5. Product Development Independence
 
@@ -101,4 +97,4 @@ New Mine Services work must remain independent from the mature Mine Geologist ru
 
 **The canonical Mine Geologist runtime is `lithosite/`.**
 
-**The previous `mine-geologist/` runtime remains protected as compatibility / rollback until its separate retirement gate is passed.**
+**The previous `mine-geologist/` runtime has been retired; `lithosite/` is the sole current Mine Geologist runtime source of truth.**

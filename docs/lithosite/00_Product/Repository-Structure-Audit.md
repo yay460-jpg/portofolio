@@ -15,7 +15,7 @@ portofolio/
 ├── lithosite/          # canonical runtime
 ├── docs/
 │   └── lithosite/      # canonical product documentation
-├── mine-geologist/     # compatibility / rollback runtime
+├── mine-geologist/     # retired legacy runtime (no longer present on current main)
 └── portfolio.html
 ```
 
@@ -38,7 +38,7 @@ Documentation transition groups have been separated from `lithosite/`; the canon
 | `docs/lithosite/02_Mine-Services/` | Mine Services documentation | Module documentation | **Canonical / PASS** |
 | `docs/lithosite/01_Mine-Geologist/Android/` | established technical documentation | Technical documentation | **Canonical / PASS** |
 | `lithosite/README_Lithosite.md` | legacy developer/runtime documentation | Documentation | Review and reconcile |
-| `mine-geologist/` | compatibility runtime | Legacy / rollback runtime | Preserve |
+| `mine-geologist/` | retired compatibility runtime | Historical / rollback source | Git history |
 
 ## Findings
 
@@ -125,7 +125,7 @@ For the remaining runtime and documentation groups:
 
 1. Compatibility documentation cleanup.
 2. Final runtime-only repository verification.
-3. Compatibility runtime retirement — separate deployment/rollback gate.
+3. Compatibility runtime retirement — completed after real PWA verification.
 
 ## Current Gate
 
