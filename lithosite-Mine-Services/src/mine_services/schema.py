@@ -1,67 +1,18 @@
-SCHEMA_VERSION = "A.1"
-
-ENTITIES = {
-    "Equipment": {
-        "pk": "equipment_id",
-        "required": {"equipment_id", "equipment_type", "owner_type"},
-        "fields": {"equipment_id": str, "equipment_type": str, "owner_type": str, "owner_name": str,
-                   "status": str, "created_at": str, "updated_at": str},
-    },
-    "WorkFront": {
-        "pk": "work_front_id",
-        "required": {"work_front_id", "name"},
-        "fields": {"work_front_id": str, "name": str, "status": str, "created_at": str, "updated_at": str},
-    },
-    "Operations": {
-        "pk": "transaction_id",
-        "required": {"transaction_id", "work_front_id"},
-        "fields": {"transaction_id": str, "work_front_id": str, "equipment_id": str,
-                   "quantity": (int, float), "unit": str, "actual_hours": (int, float),
-                   "created_at": str, "updated_at": str},
-    },
-    "Maintenance": {
-        "pk": "maintenance_id",
-        "required": {"maintenance_id", "equipment_id"},
-        "fields": {"maintenance_id": str, "equipment_id": str, "status": str,
-                   "downtime_hours": (int, float), "created_at": str, "updated_at": str},
-    },
-    "Issues": {
-        "pk": "issue_id",
-        "required": {"issue_id"},
-        "fields": {"issue_id": str, "work_front_id": str, "equipment_id": str,
-                   "status": str, "closed_at": str, "created_at": str, "updated_at": str},
-    },
-    "Plans": {
-        "pk": "plan_id",
-        "required": {"plan_id"},
-        "fields": {"plan_id": str, "work_front_id": str, "period": str,
-                   "status": str, "target_quantity": (int, float), "unit": str,
-                   "target_hours": (int, float), "created_at": str, "updated_at": str},
-    },
-    "HSE": {
-        "pk": "hse_id",
-        "required": {"hse_id"},
-        "fields": {"hse_id": str, "work_front_id": str, "severity": str,
-                   "status": str, "closed_at": str, "created_at": str, "updated_at": str},
-    },
-}
-
-LISTS = {
-    "maintenance_status": {"Open", "In Progress", "Completed", "Cancelled"},
-    "plan_status": {"Draft", "Approved", "In Progress", "Completed", "Cancelled"},
-    "hse_severity": {"Low", "Medium", "High", "Critical"},
-    "hse_status": {"Open", "In Progress", "Closed", "Void"},
-}
-
-FK_RULES = {
-    "Operations.work_front_id": ("WorkFront", "work_front_id", True),
-    "Operations.equipment_id": ("Equipment", "equipment_id", False),
-    "Maintenance.equipment_id": ("Equipment", "equipment_id", True),
-    "Issues.work_front_id": ("WorkFront", "work_front_id", False),
-    "Issues.equipment_id": ("Equipment", "equipment_id", False),
-    "Plans.work_front_id": ("WorkFront", "work_front_id", False),
-    "HSE.work_front_id": ("WorkFront", "work_front_id", False),
-}
-
-NUMERIC_FIELDS = {"quantity", "actual_hours", "downtime_hours", "target_quantity", "target_hours"}
-SYSTEM_FIELDS = {"created_at", "updated_at"}
+SCHEMA_VERSION="A.1"
+SHEETS=["_Baseline","_System","_Lists","Equipment","WorkFront","Operations","Maintenance","Issues","Plans","HSE","AuditLog"]
+DOMAIN_ENTITIES=["Equipment","WorkFront","Operations","Maintenance","Issues","Plans","HSE"]
+HEADERS={
+"Equipment":["equipment_id","category","type","owner_type","owner_name","status","effective_from","effective_to"],
+"WorkFront":["work_front_id","domain","location","responsible","status","effective_from","effective_to"],
+"Operations":["transaction_id","transaction_date","transaction_time","domain","work_front_id","equipment_id","activity","quantity","unit","actual_hours","target_hours","status","source","created_at","updated_at"],
+"Maintenance":["maintenance_id","equipment_id","event_date","event_type","failure_code","start_time","end_time","downtime_hours","action","status","source"],
+"Issues":["issue_id","issue_date","domain","work_front_id","equipment_id","description","severity","status","assigned_to","closed_at"],
+"Plans":["plan_id","period","domain","work_front_id","activity","target_quantity","unit","target_hours","status"],
+"HSE":["hse_id","event_date","domain","work_front_id","event_type","severity","description","action","status","closed_at"],
+"AuditLog":["audit_id","timestamp","entity","entity_id","action","old_value","new_value","source"]}
+PKS={"Equipment":"equipment_id","WorkFront":"work_front_id","Operations":"transaction_id","Maintenance":"maintenance_id","Issues":"issue_id","Plans":"plan_id","HSE":"hse_id","AuditLog":"audit_id"}
+REQUIRED={"Equipment":{"equipment_id"},"WorkFront":{"work_front_id"},"Operations":{"transaction_id","work_front_id"},"Maintenance":{"maintenance_id","equipment_id"},"Issues":{"issue_id"},"Plans":{"plan_id"},"HSE":{"hse_id"}}
+NUMERIC={"quantity","actual_hours","target_hours","downtime_hours","target_quantity"}
+SYSTEM_FIELDS={"created_at","updated_at"}
+FK={"Operations.work_front_id":("WorkFront","work_front_id",True),"Operations.equipment_id":("Equipment","equipment_id",False),"Maintenance.equipment_id":("Equipment","equipment_id",True),"Issues.work_front_id":("WorkFront","work_front_id",False),"Issues.equipment_id":("Equipment","equipment_id",False),"Plans.work_front_id":("WorkFront","work_front_id",False),"HSE.work_front_id":("WorkFront","work_front_id",False)}
+CONTROLLED={"Equipment.category":"equipment_category","Equipment.type":"equipment_type","Equipment.owner_type":"owner_type","Equipment.status":"equipment_status","WorkFront.domain":"service_domain","WorkFront.status":"work_front_status","Operations.domain":"service_domain","Operations.unit":"unit","Operations.status":"transaction_status","Maintenance.event_type":"maintenance_event_type","Maintenance.action":"maintenance_event_type","Maintenance.status":"maintenance_status","Issues.domain":"service_domain","Issues.severity":"issue_severity","Issues.status":"issue_status","Plans.domain":"service_domain","Plans.unit":"unit","Plans.status":"plan_status","HSE.domain":"service_domain","HSE.event_type":"hse_event_type","HSE.severity":"hse_severity","HSE.action":"hse_event_type","HSE.status":"hse_status"}
