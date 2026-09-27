@@ -26,6 +26,8 @@ The documentation reference blockers identified in the initial audit were normal
 
 The Version-History index contains 31 Markdown navigation links and all resolve to existing files in the current repository tree.
 
+The Mine Services documentation was audited before migration; its current documents contain no broken repository-relative navigation dependencies requiring rewrite.
+
 The legacy developer README now points to the current Android documentation package rather than the retired `lithosite/docs/` layout.
 
 The Progress Dashboard is synchronized with the current V24.5 locked position and V25 next-stage scope.
@@ -117,16 +119,24 @@ No documentation change introduced a runtime dependency on documentation files.
 | Legacy README path integrity | PASS |
 | Progress Dashboard consistency | PASS |
 | Group A Product Documentation migration | **PASS** |
-| Group B Mine Services migration | **NEXT GATE** |
+| Group B Mine Services migration | **PASS** |
 | Group C Mine Geologist Android migration | **LATER GATE** |
+
+## Group B migration verification
+
+Mine Services documentation is now canonical at:
+
+`docs/lithosite/02_Mine-Services/`
+
+The previous `lithosite/02_Mine-Services/` location has been removed.
+
+Version-specific `v1` contract identifiers were preserved because they identify contract revisions rather than release branding.
 
 ## Next gate
 
 The Documentation Link & Reference Audit remains **PASS**.
 
-The next controlled step is **Group B — Mine Services documentation migration**:
-
-`lithosite/02_Mine-Services/` → `docs/lithosite/02_Mine-Services/`
+The next controlled step is **Group C — Mine Geologist / Android documentation migration**.
 
 Group C remains separate because the Mine Geologist Android documentation contains locked baselines, Engine V2 contracts, Version History, guides, issue records, and archive material.
 
