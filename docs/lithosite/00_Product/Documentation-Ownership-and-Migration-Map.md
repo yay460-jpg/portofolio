@@ -12,8 +12,8 @@ Setelah Group A selesai, kelompok dokumentasi utama berada di:
 
 ```text
 docs/lithosite/00_Product/
-lithosite/02_Mine-Services/
-lithosite/Lithosite Android/
+docs/lithosite/02_Mine-Services/
+docs/lithosite/01_Mine-Geologist/Android/
 ```
 
 Selain itu terdapat documentation material di runtime compatibility:
@@ -27,7 +27,7 @@ mine-geologist/Lithosite Android/
 | Current location | Content | Future owner | Action |
 |---|---|---|---|
 | `docs/lithosite/00_Product/` | Product architecture | Product | **MOVED / CANONICAL** |
-| `lithosite/02_Mine-Services/` | Mine Services lifecycle | Mine Services | Move after link audit |
+| `docs/lithosite/02_Mine-Services/` | Mine Services lifecycle | Mine Services | **MOVED / CANONICAL** |
 | `docs/lithosite/01_Mine-Geologist/Android/01_Baseline/` | Locked technical baseline | Mine Geologist / Android | **MOVED / CANONICAL** |
 | `docs/lithosite/01_Mine-Geologist/Android/02_Architecture/` | Architecture/security | Mine Geologist / Android | **MOVED / CANONICAL** |
 | `docs/lithosite/01_Mine-Geologist/Android/03_Engine/` | Engine/runtime technical docs | Mine Geologist / Android | **MOVED / CANONICAL** |
@@ -128,7 +128,7 @@ lithosite/Lithosite Android/
 docs/lithosite/01_Mine-Geologist/Android/
 ```
 
-This group requires the most careful rehearsal because of its historical links and baseline references.
+This group has completed its controlled audit and physical migration. Historical links and baseline references were preserved.
 
 ### Group D — Compatibility Cleanup
 
@@ -147,4 +147,6 @@ Only after Groups A-C are verified:
 
 **Group A Physical Documentation Move: PASS**
 
-**Group B Physical Documentation Move: NOT YET**
+**Group B Physical Documentation Move: PASS**
+
+**Group C Physical Documentation Move: PASS**
