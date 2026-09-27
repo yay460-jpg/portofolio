@@ -118,7 +118,7 @@ docs/lithosite/02_Mine-Services/
 
 No Mine Services runtime dependency is introduced.
 
-**Status: NEXT GATE**
+**Status: COMPLETE / PASS**
 
 ### Group C — Mine Geologist Android Documentation
 
