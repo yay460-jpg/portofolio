@@ -19,7 +19,7 @@ portofolio/
 └── portfolio.html
 ```
 
-Di dalam `lithosite/` masih terdapat runtime dan documentation transition groups yang belum dimigrasikan, khususnya Mine Services dan established Android/MG1 documentation.
+Documentation transition groups have been separated from `lithosite/`; the canonical runtime tree now contains runtime assets and application components only.
 
 ## Current Classification
 
@@ -54,11 +54,9 @@ to:
 
 The runtime root `lithosite/` no longer owns the Product architecture documentation.
 
-### 2. Remaining documentation groups are intentionally still in transition
+### 2. Documentation groups are now separated from runtime
 
-The established Android/MG1 documentation is now separated into the canonical documentation boundary at `docs/lithosite/01_Mine-Geologist/Android/`. Mine Services documentation is now separated into the canonical documentation boundary.
-
-They require separate migration audits and must not be moved together with runtime code.
+The established Android/MG1 and Mine Services documentation are now separated into their canonical documentation boundaries. Their migrations were performed independently from runtime code.
 
 ### 3. README_Lithosite.md remains a runtime-adjacent developer document
 
@@ -138,6 +136,6 @@ For the remaining runtime and documentation groups:
 
 **Group A Product Documentation Migration: PASS**
 
-**Group B / C Physical normalization: NOT YET APPROVED**
+**Group B / C Physical normalization: PASS**
 
 **Runtime modification: NOT IN SCOPE**
