@@ -59,7 +59,7 @@ Canonical Product documentation Group A sekarang berada di:
 | Documentation normalization design | PASS |
 | Documentation Link & Reference Audit | PASS |
 | **Group A Product Documentation migration** | **PASS** |
-| Group B Mine Services documentation | NOT YET |
+| Group B Mine Services documentation | PASS |
 | Group C Mine Geologist / Android documentation | NOT YET |
 | Old runtime retirement | NOT YET |
 
@@ -273,6 +273,8 @@ The remaining structural work is Mine Services documentation migration, Mine Geo
 
 **Group A Product Documentation Migration: PASS**
 
-**Group B / C Physical Documentation Move: NOT YET**
+**Group B Physical Documentation Move: PASS**
+
+**Group C Physical Documentation Move: NOT YET**
 
 **Compatibility Runtime Retirement: NOT YET**
