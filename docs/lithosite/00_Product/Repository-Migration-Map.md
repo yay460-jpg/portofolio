@@ -60,7 +60,7 @@ Canonical Product documentation Group A sekarang berada di:
 | Documentation Link & Reference Audit | PASS |
 | **Group A Product Documentation migration** | **PASS** |
 | Group B Mine Services documentation | PASS |
-| Group C Mine Geologist / Android documentation | NOT YET |
+| Group C Mine Geologist / Android documentation | PASS |
 | Old runtime retirement | NOT YET |
 
 ## Locked Runtime Principles
@@ -215,6 +215,8 @@ lithosite/Lithosite Android/
 docs/lithosite/01_Mine-Geologist/Android/
 ```
 
+**PASS / COMPLETE**
+
 ### Group D — Compatibility Cleanup
 
 Only after Groups A-C pass:
@@ -275,6 +277,8 @@ The remaining structural work is Mine Services documentation migration, Mine Geo
 
 **Group B Physical Documentation Move: PASS**
 
-**Group C Physical Documentation Move: NOT YET**
+**Group C Physical Documentation Move: PASS**
+
+**Compatibility Documentation Cleanup: NOT YET**
 
 **Compatibility Runtime Retirement: NOT YET**
