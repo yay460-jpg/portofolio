@@ -20,15 +20,15 @@ RuntimeInterface
         |      +--> TransactionManager
         |      +--> AuditRepository
         |
-        +--> ImportCoordinator
+        +--> ImportCoordinator ---------> AuditRepository
         |
-        +--> SnapshotManager
+        +--> SnapshotManager ------------> AuditRepository
         |
         v
 Offline PersistenceStore
 ```
 
-UI/API integration must use `RuntimeInterface`. PersistenceStore, ValidationEngine, TransactionManager, and AuditRepository remain internal implementation boundaries.
+UI/API integration must use `RuntimeInterface`. PersistenceStore, ValidationEngine, TransactionManager, and AuditRepository remain internal implementation boundaries. Application mutations, import, and restore all use the same `AuditRepository` instance for the runtime store.
 
 ## Supported Operations
 
@@ -66,6 +66,7 @@ Import and restore continue to use their existing atomic validation boundaries.
 8. Import and restore cannot bypass validation before mutation.
 9. Baseline artifacts remain outside runtime mutation.
 10. Integration adapters must not redefine domain business rules.
+11. Application mutations, import, and restore must route audit writes through the shared `AuditRepository` boundary.
 
 ## Error Handling
 
