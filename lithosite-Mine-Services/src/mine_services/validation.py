@@ -30,7 +30,7 @@ class ValidationEngine:
             if field not in row or row[field] in (None, ""):
                 continue
             if field in SYSTEM_FIELDS:
-                if context in {"CREATE", "UPDATE", "IMPORT", "RESTORE"}:
+                if context in {"CREATE", "IMPORT", "RESTORE"}:
                     errors.append(ValidationError("SYSTEM_FIELD_PROTECTED", field, f"System field is generated: {field}"))
                 continue
             if not isinstance(row[field], typ):
