@@ -45,7 +45,7 @@ This map records the organization applied to the uploaded `docs` archive. No Git
 | MOVE/RENAME | `LITHOSITE_VERSION_DOCS/V24.5_S2_10_FINAL_AUDIT_RELEASE_LOCK.md` | `05_Version-History/V24.5_S2_10_FINAL_AUDIT_RELEASE_LOCK.md` |
 | MOVE/RENAME | `LITHOSITE_VERSION_DOCS/V24.5_S2_3_CHANGELOG.md` | `05_Version-History/V24.5_S2_3_CHANGELOG.md` |
 | MOVE/RENAME | `Lithosite-MG1-Position-2026-09-12.md` | `99_Archive/Architecture_Position_2026-09-12.md` |
-| MOVE/RENAME | `Lithosite_MG1_Position_2026-09-14_V24.5_UPDATED(1).md` | `02_Architecture/V24.5_Architecture_Position.md` |
+| MOVE/RENAME | `Lithosite_MG1_Position_2026-09-14_V24.5_UPDATED(1).md` | `02_Architecture/Architecture_Position.md` |
 | MOVE/RENAME | `MG1_LITHOSITE_V24.3_LIFECYCLE_MANAGEMENT_AUDIT.md` | `05_Version-History/V24.3_Lifecycle_Management_Audit.md` |
 | MOVE/RENAME | `MG1_LITHOSITE_V24.3_MAP_LIBRARY_KESIMPULAN_SEBELUM_SESUDAH.md` | `05_Version-History/V24.3_Map_Library_Before_After.md` |
 | MOVE/RENAME | `MG1_LITHOSITE_VERSION_TECHNICAL_HISTORY.md` | `05_Version-History/MG1_Lithosite_Version_Technical_History.md` |
@@ -64,6 +64,6 @@ This map records the organization applied to the uploaded `docs` archive. No Git
 ## Notes
 
 - `PERFORMANCE/Adaptive Tile Budget Contract V1.md` is archived because it is the pre-calibration contract; the V24.5 50/80 contract is the current baseline.
-- The 12 September architecture-position snapshot is archived; the 14 September V24.5 position document is retained as current architecture reference.
+- The 12 September architecture-position snapshot is archived; the 14 September position document is retained as the current architecture reference.
 - The file named `LITHOSITE_VERSION_DOCS/MG1_LITHOSITE_VERSION_TECHNICAL_HISTORY.md` was renamed according to its actual content: `V24.5_S2.4_Storage_Warning_Capacity_Hardening.md`.
 - Historical version documents are preserved rather than rewritten.

@@ -6,7 +6,7 @@ Dokumentasi teknis **MG1 / Mine Geologist / Lithosite Android**.
 
 | Section | Role |
 |---|---|
-| `01_Baseline` | Current V24.5 contracts and locked baseline |
+| `01_Baseline` | Current locked contracts and baseline |
 | `02_Architecture` | Architecture and system-position references |
 | `03_Engine` | Engine, runtime, performance and technical behavior |
 | `04_Issues-Fixes` | Known issues, fixes and case reminders |
@@ -16,7 +16,7 @@ Dokumentasi teknis **MG1 / Mine Geologist / Lithosite Android**.
 
 ### Reading rule
 
-For current V24.5 behavior, start with `01_Baseline`. Documents in `05_Version-History` and `99_Archive` preserve historical context and must not be treated as current runtime contracts unless explicitly promoted into the baseline.
+For current behavior, start with `01_Baseline`. Documents in `05_Version-History` and `99_Archive` preserve historical context and must not be treated as current runtime contracts unless explicitly promoted into the baseline.
 
 ## Naming and Markdown style
 

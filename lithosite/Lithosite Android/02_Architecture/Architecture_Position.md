@@ -1,5 +1,5 @@
 # Lithosite V2 / MG1 — Posisi Arsitektur vs Avenza
-**Update Posisi: 14 September 2026 — V24.5 FINAL RELEASE LOCKED**
+**Update Posisi: 14 September 2026 — Current Architecture Reference**
 
 > Dokumen penilaian engineering internal — bukan angka resmi dari Avenza.
 > Sumber: Perkembangan Lithosite/MG1 + Dokumentasi Avenza terbaru.
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Lithosite V2 sudah mencapai fondasi **"offline map engine"** yang serius. Setelah V24.4 dan V24.5, MG1 juga sudah memiliki **map lifecycle lengkap, package transfer/integrity, storage-capacity management, safe cleanup, dan recovery boundary**. Avenza tetap jauh di depan pada level **produk mapping lengkap, ecosystem, layer/feature management, dan native mobile maturity**.
+Lithosite V2 sudah mencapai fondasi **"offline map engine"** yang serius. Setelah rangkaian penyelesaian Map Lifecycle dan Package/Storage/Recovery, MG1 juga sudah memiliki **map lifecycle lengkap, package transfer/integrity, storage-capacity management, safe cleanup, dan recovery boundary**. Avenza tetap jauh di depan pada level **produk mapping lengkap, ecosystem, layer/feature management, dan native mobile maturity**.
 
 Saya tidak akan memakai angka "80% Avenza" lagi karena itu terlalu menyederhanakan. Lebih tepat kita ukur per layer.
 
@@ -40,7 +40,7 @@ LAYER 1 — GEO MAP FOUNDATION
         MG1    █████████████████░░░  ~90%
 ```
 
-**Insight kunci:** Pada Layer 1–2, MG1 sudah cukup dekat secara konsep. Setelah V24.5, gap terbesar makin jelas berada di **Layer 3–4**, terutama **advanced Map Library, Layer/Feature subsystem, multi-map relationships, dan ecosystem**. Angka bertanda `*` adalah **engineering estimate internal**, bukan skor resmi Avenza dan bukan ukuran kuantitatif terstandar.
+**Insight kunci:** Pada Layer 1–2, MG1 sudah cukup dekat secara konsep. Pada baseline terkini, gap terbesar makin jelas berada di **Layer 3–4**, terutama **advanced Map Library, Layer/Feature subsystem, multi-map relationships, dan ecosystem**. Angka bertanda `*` adalah **engineering estimate internal**, bukan skor resmi Avenza dan bukan ukuran kuantitatif terstandar.
 
 ---
 
@@ -178,7 +178,7 @@ Avenza tidak mendokumentasikan secara publik detail internal tile/device strateg
 
 ## 5. Layer 3 — Map Management — Gap Mulai Besar
 
-### MG1 Sekarang — V24.5 (~60%*)
+### MG1 Sekarang — Current Position (~60%*)
 
 ```
 Map Library / Management
@@ -262,7 +262,7 @@ Storage / Capacity        ████████████████░░
 Device / Native Sharing   ██░░░░░░░░░░░░░░░░░░  ~10%*
 ```
 
-V24.5 sudah menutup **Backup/Export → Package → SHA-256 integrity → collision preflight → Restore → storage management → safe cleanup → recovery journal**. Native in-app Share Sheet sengaja **dibatalkan/deferred**; transfer file tetap dapat dilakukan melalui file manager perangkat. Angka `*` adalah engineering estimate internal, bukan skor resmi Avenza.
+Baseline terkini sudah menutup **Backup/Export → Package → SHA-256 integrity → collision preflight → Restore → storage management → safe cleanup → recovery journal**. Native in-app Share Sheet sengaja **dibatalkan/deferred**; transfer file tetap dapat dilakukan melalui file manager perangkat. Angka `*` adalah engineering estimate internal, bukan skor resmi Avenza.
 
 ---
 
@@ -274,7 +274,7 @@ Avenza: `Map → device storage → offline use` — custom maps disimpan pada p
 
 MG1: `Map → RAM → Tile representation → IndexedDB → Runtime loader`
 
-MG1 bahkan lebih eksplisit: **STORED vs RUNTIME_READY** — keputusan arsitektur yang bagus. V24.5 menambahkan lifecycle di atas persistence: duplicate, replace, delete-safe, package integrity, storage capacity, dan recovery journal.
+MG1 bahkan lebih eksplisit: **STORED vs RUNTIME_READY** — keputusan arsitektur yang bagus. Baseline terkini menambahkan lifecycle di atas persistence: duplicate, replace, delete-safe, package integrity, storage capacity, dan recovery journal.
 
 ---
 
@@ -361,7 +361,7 @@ Avenza sudah merupakan finished mapping product ecosystem, bukan hanya map engin
 
 ### Status roadmap — 14 September 2026
 
-**Selesai / LOCKED di V24.4–V24.5**
+**Selesai / LOCKED pada baseline saat ini**
 1. Map State Contract
 2. Duplicate / Copy
 3. Update / Replace
@@ -409,12 +409,12 @@ Avenza sudah merupakan finished mapping product ecosystem, bukan hanya map engin
 
 ## Catatan Penutup
 
-Engine V2 sekarang jangan dibongkar lagi. V24.5 sudah menutup **Map Lifecycle** dan fondasi **Package/Storage/Recovery**. Yang perlu kita bangun berikutnya adalah lapisan di atas engine, terutama **Advanced Map Library → Layer → Features → Mining Map Platform**, bukan mengulang lagi pekerjaan tile dari nol.
+Engine V2 sekarang jangan dibongkar lagi. Baseline terkini sudah menutup **Map Lifecycle** dan fondasi **Package/Storage/Recovery**. Yang perlu kita bangun berikutnya adalah lapisan di atas engine, terutama **Advanced Map Library → Layer → Features → Mining Map Platform**, bukan mengulang lagi pekerjaan tile dari nol.
 
-**Status dokumen:** diperbarui setelah **V24.5 FINAL RELEASE LOCKED**.
+**Status dokumen:** Current Architecture Reference; diperbarui setelah baseline terkini dikunci.
 
 **File referensi:**
-- Dokumen ini: `Lithosite_MG1_Position_2026-09-12.md`
+- Dokumen ini: `Architecture_Position.md`
 - Chibi assets: `chibi_tiny_180_trans.webp` (10KB transparent)
 - Splash JS: `lithosite-splash.js` & `LithositeSplash.jsx`
 
