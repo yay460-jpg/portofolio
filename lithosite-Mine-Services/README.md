@@ -11,6 +11,8 @@ Mine Services is a Lithosite module.
 - Stage 3: PASS
 - Stage 4: PASS — BASELINED
 - Stage 5: PASS — LOCAL REGRESSION
+- Stage 6: CONTRACT + BRIDGE ABSTRACTION — NOT BASELINED
+- Android host runtime: PENDING
 
 ## Structure
 
