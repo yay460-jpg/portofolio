@@ -12,8 +12,14 @@ class RuntimeInterface:
 
     def __init__(self, application=None, importer=None, snapshots=None):
         self._application = application or ApplicationService()
-        self._importer = importer or ImportCoordinator(self._application.store)
-        self._snapshots = snapshots or SnapshotManager(self._application.store)
+        self._importer = importer or ImportCoordinator(
+            self._application.store,
+            audit_repository=self._application.audit_repository,
+        )
+        self._snapshots = snapshots or SnapshotManager(
+            self._application.store,
+            audit_repository=self._application.audit_repository,
+        )
 
     def create(self, entity, row, request_id):
         return self._application.create(entity, row, request_id)
