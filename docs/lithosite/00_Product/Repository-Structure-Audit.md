@@ -35,7 +35,7 @@ Di dalam `lithosite/` masih terdapat runtime dan documentation transition groups
 | `lithosite/member-app/` | separate PWA runtime | Runtime | Keep |
 | `lithosite/shared/` | shared runtime dependencies | Runtime / candidate core | Audit before promotion |
 | `docs/lithosite/00_Product/` | product architecture documentation | Governance / Documentation | **Canonical / PASS** |
-| `lithosite/02_Mine-Services/` | Mine Services documentation | Module documentation | Group B pending |
+| `docs/lithosite/02_Mine-Services/` | Mine Services documentation | Module documentation | **Canonical / PASS** |
 | `lithosite/Lithosite Android/` | established technical documentation | Technical documentation | Preserve; Group C pending |
 | `lithosite/README_Lithosite.md` | legacy developer/runtime documentation | Documentation | Review and reconcile |
 | `mine-geologist/` | compatibility runtime | Legacy / rollback runtime | Preserve |
@@ -56,7 +56,7 @@ The runtime root `lithosite/` no longer owns the Product architecture documentat
 
 ### 2. Remaining documentation groups are intentionally still in transition
 
-`lithosite/02_Mine-Services/` and `lithosite/Lithosite Android/` remain in the canonical runtime tree temporarily.
+`lithosite/Lithosite Android/` remains in the runtime tree temporarily. Mine Services documentation is now separated into the canonical documentation boundary.
 
 They require separate migration audits and must not be moved together with runtime code.
 
