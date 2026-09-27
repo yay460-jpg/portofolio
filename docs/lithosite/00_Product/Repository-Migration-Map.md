@@ -121,7 +121,7 @@ docs/
 
 Group A is now physically implemented at `docs/lithosite/00_Product/`.
 
-Remaining documentation under `lithosite/` is transition-state documentation awaiting its own controlled migration gate.
+The documented product/module documentation groups have been separated from the canonical runtime. No current documentation group remains under `lithosite/`.
 
 ## Mine Geologist Documentation
 
@@ -207,6 +207,8 @@ lithosite/02_Mine-Services/
 docs/lithosite/02_Mine-Services/
 ```
 
+**PASS / COMPLETE**
+
 ### Group C — Mine Geologist / Android
 
 ```text
@@ -263,7 +265,7 @@ The canonical runtime migration is complete at repository level.
 
 Group A Product Documentation migration is complete.
 
-The remaining structural work is Mine Services documentation migration, Mine Geologist Android documentation migration, and later controlled retirement of the compatibility runtime.
+The remaining structural work is compatibility documentation cleanup and later controlled retirement of the compatibility runtime.
 
 ## Gate
 
