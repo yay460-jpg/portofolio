@@ -29,9 +29,9 @@ No runtime source was changed.
 | Dashboard Service Worker cache namespaces are isolated | PASS | `lithosite-build-rename-20260927a` vs `mine-geologist-build-20260904a` |
 | Canonical runtime remains structurally independent | PASS | Canonical root exists independently of compatibility root |
 
-## Rollback Simulation
+## Historical Rollback Simulation
 
-Rollback target:
+Historical rollback target during the migration rehearsal:
 
 `mine-geologist/`
 
@@ -55,7 +55,7 @@ It does **not** establish live GitHub Pages availability, DNS/CDN behavior, or r
 
 **Rollback Rehearsal: PASS at repository/source level.**
 
-No retirement decision is made by this document.
+This rehearsal is now historical because the compatibility runtime has been retired from the active tree. The former target remains recoverable from Git history if a source-level rollback is ever required.
 
 ## Next Gate
 
@@ -67,4 +67,4 @@ Retirement must remain conditional on:
 3. an acceptable operational rollback plan;
 4. explicit production verification when deployment access is available.
 
-Until those gates are satisfied, `mine-geologist/` remains protected.
+Those gates were satisfied by the subsequent real-device PWA verification and controlled retirement commit. `lithosite/` is now the sole current runtime source of truth.
