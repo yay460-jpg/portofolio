@@ -2,7 +2,9 @@
 
 ## Scope
 
-Verify a concrete Lithosite host implementation against the locked Stage 5 RuntimeAdapter contract.
+Verify a concrete Lithosite Android host implementation against the locked Stage 5 RuntimeAdapter contract.
+
+The repository currently has no native Android Gradle/Kotlin application host. Therefore the tests below define the required implementation gate; they do not claim execution.
 
 ## Test Groups
 
@@ -22,20 +24,38 @@ Verify a concrete Lithosite host implementation against the locked Stage 5 Runti
 - DUPLICATE_REQUEST preserves application idempotency semantics;
 - sanitized adapter errors are presented without internal exception details.
 
-### Boundary
+### Android Runtime Invocation
 
-- host does not access PersistenceStore;
-- host does not access ValidationEngine;
-- host does not access TransactionManager;
-- host does not write AuditLog;
-- host does not maintain a second authoritative Mine Services database;
-- all mutations route through RuntimeAdapter.
+- Android host can initialize the embedded Python runtime;
+- Android host can import the Mine Services package;
+- Android host can invoke RuntimeAdapter;
+- Python exception paths are converted into the host error contract;
+- request_id survives the Kotlin/Java → Python → RuntimeAdapter → response path;
+- repeated request_id does not execute a mutation twice.
+
+### Persistence Boundary
+
+- Mine Services runtime data is stored only in the approved offline persistence boundary;
+- Android host cannot bypass RuntimeAdapter to mutate persistence;
+- Android host does not create a parallel authoritative Mine Services database;
+- backup and restore use SnapshotManager through RuntimeAdapter;
+- baseline workbook is not modified by runtime operations.
+
+### Security Boundary
+
+- Python runtime is loaded only from the packaged application/runtime path;
+- imported files are validated through the existing import contract;
+- runtime file paths cannot be supplied by UI as arbitrary persistence targets;
+- host errors do not expose Python tracebacks or filesystem internals;
+- no network dependency is required for core Mine Services operations.
 
 ### Offline
 
-- core operation succeeds without network access;
-- deployment-specific bridge does not require a remote service;
-- runtime data remains in the approved offline persistence boundary.
+- CREATE, UPDATE, DELETE, READ work with network disabled;
+- IMPORT_XLSX works with network disabled;
+- BACKUP and DRY_RUN RESTORE work with network disabled;
+- full RESTORE works with network disabled;
+- no Google Apps Script or remote API is required.
 
 ### Regression
 
@@ -47,4 +67,14 @@ Verify a concrete Lithosite host implementation against the locked Stage 5 Runti
 
 ## Acceptance Rule
 
-Stage 6 may be baselined only after a concrete host runtime is selected and an end-to-end host-to-RuntimeAdapter test has passed locally. Documentation-only host definition is not sufficient for Stage 6 PASS.
+Stage 6 may be baselined only after:
+
+1. a concrete Android host project exists;
+2. the embedded Python runtime initializes successfully;
+3. the real RuntimeAdapter is invoked from the Android host;
+4. the end-to-end host-to-RuntimeAdapter test passes locally;
+5. offline behavior is verified;
+6. security boundary tests pass;
+7. the complete Python regression suite remains green.
+
+Documentation-only host definition is not sufficient for Stage 6 PASS.
