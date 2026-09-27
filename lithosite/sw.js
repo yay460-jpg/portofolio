@@ -11,7 +11,7 @@
  * CACHE_NAME harus diubah setiap deploy versi baru agar browser mendownload ulang.
  * ============================================================ */
 
-const CACHE_NAME = 'lithosite-build-rename-20260927a';
+const CACHE_NAME = 'lithosite-build-brand-20260927b';
 
 const APP_SHELL = [
   './',
