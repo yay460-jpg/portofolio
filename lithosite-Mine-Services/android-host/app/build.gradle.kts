@@ -21,7 +21,7 @@ android {
 
     sourceSets {
         getByName("main") {
-            assets.srcDirs("../Database")
+            assets.srcDirs("../../Database")
         }
     }
 }
@@ -38,7 +38,7 @@ chaquopy {
 
     sourceSets {
         getByName("main") {
-            setSrcDirs(listOf("../../src"))
+            setSrcDirs(listOf("../../../src"))
         }
     }
 }
