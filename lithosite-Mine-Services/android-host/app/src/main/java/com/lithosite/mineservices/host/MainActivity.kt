@@ -3,7 +3,7 @@ package com.lithosite.mineservices.host
 import android.app.Activity
 import android.os.Bundle
 import android.widget.TextView
-import com.chaquo.python.Python
+import java.io.File
 
 class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -17,12 +17,22 @@ class MainActivity : Activity() {
         setContentView(status)
 
         try {
-            val py = Python.getInstance()
-            val bridge = py.getModule("android_entry")
-            val result = bridge.callAttr("healthcheck", filesDir.absolutePath).toString()
-            status.text = "Lithosite Mine Services\n$result"
+            installDatabaseSeed()
+            val bridge = MineServicesBridge(this)
+            status.text = "Lithosite Mine Services\n" + bridge.healthcheck()
         } catch (error: Exception) {
             status.text = "Lithosite Mine Services\nHOST-005: runtime initialization failed"
+        }
+    }
+
+    private fun installDatabaseSeed() {
+        val target = File(filesDir, "Mine-Services-Database.xlsx")
+        if (target.exists()) return
+
+        assets.open("Mine-Services-Database.xlsx").use { input ->
+            target.outputStream().use { output ->
+                input.copyTo(output)
+            }
         }
     }
 }
