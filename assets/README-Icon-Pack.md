@@ -2,17 +2,21 @@
 
 Simple, flat, lightweight SVG icon pack shared by all Lithosite modules.
 
-- 55 core icons
+- Master shared asset: `/assets/lithosite-icons.svg`
+- 78 unique core symbols
 - 24x24 viewBox
-- flat visual color tokens with currentColor-compatible UI usage
+- currentColor-compatible
 - no gradients
-- no filters/shadows
 - no external dependency
 - offline/local use
 
+The pack covers navigation, mining, equipment, operations, maps, data, system, status, UI actions, and layout controls.
+
 Usage:
+```html
 <svg class="ui-icon" aria-hidden="true">
-  <use href="../assets/lithosite-icons.svg#dashboard"></use>
+  <use href="../../assets/lithosite-icons.svg#dashboard"></use>
 </svg>
+```
 
 Master package reference: Lithosite Master Icon Pack v1.
