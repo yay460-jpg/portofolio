@@ -10,12 +10,12 @@
     const isOperations = name === 'Operations';
 
     if (dashboard) {
-      dashboard.hidden = isOperations;
+      dashboard.style.display = isOperations ? 'none' : 'block';
       dashboard.setAttribute('aria-hidden', String(isOperations));
     }
 
     if (operations) {
-      operations.hidden = !isOperations;
+      operations.style.display = isOperations ? 'block' : 'none';
       operations.setAttribute('aria-hidden', String(!isOperations));
     }
 
