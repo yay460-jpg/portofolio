@@ -296,6 +296,46 @@
     }
   }
 
+
+  function bindControls() {
+    const bind = function (id, handler) {
+      const element = document.getElementById(id);
+      if (!element) throw new Error('Operations UI element #' + id + ' not found');
+      element.addEventListener('click', handler);
+    };
+
+    bind('add', openAdd);
+    bind('close', function () { modal.classList.remove('show'); });
+    bind('cancel', function () { modal.classList.remove('show'); });
+    bind('stage', saveForm);
+    bind('refresh', loadData);
+
+    const clear = document.getElementById('clear');
+    if (!clear) throw new Error('Operations UI element #clear not found');
+    clear.addEventListener('click', function () {
+      ['date', 'domain', 'wf', 'eq', 'activityFilter', 'statusFilter', 'sourceFilter']
+        .forEach(function (id) {
+          document.getElementById(id).value = '';
+        });
+      render();
+    });
+
+    document
+      .querySelectorAll('#date,#domain,#wf,#eq,#activityFilter,#statusFilter,#sourceFilter')
+      .forEach(function (element) {
+        element.addEventListener('input', render);
+        element.addEventListener('change', render);
+      });
+
+    document.getElementById('rows').addEventListener('click', function (event) {
+      const edit = event.target.closest('.edit-row');
+      if (edit) openEdit(edit.dataset.id);
+
+      const del = event.target.closest('.delete-row');
+      if (del) removeRow(del.dataset.id);
+    });
+  }
+
   function formPayload() {
     function numberOrNull(id) {
       const value = document.getElementById(id).value;
@@ -367,33 +407,6 @@
     }
   }
 
-  document
-    .querySelectorAll('#date,#domain,#wf,#eq,#activityFilter,#statusFilter,#sourceFilter')
-    .forEach(function (element) {
-      element.oninput = element.onchange = render;
-    });
-
-  document.getElementById('clear').onclick = function () {
-    ['date', 'domain', 'wf', 'eq', 'activityFilter', 'statusFilter', 'sourceFilter']
-      .forEach(function (id) {
-        document.getElementById(id).value = '';
-      });
-    render();
-  };
-
-  document.getElementById('add').onclick = openAdd;
-  document.getElementById('close').onclick = function () { modal.classList.remove('show'); };
-  document.getElementById('cancel').onclick = function () { modal.classList.remove('show'); };
-  document.getElementById('stage').onclick = saveForm;
-  document.getElementById('refresh').onclick = loadData;
-
-  document.getElementById('rows').addEventListener('click', function (event) {
-    const edit = event.target.closest('.edit-row');
-    if (edit) openEdit(edit.dataset.id);
-
-    const del = event.target.closest('.delete-row');
-    if (del) removeRow(del.dataset.id);
-  });
-
+  bindControls();
   loadData();
 })(window);
