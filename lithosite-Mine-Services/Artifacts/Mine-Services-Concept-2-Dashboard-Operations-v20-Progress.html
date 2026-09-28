@@ -52,8 +52,8 @@
 /* Operations screen — scoped from Operations v1 master layout */
 #operationsScreen{--ops-panel:#101f31;--ops-line:#28425c;--ops-muted:#8ea3ba;--ops-blue:#4d8dff;box-sizing:border-box}
 #operationsScreen *{box-sizing:border-box}
-#operationsScreen .boundary{height:100%;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;position:relative}
-#operationsScreen .head{height:48px;display:flex;justify-content:space-between}
+#operationsScreen .boundary{height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;position:relative;overflow:hidden}
+#operationsScreen .head{height:48px;min-height:48px;flex:0 0 48px;display:flex;justify-content:space-between}
 #operationsScreen .title h1{margin:0;font-size:21px;line-height:24px;background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);background-clip:text;-webkit-background-clip:text;color:transparent}
 #operationsScreen .title p{margin:2px 0;color:var(--ops-muted);font-size:11px}
 #operationsScreen .controls{display:flex;gap:7px}
@@ -62,16 +62,16 @@
 #operationsScreen .control:hover{border-color:#4d8dff}
 #operationsScreen .icon{width:15px;height:15px;display:block;color:currentColor}
 #operationsScreen .panel{background:var(--ops-panel);border:1px solid var(--ops-line);border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
-#operationsScreen .filters{height:92px;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1.2fr 1fr 1.1fr 78px;gap:8px;align-items:end}
+#operationsScreen .filters{height:92px;min-height:92px;flex:0 0 92px;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1.2fr 1fr 1.1fr 78px;gap:8px;align-items:end}
 #operationsScreen .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}
 #operationsScreen .field input,#operationsScreen .field select{width:100%;height:32px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px;outline:none}
 #operationsScreen .field input:focus,#operationsScreen .field select:focus{border-color:#4d8dff}
 #operationsScreen .clear{height:32px}
-#operationsScreen .tablepanel{position:absolute;top:190px;bottom:20px;left:20px;right:20px}
+#operationsScreen .tablepanel{position:relative;flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;margin-top:12px}
 #operationsScreen .tablehead{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #263e57}
 #operationsScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 #operationsScreen .tablemeta{font-size:9px;color:var(--ops-muted)}
-#operationsScreen .grid{height:calc(100% - 40px);overflow:auto}
+#operationsScreen .grid{flex:1 1 auto;min-width:0;min-height:0;height:auto;overflow:auto}
 #operationsScreen .tr{display:grid;grid-template-columns:90px 62px 105px 95px 95px 1fr 82px 58px 78px 78px 86px 72px 88px;min-width:1160px;align-items:center}
 #operationsScreen .th{height:34px;background:#12243a;color:#8fa5bb;font-size:8px;text-transform:uppercase;font-weight:600;letter-spacing:.3px;position:sticky;top:0;z-index:2}
 #operationsScreen .td{min-height:39px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}
