@@ -4,7 +4,7 @@ Simple, flat, lightweight SVG icon pack shared by all Lithosite modules.
 
 - 55 core icons
 - 24x24 viewBox
-- currentColor
+- flat visual color tokens with currentColor-compatible UI usage
 - no gradients
 - no filters/shadows
 - no external dependency
