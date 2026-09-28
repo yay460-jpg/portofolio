@@ -5,7 +5,7 @@ from .audit import AuditRepository
 from .validation import ValidationEngine
 from .persistence import PersistenceStore
 from .transaction import TransactionManager
-from .schema import PKS, HEADERS
+from .schema import PKS, HEADERS, SYSTEM_FIELDS
 
 
 class ApplicationService:
@@ -75,11 +75,36 @@ class ApplicationService:
                 "errors": [self._app_error("APP-002", "Entity not found", PKS.get(entity))],
             }
 
+        protected = sorted(set(patch).intersection(SYSTEM_FIELDS))
+        if protected:
+            return {
+                "status": "REJECTED",
+                "errors": [
+                    self._app_error(
+                        "VAL-E010",
+                        "System field is generated",
+                        field,
+                    )
+                    for field in protected
+                ],
+            }
+
         row = {**old, **patch}
         if "created_at" in old:
             row["created_at"] = old["created_at"]
 
-        errors = self.validator.validate(entity, row, self.store, "UPDATE", old)
+        validation_row = {
+            field: value
+            for field, value in row.items()
+            if field not in SYSTEM_FIELDS
+        }
+        errors = self.validator.validate(
+            entity,
+            validation_row,
+            self.store,
+            "UPDATE",
+            old,
+        )
         if errors:
             return {"status": "REJECTED", "errors": errors}
 
