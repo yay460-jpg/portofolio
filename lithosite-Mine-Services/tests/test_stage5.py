@@ -122,6 +122,19 @@ def test_adapter_read_backup_and_dry_run_restore():
     })
     assert read["equipment_id"] == "EQ-DATA"
 
+    audit = adapter.handle({
+        "request_id": "adapter-audit-read",
+        "operation": "READ",
+        "entity": "AuditLog",
+    })
+    assert audit["status"] == "OK"
+    assert any(
+        event["entity"] == "Equipment"
+        and event["entity_id"] == "EQ-DATA"
+        and event["action"] == "CREATE"
+        for event in audit["data"]
+    )
+
     backup = adapter.handle({
         "request_id": "adapter-backup",
         "operation": "BACKUP",
