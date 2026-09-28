@@ -6,19 +6,11 @@
     throw new Error('LithositeRuntimeClient is required before operations.js');
   }
 
-  const side = document.getElementById('side');
-  const toggle = document.getElementById('toggle');
   const modal = document.getElementById('modal');
   const dataState = { operations: [], workFronts: [], equipment: [] };
 
   let editId = null;
   let runtimeReady = false;
-
-  if (toggle) {
-    toggle.onclick = function () {
-      side.classList.toggle('expanded');
-    };
-  }
 
   function setRuntimeState(text, error) {
     const el = document.getElementById('runtimeMsg');
