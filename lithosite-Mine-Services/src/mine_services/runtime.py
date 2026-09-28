@@ -31,6 +31,14 @@ class RuntimeInterface:
         return self._application.delete(entity, entity_id, request_id)
 
     def read(self, entity, entity_id=None):
+        if entity == "AuditLog":
+            events = self._application.audit_repository.all()
+            if entity_id is None:
+                return events
+            return next(
+                (event for event in events if event.get("audit_id") == entity_id),
+                None,
+            )
         return self._application.read(entity, entity_id)
 
     def import_xlsx(self, path):
