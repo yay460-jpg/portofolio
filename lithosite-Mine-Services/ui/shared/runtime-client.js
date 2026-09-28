@@ -29,7 +29,7 @@
       );
     }
 
-    return result.data !== undefined ? result.data : result;
+    return result;
   }
 
   async function health() {
