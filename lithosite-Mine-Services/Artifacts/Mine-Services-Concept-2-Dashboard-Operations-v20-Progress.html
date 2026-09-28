@@ -36,7 +36,7 @@
 }
 <style>
 @scope (#operationsScreen) {
-  :scope{position:absolute;inset:0;z-index:10;display:none;background:#0b1727;padding:20px 24px 20px 82px;overflow:hidden}
+  :scope{position:relative;width:100%;height:100%;display:none;background:transparent;padding:0;overflow:hidden;z-index:auto}
   :scope.active{display:block}
   .boundary{height:100%;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;position:relative}
   .head{height:48px;display:flex;justify-content:space-between}
@@ -79,7 +79,7 @@
 /* v20 screen routing — explicit visibility, no nested CSS dependency */
 #dashboardScreen{display:block;position:relative;width:100%;height:100%;min-height:0}
 #dashboardScreen .boundary{height:100%}
-#operationsScreen{display:none;position:absolute;inset:0;z-index:10;background:#0b1727;padding:20px 24px 20px 82px;overflow:hidden}
+#operationsScreen{display:none;position:relative;width:100%;height:100%;background:transparent;padding:0;overflow:hidden;z-index:auto}
 #operationsScreen.active{display:block}
 #operationsScreen .boundary{height:100%;position:relative}
 
