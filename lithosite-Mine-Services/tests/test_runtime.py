@@ -7,6 +7,7 @@ from mine_services import (
     ApplicationService,
     ImportCoordinator,
     PersistenceStore,
+    RuntimeInterface,
     SnapshotManager,
 )
 
@@ -27,6 +28,23 @@ def test_validation_and_crud():
     assert app.update("Equipment", "EQ-1", {"status": "Inactive"}, "r2")["status"] == "COMMITTED"
     assert app.delete("Equipment", "EQ-1", "r3")["status"] == "COMMITTED"
     assert len(app.store.audit()) == 3
+
+
+def test_runtime_reads_audit_log_through_audit_repository():
+    app = ApplicationService(PersistenceStore())
+    runtime = RuntimeInterface(application=app)
+
+    assert app.create("Equipment", valid_equipment("EQ-AUDIT"), "audit-create")["status"] == "COMMITTED"
+
+    events = runtime.read("AuditLog")
+    assert len(events) == 1
+    assert events[0]["entity"] == "Equipment"
+    assert events[0]["entity_id"] == "EQ-AUDIT"
+    assert events[0]["action"] == "CREATE"
+    assert events[0]["source"] == "audit-create"
+
+    event = runtime.read("AuditLog", events[0]["audit_id"])
+    assert event["audit_id"] == events[0]["audit_id"]
 
 
 def test_fk_and_enum_rejected():
