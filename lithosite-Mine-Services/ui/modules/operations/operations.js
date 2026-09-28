@@ -177,9 +177,9 @@
         runtimeClient.request({ operation: 'READ', entity: 'Equipment' })
       ]);
 
-      dataState.operations = Array.isArray(results[0]) ? results[0] : [];
-      dataState.workFronts = Array.isArray(results[1]) ? results[1] : [];
-      dataState.equipment = Array.isArray(results[2]) ? results[2] : [];
+      dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
+      dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
+      dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
 
       fillRefs();
       render();
