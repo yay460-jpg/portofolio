@@ -310,6 +310,13 @@
     bind('stage', saveForm);
     bind('refresh', loadData);
 
+    // Keep controls reliable after external JS extraction.
+    document.getElementById('add').onclick = openAdd;
+    document.getElementById('refresh').onclick = loadData;
+    document.getElementById('close').onclick = function () { modal.classList.remove('show'); };
+    document.getElementById('cancel').onclick = function () { modal.classList.remove('show'); };
+    document.getElementById('stage').onclick = saveForm;
+
     const clear = document.getElementById('clear');
     if (!clear) throw new Error('Operations UI element #clear not found');
     clear.addEventListener('click', function () {
