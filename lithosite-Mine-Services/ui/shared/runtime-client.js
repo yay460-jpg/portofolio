@@ -1,0 +1,46 @@
+(function (global) {
+  'use strict';
+
+  const HOST = 'http://127.0.0.1:8765';
+
+  function requestId(prefix) {
+    const head = prefix || 'runtime';
+    return head + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+  }
+
+  async function request(req) {
+    const payload = Object.assign({}, req, {
+      request_id: req.request_id || requestId('runtime')
+    });
+
+    const response = await fetch(HOST + '/runtime', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.errors && result.errors[0] && result.errors[0].message
+          ? result.errors[0].message
+          : 'Runtime host request failed'
+      );
+    }
+
+    return result.data !== undefined ? result.data : result;
+  }
+
+  async function health() {
+    const response = await fetch(HOST + '/health');
+    return response.json();
+  }
+
+  global.LithositeRuntimeClient = Object.freeze({
+    HOST,
+    request,
+    health,
+    requestId
+  });
+})(window);
