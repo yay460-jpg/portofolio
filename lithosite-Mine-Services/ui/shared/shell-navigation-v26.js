@@ -8,7 +8,8 @@
     'Work Front': 'workfrontScreen',
     Maintenance: 'maintenanceScreen',
     Issues: 'issuesScreen',
-    Plans: 'plansScreen'
+    Plans: 'plansScreen',
+    HSE: 'hseScreen'
   });
 
   const STORAGE_KEY = 'lithosite-v26-active-screen';
@@ -43,7 +44,7 @@
   }
 
   function validateShellContract() {
-    const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans'];
+    const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE'];
     const missing = required.filter(function (name) {
       return !document.getElementById(SCREENS[name]);
     });
