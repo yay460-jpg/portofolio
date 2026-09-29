@@ -17,6 +17,7 @@ from mine_services import (
 def valid_equipment(equipment_id="EQ-01"):
     return {
         "equipment_id": equipment_id,
+        "unit_no": "DT-001",
         "category": "Heavy Equipment",
         "type": "Dump Truck",
         "owner_type": "Owner",
@@ -184,7 +185,7 @@ def test_snapshot_manifest_and_restore_audit():
     app = seed()
     manager = SnapshotManager(app.store)
     snap = manager.capture(source="Stage-3-Test")
-    assert snap["schema_version"] == "A.1"
+    assert snap["schema_version"] == "A.2"
     assert snap["source"] == "Stage-3-Test"
     assert snap["audit_included"] is True
     assert snap["entity_counts"]["Equipment"] == 1
