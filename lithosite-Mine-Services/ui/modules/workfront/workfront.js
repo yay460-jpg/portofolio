@@ -62,7 +62,7 @@ function render(){
  if(state.status==='error')document.getElementById('workfrontCount').textContent='Unavailable · Runtime Error';
 }
 async function load(){
- state.status='loading';render();
+ if(!state.rows.length){state.status='loading';render();}
  try{
   const health=await rc.health(); runtimeReady=health.status==='READY';
   if(!runtimeReady)throw new Error('Runtime health is not READY');
