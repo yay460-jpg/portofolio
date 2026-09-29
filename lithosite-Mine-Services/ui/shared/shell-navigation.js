@@ -1,28 +1,45 @@
 (function (global) {
   'use strict';
 
-  // Desktop Master screen router.
-  // One workspace, two sibling screens. Visibility is owned here only.
+  /*
+   * Lithosite Desktop Master Shell Router
+   * V21 Stage 9:
+   *   Dashboard → Operations → Equipment
+   *
+   * The shell owns screen visibility.
+   * Feature modules own their data, forms and CRUD behavior.
+   * This prevents module JS from becoming the navigation controller.
+   */
+
+  const SCREENS = Object.freeze({
+    Dashboard: 'dashboardScreen',
+    Operations: 'operationsScreen',
+    Equipment: 'equipmentScreen'
+  });
+
   function setScreen(name) {
-    const dashboard = document.getElementById('dashboardScreen');
-    const operations = document.getElementById('operationsScreen');
-    const items = document.querySelectorAll('.sidebar .nav-item');
-    const isOperations = name === 'Operations';
+    const screenId = SCREENS[name];
+    if (!screenId) return false;
 
-    if (dashboard) {
-      dashboard.hidden = isOperations;
-      dashboard.setAttribute('aria-hidden', String(isOperations));
-    }
+    Object.keys(SCREENS).forEach(function (screenName) {
+      const element = document.getElementById(SCREENS[screenName]);
+      if (!element) return;
 
-    if (operations) {
-      operations.hidden = !isOperations;
-      operations.setAttribute('aria-hidden', String(!isOperations));
-    }
-
-    items.forEach(function (item) {
-      const label = item.querySelector('.nav-text')?.textContent.trim();
-      item.classList.toggle('active', label === name);
+      const active = screenName === name;
+      element.hidden = !active;
+      element.setAttribute('aria-hidden', String(!active));
+      element.classList.toggle('active', active);
     });
+
+    document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
+      const label = item.querySelector('.nav-text')?.textContent.trim();
+      const active = label === name;
+
+      item.classList.toggle('active', active);
+      item.setAttribute('aria-current', active ? 'page' : 'false');
+    });
+
+    return true;
   }
 
   function init() {
@@ -39,7 +56,7 @@
       item.addEventListener('click', function () {
         const label = item.querySelector('.nav-text')?.textContent.trim();
 
-        if (label === 'Dashboard' || label === 'Operations') {
+        if (SCREENS[label]) {
           setScreen(label);
           return;
         }
@@ -57,5 +74,9 @@
     init();
   }
 
-  global.LithositeShellNavigation = { init, setScreen };
+  global.LithositeShellNavigation = Object.freeze({
+    init,
+    setScreen,
+    screens: SCREENS
+  });
 })(window);
