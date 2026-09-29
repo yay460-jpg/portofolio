@@ -1,6 +1,6 @@
 # Stage 8 — Operations UI Test Plan
 
-**Status:** DRAFT / IMPLEMENTATION
+**Status:** PASS / BASELINED
 
 ## Static UI contract checks
 
@@ -43,4 +43,4 @@ Before Stage 8 PASS, run the full local pytest suite and manually exercise the U
 10. submit invalid references/numeric values and verify runtime rejection;
 11. stop the host and verify Runtime Error is distinct from zero records.
 
-Stage 8 must remain non-PASS until these runtime and regression checks are completed.
+Stage 8 PASS gate was completed after the runtime/UI regression cycle. The Operations path was exercised end-to-end through the desktop host and RuntimeAdapter, including CRUD, persistence, audit, validation rejection, refresh persistence, and Runtime Error separation. The local regression suite was also completed successfully.
