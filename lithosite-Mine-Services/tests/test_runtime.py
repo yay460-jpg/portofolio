@@ -15,6 +15,7 @@ from mine_services import (
 def valid_equipment(equipment_id="EQ-1"):
     return {
         "equipment_id": equipment_id,
+        "unit_no": "DT-001",
         "category": "Heavy Equipment",
         "type": "Dump Truck",
         "owner_type": "Owner",
@@ -65,6 +66,7 @@ def test_fk_and_enum_rejected():
         "Equipment",
         {
             "equipment_id": "E1",
+            "unit_no": "DT-001",
             "category": "Invalid Category",
             "type": "Dump Truck",
             "owner_type": "Owner",
