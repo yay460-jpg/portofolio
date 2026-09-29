@@ -1,7 +1,6 @@
 import json
 import sys
 from pathlib import Path
-from unittest.mock import patch
 from urllib.request import Request, urlopen
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
@@ -21,7 +20,7 @@ def test_health_endpoint_is_offline_ready():
             payload = json.loads(response.read().decode())
         assert payload["status"] == "READY"
         assert payload["offline"] is True
-        assert payload["schema"] == "A.1"
+        assert payload["schema"] == "A.2"
     finally:
         httpd.shutdown()
         httpd.server_close()
