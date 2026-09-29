@@ -22,7 +22,7 @@ function fillSelect(id,items,empty){
 }
 async function loadLists(){
  const result=await rc.request({operation:'READ',entity:'_Lists'});
- const lists=result.data||{};
+ const lists=(result.data&&typeof result.data==='object')?result.data:result;
  LISTS.category=Array.isArray(lists.equipment_category)?lists.equipment_category:[];
  LISTS.type=Array.isArray(lists.equipment_type)?lists.equipment_type:[];
  LISTS.owner_type=Array.isArray(lists.owner_type)?lists.owner_type:[];
