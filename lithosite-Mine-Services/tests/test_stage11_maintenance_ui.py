@@ -57,6 +57,10 @@ def test_stage11_no_browser_database_access():
     assert "localStorage" not in (TEXT + MAINTENANCE_JS)
 
 
+def test_stage11_native_picker_icons_follow_dark_theme():
+    assert 'input[type="date"],input[type="time"],input[type="datetime-local"]{color-scheme:dark}' in TEXT
+
+
 def test_stage11_modal_and_runtime_message_present():
     assert 'id="maintenanceModal"' in TEXT
     assert 'id="maintenanceRuntimeMsg"' in TEXT
