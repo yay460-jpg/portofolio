@@ -1,7 +1,7 @@
 # Stage 11 Gate — Maintenance
 
 ## Status
-ACTIVE — Stage 11 workspace
+CLOSED / LOCKED — Stage 11 complete
 
 ## Baseline
 - V22 — LOCKED / STABLE BASELINE
@@ -45,6 +45,15 @@ Maintenance UI must not write directly to XLSX/database.
 - Equipment reference sourced from runtime.
 - RuntimeAdapter errors shown to the user.
 
+## Closure Decision
+All Stage 11 acceptance gates are satisfied. V23 is now the locked Stage 11 baseline.
+
+- Functional gate: PASS
+- Visual gate: PASS
+- Regression gate: PASS — 77 passed in 2.46s
+- V22 baseline protection: PASS
+- No V24 created during closure
+
 ## Test Gate
 1. Maintenance screen is reachable through V23 shell.
 2. Maintenance JS is loaded by the V23 workspace.
@@ -55,7 +64,7 @@ Maintenance UI must not write directly to XLSX/database.
 7. AuditLog records CREATE / UPDATE / DELETE.
 8. Existing regression suite remains green.
 9. Final UI evidence is recorded.
-10. Stage 11 is explicitly CLOSED / LOCKED before V24 is created.
+10. Stage 11 is explicitly CLOSED / LOCKED. V24 is not part of this closure.
 
 ## Out of scope
 - Changes to V22.
