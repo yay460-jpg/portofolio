@@ -54,7 +54,7 @@ The active Schema A.2 runtime workbook is the local offline database for Mine Se
 
 ## Predecessor Protection
 
-V24 Stage 12 remains the protected predecessor baseline.
+V24 Stage 12 workspace artifact has been removed from the active tree after V25 closure. Its historical commits remain in Git history for traceability.
 
 V22 and V23 remain removed and must not be recreated.
 
