@@ -94,6 +94,18 @@ def test_hse_closed_requires_timestamp_and_open_must_be_blank():
     assert any(error.code == "VAL-E008" for error in result["errors"])
 
 
+def test_hse_open_or_in_progress_with_timestamp_is_rejected():
+    app = seed()
+
+    for status in ("Open", "In Progress"):
+        row = valid_hse(f"HSE-{status.replace(' ', '-')}-WITH-TIME")
+        row["status"] = status
+        row["closed_at"] = "2026-09-30T20:00"
+        result = app.create("HSE", row, f"stage14-{status.lower().replace(' ', '-')}-with-time")
+        assert result["status"] == "REJECTED"
+        assert any(error.code == "VAL-E008" for error in result["errors"])
+
+
 def test_hse_closed_with_timestamp_commits():
     app = seed()
     row = valid_hse("HSE-CLOSED")
