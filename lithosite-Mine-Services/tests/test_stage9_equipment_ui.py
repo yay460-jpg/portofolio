@@ -52,4 +52,5 @@ def test_stage9_controlled_vocab_contract_present():
 def test_stage9_navigation_available():
     assert 'Equipment' in TEXT
     assert "showScreen('dashboardScreen')" in TEXT
-    assert "showScreen(label==='Equipment'?'equipmentScreen'" in TEXT or "equipmentScreen" in TEXT
+    assert "equipmentScreen" in TEXT
+    assert "stopImmediatePropagation" in TEXT
