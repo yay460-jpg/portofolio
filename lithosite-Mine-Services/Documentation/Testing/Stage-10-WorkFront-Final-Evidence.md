@@ -4,7 +4,7 @@
 **Stage:** 10  
 **Artifact:** Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v22-STAGE10.html  
 **Scope:** Work Front master data  
-**Baseline protection:** V20.1 Operations + V21 Equipment  
+**Baseline:** V22 — latest stable consolidated baseline  
 **Schema:** A.1
 
 ## Evidence summary
@@ -56,7 +56,7 @@ Automated acceptance covers:
 
 ## Baseline protection
 
-Stage 8 and Stage 9 remain protected by their existing regression tests. The V20.1 file is retained as the locked Operations regression anchor; V21 remains the Equipment baseline; V22 is the active Stage 10 Work Front artifact. The final V22 UI refinement is limited to Work Front filter presentation and does not alter schema, RuntimeAdapter routing, CRUD, validation, persistence, audit, or reference protection.
+Stage 8 and Stage 9 remain protected by their existing regression tests. V22 is the consolidated stable baseline for Operations, Equipment, and Work Front. The final V22 UI refinement is limited to Work Front filter presentation and does not alter schema, RuntimeAdapter routing, CRUD, validation, persistence, audit, or reference protection.
 
 ## Final gate
 
