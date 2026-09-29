@@ -66,8 +66,7 @@ function render(){
    host.innerHTML=rows.length?rows.map(r=>{
    const cls=String(r.status||'').toLowerCase().replace(/[^a-z]/g,'')||'inactive-status';
    return '<div class="tr td">'+
-    '<div class="cell">'+esc(r.equipment_id)+'</div>'+
-    '<div class="cell">'+esc(r.category)+'</div>'+
+    '<div class="cell">'+esc(r.equipment_id)+'</div>'+\n    '<div class="cell">'+esc(r.unit_no)+'</div>'+\n    '<div class="cell">'+esc(r.category)+'</div>'+
     '<div class="cell">'+esc(r.type)+'</div>'+
     '<div class="cell">'+esc(r.owner_type)+'</div>'+
     '<div class="cell">'+esc(r.owner_name)+'</div>'+
@@ -104,7 +103,7 @@ function resetForm(){
  const now=new Date();
  const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
  document.getElementById('f_eq_id').value='EQ-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
- document.getElementById('f_eq_category').value='';
+ document.getElementById('f_eq_unit_no').value='';\n document.getElementById('f_eq_category').value='';
  document.getElementById('f_eq_type').value='';
  document.getElementById('f_eq_owner_type').value='';
  document.getElementById('f_eq_owner_name').value='';
@@ -121,13 +120,14 @@ function openEdit(id){
  const row=state.rows.find(x=>String(x.equipment_id)===String(id));if(!row)return;
  editId=id;document.getElementById('equipmentModalTitle').textContent='Edit Equipment';
  document.getElementById('equipmentSave').textContent='Update via RuntimeAdapter';
- const map={f_eq_id:row.equipment_id,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_owner_name:row.owner_name,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
+ const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_owner_name:row.owner_name,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
  document.getElementById('equipmentModal').classList.add('show');
 }
 function payload(){
  return {
   equipment_id:document.getElementById('f_eq_id').value,
+  unit_no:document.getElementById('f_eq_unit_no').value.trim(),
   category:document.getElementById('f_eq_category').value,
   type:document.getElementById('f_eq_type').value,
   owner_type:document.getElementById('f_eq_owner_type').value,
@@ -140,7 +140,7 @@ function payload(){
 async function save(){
  if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}
  const row=payload();
- if(!row.category||!row.type||!row.owner_type||!row.status){setMsg('Category, Type, Owner Type and Status are required.',true);return;}
+ if(!row.unit_no||!row.category||!row.type||!row.owner_type||!row.status){setMsg('Unit / Fleet No., Category, Type, Owner Type and Status are required.',true);return;}
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Equipment',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the equipment');
