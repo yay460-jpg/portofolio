@@ -85,7 +85,11 @@ async function load(){
    setMsg('RuntimeAdapter connected — Issues persistence is offline-first and audit-backed.');
  }catch(e){
    runtimeReady=false;state.status='error';render();
-   setMsg('Runtime unavailable: '+e.message+'. Start desktop-host/server.py.',true);
+   const detail=e&&e.message?e.message:String(e);
+   const count=document.getElementById('issuesCount');
+   if(count)count.textContent='Runtime Error · '+detail;
+   console.error('[Lithosite Issues] Runtime load failed:',e);
+   setMsg('Runtime unavailable: '+detail+'. Start desktop-host/server.py.',true);
  }
 }
 async function refreshData(){
