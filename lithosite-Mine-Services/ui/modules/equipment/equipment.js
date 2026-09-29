@@ -66,7 +66,9 @@ function render(){
    host.innerHTML=rows.length?rows.map(r=>{
    const cls=String(r.status||'').toLowerCase().replace(/[^a-z]/g,'')||'inactive-status';
    return '<div class="tr td">'+
-    '<div class="cell">'+esc(r.equipment_id)+'</div>'+\n    '<div class="cell">'+esc(r.unit_no)+'</div>'+\n    '<div class="cell">'+esc(r.category)+'</div>'+
+    '<div class="cell">'+esc(r.equipment_id)+'</div>'+
+    '<div class="cell">'+esc(r.unit_no)+'</div>'+
+    '<div class="cell">'+esc(r.category)+'</div>'+
     '<div class="cell">'+esc(r.type)+'</div>'+
     '<div class="cell">'+esc(r.owner_type)+'</div>'+
     '<div class="cell">'+esc(r.owner_name)+'</div>'+
