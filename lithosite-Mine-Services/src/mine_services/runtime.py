@@ -31,6 +31,13 @@ class RuntimeInterface:
         return self._application.delete(entity, entity_id, request_id)
 
     def read(self, entity, entity_id=None):
+        if entity == "_Lists":
+            if entity_id:
+                return sorted(self._application.store.controlled_lists.get(entity_id, set()))
+            return {
+                name: sorted(values)
+                for name, values in self._application.store.controlled_lists.items()
+            }
         if entity == "AuditLog":
             events = self._application.audit_repository.all()
             if entity_id is None:
