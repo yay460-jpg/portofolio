@@ -89,3 +89,9 @@ Final visual refinement commit: **478fd2c — fix(stage11): align Maintenance ro
 **STAGE 11: CLOSED / LOCKED**
 
 V23 is the final Stage 11 artifact. No V24 is created as part of this closure. Any future change to Maintenance must begin under a new explicitly opened stage/workspace and must not modify the locked Stage 11 evidence retrospectively.
+
+
+## Post-Lock Cosmetic Verification
+- Native date/time picker indicators are now explicitly rendered under the dark form color scheme (`color-scheme: dark`).
+- This is a visibility-only fix; no layout, data contract, runtime behavior, or schema was changed.
+- Regression contract test added and passed.
