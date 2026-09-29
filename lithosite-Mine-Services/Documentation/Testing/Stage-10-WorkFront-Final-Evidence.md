@@ -21,6 +21,7 @@
 | XLSX persistence | Work Front survives PersistenceStore XLSX reload | PASS |
 | Browser database isolation | No IndexedDB/localStorage in Work Front UI | PASS |
 | Runtime error handling | Runtime error is distinct from zero-record state | PASS |
+| Desktop visual consistency | Work Front filter layout aligned with Equipment/Operations pattern; labels above controls; table/actions remain horizontal | PASS |
 | Regression | Full pytest suite remains green | **PASS — 69 passed in 2.34s** |
 
 ## Functional evidence
@@ -35,6 +36,10 @@ The V22 Work Front screen was opened against the local desktop host and displaye
 - Runtime state: Runtime Ready
 
 The runtime _Lists diagnostic returned authoritative values for service_domain and work_front_status.
+
+Manual desktop visual verification was completed after the final Work Front filter-layout refinement. The filter panel now follows the same label-above-control pattern used by the Equipment screen, with consistent control height, spacing, and Clear-button alignment. The Work Front table remains horizontal with inline Edit/Delete actions and Runtime Ready state.
+
+Final UI refinement commit: **ac23b53 — fix(stage10): align Work Front filter fields**.
 
 ## Runtime acceptance
 
@@ -51,7 +56,7 @@ Automated acceptance covers:
 
 ## Baseline protection
 
-Stage 8 and Stage 9 remain protected by their existing regression tests. The V20.1 file is retained as the locked Operations regression anchor; V21 remains the Equipment baseline; V22 is the active Stage 10 Work Front artifact.
+Stage 8 and Stage 9 remain protected by their existing regression tests. The V20.1 file is retained as the locked Operations regression anchor; V21 remains the Equipment baseline; V22 is the active Stage 10 Work Front artifact. The final V22 UI refinement is limited to Work Front filter presentation and does not alter schema, RuntimeAdapter routing, CRUD, validation, persistence, audit, or reference protection.
 
 ## Final gate
 
