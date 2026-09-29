@@ -164,18 +164,28 @@ async function save(){
   setMsg('Target Quantity and Target Hours must be non-negative numbers.',true);return;
  }
  try{
+  const workspaceScreen=global.LithositeShellNavigation?.getCurrentScreen?.()||'Plans';
   const result=editId?await rc.request({operation:'UPDATE',entity:'Plans',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Plans',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the Plan record');
   document.getElementById('plansModal').classList.remove('show');
-  await refreshData();setMsg(editId?'Plan updated and audited.':'Plan created and audited.');
+  await refreshData();
+  if(global.LithositeShellNavigation&&global.LithositeShellNavigation.screens[workspaceScreen]){
+   global.LithositeShellNavigation.setScreen(workspaceScreen);
+  }
+  setMsg(editId?'Plan updated and audited.':'Plan created and audited.');
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
 async function remove(id){
  if(!confirm('Delete Plan '+id+'?\nRuntime will validate references and audit the mutation.'))return;
  try{
+  const workspaceScreen=global.LithositeShellNavigation?.getCurrentScreen?.()||'Plans';
   const result=await rc.request({operation:'DELETE',entity:'Plans',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
-  await refreshData();setMsg('Plan deleted and audited.');
+  await refreshData();
+  if(global.LithositeShellNavigation&&global.LithositeShellNavigation.screens[workspaceScreen]){
+   global.LithositeShellNavigation.setScreen(workspaceScreen);
+  }
+  setMsg('Plan deleted and audited.');
  }catch(e){setMsg('Delete failed: '+e.message,true);}
 }
 function bind(){
