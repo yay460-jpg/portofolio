@@ -63,3 +63,10 @@ The table now follows the established master-data screen pattern:
 - This is a visibility-only fix; no layout, data contract, runtime behavior, or schema was changed.
 - Chromium/Edge native picker indicators now receive a targeted light-contrast filter; no icon pack or layout change was introduced.
 - Regression contract test added and passed.
+
+
+## Final V23 Baseline Lock
+- V23 is the final Stage 11 baseline and is now locked against further feature or UI changes.
+- Work Front action buttons are aligned with the common CRUD mini-button contract, including Delete color treatment.
+- Final regression target after the final cosmetic alignment is 79 passed.
+- V22 remains the protected predecessor baseline. The next workspace must branch from V23 rather than modify V23 in place.
