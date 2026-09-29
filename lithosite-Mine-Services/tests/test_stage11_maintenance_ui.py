@@ -57,6 +57,10 @@ def test_stage11_no_browser_database_access():
     assert "localStorage" not in (TEXT + MAINTENANCE_JS)
 
 
+def test_stage11_workfront_action_buttons_follow_crud_mini_contract():
+    assert '.wfcell.row-actions .control.mini{height:24px;padding:3px 7px;font-size:8px}' in TEXT
+    assert '.wfcell.row-actions .control{height:30px;padding:5px 8px}' not in TEXT
+
 def test_stage11_native_picker_icons_follow_dark_theme():
     assert 'input[type="date"],input[type="time"],input[type="datetime-local"]{color-scheme:dark}' in TEXT
     assert '::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.85}' in TEXT
