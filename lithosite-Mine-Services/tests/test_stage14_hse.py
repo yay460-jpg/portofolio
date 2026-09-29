@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from mine_services import ApplicationService
+from mine_services import ApplicationService, RuntimeAdapter
 
 
 def valid_work_front(work_front_id="WF-HSE-01"):
@@ -104,6 +104,24 @@ def test_hse_open_or_in_progress_with_timestamp_is_rejected():
         result = app.create("HSE", row, f"stage14-{status.lower().replace(' ', '-')}-with-time")
         assert result["status"] == "REJECTED"
         assert any(error.code == "VAL-E008" for error in result["errors"])
+
+
+def test_runtime_adapter_returns_structured_validation_errors():
+    app = seed()
+    adapter = RuntimeAdapter()
+    adapter._runtime._application = app
+    row = valid_hse("HSE-ADAPTER-ERROR")
+    row["closed_at"] = "2026-09-30T20:00"
+    result = adapter.handle({
+        "request_id": "stage14-adapter-error",
+        "operation": "CREATE",
+        "entity": "HSE",
+        "row": row,
+    })
+    assert result["status"] == "REJECTED"
+    assert result["errors"][0]["code"] == "VAL-E008"
+    assert result["errors"][0]["field"] == "closed_at"
+    assert "must be blank unless Closed" in result["errors"][0]["message"]
 
 
 def test_hse_closed_with_timestamp_commits():
