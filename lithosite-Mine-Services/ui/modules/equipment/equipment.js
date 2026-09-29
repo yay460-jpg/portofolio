@@ -100,6 +100,13 @@ async function load(){
    setMsg('Runtime unavailable: '+e.message+'. Start desktop-host/server.py.',true);
  }
 }
+async function refreshData(){
+ try{
+  const result=await rc.request({operation:'READ',entity:'Equipment'});
+  state.rows=Array.isArray(result.data)?result.data:[];
+  state.status='ready';render();
+ }catch(e){setMsg('Refresh failed: '+e.message,true);}
+}
 function resetForm(){
  const now=new Date();
  const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
@@ -147,7 +154,7 @@ async function save(){
   const result=editId?await rc.request({operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Equipment',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the equipment');
   document.getElementById('equipmentModal').classList.remove('show');
-  await load();setMsg(editId?'Equipment updated and audited.':'Equipment created and audited.');
+  await refreshData();setMsg(editId?'Equipment updated and audited.':'Equipment created and audited.');
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
 async function remove(id){
@@ -155,7 +162,7 @@ async function remove(id){
  try{
   const result=await rc.request({operation:'DELETE',entity:'Equipment',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
-  await load();setMsg('Equipment deleted and audited.');
+  await refreshData();setMsg('Equipment deleted and audited.');
  }catch(e){setMsg('Delete failed: '+e.message,true);}
 }
 function bind(){
