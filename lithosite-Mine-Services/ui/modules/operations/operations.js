@@ -186,6 +186,23 @@
     }
   }
 
+  async function refreshData() {
+    try {
+      const results = await Promise.all([
+        runtimeClient.request({ operation: 'READ', entity: 'Operations' }),
+        runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
+        runtimeClient.request({ operation: 'READ', entity: 'Equipment' })
+      ]);
+      dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
+      dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
+      dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
+      fillRefs();
+      render();
+    } catch (error) {
+      setRuntimeState('Refresh failed: ' + error.message, true);
+    }
+  }
+
   function resetForm() {
     const now = new Date();
     const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
@@ -281,7 +298,7 @@
         );
       }
 
-      await loadData();
+      await refreshData();
       setRuntimeState('Operation deleted and audited.');
     } catch (error) {
       setRuntimeState('Delete failed: ' + error.message, true);
@@ -397,7 +414,7 @@
       }
 
       modal.classList.remove('show');
-      await loadData();
+      await refreshData();
       setRuntimeState(
         editId ? 'Operation updated and audited.' : 'Operation created and audited.'
       );
