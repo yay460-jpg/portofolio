@@ -9,7 +9,7 @@ SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation-v21.
 def test_stage9_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
-    assert "equipment.js?v=20260929" in TEXT
+    assert "equipment.js?v=20260931" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
@@ -24,7 +24,7 @@ def test_stage9_equipment_fields_present():
         "effective_from",
         "effective_to",
     ):
-        assert field in TEXT
+        assert field in EQUIPMENT_JS
 
 
 def test_stage9_runtime_crud_contract_present():
@@ -62,6 +62,7 @@ def test_stage9_navigation_and_shell_guard_available():
     assert "dashboardScreen" in SHELL_JS
     assert "operationsScreen" in SHELL_JS
     assert "equipmentScreen" in SHELL_JS
+
 
 def test_stage9_runtime_error_is_not_rendered_as_empty_dataset():
     assert "state.status='error'" in EQUIPMENT_JS
