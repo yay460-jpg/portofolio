@@ -62,12 +62,10 @@
         window.alert(label + ' module belum tersedia pada Desktop Master.');
       });
     });
-    let initialScreen = 'Dashboard';
-    try {
-      const saved = sessionStorage.getItem('lithosite-v25-active-screen');
-      if (saved && SCREENS[saved]) initialScreen = saved;
-    } catch (_) {}
-    setScreen(initialScreen, false);
+    // Stage 13 navigation starts from Dashboard on each document load.
+    // Do not restore a stale module screen from sessionStorage.
+    try { sessionStorage.removeItem('lithosite-v25-active-screen'); } catch (_) {}
+    setScreen('Dashboard', false);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
