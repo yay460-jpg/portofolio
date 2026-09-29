@@ -105,7 +105,8 @@ function resetForm(){
  const now=new Date();
  const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
  document.getElementById('f_eq_id').value='EQ-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
- document.getElementById('f_eq_unit_no').value='';\n document.getElementById('f_eq_category').value='';
+ document.getElementById('f_eq_unit_no').value='';
+ document.getElementById('f_eq_category').value='';
  document.getElementById('f_eq_type').value='';
  document.getElementById('f_eq_owner_type').value='';
  document.getElementById('f_eq_owner_name').value='';
