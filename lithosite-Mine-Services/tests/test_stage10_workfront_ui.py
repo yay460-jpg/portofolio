@@ -1,10 +1,10 @@
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v22-STAGE10.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v24-STAGE12.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 WORKFRONT_JS = (ROOT / "ui" / "modules" / "workfront" / "workfront.js").read_text(encoding="utf-8")
-SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v22.js").read_text(encoding="utf-8")
+SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v24.js").read_text(encoding="utf-8")
 
 
 def test_stage10_workfront_screen_exists():
