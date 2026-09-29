@@ -6,13 +6,8 @@ const state={rows:[],status:'loading'};
 let editId=null;
 let runtimeReady=false;
 
-/* A.1 controlled vocabulary contract mirrored from the authoritative runtime schema: equipment_category, equipment_type, owner_type, equipment_status. */
-const LISTS={
- category:['Heavy Equipment','Light Vehicle','Support Equipment'],
- type:['Dump Truck','Excavator','Dozer','Grader','Water Truck','Loader','Light Vehicle','Other'],
- owner_type:['Owner','Contractor'],
- status:['Active','Inactive','Retired']
-};
+/* A.1 controlled vocabulary is supplied by the RuntimeAdapter from the authoritative _Lists contract. */
+const LISTS={category:[],type:[],owner_type:[],status:[]};
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function setMsg(text,error){
@@ -24,6 +19,18 @@ function fillSelect(id,items,empty){
  const current=el.value;
  el.innerHTML='<option value="">'+esc(empty)+'</option>'+items.map(v=>'<option value="'+esc(v).replace(/"/g,'&quot;')+'">'+esc(v)+'</option>').join('');
  if(items.includes(current))el.value=current;
+}
+async function loadLists(){
+ const result=await rc.request({operation:'READ',entity:'_Lists'});
+ const lists=result.data||{};
+ LISTS.category=Array.isArray(lists.equipment_category)?lists.equipment_category:[];
+ LISTS.type=Array.isArray(lists.equipment_type)?lists.equipment_type:[];
+ LISTS.owner_type=Array.isArray(lists.owner_type)?lists.owner_type:[];
+ LISTS.status=Array.isArray(lists.equipment_status)?lists.equipment_status:[];
+ if(!LISTS.category.length||!LISTS.type.length||!LISTS.owner_type.length||!LISTS.status.length){
+   throw new Error('Controlled vocabulary _Lists is incomplete');
+ }
+ fillLists();
 }
 function fillLists(){
  fillSelect('equipmentCategoryFilter',LISTS.category,'All categories');
@@ -81,6 +88,8 @@ async function load(){
  try{
    const health=await rc.health();
    runtimeReady=health.status==='READY';
+   if(!runtimeReady) throw new Error('Runtime health is not READY');
+   await loadLists();
    const result=await rc.request({operation:'READ',entity:'Equipment'});
    state.rows=Array.isArray(result.data)?result.data:[];
    state.status='ready';
@@ -160,5 +169,5 @@ function bind(){
   const del=e.target.closest('.delete-equipment');if(del)remove(del.dataset.id);
  });
 }
-fillLists();bind();load();
+bind();load();
 })(window);
