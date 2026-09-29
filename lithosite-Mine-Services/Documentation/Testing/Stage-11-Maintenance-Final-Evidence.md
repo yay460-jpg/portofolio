@@ -94,4 +94,5 @@ V23 is the final Stage 11 artifact. No V24 is created as part of this closure. A
 ## Post-Lock Cosmetic Verification
 - Native date/time picker indicators are now explicitly rendered under the dark form color scheme (`color-scheme: dark`).
 - This is a visibility-only fix; no layout, data contract, runtime behavior, or schema was changed.
+- Chromium/Edge native picker indicators now receive a targeted light-contrast filter; no icon pack or layout change was introduced.
 - Regression contract test added and passed.
