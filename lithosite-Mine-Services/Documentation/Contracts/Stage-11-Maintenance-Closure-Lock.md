@@ -61,4 +61,5 @@ The table now follows the established master-data screen pattern:
 ## Post-Lock Cosmetic Verification
 - Native date/time picker indicators are now explicitly rendered under the dark form color scheme (`color-scheme: dark`).
 - This is a visibility-only fix; no layout, data contract, runtime behavior, or schema was changed.
+- Chromium/Edge native picker indicators now receive a targeted light-contrast filter; no icon pack or layout change was introduced.
 - Regression contract test added and passed.
