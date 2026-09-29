@@ -96,3 +96,12 @@ def test_snapshot_tamper():
     snap = SnapshotManager(store).capture()
     snap["checksum"] = "tampered"
     assert SnapshotManager(store).restore(snap)["status"] == "REJECTED"
+
+
+def test_runtime_exposes_authoritative_controlled_lists():
+    runtime = RuntimeInterface(application=ApplicationService(PersistenceStore()))
+    lists = runtime.read("_Lists")
+    assert lists["equipment_category"] == ["Heavy Equipment", "Light Vehicle", "Support Equipment"]
+    assert lists["equipment_type"] == ["Dozer", "Dump Truck", "Excavator", "Grader", "Light Vehicle", "Loader", "Other", "Water Truck"]
+    assert lists["owner_type"] == ["Contractor", "Owner"]
+    assert lists["equipment_status"] == ["Active", "Inactive", "Retired"]
