@@ -123,7 +123,7 @@ function resetForm(){
  document.getElementById('f_plan_target_quantity').value='';
  document.getElementById('f_plan_unit').value=LISTS.unit[0]||'';
  document.getElementById('f_plan_target_hours').value='';
- document.getElementById('f_plan_status').value=LISTS.status.includes('DRAFT')?'DRAFT':(LISTS.status[0]||'');
+ document.getElementById('f_plan_status').value=LISTS.status.includes('Draft')?'Draft':(LISTS.status[0]||'');
 }
 function openAdd(){
  editId=null;
