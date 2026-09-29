@@ -1,57 +1,27 @@
-(function (global) {
-  'use strict';
-
-  const MODULE = 'Maintenance';
-
-  function runtime() {
-    return global.LithositeRuntimeAdapter || global.RuntimeAdapter || null;
-  }
-
-  function requestId(action, id) {
-    return 'stage11-maintenance-' + action.toLowerCase() + '-' + (id || Date.now()) + '-' + Math.random().toString(36).slice(2, 8);
-  }
-
-  function readAll() {
-    const rt = runtime();
-    if (!rt || typeof rt.read !== 'function') return [];
-    return rt.read(MODULE) || [];
-  }
-
-  function getLists() {
-    const rt = runtime();
-    if (!rt || typeof rt.read !== 'function') return {};
-    return rt.read('_Lists') || {};
-  }
-
-  function create(row) {
-    const rt = runtime();
-    if (!rt || typeof rt.create !== 'function') throw new Error('RuntimeAdapter is not connected.');
-    return rt.create(MODULE, row, requestId('CREATE', row.maintenance_id));
-  }
-
-  function update(id, patch) {
-    const rt = runtime();
-    if (!rt || typeof rt.update !== 'function') throw new Error('RuntimeAdapter is not connected.');
-    return rt.update(MODULE, id, patch, requestId('UPDATE', id));
-  }
-
-  function remove(id) {
-    const rt = runtime();
-    if (!rt || typeof rt.delete !== 'function') throw new Error('RuntimeAdapter is not connected.');
-    return rt.delete(MODULE, id, requestId('DELETE', id));
-  }
-
-  function init() {
-    global.LithositeMaintenance = Object.freeze({
-      entity: MODULE,
-      readAll,
-      getLists,
-      create,
-      update,
-      delete: remove
-    });
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+(function(global){
+'use strict';
+const rc=global.LithositeRuntimeClient;
+if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 11 Maintenance');
+const state={rows:[],equipment:[],status:'loading'};
+let editId=null;
+let runtimeReady=false;
+const LISTS={event_type:[],status:[],action:[]};
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function setMsg(text,error){const el=document.getElementById('maintenanceRuntimeMsg');if(el){el.textContent=text;el.classList.toggle('error',!!error);}}
+function fillSelect(id,items,empty){const el=document.getElementById(id);if(!el)return;const cur=el.value;el.innerHTML='<option value="">'+esc(empty)+'</option>'+items.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');if(items.includes(cur))el.value=cur;}
+async function loadLists(){const result=await rc.request({operation:'READ',entity:'_Lists'});const lists=(result.data&&typeof result.data==='object')?result.data:result;LISTS.event_type=Array.isArray(lists.maintenance_event_type)?lists.maintenance_event_type:[];LISTS.status=Array.isArray(lists.maintenance_status)?lists.maintenance_status:[];LISTS.action=Array.isArray(lists.maintenance_event_type)?lists.maintenance_event_type:[];if(!LISTS.event_type.length||!LISTS.status.length)throw new Error('Controlled vocabulary _Lists is incomplete for Maintenance');fillLists();}
+function fillLists(){fillSelect('maintenanceEventTypeFilter',LISTS.event_type,'All event types');fillSelect('maintenanceStatusFilter',LISTS.status,'All status');fillSelect('f_maintenance_equipment',state.equipment.map(x=>x.equipment_id).filter(Boolean),'Select equipment');fillSelect('f_maintenance_event_type',LISTS.event_type,'Select event type');fillSelect('f_maintenance_action',LISTS.action,'Select action');fillSelect('f_maintenance_status',LISTS.status,'Select status');}
+async function load(){state.status='loading';render();try{const health=await rc.health();runtimeReady=health.status==='READY';if(!runtimeReady)throw new Error('Runtime health is not READY');await loadLists();const eq=await rc.request({operation:'READ',entity:'Equipment'});state.equipment=Array.isArray(eq.data)?eq.data:[];fillLists();const result=await rc.request({operation:'READ',entity:'Maintenance'});state.rows=Array.isArray(result.data)?result.data:[];state.status='ready';render();setMsg('RuntimeAdapter connected — Maintenance persistence is offline-first and audit-backed.');}catch(e){runtimeReady=false;state.status='error';render();setMsg('Runtime unavailable: '+e.message+'. Start desktop-host/server.py.',true);}}
+function filtered(){const id=document.getElementById('maintenanceIdFilter').value.trim().toLowerCase();const eq=document.getElementById('maintenanceEquipmentFilter').value;const type=document.getElementById('maintenanceEventTypeFilter').value;const status=document.getElementById('maintenanceStatusFilter').value;const source=document.getElementById('maintenanceSourceFilter').value.trim().toLowerCase();return state.rows.filter(r=>(!id||String(r.maintenance_id||'').toLowerCase().includes(id))&&(!eq||r.equipment_id===eq)&&(!type||r.event_type===type)&&(!status||r.status===status)&&(!source||String(r.source||'').toLowerCase().includes(source)));}
+function render(){const host=document.getElementById('maintenanceRows');if(!host)return;if(state.status==='loading')host.innerHTML='<div class="empty">Loading Maintenance from RuntimeAdapter…</div>';else if(state.status==='error')host.innerHTML='<div class="empty">Maintenance data unavailable. Check RuntimeAdapter connection and use Refresh.</div>';else{const rows=filtered();host.innerHTML=rows.length?rows.map(r=>'<div class="tr td"><div class="cell">'+esc(r.maintenance_id)+'</div><div class="cell">'+esc(r.equipment_id)+'</div><div class="cell">'+esc(r.event_date)+'</div><div class="cell">'+esc(r.event_type)+'</div><div class="cell">'+esc(r.failure_code)+'</div><div class="cell">'+esc(r.start_time)+'</div><div class="cell">'+esc(r.end_time)+'</div><div class="cell">'+esc(r.downtime_hours)+'</div><div class="cell">'+esc(r.action)+'</div><div class="cell">'+esc(r.status)+'</div><div class="cell">'+esc(r.source)+'</div><div class="cell row-actions"><button class="control mini edit-maintenance" data-id="'+esc(r.maintenance_id)+'">Edit</button><button class="control mini danger delete-maintenance" data-id="'+esc(r.maintenance_id)+'">Delete</button></div></div>').join(''):'<div class="empty">No Maintenance records match the current filters.</div>';document.getElementById('maintenanceCount').textContent=rows.length+' records · Runtime Ready';}if(state.status==='loading')document.getElementById('maintenanceCount').textContent='Loading · Runtime Connecting';if(state.status==='error')document.getElementById('maintenanceCount').textContent='Unavailable · Runtime Error';}
+function resetForm(){const now=new Date();const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);document.getElementById('f_maintenance_id').value='MNT-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();document.getElementById('f_maintenance_equipment').value=state.equipment[0]?.equipment_id||'';document.getElementById('f_maintenance_event_date').value=d;document.getElementById('f_maintenance_event_type').value=LISTS.event_type[0]||'';document.getElementById('f_maintenance_failure_code').value='';document.getElementById('f_maintenance_start_time').value='';document.getElementById('f_maintenance_end_time').value='';document.getElementById('f_maintenance_downtime_hours').value='';document.getElementById('f_maintenance_action').value=LISTS.action[0]||'';document.getElementById('f_maintenance_status').value=LISTS.status.includes('Open')?'Open':(LISTS.status[0]||'');document.getElementById('f_maintenance_source').value='Manual';}
+function openAdd(){editId=null;document.getElementById('maintenanceModalTitle').textContent='Add Maintenance';document.getElementById('maintenanceSave').textContent='Save via RuntimeAdapter';resetForm();document.getElementById('maintenanceModal').classList.add('show');}
+function openEdit(id){const row=state.rows.find(x=>String(x.maintenance_id)===String(id));if(!row)return;editId=id;document.getElementById('maintenanceModalTitle').textContent='Edit Maintenance';document.getElementById('maintenanceSave').textContent='Update via RuntimeAdapter';const map={f_maintenance_id:row.maintenance_id,f_maintenance_equipment:row.equipment_id,f_maintenance_event_date:row.event_date,f_maintenance_event_type:row.event_type,f_maintenance_failure_code:row.failure_code,f_maintenance_start_time:row.start_time,f_maintenance_end_time:row.end_time,f_maintenance_downtime_hours:row.downtime_hours,f_maintenance_action:row.action,f_maintenance_status:row.status,f_maintenance_source:row.source};Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');document.getElementById('maintenanceModal').classList.add('show');}
+function payload(){return {maintenance_id:document.getElementById('f_maintenance_id').value,equipment_id:document.getElementById('f_maintenance_equipment').value,event_date:document.getElementById('f_maintenance_event_date').value,event_type:document.getElementById('f_maintenance_event_type').value,failure_code:document.getElementById('f_maintenance_failure_code').value,start_time:document.getElementById('f_maintenance_start_time').value||null,end_time:document.getElementById('f_maintenance_end_time').value||null,downtime_hours:document.getElementById('f_maintenance_downtime_hours').value===''?null:Number(document.getElementById('f_maintenance_downtime_hours').value),action:document.getElementById('f_maintenance_action').value,status:document.getElementById('f_maintenance_status').value,source:document.getElementById('f_maintenance_source').value};}
+async function save(){if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}const row=payload();if(!row.equipment_id||!row.event_date||!row.event_type||!row.action||!row.status){setMsg('Equipment, Event Date, Event Type, Action and Status are required.',true);return;}try{const result=editId?await rc.request({operation:'UPDATE',entity:'Maintenance',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Maintenance',row});if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the Maintenance record');document.getElementById('maintenanceModal').classList.remove('show');await load();setMsg(editId?'Maintenance updated and audited.':'Maintenance created and audited.');}catch(e){setMsg('Validation/runtime error: '+e.message,true);}}
+async function remove(id){if(!confirm('Delete Maintenance '+id+'?\nRuntime will validate references and audit the mutation.'))return;try{const result=await rc.request({operation:'DELETE',entity:'Maintenance',entity_id:id});if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');await load();setMsg('Maintenance deleted and audited.');}catch(e){setMsg('Delete failed: '+e.message,true);}}
+function bind(){document.getElementById('maintenanceAdd').onclick=openAdd;document.getElementById('maintenanceRefresh').onclick=load;document.getElementById('maintenanceSave').onclick=save;document.getElementById('maintenanceClose').onclick=()=>document.getElementById('maintenanceModal').classList.remove('show');document.getElementById('maintenanceCancel').onclick=()=>document.getElementById('maintenanceModal').classList.remove('show');document.getElementById('maintenanceClear').onclick=()=>{['maintenanceIdFilter','maintenanceEquipmentFilter','maintenanceEventTypeFilter','maintenanceStatusFilter','maintenanceSourceFilter'].forEach(id=>document.getElementById(id).value='');render();};['maintenanceIdFilter','maintenanceEquipmentFilter','maintenanceEventTypeFilter','maintenanceStatusFilter','maintenanceSourceFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});document.getElementById('maintenanceRows').addEventListener('click',e=>{const edit=e.target.closest('.edit-maintenance');if(edit)openEdit(edit.dataset.id);const del=e.target.closest('.delete-maintenance');if(del)remove(del.dataset.id);});}
+function init(){if(!document.getElementById('maintenanceScreen'))return;if(document.getElementById('maintenanceAdd'))bind();load();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+global.LithositeMaintenance=Object.freeze({entity:'Maintenance',readAll:()=>rc.request({operation:'READ',entity:'Maintenance'}),getLists:()=>rc.request({operation:'READ',entity:'_Lists'}),create:(row)=>rc.request({operation:'CREATE',entity:'Maintenance',row}),update:(id,patch)=>rc.request({operation:'UPDATE',entity:'Maintenance',entity_id:id,patch}),delete:(id)=>rc.request({operation:'DELETE',entity:'Maintenance',entity_id:id})});
 })(window);
