@@ -1,10 +1,10 @@
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v23-STAGE11.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v25-STAGE13.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 MAINTENANCE_JS = (ROOT / "ui" / "modules" / "maintenance" / "maintenance.js").read_text(encoding="utf-8")
-SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v23.js").read_text(encoding="utf-8")
+SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v25.js").read_text(encoding="utf-8")
 
 
 def test_stage11_maintenance_screen_and_module_are_wired():
@@ -47,7 +47,7 @@ def test_stage11_runtime_errors_are_visible():
 def test_stage11_shell_contract_includes_maintenance():
     assert "Maintenance: 'maintenanceScreen'" in SHELL_JS
     assert "'Maintenance'" in SHELL_JS
-    assert "const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance'];" in SHELL_JS
+    assert "const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans'];" in SHELL_JS
     assert "let initialScreen = 'Dashboard';" in SHELL_JS
     assert "setScreen(initialScreen, false)" in SHELL_JS
 
