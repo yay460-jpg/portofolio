@@ -48,8 +48,10 @@ def test_stage11_shell_contract_includes_maintenance():
     assert "Maintenance: 'maintenanceScreen'" in SHELL_JS
     assert "'Maintenance'" in SHELL_JS
     assert "const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans'];" in SHELL_JS
-    assert "let initialScreen = 'Dashboard';" in SHELL_JS
-    assert "setScreen(initialScreen, false)" in SHELL_JS
+    assert "let currentScreen = 'Dashboard';" in SHELL_JS
+    assert "const STORAGE_KEY = 'lithosite-v25-active-screen';" in SHELL_JS
+    assert "readInitialScreen" in SHELL_JS
+    assert "setScreen(readInitialScreen(), false);" in SHELL_JS
 
 
 def test_stage11_no_browser_database_access():
