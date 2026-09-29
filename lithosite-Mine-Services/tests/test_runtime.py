@@ -147,3 +147,42 @@ def test_workfront_delete_is_rejected_when_referenced():
     result = app.delete("WorkFront", "WF-REF", "wf-delete-ref")
     assert result["status"] == "REJECTED"
     assert app.store.exists("WorkFront", "WF-REF")
+
+
+def test_workfront_controlled_vocab_and_xlsx_roundtrip(tmp_path):
+    from openpyxl import Workbook
+    from mine_services.schema import DOMAIN_ENTITIES, HEADERS, SCHEMA_VERSION
+
+    path = tmp_path / "workfront-stage10.xlsx"
+    wb = Workbook()
+    wb.remove(wb.active)
+    baseline = wb.create_sheet("_Baseline")
+    baseline.append(["baseline_status", "LOCKED"])
+    system = wb.create_sheet("_System")
+    system.append(["schema_version", SCHEMA_VERSION])
+    lists = wb.create_sheet("_Lists")
+    defaults = PersistenceStore().controlled_lists
+    headers = list(defaults)
+    lists.append(headers)
+    for i in range(max(len(values) for values in defaults.values())):
+        lists.append([
+            sorted(defaults[h])[i] if i < len(defaults[h]) else None
+            for h in headers
+        ])
+    for entity in DOMAIN_ENTITIES:
+        ws = wb.create_sheet(entity)
+        ws.append(HEADERS[entity])
+    audit = wb.create_sheet("AuditLog")
+    audit.append(HEADERS["AuditLog"])
+    wb.save(path)
+
+    store = PersistenceStore(path)
+    app = ApplicationService(store)
+    invalid = valid_workfront("WF-BAD")
+    invalid["domain"] = "Not A Domain"
+    assert app.create("WorkFront", invalid, "wf-invalid")["status"] == "REJECTED"
+
+    assert app.create("WorkFront", valid_workfront("WF-XLSX"), "wf-xlsx")["status"] == "COMMITTED"
+    reloaded = PersistenceStore(path)
+    assert reloaded.get("WorkFront", "WF-XLSX")["domain"] == "Road & Hauling"
+    assert "Road & Hauling" in reloaded.controlled_lists["service_domain"]
