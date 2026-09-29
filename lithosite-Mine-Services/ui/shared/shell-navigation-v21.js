@@ -29,7 +29,30 @@
     return true;
   }
 
+  function validateShellContract() {
+    const missingScreens = Object.keys(SCREENS).filter(function (screenName) {
+      return !document.getElementById(SCREENS[screenName]);
+    });
+
+    if (missingScreens.length) {
+      console.error(
+        '[Lithosite Shell] Missing required screen DOM:',
+        missingScreens.join(', ')
+      );
+      return false;
+    }
+
+    if (!document.getElementById('side') || !document.getElementById('toggle')) {
+      console.error('[Lithosite Shell] Missing required sidebar/toggle DOM.');
+      return false;
+    }
+
+    return true;
+  }
+
   function init() {
+    if (!validateShellContract()) return false;
+
     const side = document.getElementById('side');
     const toggle = document.getElementById('toggle');
 
