@@ -69,7 +69,7 @@ class Handler(BaseHTTPRequestHandler):
         self._json(200, {
             "status": "READY",
             "offline": True,
-            "schema": "A.1",
+            "schema": "A.2",
             "runtime": "RuntimeAdapter",
             "database": str(DB_PATH),
         }, origin)
