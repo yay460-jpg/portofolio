@@ -76,6 +76,12 @@ async function load(){
   setMsg('Runtime unavailable: '+e.message+'. Start desktop-host/server.py.',true);
  }
 }
+async function refreshData(){
+ try{
+  const result=await rc.request({operation:'READ',entity:'WorkFront'});
+  state.rows=Array.isArray(result.data)?result.data:[];state.status='ready';render();
+ }catch(e){setMsg('Refresh failed: '+e.message,true);}
+}
 function resetForm(){
  const now=new Date();const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
  document.getElementById('f_wf_id').value='WF-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
@@ -98,7 +104,7 @@ async function save(){
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'WorkFront',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'WorkFront',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the Work Front');
-  document.getElementById('workfrontModal').classList.remove('show');await load();setMsg(editId?'Work Front updated and audited.':'Work Front created and audited.');
+  document.getElementById('workfrontModal').classList.remove('show');await refreshData();setMsg(editId?'Work Front updated and audited.':'Work Front created and audited.');
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
 async function remove(id){
@@ -106,7 +112,7 @@ async function remove(id){
  try{
   const result=await rc.request({operation:'DELETE',entity:'WorkFront',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
-  await load();setMsg('Work Front deleted and audited.');
+  await refreshData();setMsg('Work Front deleted and audited.');
  }catch(e){setMsg('Delete failed: '+e.message,true);}
 }
 function bind(){
