@@ -1,66 +1,95 @@
-# Stage 13 — Plans Final Evidence
+# Stage 13 — Plans Final Evidence + Offline Runtime Gate
 
-## Scope
-Stage 13 introduces the **Plans** module in the V25 Desktop Master workspace.
+## Stage
+- Workspace: V25
+- Stage: 13
+- Protected predecessor: V24 Stage 12
+- Schema: A.2
+- Runtime: Offline Desktop Host
+- Default endpoint: `http://127.0.0.1:8765/`
+- Database: `Database/Mine-Services-Database-A2.xlsx`
 
-- Active workspace: `V25 Stage 13`
-- Protected predecessor: `V24 Stage 12`
-- Schema: `A.2`
-- Database architecture: offline-first XLSX through RuntimeAdapter
-- Shell layout: inherited from V24 and preserved
+## Automated Regression
+Command: `python -m pytest -q`
 
-## Plans Contract
-Authoritative schema:
+Final result: **90 passed in 3.05s**
 
-`plan_id, period, domain, work_front_id, activity, target_quantity, unit, target_hours, status`
+The full regression suite is green after aligning legacy Stage 9–11 shell contracts with the V25 persistence-aware shell.
 
-Runtime controls include:
+## Desktop Runtime Gate
+Official acceptance path:
 
-- Primary key: `plan_id`
-- Foreign key: `work_front_id -> WorkFront.work_front_id` (optional)
-- Controlled values: `domain`, `unit`, `status`
-- Period validation: `YYYY-MM`
-- Numeric validation: `target_quantity`, `target_hours`
+`Start-Mine-Services.bat → Desktop Host :8765 → UI → RuntimeAdapter → XLSX A.2`
 
-## V25 Integration
-Plans is integrated into the Desktop Master shell:
+VS Code Live Server is development-only and is not part of the runtime acceptance path.
 
-`Dashboard → Operations → Equipment → Work Front → Maintenance → Issues → Plans → HSE → Reports`
+The runtime was manually exercised through `http://127.0.0.1:8765/`.
 
-The shell and internal workspace layout remain aligned with the V24 baseline.
+## Manual Functional Evidence
 
-Files:
+### CREATE — PASS
+A new Plans record was committed through **Save via RuntimeAdapter** and appeared in Plans Register.
 
+Observed record:
+- Plan ID: `PLN-MUN4O8V`
+- Period: `2026-09`
+- Domain: `Disposal & Stockpile`
+- Activity: `Monthly disposal target`
+- Target Quantity: `950`
+- Unit: `ton`
+- Target Hours: `7`
+- Status: `Draft`
+
+The workspace remained on Plans after mutation.
+
+### UPDATE — PASS
+An existing Plans record was updated through RuntimeAdapter. The observed target quantity changed from `1100` to `12550`. The workspace remained on Plans after mutation.
+
+### DELETE — PASS
+An existing Plans record was deleted through the runtime. After confirmation, Plans Register reported `0 records · Runtime Ready`. The workspace remained on Plans.
+
+### Validation Rejection — PASS
+A negative target quantity was submitted: `Target Quantity = -1`. Runtime validation rejected the mutation with: **Target Quantity and Target Hours must be non-negative numbers.** The invalid record was not committed.
+
+## Navigation / Reload Gate
+CREATE, UPDATE, and DELETE were executed through the official Desktop Host runtime.
+
+Observed behavior:
+- active workspace remained Plans;
+- no return to Dashboard occurred after mutation;
+- no Live Server reload was involved;
+- no module-specific navigation workaround was required.
+
+Shell ownership remains centralized in `ui/shared/shell-navigation-v25.js`, with workspace persistence owned by the shell through `lithosite-v25-active-screen`.
+
+## Offline Runtime Contract
+Stage 13 runtime does not require internet access, cloud services, or VS Code Live Server.
+
+Official launcher: `Start-Mine-Services.bat`
+
+Default local endpoint: `127.0.0.1:8765`
+
+The port is fixed by the runtime contract; the Python process may stop/restart while the launcher recreates the same local endpoint.
+
+## Database Protection
+The original A.1 workbook remains a protected predecessor.
+
+Active runtime workbook: `Database/Mine-Services-Database-A2.xlsx`
+
+Local XLSX changes are expected during runtime testing and must not be restored or deleted destructively.
+
+## PASS Decision
+All Stage 13 automated and manual gates required for the Plans functional/runtime scope are **PASS**.
+
+**Stage 13 is PASS and ready for closure/lock.**
+
+## Evidence Set
 - `Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v25-STAGE13.html`
 - `ui/shared/shell-navigation-v25.js`
 - `ui/modules/plans/plans.js`
+- `desktop-host/server.py`
+- `desktop-host/start-mine-services.bat`
+- `Start-Mine-Services.bat`
 - `tests/test_stage13_plans.py`
-
-## Runtime Path
-
-`Plans UI → V25 Shell Navigation → plans.js → RuntimeAdapter → Validation → Transaction → XLSX Persistence → AuditLog`
-
-## Functional Gate
-The Plans module implements:
-
-- READ
-- CREATE
-- UPDATE
-- DELETE
-- filter by Plan ID / Period / Domain / Work Front / Status
-- Runtime-authoritative validation
-- audit-backed mutation flow
-
-## Test Coverage
-Stage 13 adds backend and shell-contract coverage for:
-
-- Plans CRUD
-- audit sequence
-- Work Front FK rejection
-- controlled-value rejection
-- invalid period rejection
-- negative numeric rejection
-- V25 Plans shell/module contract
-
-## Final State
-This evidence document records the Stage 13 implementation state. Final PASS/LOCK is issued only after the local regression suite and manual UI gate are executed against V25.
+- `tests/test_stage13_desktop_host.py`
+- `Documentation/Contracts/Stage-13-Offline-Desktop-Runtime.md`
