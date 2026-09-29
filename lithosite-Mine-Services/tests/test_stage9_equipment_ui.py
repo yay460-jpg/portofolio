@@ -50,6 +50,8 @@ def test_stage9_controlled_vocab_contract_present():
     assert "equipment_type" in EQUIPMENT_JS
     assert "owner_type" in EQUIPMENT_JS
     assert "equipment_status" in EQUIPMENT_JS
+    assert "entity:'_Lists'" in EQUIPMENT_JS
+    assert "loadLists" in EQUIPMENT_JS
 
 
 def test_stage9_navigation_and_shell_guard_available():
