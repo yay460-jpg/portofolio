@@ -1,6 +1,6 @@
 # Stage 9 — Equipment Screen Contract
 
-**Status:** CONTRACT / READY FOR IMPLEMENTATION  
+**Status:** PASS / BASELINED  
 **Module:** Lithosite | Mine Services  
 **Desktop Master:** Operations v20.1 LOCKED shell  
 **Database Contract:** Schema A.1  
