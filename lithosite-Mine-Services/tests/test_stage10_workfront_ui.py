@@ -55,8 +55,11 @@ def test_stage10_no_browser_database():
 def test_stage10_navigation_and_shell_guard_available():
     assert "Work Front" in TEXT
     assert "workfrontScreen" in TEXT
-    assert "initialScreen = 'Dashboard'" in SHELL_JS
+    assert "let currentScreen = 'Dashboard';" in SHELL_JS
     assert "validateShellContract" in SHELL_JS
+    assert "const STORAGE_KEY = 'lithosite-v25-active-screen';" in SHELL_JS
+    assert "readInitialScreen" in SHELL_JS
+    assert "setScreen(readInitialScreen(), false);" in SHELL_JS
     assert "dashboardScreen" in SHELL_JS
     assert "operationsScreen" in SHELL_JS
     assert "equipmentScreen" in SHELL_JS
