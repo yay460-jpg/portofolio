@@ -12,10 +12,13 @@ ACTIVE — Stage 11 workspace
 Stage 11 introduces the Maintenance domain screen as a Desktop Master module.
 
 ## Schema authority
+- Schema version: A.2
+- Sheet: Equipment adds `unit_no` as the human-facing unit / fleet identifier; `equipment_id` remains the immutable system PK.
 - Sheet: Maintenance
 - PK: maintenance_id
 - Required: maintenance_id, equipment_id
 - Fields: maintenance_id, equipment_id, event_date, event_type, failure_code, start_time, end_time, downtime_hours, action, status, source
+- Child sheets continue to reference Equipment through `equipment_id`; `unit_no` is not duplicated into Operations, Maintenance, Issues, or other sheets.
 
 ## Existing dependencies
 - Maintenance.equipment_id -> Equipment.equipment_id (required FK)
@@ -56,6 +59,6 @@ Maintenance UI must not write directly to XLSX/database.
 
 ## Out of scope
 - Changes to V22.
-- Changes to the XLSX schema unless testing proves the existing schema insufficient.
+- XLSX schema changes unrelated to the Equipment unit identifier and Maintenance scope.
 - New entities beyond Maintenance.
 - Android-specific redesign.
