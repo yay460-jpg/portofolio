@@ -6,6 +6,15 @@ set "MINE_SERVICES_URL=http://127.0.0.1:8765/"
 
 cd /d "%MODULE_ROOT%"
 
+if not exist "%MINE_SERVICES_DB%" (
+  echo.
+  echo ERROR: Offline database not found:
+  echo %MINE_SERVICES_DB%
+  echo.
+  pause
+  exit /b 2
+)
+
 curl.exe --silent --fail "%MINE_SERVICES_URL%health" >nul 2>&1
 if not errorlevel 1 (
   start "" "%MINE_SERVICES_URL%"
