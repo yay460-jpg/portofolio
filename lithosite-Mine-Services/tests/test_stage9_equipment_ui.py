@@ -58,8 +58,11 @@ def test_stage9_controlled_vocab_contract_present():
 def test_stage9_navigation_and_shell_guard_available():
     assert 'Equipment' in TEXT
     assert "equipmentScreen" in TEXT
-    assert "initialScreen = 'Dashboard'" in SHELL_JS
+    assert "let currentScreen = 'Dashboard';" in SHELL_JS
     assert "validateShellContract" in SHELL_JS
+    assert "const STORAGE_KEY = 'lithosite-v25-active-screen';" in SHELL_JS
+    assert "readInitialScreen" in SHELL_JS
+    assert "setScreen(readInitialScreen(), false);" in SHELL_JS
     assert "dashboardScreen" in SHELL_JS
     assert "operationsScreen" in SHELL_JS
     assert "equipmentScreen" in SHELL_JS
