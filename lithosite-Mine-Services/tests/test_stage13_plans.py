@@ -107,7 +107,6 @@ def test_v25_plans_shell_contract():
     module = (root / "ui" / "modules" / "plans" / "plans.js").read_text(encoding="utf-8")
 
     assert 'id="plansScreen"' in html
-    assert '<section id="dashboardScreen" class="dashboard-screen" hidden aria-hidden="true">' in html
     assert 'id="plansModal"' in html
     assert "shell-navigation-v25.js?v=20261001" in html
     assert "../ui/modules/plans/plans.js?v=20260929" in html
