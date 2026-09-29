@@ -77,9 +77,21 @@ def test_issues_fk_and_controlled_values_are_rejected():
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E005" for error in result["errors"])
 
+    bad_wf = valid_issue("ISS-BAD-WF")
+    bad_wf["work_front_id"] = "NO-SUCH-WORK-FRONT"
+    result = app.create("Issues", bad_wf, "stage12-bad-wf")
+    assert result["status"] == "REJECTED"
+    assert any(error.code == "VAL-E005" for error in result["errors"])
+
     bad_enum = valid_issue("ISS-BAD-ENUM")
     bad_enum["severity"] = "Extreme"
     result = app.create("Issues", bad_enum, "stage12-bad-enum")
+    assert result["status"] == "REJECTED"
+    assert any(error.code == "VAL-E006" for error in result["errors"])
+
+    bad_domain = valid_issue("ISS-BAD-DOMAIN")
+    bad_domain["domain"] = "Not A Controlled Domain"
+    result = app.create("Issues", bad_domain, "stage12-bad-domain")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E006" for error in result["errors"])
 
@@ -119,7 +131,7 @@ def test_v24_issues_shell_contract():
     assert 'id="issuesScreen"' in html
     assert 'id="issuesModal"' in html
     assert "shell-navigation-v24.js?v=20260929" in html
-    assert "../ui/modules/issues/issues.js?v=20260929" in html
+    assert "../ui/modules/issues/issues.js?v=20260930" in html
     assert "Issues: 'issuesScreen'" in shell
     assert "'Issues'" in shell
     assert "entity:'Issues'" in module
