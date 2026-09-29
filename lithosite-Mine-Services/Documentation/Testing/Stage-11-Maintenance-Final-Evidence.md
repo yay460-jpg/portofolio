@@ -4,7 +4,7 @@
 **Stage:** 11  
 **Artifact:** Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v23-STAGE11.html  
 **Baseline:** V22 — LOCKED / STABLE  
-**Workspace:** V23 — ACTIVE Stage 11  
+**Workspace:** V23 — CLOSED / LOCKED  
 **Schema:** A.2
 
 ## Evidence summary
@@ -25,7 +25,7 @@
 | Runtime error handling | Runtime/validation failures are surfaced separately from empty-state rendering | PASS |
 | Stage 11 shell contract | Dashboard, Operations, Equipment, Work Front, and Maintenance are required shell screens | PASS |
 | Regression suite | Full pytest suite | **PASS — 77 passed in 2.46s** |
-| Maintenance visual alignment | Current UI is functional, but its table-row/layout presentation is not yet aligned with the established Equipment/Work Front/Operations pattern | **DEFERRED — UI change intentionally not made** |
+| Maintenance visual alignment | Final V23 UI verified against Equipment/Work Front/Operations pattern; row starts directly below header and actions remain inline | **PASS** |
 
 ## Functional evidence
 
@@ -62,11 +62,17 @@ The system PK remains `equipment_id`. Maintenance continues to store only `equip
 
 The local A.2 database copy is kept separate from the original database file. The original `Mine-Services-Database.xlsx` is not overwritten by the migration workflow.
 
-## UI evidence / deferred item
+## UI evidence
 
-The current Maintenance screen is operational and its CRUD/runtime behavior is verified. The Maintenance table presentation is visibly different from the established Equipment/Work Front/Operations layout, particularly in row positioning/spacing.
+Final desktop visual verification was completed on V23 after the Maintenance table-row alignment refinement. The Maintenance table now follows the established Equipment / Work Front / Operations presentation:
 
-Per the current Stage 11 instruction, **no additional UI/layout change is being made at this checkpoint**. This is intentionally recorded as a deferred visual refinement, not silently treated as complete.
+- table header remains fixed at the top of the table panel;
+- data rows begin directly below the header;
+- columns remain horizontally aligned with the header;
+- Edit/Delete actions remain inline on the same row;
+- empty-state centering remains scoped to the empty-state message rather than the data-row container.
+
+Final visual refinement commit: **478fd2c — fix(stage11): align Maintenance rows with master table layout**.
 
 ## Baseline protection
 
@@ -75,10 +81,11 @@ Per the current Stage 11 instruction, **no additional UI/layout change is being 
 - V23 is the active Stage 11 workspace.
 - No V24 artifact is created at this checkpoint.
 
-## Current gate state
+## Final gate state
 
-**FUNCTIONAL GATE: PASS**
+**FUNCTIONAL GATE: PASS**  
+**VISUAL GATE: PASS**  
+**REGRESSION GATE: PASS**  
+**STAGE 11: CLOSED / LOCKED**
 
-**VISUAL REFINEMENT: DEFERRED**
-
-Stage 11 should remain **ACTIVE** until the Maintenance visual alignment is explicitly accepted or the deferred UI refinement is completed. No V24 creation is authorized from this evidence checkpoint.
+V23 is the final Stage 11 artifact. No V24 is created as part of this closure. Any future change to Maintenance must begin under a new explicitly opened stage/workspace and must not modify the locked Stage 11 evidence retrospectively.
