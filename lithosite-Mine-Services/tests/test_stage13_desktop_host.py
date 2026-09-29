@@ -18,3 +18,9 @@ def test_stage13_desktop_host_serves_offline_ui_contract():
     assert 'http://127.0.0.1:8765/' in launcher
     assert 'desktop-host\\server.py' in launcher
     assert 'curl.exe --silent --fail' in launcher
+
+
+def test_stage13_root_launcher_delegates_to_desktop_host():
+    root = Path(__file__).parents[1]
+    launcher = (root / "Start-Mine-Services.bat").read_text(encoding="utf-8")
+    assert 'desktop-host\\start-mine-services.bat' in launcher
