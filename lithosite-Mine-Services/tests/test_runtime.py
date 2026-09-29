@@ -105,3 +105,45 @@ def test_runtime_exposes_authoritative_controlled_lists():
     assert lists["equipment_type"] == ["Dozer", "Dump Truck", "Excavator", "Grader", "Light Vehicle", "Loader", "Other", "Water Truck"]
     assert lists["owner_type"] == ["Contractor", "Owner"]
     assert lists["equipment_status"] == ["Active", "Inactive", "Retired"]
+
+
+def valid_workfront(work_front_id="WF-1"):
+    return {
+        "work_front_id": work_front_id,
+        "domain": "Road & Hauling",
+        "location": "Pit North",
+        "responsible": "Operations Team",
+        "status": "Active",
+    }
+
+
+def test_workfront_crud_and_audit():
+    app = ApplicationService(PersistenceStore())
+    assert app.create("WorkFront", valid_workfront(), "wf-create")["status"] == "COMMITTED"
+    assert app.update("WorkFront", "WF-1", {"location": "Pit South"}, "wf-update")["status"] == "COMMITTED"
+    assert app.get("WorkFront", "WF-1")["location"] == "Pit South"
+    assert app.delete("WorkFront", "WF-1", "wf-delete")["status"] == "COMMITTED"
+    assert [event["action"] for event in app.store.audit()] == ["CREATE", "UPDATE", "DELETE"]
+
+
+def test_workfront_delete_is_rejected_when_referenced():
+    app = ApplicationService(PersistenceStore())
+    assert app.create("WorkFront", valid_workfront("WF-REF"), "wf-ref")["status"] == "COMMITTED"
+    operation = {
+        "transaction_id": "TR-WF-REF",
+        "transaction_date": "2026-09-29",
+        "transaction_time": "08:00",
+        "domain": "Road & Hauling",
+        "work_front_id": "WF-REF",
+        "activity": "Functional Test",
+        "quantity": 10,
+        "unit": "ton",
+        "actual_hours": 1,
+        "target_hours": 2,
+        "status": "VALIDATED",
+        "source": "Stage10",
+    }
+    assert app.create("Operations", operation, "wf-operation")["status"] == "COMMITTED"
+    result = app.delete("WorkFront", "WF-REF", "wf-delete-ref")
+    assert result["status"] == "REJECTED"
+    assert app.store.exists("WorkFront", "WF-REF")
