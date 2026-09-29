@@ -31,6 +31,18 @@ ALLOWED_ORIGINS = {
     "http://localhost:5501",
 }
 
+def is_allowed_origin(origin: str | None) -> bool:
+    if origin in ALLOWED_ORIGINS:
+        return True
+    if not origin:
+        return True
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        return parsed.scheme == "http" and parsed.hostname in {"127.0.0.1", "localhost"}
+    except Exception:
+        return False
+
 
 def build_adapter() -> RuntimeAdapter:
     store = PersistenceStore(DB_PATH)
@@ -47,7 +59,7 @@ class Handler(BaseHTTPRequestHandler):
     def _headers(self, status=200, origin=None):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        if origin in ALLOWED_ORIGINS:
+        if is_allowed_origin(origin):
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -81,7 +93,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path != "/runtime":
             self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Endpoint not found"}]}, origin)
             return
-        if origin and origin not in ALLOWED_ORIGINS:
+        if origin and not is_allowed_origin(origin):
             self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
             return
         try:
