@@ -52,6 +52,18 @@ class RuntimeAdapter:
         else:
             response["status"] = "OK"
             response["data"] = result
+
+        if response.get("errors"):
+            response["errors"] = [
+                {
+                    "code": getattr(error, "code", None),
+                    "field": getattr(error, "field", None),
+                    "message": getattr(error, "message", str(error)),
+                }
+                if not isinstance(error, dict)
+                else error
+                for error in response["errors"]
+            ]
         return response
 
     @staticmethod
