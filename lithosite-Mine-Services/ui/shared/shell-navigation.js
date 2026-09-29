@@ -1,45 +1,28 @@
 (function (global) {
   'use strict';
 
-  /*
-   * Lithosite Desktop Master Shell Router
-   * V21 Stage 9:
-   *   Dashboard → Operations → Equipment
-   *
-   * The shell owns screen visibility.
-   * Feature modules own their data, forms and CRUD behavior.
-   * This prevents module JS from becoming the navigation controller.
-   */
-
-  const SCREENS = Object.freeze({
-    Dashboard: 'dashboardScreen',
-    Operations: 'operationsScreen',
-    Equipment: 'equipmentScreen'
-  });
-
+  // Desktop Master screen router.
+  // One workspace, two sibling screens. Visibility is owned here only.
   function setScreen(name) {
-    const screenId = SCREENS[name];
-    if (!screenId) return false;
+    const dashboard = document.getElementById('dashboardScreen');
+    const operations = document.getElementById('operationsScreen');
+    const items = document.querySelectorAll('.sidebar .nav-item');
+    const isOperations = name === 'Operations';
 
-    Object.keys(SCREENS).forEach(function (screenName) {
-      const element = document.getElementById(SCREENS[screenName]);
-      if (!element) return;
+    if (dashboard) {
+      dashboard.hidden = isOperations;
+      dashboard.setAttribute('aria-hidden', String(isOperations));
+    }
 
-      const active = screenName === name;
-      element.hidden = !active;
-      element.setAttribute('aria-hidden', String(!active));
-      element.classList.toggle('active', active);
-    });
+    if (operations) {
+      operations.hidden = !isOperations;
+      operations.setAttribute('aria-hidden', String(!isOperations));
+    }
 
-    document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
+    items.forEach(function (item) {
       const label = item.querySelector('.nav-text')?.textContent.trim();
-      const active = label === name;
-
-      item.classList.toggle('active', active);
-      item.setAttribute('aria-current', active ? 'page' : 'false');
+      item.classList.toggle('active', label === name);
     });
-
-    return true;
   }
 
   function init() {
@@ -56,7 +39,7 @@
       item.addEventListener('click', function () {
         const label = item.querySelector('.nav-text')?.textContent.trim();
 
-        if (SCREENS[label]) {
+        if (label === 'Dashboard' || label === 'Operations') {
           setScreen(label);
           return;
         }
@@ -74,9 +57,5 @@
     init();
   }
 
-  global.LithositeShellNavigation = Object.freeze({
-    init,
-    setScreen,
-    screens: SCREENS
-  });
+  global.LithositeShellNavigation = { init, setScreen };
 })(window);
