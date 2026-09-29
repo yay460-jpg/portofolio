@@ -179,7 +179,7 @@ function payload(){
   description:document.getElementById('f_hse_description').value.trim(),
   action:document.getElementById('f_hse_action').value,
   status,
-  closed_at:status==='Closed'?(document.getElementById('f_hse_closed_at').value||null):null
+  closed_at:document.getElementById('f_hse_closed_at').value||null
  };
 }
 async function save(){
@@ -224,7 +224,6 @@ function bind(){
   const status=document.getElementById('f_hse_status').value;
   const closed=document.getElementById('f_hse_closed_at');
   if(status==='Closed'&&!closed.value)closed.value=nowLocalDateTime();
-  if(status!=='Closed')closed.value='';
  });
  document.getElementById('hseRows').addEventListener('click',e=>{
   const edit=e.target.closest('.edit-hse');if(edit)openEdit(edit.dataset.id);
