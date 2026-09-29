@@ -59,6 +59,7 @@ def test_stage11_no_browser_database_access():
 
 def test_stage11_native_picker_icons_follow_dark_theme():
     assert 'input[type="date"],input[type="time"],input[type="datetime-local"]{color-scheme:dark}' in TEXT
+    assert '::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.85}' in TEXT
 
 
 def test_stage11_modal_and_runtime_message_present():
