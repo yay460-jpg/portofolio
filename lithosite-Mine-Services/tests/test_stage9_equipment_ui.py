@@ -23,6 +23,7 @@ def test_stage9_equipment_fields_present():
         "status",
         "effective_from",
         "effective_to",
+        "unit_no",
     ):
         assert field in EQUIPMENT_JS
 
@@ -57,7 +58,7 @@ def test_stage9_controlled_vocab_contract_present():
 def test_stage9_navigation_and_shell_guard_available():
     assert 'Equipment' in TEXT
     assert "equipmentScreen" in TEXT
-    assert "setScreen('Dashboard')" in SHELL_JS
+    assert "initialScreen = 'Dashboard'" in SHELL_JS
     assert "validateShellContract" in SHELL_JS
     assert "dashboardScreen" in SHELL_JS
     assert "operationsScreen" in SHELL_JS
