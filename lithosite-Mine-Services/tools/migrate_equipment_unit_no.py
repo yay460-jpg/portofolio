@@ -23,8 +23,8 @@ def migrate(source: Path, target: Path) -> None:
     ws_system = wb[SYSTEM_SHEET]
     version_found = False
     for row in ws_system.iter_rows():
-        for idx, value in enumerate(row):
-            if value == "schema_version" and idx + 1 < len(row) and row[idx + 1].value is not None:
+        for idx, cell in enumerate(row):
+            if cell.value == "schema_version" and idx + 1 < len(row) and row[idx + 1].value is not None:
                 current = str(row[idx + 1].value)
                 if current != OLD_VERSION:
                     raise ValueError(f"Expected schema {OLD_VERSION}, found {current}.")
