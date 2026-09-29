@@ -3,12 +3,12 @@
 **Module:** Lithosite | Mine Services  
 **Stage:** 8 — Operations UI + Desktop Runtime Host  
 **Status:** PASS / BASELINED  
-**Baseline:** Operations v20 LOCKED  
+**Baseline:** Operations v20.1 LOCKED  
 **Schema:** A.1  
 **Runtime Boundary:** RuntimeAdapter  
 **Persistence:** Local XLSX  
 **Host:** desktop-host/server.py  
-**Baseline commit:** 8c733f8809fba78d7c03c9b936e4553ac8490bb9
+**Baseline commit:** a3ed5e603c6173601ab8b0c6ba004a816cc3e7b2
 
 ## 1. Scope Closed
 
@@ -23,7 +23,7 @@ The UI does not maintain a second browser database and does not write XLSX direc
 ## 2. Evidence
 
 ### UI contract
-- Operations screen is present in the locked V20 artifact.
+- Operations screen is present in the locked V20.1 artifact.
 - Runtime client and Operations module are wired.
 - READ is routed through runtime for Operations, WorkFront, and Equipment.
 - CREATE / UPDATE / DELETE are routed through RuntimeAdapter.
@@ -51,7 +51,7 @@ The completed local acceptance cycle covered:
 9. Runtime Error distinguished from zero-record state.
 
 ### Regression
-The existing Stage 2–5 runtime, validation, transaction, XLSX persistence, snapshot, and audit boundaries were retained during Stage 8. The Stage 8 UI contract test was corrected to target the locked V20 artifact in commit `8c733f8809fba78d7c03c9b936e4553ac8490bb9`.
+The existing Stage 2–5 runtime, validation, transaction, XLSX persistence, snapshot, and audit boundaries were retained during Stage 8. The Stage 8 UI contract test was corrected to target the locked V20.1 artifact in commit `8c733f8809fba78d7c03c9b936e4553ac8490bb9`.
 
 ## 3. Integrity Decision
 
@@ -59,7 +59,7 @@ The existing Stage 2–5 runtime, validation, transaction, XLSX persistence, sna
 
 Stage 8 is now treated as a closed baseline. No open Stage 8 implementation item is carried into Stage 9.
 
-The V20 Operations artifact remains locked. Future changes require a new revision and must not silently modify the baseline.
+The V20.1 Operations artifact remains locked. Future changes require a new revision and must not silently modify the baseline.
 
 ## 4. Stage 9 Gate
 
