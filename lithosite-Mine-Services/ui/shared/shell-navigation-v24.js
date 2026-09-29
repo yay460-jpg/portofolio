@@ -63,7 +63,7 @@
     });
     let initialScreen = 'Dashboard';
     try {
-      const saved = sessionStorage.getItem('lithosite-v23-active-screen');
+      const saved = sessionStorage.getItem('lithosite-v24-active-screen');
       if (saved && SCREENS[saved]) initialScreen = saved;
     } catch (_) {}
     setScreen(initialScreen, false);
