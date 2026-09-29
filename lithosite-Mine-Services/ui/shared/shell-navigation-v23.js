@@ -9,8 +9,14 @@
     Maintenance: 'maintenanceScreen'
   });
 
-  function setScreen(name) {
+  let currentScreen = 'Dashboard';
+
+  function setScreen(name, persist) {
     if (!SCREENS[name]) return false;
+    currentScreen = name;
+    if (persist !== false) {
+      try { sessionStorage.setItem('lithosite-v23-active-screen', name); } catch (_) {}
+    }
     Object.keys(SCREENS).forEach(function (screenName) {
       const element = document.getElementById(SCREENS[screenName]);
       if (!element) return;
@@ -54,11 +60,16 @@
         window.alert(label + ' module belum tersedia pada Desktop Master.');
       });
     });
-    setScreen('Dashboard');
+    let initialScreen = 'Dashboard';
+    try {
+      const saved = sessionStorage.getItem('lithosite-v23-active-screen');
+      if (saved && SCREENS[saved]) initialScreen = saved;
+    } catch (_) {}
+    setScreen(initialScreen, false);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  global.LithositeShellNavigation = Object.freeze({init, setScreen, screens: SCREENS});
+  global.LithositeShellNavigation = Object.freeze({init, setScreen, screens: SCREENS, getCurrentScreen: function () { return currentScreen; }});
 })(window);
