@@ -46,9 +46,9 @@ def test_stage9_no_browser_database():
 
 
 def test_stage9_controlled_vocab_contract_present():
-    assert "equipment_category" in TEXT
-    assert "equipment_type" in TEXT
-    assert "owner_type" in TEXT
+    assert "equipment_category" in EQUIPMENT_JS
+    assert "equipment_type" in EQUIPMENT_JS
+    assert "owner_type" in EQUIPMENT_JS
     assert "equipment_status" in EQUIPMENT_JS
 
 
