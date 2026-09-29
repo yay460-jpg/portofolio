@@ -11,12 +11,17 @@
     Plans: 'plansScreen'
   });
 
+  const STORAGE_KEY = 'lithosite-v25-active-screen';
   let currentScreen = 'Dashboard';
   let initialized = false;
 
-  function setScreen(name) {
+  function setScreen(name, persist) {
     if (!SCREENS[name]) return false;
     currentScreen = name;
+
+    if (persist !== false) {
+      try { sessionStorage.setItem(STORAGE_KEY, name); } catch (_) {}
+    }
 
     Object.keys(SCREENS).forEach(function (screenName) {
       const element = document.getElementById(SCREENS[screenName]);
@@ -54,6 +59,15 @@
     }
 
     return true;
+  }
+
+  function readInitialScreen() {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      return saved && SCREENS[saved] ? saved : 'Dashboard';
+    } catch (_) {
+      return 'Dashboard';
+    }
   }
 
   function init() {
@@ -94,11 +108,9 @@
       });
     }
 
-    // Stage 13 navigation contract:
-    // - no sessionStorage/localStorage screen persistence
-    // - document load starts on Dashboard exactly once
-    // - subsequent init calls cannot reset the active screen
-    setScreen('Dashboard');
+    // Workspace state belongs to the shell.
+    // If the document reloads after a runtime mutation, restore the active workspace.
+    setScreen(readInitialScreen(), false);
     return true;
   }
 
