@@ -108,9 +108,15 @@ def test_v25_plans_shell_contract():
 
     assert 'id="plansScreen"' in html
     assert 'id="plansModal"' in html
-    assert "shell-navigation-v25.js?v=20260929" in html
+    assert "shell-navigation-v25.js?v=20261001" in html
     assert "../ui/modules/plans/plans.js?v=20260929" in html
     assert "Plans: 'plansScreen'" in shell
+    assert "let initialized = false;" in shell
+    assert "event.preventDefault();" in shell
+    assert "event.stopPropagation();" in shell
+    assert "sessionStorage" not in shell
+    for screen in ["Dashboard", "Operations", "Equipment", "Work Front", "Maintenance", "Issues", "Plans"]:
+        assert f'data-screen="{screen}"' in html
     assert "'Plans'" in shell
     assert "entity:'Plans'" in module
     assert "RuntimeAdapter" in module
