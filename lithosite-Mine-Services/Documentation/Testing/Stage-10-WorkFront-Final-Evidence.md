@@ -21,7 +21,7 @@
 | XLSX persistence | Work Front survives PersistenceStore XLSX reload | PASS |
 | Browser database isolation | No IndexedDB/localStorage in Work Front UI | PASS |
 | Runtime error handling | Runtime error is distinct from zero-record state | PASS |
-| Regression | Full pytest suite remains green | PENDING FINAL RUN |
+| Regression | Full pytest suite remains green | **PASS — 69 passed in 2.34s** |
 
 ## Functional evidence
 
@@ -55,4 +55,4 @@ Stage 8 and Stage 9 remain protected by their existing regression tests. The V20
 
 ## Final gate
 
-Stage 10 is PASS / BASELINED only after the local full regression run is green after this evidence update.
+Stage 10 is **PASS / BASELINED**. The local full regression run is green: **69 passed in 2.34s**.
