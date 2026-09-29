@@ -114,7 +114,11 @@ def test_v25_plans_shell_contract():
     assert "let initialized = false;" in shell
     assert "event.preventDefault();" in shell
     assert "event.stopPropagation();" in shell
-    assert "sessionStorage" not in shell
+    assert "const STORAGE_KEY = 'lithosite-v25-active-screen';" in shell
+    assert "sessionStorage.setItem(STORAGE_KEY, name)" in shell
+    assert "sessionStorage.getItem(STORAGE_KEY)" in shell
+    assert "setScreen(readInitialScreen(), false);" in shell
+    assert "LithositeShellNavigation" not in module
     for screen in ["Dashboard", "Operations", "Equipment", "Work Front", "Maintenance", "Issues", "Plans"]:
         assert f'data-screen="{screen}"' in html
     assert "'Plans'" in shell
