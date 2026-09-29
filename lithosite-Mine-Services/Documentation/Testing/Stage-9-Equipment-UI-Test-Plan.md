@@ -15,7 +15,7 @@ Checks:
 - no IndexedDB/localStorage persistence is introduced;
 - A.1 Equipment controlled fields are represented;
 - standard Runtime Error handling is present;
-- Equipment navigation is protected by the V21 shell contract.
+- Equipment navigation is protected by the V22 shell contract.
 
 **Result:** 8/8 tests passed.
 
@@ -35,7 +35,7 @@ The complete local regression suite was executed after Stage 9 implementation.
 
 ## Stage 9 PASS record
 
-Stage 9 is baselined after the implementation and regression cycle. The Equipment UI uses the canonical RuntimeAdapter boundary, the Equipment entity contract is represented, controlled lists remain runtime-authoritative, browser-side database persistence is prohibited, and the Stage 8 baseline remains green.
+Stage 9 is baselined after the implementation and regression cycle. The Equipment UI uses the canonical RuntimeAdapter boundary, the Equipment entity contract is represented, controlled lists remain runtime-authoritative, browser-side database persistence is prohibited, and the V22 consolidated baseline remains green.
 
 Evidence record:
 `Documentation/Testing/Stage-9-Equipment-Final-Evidence.md`
