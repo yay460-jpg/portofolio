@@ -2,7 +2,7 @@
 
 **Status:** CONTRACT / READY FOR IMPLEMENTATION  
 **Module:** Lithosite | Mine Services  
-**Desktop Master:** Operations v20 LOCKED shell  
+**Desktop Master:** Operations v20.1 LOCKED shell  
 **Database Contract:** Schema A.1  
 **Runtime Boundary:** RuntimeAdapter  
 **Persistence:** Local XLSX / offline-first
@@ -11,7 +11,7 @@
 
 Stage 9 implements the Equipment master-data screen as the second functional desktop screen after Operations.
 
-Stage 9 must reuse the Stage 8 runtime, validation, transaction, persistence, and audit boundaries. It must not create a parallel database or alter the locked Operations v20 artifact.
+Stage 9 must reuse the Stage 8 runtime, validation, transaction, persistence, and audit boundaries. It must not create a parallel database or alter the locked Operations v20.1 artifact.
 
 ## 2. A.1 Equipment Contract
 
