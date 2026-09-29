@@ -11,6 +11,8 @@ import os
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from mimetypes import guess_type
+from urllib.parse import unquote
 
 HERE = Path(__file__).resolve().parent
 MODULE_ROOT = HERE.parent
@@ -23,6 +25,8 @@ from mine_services import PersistenceStore, RuntimeAdapter, RuntimeInterface, Ap
 
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("MINE_SERVICES_PORT", "8765"))
+STATIC_ROOT = REPO_ROOT.resolve()
+STATIC_ENTRY = "/lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v25-STAGE13.html"
 DB_PATH = Path(os.environ.get("MINE_SERVICES_DB", str(MODULE_ROOT / "Database" / "Mine-Services-Database.xlsx"))).resolve()
 ALLOWED_ORIGINS = {
     "http://127.0.0.1:5500",
@@ -77,16 +81,50 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         origin = self.headers.get("Origin")
-        if self.path != "/health":
+        path = unquote(self.path.split("?", 1)[0])
+
+        if path == "/health":
+            self._json(200, {
+                "status": "READY",
+                "offline": True,
+                "schema": "A.2",
+                "runtime": "RuntimeAdapter",
+                "database": str(DB_PATH),
+            }, origin)
+            return
+
+        if path == "/":
+            self.send_response(302)
+            self.send_header("Location", STATIC_ENTRY)
+            self.end_headers()
+            return
+
+        try:
+            relative = Path(path.lstrip("/"))
+            target = (STATIC_ROOT / relative).resolve()
+            target.relative_to(STATIC_ROOT)
+        except (ValueError, OSError):
+            self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-005", "message": "Invalid static path"}]}, origin)
+            return
+
+        # The desktop host serves the UI and static assets, but never exposes
+        # the offline XLSX database itself.
+        if "Database" in target.relative_to(STATIC_ROOT).parts or target.suffix.lower() in {".xlsx", ".xls", ".csv"}:
+            self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-006", "message": "Static resource not available"}]}, origin)
+            return
+
+        if not target.is_file():
             self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Endpoint not found"}]}, origin)
             return
-        self._json(200, {
-            "status": "READY",
-            "offline": True,
-            "schema": "A.2",
-            "runtime": "RuntimeAdapter",
-            "database": str(DB_PATH),
-        }, origin)
+
+        content_type = guess_type(str(target))[0] or "application/octet-stream"
+        body = target.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self):
         origin = self.headers.get("Origin")
