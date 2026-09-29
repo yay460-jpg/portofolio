@@ -29,7 +29,7 @@
   }
 
   function validateShellContract() {
-    const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front'];
+    const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance'];
     const missing = required.filter(function (name) { return !document.getElementById(SCREENS[name]); });
     if (missing.length) {
       console.error('[Lithosite Shell] Missing required screen DOM:', missing.join(', '));
@@ -42,17 +42,8 @@
     return true;
   }
 
-  function loadMaintenanceModule() {
-    if (document.querySelector('script[data-lithosite-stage11-maintenance]')) return;
-    const script = document.createElement('script');
-    script.src = '../ui/modules/maintenance/maintenance.js?v=20261004';
-    script.dataset.lithositeStage11Maintenance = 'true';
-    document.body.appendChild(script);
-  }
-
   function init() {
     if (!validateShellContract()) return false;
-    loadMaintenanceModule();
     const side = document.getElementById('side');
     const toggle = document.getElementById('toggle');
     if (toggle && side) toggle.addEventListener('click', function () { side.classList.toggle('expanded'); });
