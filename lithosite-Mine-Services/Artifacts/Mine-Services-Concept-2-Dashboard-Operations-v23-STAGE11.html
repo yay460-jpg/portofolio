@@ -228,7 +228,7 @@
 <section class="panel tablepanel">
 <div class="tablehead"><div class="ptitle"><svg class="icon"><use href="../../assets/lithosite-icons.svg#equipment"></use></svg>Equipment Master</div><div class="tablemeta" id="equipmentCount">0 records · Runtime Not Connected</div></div>
 <div class="grid">
-<div class="tr th"><div class="cell">Equipment ID</div><div class="cell">Category</div><div class="cell">Type</div><div class="cell">Owner Type</div><div class="cell">Owner Name</div><div class="cell">Status</div><div class="cell">Effective From</div><div class="cell">Effective To</div><div class="cell">Actions</div></div>
+<div class="tr th"><div class="cell">Equipment ID</div><div class="cell">Unit / Fleet No.</div><div class="cell">Category</div><div class="cell">Type</div><div class="cell">Owner Type</div><div class="cell">Owner Name</div><div class="cell">Status</div><div class="cell">Effective From</div><div class="cell">Effective To</div><div class="cell">Actions</div></div>
 <div id="equipmentRows"></div>
 </div>
 </section>
@@ -239,6 +239,7 @@
 <div class="modalbody">
 <div class="runtime-msg" id="equipmentRuntimeMsg">Runtime validation is authoritative. This form does not write directly to the database.</div>
 <div class="field"><label>Equipment ID</label><input id="f_eq_id" readonly></div>
+<div class="field"><label>Unit / Fleet No.</label><input id="f_eq_unit_no" placeholder="e.g. DT-001 / EXC-003"></div>
 <div class="field"><label>Category</label><select id="f_eq_category"></select></div>
 <div class="field"><label>Type</label><select id="f_eq_type"></select></div>
 <div class="field"><label>Owner Type</label><select id="f_eq_owner_type"></select></div>
