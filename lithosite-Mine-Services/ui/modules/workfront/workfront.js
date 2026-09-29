@@ -54,7 +54,7 @@ function render(){
   const rows=filtered();
   host.innerHTML=rows.length?rows.map(r=>{
    const cls=String(r.status||'').toLowerCase().replace(/[^a-z]/g,'')||'closed-status';
-   return '<div class="tr td"><div class="cell">'+esc(r.work_front_id)+'</div><div class="cell">'+esc(r.domain)+'</div><div class="cell">'+esc(r.location)+'</div><div class="cell">'+esc(r.responsible)+'</div><div class="cell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div><div class="cell">'+esc(r.effective_from)+'</div><div class="cell">'+esc(r.effective_to)+'</div><div class="cell row-actions"><button class="control mini edit-workfront" data-id="'+esc(r.work_front_id)+'">Edit</button><button class="control mini danger delete-workfront" data-id="'+esc(r.work_front_id)+'">Delete</button></div></div>';
+   return '<div class="wfgrid td"><div class="wfcell">'+esc(r.work_front_id)+'</div><div class="wfcell">'+esc(r.domain)+'</div><div class="wfcell">'+esc(r.location)+'</div><div class="wfcell">'+esc(r.responsible)+'</div><div class="wfcell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div><div class="wfcell">'+esc(r.effective_from)+'</div><div class="wfcell">'+esc(r.effective_to)+'</div><div class="wfcell row-actions"><button class="control mini edit-workfront" data-id="'+esc(r.work_front_id)+'">Edit</button><button class="control mini danger delete-workfront" data-id="'+esc(r.work_front_id)+'">Delete</button></div></div>';
   }).join(''):'<div class="empty">No Work Front matches the current filters.</div>';
   document.getElementById('workfrontCount').textContent=rows.length+' records · Runtime Ready';
  }
@@ -80,7 +80,7 @@ function resetForm(){
  const now=new Date();const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
  document.getElementById('f_wf_id').value='WF-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
  document.getElementById('f_wf_domain').value='';document.getElementById('f_wf_location').value='';
- document.getElementById('f_wf_responsible').value='';document.getElementById('f_wf_status').value='Active';
+ document.getElementById('f_wf_responsible').value='';document.getElementById('f_wf_status').value=LISTS.status.includes('ACTIVE')?'ACTIVE':(LISTS.status[0]||'');
  document.getElementById('f_wf_from').value=d;document.getElementById('f_wf_to').value='';
 }
 function openAdd(){editId=null;document.getElementById('workfrontModalTitle').textContent='Add Work Front';document.getElementById('workfrontSave').textContent='Save via RuntimeAdapter';resetForm();document.getElementById('workfrontModal').classList.add('show');}
