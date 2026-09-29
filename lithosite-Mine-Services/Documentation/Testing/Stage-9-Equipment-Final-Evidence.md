@@ -2,7 +2,7 @@
 
 **Module:** Lithosite | Mine Services  
 **Stage:** 9 — Equipment  
-**Baseline:** Operations v20.1 LOCKED shell  
+**Baseline:** V22 latest stable desktop shell  
 **Artifact:** `Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v21-STAGE9.html`  
 **Runtime module:** `ui/modules/equipment/equipment.js`  
 **Shell router:** `ui/shared/shell-navigation-v21.js`
