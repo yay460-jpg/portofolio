@@ -2,7 +2,7 @@
 'use strict';
 const rc=global.LithositeRuntimeClient;
 if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 9 Equipment');
-const state={rows:[]};
+const state={rows:[],status:'loading'};
 let editId=null;
 let runtimeReady=false;
 
@@ -48,8 +48,15 @@ function filtered(){
  );
 }
 function render(){
- const rows=filtered();
- document.getElementById('equipmentRows').innerHTML=rows.length?rows.map(r=>{
+ const host=document.getElementById('equipmentRows');
+ if(!host)return;
+ if(state.status==='loading'){
+   host.innerHTML='<div class="empty">Loading Equipment from RuntimeAdapter…</div>';
+ }else if(state.status==='error'){
+   host.innerHTML='<div class="empty">Equipment data unavailable. Check RuntimeAdapter connection and use Refresh.</div>';
+ }else{
+   const rows=filtered();
+   host.innerHTML=rows.length?rows.map(r=>{
    const cls=String(r.status||'').toLowerCase().replace(/[^a-z]/g,'')||'inactive-status';
    return '<div class="tr td">'+
     '<div class="cell">'+esc(r.equipment_id)+'</div>'+
@@ -63,18 +70,24 @@ function render(){
     '<div class="cell row-actions"><button class="control mini edit-equipment" data-id="'+esc(r.equipment_id)+'">Edit</button><button class="control mini danger delete-equipment" data-id="'+esc(r.equipment_id)+'">Delete</button></div>'+
    '</div>';
  }).join(''):'<div class="empty">No equipment matches the current filters.</div>';
- document.getElementById('equipmentCount').textContent=rows.length+' records · '+(runtimeReady?'Runtime Ready':'Runtime Not Connected');
+   document.getElementById('equipmentCount').textContent=rows.length+' records · Runtime Ready';
+ }
+ if(state.status==='loading')document.getElementById('equipmentCount').textContent='Loading · Runtime Connecting';
+ if(state.status==='error')document.getElementById('equipmentCount').textContent='Unavailable · Runtime Error';
 }
 async function load(){
+ state.status='loading';
+ render();
  try{
    const health=await rc.health();
    runtimeReady=health.status==='READY';
    const result=await rc.request({operation:'READ',entity:'Equipment'});
    state.rows=Array.isArray(result.data)?result.data:[];
+   state.status='ready';
    render();
    setMsg('RuntimeAdapter connected — offline local persistence active.');
  }catch(e){
-   runtimeReady=false;state.rows=[];render();
+   runtimeReady=false;state.status='error';render();
    setMsg('Runtime unavailable: '+e.message+'. Start desktop-host/server.py.',true);
  }
 }
