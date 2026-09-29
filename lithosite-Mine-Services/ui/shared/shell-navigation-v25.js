@@ -12,13 +12,12 @@
   });
 
   let currentScreen = 'Dashboard';
+  let initialized = false;
 
-  function setScreen(name, persist) {
+  function setScreen(name) {
     if (!SCREENS[name]) return false;
     currentScreen = name;
-    if (persist !== false) {
-      try { sessionStorage.setItem('lithosite-v25-active-screen', name); } catch (_) {}
-    }
+
     Object.keys(SCREENS).forEach(function (screenName) {
       const element = document.getElementById(SCREENS[screenName]);
       if (!element) return;
@@ -27,49 +26,92 @@
       element.setAttribute('aria-hidden', String(!active));
       element.classList.toggle('active', active);
     });
+
     document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
-      const label = item.querySelector('.nav-text')?.textContent.trim();
-      const active = label === name;
+      const screen = item.getAttribute('data-screen');
+      const active = screen === name;
       item.classList.toggle('active', active);
       item.setAttribute('aria-current', active ? 'page' : 'false');
     });
+
     return true;
   }
 
   function validateShellContract() {
     const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans'];
-    const missing = required.filter(function (name) { return !document.getElementById(SCREENS[name]); });
+    const missing = required.filter(function (name) {
+      return !document.getElementById(SCREENS[name]);
+    });
+
     if (missing.length) {
       console.error('[Lithosite Shell] Missing required screen DOM:', missing.join(', '));
       return false;
     }
+
     if (!document.getElementById('side') || !document.getElementById('toggle')) {
       console.error('[Lithosite Shell] Missing required sidebar/toggle DOM.');
       return false;
     }
+
     return true;
   }
 
   function init() {
+    if (initialized) return true;
     if (!validateShellContract()) return false;
+
+    initialized = true;
+
     const side = document.getElementById('side');
     const toggle = document.getElementById('toggle');
-    if (toggle && side) toggle.addEventListener('click', function () { side.classList.toggle('expanded'); });
-    document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
-      item.addEventListener('click', function () {
-        const label = item.querySelector('.nav-text')?.textContent.trim();
-        if (SCREENS[label]) { setScreen(label); return; }
+
+    if (toggle && side) {
+      toggle.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        side.classList.toggle('expanded');
+      });
+    }
+
+    const nav = document.querySelector('.sidebar .nav');
+    if (nav) {
+      nav.addEventListener('click', function (event) {
+        const item = event.target.closest('.nav-item');
+        if (!item || !nav.contains(item)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const screen = item.getAttribute('data-screen');
+        if (screen && SCREENS[screen]) {
+          setScreen(screen);
+          return;
+        }
+
+        const labelNode = item.querySelector('.nav-text');
+        const label = labelNode ? labelNode.textContent.trim() : '';
         window.alert(label + ' module belum tersedia pada Desktop Master.');
       });
-    });
-    // Stage 13 navigation starts from Dashboard on each document load.
-    // Do not restore a stale module screen from sessionStorage.
-    try { sessionStorage.removeItem('lithosite-v25-active-screen'); } catch (_) {}
-    setScreen('Dashboard', false);
+    }
+
+    // Stage 13 navigation contract:
+    // - no sessionStorage/localStorage screen persistence
+    // - document load starts on Dashboard exactly once
+    // - subsequent init calls cannot reset the active screen
+    setScreen('Dashboard');
+    return true;
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
 
-  global.LithositeShellNavigation = Object.freeze({init, setScreen, screens: SCREENS, getCurrentScreen: function () { return currentScreen; }});
+  global.LithositeShellNavigation = Object.freeze({
+    init,
+    setScreen,
+    screens: SCREENS,
+    getCurrentScreen: function () { return currentScreen; }
+  });
 })(window);
