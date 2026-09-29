@@ -160,6 +160,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     print(f"Mine Services Desktop Host — http://{HOST}:{PORT}")
+    print(f"UI: http://{HOST}:{PORT}/")
     print(f"Database: {DB_PATH}")
     print("Offline local runtime. Press Ctrl+C to stop.")
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
