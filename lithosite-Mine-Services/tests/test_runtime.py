@@ -121,7 +121,7 @@ def test_workfront_crud_and_audit():
     app = ApplicationService(PersistenceStore())
     assert app.create("WorkFront", valid_workfront(), "wf-create")["status"] == "COMMITTED"
     assert app.update("WorkFront", "WF-1", {"location": "Pit South"}, "wf-update")["status"] == "COMMITTED"
-    assert app.get("WorkFront", "WF-1")["location"] == "Pit South"
+    assert app.store.get("WorkFront", "WF-1")["location"] == "Pit South"
     assert app.delete("WorkFront", "WF-1", "wf-delete")["status"] == "COMMITTED"
     assert [event["action"] for event in app.store.audit()] == ["CREATE", "UPDATE", "DELETE"]
 
