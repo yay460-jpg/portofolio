@@ -55,7 +55,7 @@ def test_stage10_no_browser_database():
 def test_stage10_navigation_and_shell_guard_available():
     assert "Work Front" in TEXT
     assert "workfrontScreen" in TEXT
-    assert "setScreen('Dashboard')" in SHELL_JS
+    assert "initialScreen = 'Dashboard'" in SHELL_JS
     assert "validateShellContract" in SHELL_JS
     assert "dashboardScreen" in SHELL_JS
     assert "operationsScreen" in SHELL_JS
