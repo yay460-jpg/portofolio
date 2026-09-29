@@ -9,6 +9,7 @@ from mine_services import RuntimeAdapter, RuntimeInterface
 def valid_equipment(equipment_id="EQ-ADAPTER"):
     return {
         "equipment_id": equipment_id,
+        "unit_no": "DT-001",
         "category": "Heavy Equipment",
         "type": "Dump Truck",
         "owner_type": "Owner",
