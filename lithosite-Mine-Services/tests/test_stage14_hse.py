@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from mine_services import ApplicationService, RuntimeAdapter
+from mine_services import ApplicationService, RuntimeAdapter, RuntimeInterface
 
 
 def valid_work_front(work_front_id="WF-HSE-01"):
@@ -108,8 +108,7 @@ def test_hse_open_or_in_progress_with_timestamp_is_rejected():
 
 def test_runtime_adapter_returns_structured_validation_errors():
     app = seed()
-    adapter = RuntimeAdapter()
-    adapter._runtime._application = app
+    adapter = RuntimeAdapter(RuntimeInterface(application=app))
     row = valid_hse("HSE-ADAPTER-ERROR")
     row["closed_at"] = "2026-09-30T20:00"
     result = adapter.handle({
@@ -144,7 +143,10 @@ def test_v26_hse_shell_contract():
     assert 'id="hseModal"' in html
     assert 'data-screen="HSE"' in html
     assert "shell-navigation-v26.js?v=20261001" in html
-    assert "../ui/modules/hse/hse.js?v=20261001" in html
+    assert "../ui/modules/hse/hse.js?v=20261002" in html
+    assert "function syncClosedAtField()" in module
+    assert "closed.disabled=true" in module
+    assert "if(status==='Closed')" in module
     assert "HSE: 'hseScreen'" in shell
     assert "'HSE'" in shell
     assert "entity:'HSE'" in module
