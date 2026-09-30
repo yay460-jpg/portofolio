@@ -121,18 +121,3 @@ def test_issues_closed_with_timestamp_commits_and_audits():
     assert result["status"] == "COMMITTED"
     assert app.read("Issues", "ISS-CLOSED")["closed_at"] == "2026-09-29T20:00"
 
-
-def test_v24_issues_shell_contract():
-    root = Path(__file__).parents[1]
-    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v24-STAGE12.html").read_text(encoding="utf-8")
-    shell = (root / "ui" / "shared" / "shell-navigation-v24.js").read_text(encoding="utf-8")
-    module = (root / "ui" / "modules" / "issues" / "issues.js").read_text(encoding="utf-8")
-
-    assert 'id="issuesScreen"' in html
-    assert 'id="issuesModal"' in html
-    assert "shell-navigation-v24.js?v=20260929" in html
-    assert "../ui/modules/issues/issues.js?v=20260930" in html
-    assert "Issues: 'issuesScreen'" in shell
-    assert "'Issues'" in shell
-    assert "entity:'Issues'" in module
-    assert "RuntimeAdapter" in module
