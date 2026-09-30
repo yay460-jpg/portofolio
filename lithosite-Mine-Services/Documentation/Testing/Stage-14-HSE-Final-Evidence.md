@@ -94,7 +94,7 @@ The reload therefore did not reset the active V26 workspace or lose persisted HS
 
 ## Regression / Baseline Integrity
 
-- V25 remains FINAL / LOCKED.
+- V25 workspace has been removed after V26 became the locked Stage 14 baseline.
 - V24 remains removed.
 - V23 remains removed.
 - V22 remains removed.
