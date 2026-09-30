@@ -132,6 +132,18 @@ function nowLocalDateTime(){
  const now=new Date();
  return new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,16);
 }
+function syncClosedAtField(){
+ const status=document.getElementById('f_hse_status').value;
+ const closed=document.getElementById('f_hse_closed_at');
+ if(!closed)return;
+ if(status==='Closed'){
+  closed.disabled=false;
+  if(!closed.value)closed.value=nowLocalDateTime();
+ }else{
+  closed.value='';
+  closed.disabled=true;
+ }
+}
 function resetForm(){
  const d=nowLocalDate();
  document.getElementById('f_hse_id').value='HSE-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
@@ -144,6 +156,7 @@ function resetForm(){
  document.getElementById('f_hse_action').value=LISTS.event_type[0]||'';
  document.getElementById('f_hse_status').value=LISTS.status.includes('Open')?'Open':(LISTS.status[0]||'');
  document.getElementById('f_hse_closed_at').value='';
+ syncClosedAtField();
 }
 function openAdd(){
  editId=null;
@@ -165,6 +178,7 @@ function openEdit(id){
   f_hse_closed_at:row.closed_at?String(row.closed_at).slice(0,16):''
  };
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
+ syncClosedAtField();
  document.getElementById('hseModal').classList.add('show');
 }
 function payload(){
@@ -220,11 +234,7 @@ function bind(){
  ['hseIdFilter','hseDomainFilter','hseWorkFrontFilter','hseEventTypeFilter','hseSeverityFilter','hseStatusFilter'].forEach(id=>{
   const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);
  });
- document.getElementById('f_hse_status').addEventListener('change',()=>{
-  const status=document.getElementById('f_hse_status').value;
-  const closed=document.getElementById('f_hse_closed_at');
-  if(status==='Closed'&&!closed.value)closed.value=nowLocalDateTime();
- });
+ document.getElementById('f_hse_status').addEventListener('change',syncClosedAtField);
  document.getElementById('hseRows').addEventListener('click',e=>{
   const edit=e.target.closest('.edit-hse');if(edit)openEdit(edit.dataset.id);
   const del=e.target.closest('.delete-hse');if(del)remove(del.dataset.id);
