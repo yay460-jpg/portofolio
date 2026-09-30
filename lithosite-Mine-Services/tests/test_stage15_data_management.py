@@ -7,8 +7,9 @@ def test_stage15_data_management_ui_contract():
     shell = (root / "ui" / "shared" / "shell-navigation-v29.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "data-management" / "data-management.js").read_text(encoding="utf-8")
 
-    assert "Import Data" in html
-    assert "Backup / Restore" in html
+    assert "Data Manage" in html
+    assert "Import Data" in module
+    assert "Backup / Restore" in module
     assert "data-management.js?v=20260930" in html
     assert "LithositeDataManagement" in module
     assert "operation: 'IMPORT_XLSX'" in module
