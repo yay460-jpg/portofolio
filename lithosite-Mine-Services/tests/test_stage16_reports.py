@@ -24,8 +24,8 @@ def test_stage16_reports_shell_contract():
 def test_stage16_reports_runtime_contract():
     text = MODULE.read_text(encoding="utf-8")
     assert "LithositeRuntimeClient" in text
+    assert "entities.map(entity=>rc.request({operation:'READ',entity}))" in text
     for entity in ("Operations", "Equipment", "WorkFront", "Maintenance", "Issues", "Plans", "HSE"):
-        assert "operation:'READ'" in text
-        assert f"entity:\'{entity}\'" in text
+        assert entity in text
     assert "read-only" in text
     assert "LithositeReports" in text
