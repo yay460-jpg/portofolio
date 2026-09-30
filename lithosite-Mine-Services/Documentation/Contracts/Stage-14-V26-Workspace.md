@@ -5,8 +5,8 @@
 V26 is the active Stage 14 workspace copied from the locked V25 Stage 13 baseline.
 
 - V24: removed
-- V25: FINAL / LOCKED
-- V26: ACTIVE Stage 14 workspace
+- V25: removed
+- V26: FINAL / LOCKED Stage 14 baseline
 
 ## Workspace Artifact
 
@@ -24,7 +24,7 @@ This prevents Stage 14 workspace state from sharing the V25 session key.
 
 ## Baseline Rule
 
-V25 remains locked and must not be modified.
+V26 is now the locked Stage 14 baseline and must not be modified.
 
 All Stage 14 functional, UI, runtime, and test changes must be made against V26.
 
