@@ -50,7 +50,7 @@ PASS:
 
 ## Baseline Integrity
 
-- V25: FINAL / LOCKED — untouched.
+- V25: removed after V26 became the locked Stage 14 baseline.
 - V24: removed.
 - V23: removed.
 - V22: removed.
