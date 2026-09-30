@@ -105,6 +105,14 @@
 
         const labelNode = item.querySelector('.nav-text');
         const label = labelNode ? labelNode.textContent.trim() : '';
+        if (label === 'Import Data' && global.LithositeDataManagement) {
+          global.LithositeDataManagement.open();
+          return;
+        }
+        if (label === 'Backup / Restore' && global.LithositeDataManagement) {
+          global.LithositeDataManagement.open();
+          return;
+        }
         window.alert(label + ' module belum tersedia pada Desktop Master.');
       });
     }
