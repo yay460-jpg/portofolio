@@ -39,9 +39,19 @@ An attempt to set Status = Closed without Closed At was rejected with:
 `Closed At is required when Status is Closed.`
 
 ### Closed event persistence — PASS
-A Closed HSE event with Closed At populated was committed and displayed in the register with:
+A Closed HSE event was committed and displayed in the register with:
 - status: Closed
-- closed_at populated
+- closed_at automatically populated by the UI workflow
+- the register displayed the persisted Closed At value
+
+### HSE lifecycle — PASS
+The V26 UI now follows the operational lifecycle:
+- Open → Closed At empty/disabled
+- In Progress → Closed At empty/disabled
+- Closed → Closed At enabled and automatically populated when needed
+
+Runtime validation remains authoritative for invalid payloads.
+An Open/In Progress record carrying a Closed At value is rejected by the runtime with `VAL-E008`.
 
 ## Layout / Shell Gate
 
@@ -63,7 +73,7 @@ It covers:
 - Closed / non-Closed Closed At validation
 - V26 HSE shell/module contract
 
-Automated execution result is **PENDING** until the test suite is executed against the current V26 checkout.
+Automated execution result is **PENDING** until the test suite is executed against the current V26 checkout. The test contract was updated to the current V26 HSE module cache version and runtime adapter boundary.
 
 ## Remaining Acceptance Checks
 
