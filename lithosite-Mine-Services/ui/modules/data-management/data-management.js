@@ -121,7 +121,7 @@
     try {
       msg('Creating sealed runtime snapshot…');
       const result = await runtimeClient.request({ operation: 'BACKUP', source: 'Stage15-UI' });
-      if (result.status !== 'READY') {
+      if (result.status !== 'SEALED') {
         throw new Error(result.errors && result.errors.length ? result.errors.map(function (e) { return e.message; }).join('; ') : 'Backup failed');
       }
       const stamp = new Date().toISOString().replace(/[:.]/g, '-');
