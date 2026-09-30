@@ -3,6 +3,7 @@ setlocal
 set "MODULE_ROOT=%~dp0.."
 set "MINE_SERVICES_DB=%MODULE_ROOT%\Database\Mine-Services-Database-A2.xlsx"
 set "MINE_SERVICES_URL=http://127.0.0.1:8765/"
+set "MINE_SERVICES_ENTRY=/lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v27-STAGE15.html"
 
 cd /d "%MODULE_ROOT%"
 

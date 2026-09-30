@@ -1,4 +1,4 @@
-"""Local offline desktop host for the Mine Services RuntimeAdapter.
+﻿"""Local offline desktop host for the Mine Services RuntimeAdapter.
 
 Binds only to loopback. The browser UI talks to this host through HTTP; the
 host owns the Python runtime and local XLSX persistence. No network service
@@ -26,7 +26,7 @@ from mine_services import PersistenceStore, RuntimeAdapter, RuntimeInterface, Ap
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("MINE_SERVICES_PORT", "8765"))
 STATIC_ROOT = REPO_ROOT.resolve()
-STATIC_ENTRY = "/lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v26-STAGE14.html"
+STATIC_ENTRY = os.environ.get("MINE_SERVICES_ENTRY", "/lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v27-STAGE15.html")
 DB_PATH = Path(os.environ.get("MINE_SERVICES_DB", str(MODULE_ROOT / "Database" / "Mine-Services-Database.xlsx"))).resolve()
 ALLOWED_ORIGINS = {
     "http://127.0.0.1:5500",
@@ -159,7 +159,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    print(f"Mine Services Desktop Host — http://{HOST}:{PORT}")
+    print(f"Mine Services Desktop Host â€” http://{HOST}:{PORT}")
     print(f"UI: http://{HOST}:{PORT}/")
     print(f"Database: {DB_PATH}")
     print("Offline local runtime. Press Ctrl+C to stop.")
@@ -168,3 +168,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
