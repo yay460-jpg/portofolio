@@ -1,6 +1,6 @@
 ﻿# Stage 15 — Operational Data Management Contract
 
-Status: ACTIVE
+Status: FINAL / PASS
 Workspace: V27
 Baseline: V26 FINAL / LOCKED
 Schema: A.2
@@ -31,3 +31,9 @@ Stage 15 implementation may begin only after this contract is recorded.
 
 ## Acceptance
 Each functional scope requires implementation evidence, regression evidence, persistence verification, and final PASS evidence.
+
+## Final Gate
+Stage 15 acceptance evidence is recorded in:
+`Documentation/Testing/Stage-15-Operational-Data-Management-Final-Evidence.md`
+
+Decision: **PASS — Stage 15 acceptance gate complete.**
