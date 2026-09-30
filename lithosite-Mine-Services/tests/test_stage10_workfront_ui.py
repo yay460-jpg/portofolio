@@ -1,10 +1,10 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v25-STAGE13.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v27-STAGE15.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 WORKFRONT_JS = (ROOT / "ui" / "modules" / "workfront" / "workfront.js").read_text(encoding="utf-8")
-SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v25.js").read_text(encoding="utf-8")
+SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v27.js").read_text(encoding="utf-8")
 
 
 def test_stage10_workfront_screen_exists():
@@ -57,7 +57,7 @@ def test_stage10_navigation_and_shell_guard_available():
     assert "workfrontScreen" in TEXT
     assert "let currentScreen = 'Dashboard';" in SHELL_JS
     assert "validateShellContract" in SHELL_JS
-    assert "const STORAGE_KEY = 'lithosite-v25-active-screen';" in SHELL_JS
+    assert "const STORAGE_KEY = 'lithosite-v27-active-screen';" in SHELL_JS
     assert "readInitialScreen" in SHELL_JS
     assert "setScreen(readInitialScreen(), false);" in SHELL_JS
     assert "dashboardScreen" in SHELL_JS
@@ -70,3 +70,4 @@ def test_stage10_runtime_error_is_not_rendered_as_empty_dataset():
     assert "state.status='error'" in WORKFRONT_JS
     assert "Work Front data unavailable" in WORKFRONT_JS
     assert "state.rows=[]" not in WORKFRONT_JS
+
