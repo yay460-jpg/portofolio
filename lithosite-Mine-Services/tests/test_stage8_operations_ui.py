@@ -1,8 +1,8 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
-UI = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v27-STAGE15.html"
+UI = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v29-STAGE17.html"
 OPS_JS = ROOT / "ui" / "modules" / "operations" / "operations.js"
 
 
@@ -56,4 +56,5 @@ def test_stage8_operations_ui_uses_schema_status_values():
 
     assert "Valid</option>" not in ui_text
     assert "Pending</option>" not in ui_text
+
 

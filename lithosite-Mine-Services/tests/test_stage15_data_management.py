@@ -3,8 +3,8 @@ from pathlib import Path
 
 def test_stage15_data_management_ui_contract():
     root = Path(__file__).parents[1]
-    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v27-STAGE15.html").read_text(encoding="utf-8")
-    shell = (root / "ui" / "shared" / "shell-navigation-v27.js").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v29-STAGE17.html").read_text(encoding="utf-8")
+    shell = (root / "ui" / "shared" / "shell-navigation-v29.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "data-management" / "data-management.js").read_text(encoding="utf-8")
 
     assert "Import Data" in html
@@ -23,3 +23,4 @@ def test_stage15_runtime_adapter_data_operations():
     assert '"IMPORT_XLSX"' in adapter
     assert '"BACKUP"' in adapter
     assert '"RESTORE"' in adapter
+

@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
@@ -102,19 +102,19 @@ def test_plans_period_and_numeric_validation():
 
 def test_v27_plans_shell_contract():
     root = Path(__file__).parents[1]
-    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v27-STAGE15.html").read_text(encoding="utf-8")
-    shell = (root / "ui" / "shared" / "shell-navigation-v27.js").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v29-STAGE17.html").read_text(encoding="utf-8")
+    shell = (root / "ui" / "shared" / "shell-navigation-v29.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "plans" / "plans.js").read_text(encoding="utf-8")
 
     assert 'id="plansScreen"' in html
     assert 'id="plansModal"' in html
-    assert "shell-navigation-v27.js?v=20261001" in html
+    assert "shell-navigation-v29.js?v=20261001" in html
     assert "../ui/modules/plans/plans.js?v=20261001" in html
     assert "Plans: 'plansScreen'" in shell
     assert "let initialized = false;" in shell
     assert "event.preventDefault();" in shell
     assert "event.stopPropagation();" in shell
-    assert "const STORAGE_KEY = 'lithosite-v27-active-screen';" in shell
+    assert "const STORAGE_KEY = 'lithosite-v29-active-screen';" in shell
     assert "sessionStorage.setItem(STORAGE_KEY, name)" in shell
     assert "sessionStorage.getItem(STORAGE_KEY)" in shell
     assert "setScreen(readInitialScreen(), false);" in shell
@@ -124,6 +124,7 @@ def test_v27_plans_shell_contract():
     assert "'Plans'" in shell
     assert "entity:'Plans'" in module
     assert "RuntimeAdapter" in module
+
 
 
 
