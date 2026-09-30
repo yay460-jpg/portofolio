@@ -73,16 +73,33 @@ It covers:
 - Closed / non-Closed Closed At validation
 - V26 HSE shell/module contract
 
-Automated execution result is **PENDING** until the test suite is executed against the current V26 checkout. The test contract was updated to the current V26 HSE module cache version and runtime adapter boundary.
+Automated regression result:
+**96 passed in 2.78s**
 
-## Remaining Acceptance Checks
+## Reload Persistence Gate — PASS
 
-Before declaring the HSE gate fully closed:
-1. Execute the complete pytest regression suite.
-2. Verify Open/In Progress with a populated Closed At is rejected through the runtime.
-3. Perform a browser reload after a committed mutation and confirm HSE remains the active workspace.
-4. Confirm no unrelated V25/V24/V23/V22 artifact is modified or restored.
+After the HSE Closed event was committed, the official offline runtime was refreshed with browser reload.
+
+Post-reload evidence confirmed:
+- HSE remained the active screen.
+- HSE Register remained at 2 records.
+- The Closed event remained **Closed**.
+- Persisted Closed At remained `2026-09-30T11:12`.
+- The Open event remained **Open**.
+- The Open event retained an empty Closed At.
+- Sidebar HSE active state remained selected.
+- Footer remained **OFFLINE · A.2 · Database + Runtime Ready · Map Cache Ready (Offline)**.
+
+The reload therefore did not reset the active V26 workspace or lose persisted HSE data.
+
+## Regression / Baseline Integrity
+
+- V25 remains FINAL / LOCKED.
+- V24 remains removed.
+- V23 remains removed.
+- V22 remains removed.
+- No unrelated historical artifact was restored for the Stage 14 gate.
 
 ## Decision
 
-Current status: **MANUAL FUNCTIONAL EVIDENCE PASS / OVERALL GATE PENDING AUTOMATED REGRESSION + FINAL RELOAD CHECK.**
+Current status: **PASS — Stage 14 HSE acceptance gate complete.**
