@@ -84,6 +84,7 @@
       bind();
       initialized = true;
     }
+    openPane('backup');
     document.getElementById('stage15DataModal').classList.add('show');
   }
 
