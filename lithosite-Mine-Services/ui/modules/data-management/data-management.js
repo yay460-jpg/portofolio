@@ -80,6 +80,10 @@
 
   function open() {
     ensureDom();
+    if (!initialized) {
+      bind();
+      initialized = true;
+    }
     document.getElementById('stage15DataModal').classList.add('show');
   }
 
