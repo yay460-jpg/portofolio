@@ -38,16 +38,16 @@
         '<div class="dm-head"><div class="ptitle">Operational Data Management</div><button class="control" id="stage15DataClose">Close</button></div>' +
         '<div class="dm-body">' +
           '<div class="dm-tabs">' +
-            '<button class="dm-tab active" data-pane="import">Import Data</button>' +
+            '<button class="dm-tab" data-pane="import" disabled aria-disabled="true">Import Data</button>' +
             '<button class="dm-tab" data-pane="backup">Backup / Restore</button>' +
           '</div>' +
-          '<div class="dm-pane active" id="stage15PaneImport">' +
+          '<div class="dm-pane" id="stage15PaneImport">' +
             '<label for="stage15ImportPath">XLSX source path</label>' +
             '<input id="stage15ImportPath" type="text" placeholder="D:\\path\\source.xlsx">' +
             '<div class="dm-help">The desktop host imports from a local path visible to Python. Import is validated and committed atomically; rejected data does not partially persist.</div>' +
-            '<button class="control primary" id="stage15ImportRun">Import XLSX</button>' +
+            '<button class="control primary" id="stage15ImportRun" disabled>Import XLSX</button>' +
           '</div>' +
-          '<div class="dm-pane" id="stage15PaneBackup">' +
+          '<div class="dm-pane active" id="stage15PaneBackup">' +
             '<div class="dm-help">Backup creates a sealed SHA-256 snapshot of the current runtime. Restore accepts that snapshot JSON and uses transactional validation before commit.</div>' +
             '<div style="display:flex;gap:8px">' +
               '<button class="control primary" id="stage15BackupRun">Create Backup</button>' +
@@ -84,6 +84,7 @@
       bind();
       initialized = true;
     }
+    openPane('backup');
     document.getElementById('stage15DataModal').classList.add('show');
   }
 
