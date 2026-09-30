@@ -133,10 +133,10 @@ def test_hse_closed_with_timestamp_commits():
     assert app.read("HSE", "HSE-CLOSED")["closed_at"] == "2026-09-30T20:00"
 
 
-def test_v26_hse_shell_contract():
+def test_current_hse_shell_contract():
     root = Path(__file__).parents[1]
     html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v27-STAGE15.html").read_text(encoding="utf-8")
-    shell = (root / "ui" / "shared" / "shell-navigation-v26.js").read_text(encoding="utf-8")
+    shell = (root / "ui" / "shared" / "shell-navigation-v28.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "hse" / "hse.js").read_text(encoding="utf-8")
 
     assert 'id="hseScreen"' in html
