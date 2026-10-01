@@ -423,6 +423,8 @@
     }
   }
 
+  if (global.LithositeDataSync) global.LithositeDataSync.register('Operations', refreshData);
+
   bindControls();
   loadData();
 })(window);
