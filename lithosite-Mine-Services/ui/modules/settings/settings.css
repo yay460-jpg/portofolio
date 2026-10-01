@@ -271,3 +271,78 @@
   }
 }
 
+/* FINAL V30 SETTINGS STRUCTURE — explicit placement, no auto-placement */
+#settingsScreen .settings-grid{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  grid-template-rows:auto auto!important;
+  gap:10px!important;
+  width:100%!important;
+  height:auto!important;
+  max-height:none!important;
+  min-height:0!important;
+  overflow:visible!important;
+  align-items:start!important;
+}
+
+#settingsScreen .settings-grid > .settings-panel{
+  grid-column:auto!important;
+  grid-row:auto!important;
+  width:100%!important;
+  height:auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:hidden!important;
+}
+
+#settingsScreen .settings-grid > .settings-panel:nth-child(1){grid-area:1 / 1!important;}
+#settingsScreen .settings-grid > .settings-panel:nth-child(2){grid-area:1 / 2!important;}
+#settingsScreen .settings-grid > .settings-panel:nth-child(3){grid-area:2 / 1!important;}
+#settingsScreen .settings-grid > .settings-panel:nth-child(4){grid-area:2 / 2!important;}
+
+#settingsScreen .settings-grid > .settings-panel .settings-body{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+
+#settingsScreen .settings-grid > .settings-panel:nth-child(4) .settings-body{
+  display:block!important;
+  padding:8px 13px 10px!important;
+}
+
+#settingsScreen .settings-grid > .settings-panel:nth-child(4) .local-preferences-list{
+  display:block!important;
+  width:100%!important;
+  height:auto!important;
+}
+
+#settingsScreen .settings-grid > .settings-panel:nth-child(4) .local-preference-row{
+  display:flex!important;
+  width:100%!important;
+  min-height:28px!important;
+  height:28px!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+}
+
+#settingsScreen .settings-grid > .settings-panel:nth-child(4) .settings-local-message{
+  display:block!important;
+  width:100%!important;
+  margin:8px 0 0!important;
+  box-sizing:border-box!important;
+}
+
+@media(max-width:700px){
+  #settingsScreen .settings-grid{
+    grid-template-columns:1fr!important;
+    grid-template-rows:auto auto auto auto!important;
+  }
+  #settingsScreen .settings-grid > .settings-panel:nth-child(1){grid-area:1 / 1!important;}
+  #settingsScreen .settings-grid > .settings-panel:nth-child(2){grid-area:2 / 1!important;}
+  #settingsScreen .settings-grid > .settings-panel:nth-child(3){grid-area:3 / 1!important;}
+  #settingsScreen .settings-grid > .settings-panel:nth-child(4){grid-area:4 / 1!important;}
+}
+
