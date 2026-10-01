@@ -69,6 +69,23 @@
     };
   }
 
+  function setMarkerLocation(markerId,easting,northing,elevation){
+    var id=String(markerId||'').trim();
+    if(!markers[id])throw new Error('Marker not found: '+id);
+    if(!isFiniteNumber(Number(easting))||!isFiniteNumber(Number(northing))||!isFiniteNumber(Number(elevation))){
+      throw new Error('Marker location must contain finite easting, northing, and elevation');
+    }
+    return updateMarker(id,{
+      easting:Number(easting),
+      northing:Number(northing),
+      elevation:Number(elevation)
+    });
+  }
+
+  function placeMarker(input){
+    return createMarker(input);
+  }
+
   function createMarker(input){
     var marker=normalizeMarker(input);
     if(markers[marker.marker_id])throw new Error('Marker already exists: '+marker.marker_id);
@@ -186,6 +203,8 @@
   global.MineServicesMarkerLocation={
     TYPES:TYPES.slice(),
     createMarker:createMarker,
+    placeMarker:placeMarker,
+    setMarkerLocation:setMarkerLocation,
     updateMarker:updateMarker,
     removeMarker:removeMarker,
     getMarker:getMarker,
