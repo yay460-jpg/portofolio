@@ -3,6 +3,7 @@
   'use strict';
   function init(){
     var host=document.getElementById('dashboardSiteMap');
+    var panel=host&&host.closest('.panel');
     if(!host||!global.LithositeTopo3D)return;
     var canvas=host.querySelector('#dashboardTopo3DCanvas');
     if(!canvas)return;
@@ -200,7 +201,7 @@
       }).catch(function(error){
         setStatus(error&&error.message?error.message:'WebGL tidak tersedia','error');
       });
-      var input=host.querySelector('#dashboardTopo3DFile');
+      var input=(panel||host).querySelector('#dashboardTopo3DFile');
       if(input)input.addEventListener('change',async function(){
         if(!input.files||!input.files.length)return;
         try{
@@ -214,7 +215,7 @@
           setStatus(error&&error.message?error.message:'Gagal memuat topografi','error');
         }finally{input.value='';}
       });
-      var bind=function(id,fn){var el=host.querySelector(id);if(el)el.addEventListener('click',fn);};
+      var bind=function(id,fn){var el=(panel||host).querySelector(id);if(el)el.addEventListener('click',fn);};
       bind('#dashboardTopo3DFit',function(){engine.fit();syncTopViewClass();updateNorthArrow();});
       bind('#dashboardTopo3DTop',function(){engine.setView('top');syncTopViewClass();updateNorthArrow();});
       bind('#dashboardTopo3DView',function(){engine.setView('3d');syncTopViewClass();updateNorthArrow();});
