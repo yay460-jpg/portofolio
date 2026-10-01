@@ -47,7 +47,26 @@
     }
   }
 
+  function renderLocalPreferences() {
+    const message = document.getElementById('settingsMessage');
+    if (!message) return;
+
+    const panelBody = message.parentElement;
+    if (!panelBody) return;
+
+    panelBody.innerHTML = [
+      '<div class="local-preferences-list">',
+      '<div class="local-preference-row"><span class="local-preference-label">Storage</span><span class="local-preference-value">Browser Local Storage</span></div>',
+      '<div class="local-preference-row"><span class="local-preference-label">Scope</span><span class="local-preference-value">UI preferences only</span></div>',
+      '<div class="local-preference-row"><span class="local-preference-label">Database mutation</span><span class="local-preference-value safe">NONE</span></div>',
+      '<div class="local-preference-row"><span class="local-preference-label">Active preference set</span><span class="local-preference-value">3 settings</span></div>',
+      '</div>',
+      '<div id="settingsMessage" class="runtime-msg settings-local-message">Preferences are stored locally in this browser. They do not mutate the XLSX database.</div>'
+    ].join('');
+  }
+
   function load() {
+    renderLocalPreferences();
     const settings = readPreferences();
     applyMotionPreference(settings.motion);
     const motion = document.getElementById('settingsMotion');
@@ -107,6 +126,8 @@
       const element = document.getElementById(id);
       if (element) element.addEventListener('change', save);
     });
+
+    renderLocalPreferences();
 
     const resetButton = document.getElementById('settingsReset');
     if (resetButton) resetButton.addEventListener('click', reset);
