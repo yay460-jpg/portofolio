@@ -246,6 +246,74 @@
     });
   }
 
+  function resolveDomainSpatialLink(markerId, domainRecords){
+    var marker=getMarker(markerId);
+    if(!marker)return {status:'MISSING_MARKER',marker_id:String(markerId||'').trim()};
+    var entity=String(marker.source_entity||'').trim();
+    var sourceId=String(marker.source_id||'').trim();
+    if(!entity || !sourceId){
+      return {
+        status:'ORPHAN',
+        marker_id:marker.marker_id,
+        source_entity:entity,
+        source_id:sourceId,
+        marker:marker
+      };
+    }
+    if(!domainRecords || typeof domainRecords!=='object'){
+      return {
+        status:'UNVERIFIED',
+        marker_id:marker.marker_id,
+        source_entity:entity,
+        source_id:sourceId,
+        marker:marker
+      };
+    }
+    var records=domainRecords[entity];
+    if(!Array.isArray(records)){
+      return {
+        status:'UNVERIFIED',
+        marker_id:marker.marker_id,
+        source_entity:entity,
+        source_id:sourceId,
+        marker:marker
+      };
+    }
+    var primaryKey=entity==='Equipment'?'equipment_id':
+      entity==='WorkFront'?'work_front_id':
+      entity==='HSE'?'hse_id':'id';
+    var record=null;
+    records.some(function(item){
+      if(item && String(item[primaryKey]||'').trim()===sourceId){
+        record=item;
+        return true;
+      }
+      return false;
+    });
+    return record ? {
+      status:'VALID',
+      marker_id:marker.marker_id,
+      source_entity:entity,
+      source_id:sourceId,
+      marker:marker,
+      record:clone(record)
+    } : {
+      status:'BROKEN',
+      marker_id:marker.marker_id,
+      source_entity:entity,
+      source_id:sourceId,
+      marker:marker
+    };
+  }
+
+  function listDomainSpatialLinkIssues(domainRecords){
+    return listMarkers().map(function(marker){
+      return resolveDomainSpatialLink(marker.marker_id,domainRecords);
+    }).filter(function(result){
+      return result.status==='ORPHAN' || result.status==='BROKEN';
+    });
+  }
+
   function findMarkersBySource(sourceEntity, sourceId){
     var entity=String(sourceEntity||'').trim();
     var source=String(sourceId||'').trim();
@@ -456,6 +524,8 @@
     setMarkerSource:setMarkerSource,
     getMarkerSource:getMarkerSource,
     resolveMarkerLink:resolveMarkerLink,
+    resolveDomainSpatialLink:resolveDomainSpatialLink,
+    listDomainSpatialLinkIssues:listDomainSpatialLinkIssues,
     removeMarker:removeMarker,
     getMarker:getMarker,
     listMarkers:listMarkers,
