@@ -634,7 +634,10 @@
     document.addEventListener('mine-services:marker-coordinate-picked',function(event){var point=event&&event.detail;if(!point)return;panel.querySelector('#markerLocationEasting').value=Number(point.easting).toFixed(3);panel.querySelector('#markerLocationNorthing').value=Number(point.northing).toFixed(3);panel.querySelector('#markerLocationElevation').value=Number(point.elevation).toFixed(3);setMarkerLocationPanelMessage('Koordinat terrain terpilih · E '+Number(point.easting).toFixed(3)+' · N '+Number(point.northing).toFixed(3)+' · Z '+Number(point.elevation).toFixed(3),false);});
     refreshMarkerLocationUI();
   }
-  function initMarkerLocationUI(){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindMarkerLocationUI);else bindMarkerLocationUI();}
+  function initMarkerLocationUI(){
+    if(typeof document==='undefined')return;
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindMarkerLocationUI);else bindMarkerLocationUI();
+  }
 
   initMarkerLocationUI();
 
