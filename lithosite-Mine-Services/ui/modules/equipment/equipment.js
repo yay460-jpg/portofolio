@@ -188,6 +188,12 @@ function bind(){
   const del=e.target.closest('.delete-equipment');if(del)remove(del.dataset.id);
  });
 }
+document.addEventListener('mine-services:open-domain-record',function(event){
+ const detail=event&&event.detail||{};
+ if(detail.source_entity!=='Equipment'||!detail.source_id)return;
+ if(global.LithositeShellNavigation)global.LithositeShellNavigation.setScreen('Equipment');
+ setTimeout(function(){openEdit(detail.source_id);},0);
+});
 if(global.LithositeDataSync)global.LithositeDataSync.register('Equipment',refreshData);
 bind();load();
 })(window);
