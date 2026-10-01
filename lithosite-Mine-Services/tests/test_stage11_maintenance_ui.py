@@ -60,9 +60,10 @@ def test_stage11_no_browser_database_access():
 
 
 def test_stage11_workfront_action_buttons_follow_crud_mini_contract():
-    assert '.wfcell.row-actions .control.mini{height:24px;padding:3px 7px;font-size:8px}' in TEXT
-    assert '#workfrontScreen .danger{color:#fca5a5;border-color:#5a2b32;background:#12243a}' in TEXT
-    assert '.wfcell.row-actions .control{height:30px;padding:5px 8px}' not in TEXT
+    WORKFRONT_CSS = (ROOT / "ui" / "modules" / "workfront" / "workfront.css").read_text(encoding="utf-8")
+    assert '.wfcell.row-actions .control.mini{height:24px;padding:3px 7px;font-size:8px}' in WORKFRONT_CSS
+    assert '#workfrontScreen .danger{color:#fca5a5;border-color:#5a2b32;background:#12243a}' in WORKFRONT_CSS
+    assert '.wfcell.row-actions .control{height:30px;padding:5px 8px}' not in WORKFRONT_CSS
 
 def test_stage11_native_picker_icons_follow_dark_theme():
     assert 'input[type="date"],input[type="time"],input[type="datetime-local"]{color-scheme:dark}' in TEXT
