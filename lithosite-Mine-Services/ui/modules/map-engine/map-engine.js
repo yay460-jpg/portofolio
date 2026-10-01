@@ -74,7 +74,7 @@
       northArrow.style.transform='rotate('+(angle-northConvergence)+'deg)';
     }
     function setPickedPoint(label,point){
-      var suffix=label==='A'?'A':'B';
+      var suffix=label==='A'?'1':'2';
       var eEl=host.querySelector('#dashboardTopo3DMeasureE'+suffix);
       var nEl=host.querySelector('#dashboardTopo3DMeasureN'+suffix);
       if(eEl)eEl.value=point.easting.toFixed(2);
