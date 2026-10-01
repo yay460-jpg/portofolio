@@ -28,7 +28,8 @@
 /* --- Desktop Master two-column layout --- */
 .settings-grid{
   display:grid!important;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  grid-auto-rows:max-content;
   gap:10px;
   min-height:0;
   align-items:start;
@@ -40,6 +41,7 @@
 
 .settings-panel{
   min-width:0;
+  height:max-content;
   width:100%;
   box-sizing:border-box;
   align-self:start;
@@ -189,12 +191,14 @@
 /* --- Local Preferences information rows --- */
 .local-preferences-list{
   width:100%;
-  display:grid;
+  display:grid!important;
+  grid-template-columns:1fr!important;
   gap:0;
 }
 
 .local-preference-row{
   min-height:30px;
+  width:100%;
   display:flex;
   align-items:center;
   justify-content:space-between;
