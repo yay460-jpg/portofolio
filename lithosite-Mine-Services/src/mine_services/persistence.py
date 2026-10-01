@@ -4,13 +4,14 @@ from tempfile import NamedTemporaryFile
 
 from openpyxl import load_workbook
 
-from .schema import DOMAIN_ENTITIES, HEADERS, PKS, SCHEMA_VERSION
+from . import schema as DEFAULT_SCHEMA
 
 
 class PersistenceStore:
-    def __init__(self, path=None):
+    def __init__(self, path=None, schema_module=None):
+        self.schema = schema_module or DEFAULT_SCHEMA
         self.path = Path(path) if path else None
-        self._data = {e: {} for e in DOMAIN_ENTITIES}
+        self._data = {e: {} for e in self.schema.DOMAIN_ENTITIES}
         self._audit = []
         self.controlled_lists = {
             "equipment_category": {"Heavy Equipment", "Light Vehicle", "Support Equipment"},
@@ -80,35 +81,35 @@ class PersistenceStore:
         raise ValueError("SCHEMA_VERSION:MISSING")
 
     def _validate_workbook_contract(self, workbook):
-        required = set(DOMAIN_ENTITIES) | {"_System", "_Lists", "AuditLog"}
+        required = set(self.schema.DOMAIN_ENTITIES) | {"_System", "_Lists", "AuditLog"}
         missing = required - set(workbook.sheetnames)
         if missing:
             raise ValueError(f"SHEET_MISSING:{sorted(missing)}")
 
-        if self._system_version(workbook) != SCHEMA_VERSION:
+        if self._system_version(workbook) != self.schema.SCHEMA_VERSION:
             raise ValueError(f"SCHEMA_VERSION:{self._system_version(workbook)}")
 
-        for entity in DOMAIN_ENTITIES:
+        for entity in self.schema.DOMAIN_ENTITIES:
             rows = list(workbook[entity].values)
-            if not rows or list(rows[0]) != HEADERS[entity]:
+            if not rows or list(rows[0]) != self.schema.HEADERS[entity]:
                 raise ValueError(f"HEADER_MISMATCH:{entity}")
 
         audit_rows = list(workbook["AuditLog"].values)
-        if not audit_rows or list(audit_rows[0]) != HEADERS["AuditLog"]:
+        if not audit_rows or list(audit_rows[0]) != self.schema.HEADERS["AuditLog"]:
             raise ValueError("HEADER_MISMATCH:AuditLog")
 
     def load(self):
         wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)
 
-        for entity in DOMAIN_ENTITIES:
+        for entity in self.schema.DOMAIN_ENTITIES:
             rows = list(wb[entity].values)
             self._data[entity] = {}
-            pk = PKS[entity]
+            pk = self.schema.PKS[entity]
             for values in rows[1:]:
                 if all(value is None for value in values):
                     continue
-                row = dict(zip(HEADERS[entity], values))
+                row = dict(zip(self.schema.HEADERS[entity], values))
                 self._data[entity][row[pk]] = row
 
         values = list(wb["_Lists"].values)
@@ -125,7 +126,7 @@ class PersistenceStore:
 
         rows = list(wb["AuditLog"].values)
         self._audit = [
-            dict(zip(HEADERS["AuditLog"], values))
+            dict(zip(self.schema.HEADERS["AuditLog"], values))
             for values in rows[1:]
             if not all(value is None for value in values)
         ]
@@ -137,18 +138,18 @@ class PersistenceStore:
         wb = load_workbook(self.path)
         self._validate_workbook_contract(wb)
 
-        for entity in DOMAIN_ENTITIES:
+        for entity in self.schema.DOMAIN_ENTITIES:
             ws = wb[entity]
             if ws.max_row > 1:
                 ws.delete_rows(2, ws.max_row - 1)
             for row in self.all(entity):
-                ws.append([row.get(header) for header in HEADERS[entity]])
+                ws.append([row.get(header) for header in self.schema.HEADERS[entity]])
 
         ws = wb["AuditLog"]
         if ws.max_row > 1:
             ws.delete_rows(2, ws.max_row - 1)
         for row in self.audit():
-            ws.append([row.get(header) for header in HEADERS["AuditLog"]])
+            ws.append([row.get(header) for header in self.schema.HEADERS["AuditLog"]])
 
         with NamedTemporaryFile(
             prefix=self.path.stem + ".",
