@@ -33,18 +33,17 @@
   background:
     linear-gradient(180deg,rgba(4,12,22,.28),transparent 22%,transparent 78%,rgba(4,12,22,.36));
 }
-#dashboardSiteMap .topo3d-toolbar{
-  position:absolute;
-  top:10px;
-  left:10px;
+#dashboardScreen .panelhead .topo3d-toolbar{
+  position:static;
   z-index:5;
   display:flex;
   align-items:center;
   gap:5px;
-  max-width:calc(100% - 20px);
-  flex-wrap:wrap;
+  flex:0 1 auto;
+  max-width:none;
+  flex-wrap:nowrap;
 }
-#dashboardSiteMap .topo3d-toolbar button,
+#dashboardScreen .panelhead .topo3d-toolbar button,
 #dashboardSiteMap .topo3d-file{
   height:28px;
   box-sizing:border-box;
@@ -62,12 +61,12 @@
   box-shadow:0 2px 8px #02081255;
 }
 #dashboardSiteMap .topo3d-file{font-weight:800}
-#dashboardSiteMap .topo3d-toolbar button:hover,
+#dashboardScreen .panelhead .topo3d-toolbar button:hover,
 #dashboardSiteMap .topo3d-file:hover{
   border-color:#4d8dff;
   background:#15304d;
 }
-#dashboardSiteMap .topo3d-toolbar button:focus-visible,
+#dashboardScreen .panelhead .topo3d-toolbar button:focus-visible,
 #dashboardSiteMap .topo3d-file:focus-within{
   outline:2px solid #5b9aff;
   outline-offset:1px;
@@ -96,7 +95,7 @@
 #dashboardSiteMap .topo3d-status.ready{color:#86efac}
 #dashboardSiteMap .topo3d-status.error{color:#fca5a5}
 @media (max-width:900px){
-  #dashboardSiteMap .topo3d-toolbar{right:10px}
+  #dashboardScreen .panelhead .topo3d-toolbar{right:10px}
   #dashboardSiteMap .topo3d-status{max-width:55%}
 }
 
@@ -188,7 +187,7 @@
 #dashboardSiteMap .topo3d-guide #dashboardTopo3DGuideStatus{margin-bottom:5px;color:#dbe8f5}
 #dashboardSiteMap .topo3d-guide b{color:#dbe8f5}
 
-#dashboardSiteMap .topo3d-toolbar button.is-active{
+#dashboardScreen .panelhead .topo3d-toolbar button.is-active{
   border-color:#5b9aff;
   background:#15304d;
   color:#fff;
