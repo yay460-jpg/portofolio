@@ -191,7 +191,7 @@
       engine=global.LithositeTopo3D.create({
         canvas:canvas,
         onStatus:function(message){setStatus(message);},
-        onRender:function(){syncPickedMarkers();},
+        onRender:function(){syncPickedMarkers();if(global.MineServicesMarkerLocation)global.MineServicesMarkerLocation.renderMarkers(engine,host);},
         onReady:function(payload){setStatus('Topo3D siap. Menunggu data topografi…');if(payload&&payload.meta)updateCoordinateInfo(payload.meta);},
         onError:function(error){setStatus(error&&error.message?error.message:'Topo3D error','error');}
       });
