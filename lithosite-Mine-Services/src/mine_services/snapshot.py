@@ -101,7 +101,7 @@ class SnapshotManager:
                 candidate.insert(entity, pk, row)
 
         errors = []
-        dataset = {entity: list(candidate.all(entity)) for entity in DOMAIN_ENTITIES}
+        dataset = {entity: list(candidate.all(entity)) for entity in self.schema.DOMAIN_ENTITIES}
         errors.extend(self.validator.validate_dataset(dataset, candidate, "RESTORE"))
 
         audit = payload.get("audit", [])
