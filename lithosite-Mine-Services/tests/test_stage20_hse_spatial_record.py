@@ -90,8 +90,10 @@ def test_stage20_hse_spatial_record_preserves_existing_hse_runtime_domain():
     assert "operation:'DELETE',entity:'HSE'" in hse
 
 
-def test_stage20_hse_spatial_record_is_not_loaded_into_v32_yet():
+def test_stage20_hse_spatial_record_is_integrated_through_central_marker_overlay():
     html = ARTIFACT.read_text(encoding="utf-8")
 
-    assert "marker-location.js" not in html
-    assert "marker-location.css" not in html
+    assert "marker-location.js" in html
+    assert "marker-location.css" in html
+    assert "../ui/modules/map-engine/marker-location.js?v=20261002" in html
+    assert "../ui/modules/map-engine/marker-location.css?v=20261002" in html
