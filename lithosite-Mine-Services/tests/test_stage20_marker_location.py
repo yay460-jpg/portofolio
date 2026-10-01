@@ -59,6 +59,42 @@ def test_stage20_marker_location_type_definitions_are_centralized():
     assert "category:'Other'" in js
 
 
+def test_stage20_marker_location_domain_links_are_centralized():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "DOMAIN_LINK_DEFINITIONS" in js
+    assert "HSE:'HSE'" in js
+    assert "ASSET:'Equipment'" in js
+    assert "WORKFRONT:'WorkFront'" in js
+    assert "FACILITY:'Facility'" in js
+    assert "getDomainLinkDefinition" in js
+    assert "listDomainLinkDefinitions" in js
+
+
+def test_stage20_marker_location_domain_link_api_is_reference_only():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "function setMarkerSource(markerId, sourceEntity, sourceId)" in js
+    assert "function getMarkerSource(markerId)" in js
+    assert "function resolveMarkerLink(markerId)" in js
+    assert "Marker domain link requires source_entity and source_id" in js
+    assert "source_entity:entity" in js
+    assert "source_id:source" in js
+
+
+def test_stage20_marker_location_domain_link_does_not_replace_spatial_coordinates():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    start = js.index("function setMarkerSource")
+    end = js.index("function removeMarker", start)
+    link_block = js[start:end]
+
+    assert "easting" not in link_block
+    assert "northing" not in link_block
+    assert "elevation" not in link_block
+    assert "setMarkerLocation" not in link_block
+
+
 def test_stage20_marker_location_rendering_uses_central_type_definition():
     js = MARKER_JS.read_text(encoding="utf-8")
 
