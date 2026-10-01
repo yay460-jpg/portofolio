@@ -12,8 +12,32 @@
     return settings;
   }
 
+  function applyMotionPreference(motion) {
+    const styleId = 'lithosite-v30-reduced-motion';
+    let style = document.getElementById(styleId);
+    if (motion === 'reduced') {
+      if (!style) {
+        style = document.createElement('style');
+        style.id = styleId;
+        document.head.appendChild(style);
+      }
+      style.textContent = `html.reduced-motion *, html.reduced-motion *::before, html.reduced-motion *::after {
+        animation-duration: 0s !important;
+        animation-delay: 0s !important;
+        transition-duration: 0s !important;
+        transition-delay: 0s !important;
+        scroll-behavior: auto !important;
+      }`;
+      document.documentElement.classList.add('reduced-motion');
+    } else {
+      document.documentElement.classList.remove('reduced-motion');
+      if (style) style.remove();
+    }
+  }
+
   function load() {
     const settings = readPreferences();
+    applyMotionPreference(settings.motion);
     const motion = document.getElementById('settingsMotion');
     const defaultScreen = document.getElementById('settingsDefaultScreen');
     const sidebarStartup = document.getElementById('settingsSidebarStartup');
