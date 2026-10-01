@@ -15,15 +15,15 @@
   ];
 
   var TYPE_DEFINITIONS = {
-    HSE:{label:'HSE',category:'HSE',visual_class:'marker-type-hse'},
-    ASSET:{label:'Asset / Equipment',category:'Asset / Equipment',visual_class:'marker-type-asset'},
-    FACILITY:{label:'Facility',category:'Facility',visual_class:'marker-type-facility'},
-    WORKFRONT:{label:'WorkFront',category:'WorkFront',visual_class:'marker-type-workfront'},
-    STOCKPILE:{label:'Stockpile',category:'Stockpile',visual_class:'marker-type-stockpile'},
-    DISPOSAL:{label:'Disposal',category:'Disposal',visual_class:'marker-type-disposal'},
-    DRAINAGE:{label:'Drainage',category:'Drainage',visual_class:'marker-type-drainage'},
-    WORKSHOP:{label:'Workshop',category:'Workshop',visual_class:'marker-type-workshop'},
-    OTHER:{label:'Other',category:'Other',visual_class:'marker-type-other'}
+    HSE:{label:'HSE',category:'HSE',visual_class:'marker-type-hse',visual_symbol:'⚠'},
+    ASSET:{label:'Asset / Equipment',category:'Asset / Equipment',visual_class:'marker-type-asset',visual_symbol:'◆'},
+    FACILITY:{label:'Facility',category:'Facility',visual_class:'marker-type-facility',visual_symbol:'⌂'},
+    WORKFRONT:{label:'WorkFront',category:'WorkFront',visual_class:'marker-type-workfront',visual_symbol:'▦'},
+    STOCKPILE:{label:'Stockpile',category:'Stockpile',visual_class:'marker-type-stockpile',visual_symbol:'▲'},
+    DISPOSAL:{label:'Disposal',category:'Disposal',visual_class:'marker-type-disposal',visual_symbol:'▼'},
+    DRAINAGE:{label:'Drainage',category:'Drainage',visual_class:'marker-type-drainage',visual_symbol:'≋'},
+    WORKSHOP:{label:'Workshop',category:'Workshop',visual_class:'marker-type-workshop',visual_symbol:'⚙'},
+    OTHER:{label:'Other',category:'Other',visual_class:'marker-type-other',visual_symbol:'•'}
   };
 
   var DOMAIN_LINK_DEFINITIONS = {
@@ -70,7 +70,8 @@
     return {
       label:definition.label,
       category:definition.category,
-      visual_class:definition.visual_class
+      visual_class:definition.visual_class,
+      visual_symbol:definition.visual_symbol
     };
   }
 
@@ -86,7 +87,8 @@
         marker_type:type,
         label:definition.label,
         category:definition.category,
-        visual_class:definition.visual_class
+        visual_class:definition.visual_class,
+        visual_symbol:definition.visual_symbol
       };
     });
   }
@@ -368,8 +370,22 @@
         el.addEventListener('click',function(){ handleMarkerClick(el); });
         layer.appendChild(el);
       }
-      el.textContent=marker.label;
       var typeDefinition=getMarkerTypeDefinition(marker.marker_type);
+      var icon=el.querySelector('.map-location-marker__icon');
+      var label=el.querySelector('.map-location-marker__label');
+      if(!icon){
+        icon=document.createElement('span');
+        icon.className='map-location-marker__icon';
+        icon.setAttribute('aria-hidden','true');
+        el.appendChild(icon);
+      }
+      if(!label){
+        label=document.createElement('span');
+        label.className='map-location-marker__label';
+        el.appendChild(label);
+      }
+      icon.textContent=typeDefinition.visual_symbol;
+      label.textContent=marker.label;
       el.dataset.markerType=marker.marker_type;
       el.dataset.markerCategory=typeDefinition.category;
       el.dataset.markerVisual=typeDefinition.visual_class;
