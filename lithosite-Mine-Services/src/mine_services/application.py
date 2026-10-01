@@ -5,15 +5,19 @@ from .audit import AuditRepository
 from .validation import ValidationEngine
 from .persistence import PersistenceStore
 from .transaction import TransactionManager
-from .schema import PKS, HEADERS, SYSTEM_FIELDS
+from .schema import PKS as DEFAULT_PKS, HEADERS as DEFAULT_HEADERS, SYSTEM_FIELDS as DEFAULT_SYSTEM_FIELDS
 
 
 class ApplicationService:
     """Only application-level entry point for runtime mutations."""
 
-    def __init__(self, store=None, validator=None, audit_repository=None):
-        self.store = store or PersistenceStore()
-        self.validator = validator or ValidationEngine()
+    def __init__(self, store=None, validator=None, audit_repository=None, schema_module=None):
+        self.store = store or PersistenceStore(schema_module=schema_module)
+        self.schema = schema_module or getattr(self.store, "schema", None)
+        if self.schema is None:
+            from . import schema as self_schema
+            self.schema = self_schema
+        self.validator = validator or ValidationEngine(schema_module=self.schema)
         self.tx = TransactionManager(self.store)
         self.audit_repository = audit_repository or AuditRepository(self.store)
         self._requests = set()
@@ -43,13 +47,13 @@ class ApplicationService:
 
         row = dict(row)
         now = datetime.now(timezone.utc).isoformat()
-        if "created_at" in HEADERS[entity]:
+        if "created_at" in self.schema.HEADERS[entity]:
             row["created_at"] = now
             row["updated_at"] = now
 
         self.tx.begin()
         try:
-            pk = PKS[entity]
+            pk = self.schema.PKS[entity]
             self.store.insert(entity, row[pk], row)
             self._audit(entity, row[pk], "CREATE", request_id, None, row)
             self.tx.commit()
@@ -72,19 +76,15 @@ class ApplicationService:
         if old is None:
             return {
                 "status": "REJECTED",
-                "errors": [self._app_error("APP-002", "Entity not found", PKS.get(entity))],
+                "errors": [self._app_error("APP-002", "Entity not found", self.schema.PKS.get(entity))],
             }
 
-        protected = sorted(set(patch).intersection(SYSTEM_FIELDS))
+        protected = sorted(set(patch).intersection(self.schema.SYSTEM_FIELDS))
         if protected:
             return {
                 "status": "REJECTED",
                 "errors": [
-                    self._app_error(
-                        "VAL-E010",
-                        "System field is generated",
-                        field,
-                    )
+                    self._app_error("VAL-E010", "System field is generated", field)
                     for field in protected
                 ],
             }
@@ -96,19 +96,13 @@ class ApplicationService:
         validation_row = {
             field: value
             for field, value in row.items()
-            if field not in SYSTEM_FIELDS
+            if field not in self.schema.SYSTEM_FIELDS
         }
-        errors = self.validator.validate(
-            entity,
-            validation_row,
-            self.store,
-            "UPDATE",
-            old,
-        )
+        errors = self.validator.validate(entity, validation_row, self.store, "UPDATE", old)
         if errors:
             return {"status": "REJECTED", "errors": errors}
 
-        if "updated_at" in HEADERS[entity]:
+        if "updated_at" in self.schema.HEADERS[entity]:
             row["updated_at"] = datetime.now(timezone.utc).isoformat()
 
         self.tx.begin()
@@ -135,7 +129,7 @@ class ApplicationService:
         if old is None:
             return {
                 "status": "REJECTED",
-                "errors": [self._app_error("APP-002", "Entity not found", PKS.get(entity))],
+                "errors": [self._app_error("APP-002", "Entity not found", self.schema.PKS.get(entity))],
             }
 
         refs = {
@@ -155,13 +149,7 @@ class ApplicationService:
             if any(row.get(field) == pk for row in self.store.all(child)):
                 return {
                     "status": "REJECTED",
-                    "errors": [
-                        self._app_error(
-                            "APP-004",
-                            f"Cannot delete referenced {entity}",
-                            field,
-                        )
-                    ],
+                    "errors": [self._app_error("APP-004", f"Cannot delete referenced {entity}", field)],
                 }
 
         self.tx.begin()
