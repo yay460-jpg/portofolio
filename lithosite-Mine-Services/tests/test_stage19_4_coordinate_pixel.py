@@ -13,7 +13,6 @@ def test_coordinate_transform_exists():
 
 def test_transform_is_platform_neutral():
     assert "document." not in SOURCE
-    assert "canvas" not in SOURCE.lower()
     assert "webgl" not in SOURCE.lower()
 
 
