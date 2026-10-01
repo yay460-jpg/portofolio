@@ -46,7 +46,7 @@
   }
 
   function validateShellContract() {
-    const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports'];
+    const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports', 'Settings'];
     const missing = required.filter(function (name) {
       return !document.getElementById(SCREENS[name]);
     });
