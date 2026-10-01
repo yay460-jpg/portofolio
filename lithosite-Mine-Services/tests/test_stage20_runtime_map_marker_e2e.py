@@ -31,7 +31,7 @@ def hse(hse_id="HSE-E2E-001"):
         "event_type": "Incident",
         "severity": "Medium",
         "description": "E2E spatial integrity test",
-        "action": "Investigate",
+        "action": "Incident",
         "status": "Open",
         "closed_at": None,
     }
