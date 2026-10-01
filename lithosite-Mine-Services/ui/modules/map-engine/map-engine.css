@@ -308,8 +308,9 @@
 #dashboardSiteMap #dashboardTopo3DMeasureResult{
   margin-top:5px;
   color:#dbe8f5;
-  white-space:nowrap;
 }
+#dashboardSiteMap .measure-result-main{font-size:9px;line-height:1.35}
+#dashboardSiteMap .measure-result-sub{margin-top:2px;color:#8fa8c2;font-size:7px;line-height:1.2}
 
 #dashboardSiteMap .topo3d-point-marker{
   position:absolute;
@@ -329,6 +330,8 @@
   box-shadow:0 2px 7px #02081288;
 }
 #dashboardSiteMap .topo3d-point-marker.visible{display:flex}
+#dashboardSiteMap .topo3d-point-marker span{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+#dashboardSiteMap .topo3d-point-marker small{position:absolute;left:14px;top:-3px;white-space:nowrap;padding:2px 4px;border:1px solid #29435d;border-radius:3px;background:#071321e8;color:#dbe8f5;font:700 7px/1.2 Arial,sans-serif}
 #dashboardSiteMap .topo3d-point-marker.point-a{background:#2563eb}
 #dashboardSiteMap .topo3d-point-marker.point-b{background:#ef4444}
 #dashboardSiteMap .topo3d-measure-pick-actions{
