@@ -191,6 +191,7 @@ function bind(){
  document.getElementById('plansRows').addEventListener('click',e=>{const edit=e.target.closest('.edit-plan');if(edit)openEdit(edit.dataset.id);const del=e.target.closest('.delete-plan');if(del)remove(del.dataset.id);});
 }
 function init(){if(!document.getElementById('plansScreen'))return;if(document.getElementById('plansAdd'))bind();load();}
+if(global.LithositeDataSync)global.LithositeDataSync.register('Plans',refreshData);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 
 global.LithositePlans=Object.freeze({
