@@ -19,6 +19,7 @@
         if(engine&&engine.getState().ready){
           engine.angleY+=0.0035;
           if(engine.angleY>Math.PI*2)engine.angleY-=Math.PI*2;
+          updateNorthArrow();
         }
         autoRotateRaf=requestAnimationFrame(tick);
       }
@@ -41,19 +42,32 @@
     }
     function updateCoordinateInfo(meta){
       var el=host.querySelector('#dashboardTopo3DCoordinate');
-      if(!el||!meta||!meta.bounds)return;
+      var northLabel=host.querySelector('#dashboardTopo3DNorthLabel');
+      var northArrow=host.querySelector('.topo3d-north-arrow');
+      if(!meta||!meta.bounds)return;
       var b=meta.bounds;
       var e=(b.minX+b.maxX)/2;
       var n=(b.minY+b.maxY)/2;
       var z=(b.minZ+b.maxZ)/2;
       var text='Center · E '+e.toFixed(2)+' m · N '+n.toFixed(2)+' m · Z '+z.toFixed(2)+' m';
+      var convergence=0;
       if(geo){
         try{
           var ll=geo.inverseUtm(e,n);
           text+=' · Lat '+ll.lat.toFixed(6)+' · Lon '+ll.lon.toFixed(6);
+          var conv=geo.convergence(e,n);
+          if(conv&&conv.ok)convergence=Number(conv.convergenceDeg)||0;
         }catch(error){}
       }
-      el.textContent=text;
+      if(el)el.textContent=text;
+      if(northLabel)northLabel.textContent='Grid North · '+convergence.toFixed(2)+'° convergence';
+      if(northArrow)northArrow.style.transform='rotate('+(-convergence)+'deg)';
+    }
+    function updateNorthArrow(){
+      var northArrow=host.querySelector('.topo3d-north-arrow');
+      if(!northArrow||!engine)return;
+      var angle=(Number(engine.angleY)||0)*180/Math.PI;
+      northArrow.style.transform='rotate('+angle+'deg)';
     }
     function setStatus(message,kind){
       if(status){
@@ -92,9 +106,9 @@
         }finally{input.value='';}
       });
       var bind=function(id,fn){var el=host.querySelector(id);if(el)el.addEventListener('click',fn);};
-      bind('#dashboardTopo3DFit',function(){engine.fit();});
-      bind('#dashboardTopo3DTop',function(){engine.setView('top');});
-      bind('#dashboardTopo3DView',function(){engine.setView('3d');});
+      bind('#dashboardTopo3DFit',function(){engine.fit();updateNorthArrow();});
+      bind('#dashboardTopo3DTop',function(){engine.setView('top');updateNorthArrow();});
+      bind('#dashboardTopo3DView',function(){engine.setView('3d');updateNorthArrow();});
       bind('#dashboardTopo3DShaded',function(){engine.setMode('shaded');});
       bind('#dashboardTopo3DElevation',function(){engine.setMode('elevation');});
       bind('#dashboardTopo3DWire',function(){engine.setMode('wire');});
@@ -103,6 +117,7 @@
         if(autoRotate){stopAutoRotate();rotate360.classList.remove('is-active');rotate360.textContent='360°';}
         else{startAutoRotate();rotate360.classList.add('is-active');rotate360.textContent='360° Auto';}
       });
+      var northSync=setInterval(updateNorthArrow,100);
       var guide=host.querySelector('#dashboardTopo3DGuideToggle');
       var guidePanel=host.querySelector('#dashboardTopo3DGuide');
       if(guide&&guidePanel)guide.addEventListener('click',function(){
