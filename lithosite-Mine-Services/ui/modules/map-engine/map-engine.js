@@ -223,7 +223,7 @@
       bind('#dashboardTopo3DMeasurePickA',function(){setPickMode('A');});
       bind('#dashboardTopo3DMeasurePickB',function(){setPickMode('B');});
       bind('#dashboardTopo3DMeasureRun',updateMeasurement);
-      canvas.addEventListener('click',handlePointPick);
+      canvas.addEventListener('click',function(event){if(activePickPoint==='__MARKER__'){var rect=canvas.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top,point=engine.pickCoordinate(x,y,22);if(point){activePickPoint=null;document.dispatchEvent(new CustomEvent('mine-services:marker-coordinate-picked',{detail:point}));setStatus('Marker coordinate picked · E '+point.easting.toFixed(3)+' · N '+point.northing.toFixed(3)+' · Z '+point.elevation.toFixed(3),'ready');}return;}handlePointPick(event);});
       bind('#dashboardTopo3DMeasureClear',clearMeasurement);
       bind('#dashboardTopo3DWire',function(){engine.setMode('wire');});
       var rotate360=host.querySelector('#dashboardTopo3DRotate360');
@@ -231,6 +231,7 @@
         if(autoRotate){stopAutoRotate();rotate360.classList.remove('is-active');rotate360.textContent='360°';}
         else{startAutoRotate();rotate360.classList.add('is-active');rotate360.textContent='360° Auto';}
       });
+      document.addEventListener('mine-services:marker-pick-request',function(){if(!engine||!engine.getState().ready)return;engine.setView('top');syncTopViewClass();updateNorthArrow();activePickPoint='__MARKER__';setStatus('Marker Location · Top View aktif · klik terrain untuk memilih koordinat');});
       var northSync=setInterval(updateNorthArrow,100);
       var guide=host.querySelector('#dashboardTopo3DGuideToggle');
       var guidePanel=host.querySelector('#dashboardTopo3DGuide');
