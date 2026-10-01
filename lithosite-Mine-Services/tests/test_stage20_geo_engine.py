@@ -66,3 +66,15 @@ def test_stage20_topo_coordinate_readout_contract():
     assert "meta.bounds" in map_engine
     assert "toFixed(2)" in map_engine
     assert "engine.getState().meta" in map_engine
+
+
+def test_stage20_grid_convergence_north_arrow_contract():
+    html = ARTIFACT.read_text(encoding="utf-8")
+    map_engine = MAP_ENGINE.read_text(encoding="utf-8")
+
+    assert 'id="dashboardTopo3DNorth"' in html
+    assert 'id="dashboardTopo3DNorthLabel"' in html
+    assert "geo.convergence(e,n)" in map_engine
+    assert "convergenceDeg" in map_engine
+    assert "updateNorthArrow()" in map_engine
+    assert "engine.angleY" in map_engine
