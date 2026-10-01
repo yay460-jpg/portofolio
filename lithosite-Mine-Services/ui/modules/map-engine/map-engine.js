@@ -151,6 +151,9 @@
       var result=host.querySelector('#dashboardTopo3DMeasureResult');
       if(result)result.textContent='Bearing — · Distance —';
     }
+    function syncTopViewClass(){
+      host.classList.toggle('is-top-view',!!engine&&engine.getState().view==='top');
+    }
     function setStatus(message,kind){
       if(status){
         status.textContent=message;
@@ -188,9 +191,9 @@
         }finally{input.value='';}
       });
       var bind=function(id,fn){var el=host.querySelector(id);if(el)el.addEventListener('click',fn);};
-      bind('#dashboardTopo3DFit',function(){engine.fit();updateNorthArrow();});
-      bind('#dashboardTopo3DTop',function(){engine.setView('top');updateNorthArrow();});
-      bind('#dashboardTopo3DView',function(){engine.setView('3d');updateNorthArrow();});
+      bind('#dashboardTopo3DFit',function(){engine.fit();syncTopViewClass();updateNorthArrow();});
+      bind('#dashboardTopo3DTop',function(){engine.setView('top');syncTopViewClass();updateNorthArrow();});
+      bind('#dashboardTopo3DView',function(){engine.setView('3d');syncTopViewClass();updateNorthArrow();});
       bind('#dashboardTopo3DShaded',function(){engine.setMode('shaded');});
       bind('#dashboardTopo3DElevation',function(){engine.setMode('elevation');});
       bind('#dashboardTopo3DMeasurePickA',function(){setPickMode('A');});
