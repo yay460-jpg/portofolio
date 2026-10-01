@@ -99,6 +99,30 @@ def test_stage20_marker_location_visibility_is_non_destructive():
     assert "getVisibleMarkers" in js
 
 
+def test_stage20_marker_location_visibility_filter_supports_all_none_and_multi_select():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "getVisibilityState" in js
+    assert "setMarkerVisibilityFilter" in js
+    assert "Marker visibility filter must be an array of marker types" in js
+    assert "selected_types:selected" in js
+    assert "all:selected.length===TYPES.length" in js
+    assert "none:selected.length===0" in js
+
+
+def test_stage20_marker_location_visibility_filter_reuses_type_validation():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "selected[normalizeType(type)]=true" in js
+    assert "visibility[type]=selected[type]===true" in js
+
+
+def test_stage20_marker_location_visibility_actions_return_state():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "return getVisibilityState();" in js
+
+
 def test_stage20_marker_location_placement_uses_explicit_coordinates():
     js = MARKER_JS.read_text(encoding="utf-8")
 
