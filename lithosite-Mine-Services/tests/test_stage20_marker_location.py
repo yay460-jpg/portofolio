@@ -123,6 +123,37 @@ def test_stage20_marker_location_visibility_actions_return_state():
     assert "return getVisibilityState();" in js
 
 
+def test_stage20_marker_location_selection_is_id_based_and_non_spatial():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "var selectedMarkerId = null;" in js
+    assert "function selectMarker(markerId)" in js
+    assert "selectedMarkerId=id;" in js
+    assert "function getSelectedMarker()" in js
+    assert "function clearSelectedMarker()" in js
+    assert "function handleMarkerClick(markerElement)" in js
+    assert "getAttribute('data-marker-id')" in js
+    assert "return selectMarker(id);" in js
+
+
+def test_stage20_marker_location_selection_rejects_removed_markers():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "Cannot select a removed marker" in js
+    assert "selectedMarkerId===id" in js
+    assert "selectedMarkerId=null" in js
+
+
+def test_stage20_marker_location_rendering_binds_selection_without_coordinate_mutation():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "addEventListener('click',function(){ handleMarkerClick(el); })" in js
+    assert "el.classList.toggle('is-selected',selectedMarkerId===marker.marker_id)" in js
+    assert "el.style.left=projected.x+'px'" in js
+    assert "el.style.top=projected.y+'px'" in js
+    assert "setMarkerLocation" in js
+
+
 def test_stage20_marker_location_placement_uses_explicit_coordinates():
     js = MARKER_JS.read_text(encoding="utf-8")
 
@@ -145,4 +176,5 @@ def test_stage20_marker_location_css_is_namespaced_and_inert_until_loaded():
     assert ".map-location-marker" in css
     assert ".map-location-marker__label" in css
     assert ".map-marker-layer" in css
+    assert ".map-location-marker.is-selected" in css
     assert "Intentionally not loaded by V32 Stage 20 yet" in css
