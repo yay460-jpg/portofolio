@@ -248,6 +248,7 @@ function bind(){
  });
 }
 function init(){if(!document.getElementById('issuesScreen'))return;if(document.getElementById('issuesAdd'))bind();load();}
+if(global.LithositeDataSync)global.LithositeDataSync.register('Issues',refreshData);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 
 global.LithositeIssues=Object.freeze({
