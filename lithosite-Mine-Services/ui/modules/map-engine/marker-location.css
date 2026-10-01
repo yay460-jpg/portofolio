@@ -18,6 +18,10 @@
   z-index:20;
 }
 .map-location-marker.is-visible{display:block;}
+.map-location-marker.is-selected{
+  outline:2px solid currentColor;
+  outline-offset:2px;
+}
 .map-location-marker__label{
   white-space:nowrap;
   font-size:11px;
