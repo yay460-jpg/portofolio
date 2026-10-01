@@ -614,7 +614,7 @@
     if(engine&&host)renderMarkers(engine,host);refreshMarkerLocationUI();
   }
   function bindMarkerLocationUI(){
-    var host=document.getElementById('dashboardSiteMap'),toolbar=host&&host.querySelector('.topo3d-toolbar');
+    var host=document.getElementById('dashboardSiteMap'),panelHost=host&&host.closest('.panel'),toolbar=panelHost&&panelHost.querySelector('.topo3d-toolbar');
     if(!host||!toolbar||document.getElementById('markerLocationToggle'))return;
     var toggle=document.createElement('button');toggle.type='button';toggle.id='markerLocationToggle';toggle.textContent='Marker Location';toolbar.appendChild(toggle);
     var panel=document.createElement('section');panel.id='markerLocationPanel';panel.className='marker-location-panel';panel.hidden=true;
