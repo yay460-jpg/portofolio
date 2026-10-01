@@ -10,12 +10,10 @@
     Issues: 'issuesScreen',
     Plans: 'plansScreen',
     HSE: 'hseScreen',
-    Reports: 'reportsScreen',
-    Settings: 'settingsScreen'
+    Reports: 'reportsScreen'
   });
 
   const STORAGE_KEY = 'lithosite-v30-active-screen';
-  const SETTINGS_KEY = 'lithosite-v30-settings';
   let currentScreen = 'Dashboard';
   let initialized = false;
 
@@ -47,7 +45,7 @@
   }
 
   function validateShellContract() {
-    const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports', 'Settings'];
+    const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports'];
     const missing = required.filter(function (name) {
       return !document.getElementById(SCREENS[name]);
     });
@@ -65,33 +63,13 @@
     return true;
   }
 
-  function readPreferences() {
-    let preferences = { motion: 'normal', defaultScreen: 'Dashboard' };
-    try {
-      const raw = localStorage.getItem(SETTINGS_KEY);
-      if (raw) preferences = Object.assign(preferences, JSON.parse(raw));
-    } catch (_) {}
-    if (!SCREENS[preferences.defaultScreen]) preferences.defaultScreen = 'Dashboard';
-    if (preferences.motion !== 'reduced') preferences.motion = 'normal';
-    return preferences;
-  }
-
-  function applyPreferences() {
-    const preferences = readPreferences();
-    document.documentElement.classList.toggle('reduced-motion', preferences.motion === 'reduced');
-    const side = document.getElementById('side');
-    if (side) side.classList.toggle('expanded', preferences.sidebarStartup === 'expanded');
-    return preferences;
-  }
-
   function readInitialScreen() {
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY);
       if (saved && SCREENS[saved]) return saved;
     } catch (_) {}
-    return readPreferences().defaultScreen;
+    return 'Dashboard';
   }
-
   function init() {
     if (initialized) return true;
     if (!validateShellContract()) return false;
@@ -134,8 +112,6 @@
       });
     }
 
-    // Preferences are local UI state only; they never mutate the XLSX database.
-    applyPreferences();
     setScreen(readInitialScreen(), false);
     return true;
   }
@@ -150,8 +126,7 @@
     init,
     setScreen,
     screens: SCREENS,
-    getCurrentScreen: function () { return currentScreen; },
-    applyPreferences
+    getCurrentScreen: function () { return currentScreen; }
   });
 })(window);
 
