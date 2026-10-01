@@ -52,4 +52,6 @@ def test_stage20_topo_host_remains_rendering_host():
 
     assert 'id="dashboardTopo3DCanvas"' in html
     assert "LithositeTopo3D.create" in map_engine
-    assert "MineServicesTopo3D" in map_engine
+    assert "LithositeMineServicesGeoConfig" in map_engine
+    assert "LithositeMineServicesGeo.create" in map_engine
+    assert "getGeo:function(){return geo;}" in map_engine
