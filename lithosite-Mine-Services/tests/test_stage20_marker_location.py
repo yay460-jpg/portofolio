@@ -99,7 +99,8 @@ def test_stage20_marker_location_rendering_uses_central_type_definition():
     js = MARKER_JS.read_text(encoding="utf-8")
 
     assert "el.dataset.markerType=marker.marker_type" in js
-    assert "el.dataset.markerCategory=getMarkerTypeDefinition(marker.marker_type).category" in js
+    assert "var typeDefinition=getMarkerTypeDefinition(marker.marker_type)" in js
+    assert "el.dataset.markerCategory=typeDefinition.category" in js
 
 
 def test_stage20_marker_location_contract_has_spatial_and_domain_fields():
