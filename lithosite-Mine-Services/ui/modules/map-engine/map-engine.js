@@ -8,6 +8,7 @@
     if(!canvas)return;
     var status=host.querySelector('#dashboardTopo3DStatus');
     var engine=null;
+    var geo=null;
     var autoRotate=false;
     var autoRotateRaf=null;
     function startAutoRotate(){
@@ -28,6 +29,16 @@
       if(autoRotateRaf)cancelAnimationFrame(autoRotateRaf);
       autoRotateRaf=null;
     }
+    function initGeoAdapter(){
+      if(!global.LithositeMineServicesGeo)return;
+      var config=global.LithositeMineServicesGeoConfig;
+      if(!config&&host.dataset.utmZone&&host.dataset.utmHemisphere){
+        config={zone:host.dataset.utmZone,hemisphere:host.dataset.utmHemisphere};
+      }
+      if(!config)return;
+      try{geo=global.LithositeMineServicesGeo.create(config);}
+      catch(error){setStatus(error&&error.message?error.message:'Geo Engine initialization failed','error');}
+    }
     function setStatus(message,kind){
       if(status){
         status.textContent=message;
@@ -38,6 +49,7 @@
       if(guideStatus)guideStatus.textContent=message;
     }
     try{
+      initGeoAdapter();
       engine=global.LithositeTopo3D.create({
         canvas:canvas,
         onStatus:function(message){setStatus(message);},
@@ -81,7 +93,7 @@
         guide.setAttribute('aria-expanded',open?'true':'false');
       });
     }catch(error){setStatus(error&&error.message?error.message:'Topo3D initialization failed','error');}
-    global.MineServicesTopo3D={getEngine:function(){return engine;}};
+    global.MineServicesTopo3D={getEngine:function(){return engine;},getGeo:function(){return geo;}};
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })(window);
