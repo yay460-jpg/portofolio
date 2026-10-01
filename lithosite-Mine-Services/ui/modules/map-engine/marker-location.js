@@ -202,6 +202,33 @@
     return link;
   }
 
+  function createDomainSpatialMarker(input){
+    input=input||{};
+    var entity=String(input.source_entity||'').trim();
+    var sourceId=String(input.source_id||'').trim();
+    if(!entity)throw new Error('Domain spatial marker requires source_entity');
+    if(!sourceId)throw new Error('Domain spatial marker requires source_id');
+    var markerType=normalizeType(input.marker_type);
+    var expectedEntity=DOMAIN_LINK_DEFINITIONS[markerType];
+    if(expectedEntity && entity!==expectedEntity){
+      throw new Error('Marker source_entity does not match marker_type: '+markerType);
+    }
+    if(!isFiniteNumber(Number(input.easting))||!isFiniteNumber(Number(input.northing))||!isFiniteNumber(Number(input.elevation))){
+      throw new Error('Domain spatial marker requires explicit finite easting, northing, and elevation');
+    }
+    return createMarker({
+      marker_id:input.marker_id,
+      marker_type:markerType,
+      label:String(input.label||sourceId).trim(),
+      easting:input.easting,
+      northing:input.northing,
+      elevation:input.elevation,
+      source_entity:entity,
+      source_id:sourceId,
+      status:input.status
+    });
+  }
+
   function createHSESpatialMarker(input){
     input=input||{};
     var hseId=String(input.hse_id||'').trim();
@@ -419,6 +446,7 @@
     getDomainLinkDefinition:getDomainLinkDefinition,
     listDomainLinkDefinitions:listDomainLinkDefinitions,
     createMarker:createMarker,
+    createDomainSpatialMarker:createDomainSpatialMarker,
     createHSESpatialMarker:createHSESpatialMarker,
     findMarkersBySource:findMarkersBySource,
     listHSESpatialMarkers:listHSESpatialMarkers,
