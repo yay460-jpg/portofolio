@@ -1,11 +1,119 @@
 /* Lithosite Mine Services — V30 Settings module
-   Module-owned enhancements only.
-   The V30 shell/layout remains owned by the artifact and shell-navigation.
+   Experimental isolated Settings layout.
+   This intentionally reproduces the V30 Settings grid stabilization
+   that previously required inline HTML CSS, but now lives here.
+   V30 shell/layout remains untouched.
 */
-.settings-module-status {
-  font-size: 9px;
-  color: #8ea3ba;
+
+#settingsScreen{
+  position:relative;
+  flex:1 1 auto;
+  display:none;
+  flex-direction:column;
+  width:100%;
+  height:auto;
+  min-width:0;
+  min-height:0;
 }
-.settings-module-status.ready {
-  color: #4ade80;
+
+#settingsScreen.active{
+  display:flex!important;
+}
+
+.settings-boundary{
+  flex:1 1 auto!important;
+  min-height:0;
+  overflow:auto;
+}
+
+.settings-grid{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:10px;
+  min-height:0;
+  align-items:start;
+  width:100%;
+  box-sizing:border-box;
+}
+
+.settings-panel{
+  min-width:0;
+  width:100%;
+  box-sizing:border-box;
+  align-self:start;
+}
+
+.settings-body{
+  padding:8px 12px;
+}
+
+.setting-row{
+  min-height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  border-bottom:1px solid #223b55;
+}
+
+.setting-row:last-child{
+  border-bottom:0;
+}
+
+.setting-row b{
+  display:block;
+  font-size:10px;
+}
+
+.setting-row small{
+  display:block;
+  margin-top:3px;
+  color:#8ea3ba;
+  font-size:8.5px;
+}
+
+.setting-value{
+  font-size:9px;
+  color:#dbe8f5;
+  white-space:nowrap;
+}
+
+.setting-value.locked{
+  color:#fbbf24;
+}
+
+.setting-value.ready{
+  color:#4ade80;
+}
+
+.settings-body select{
+  height:30px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  background:#0c1b2c;
+  color:#dce8f5;
+  padding:0 8px;
+  font:inherit;
+  font-size:9px;
+}
+
+#settingsMessage{
+  margin-top:2px;
+}
+
+/* Preserve two-column Desktop Master layout on normal desktop widths.
+   Collapse only at genuinely narrow viewport widths. */
+@media(max-width:700px){
+  .settings-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+.settings-module-status{
+  font-size:9px;
+  color:#8ea3ba;
+}
+
+.settings-module-status.ready{
+  color:#4ade80;
 }
