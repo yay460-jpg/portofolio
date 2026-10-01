@@ -15,3 +15,5 @@
 .ms-map-engine__tools{position:absolute;left:8px;top:8px;display:flex;flex-direction:column;gap:5px}
 .ms-map-engine__tool{width:32px;height:32px;border:1px solid #2f4763;border-radius:6px;background:#10243a;color:#fff;display:grid;place-items:center;font-weight:900;font-size:16px;cursor:pointer}
 .ms-map-engine__status{position:absolute;right:10px;top:10px;padding:5px 8px;background:#10243ae6;color:#93c5fd;border-radius:6px;font-size:9px;font-weight:800}
+
+.ms-map-engine__generated-point{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#ef4444;border:2px solid #fff;box-shadow:0 2px 5px #0005;z-index:5;pointer-events:auto}.ms-map-engine__generated-line{position:absolute;height:4px;transform-origin:left center;background:#f59e0b;border-radius:3px;box-shadow:0 0 0 1px #fff8;z-index:3;pointer-events:none}.ms-map-engine__generated-polygon{position:absolute;background:#8c765355;border:2px solid #8c7653;border-radius:18%;z-index:2;pointer-events:none}
