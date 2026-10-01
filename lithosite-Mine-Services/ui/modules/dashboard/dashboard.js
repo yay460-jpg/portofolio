@@ -372,6 +372,8 @@
     init();
   }
 
+  if (global.LithositeDataSync) global.LithositeDataSync.register('Dashboard', loadData);
+
   global.LithositeDashboard = Object.freeze({
     init: init,
     refresh: loadData
