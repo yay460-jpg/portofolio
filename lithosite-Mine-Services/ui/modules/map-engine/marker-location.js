@@ -593,6 +593,51 @@
     return active.map(function(marker){return marker.marker_id;});
   }
 
+
+  function refreshMarkerLocationUI(){
+    var panel=document.getElementById('markerLocationPanel');if(!panel)return;
+    var list=panel.querySelector('.marker-location-list'),count=panel.querySelector('.marker-location-count'),rows=listMarkers();
+    if(count)count.textContent=rows.length+' marker'+(rows.length===1?'':'s');if(!list)return;
+    if(!rows.length){list.innerHTML='<div class="marker-location-empty">Belum ada marker. Gunakan <b>Pick on Map</b> atau isi koordinat eksplisit.</div>';return;}
+    list.innerHTML=rows.map(function(marker){var def=getMarkerTypeDefinition(marker.marker_type);return '<div class="marker-location-row" data-marker-id="'+String(marker.marker_id).replace(/"/g,'&quot;')+'"><span class="marker-location-row__icon '+def.visual_class+'">'+def.visual_symbol+'</span><span class="marker-location-row__main"><b>'+String(marker.label||marker.marker_id).replace(/[&<>"']/g,'')+'</b><small>'+def.label+' · '+String(marker.source_id||'No source').replace(/[&<>"']/g,'')+'</small></span><button type="button" class="control mini marker-location-show" data-marker-id="'+String(marker.marker_id).replace(/"/g,'&quot;')+'">Show</button></div>';}).join('');
+  }
+  function syncMarkerLocationSourceEntity(){
+    var typeEl=document.getElementById('markerLocationType'),entityEl=document.getElementById('markerLocationSourceEntity');if(!typeEl||!entityEl)return;
+    var def=getDomainLinkDefinition(typeEl.value);entityEl.value=def.source_entity||'Other';
+  }
+  function setMarkerLocationPanelMessage(message,error){
+    var el=document.querySelector('#markerLocationPanel .marker-location-message');if(!el)return;
+    el.textContent=message||'';el.classList.toggle('error',!!error);
+  }
+  function renderMarkerLocationNow(){
+    var host=document.getElementById('dashboardSiteMap'),topo=global.MineServicesTopo3D,engine=topo&&typeof topo.getEngine==='function'?topo.getEngine():null;
+    if(engine&&host)renderMarkers(engine,host);refreshMarkerLocationUI();
+  }
+  function bindMarkerLocationUI(){
+    var host=document.getElementById('dashboardSiteMap'),toolbar=host&&host.querySelector('.topo3d-toolbar');
+    if(!host||!toolbar||document.getElementById('markerLocationToggle'))return;
+    var toggle=document.createElement('button');toggle.type='button';toggle.id='markerLocationToggle';toggle.textContent='Marker Location';toolbar.appendChild(toggle);
+    var panel=document.createElement('section');panel.id='markerLocationPanel';panel.className='marker-location-panel';panel.hidden=true;
+    panel.innerHTML='<div class="marker-location-panel__head"><div><strong>Marker Location</strong><small>Spatial reference &amp; domain link</small></div><button type="button" class="marker-location-close" aria-label="Close Marker Location">×</button></div><div class="marker-location-panel__body"><div class="marker-location-fields"><label>Marker Type<select id="markerLocationType"></select></label><label>Source Entity<input id="markerLocationSourceEntity" type="text" readonly></label><label>Source ID<input id="markerLocationSourceId" type="text" placeholder="Equipment / WorkFront / HSE ID"></label><label>Label<input id="markerLocationLabel" type="text" placeholder="Marker label"></label><label>Marker ID<input id="markerLocationId" type="text" placeholder="Optional · auto ML-xxxx"></label><label>Easting<input id="markerLocationEasting" type="number" step="any" placeholder="Easting"></label><label>Northing<input id="markerLocationNorthing" type="number" step="any" placeholder="Northing"></label><label>Elevation<input id="markerLocationElevation" type="number" step="any" placeholder="Elevation"></label></div><div class="marker-location-actions"><button type="button" class="control mini" id="markerLocationPick">Pick on Map</button><button type="button" class="control mini primary" id="markerLocationCreate">Add Marker</button></div><div class="marker-location-message">Pick on Map switches to Top View before coordinate picking.</div><div class="marker-location-list-head"><strong>Current Markers</strong><span class="marker-location-count">0 markers</span></div><div class="marker-location-list"></div></div>';
+    host.appendChild(panel);
+    var typeEl=panel.querySelector('#markerLocationType');typeEl.innerHTML=TYPES.map(function(type){return '<option value="'+type+'">'+getMarkerTypeDefinition(type).label+'</option>';}).join('');syncMarkerLocationSourceEntity();
+    toggle.addEventListener('click',function(){panel.hidden=!panel.hidden;toggle.classList.toggle('is-active',!panel.hidden);if(!panel.hidden)refreshMarkerLocationUI();});
+    panel.querySelector('.marker-location-close').addEventListener('click',function(){panel.hidden=true;toggle.classList.remove('is-active');});
+    typeEl.addEventListener('change',syncMarkerLocationSourceEntity);
+    panel.querySelector('#markerLocationPick').addEventListener('click',function(){document.dispatchEvent(new CustomEvent('mine-services:marker-pick-request'));setMarkerLocationPanelMessage('Pick mode aktif · Top View. Klik satu titik pada terrain.',false);});
+    panel.querySelector('#markerLocationCreate').addEventListener('click',function(){
+      var type=typeEl.value,entity=panel.querySelector('#markerLocationSourceEntity').value.trim(),sourceId=panel.querySelector('#markerLocationSourceId').value.trim(),label=panel.querySelector('#markerLocationLabel').value.trim(),markerId=panel.querySelector('#markerLocationId').value.trim(),e=Number(panel.querySelector('#markerLocationEasting').value),n=Number(panel.querySelector('#markerLocationNorthing').value),z=Number(panel.querySelector('#markerLocationElevation').value);
+      try{var marker=createDomainSpatialMarker({marker_id:markerId||undefined,marker_type:type,label:label||sourceId,easting:e,northing:n,elevation:z,source_entity:entity,source_id:sourceId,status:'ACTIVE'});selectMarker(marker.marker_id);renderMarkerLocationNow();showMarkerDomainPopup(marker,host);setMarkerLocationPanelMessage('Marker '+marker.marker_id+' berhasil dibuat dan ditampilkan di Map.',false);}
+      catch(error){setMarkerLocationPanelMessage(error&&error.message?error.message:'Gagal membuat marker.',true);}
+    });
+    panel.querySelector('.marker-location-list').addEventListener('click',function(event){var show=event.target.closest('.marker-location-show');if(!show)return;try{var marker=selectMarker(show.dataset.markerId);renderMarkerLocationNow();showMarkerDomainPopup(marker,host);}catch(error){setMarkerLocationPanelMessage(error&&error.message?error.message:'Marker tidak dapat dipilih.',true);}});
+    document.addEventListener('mine-services:marker-coordinate-picked',function(event){var point=event&&event.detail;if(!point)return;panel.querySelector('#markerLocationEasting').value=Number(point.easting).toFixed(3);panel.querySelector('#markerLocationNorthing').value=Number(point.northing).toFixed(3);panel.querySelector('#markerLocationElevation').value=Number(point.elevation).toFixed(3);setMarkerLocationPanelMessage('Koordinat terrain terpilih · E '+Number(point.easting).toFixed(3)+' · N '+Number(point.northing).toFixed(3)+' · Z '+Number(point.elevation).toFixed(3),false);});
+    refreshMarkerLocationUI();
+  }
+  function initMarkerLocationUI(){if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindMarkerLocationUI);else bindMarkerLocationUI();}
+
+  initMarkerLocationUI();
+
   global.MineServicesMarkerLocation={
     TYPES:TYPES.slice(),
     TYPE_DEFINITIONS:listMarkerTypeDefinitions(),
