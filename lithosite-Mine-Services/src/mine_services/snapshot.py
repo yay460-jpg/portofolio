@@ -61,7 +61,7 @@ class SnapshotManager:
         }
         if not isinstance(snapshot, dict) or not required.issubset(snapshot):
             return False
-        if snapshot.get("schema_version") != SCHEMA_VERSION:
+        if snapshot.get("schema_version") != self.schema.SCHEMA_VERSION:
             return False
         if snapshot.get("checksum_algorithm") != "SHA-256":
             return False
@@ -74,7 +74,7 @@ class SnapshotManager:
         if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
             return False
 
-        for entity in DOMAIN_ENTITIES:
+        for entity in self.schema.DOMAIN_ENTITIES:
             rows = payload["data"].get(entity, {})
             if not isinstance(rows, dict):
                 return False
@@ -91,13 +91,13 @@ class SnapshotManager:
             return [{"code": "VAL-E011", "field": None, "message": "Snapshot payload is invalid"}]
 
         candidate = PersistenceStore(schema_module=self.schema)
-        for entity in DOMAIN_ENTITIES:
+        for entity in self.schema.DOMAIN_ENTITIES:
             rows = payload["data"].get(entity, {})
             if not isinstance(rows, dict):
                 return [{"code": "VAL-E011", "field": entity, "message": "Snapshot entity payload is invalid"}]
             for pk, row in rows.items():
                 if not isinstance(row, dict) or row.get(self.schema.PKS[entity]) != pk:
-                    return [{"code": "VAL-E003", "field": PKS[entity], "message": "Snapshot primary key mismatch"}]
+                    return [{"code": "VAL-E003", "field": self.schema.PKS[entity], "message": "Snapshot primary key mismatch"}]
                 candidate.insert(entity, pk, row)
 
         errors = []
