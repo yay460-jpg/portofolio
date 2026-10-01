@@ -10,7 +10,8 @@
     Issues: 'issuesScreen',
     Plans: 'plansScreen',
     HSE: 'hseScreen',
-    Reports: 'reportsScreen'
+    Reports: 'reportsScreen',
+    Settings: 'settingsScreen'
   });
 
   const STORAGE_KEY = 'lithosite-v30-active-screen';
