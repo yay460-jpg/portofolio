@@ -15,6 +15,7 @@
   });
 
   const STORAGE_KEY = 'lithosite-v30-active-screen';
+  const SETTINGS_KEY = 'lithosite-v30-settings';
   let currentScreen = 'Dashboard';
   let initialized = false;
 
@@ -64,13 +65,29 @@
     return true;
   }
 
+  function readPreferences() {
+    let preferences = { motion: 'normal', defaultScreen: 'Dashboard' };
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (raw) preferences = Object.assign(preferences, JSON.parse(raw));
+    } catch (_) {}
+    if (!SCREENS[preferences.defaultScreen]) preferences.defaultScreen = 'Dashboard';
+    if (preferences.motion !== 'reduced') preferences.motion = 'normal';
+    return preferences;
+  }
+
+  function applyPreferences() {
+    const preferences = readPreferences();
+    document.documentElement.classList.toggle('reduced-motion', preferences.motion === 'reduced');
+    return preferences;
+  }
+
   function readInitialScreen() {
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY);
-      return saved && SCREENS[saved] ? saved : 'Dashboard';
-    } catch (_) {
-      return 'Dashboard';
-    }
+      if (saved && SCREENS[saved]) return saved;
+    } catch (_) {}
+    return readPreferences().defaultScreen;
   }
 
   function init() {
@@ -115,8 +132,8 @@
       });
     }
 
-    // Workspace state belongs to the shell.
-    // If the document reloads after a runtime mutation, restore the active workspace.
+    // Preferences are local UI state only; they never mutate the XLSX database.
+    applyPreferences();
     setScreen(readInitialScreen(), false);
     return true;
   }
@@ -131,7 +148,8 @@
     init,
     setScreen,
     screens: SCREENS,
-    getCurrentScreen: function () { return currentScreen; }
+    getCurrentScreen: function () { return currentScreen; },
+    applyPreferences
   });
 })(window);
 
