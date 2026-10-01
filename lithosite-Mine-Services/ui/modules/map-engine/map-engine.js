@@ -7,6 +7,16 @@
     var canvas=host.querySelector('#dashboardTopo3DCanvas');
     if(!canvas)return;
     var status=host.querySelector('#dashboardTopo3DStatus');
+    var engine=null;
+    function setStatus(message,kind){
+      if(status){
+        status.textContent=message;
+        status.classList.remove('ready','error');
+        if(kind)status.classList.add(kind);
+      }
+      var guideStatus=host.querySelector('#dashboardTopo3DGuideStatus');
+      if(guideStatus)guideStatus.textContent=message;
+    }
     try{
       engine=global.LithositeTopo3D.create({
         canvas:canvas,
