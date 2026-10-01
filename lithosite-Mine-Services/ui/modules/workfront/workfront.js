@@ -123,5 +123,6 @@ function bind(){
  ['workfrontIdFilter','workfrontDomainFilter','workfrontLocationFilter','workfrontResponsibleFilter','workfrontStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
  document.getElementById('workfrontRows').addEventListener('click',e=>{const edit=e.target.closest('.edit-workfront');if(edit)openEdit(edit.dataset.id);const del=e.target.closest('.delete-workfront');if(del)remove(del.dataset.id);});
 }
+if(global.LithositeDataSync)global.LithositeDataSync.register('WorkFront',refreshData);
 bind();load();
 })(window);
