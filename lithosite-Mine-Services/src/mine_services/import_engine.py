@@ -1,13 +1,13 @@
 from openpyxl import load_workbook
 
-from .schema import DOMAIN_ENTITIES, HEADERS, PKS, SCHEMA_VERSION
+from . import schema as DEFAULT_SCHEMA
 from .validation import ValidationEngine
 from .persistence import PersistenceStore
 from .audit import AuditRepository
 
 IMPORT_ERROR_CODES = {
     "FILE_UNREADABLE": "E001",
-    "SCHEMA_VERSION": "E002",
+    "self.schema.SCHEMA_VERSION": "E002",
     "SHEET_MISSING": "E003",
     "SHEET_UNEXPECTED": "E004",
     "HEADER_MISMATCH": "E005",
@@ -23,10 +23,11 @@ IMPORT_ERROR_CODES = {
 }
 
 class ImportCoordinator:
-    def __init__(self, store, validator=None, transaction=None, audit_repository=None):
+    def __init__(self, store, validator=None, transaction=None, audit_repository=None, schema_module=None):
         from .transaction import TransactionManager
         self.store = store
-        self.validator = validator or ValidationEngine()
+        self.schema = schema_module or getattr(store, "schema", None) or DEFAULT_SCHEMA
+        self.validator = validator or ValidationEngine(schema_module=self.schema)
         self.transaction = transaction or TransactionManager(store)
         self.audit_repository = audit_repository or AuditRepository(store)
 
@@ -76,7 +77,7 @@ class ImportCoordinator:
         except Exception as exc:
             return None, [self._error(IMPORT_ERROR_CODES["FILE_UNREADABLE"], f"Workbook could not be opened: {exc}")]
 
-        required = set(DOMAIN_ENTITIES) | {"_System", "_Lists"}
+        required = set(self.schema.DOMAIN_ENTITIES) | {"_System", "_Lists"}
         missing = required - set(wb.sheetnames)
         if missing:
             return None, [self._error(IMPORT_ERROR_CODES["SHEET_MISSING"], f"Missing sheets: {sorted(missing)}")]
@@ -96,7 +97,7 @@ class ImportCoordinator:
             if not values:
                 return None, [self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], "Sheet is empty", entity)]
             headers = list(values[0])
-            if headers != HEADERS[entity]:
+            if headers != self.schema.HEADERS[entity]:
                 return None, [self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], "Header mismatch", entity)]
             rows[entity] = [
                 dict(zip(headers, values_row))
@@ -121,7 +122,7 @@ class ImportCoordinator:
             if entity not in DOMAIN_ENTITIES:
                 duplicate_errors.append(self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], f"Unknown entity: {entity}", entity))
                 continue
-            pk = PKS[entity]
+            pk = self.schema.PKS[entity]
             seen.setdefault(entity, set())
             for row in items:
                 key = row.get(pk)
