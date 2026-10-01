@@ -1,0 +1,11 @@
+/* Lithosite Mine Services — V30 Settings module
+   Module-owned enhancements only.
+   The V30 shell/layout remains owned by the artifact and shell-navigation.
+*/
+.settings-module-status {
+  font-size: 9px;
+  color: #8ea3ba;
+}
+.settings-module-status.ready {
+  color: #4ade80;
+}
