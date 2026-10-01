@@ -9,3 +9,6 @@
   #dashboardScreen .kpi,#dashboardScreen .map,#dashboardScreen .donut{opacity:1!important;transform:none!important}
   #dashboardScreen .pit,#dashboardScreen .zone,#dashboardScreen .route,#dashboardScreen .bar b,#dashboardScreen .v{opacity:1!important;transform:none!important}
 }
+
+/* Dashboard micro-interactions and chart animation anchors */
+#dashboardScreen .bar b{transform-origin:left center;}#dashboardScreen .row:nth-child(1) .bar b{}#dashboardScreen .row:nth-child(2) .bar b{}#dashboardScreen .row:nth-child(3) .bar b{}#dashboardScreen .row:nth-child(4) .bar b{}#dashboardScreen .v{transform-origin:center bottom;}#dashboardScreen .bars>div:nth-child(1) .v{}#dashboardScreen .bars>div:nth-child(1) .vo{}#dashboardScreen .bars>div:nth-child(2) .v{}#dashboardScreen .bars>div:nth-child(2) .vo{}#dashboardScreen .bars>div:nth-child(3) .v{}#dashboardScreen .bars>div:nth-child(3) .vo{}#dashboardScreen .bars>div:nth-child(4) .v{}#dashboardScreen .bars>div:nth-child(4) .vo{}#dashboardScreen .bars>div:nth-child(5) .v{}#dashboardScreen .bars>div:nth-child(5) .vo{}#dashboardScreen .bars>div:nth-child(6) .v{}#dashboardScreen .bars>div:nth-child(6) .vo{}#dashboardScreen .bars>div:nth-child(7) .v{}#dashboardScreen .bars>div:nth-child(7) .vo{}#dashboardScreen .tool:hover{transform:translateY(-1px);background:#16304b}
