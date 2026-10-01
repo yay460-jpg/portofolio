@@ -131,7 +131,7 @@ class SnapshotManager:
             candidate_payload = snapshot["payload"]
         elif mode == "MERGE_RUNTIME":
             merged = self.store.snapshot()
-            for entity in DOMAIN_ENTITIES:
+            for entity in self.schema.DOMAIN_ENTITIES:
                 incoming = snapshot["payload"]["data"].get(entity, {})
                 existing = merged["data"].setdefault(entity, {})
                 collisions = set(existing).intersection(incoming)
