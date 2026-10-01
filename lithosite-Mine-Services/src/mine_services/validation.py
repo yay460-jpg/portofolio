@@ -1,13 +1,17 @@
 from dataclasses import dataclass
 from datetime import date, datetime, time
 import re
-from .schema import *
+
+from . import schema as DEFAULT_SCHEMA
+from .map_marker_validation import validate_map_marker_row
+
 
 @dataclass(frozen=True)
 class ValidationError:
     code: str
     field: str | None
     message: str
+
 
 DATE_FIELDS = {
     "Equipment": {"effective_from", "effective_to"},
@@ -35,7 +39,11 @@ TEXT_FIELDS = {
     "HSE": {"hse_id", "domain", "work_front_id", "event_type", "severity", "description", "action", "status"},
 }
 
+
 class ValidationEngine:
+    def __init__(self, schema_module=None):
+        self.schema = schema_module or DEFAULT_SCHEMA
+
     def _type_valid(self, entity, field, value):
         if value in (None, ""):
             return True
@@ -51,6 +59,11 @@ class ValidationEngine:
             return isinstance(value, datetime) or (
                 isinstance(value, str) and self._parse_datetime(value) is not None
             )
+        if entity == "MapMarker":
+            if field in {"marker_id", "marker_type", "label", "source_entity", "source_id", "status"}:
+                return isinstance(value, str)
+            if field in {"easting", "northing", "elevation"}:
+                return isinstance(value, (int, float)) and not isinstance(value, bool)
         if field in TEXT_FIELDS.get(entity, set()):
             return isinstance(value, str)
         return True
@@ -66,16 +79,16 @@ class ValidationEngine:
 
     def validate(self, entity, row, store=None, context="CREATE", existing=None):
         errors = []
-        if entity not in DOMAIN_ENTITIES:
+        if entity not in self.schema.DOMAIN_ENTITIES:
             return [ValidationError("VAL-E011", None, "Unknown entity")]
 
-        pk = PKS[entity]
+        pk = self.schema.PKS[entity]
 
-        for field in HEADERS[entity]:
+        for field in self.schema.HEADERS[entity]:
             if field in row and not self._type_valid(entity, field, row[field]):
                 errors.append(ValidationError("VAL-E002", field, "Value type is invalid"))
 
-        for field in REQUIRED[entity]:
+        for field in self.schema.REQUIRED[entity]:
             if row.get(field) in (None, ""):
                 errors.append(ValidationError("VAL-E003", field, "Required field is blank"))
 
@@ -83,24 +96,30 @@ class ValidationEngine:
             errors.append(ValidationError("VAL-E010", pk, "Primary key is immutable"))
 
         for field in row:
-            if field in SYSTEM_FIELDS and context in {"CREATE", "IMPORT", "UPDATE"}:
+            if field in self.schema.SYSTEM_FIELDS and context in {"CREATE", "IMPORT", "UPDATE"}:
                 errors.append(ValidationError("VAL-E010", field, "System field is generated"))
 
-        for field in NUMERIC:
+        for field in self.schema.NUMERIC:
             if field in row and row[field] not in (None, ""):
                 if not isinstance(row[field], (int, float)) or isinstance(row[field], bool) or row[field] < 0:
                     errors.append(ValidationError("VAL-E007", field, "Numeric value must be >= 0"))
 
-        for key, (target, targetpk, required) in FK.items():
+        for key, (target, targetpk, required) in self.schema.FK.items():
             owner, field = key.split(".")
             if owner == entity and row.get(field) not in (None, "") and store and not store.exists(target, row[field]):
                 errors.append(ValidationError("VAL-E005", field, f"Referenced {target}.{targetpk} not found"))
 
         lists = getattr(store, "controlled_lists", {}) if store else {}
-        for key, listname in CONTROLLED.items():
+        for key, listname in self.schema.CONTROLLED.items():
             owner, field = key.split(".")
             if owner == entity and row.get(field) not in (None, "") and lists and row[field] not in lists.get(listname, set()):
                 errors.append(ValidationError("VAL-E006", field, "Controlled value is invalid"))
+
+        if entity == "MapMarker":
+            marker_errors = validate_map_marker_row(row)
+            for field, reason in marker_errors:
+                code = "VAL-E003" if reason == "required" else "VAL-E002"
+                errors.append(ValidationError(code, field, f"MapMarker validation failed: {reason}"))
 
         if entity == "Equipment" and row.get("owner_type") == "Contractor" and not row.get("owner_name"):
             errors.append(ValidationError("VAL-E008", "owner_name", "owner_name required for Contractor"))
@@ -136,23 +155,18 @@ class ValidationEngine:
 
     def validate_dataset(self, rows, store=None, context="IMPORT"):
         errors = []
-        seen = {}
         for entity, items in rows.items():
-            if entity not in DOMAIN_ENTITIES:
+            if entity not in self.schema.DOMAIN_ENTITIES:
                 errors.append(ValidationError("VAL-E011", None, f"Unknown entity: {entity}"))
                 continue
-            pk = PKS[entity]
-            seen[entity] = set()
+            pk = self.schema.PKS[entity]
+            seen = set()
             for row in items:
                 key = row.get(pk)
                 if key in (None, ""):
                     errors.append(ValidationError("VAL-E003", pk, "Primary key blank"))
-                elif key in seen[entity]:
+                elif key in seen:
                     errors.append(ValidationError("VAL-E004", pk, "Primary key duplicate in dataset"))
-                seen[entity].add(key)
+                seen.add(key)
                 errors.extend(self.validate(entity, row, store, context))
         return errors
-
-
-# MapMarker validation is intentionally provided by
-# mine_services.map_marker_validation for the opt-in A.3 schema.
