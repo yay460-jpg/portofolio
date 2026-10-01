@@ -100,6 +100,13 @@
         marker.style.top=p.y+'px';
         marker.classList.add('visible');
       });
+      var line=host.querySelector('#dashboardTopo3DMeasureLine');
+      if(line){
+        var a=pickedPoints.A&&engine.projectCoordinate(pickedPoints.A.easting,pickedPoints.A.northing,pickedPoints.A.elevation);
+        var b=pickedPoints.B&&engine.projectCoordinate(pickedPoints.B.easting,pickedPoints.B.northing,pickedPoints.B.elevation);
+        if(a&&b&&a.inside&&b.inside){line.setAttribute('x1',a.x);line.setAttribute('y1',a.y);line.setAttribute('x2',b.x);line.setAttribute('y2',b.y);line.classList.add('visible');}
+        else line.classList.remove('visible');
+      }
     }
     function setPickMode(label){
       activePickPoint=label;
@@ -131,8 +138,9 @@
     function updateMeasurement(){
       var result=host.querySelector('#dashboardTopo3DMeasureResult');
       if(!result)return;
-      if(!geo){
-        result.textContent='Geo config required';
+      var bearingDistance=geo?geo.bearingDistance:(typeof global.bearingDistanceGrid_==='function'?function(e1,n1,e2,n2){return global.bearingDistanceGrid_(e1,n1,e2,n2);}:null);
+      if(!bearingDistance){
+        result.textContent='Geo measurement engine unavailable';
         return;
       }
       var fields=['E1','N1','E2','N2'].map(function(key){
@@ -144,7 +152,7 @@
         return;
       }
       try{
-        var m=geo.bearingDistance(fields[0],fields[1],fields[2],fields[3]);
+        var m=bearingDistance(fields[0],fields[1],fields[2],fields[3]);
         result.innerHTML='<div class="measure-result-main">Bearing <b>'+m.bearingGridDeg.toFixed(2)+'°</b> · Distance <b>'+m.distanceMeters.toFixed(2)+' m</b></div><div class="measure-result-sub">A → B · Grid Bearing · Horizontal distance</div>';
       }catch(error){
         result.textContent=error&&error.message?error.message:'Measurement failed';
