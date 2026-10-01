@@ -26,4 +26,6 @@ def test_stage19_mounts_map_engine_host():
     assert 'class="map ms-map-engine"' in source
     assert 'data-map-action="zoom-in"' in source
     assert 'data-map-action="zoom-out"' in source
+    assert 'map-engine.css?v=20261001' in source
     assert 'map-engine.js?v=20261001' in source
+    assert 'MineServicesMapEngineHost.init' in source
