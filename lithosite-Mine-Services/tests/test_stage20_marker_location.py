@@ -95,6 +95,39 @@ def test_stage20_marker_location_domain_link_does_not_replace_spatial_coordinate
     assert "setMarkerLocation" not in link_block
 
 
+def test_stage20_marker_location_domain_spatial_adapter_requires_explicit_coordinates():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "function createDomainSpatialMarker(input)" in js
+    assert "Domain spatial marker requires source_entity" in js
+    assert "Domain spatial marker requires source_id" in js
+    assert "Domain spatial marker requires explicit finite easting, northing, and elevation" in js
+    assert "createDomainSpatialMarker:createDomainSpatialMarker" in js
+
+
+def test_stage20_marker_location_domain_spatial_adapter_preserves_source_contract():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    start = js.index("function createDomainSpatialMarker")
+    end = js.index("function createHSESpatialMarker", start)
+    block = js[start:end]
+
+    assert "source_entity:entity" in block
+    assert "source_id:sourceId" in block
+    assert "easting:input.easting" in block
+    assert "northing:input.northing" in block
+    assert "elevation:input.elevation" in block
+    assert "DOMAIN_LINK_DEFINITIONS[markerType]" in block
+    assert "location" not in block.lower()
+
+
+def test_stage20_marker_location_domain_spatial_adapter_maps_equipment_and_workfront():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "ASSET:'Equipment'" in js
+    assert "WORKFRONT:'WorkFront'" in js
+
+
 def test_stage20_marker_location_type_icons_are_centralized():
     js = MARKER_JS.read_text(encoding="utf-8")
     for marker_type, symbol in (
