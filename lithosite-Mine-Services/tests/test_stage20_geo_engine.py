@@ -108,3 +108,18 @@ def test_stage20_measurement_toggle_contract():
     assert "measurePanel.classList.toggle('open')" in map_engine
     assert "guidePanel.classList.remove('open')" in map_engine
     assert "measureToggle.setAttribute('aria-expanded',open?'true':'false')" in map_engine
+
+
+def test_stage20_point_interaction_contract():
+    html = ARTIFACT.read_text(encoding="utf-8")
+    map_engine = MAP_ENGINE.read_text(encoding="utf-8")
+    topo_engine = (ROOT / "shared" / "topo3d" / "topo3d-engine.js").read_text(encoding="utf-8")
+
+    assert 'id="dashboardTopo3DMeasurePickA"' in html
+    assert 'id="dashboardTopo3DMeasurePickB"' in html
+    assert 'id="dashboardTopo3DPointA"' in html
+    assert 'id="dashboardTopo3DPointB"' in html
+    assert "pickCoordinate(" in topo_engine
+    assert "engine.pickCoordinate(x,y,22)" in map_engine
+    assert "function handlePointPick(event)" in map_engine
+    assert "setPickedPoint(activePickPoint,point)" in map_engine
