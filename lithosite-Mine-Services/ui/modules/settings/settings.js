@@ -2,6 +2,18 @@
   'use strict';
 
   const STORAGE_KEY = 'lithosite-v30-settings';
+  const MODULE_CSS = '../ui/modules/settings/settings.css';
+
+  function loadModuleStyles() {
+    const id = 'lithosite-v30-settings-module-css';
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = MODULE_CSS + '?v=20261001';
+    document.head.appendChild(link);
+  }
+
 
   function readPreferences() {
     let settings = { motion: 'normal', defaultScreen: 'Dashboard', sidebarStartup: 'compact' };
@@ -88,6 +100,7 @@
   }
 
   function init() {
+    loadModuleStyles();
     load();
 
     ['settingsMotion', 'settingsDefaultScreen', 'settingsSidebarStartup'].forEach(function (id) {
