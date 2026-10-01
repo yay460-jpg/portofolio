@@ -135,6 +135,54 @@
     markers={};
   }
 
+
+  function ensureRenderLayer(container){
+    if(!container)return null;
+    var layer=container.querySelector('.map-marker-layer');
+    if(layer)return layer;
+    layer=document.createElement('div');
+    layer.className='map-marker-layer';
+    layer.setAttribute('aria-hidden','true');
+    container.appendChild(layer);
+    return layer;
+  }
+
+  function renderMarkers(engine, container){
+    if(!engine||!container)return [];
+    var layer=ensureRenderLayer(container);
+    if(!layer)return [];
+
+    var active=getVisibleMarkers();
+    var activeIds={};
+    active.forEach(function(marker){
+      var projected=engine.projectCoordinate(marker.easting,marker.northing,marker.elevation);
+      if(!projected||!projected.inside)return;
+      activeIds[marker.marker_id]=true;
+
+      var el=layer.querySelector('[data-marker-id="'+marker.marker_id.replace(/"/g,'&quot;')+'"]');
+      if(!el){
+        el=document.createElement('button');
+        el.type='button';
+        el.className='map-location-marker';
+        el.setAttribute('data-marker-id',marker.marker_id);
+        el.setAttribute('aria-label',marker.label);
+        layer.appendChild(el);
+      }
+      el.textContent=marker.label;
+      el.dataset.markerType=marker.marker_type;
+      el.style.left=projected.x+'px';
+      el.style.top=projected.y+'px';
+      el.classList.add('is-visible');
+    });
+
+    Array.prototype.slice.call(layer.querySelectorAll('.map-location-marker')).forEach(function(el){
+      var id=el.getAttribute('data-marker-id');
+      if(!activeIds[id])el.classList.remove('is-visible');
+    });
+
+    return active.map(function(marker){return marker.marker_id;});
+  }
+
   global.MineServicesMarkerLocation={
     TYPES:TYPES.slice(),
     createMarker:createMarker,
@@ -147,6 +195,7 @@
     getMarkerVisibility:getMarkerVisibility,
     showAllMarkers:showAllMarkers,
     hideAllMarkers:hideAllMarkers,
-    clearMarkers:clearMarkers
+    clearMarkers:clearMarkers,
+    renderMarkers:renderMarkers
   };
 })(window);
