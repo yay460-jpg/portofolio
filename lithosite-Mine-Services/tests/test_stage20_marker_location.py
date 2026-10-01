@@ -86,7 +86,7 @@ def test_stage20_marker_location_domain_link_does_not_replace_spatial_coordinate
     js = MARKER_JS.read_text(encoding="utf-8")
 
     start = js.index("function setMarkerSource")
-    end = js.index("function removeMarker", start)
+    end = js.index("function getMarkerSource", start)
     link_block = js[start:end]
 
     assert "easting" not in link_block
