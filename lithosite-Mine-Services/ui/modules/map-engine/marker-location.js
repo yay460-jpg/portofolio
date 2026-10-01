@@ -30,6 +30,7 @@
   var markers = {};
   var sequence = 0;
   var visibility = {};
+  var selectedMarkerId = null;
 
   TYPES.forEach(function(type){ visibility[type]=true; });
 
@@ -145,6 +146,7 @@
   function removeMarker(markerId){
     var id=String(markerId||'').trim();
     if(!markers[id])return false;
+    if(selectedMarkerId===id)selectedMarkerId=null;
     delete markers[id];
     return true;
   }
@@ -158,9 +160,37 @@
     return Object.keys(markers).map(function(id){ return clone(markers[id]); });
   }
 
+  function selectMarker(markerId){
+    var id=String(markerId||'').trim();
+    if(!markers[id])throw new Error('Marker not found: '+id);
+    if(markers[id].status==='REMOVED')throw new Error('Cannot select a removed marker: '+id);
+    selectedMarkerId=id;
+    return clone(markers[id]);
+  }
+
+  function clearSelectedMarker(){
+    selectedMarkerId=null;
+    return null;
+  }
+
+  function getSelectedMarker(){
+    return selectedMarkerId?getMarker(selectedMarkerId):null;
+  }
+
+  function handleMarkerClick(markerElement){
+    if(!markerElement)return null;
+    var id=markerElement.getAttribute('data-marker-id');
+    if(!id)return null;
+    return selectMarker(id);
+  }
+
   function setMarkerVisibility(type, visible){
     var normalized=normalizeType(type);
     visibility[normalized]=!!visible;
+    if(selectedMarkerId){
+      var selected=markers[selectedMarkerId];
+      if(selected && visibility[selected.marker_type]!==true)selectedMarkerId=null;
+    }
     return visibility[normalized];
   }
 
@@ -190,6 +220,10 @@
     TYPES.forEach(function(type){
       visibility[type]=selected[type]===true;
     });
+    if(selectedMarkerId){
+      var selectedMarker=markers[selectedMarkerId];
+      if(selectedMarker && visibility[selectedMarker.marker_type]!==true)selectedMarkerId=null;
+    }
     return getVisibilityState();
   }
 
@@ -206,13 +240,14 @@
 
   function hideAllMarkers(){
     TYPES.forEach(function(type){ visibility[type]=false; });
+    selectedMarkerId=null;
     return getVisibilityState();
   }
 
   function clearMarkers(){
     markers={};
+    selectedMarkerId=null;
   }
-
 
   function ensureRenderLayer(container){
     if(!container)return null;
@@ -220,7 +255,6 @@
     if(layer)return layer;
     layer=document.createElement('div');
     layer.className='map-marker-layer';
-    layer.setAttribute('aria-hidden','true');
     container.appendChild(layer);
     return layer;
   }
@@ -244,11 +278,13 @@
         el.className='map-location-marker';
         el.setAttribute('data-marker-id',marker.marker_id);
         el.setAttribute('aria-label',marker.label);
+        el.addEventListener('click',function(){ handleMarkerClick(el); });
         layer.appendChild(el);
       }
       el.textContent=marker.label;
       el.dataset.markerType=marker.marker_type;
       el.dataset.markerCategory=getMarkerTypeDefinition(marker.marker_type).category;
+      el.classList.toggle('is-selected',selectedMarkerId===marker.marker_id);
       el.style.left=projected.x+'px';
       el.style.top=projected.y+'px';
       el.classList.add('is-visible');
@@ -256,7 +292,10 @@
 
     Array.prototype.slice.call(layer.querySelectorAll('.map-location-marker')).forEach(function(el){
       var id=el.getAttribute('data-marker-id');
-      if(!activeIds[id])el.classList.remove('is-visible');
+      if(!activeIds[id]){
+        el.classList.remove('is-visible');
+        el.classList.remove('is-selected');
+      }
     });
 
     return active.map(function(marker){return marker.marker_id;});
@@ -274,6 +313,10 @@
     removeMarker:removeMarker,
     getMarker:getMarker,
     listMarkers:listMarkers,
+    selectMarker:selectMarker,
+    clearSelectedMarker:clearSelectedMarker,
+    getSelectedMarker:getSelectedMarker,
+    handleMarkerClick:handleMarkerClick,
     getVisibleMarkers:getVisibleMarkers,
     setMarkerVisibility:setMarkerVisibility,
     getMarkerVisibility:getMarkerVisibility,
