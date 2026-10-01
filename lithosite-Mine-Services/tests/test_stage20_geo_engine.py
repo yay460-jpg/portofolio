@@ -78,3 +78,21 @@ def test_stage20_grid_convergence_north_arrow_contract():
     assert "convergenceDeg" in map_engine
     assert "updateNorthArrow()" in map_engine
     assert "engine.angleY" in map_engine
+
+
+
+def test_stage20_bearing_distance_contract():
+    html = ARTIFACT.read_text(encoding="utf-8")
+    map_engine = MAP_ENGINE.read_text(encoding="utf-8")
+
+    assert 'id="dashboardTopo3DMeasure"' in html
+    assert 'id="dashboardTopo3DMeasureE1"' in html
+    assert 'id="dashboardTopo3DMeasureN1"' in html
+    assert 'id="dashboardTopo3DMeasureE2"' in html
+    assert 'id="dashboardTopo3DMeasureN2"' in html
+    assert 'id="dashboardTopo3DMeasureRun"' in html
+    assert 'id="dashboardTopo3DMeasureResult"' in html
+    assert "function updateMeasurement()" in map_engine
+    assert "geo.bearingDistance(fields[0],fields[1],fields[2],fields[3])" in map_engine
+    assert "bearingGridDeg" in map_engine
+    assert "distanceMeters" in map_engine
