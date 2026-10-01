@@ -119,7 +119,14 @@ def test_stage20_top_view_display_refinement_contract():
     assert 'id="dashboardTopo3DTop"' in html
     assert "function syncTopViewClass()" in map_engine
     assert "host.classList.toggle('is-top-view'" in map_engine
-    assert "filter:brightness(1.22) contrast(1.04)" in css
+    assert "filter:brightness(1.08) contrast(1.06)" in css
+    assert "#dashboardSiteMap.map-topo3d.is-top-view::after" in css
+    assert "background:transparent" in css
+
+    topo_engine = (ROOT / "shared" / "topo3d" / "topo3d-engine.js").read_text(encoding="utf-8")
+    assert "uniform int topView" in topo_engine
+    assert "l.topView" in topo_engine
+    assert "this.view==='top'?1:0" in topo_engine
 
 
 def test_stage20_point_interaction_contract():
