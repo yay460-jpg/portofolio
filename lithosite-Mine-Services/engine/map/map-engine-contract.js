@@ -2,7 +2,7 @@
  * MINE SERVICES — Standalone Map Engine
  * Stage 19.1 — Engine Contract
  *
- * Contract only. No DOM, renderer, mapping-library, or Android dependency.
+ * Contract only. No DOM or renderer dependency. Platform-neutral by design.
  * ============================================================ */
 
 (function (global) {
