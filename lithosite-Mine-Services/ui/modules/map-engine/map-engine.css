@@ -7,6 +7,9 @@
   background:#071321;
   isolation:isolate;
 }
+#dashboardSiteMap.map-topo3d.is-top-view canvas{
+  filter:brightness(1.22) contrast(1.04);
+}
 #dashboardSiteMap.map-topo3d canvas{
   position:absolute;
   inset:0;
