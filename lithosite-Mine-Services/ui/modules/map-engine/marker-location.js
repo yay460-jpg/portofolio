@@ -15,15 +15,15 @@
   ];
 
   var TYPE_DEFINITIONS = {
-    HSE:{label:'HSE',category:'HSE'},
-    ASSET:{label:'Asset / Equipment',category:'Asset / Equipment'},
-    FACILITY:{label:'Facility',category:'Facility'},
-    WORKFRONT:{label:'WorkFront',category:'WorkFront'},
-    STOCKPILE:{label:'Stockpile',category:'Stockpile'},
-    DISPOSAL:{label:'Disposal',category:'Disposal'},
-    DRAINAGE:{label:'Drainage',category:'Drainage'},
-    WORKSHOP:{label:'Workshop',category:'Workshop'},
-    OTHER:{label:'Other',category:'Other'}
+    HSE:{label:'HSE',category:'HSE',visual_class:'marker-type-hse'},
+    ASSET:{label:'Asset / Equipment',category:'Asset / Equipment',visual_class:'marker-type-asset'},
+    FACILITY:{label:'Facility',category:'Facility',visual_class:'marker-type-facility'},
+    WORKFRONT:{label:'WorkFront',category:'WorkFront',visual_class:'marker-type-workfront'},
+    STOCKPILE:{label:'Stockpile',category:'Stockpile',visual_class:'marker-type-stockpile'},
+    DISPOSAL:{label:'Disposal',category:'Disposal',visual_class:'marker-type-disposal'},
+    DRAINAGE:{label:'Drainage',category:'Drainage',visual_class:'marker-type-drainage'},
+    WORKSHOP:{label:'Workshop',category:'Workshop',visual_class:'marker-type-workshop'},
+    OTHER:{label:'Other',category:'Other',visual_class:'marker-type-other'}
   };
 
   var DOMAIN_LINK_DEFINITIONS = {
@@ -69,7 +69,8 @@
   function cloneDefinition(definition){
     return {
       label:definition.label,
-      category:definition.category
+      category:definition.category,
+      visual_class:definition.visual_class
     };
   }
 
@@ -84,7 +85,8 @@
       return {
         marker_type:type,
         label:definition.label,
-        category:definition.category
+        category:definition.category,
+        visual_class:definition.visual_class
       };
     });
   }
@@ -367,8 +369,14 @@
         layer.appendChild(el);
       }
       el.textContent=marker.label;
+      var typeDefinition=getMarkerTypeDefinition(marker.marker_type);
       el.dataset.markerType=marker.marker_type;
-      el.dataset.markerCategory=getMarkerTypeDefinition(marker.marker_type).category;
+      el.dataset.markerCategory=typeDefinition.category;
+      el.dataset.markerVisual=typeDefinition.visual_class;
+      el.classList.forEach(function(className){
+        if(className.indexOf('marker-type-')===0)el.classList.remove(className);
+      });
+      el.classList.add(typeDefinition.visual_class);
       el.classList.toggle('is-selected',selectedMarkerId===marker.marker_id);
       el.style.left=projected.x+'px';
       el.style.top=projected.y+'px';
