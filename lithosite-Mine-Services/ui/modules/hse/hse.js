@@ -241,6 +241,7 @@ function bind(){
  });
 }
 function init(){if(!document.getElementById('hseScreen'))return;if(document.getElementById('hseAdd'))bind();load();}
+if(global.LithositeDataSync)global.LithositeDataSync.register('HSE',refreshData);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 
 global.LithositeHSE=Object.freeze({
