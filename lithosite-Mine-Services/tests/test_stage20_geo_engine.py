@@ -55,3 +55,14 @@ def test_stage20_topo_host_remains_rendering_host():
     assert "LithositeMineServicesGeoConfig" in map_engine
     assert "LithositeMineServicesGeo.create" in map_engine
     assert "getGeo:function(){return geo;}" in map_engine
+
+
+def test_stage20_topo_coordinate_readout_contract():
+    html = ARTIFACT.read_text(encoding="utf-8")
+    map_engine = MAP_ENGINE.read_text(encoding="utf-8")
+
+    assert 'id="dashboardTopo3DCoordinate"' in html
+    assert "function updateCoordinateInfo(meta)" in map_engine
+    assert "meta.bounds" in map_engine
+    assert "toFixed(2)" in map_engine
+    assert "engine.getState().meta" in map_engine
