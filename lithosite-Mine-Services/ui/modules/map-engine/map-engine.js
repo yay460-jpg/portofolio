@@ -11,6 +11,7 @@
     var geo=null;
     var autoRotate=false;
     var autoRotateRaf=null;
+    var northConvergence=0;
     function startAutoRotate(){
       if(autoRotate)return;
       autoRotate=true;
@@ -59,6 +60,7 @@
           if(conv&&conv.ok)convergence=Number(conv.convergenceDeg)||0;
         }catch(error){}
       }
+      northConvergence=convergence;
       if(el)el.textContent=text;
       if(northLabel)northLabel.textContent='Grid North · '+convergence.toFixed(2)+'° convergence';
       if(northArrow)northArrow.style.transform='rotate('+(-convergence)+'deg)';
@@ -67,7 +69,7 @@
       var northArrow=host.querySelector('.topo3d-north-arrow');
       if(!northArrow||!engine)return;
       var angle=(Number(engine.angleY)||0)*180/Math.PI;
-      northArrow.style.transform='rotate('+angle+'deg)';
+      northArrow.style.transform='rotate('+(angle-northConvergence)+'deg)';
     }
     function setStatus(message,kind){
       if(status){
