@@ -54,7 +54,7 @@ function render(){
   const rows=filtered();
   host.innerHTML=rows.length?rows.map(r=>{
    const cls=String(r.status||'').toLowerCase().replace(/[^a-z]/g,'')||'closed-status';
-   return '<div class="wfgrid td"><div class="wfcell">'+esc(r.work_front_id)+'</div><div class="wfcell">'+esc(r.domain)+'</div><div class="wfcell">'+esc(r.location)+'</div><div class="wfcell">'+esc(r.responsible)+'</div><div class="wfcell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div><div class="wfcell">'+esc(r.effective_from)+'</div><div class="wfcell">'+esc(r.effective_to)+'</div><div class="wfcell row-actions"><button class="control mini edit-workfront" data-id="'+esc(r.work_front_id)+'">Edit</button><button class="control mini danger delete-workfront" data-id="'+esc(r.work_front_id)+'">Delete</button></div></div>';
+   return '<div class="wfgrid td"><div class="wfcell">'+esc(r.work_front_id)+'</div><div class="wfcell">'+esc(r.domain)+'</div><div class="wfcell">'+esc(r.location)+'</div><div class="wfcell">'+esc(r.responsible)+'</div><div class="wfcell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div><div class="wfcell">'+esc(r.effective_from)+'</div><div class="wfcell">'+esc(r.effective_to)+'</div><div class="wfcell row-actions"><button class="control mini show-map-workfront" data-id="'+esc(r.work_front_id)+'">Show on Map</button><button class="control mini edit-workfront" data-id="'+esc(r.work_front_id)+'">Edit</button><button class="control mini danger delete-workfront" data-id="'+esc(r.work_front_id)+'">Delete</button></div></div>';
   }).join(''):'<div class="empty">No Work Front matches the current filters.</div>';
   document.getElementById('workfrontCount').textContent=rows.length+' records · Runtime Ready';
  }
