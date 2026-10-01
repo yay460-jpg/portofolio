@@ -119,7 +119,7 @@ def test_stage20_point_interaction_contract():
     assert 'id="dashboardTopo3DMeasurePickB"' in html
     assert 'id="dashboardTopo3DPointA"' in html
     assert 'id="dashboardTopo3DPointB"' in html
-    assert "pickCoordinate(" in topo_engine
+    assert "Topo3DEngine.prototype.pickCoordinate=function" in topo_engine
     assert "engine.pickCoordinate(x,y,22)" in map_engine
     assert "function handlePointPick(event)" in map_engine
     assert "setPickedPoint(activePickPoint,point)" in map_engine
