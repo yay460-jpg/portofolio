@@ -28,7 +28,7 @@
 /* --- Desktop Master two-column layout --- */
 .settings-grid{
   display:grid!important;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
   gap:10px;
   min-height:0;
   align-items:start;
@@ -151,11 +151,10 @@
   box-shadow:0 0 0 2px rgba(99,179,255,.12);
 }
 
-.settings-panel:nth-child(4) .settings-body{
+ .settings-panel:nth-child(4) .settings-body{
   min-height:92px;
-  display:flex;
-  align-items:flex-start;
-  padding:15px 13px!important;
+  display:block;
+  padding:10px 13px!important;
   color:#c9d8e8;
   font-size:10px;
   line-height:1.45;
