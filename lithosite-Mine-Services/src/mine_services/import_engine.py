@@ -7,7 +7,7 @@ from .audit import AuditRepository
 
 IMPORT_ERROR_CODES = {
     "FILE_UNREADABLE": "E001",
-    "self.schema.SCHEMA_VERSION": "E002",
+    "SCHEMA_VERSION": "E002",
     "SHEET_MISSING": "E003",
     "SHEET_UNEXPECTED": "E004",
     "HEADER_MISMATCH": "E005",
@@ -67,7 +67,7 @@ class ImportCoordinator:
         for row in values:
             if len(row) == 1 and row[0] is not None:
                 text = str(row[0])
-                if text == SCHEMA_VERSION:
+                if text == self.schema.SCHEMA_VERSION:
                     return text
         return None
 
@@ -88,11 +88,11 @@ class ImportCoordinator:
             return None, [self._error(IMPORT_ERROR_CODES["SHEET_UNEXPECTED"], f"Unexpected sheets: {sorted(unexpected)}")]
 
         version = self._schema_version_from_system(wb["_System"])
-        if version != SCHEMA_VERSION:
-            return None, [self._error(IMPORT_ERROR_CODES["SCHEMA_VERSION"], f"Expected schema {SCHEMA_VERSION}, got {version}")]
+        if version != self.schema.SCHEMA_VERSION:
+            return None, [self._error(IMPORT_ERROR_CODES["SCHEMA_VERSION"], f"Expected schema {self.schema.SCHEMA_VERSION}, got {version}")]
 
         rows = {}
-        for entity in DOMAIN_ENTITIES:
+        for entity in self.schema.DOMAIN_ENTITIES:
             values = list(wb[entity].values)
             if not values:
                 return None, [self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], "Sheet is empty", entity)]
@@ -113,7 +113,7 @@ class ImportCoordinator:
         return self.import_dataset(rows)
 
     def import_dataset(self, rows):
-        staged = PersistenceStore()
+        staged = PersistenceStore(schema_module=self.schema)
         staged.replace(self.store.snapshot())
 
         duplicate_errors = []
@@ -143,7 +143,7 @@ class ImportCoordinator:
         try:
             for entity, items in rows.items():
                 for row in items:
-                    staged.insert(entity, row[PKS[entity]], row)
+                    staged.insert(entity, row[self.schema.PKS[entity]], row)
 
             errors = self.validator.validate_dataset(rows, staged, "IMPORT")
             if errors:
