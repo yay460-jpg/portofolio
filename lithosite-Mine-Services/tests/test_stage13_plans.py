@@ -102,19 +102,19 @@ def test_plans_period_and_numeric_validation():
 
 def test_v27_plans_shell_contract():
     root = Path(__file__).parents[1]
-    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v31-STAGE19.html").read_text(encoding="utf-8")
-    shell = (root / "ui" / "shared" / "shell-navigation-v30.js").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v32-STAGE20.html").read_text(encoding="utf-8")
+    shell = (root / "ui" / "shared" / "shell-navigation-v31.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "plans" / "plans.js").read_text(encoding="utf-8")
 
     assert 'id="plansScreen"' in html
     assert 'id="plansModal"' in html
-    assert "shell-navigation-v30.js?v=20261001" in html
+    assert "shell-navigation-v31.js?v=20261001" in html
     assert "../ui/modules/plans/plans.js?v=20261001" in html
     assert "Plans: 'plansScreen'" in shell
     assert "let initialized = false;" in shell
     assert "event.preventDefault();" in shell
     assert "event.stopPropagation();" in shell
-    assert "const STORAGE_KEY = 'lithosite-v30-active-screen';" in shell
+    assert "const STORAGE_KEY = 'lithosite-v31-active-screen';" in shell
     assert "sessionStorage.setItem(STORAGE_KEY, name)" in shell
     assert "sessionStorage.getItem(STORAGE_KEY)" in shell
     assert "setScreen(readInitialScreen(), false);" in shell
