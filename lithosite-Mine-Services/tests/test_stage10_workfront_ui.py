@@ -1,10 +1,10 @@
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v30-LOCKED.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v31-LOCKED.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 WORKFRONT_JS = (ROOT / "ui" / "modules" / "workfront" / "workfront.js").read_text(encoding="utf-8")
-SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v30.js").read_text(encoding="utf-8")
+SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v31.js").read_text(encoding="utf-8")
 
 
 def test_stage10_workfront_screen_exists():
@@ -57,7 +57,7 @@ def test_stage10_navigation_and_shell_guard_available():
     assert "workfrontScreen" in TEXT
     assert "let currentScreen = 'Dashboard';" in SHELL_JS
     assert "validateShellContract" in SHELL_JS
-    assert "const STORAGE_KEY = 'lithosite-v30-active-screen';" in SHELL_JS
+    assert "const STORAGE_KEY = 'lithosite-v31-active-screen';" in SHELL_JS
     assert "readInitialScreen" in SHELL_JS
     assert "setScreen(readInitialScreen(), false);" in SHELL_JS
     assert "dashboardScreen" in SHELL_JS
