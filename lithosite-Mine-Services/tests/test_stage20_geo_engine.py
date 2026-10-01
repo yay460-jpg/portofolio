@@ -143,6 +143,7 @@ def test_stage20_point_interaction_contract():
     assert "engine.pickCoordinate(x,y,22)" in map_engine
     assert "function handlePointPick(event)" in map_engine
     assert "setPickedPoint(activePickPoint,point)" in map_engine
+    assert "label==='A'?'1':'2'" in map_engine
     assert "dashboardTopo3DPoint'+label+'Coord" in map_engine
     assert "measure-result-main" in map_engine
     assert "Horizontal distance" in map_engine
