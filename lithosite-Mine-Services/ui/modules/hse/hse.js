@@ -248,6 +248,12 @@ function bind(){
  });
 }
 function init(){if(!document.getElementById('hseScreen'))return;if(document.getElementById('hseAdd'))bind();load();}
+document.addEventListener('mine-services:open-domain-record',function(event){
+ const detail=event&&event.detail||{};
+ if(detail.source_entity!=='HSE'||!detail.source_id)return;
+ if(global.LithositeShellNavigation)global.LithositeShellNavigation.setScreen('HSE');
+ setTimeout(function(){openEdit(detail.source_id);},0);
+});
 if(global.LithositeDataSync)global.LithositeDataSync.register('HSE',refreshData);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 
