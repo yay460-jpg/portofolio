@@ -330,6 +330,25 @@
     });
   }
 
+  function showDomainRecordOnMap(sourceEntity, sourceId){
+    var entity=String(sourceEntity||'').trim();
+    var id=String(sourceId||'').trim();
+    if(!entity || !id)return {ok:false,status:'INVALID_DOMAIN_REFERENCE',source_entity:entity,source_id:id};
+    var matches=findMarkersBySource(entity,id);
+    if(!matches.length){
+      return {ok:false,status:'SPATIAL_LOCATION_NOT_ASSIGNED',source_entity:entity,source_id:id};
+    }
+    var marker=selectMarker(matches[0].marker_id);
+    if(global.LithositeShellNavigation && typeof global.LithositeShellNavigation.setScreen==='function'){
+      global.LithositeShellNavigation.setScreen('Dashboard');
+    }
+    var map=document.getElementById('dashboardSiteMap');
+    if(map && typeof map.scrollIntoView==='function'){
+      setTimeout(function(){map.scrollIntoView({behavior:'smooth',block:'center'});},0);
+    }
+    return {ok:true,status:'SHOWN_ON_MAP',source_entity:entity,source_id:id,marker:marker};
+  }
+
   function findMarkersBySource(sourceEntity, sourceId){
     var entity=String(sourceEntity||'').trim();
     var source=String(sourceId||'').trim();
@@ -533,6 +552,7 @@
     createDomainSpatialMarker:createDomainSpatialMarker,
     createHSESpatialMarker:createHSESpatialMarker,
     findMarkersBySource:findMarkersBySource,
+    showDomainRecordOnMap:showDomainRecordOnMap,
     listHSESpatialMarkers:listHSESpatialMarkers,
     placeMarker:placeMarker,
     setMarkerLocation:setMarkerLocation,
