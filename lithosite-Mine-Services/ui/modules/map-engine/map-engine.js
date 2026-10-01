@@ -154,9 +154,23 @@
       var northSync=setInterval(updateNorthArrow,100);
       var guide=host.querySelector('#dashboardTopo3DGuideToggle');
       var guidePanel=host.querySelector('#dashboardTopo3DGuide');
+      var measureToggle=host.querySelector('#dashboardTopo3DMeasureToggle');
+      var measurePanel=host.querySelector('#dashboardTopo3DMeasure');
       if(guide&&guidePanel)guide.addEventListener('click',function(){
         var open=guidePanel.classList.toggle('open');
         guide.setAttribute('aria-expanded',open?'true':'false');
+        if(open&&measurePanel&&measureToggle){
+          measurePanel.classList.remove('open');
+          measureToggle.setAttribute('aria-expanded','false');
+        }
+      });
+      if(measureToggle&&measurePanel)measureToggle.addEventListener('click',function(){
+        var open=measurePanel.classList.toggle('open');
+        measureToggle.setAttribute('aria-expanded',open?'true':'false');
+        if(open&&guide&&guidePanel){
+          guidePanel.classList.remove('open');
+          guide.setAttribute('aria-expanded','false');
+        }
       });
     }catch(error){setStatus(error&&error.message?error.message:'Topo3D initialization failed','error');}
     global.MineServicesTopo3D={getEngine:function(){return engine;},getGeo:function(){return geo;}};
