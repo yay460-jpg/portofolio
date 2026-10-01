@@ -79,6 +79,8 @@
   function applyPreferences() {
     const preferences = readPreferences();
     document.documentElement.classList.toggle('reduced-motion', preferences.motion === 'reduced');
+    const side = document.getElementById('side');
+    if (side) side.classList.toggle('expanded', preferences.sidebarStartup === 'expanded');
     return preferences;
   }
 
