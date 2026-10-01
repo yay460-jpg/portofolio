@@ -373,10 +373,10 @@
       el.dataset.markerType=marker.marker_type;
       el.dataset.markerCategory=typeDefinition.category;
       el.dataset.markerVisual=typeDefinition.visual_class;
-      el.classList.forEach(function(className){
-        if(className.indexOf('marker-type-')===0)el.classList.remove(className);
+      TYPES.forEach(function(type){
+        var visualClass=TYPE_DEFINITIONS[type].visual_class;
+        el.classList.toggle(visualClass,visualClass===typeDefinition.visual_class);
       });
-      el.classList.add(typeDefinition.visual_class);
       el.classList.toggle('is-selected',selectedMarkerId===marker.marker_id);
       el.style.left=projected.x+'px';
       el.style.top=projected.y+'px';
