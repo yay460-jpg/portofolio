@@ -302,3 +302,46 @@
   color:#dbe8f5;
   white-space:nowrap;
 }
+
+#dashboardSiteMap .topo3d-point-marker{
+  position:absolute;
+  z-index:7;
+  width:20px;
+  height:20px;
+  margin:-10px 0 0 -10px;
+  border:2px solid #fff;
+  border-radius:50%;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  color:#fff;
+  font:900 9px/16px Arial,sans-serif;
+  pointer-events:none;
+  box-shadow:0 2px 7px #02081288;
+}
+#dashboardSiteMap .topo3d-point-marker.visible{display:flex}
+#dashboardSiteMap .topo3d-point-marker.point-a{background:#2563eb}
+#dashboardSiteMap .topo3d-point-marker.point-b{background:#ef4444}
+#dashboardSiteMap .topo3d-measure-pick-actions{
+  display:flex;
+  gap:4px;
+  margin-top:5px;
+}
+#dashboardSiteMap .topo3d-measure-pick-actions button{
+  flex:1;
+  height:22px;
+  border:1px solid #29435d;
+  border-radius:4px;
+  background:#0c1d30;
+  color:#dbe8f5;
+  padding:0 7px;
+  cursor:pointer;
+  font:700 8px/1 Arial,sans-serif;
+}
+#dashboardSiteMap .topo3d-measure-pick-actions button:hover,
+#dashboardSiteMap .topo3d-measure-pick-actions button.is-active{
+  border-color:#5b9aff;
+  background:#15304d;
+  color:#fff;
+}
