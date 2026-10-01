@@ -8,6 +8,26 @@
     if(!canvas)return;
     var status=host.querySelector('#dashboardTopo3DStatus');
     var engine=null;
+    var autoRotate=false;
+    var autoRotateRaf=null;
+    function startAutoRotate(){
+      if(autoRotate)return;
+      autoRotate=true;
+      function tick(){
+        if(!autoRotate)return;
+        if(engine&&engine.getState().ready){
+          engine.angleY+=0.0035;
+          if(engine.angleY>Math.PI*2)engine.angleY-=Math.PI*2;
+        }
+        autoRotateRaf=requestAnimationFrame(tick);
+      }
+      autoRotateRaf=requestAnimationFrame(tick);
+    }
+    function stopAutoRotate(){
+      autoRotate=false;
+      if(autoRotateRaf)cancelAnimationFrame(autoRotateRaf);
+      autoRotateRaf=null;
+    }
     function setStatus(message,kind){
       if(status){
         status.textContent=message;
@@ -36,7 +56,8 @@
           setStatus('Memuat data topografi…');
           await engine.loadFiles(input.files);
           engine.fit();
-          setStatus('Topography 3D siap','ready');
+          setStatus('Topography 3D siap · Auto 360° aktif','ready');
+          startAutoRotate();
         }catch(error){
           setStatus(error&&error.message?error.message:'Gagal memuat topografi','error');
         }finally{input.value='';}
@@ -50,8 +71,8 @@
       bind('#dashboardTopo3DWire',function(){engine.setMode('wire');});
       var rotate360=host.querySelector('#dashboardTopo3DRotate360');
       if(rotate360)rotate360.addEventListener('click',function(){
-        engine.angleY+=Math.PI/2;
-        if(engine.angleY>Math.PI*2)engine.angleY-=Math.PI*2;
+        if(autoRotate){stopAutoRotate();rotate360.classList.remove('is-active');rotate360.textContent='360°';}
+        else{startAutoRotate();rotate360.classList.add('is-active');rotate360.textContent='360° Auto';}
       });
       var guide=host.querySelector('#dashboardTopo3DGuideToggle');
       var guidePanel=host.querySelector('#dashboardTopo3DGuide');
