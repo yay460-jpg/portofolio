@@ -1,14 +1,122 @@
-/* Lithosite Mine Services — Topo3D host */
-#dashboardSiteMap .map-topo3d{position:relative;width:100%;height:100%;min-height:320px;overflow:hidden;background:#071321}
-#dashboardSiteMap .map-topo3d canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
-#dashboardSiteMap .topo3d-toolbar{position:absolute;top:10px;left:10px;z-index:4;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-#dashboardSiteMap .topo3d-toolbar button,#dashboardSiteMap .topo3d-file{height:30px;border:1px solid #29435d;border-radius:7px;background:#10243a;color:#dbe8f5;font-size:10px;padding:0 9px;cursor:pointer}
-#dashboardSiteMap .topo3d-toolbar button:hover,#dashboardSiteMap .topo3d-file:hover{border-color:#4d8dff;background:#15304d}
-#dashboardSiteMap .topo3d-file{display:flex;align-items:center}
+/* Lithosite Mine Services — Topo3D host shell */
+#dashboardSiteMap.map-topo3d{
+  height:calc(100% - 35px);
+  min-height:0;
+  position:relative;
+  overflow:hidden;
+  background:#071321;
+  isolation:isolate;
+}
+#dashboardSiteMap.map-topo3d canvas{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  width:100%;
+  height:100%;
+  display:block;
+  touch-action:none;
+}
+#dashboardSiteMap.map-topo3d::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(4,12,22,.28),transparent 22%,transparent 78%,rgba(4,12,22,.36));
+}
+#dashboardSiteMap .topo3d-toolbar{
+  position:absolute;
+  top:10px;
+  left:10px;
+  z-index:5;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  max-width:calc(100% - 20px);
+  flex-wrap:wrap;
+}
+#dashboardSiteMap .topo3d-toolbar button,
+#dashboardSiteMap .topo3d-file{
+  height:28px;
+  box-sizing:border-box;
+  border:1px solid #29435d;
+  border-radius:6px;
+  background:#0c1d30e8;
+  color:#dbe8f5;
+  font:700 9px/1 Arial,sans-serif;
+  padding:0 8px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  box-shadow:0 2px 8px #02081255;
+}
+#dashboardSiteMap .topo3d-file{font-weight:800}
+#dashboardSiteMap .topo3d-toolbar button:hover,
+#dashboardSiteMap .topo3d-file:hover{
+  border-color:#4d8dff;
+  background:#15304d;
+}
+#dashboardSiteMap .topo3d-toolbar button:focus-visible,
+#dashboardSiteMap .topo3d-file:focus-within{
+  outline:2px solid #5b9aff;
+  outline-offset:1px;
+}
 #dashboardSiteMap .topo3d-file input{display:none}
-#dashboardSiteMap .topo3d-status{position:absolute;left:10px;bottom:10px;z-index:4;max-width:70%;padding:6px 9px;border:1px solid #29435d;border-radius:7px;background:#071321d9;color:#9fb4ca;font-size:10px;pointer-events:none}
+#dashboardSiteMap .topo3d-status{
+  position:absolute;
+  left:10px;
+  bottom:10px;
+  z-index:5;
+  max-width:60%;
+  min-height:25px;
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  padding:5px 8px;
+  border:1px solid #29435d;
+  border-radius:6px;
+  background:#071321e8;
+  color:#9fb4ca;
+  font-size:9px;
+  line-height:1.25;
+  box-shadow:0 2px 8px #02081255;
+  pointer-events:none;
+}
 #dashboardSiteMap .topo3d-status.ready{color:#86efac}
 #dashboardSiteMap .topo3d-status.error{color:#fca5a5}
-#dashboardSiteMap .topo3d-legend{position:absolute;right:10px;bottom:10px;z-index:4;min-width:170px;padding:8px 10px;border:1px solid #29435d;border-radius:8px;background:#071321d9;color:#dbe8f5;font-size:10px}
-#dashboardSiteMap .topo3d-legend strong{display:block;margin-bottom:5px}
-#dashboardSiteMap .topo3d-meta{color:#8ea3ba;line-height:1.5}
+#dashboardSiteMap .topo3d-legend{
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  z-index:5;
+  min-width:170px;
+  max-width:220px;
+  box-sizing:border-box;
+  padding:7px 9px;
+  border:1px solid #29435d;
+  border-radius:6px;
+  background:#071321e8;
+  color:#dbe8f5;
+  font-size:9px;
+  line-height:1.45;
+  box-shadow:0 2px 8px #02081255;
+  pointer-events:none;
+}
+#dashboardSiteMap .topo3d-legend strong{
+  display:block;
+  margin-bottom:3px;
+  color:#dbe8f5;
+  font-size:9px;
+}
+#dashboardSiteMap .topo3d-meta{
+  color:#8ea3ba;
+  line-height:1.45;
+}
+@media (max-width:900px){
+  #dashboardSiteMap .topo3d-toolbar{right:10px}
+  #dashboardSiteMap .topo3d-status{max-width:55%}
+  #dashboardSiteMap .topo3d-legend{min-width:145px;max-width:180px}
+}
