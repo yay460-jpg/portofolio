@@ -62,4 +62,4 @@
 #modal .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
 #modal .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}
 #modal .field input,#modal .field select{width:100%;height:32px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px;outline:none}
-@media(max-width:1400px){#operationsScreen .boundary{padding:18px}
+@media(max-width:1400px){#operationsScreen .boundary{padding:18px}#operationsScreen .title h1{font-size:20px}#operationsScreen .filters{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}}
