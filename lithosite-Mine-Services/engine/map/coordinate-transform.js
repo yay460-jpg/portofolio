@@ -2,7 +2,7 @@
  * MINE SERVICES — Standalone Map Engine
  * Stage 19.4 — Coordinate ↔ Pixel Transform
  *
- * Platform-neutral math only. No DOM, canvas, renderer, or UI.
+ * Platform-neutral coordinate math only. No UI or renderer dependency.
  * ============================================================ */
 
 (function (global) {
