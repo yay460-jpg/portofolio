@@ -71,6 +71,36 @@
       var angle=(Number(engine.angleY)||0)*180/Math.PI;
       northArrow.style.transform='rotate('+(angle-northConvergence)+'deg)';
     }
+    function updateMeasurement(){
+      var result=host.querySelector('#dashboardTopo3DMeasureResult');
+      if(!result)return;
+      if(!geo){
+        result.textContent='Geo config required';
+        return;
+      }
+      var fields=['E1','N1','E2','N2'].map(function(key){
+        var el=host.querySelector('#dashboardTopo3DMeasure'+key);
+        return el?Number(el.value):NaN;
+      });
+      if(fields.some(function(v){return !Number.isFinite(v);})){
+        result.textContent='Enter E1, N1, E2 and N2';
+        return;
+      }
+      try{
+        var m=geo.bearingDistance(fields[0],fields[1],fields[2],fields[3]);
+        result.textContent='Bearing '+m.bearingGridDeg.toFixed(2)+'° · Distance '+m.distanceMeters.toFixed(2)+' m';
+      }catch(error){
+        result.textContent=error&&error.message?error.message:'Measurement failed';
+      }
+    }
+    function clearMeasurement(){
+      ['E1','N1','E2','N2'].forEach(function(key){
+        var el=host.querySelector('#dashboardTopo3DMeasure'+key);
+        if(el)el.value='';
+      });
+      var result=host.querySelector('#dashboardTopo3DMeasureResult');
+      if(result)result.textContent='Bearing — · Distance —';
+    }
     function setStatus(message,kind){
       if(status){
         status.textContent=message;
@@ -113,6 +143,8 @@
       bind('#dashboardTopo3DView',function(){engine.setView('3d');updateNorthArrow();});
       bind('#dashboardTopo3DShaded',function(){engine.setMode('shaded');});
       bind('#dashboardTopo3DElevation',function(){engine.setMode('elevation');});
+      bind('#dashboardTopo3DMeasureRun',updateMeasurement);
+      bind('#dashboardTopo3DMeasureClear',clearMeasurement);
       bind('#dashboardTopo3DWire',function(){engine.setMode('wire');});
       var rotate360=host.querySelector('#dashboardTopo3DRotate360');
       if(rotate360)rotate360.addEventListener('click',function(){
