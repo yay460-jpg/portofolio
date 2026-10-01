@@ -32,28 +32,20 @@
 .map-location-marker.marker-type-drainage{--marker-accent:#38bdf8;}
 .map-location-marker.marker-type-workshop{--marker-accent:#f97316;}
 .map-location-marker.marker-type-other{--marker-accent:#94a3b8;}
-.map-location-marker::before{
-  content:"";
+.map-location-marker__icon{
   width:18px;
   height:18px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
   border:2px solid var(--marker-accent);
-  border-radius:50% 50% 50% 0;
-  transform:rotate(-45deg);
-  background:rgba(11,23,39,.94);
-  box-shadow:0 2px 5px rgba(0,0,0,.35);
-}
-.map-location-marker::after{
-  content:"";
-  position:absolute;
-  left:7px;
-  top:6px;
-  width:6px;
-  height:6px;
   border-radius:50%;
-  background:var(--marker-accent);
+  background:rgba(11,23,39,.94);
+  color:var(--marker-accent);
+  font-size:10px;
+  font-weight:900;
+  line-height:1;
+  box-shadow:0 2px 5px rgba(0,0,0,.35);
 }
 .map-location-marker.is-selected{
   outline:2px solid currentColor;
