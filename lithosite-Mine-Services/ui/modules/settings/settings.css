@@ -220,3 +220,54 @@
 .local-preference-value.safe{
   color:#4ade80;
 }
+
+/* V30 Stage 18 — final layout guard
+   Scoped to Settings only. Prevents the shell's <=1400px media rule from
+   collapsing the Desktop Master Settings grid and prevents Local Preferences
+   content from being clipped.
+*/
+#settingsScreen .settings-boundary{
+  overflow:auto!important;
+}
+
+#settingsScreen .settings-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  grid-template-rows:auto auto!important;
+  width:100%!important;
+  max-height:none!important;
+  overflow:visible!important;
+  align-items:start;
+}
+
+#settingsScreen .settings-panel{
+  min-width:0!important;
+  min-height:0;
+  width:100%;
+  overflow:hidden;
+}
+
+#settingsScreen .settings-panel:nth-child(4) .settings-body{
+  display:block!important;
+  min-height:0!important;
+  height:auto!important;
+  overflow:visible!important;
+  padding:8px 13px 10px!important;
+}
+
+#settingsScreen .settings-panel:nth-child(4) .local-preference-row{
+  min-height:28px;
+}
+
+#settingsScreen .settings-panel:nth-child(4) #settingsMessage{
+  display:block;
+  margin-top:8px;
+}
+
+@media(max-width:700px){
+  #settingsScreen .settings-grid{
+    grid-template-columns:1fr!important;
+    grid-template-rows:auto!important;
+  }
+}
+
