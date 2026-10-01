@@ -54,11 +54,12 @@ def test_stage20_hse_spatial_record_does_not_duplicate_hse_domain_fields():
         "event_type",
         "severity",
         "description",
-        "action",
-        "status",
         "closed_at",
     ):
         assert field not in block
+
+    assert "status:input.status" in block
+    assert "status" not in block.replace("status:input.status", "")
 
 
 def test_stage20_hse_spatial_record_can_resolve_by_hse_id():
