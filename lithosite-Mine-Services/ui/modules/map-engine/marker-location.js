@@ -306,6 +306,22 @@
     };
   }
 
+  function buildDomainSpatialSyncPlan(markerId, domainRecords){
+    var link=resolveDomainSpatialLink(markerId,domainRecords);
+    var base={
+      status:link.status,
+      marker_id:link.marker_id,
+      source_entity:link.source_entity,
+      source_id:link.source_id,
+      action:'NO_SPATIAL_MUTATION',
+      coordinate_authority:'MapMarker',
+      domain_authority:'DomainRecord'
+    };
+    if(link.marker)base.marker=link.marker;
+    if(link.record)base.record=link.record;
+    return base;
+  }
+
   function listDomainSpatialLinkIssues(domainRecords){
     return listMarkers().map(function(marker){
       return resolveDomainSpatialLink(marker.marker_id,domainRecords);
@@ -526,6 +542,7 @@
     resolveMarkerLink:resolveMarkerLink,
     resolveDomainSpatialLink:resolveDomainSpatialLink,
     listDomainSpatialLinkIssues:listDomainSpatialLinkIssues,
+    buildDomainSpatialSyncPlan:buildDomainSpatialSyncPlan,
     removeMarker:removeMarker,
     getMarker:getMarker,
     listMarkers:listMarkers,
