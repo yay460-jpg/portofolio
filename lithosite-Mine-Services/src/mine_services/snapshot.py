@@ -4,16 +4,17 @@ import uuid
 from datetime import datetime, timezone
 
 from .persistence import PersistenceStore
-from .schema import DOMAIN_ENTITIES, HEADERS, PKS, SCHEMA_VERSION
+from . import schema as DEFAULT_SCHEMA
 from .transaction import TransactionManager
 from .validation import ValidationEngine
 from .audit import AuditRepository
 
 
 class SnapshotManager:
-    def __init__(self, store, validator=None, audit_repository=None):
+    def __init__(self, store, validator=None, audit_repository=None, schema_module=None):
         self.store = store
-        self.validator = validator or ValidationEngine()
+        self.schema = schema_module or getattr(store, "schema", None) or DEFAULT_SCHEMA
+        self.validator = validator or ValidationEngine(schema_module=self.schema)
         self.audit_repository = audit_repository or AuditRepository(store)
 
     @staticmethod
@@ -31,12 +32,12 @@ class SnapshotManager:
         payload = self.store.snapshot()
         return {
             "snapshot_id": str(uuid.uuid4()),
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": self.schema.SCHEMA_VERSION,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "source": source,
             "entity_counts": {
                 entity: len(payload["data"].get(entity, {}))
-                for entity in DOMAIN_ENTITIES
+                for entity in self.schema.DOMAIN_ENTITIES
             },
             "audit_included": True,
             "payload": payload,
@@ -89,13 +90,13 @@ class SnapshotManager:
         if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
             return [{"code": "VAL-E011", "field": None, "message": "Snapshot payload is invalid"}]
 
-        candidate = PersistenceStore()
+        candidate = PersistenceStore(schema_module=self.schema)
         for entity in DOMAIN_ENTITIES:
             rows = payload["data"].get(entity, {})
             if not isinstance(rows, dict):
                 return [{"code": "VAL-E011", "field": entity, "message": "Snapshot entity payload is invalid"}]
             for pk, row in rows.items():
-                if not isinstance(row, dict) or row.get(PKS[entity]) != pk:
+                if not isinstance(row, dict) or row.get(self.schema.PKS[entity]) != pk:
                     return [{"code": "VAL-E003", "field": PKS[entity], "message": "Snapshot primary key mismatch"}]
                 candidate.insert(entity, pk, row)
 
