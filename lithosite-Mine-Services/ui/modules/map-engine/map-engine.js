@@ -12,6 +12,8 @@
     var autoRotate=false;
     var autoRotateRaf=null;
     var northConvergence=0;
+    var activePickPoint=null;
+    var pickedPoints={A:null,B:null};
     function startAutoRotate(){
       if(autoRotate)return;
       autoRotate=true;
@@ -71,6 +73,46 @@
       var angle=(Number(engine.angleY)||0)*180/Math.PI;
       northArrow.style.transform='rotate('+(angle-northConvergence)+'deg)';
     }
+    function setPickedPoint(label,point){
+      var suffix=label==='A'?'A':'B';
+      var eEl=host.querySelector('#dashboardTopo3DMeasureE'+suffix);
+      var nEl=host.querySelector('#dashboardTopo3DMeasureN'+suffix);
+      if(eEl)eEl.value=point.easting.toFixed(2);
+      if(nEl)nEl.value=point.northing.toFixed(2);
+      var marker=host.querySelector('#dashboardTopo3DPoint'+label);
+      if(marker){
+        marker.style.left=point.screenX+'px';
+        marker.style.top=point.screenY+'px';
+        marker.classList.add('visible');
+      }
+    }
+    function setPickMode(label){
+      activePickPoint=label;
+      ['A','B'].forEach(function(key){
+        var btn=host.querySelector('#dashboardTopo3DMeasurePick'+key);
+        if(btn)btn.classList.toggle('is-active',key===label);
+      });
+      var result=host.querySelector('#dashboardTopo3DMeasureResult');
+      if(result)result.textContent='Click terrain to set Point '+label;
+    }
+    function handlePointPick(event){
+      if(!activePickPoint||!engine||!engine.getState().ready)return;
+      var rect=canvas.getBoundingClientRect();
+      var x=event.clientX-rect.left,y=event.clientY-rect.top;
+      var point=engine.pickCoordinate(x,y,22);
+      if(!point)return;
+      pickedPoints[activePickPoint]=point;
+      setPickedPoint(activePickPoint,point);
+      var next=activePickPoint==='A'?'B':null;
+      if(next)setPickMode(next);else{
+        activePickPoint=null;
+        ['A','B'].forEach(function(key){
+          var btn=host.querySelector('#dashboardTopo3DMeasurePick'+key);
+          if(btn)btn.classList.remove('is-active');
+        });
+        updateMeasurement();
+      }
+    }
     function updateMeasurement(){
       var result=host.querySelector('#dashboardTopo3DMeasureResult');
       if(!result)return;
@@ -97,6 +139,14 @@
       ['E1','N1','E2','N2'].forEach(function(key){
         var el=host.querySelector('#dashboardTopo3DMeasure'+key);
         if(el)el.value='';
+      });
+      pickedPoints={A:null,B:null};
+      activePickPoint=null;
+      ['A','B'].forEach(function(key){
+        var marker=host.querySelector('#dashboardTopo3DPoint'+key);
+        if(marker)marker.classList.remove('visible');
+        var btn=host.querySelector('#dashboardTopo3DMeasurePick'+key);
+        if(btn)btn.classList.remove('is-active');
       });
       var result=host.querySelector('#dashboardTopo3DMeasureResult');
       if(result)result.textContent='Bearing — · Distance —';
@@ -143,7 +193,10 @@
       bind('#dashboardTopo3DView',function(){engine.setView('3d');updateNorthArrow();});
       bind('#dashboardTopo3DShaded',function(){engine.setMode('shaded');});
       bind('#dashboardTopo3DElevation',function(){engine.setMode('elevation');});
+      bind('#dashboardTopo3DMeasurePickA',function(){setPickMode('A');});
+      bind('#dashboardTopo3DMeasurePickB',function(){setPickMode('B');});
       bind('#dashboardTopo3DMeasureRun',updateMeasurement);
+      canvas.addEventListener('click',handlePointPick);
       bind('#dashboardTopo3DMeasureClear',clearMeasurement);
       bind('#dashboardTopo3DWire',function(){engine.setMode('wire');});
       var rotate360=host.querySelector('#dashboardTopo3DRotate360');
