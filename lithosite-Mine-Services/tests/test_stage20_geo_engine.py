@@ -96,3 +96,15 @@ def test_stage20_bearing_distance_contract():
     assert "geo.bearingDistance(fields[0],fields[1],fields[2],fields[3])" in map_engine
     assert "bearingGridDeg" in map_engine
     assert "distanceMeters" in map_engine
+
+
+def test_stage20_measurement_toggle_contract():
+    html = ARTIFACT.read_text(encoding="utf-8")
+    map_engine = MAP_ENGINE.read_text(encoding="utf-8")
+
+    assert 'id="dashboardTopo3DMeasureToggle"' in html
+    assert 'aria-label="Show Grid Bearing and Distance"' in html
+    assert 'id="dashboardTopo3DMeasure"' in html
+    assert "measurePanel.classList.toggle('open')" in map_engine
+    assert "guidePanel.classList.remove('open')" in map_engine
+    assert "measureToggle.setAttribute('aria-expanded',open?'true':'false')" in map_engine
