@@ -29,6 +29,19 @@
       );
     }
 
+    const mutating = ['CREATE', 'UPDATE', 'DELETE', 'IMPORT_XLSX', 'RESTORE'].includes(String(req.operation || '').toUpperCase());
+    const committed = result.status === 'COMMITTED';
+    if (mutating && committed) {
+      window.dispatchEvent(new CustomEvent('lithosite:runtime-mutated', {
+        detail: {
+          operation: String(req.operation || '').toUpperCase(),
+          entity: req.entity || null,
+          entity_id: req.entity_id || null,
+          request_id: payload.request_id
+        }
+      }));
+    }
+
     return result;
   }
 
