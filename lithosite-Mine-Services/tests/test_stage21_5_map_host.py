@@ -20,8 +20,10 @@ def test_map_host_interaction_hooks():
     assert "lithosite:map-action" in source
     assert "lithosite:map-feature-select" in source
 
-def test_stage19_artifact_remains_unchanged_for_this_stage():
-    assert HTML.exists()
+def test_stage19_mounts_map_engine_host():
     source = HTML.read_text(encoding="utf-8")
-    assert 'class="map"' in source
-    assert "OFFLINE MAP" in source
+    assert 'id="mineServicesMapEngineHost"' in source
+    assert 'class="map ms-map-engine"' in source
+    assert 'data-map-action="zoom-in"' in source
+    assert 'data-map-action="zoom-out"' in source
+    assert 'map-engine.js?v=20261001' in source
