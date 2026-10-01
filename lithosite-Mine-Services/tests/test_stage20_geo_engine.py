@@ -147,3 +147,7 @@ def test_stage20_point_interaction_contract():
     assert "Horizontal distance" in map_engine
     assert 'id="dashboardTopo3DPointACoord"' in html
     assert 'id="dashboardTopo3DPointBCoord"' in html
+    assert "function syncPickedMarkers()" in map_engine
+    assert "engine.projectCoordinate(point.easting,point.northing,point.elevation)" in map_engine
+    assert "onRender:function(){syncPickedMarkers();}" in map_engine
+    assert "this.onRender" in topo_engine
