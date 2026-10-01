@@ -110,6 +110,18 @@ def test_stage20_measurement_toggle_contract():
     assert "measureToggle.setAttribute('aria-expanded',open?'true':'false')" in map_engine
 
 
+
+def test_stage20_top_view_display_refinement_contract():
+    html = ARTIFACT.read_text(encoding="utf-8")
+    map_engine = MAP_ENGINE.read_text(encoding="utf-8")
+    css = (ROOT / "ui" / "modules" / "map-engine" / "map-engine.css").read_text(encoding="utf-8")
+
+    assert 'id="dashboardTopo3DTop"' in html
+    assert "function syncTopViewClass()" in map_engine
+    assert "host.classList.toggle('is-top-view'" in map_engine
+    assert "filter:brightness(1.22) contrast(1.04)" in css
+
+
 def test_stage20_point_interaction_contract():
     html = ARTIFACT.read_text(encoding="utf-8")
     map_engine = MAP_ENGINE.read_text(encoding="utf-8")
