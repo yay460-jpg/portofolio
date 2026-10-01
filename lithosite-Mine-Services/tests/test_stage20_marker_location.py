@@ -42,6 +42,30 @@ def test_stage20_marker_location_contract_has_all_domain_types():
         assert "'%s'" % marker_type in js
 
 
+def test_stage20_marker_location_type_definitions_are_centralized():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "TYPE_DEFINITIONS" in js
+    assert "getMarkerTypeDefinition" in js
+    assert "listMarkerTypeDefinitions" in js
+    assert "category:'HSE'" in js
+    assert "category:'Asset / Equipment'" in js
+    assert "category:'Facility'" in js
+    assert "category:'WorkFront'" in js
+    assert "category:'Stockpile'" in js
+    assert "category:'Disposal'" in js
+    assert "category:'Drainage'" in js
+    assert "category:'Workshop'" in js
+    assert "category:'Other'" in js
+
+
+def test_stage20_marker_location_rendering_uses_central_type_definition():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "el.dataset.markerType=marker.marker_type" in js
+    assert "el.dataset.markerCategory=getMarkerTypeDefinition(marker.marker_type).category" in js
+
+
 def test_stage20_marker_location_contract_has_spatial_and_domain_fields():
     js = MARKER_JS.read_text(encoding="utf-8")
 
