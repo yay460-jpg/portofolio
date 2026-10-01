@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
-UI = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v31-STAGE19.html"
+UI = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v32-STAGE20.html"
 OPS_JS = ROOT / "ui" / "modules" / "operations" / "operations.js"
 
 
@@ -15,7 +15,7 @@ def test_stage8_operations_ui_contract_markers():
         'id="activityFilter"',
         'id="sourceFilter"',
         'runtime-client.js',
-        'shell-navigation-v30.js',
+        'shell-navigation-v31.js',
         'operations.js',
         "does not write directly to the database",
     ]
