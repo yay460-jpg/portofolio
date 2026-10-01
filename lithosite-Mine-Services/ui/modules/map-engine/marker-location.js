@@ -169,6 +169,30 @@
     return visibility[normalized];
   }
 
+  function getVisibilityState(){
+    var selected=[];
+    TYPES.forEach(function(type){
+      if(visibility[type]===true)selected.push(type);
+    });
+    return {
+      all:selected.length===TYPES.length,
+      none:selected.length===0,
+      selected_types:selected
+    };
+  }
+
+  function setMarkerVisibilityFilter(types){
+    if(!Array.isArray(types))throw new Error('Marker visibility filter must be an array of marker types');
+    var selected={};
+    types.forEach(function(type){
+      selected[normalizeType(type)]=true;
+    });
+    TYPES.forEach(function(type){
+      visibility[type]=selected[type]===true;
+    });
+    return getVisibilityState();
+  }
+
   function getVisibleMarkers(){
     return listMarkers().filter(function(marker){
       return visibility[marker.marker_type]===true && marker.status!=='REMOVED';
@@ -177,10 +201,12 @@
 
   function showAllMarkers(){
     TYPES.forEach(function(type){ visibility[type]=true; });
+    return getVisibilityState();
   }
 
   function hideAllMarkers(){
     TYPES.forEach(function(type){ visibility[type]=false; });
+    return getVisibilityState();
   }
 
   function clearMarkers(){
@@ -251,6 +277,8 @@
     getVisibleMarkers:getVisibleMarkers,
     setMarkerVisibility:setMarkerVisibility,
     getMarkerVisibility:getMarkerVisibility,
+    getVisibilityState:getVisibilityState,
+    setMarkerVisibilityFilter:setMarkerVisibilityFilter,
     showAllMarkers:showAllMarkers,
     hideAllMarkers:hideAllMarkers,
     clearMarkers:clearMarkers,
