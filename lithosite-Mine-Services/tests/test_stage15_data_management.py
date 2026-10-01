@@ -10,7 +10,7 @@ def test_stage15_data_management_ui_contract():
     assert "Data Manage" in html
     assert "Import Data" in module
     assert "Backup / Restore" in module
-    assert "data-management.js?v=20260930" in html
+    assert "data-management.js?v=20261001" in html
     assert "LithositeDataManagement" in module
     assert "operation: 'IMPORT_XLSX'" in module
     assert "operation: 'BACKUP'" in module
