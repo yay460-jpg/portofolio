@@ -26,6 +26,18 @@
     OTHER:{label:'Other',category:'Other'}
   };
 
+  var DOMAIN_LINK_DEFINITIONS = {
+    HSE:'HSE',
+    ASSET:'Equipment',
+    WORKFRONT:'WorkFront',
+    FACILITY:'Facility',
+    STOCKPILE:'Stockpile',
+    DISPOSAL:'Disposal',
+    DRAINAGE:'Drainage',
+    WORKSHOP:'Workshop',
+    OTHER:'Other'
+  };
+
   var VALID_STATUS = ['ACTIVE','INACTIVE','REMOVED'];
   var markers = {};
   var sequence = 0;
@@ -74,6 +86,20 @@
         label:definition.label,
         category:definition.category
       };
+    });
+  }
+
+  function getDomainLinkDefinition(type){
+    var normalized=normalizeType(type);
+    return {
+      marker_type:normalized,
+      source_entity:DOMAIN_LINK_DEFINITIONS[normalized]
+    };
+  }
+
+  function listDomainLinkDefinitions(){
+    return TYPES.map(function(type){
+      return getDomainLinkDefinition(type);
     });
   }
 
@@ -141,6 +167,35 @@
     next.marker_id=id;
     markers[id]=next;
     return clone(next);
+  }
+
+  function setMarkerSource(markerId, sourceEntity, sourceId){
+    var id=String(markerId||'').trim();
+    if(!markers[id])throw new Error('Marker not found: '+id);
+    var entity=String(sourceEntity||'').trim();
+    var source=String(sourceId||'').trim();
+    if(!entity || !source)throw new Error('Marker domain link requires source_entity and source_id');
+    return updateMarker(id,{
+      source_entity:entity,
+      source_id:source
+    });
+  }
+
+  function getMarkerSource(markerId){
+    var marker=getMarker(markerId);
+    if(!marker)return null;
+    return {
+      marker_id:marker.marker_id,
+      marker_type:marker.marker_type,
+      source_entity:marker.source_entity,
+      source_id:marker.source_id
+    };
+  }
+
+  function resolveMarkerLink(markerId){
+    var link=getMarkerSource(markerId);
+    if(!link || !link.source_entity || !link.source_id)return null;
+    return link;
   }
 
   function removeMarker(markerId){
@@ -304,12 +359,18 @@
   global.MineServicesMarkerLocation={
     TYPES:TYPES.slice(),
     TYPE_DEFINITIONS:listMarkerTypeDefinitions(),
+    DOMAIN_LINK_DEFINITIONS:listDomainLinkDefinitions(),
     getMarkerTypeDefinition:getMarkerTypeDefinition,
     listMarkerTypeDefinitions:listMarkerTypeDefinitions,
+    getDomainLinkDefinition:getDomainLinkDefinition,
+    listDomainLinkDefinitions:listDomainLinkDefinitions,
     createMarker:createMarker,
     placeMarker:placeMarker,
     setMarkerLocation:setMarkerLocation,
     updateMarker:updateMarker,
+    setMarkerSource:setMarkerSource,
+    getMarkerSource:getMarkerSource,
+    resolveMarkerLink:resolveMarkerLink,
     removeMarker:removeMarker,
     getMarker:getMarker,
     listMarkers:listMarkers,
