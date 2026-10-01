@@ -14,6 +14,18 @@
     'OTHER'
   ];
 
+  var TYPE_DEFINITIONS = {
+    HSE:{label:'HSE',category:'HSE'},
+    ASSET:{label:'Asset / Equipment',category:'Asset / Equipment'},
+    FACILITY:{label:'Facility',category:'Facility'},
+    WORKFRONT:{label:'WorkFront',category:'WorkFront'},
+    STOCKPILE:{label:'Stockpile',category:'Stockpile'},
+    DISPOSAL:{label:'Disposal',category:'Disposal'},
+    DRAINAGE:{label:'Drainage',category:'Drainage'},
+    WORKSHOP:{label:'Workshop',category:'Workshop'},
+    OTHER:{label:'Other',category:'Other'}
+  };
+
   var VALID_STATUS = ['ACTIVE','INACTIVE','REMOVED'];
   var markers = {};
   var sequence = 0;
@@ -39,6 +51,29 @@
     var copy={};
     Object.keys(marker).forEach(function(key){ copy[key]=marker[key]; });
     return copy;
+  }
+
+  function cloneDefinition(definition){
+    return {
+      label:definition.label,
+      category:definition.category
+    };
+  }
+
+  function getMarkerTypeDefinition(type){
+    var normalized=normalizeType(type);
+    return cloneDefinition(TYPE_DEFINITIONS[normalized]);
+  }
+
+  function listMarkerTypeDefinitions(){
+    return TYPES.map(function(type){
+      var definition=getMarkerTypeDefinition(type);
+      return {
+        marker_type:type,
+        label:definition.label,
+        category:definition.category
+      };
+    });
   }
 
   function nextId(){
@@ -187,6 +222,7 @@
       }
       el.textContent=marker.label;
       el.dataset.markerType=marker.marker_type;
+      el.dataset.markerCategory=getMarkerTypeDefinition(marker.marker_type).category;
       el.style.left=projected.x+'px';
       el.style.top=projected.y+'px';
       el.classList.add('is-visible');
@@ -202,6 +238,9 @@
 
   global.MineServicesMarkerLocation={
     TYPES:TYPES.slice(),
+    TYPE_DEFINITIONS:listMarkerTypeDefinitions(),
+    getMarkerTypeDefinition:getMarkerTypeDefinition,
+    listMarkerTypeDefinitions:listMarkerTypeDefinitions,
     createMarker:createMarker,
     placeMarker:placeMarker,
     setMarkerLocation:setMarkerLocation,
