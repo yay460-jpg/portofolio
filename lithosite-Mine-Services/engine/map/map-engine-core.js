@@ -1,15 +1,3 @@
-/* ============================================================
- * MINE SERVICES — Standalone Map Engine
- * Stage 19.3 — Map Engine Core
- *
- * Lithosite engine pattern:
- * - instance-owned state
- * - explicit lifecycle
- * - no DOM dependency
- * - renderer boundary
- * - platform-neutral runtime
- * ============================================================ */
-
 (function (global) {
   'use strict';
 
@@ -39,9 +27,12 @@
     this.viewport = null;
     this.layers = new Map();
     this.renderer = null;
+    this.model = options.model || null;
+    this.navigation = options.navigation || null;
+    this.interaction = options.interaction || null;
     this.meta = Object.freeze({
       name: 'MineServicesMapEngine',
-      version: '0.1.0'
+      version: '0.2.0'
     });
   }
 
@@ -59,6 +50,9 @@
     if (config.crs !== undefined) this.crs = config.crs;
     if (config.viewport !== undefined) this.viewport = clone(config.viewport);
     if (config.renderer !== undefined) this.renderer = config.renderer;
+    if (config.model !== undefined) this.model = config.model;
+    if (config.navigation !== undefined) this.navigation = config.navigation;
+    if (config.interaction !== undefined) this.interaction = config.interaction;
 
     this.state = STATES.PREPARED;
     return this;
@@ -77,6 +71,9 @@
 
   MineServicesMapEngine.prototype.getViewport = function () {
     this._assertAlive();
+    if (this.navigation && typeof this.navigation.getViewport === 'function') {
+      return this.navigation.getViewport();
+    }
     return clone(this.viewport);
   };
 
@@ -88,6 +85,13 @@
     if (viewport.width !== undefined) finite(viewport.width, 'viewport.width');
     if (viewport.height !== undefined) finite(viewport.height, 'viewport.height');
     if (viewport.zoom !== undefined) finite(viewport.zoom, 'viewport.zoom');
+
+    if (this.navigation && typeof this.navigation.setViewport === 'function') {
+      const next = this.navigation.setViewport(viewport);
+      this.viewport = clone(next);
+      return clone(next);
+    }
+
     this.viewport = clone(viewport);
     return this.getViewport();
   };
@@ -104,6 +108,48 @@
   MineServicesMapEngine.prototype.getRenderer = function () {
     this._assertAlive();
     return this.renderer;
+  };
+
+  MineServicesMapEngine.prototype.setModel = function (model) {
+    this._assertAlive();
+    if (model !== null && (typeof model !== 'object' || typeof model.snapshot !== 'function')) {
+      throw new TypeError('model must expose snapshot() or be null');
+    }
+    this.model = model;
+    return this;
+  };
+
+  MineServicesMapEngine.prototype.getModel = function () {
+    this._assertAlive();
+    return this.model;
+  };
+
+  MineServicesMapEngine.prototype.setNavigation = function (navigation) {
+    this._assertAlive();
+    if (navigation !== null && typeof navigation !== 'object') {
+      throw new TypeError('navigation must be an object or null');
+    }
+    this.navigation = navigation;
+    return this;
+  };
+
+  MineServicesMapEngine.prototype.getNavigation = function () {
+    this._assertAlive();
+    return this.navigation;
+  };
+
+  MineServicesMapEngine.prototype.setInteraction = function (interaction) {
+    this._assertAlive();
+    if (interaction !== null && typeof interaction !== 'object') {
+      throw new TypeError('interaction must be an object or null');
+    }
+    this.interaction = interaction;
+    return this;
+  };
+
+  MineServicesMapEngine.prototype.getInteraction = function () {
+    this._assertAlive();
+    return this.interaction;
   };
 
   MineServicesMapEngine.prototype.addLayer = function (layer) {
@@ -140,7 +186,16 @@
     if (this.renderer && typeof this.renderer.destroy === 'function') {
       this.renderer.destroy();
     }
+    if (this.navigation && typeof this.navigation.destroy === 'function') {
+      this.navigation.destroy();
+    }
+    if (this.interaction && typeof this.interaction.destroy === 'function') {
+      this.interaction.destroy();
+    }
     this.renderer = null;
+    this.navigation = null;
+    this.interaction = null;
+    this.model = null;
     this.layers.clear();
     this.viewport = null;
     this.crs = null;
