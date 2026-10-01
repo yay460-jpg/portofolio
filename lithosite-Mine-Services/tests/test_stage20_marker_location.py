@@ -18,6 +18,9 @@ def test_stage20_marker_location_model_exists_and_is_centralized():
     assert "listMarkers" in js
     assert "getVisibleMarkers" in js
     assert "clearMarkers" in js
+    assert "renderMarkers" in js
+    assert "projectCoordinate(marker.easting,marker.northing,marker.elevation)" in js
+    assert "map-marker-layer" in js
 
 
 def test_stage20_marker_location_contract_has_all_domain_types():
@@ -80,4 +83,5 @@ def test_stage20_marker_location_css_is_namespaced_and_inert_until_loaded():
 
     assert ".map-location-marker" in css
     assert ".map-location-marker__label" in css
+    assert ".map-marker-layer" in css
     assert "Intentionally not loaded by V32 Stage 20 yet" in css
