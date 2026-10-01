@@ -159,3 +159,33 @@
   background:#15304d;
   color:#fff;
 }
+
+#dashboardSiteMap .topo3d-north{
+  position:absolute;
+  right:10px;
+  top:48px;
+  z-index:5;
+  min-width:86px;
+  padding:6px 7px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  background:#071321e8;
+  color:#dbe8f5;
+  font:700 8px/1.2 Arial,sans-serif;
+  text-align:center;
+  box-shadow:0 2px 8px #02081255;
+  pointer-events:none;
+}
+#dashboardSiteMap .topo3d-north-arrow{
+  display:block;
+  height:24px;
+  font:900 25px/24px Arial,sans-serif;
+  transform-origin:50% 50%;
+  transition:transform .08s linear;
+}
+#dashboardSiteMap .topo3d-north #dashboardTopo3DNorthLabel{
+  display:block;
+  color:#9fb4ca;
+  margin-top:2px;
+  white-space:nowrap;
+}
