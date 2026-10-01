@@ -22,6 +22,16 @@
   padding:0;
 }
 .map-location-marker.is-visible{display:inline-flex;}
+.map-location-marker{color:var(--marker-accent,#8ea3ba);}
+.map-location-marker.marker-type-hse{--marker-accent:#ff6b6b;}
+.map-location-marker.marker-type-asset{--marker-accent:#4da3ff;}
+.map-location-marker.marker-type-facility{--marker-accent:#a78bfa;}
+.map-location-marker.marker-type-workfront{--marker-accent:#22c55e;}
+.map-location-marker.marker-type-stockpile{--marker-accent:#f59e0b;}
+.map-location-marker.marker-type-disposal{--marker-accent:#fb7185;}
+.map-location-marker.marker-type-drainage{--marker-accent:#38bdf8;}
+.map-location-marker.marker-type-workshop{--marker-accent:#f97316;}
+.map-location-marker.marker-type-other{--marker-accent:#94a3b8;}
 .map-location-marker::before{
   content:"";
   width:18px;
@@ -29,7 +39,7 @@
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  border:2px solid currentColor;
+  border:2px solid var(--marker-accent);
   border-radius:50% 50% 50% 0;
   transform:rotate(-45deg);
   background:rgba(11,23,39,.94);
@@ -43,7 +53,7 @@
   width:6px;
   height:6px;
   border-radius:50%;
-  background:currentColor;
+  background:var(--marker-accent);
 }
 .map-location-marker.is-selected{
   outline:2px solid currentColor;
