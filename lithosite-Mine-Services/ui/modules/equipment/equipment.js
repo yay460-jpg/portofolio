@@ -14,6 +14,10 @@ function setMsg(text,error){
  const el=document.getElementById('equipmentRuntimeMsg');
  if(el){el.textContent=text;el.classList.toggle('error',!!error);}
 }
+function setMapMsg(text,error){
+ const el=document.getElementById('equipmentMapMsg');
+ if(el){el.textContent=text;el.classList.toggle('error',!!error);}
+}
 function fillSelect(id,items,empty){
  const el=document.getElementById(id);
  const current=el.value;
@@ -177,7 +181,7 @@ function bind(){
   const showMap=e.target.closest('.show-map-equipment');if(showMap){
    const api=global.MineServicesMarkerLocation;
    const result=api&&typeof api.showDomainRecordOnMap==='function'?api.showDomainRecordOnMap('Equipment',showMap.dataset.id):{ok:false,status:'MAP_INTERACTION_UNAVAILABLE'};
-   setMsg(result.ok?'Equipment '+showMap.dataset.id+' shown on Map.':'Spatial location not assigned for Equipment '+showMap.dataset.id+'.',!result.ok);
+   setMapMsg(result.ok?'Equipment '+showMap.dataset.id+' shown on Map.':'Spatial location not assigned for Equipment '+showMap.dataset.id+'.',!result.ok);
    return;
   }
   const edit=e.target.closest('.edit-equipment');if(edit)openEdit(edit.dataset.id);
