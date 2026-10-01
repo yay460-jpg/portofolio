@@ -1,10 +1,9 @@
 /* Lithosite Mine Services — V30 Settings module
-   Experimental isolated Settings layout.
-   This intentionally reproduces the V30 Settings grid stabilization
-   that previously required inline HTML CSS, but now lives here.
-   V30 shell/layout remains untouched.
+   Visual redesign proof for isolated module styling.
+   IMPORTANT: V30 shell, workspace and navigation are not modified here.
 */
 
+/* --- Settings screen containment --- */
 #settingsScreen{
   position:relative;
   flex:1 1 auto;
@@ -26,10 +25,11 @@
   overflow:auto;
 }
 
+/* --- Desktop Master two-column layout --- */
 .settings-grid{
   display:grid!important;
   grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  gap:10px;
+  gap:12px;
   min-height:0;
   align-items:start;
   width:100%;
@@ -41,38 +41,81 @@
   width:100%;
   box-sizing:border-box;
   align-self:start;
+  overflow:hidden;
+  border:1px solid #294762!important;
+  border-radius:10px!important;
+  background:linear-gradient(180deg,#11243a 0%,#0d1e31 100%)!important;
+  box-shadow:0 6px 18px rgba(0,0,0,.16);
 }
 
+/* --- Panel headers: clearer module hierarchy --- */
+.settings-panel .panelhead{
+  min-height:38px;
+  padding:0 13px!important;
+  display:flex;
+  align-items:center;
+  border-bottom:1px solid #294762!important;
+  background:linear-gradient(90deg,#142b44 0%,#102238 100%)!important;
+}
+
+.settings-panel .ptitle{
+  font-size:10px!important;
+  font-weight:700;
+  letter-spacing:.35px;
+  text-transform:uppercase;
+  color:#dce9f6;
+}
+
+/* Small accent line differentiates the two columns without touching shell */
+.settings-panel:nth-child(1) .panelhead{
+  box-shadow:inset 3px 0 0 #5aa9ff;
+}
+
+.settings-panel:nth-child(2) .panelhead{
+  box-shadow:inset 3px 0 0 #f59e0b;
+}
+
+/* --- Setting rows --- */
 .settings-body{
-  padding:8px 12px;
+  padding:5px 12px 7px!important;
 }
 
 .setting-row{
-  min-height:48px;
+  min-height:52px;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:14px;
+  gap:18px;
+  padding:4px 2px;
   border-bottom:1px solid #223b55;
+  box-sizing:border-box;
 }
 
 .setting-row:last-child{
   border-bottom:0;
 }
 
+.setting-row > div:first-child{
+  min-width:0;
+}
+
 .setting-row b{
   display:block;
   font-size:10px;
+  line-height:1.2;
+  color:#e5eef8;
 }
 
 .setting-row small{
   display:block;
-  margin-top:3px;
+  margin-top:4px;
   color:#8ea3ba;
   font-size:8.5px;
+  line-height:1.25;
 }
 
 .setting-value{
+  flex:0 0 auto;
   font-size:9px;
   color:#dbe8f5;
   white-space:nowrap;
@@ -86,29 +129,46 @@
   color:#4ade80;
 }
 
+/* --- Controls --- */
 .settings-body select{
+  flex:0 0 auto;
+  min-width:94px;
   height:30px;
-  border:1px solid #29435d;
+  border:1px solid #355572;
   border-radius:7px;
-  background:#0c1b2c;
+  background:#0a1929;
   color:#dce8f5;
-  padding:0 8px;
+  padding:0 9px;
   font:inherit;
   font-size:9px;
+  outline:none;
+}
+
+.settings-body select:hover{
+  border-color:#5a7c9d;
+}
+
+.settings-body select:focus{
+  border-color:#63b3ff;
+  box-shadow:0 0 0 2px rgba(99,179,255,.12);
+}
+
+/* Local Preferences becomes an intentional information panel */
+.settings-panel:nth-child(4) .settings-body{
+  min-height:92px;
+  display:flex;
+  align-items:flex-start;
+  padding:17px 13px!important;
+  color:#c9d8e8;
+  font-size:10px;
+  line-height:1.55;
 }
 
 #settingsMessage{
-  margin-top:2px;
+  margin-top:4px;
 }
 
-/* Preserve two-column Desktop Master layout on normal desktop widths.
-   Collapse only at genuinely narrow viewport widths. */
-@media(max-width:700px){
-  .settings-grid{
-    grid-template-columns:1fr;
-  }
-}
-
+/* Optional module status hook */
 .settings-module-status{
   font-size:9px;
   color:#8ea3ba;
@@ -116,4 +176,11 @@
 
 .settings-module-status.ready{
   color:#4ade80;
+}
+
+/* Collapse only at genuinely narrow widths */
+@media(max-width:700px){
+  .settings-grid{
+    grid-template-columns:1fr;
+  }
 }
