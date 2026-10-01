@@ -153,3 +153,9 @@
 #dashboardSiteMap .topo3d-guide div{color:#9fb4ca}
 #dashboardSiteMap .topo3d-guide #dashboardTopo3DGuideStatus{margin-bottom:5px;color:#dbe8f5}
 #dashboardSiteMap .topo3d-guide b{color:#dbe8f5}
+
+#dashboardSiteMap .topo3d-toolbar button.is-active{
+  border-color:#5b9aff;
+  background:#15304d;
+  color:#fff;
+}
