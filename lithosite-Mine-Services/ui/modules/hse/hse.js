@@ -117,7 +117,7 @@ function render(){
    '<div class="cell">'+esc(r.action)+'</div>'+
    '<div class="cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
    '<div class="cell">'+esc(r.closed_at)+'</div>'+
-   '<div class="cell row-actions"><button class="control mini edit-hse" data-id="'+esc(r.hse_id)+'">Edit</button><button class="control mini danger delete-hse" data-id="'+esc(r.hse_id)+'">Delete</button></div>'+
+   '<div class="cell row-actions"><button class="control mini show-map-hse" data-id="'+esc(r.hse_id)+'">Show on Map</button><button class="control mini edit-hse" data-id="'+esc(r.hse_id)+'">Edit</button><button class="control mini danger delete-hse" data-id="'+esc(r.hse_id)+'">Delete</button></div>'+
   '</div>').join(''):'<div class="empty">No HSE records match the current filters.</div>';
   document.getElementById('hseCount').textContent=rows.length+' records · Runtime Ready';
  }
@@ -236,6 +236,12 @@ function bind(){
  });
  document.getElementById('f_hse_status').addEventListener('change',syncClosedAtField);
  document.getElementById('hseRows').addEventListener('click',e=>{
+  const showMap=e.target.closest('.show-map-hse');if(showMap){
+   const api=global.MineServicesMarkerLocation;
+   const result=api&&typeof api.showDomainRecordOnMap==='function'?api.showDomainRecordOnMap('HSE',showMap.dataset.id):{ok:false,status:'MAP_INTERACTION_UNAVAILABLE'};
+   setMsg(result.ok?'HSE '+showMap.dataset.id+' shown on Map.':'Spatial location not assigned for HSE '+showMap.dataset.id+'.',!result.ok);
+   return;
+  }
   const edit=e.target.closest('.edit-hse');if(edit)openEdit(edit.dataset.id);
   const del=e.target.closest('.delete-hse');if(del)remove(del.dataset.id);
  });
