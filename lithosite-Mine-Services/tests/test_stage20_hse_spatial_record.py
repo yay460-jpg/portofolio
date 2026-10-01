@@ -21,7 +21,7 @@ def test_stage20_hse_spatial_record_requires_hse_id():
     js = MARKER_JS.read_text(encoding="utf-8")
 
     start = js.index("function createHSESpatialMarker")
-    end = js.index("function findMarkersBySource", start)
+    end = js.index("function resolveDomainSpatialLink", start)
     block = js[start:end]
 
     assert "HSE spatial marker requires hse_id" in block
