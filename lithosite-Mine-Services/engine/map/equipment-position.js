@@ -55,8 +55,8 @@
       status: config.status === undefined ? '' : String(config.status),
       position,
       crs: position.crs,
-      heading,
-      elevation,
+      heading: heading,
+      elevation: elevation,
       metadata: Object.freeze(clone(config.metadata || {}))
     });
   }
