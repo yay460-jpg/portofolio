@@ -10,6 +10,7 @@ let runtimeReady=false;
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function setMsg(text,error){const el=document.getElementById('hseRuntimeMsg');if(el){el.textContent=text;el.classList.toggle('error',!!error);}}
+function setMapMsg(text,error){const el=document.getElementById('hseMapMsg');if(el){el.textContent=text;el.classList.toggle('error',!!error);}}
 function fillSelect(id,items,empty){
  const el=document.getElementById(id);if(!el)return;
  const cur=el.value;
@@ -239,7 +240,7 @@ function bind(){
   const showMap=e.target.closest('.show-map-hse');if(showMap){
    const api=global.MineServicesMarkerLocation;
    const result=api&&typeof api.showDomainRecordOnMap==='function'?api.showDomainRecordOnMap('HSE',showMap.dataset.id):{ok:false,status:'MAP_INTERACTION_UNAVAILABLE'};
-   setMsg(result.ok?'HSE '+showMap.dataset.id+' shown on Map.':'Spatial location not assigned for HSE '+showMap.dataset.id+'.',!result.ok);
+   setMapMsg(result.ok?'HSE '+showMap.dataset.id+' shown on Map.':'Spatial location not assigned for HSE '+showMap.dataset.id+'.',!result.ok);
    return;
   }
   const edit=e.target.closest('.edit-hse');if(edit)openEdit(edit.dataset.id);
