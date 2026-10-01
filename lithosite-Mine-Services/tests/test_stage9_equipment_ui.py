@@ -1,9 +1,9 @@
 from pathlib import Path
 
-ARTIFACT = Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v30-LOCKED.html"
+ARTIFACT = Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v31-LOCKED.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 EQUIPMENT_JS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.js").read_text(encoding="utf-8")
-SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation-v30.js").read_text(encoding="utf-8")
+SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation-v31.js").read_text(encoding="utf-8")
 
 
 def test_stage9_equipment_screen_exists():
@@ -60,7 +60,7 @@ def test_stage9_navigation_and_shell_guard_available():
     assert "equipmentScreen" in TEXT
     assert "let currentScreen = 'Dashboard';" in SHELL_JS
     assert "validateShellContract" in SHELL_JS
-    assert "const STORAGE_KEY = 'lithosite-v30-active-screen';" in SHELL_JS
+    assert "const STORAGE_KEY = 'lithosite-v31-active-screen';" in SHELL_JS
     assert "readInitialScreen" in SHELL_JS
     assert "setScreen(readInitialScreen(), false);" in SHELL_JS
     assert "dashboardScreen" in SHELL_JS
