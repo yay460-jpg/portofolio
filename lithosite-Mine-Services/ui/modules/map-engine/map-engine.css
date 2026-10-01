@@ -118,6 +118,32 @@
   outline:2px solid #5b9aff;
   outline-offset:1px;
 }
+#dashboardSiteMap .topo3d-measure-trigger{
+  position:absolute;
+  right:44px;
+  bottom:10px;
+  z-index:6;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:1px solid #29435d;
+  border-radius:50%;
+  background:#071321e8;
+  color:#9fb4ca;
+  font:900 15px/24px Arial,sans-serif;
+  text-align:center;
+  cursor:pointer;
+  box-shadow:0 2px 8px #02081255;
+}
+#dashboardSiteMap .topo3d-measure-trigger:hover{
+  border-color:#4d8dff;
+  background:#10243a;
+  color:#dbe8f5;
+}
+#dashboardSiteMap .topo3d-measure-trigger:focus-visible{
+  outline:2px solid #5b9aff;
+  outline-offset:1px;
+}
 #dashboardSiteMap .topo3d-guide{
   position:absolute;
   right:10px;
@@ -191,8 +217,30 @@
 }
 #dashboardSiteMap .topo3d-measure{
   position:absolute;
-  left:10px;
-  top:48px;
+  right:10px;
+  bottom:44px;
+  z-index:6;
+  width:220px;
+  box-sizing:border-box;
+  padding:7px 8px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  background:#071321f5;
+  color:#dbe8f5;
+  font:700 8px/1.2 Arial,sans-serif;
+  box-shadow:0 4px 14px #02081266;
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(4px);
+  transition:opacity .14s ease,transform .14s ease,visibility .14s ease;
+  pointer-events:none;
+}
+#dashboardSiteMap .topo3d-measure.open{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+  pointer-events:auto;
+}
   z-index:5;
   width:220px;
   box-sizing:border-box;
