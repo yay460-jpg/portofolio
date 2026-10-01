@@ -1,0 +1,17 @@
+/* Lithosite Mine Services — Central marker-location presentation contract.
+   Intentionally not loaded by V32 Stage 20 yet; 20.8C is model-only. */
+.map-location-marker{
+  position:absolute;
+  display:none;
+  pointer-events:auto;
+  transform:translate(-50%,-100%);
+  z-index:20;
+}
+.map-location-marker.is-visible{display:block;}
+.map-location-marker__label{
+  white-space:nowrap;
+  font-size:11px;
+  line-height:1.2;
+  padding:2px 5px;
+  border-radius:3px;
+}
