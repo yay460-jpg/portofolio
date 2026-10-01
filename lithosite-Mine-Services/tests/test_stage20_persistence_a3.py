@@ -1,14 +1,46 @@
 import sys
 from pathlib import Path
 
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from mine_services.persistence import PersistenceStore
-from mine_services.schema import SCHEMA_VERSION
+from mine_services.schema import SCHEMA_VERSION, SHEETS, HEADERS
 from mine_services import schema_a3
 from mine_services.schema_migration import migrate_a2_to_a3
+
+
+def make_a2_workbook(path: Path):
+    wb = Workbook()
+    wb.remove(wb.active)
+
+    for sheet in SHEETS:
+        ws = wb.create_sheet(sheet)
+        if sheet in HEADERS:
+            ws.append(HEADERS[sheet])
+        elif sheet == "_System":
+            ws.append(["schema_version", "A.2"])
+        elif sheet == "_Lists":
+            ws.append(["equipment_category"])
+            ws.append(["Heavy Equipment"])
+        elif sheet == "_Baseline":
+            ws.append(["baseline"])
+            ws.append(["A.2 baseline"])
+
+    wb["Equipment"].append([
+        "EQ-MIG-001", "DT-MIG-001", "Heavy Equipment", "Dump Truck",
+        "Owner", None, "Active", None, None
+    ])
+    wb["HSE"].append([
+        "HSE-MIG-001", None, "Road & Hauling", None, "Incident",
+        "High", "migration test", None, "Open", None
+    ])
+    wb["AuditLog"].append([
+        "AUD-MIG-001", None, "HSE", "HSE-MIG-001", "CREATE",
+        None, "preserve", "test"
+    ])
+    wb.save(path)
 
 
 def test_stage20_a3_persistence_store_is_opt_in():
@@ -41,9 +73,8 @@ def test_stage20_a3_persistence_store_holds_mapmarker_in_memory():
 def test_stage20_a3_persistence_store_roundtrips_migrated_workbook(tmp_path):
     source = tmp_path / "source-a2.xlsx"
     target = tmp_path / "target-a3.xlsx"
-
-    from tests.test_stage20_schema_migration import make_a2_workbook
     make_a2_workbook(source)
+
     migrate_a2_to_a3(source, target)
 
     store = PersistenceStore(target, schema_module=schema_a3)
@@ -68,7 +99,9 @@ def test_stage20_a3_persistence_store_roundtrips_migrated_workbook(tmp_path):
 
     saved = load_workbook(target, data_only=True)
     marker_rows = list(saved["MapMarker"].values)
-    assert marker_rows[1] == tuple(row[field] for field in schema_a3.HEADERS["MapMarker"])
+    assert marker_rows[1] == tuple(
+        row[field] for field in schema_a3.HEADERS["MapMarker"]
+    )
 
 
 def test_stage20_a3_persistence_store_rejects_a2_workbook():
