@@ -88,6 +88,19 @@
         marker.classList.add('visible');
       }
     }
+    function syncPickedMarkers(){
+      if(!engine)return;
+      ['A','B'].forEach(function(label){
+        var point=pickedPoints[label];
+        var marker=host.querySelector('#dashboardTopo3DPoint'+label);
+        if(!point||!marker)return;
+        var p=engine.projectCoordinate(point.easting,point.northing,point.elevation);
+        if(!p||!p.inside){marker.classList.remove('visible');return;}
+        marker.style.left=p.x+'px';
+        marker.style.top=p.y+'px';
+        marker.classList.add('visible');
+      });
+    }
     function setPickMode(label){
       activePickPoint=label;
       ['A','B'].forEach(function(key){
@@ -170,6 +183,7 @@
       engine=global.LithositeTopo3D.create({
         canvas:canvas,
         onStatus:function(message){setStatus(message);},
+        onRender:function(){syncPickedMarkers();},
         onReady:function(payload){setStatus('Topo3D siap. Menunggu data topografi…');if(payload&&payload.meta)updateCoordinateInfo(payload.meta);},
         onError:function(error){setStatus(error&&error.message?error.message:'Topo3D error','error');}
       });
