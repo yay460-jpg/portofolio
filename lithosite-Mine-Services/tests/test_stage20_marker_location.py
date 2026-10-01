@@ -95,6 +95,25 @@ def test_stage20_marker_location_domain_link_does_not_replace_spatial_coordinate
     assert "setMarkerLocation" not in link_block
 
 
+def test_stage20_marker_location_type_icons_are_centralized():
+    js = MARKER_JS.read_text(encoding="utf-8")
+    for marker_type, symbol in (
+        ("HSE", "⚠"),
+        ("ASSET", "◆"),
+        ("FACILITY", "⌂"),
+        ("WORKFRONT", "▦"),
+        ("STOCKPILE", "▲"),
+        ("DISPOSAL", "▼"),
+        ("DRAINAGE", "≋"),
+        ("WORKSHOP", "⚙"),
+        ("OTHER", "•"),
+    ):
+        assert "visual_symbol:'%s'" % symbol in js
+    assert "map-location-marker__icon" in js
+    assert "icon.textContent=typeDefinition.visual_symbol" in js
+    assert "label.textContent=marker.label" in js
+
+
 def test_stage20_marker_location_rendering_uses_central_type_definition():
     js = MARKER_JS.read_text(encoding="utf-8")
 
