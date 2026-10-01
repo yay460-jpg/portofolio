@@ -1,5 +1,5 @@
 /* Lithosite Mine Services — Central marker-location presentation contract.
-   Intentionally not loaded by V32 Stage 20 yet; 20.8C is model-only. */
+   Loaded by V32 Stage 20 as the centralized marker overlay presentation layer. */
 .map-marker-layer{
   position:absolute;
   inset:0;
@@ -16,8 +16,35 @@
   cursor:pointer;
   transform:translate(-50%,-100%);
   z-index:20;
+  align-items:center;
+  gap:4px;
+  white-space:nowrap;
+  padding:0;
 }
-.map-location-marker.is-visible{display:block;}
+.map-location-marker.is-visible{display:inline-flex;}
+.map-location-marker::before{
+  content:"";
+  width:18px;
+  height:18px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:2px solid currentColor;
+  border-radius:50% 50% 50% 0;
+  transform:rotate(-45deg);
+  background:rgba(11,23,39,.94);
+  box-shadow:0 2px 5px rgba(0,0,0,.35);
+}
+.map-location-marker::after{
+  content:"";
+  position:absolute;
+  left:7px;
+  top:6px;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:currentColor;
+}
 .map-location-marker.is-selected{
   outline:2px solid currentColor;
   outline-offset:2px;
@@ -28,4 +55,6 @@
   line-height:1.2;
   padding:2px 5px;
   border-radius:3px;
+  background:rgba(11,23,39,.9);
+  border:1px solid rgba(142,163,186,.35);
 }
