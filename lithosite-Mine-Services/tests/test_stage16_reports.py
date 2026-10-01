@@ -1,8 +1,8 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v28-STAGE16.html"
-SHELL = ROOT / "ui" / "shared" / "shell-navigation-v28.js"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v30-STAGE18.html"
+SHELL = ROOT / "ui" / "shared" / "shell-navigation-v30.js"
 MODULE = ROOT / "ui" / "modules" / "reports" / "reports.js"
 
 
@@ -18,7 +18,7 @@ def test_stage16_reports_shell_contract():
     text = SHELL.read_text(encoding="utf-8")
     assert "Reports: 'reportsScreen'" in text
     assert "'Reports'" in text
-    assert "lithosite-v28-active-screen" in text
+    assert "lithosite-v30-active-screen" in text
 
 
 def test_stage16_reports_runtime_contract():
