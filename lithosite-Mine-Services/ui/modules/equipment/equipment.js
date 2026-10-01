@@ -75,7 +75,7 @@ function render(){
     '<div class="cell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div>'+
     '<div class="cell">'+esc(r.effective_from)+'</div>'+
     '<div class="cell">'+esc(r.effective_to)+'</div>'+
-    '<div class="cell row-actions"><button class="control mini edit-equipment" data-id="'+esc(r.equipment_id)+'">Edit</button><button class="control mini danger delete-equipment" data-id="'+esc(r.equipment_id)+'">Delete</button></div>'+
+    '<div class="cell row-actions"><button class="control mini show-map-equipment" data-id="'+esc(r.equipment_id)+'">Show on Map</button><button class="control mini edit-equipment" data-id="'+esc(r.equipment_id)+'">Edit</button><button class="control mini danger delete-equipment" data-id="'+esc(r.equipment_id)+'">Delete</button></div>'+
    '</div>';
  }).join(''):'<div class="empty">No equipment matches the current filters.</div>';
    document.getElementById('equipmentCount').textContent=rows.length+' records · Runtime Ready';
@@ -174,6 +174,12 @@ function bind(){
  document.getElementById('equipmentClear').onclick=()=>{['equipmentIdFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
  ['equipmentIdFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
  document.getElementById('equipmentRows').addEventListener('click',e=>{
+  const showMap=e.target.closest('.show-map-equipment');if(showMap){
+   const api=global.MineServicesMarkerLocation;
+   const result=api&&typeof api.showDomainRecordOnMap==='function'?api.showDomainRecordOnMap('Equipment',showMap.dataset.id):{ok:false,status:'MAP_INTERACTION_UNAVAILABLE'};
+   setMsg(result.ok?'Equipment '+showMap.dataset.id+' shown on Map.':'Spatial location not assigned for Equipment '+showMap.dataset.id+'.',!result.ok);
+   return;
+  }
   const edit=e.target.closest('.edit-equipment');if(edit)openEdit(edit.dataset.id);
   const del=e.target.closest('.delete-equipment');if(del)remove(del.dataset.id);
  });
