@@ -1,15 +1,15 @@
 from pathlib import Path
 
-ARTIFACT = Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v29-STAGE17.html"
+ARTIFACT = Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v30-LOCKED.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 EQUIPMENT_JS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.js").read_text(encoding="utf-8")
-SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation-v29.js").read_text(encoding="utf-8")
+SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation-v30.js").read_text(encoding="utf-8")
 
 
 def test_stage9_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
-    assert "equipment.js?v=20261005" in TEXT
+    assert "equipment.js?v=20261001" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
@@ -60,7 +60,7 @@ def test_stage9_navigation_and_shell_guard_available():
     assert "equipmentScreen" in TEXT
     assert "let currentScreen = 'Dashboard';" in SHELL_JS
     assert "validateShellContract" in SHELL_JS
-    assert "const STORAGE_KEY = 'lithosite-v29-active-screen';" in SHELL_JS
+    assert "const STORAGE_KEY = 'lithosite-v30-active-screen';" in SHELL_JS
     assert "readInitialScreen" in SHELL_JS
     assert "setScreen(readInitialScreen(), false);" in SHELL_JS
     assert "dashboardScreen" in SHELL_JS
