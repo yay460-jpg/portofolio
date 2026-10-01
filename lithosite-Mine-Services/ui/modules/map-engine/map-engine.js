@@ -79,6 +79,8 @@
       var nEl=host.querySelector('#dashboardTopo3DMeasureN'+suffix);
       if(eEl)eEl.value=point.easting.toFixed(2);
       if(nEl)nEl.value=point.northing.toFixed(2);
+      var coordEl=host.querySelector('#dashboardTopo3DPoint'+label+'Coord');
+      if(coordEl)coordEl.textContent='E '+point.easting.toFixed(2)+' · N '+point.northing.toFixed(2);
       var marker=host.querySelector('#dashboardTopo3DPoint'+label);
       if(marker){
         marker.style.left=point.screenX+'px';
@@ -130,7 +132,7 @@
       }
       try{
         var m=geo.bearingDistance(fields[0],fields[1],fields[2],fields[3]);
-        result.textContent='Bearing '+m.bearingGridDeg.toFixed(2)+'° · Distance '+m.distanceMeters.toFixed(2)+' m';
+        result.innerHTML='<div class="measure-result-main">Bearing <b>'+m.bearingGridDeg.toFixed(2)+'°</b> · Distance <b>'+m.distanceMeters.toFixed(2)+' m</b></div><div class="measure-result-sub">A → B · Grid Bearing · Horizontal distance</div>';
       }catch(error){
         result.textContent=error&&error.message?error.message:'Measurement failed';
       }
