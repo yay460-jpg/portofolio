@@ -12,6 +12,8 @@ def test_stage20_marker_location_model_exists_and_is_centralized():
 
     assert "MineServicesMarkerLocation" in js
     assert "createMarker" in js
+    assert "placeMarker" in js
+    assert "setMarkerLocation" in js
     assert "updateMarker" in js
     assert "removeMarker" in js
     assert "getMarker" in js
@@ -57,6 +59,8 @@ def test_stage20_marker_location_contract_has_spatial_and_domain_fields():
         assert field in js
 
     assert "Marker coordinates must contain finite easting, northing, and elevation" in js
+    assert "Marker location must contain finite easting, northing, and elevation" in js
+    assert "setMarkerLocation(markerId,easting,northing,elevation)" in js
 
 
 def test_stage20_marker_location_visibility_is_non_destructive():
@@ -69,6 +73,15 @@ def test_stage20_marker_location_visibility_is_non_destructive():
     assert "visibility[normalized]=!!visible" in js
     assert "delete markers" in js
     assert "getVisibleMarkers" in js
+
+
+def test_stage20_marker_location_placement_uses_explicit_coordinates():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "return createMarker(input)" in js
+    assert "easting:Number(easting)" in js
+    assert "northing:Number(northing)" in js
+    assert "elevation:Number(elevation)" in js
 
 
 def test_stage20_marker_location_has_no_stage20_runtime_integration_yet():
