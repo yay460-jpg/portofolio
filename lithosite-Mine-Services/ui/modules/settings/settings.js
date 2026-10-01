@@ -4,7 +4,7 @@
   const STORAGE_KEY = 'lithosite-v30-settings';
 
   function readPreferences() {
-    let settings = { motion: 'normal', defaultScreen: 'Dashboard' };
+    let settings = { motion: 'normal', defaultScreen: 'Dashboard', sidebarStartup: 'compact' };
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) settings = Object.assign(settings, JSON.parse(raw));
@@ -16,18 +16,22 @@
     const settings = readPreferences();
     const motion = document.getElementById('settingsMotion');
     const defaultScreen = document.getElementById('settingsDefaultScreen');
+    const sidebarStartup = document.getElementById('settingsSidebarStartup');
 
     if (motion) motion.value = settings.motion;
     if (defaultScreen) defaultScreen.value = settings.defaultScreen;
+    if (sidebarStartup) sidebarStartup.value = settings.sidebarStartup || 'compact';
   }
 
   function save() {
     const motion = document.getElementById('settingsMotion');
     const defaultScreen = document.getElementById('settingsDefaultScreen');
+    const sidebarStartup = document.getElementById('settingsSidebarStartup');
 
     const settings = {
       motion: motion ? motion.value : 'normal',
-      defaultScreen: defaultScreen ? defaultScreen.value : 'Dashboard'
+      defaultScreen: defaultScreen ? defaultScreen.value : 'Dashboard',
+      sidebarStartup: sidebarStartup ? sidebarStartup.value : 'compact'
     };
 
     try {
@@ -62,7 +66,7 @@
   function init() {
     load();
 
-    ['settingsMotion', 'settingsDefaultScreen'].forEach(function (id) {
+    ['settingsMotion', 'settingsDefaultScreen', 'settingsSidebarStartup'].forEach(function (id) {
       const element = document.getElementById(id);
       if (element) element.addEventListener('change', save);
     });
