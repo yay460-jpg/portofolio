@@ -44,7 +44,7 @@ def test_grid_viewport_generation_uses_scale():
 
 
 def test_grid_options_are_validated():
-    assert "spacing must be greater than zero" in SOURCE
+    assert "field + ' must be greater than zero'" in SOURCE
     assert "majorEvery" in SOURCE
 
 
