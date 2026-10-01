@@ -7,23 +7,6 @@
     var canvas=host.querySelector('#dashboardTopo3DCanvas');
     if(!canvas)return;
     var status=host.querySelector('#dashboardTopo3DStatus');
-    var meta=host.querySelector('#dashboardTopo3DMeta');
-    var engine=null;
-    function setStatus(message,kind){
-      if(!status)return;
-      status.textContent=message;
-      status.classList.remove('ready','error');
-      if(kind)status.classList.add(kind);
-    }
-    function updateMeta(){
-      if(!meta||!engine)return;
-      var state=engine.getState();
-      if(!state.ready){meta.textContent='Topography belum dimuat';return;}
-      var m=state.meta||{},b=m.bounds||{};
-      meta.textContent='V '+Number(m.vertices||0).toLocaleString('id-ID')+
-        ' · T '+Number(m.triangles||0).toLocaleString('id-ID')+
-        ' · Z '+Number(b.minZ||0).toFixed(1)+'–'+Number(b.maxZ||0).toFixed(1);
-    }
     try{
       engine=global.LithositeTopo3D.create({
         canvas:canvas,
@@ -33,7 +16,6 @@
       });
       engine.prepare().then(function(){
         setStatus('Topo3D siap · pilih .ltdtm atau pasangan .dtm + .str');
-        updateMeta();
       }).catch(function(error){
         setStatus(error&&error.message?error.message:'WebGL tidak tersedia','error');
       });
@@ -44,7 +26,6 @@
           setStatus('Memuat data topografi…');
           await engine.loadFiles(input.files);
           engine.fit();
-          updateMeta();
           setStatus('Topography 3D siap','ready');
         }catch(error){
           setStatus(error&&error.message?error.message:'Gagal memuat topografi','error');
