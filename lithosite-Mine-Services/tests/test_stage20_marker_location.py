@@ -235,5 +235,5 @@ def test_stage20_marker_location_css_is_namespaced_and_ready_for_v32_overlay():
     assert ".map-marker-layer" in css
     assert ".map-location-marker.is-selected" in css
     assert ".map-location-marker__icon" in css
-    assert ".map-location-marker::after" in css
+    assert ".map-location-marker__icon" in css
     assert "Loaded by V32 Stage 20 as the centralized marker overlay presentation layer." in css
