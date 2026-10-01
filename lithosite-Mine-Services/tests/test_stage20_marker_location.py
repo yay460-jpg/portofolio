@@ -222,7 +222,7 @@ def test_stage20_marker_location_selection_is_id_based_and_non_spatial():
     assert "function clearSelectedMarker()" in js
     assert "function handleMarkerClick(markerElement)" in js
     assert "getAttribute('data-marker-id')" in js
-    assert "return selectMarker(id);" in js
+    assert "var marker=selectMarker(id);" in js
 
 
 def test_stage20_marker_location_selection_rejects_removed_markers():
@@ -257,7 +257,7 @@ def test_stage20_marker_location_is_integrated_into_v32_overlay_layer():
 
     assert "marker-location.js" in html
     assert "marker-location.css" in html
-    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261003") < html.index("../ui/modules/map-engine/map-engine.js?v=20261002")
+    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261004") < html.index("../ui/modules/map-engine/map-engine.js?v=20261002")
 
 
 def test_stage20_marker_location_css_is_namespaced_and_ready_for_v32_overlay():
