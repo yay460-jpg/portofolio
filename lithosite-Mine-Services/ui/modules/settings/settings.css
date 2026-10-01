@@ -3,7 +3,6 @@
    IMPORTANT: V30 shell, workspace and navigation are not modified here.
 */
 
-/* --- Settings screen containment --- */
 #settingsScreen{
   position:relative;
   flex:1 1 auto;
@@ -22,17 +21,20 @@
 .settings-boundary{
   flex:1 1 auto!important;
   min-height:0;
-  overflow:auto;
+  overflow:hidden;
+  box-sizing:border-box;
 }
 
 /* --- Desktop Master two-column layout --- */
 .settings-grid{
   display:grid!important;
   grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  gap:12px;
+  gap:10px;
   min-height:0;
   align-items:start;
   width:100%;
+  max-height:calc(100% - 46px);
+  overflow:hidden;
   box-sizing:border-box;
 }
 
@@ -48,7 +50,6 @@
   box-shadow:0 6px 18px rgba(0,0,0,.16);
 }
 
-/* --- Panel headers: clearer module hierarchy --- */
 .settings-panel .panelhead{
   min-height:38px;
   padding:0 13px!important;
@@ -66,7 +67,6 @@
   color:#dce9f6;
 }
 
-/* Small accent line differentiates the two columns without touching shell */
 .settings-panel:nth-child(1) .panelhead{
   box-shadow:inset 3px 0 0 #5aa9ff;
 }
@@ -75,18 +75,17 @@
   box-shadow:inset 3px 0 0 #f59e0b;
 }
 
-/* --- Setting rows --- */
 .settings-body{
-  padding:5px 12px 7px!important;
+  padding:4px 12px 5px!important;
 }
 
 .setting-row{
-  min-height:52px;
+  min-height:48px;
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:18px;
-  padding:4px 2px;
+  padding:3px 2px;
   border-bottom:1px solid #223b55;
   box-sizing:border-box;
 }
@@ -108,10 +107,10 @@
 
 .setting-row small{
   display:block;
-  margin-top:4px;
+  margin-top:3px;
   color:#8ea3ba;
   font-size:8.5px;
-  line-height:1.25;
+  line-height:1.2;
 }
 
 .setting-value{
@@ -129,7 +128,6 @@
   color:#4ade80;
 }
 
-/* --- Controls --- */
 .settings-body select{
   flex:0 0 auto;
   min-width:94px;
@@ -153,22 +151,20 @@
   box-shadow:0 0 0 2px rgba(99,179,255,.12);
 }
 
-/* Local Preferences becomes an intentional information panel */
 .settings-panel:nth-child(4) .settings-body{
   min-height:92px;
   display:flex;
   align-items:flex-start;
-  padding:17px 13px!important;
+  padding:15px 13px!important;
   color:#c9d8e8;
   font-size:10px;
-  line-height:1.55;
+  line-height:1.45;
 }
 
 #settingsMessage{
   margin-top:4px;
 }
 
-/* Optional module status hook */
 .settings-module-status{
   font-size:9px;
   color:#8ea3ba;
@@ -178,9 +174,14 @@
   color:#4ade80;
 }
 
-/* Collapse only at genuinely narrow widths */
 @media(max-width:700px){
   .settings-grid{
     grid-template-columns:1fr;
+    max-height:none;
+    overflow:visible;
+  }
+
+  .settings-boundary{
+    overflow:auto;
   }
 }
