@@ -199,11 +199,12 @@ def test_stage20_marker_location_placement_uses_explicit_coordinates():
     assert "elevation:Number(elevation)" in js
 
 
-def test_stage20_marker_location_has_no_stage20_runtime_integration_yet():
+def test_stage20_marker_location_is_integrated_into_v32_overlay_layer():
     html = ARTIFACT.read_text(encoding="utf-8")
 
-    assert "marker-location.js" not in html
-    assert "marker-location.css" not in html
+    assert "marker-location.js" in html
+    assert "marker-location.css" in html
+    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261002") < html.index("../ui/modules/map-engine/map-engine.js?v=20261002")
 
 
 def test_stage20_marker_location_css_is_namespaced_and_inert_until_loaded():
