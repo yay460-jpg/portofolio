@@ -396,11 +396,63 @@
     return selectedMarkerId?getMarker(selectedMarkerId):null;
   }
 
+  function ensureDomainPopup(container){
+    if(!container)return null;
+    var popup=container.querySelector('.map-marker-domain-popup');
+    if(popup)return popup;
+    popup=document.createElement('div');
+    popup.className='map-marker-domain-popup';
+    popup.hidden=true;
+    popup.innerHTML='<div class="map-marker-domain-popup__head"><strong class="map-marker-domain-popup__title"></strong><button type="button" class="map-marker-domain-popup__close" aria-label="Close marker details">×</button></div><div class="map-marker-domain-popup__body"><div class="map-marker-domain-popup__meta"></div><button type="button" class="control mini map-marker-domain-popup__open">Open Record</button></div>';
+    popup.querySelector('.map-marker-domain-popup__close').addEventListener('click',function(){
+      popup.hidden=true;
+    });
+    popup.querySelector('.map-marker-domain-popup__open').addEventListener('click',function(){
+      var entity=popup.dataset.sourceEntity||'';
+      var sourceId=popup.dataset.sourceId||'';
+      if(!entity||!sourceId)return;
+      document.dispatchEvent(new CustomEvent('mine-services:open-domain-record',{
+        detail:{source_entity:entity,source_id:sourceId}
+      }));
+    });
+    container.appendChild(popup);
+    return popup;
+  }
+
+  function showMarkerDomainPopup(marker, container){
+    if(!marker||!container)return null;
+    var popup=ensureDomainPopup(container);
+    if(!popup)return null;
+    var definition=getMarkerTypeDefinition(marker.marker_type);
+    popup.dataset.sourceEntity=marker.source_entity||'';
+    popup.dataset.sourceId=marker.source_id||'';
+    popup.querySelector('.map-marker-domain-popup__title').textContent=marker.label||marker.marker_id;
+    popup.querySelector('.map-marker-domain-popup__meta').textContent=(definition.label||marker.marker_type)+' · '+(marker.source_entity||'MapMarker')+' · '+(marker.source_id||'No domain reference');
+    popup.querySelector('.map-marker-domain-popup__open').hidden=!(marker.source_entity&&marker.source_id);
+    popup.hidden=false;
+    return popup;
+  }
+
+  function positionDomainPopup(engine, container){
+    if(!engine||!container)return;
+    var popup=container.querySelector('.map-marker-domain-popup');
+    if(!popup||popup.hidden||!selectedMarkerId)return;
+    var marker=markers[selectedMarkerId];
+    if(!marker)return;
+    var projected=engine.projectCoordinate(marker.easting,marker.northing,marker.elevation);
+    if(!projected||!projected.inside){popup.hidden=true;return;}
+    popup.style.left=Math.min(Math.max(projected.x+14,8),Math.max(8,container.clientWidth-popup.offsetWidth-8))+'px';
+    popup.style.top=Math.min(Math.max(projected.y+14,8),Math.max(8,container.clientHeight-popup.offsetHeight-8))+'px';
+  }
+
   function handleMarkerClick(markerElement){
     if(!markerElement)return null;
     var id=markerElement.getAttribute('data-marker-id');
     if(!id)return null;
-    return selectMarker(id);
+    var marker=selectMarker(id);
+    var container=markerElement.closest('#dashboardSiteMap')||markerElement.parentElement;
+    showMarkerDomainPopup(marker,container);
+    return marker;
   }
 
   function setMarkerVisibility(type, visible){
@@ -537,6 +589,7 @@
       }
     });
 
+    positionDomainPopup(engine,container);
     return active.map(function(marker){return marker.marker_id;});
   }
 
@@ -570,6 +623,8 @@
     clearSelectedMarker:clearSelectedMarker,
     getSelectedMarker:getSelectedMarker,
     handleMarkerClick:handleMarkerClick,
+    showMarkerDomainPopup:showMarkerDomainPopup,
+    positionDomainPopup:positionDomainPopup,
     getVisibleMarkers:getVisibleMarkers,
     setMarkerVisibility:setMarkerVisibility,
     getMarkerVisibility:getMarkerVisibility,
