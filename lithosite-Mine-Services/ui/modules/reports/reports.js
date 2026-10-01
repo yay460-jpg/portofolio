@@ -18,6 +18,7 @@ function render(){
 async function load(){state.status='loading';try{const h=await rc.health();if(h.status!=='READY')throw new Error('Runtime health is not READY');const r=await Promise.all(entities.map(entity=>rc.request({operation:'READ',entity})));entities.forEach((e,i)=>state.data[e]=Array.isArray(r[i].data)?r[i].data:[]);state.status='ready';render();msg('RuntimeAdapter connected — offline read-only reporting active.');}catch(e){state.status='error';render();const m=document.getElementById('reportsCount');if(m)m.textContent='Unavailable · Runtime Error';msg('Reports unavailable: '+e.message,true);}}
 function filteredCount(){const text=(document.getElementById('reportsSearch')?.value||'').trim().toLowerCase();if(!text)return;let n=0;entities.forEach(e=>rows(e).forEach(r=>{if(JSON.stringify(r).toLowerCase().includes(text))n++;}));const m=document.getElementById('reportsCount');if(m)m.textContent=n+' matching records · Runtime Ready';}
 function bind(){document.getElementById('reportsRefresh').onclick=load;document.getElementById('reportsClear').onclick=()=>{document.getElementById('reportsSearch').value='';render();};document.getElementById('reportsSearch').addEventListener('input',filteredCount);}
+if(global.LithositeDataSync)global.LithositeDataSync.register('Reports',load);
 bind();load();
 global.LithositeReports=Object.freeze({refresh:load});
 })(window);
