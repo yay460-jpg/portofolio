@@ -39,6 +39,22 @@
       try{geo=global.LithositeMineServicesGeo.create(config);}
       catch(error){setStatus(error&&error.message?error.message:'Geo Engine initialization failed','error');}
     }
+    function updateCoordinateInfo(meta){
+      var el=host.querySelector('#dashboardTopo3DCoordinate');
+      if(!el||!meta||!meta.bounds)return;
+      var b=meta.bounds;
+      var e=(b.minX+b.maxX)/2;
+      var n=(b.minY+b.maxY)/2;
+      var z=(b.minZ+b.maxZ)/2;
+      var text='Center · E '+e.toFixed(2)+' m · N '+n.toFixed(2)+' m · Z '+z.toFixed(2)+' m';
+      if(geo){
+        try{
+          var ll=geo.inverseUtm(e,n);
+          text+=' · Lat '+ll.lat.toFixed(6)+' · Lon '+ll.lon.toFixed(6);
+        }catch(error){}
+      }
+      el.textContent=text;
+    }
     function setStatus(message,kind){
       if(status){
         status.textContent=message;
@@ -53,7 +69,7 @@
       engine=global.LithositeTopo3D.create({
         canvas:canvas,
         onStatus:function(message){setStatus(message);},
-        onReady:function(){setStatus('Topo3D siap. Menunggu data topografi…');},
+        onReady:function(payload){setStatus('Topo3D siap. Menunggu data topografi…');if(payload&&payload.meta)updateCoordinateInfo(payload.meta);},
         onError:function(error){setStatus(error&&error.message?error.message:'Topo3D error','error');}
       });
       engine.prepare().then(function(){
@@ -68,6 +84,7 @@
           setStatus('Memuat data topografi…');
           await engine.loadFiles(input.files);
           engine.fit();
+          updateCoordinateInfo(engine.getState().meta);
           setStatus('Topography 3D siap · Auto 360° aktif','ready');
           startAutoRotate();
         }catch(error){
