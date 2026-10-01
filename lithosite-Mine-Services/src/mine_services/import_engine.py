@@ -55,8 +55,7 @@ class ImportCoordinator:
             "message": error.message,
         }
 
-    @staticmethod
-    def _schema_version_from_system(ws):
+    def _schema_version_from_system(self, ws):
         values = list(ws.values)
         for row in values:
             for index, value in enumerate(row):
@@ -119,7 +118,7 @@ class ImportCoordinator:
         duplicate_errors = []
         seen = {}
         for entity, items in rows.items():
-            if entity not in DOMAIN_ENTITIES:
+            if entity not in self.schema.DOMAIN_ENTITIES:
                 duplicate_errors.append(self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], f"Unknown entity: {entity}", entity))
                 continue
             pk = self.schema.PKS[entity]
@@ -158,7 +157,7 @@ class ImportCoordinator:
             try:
                 for entity, items in rows.items():
                     for row in items:
-                        self.store.insert(entity, row[PKS[entity]], row)
+                        self.store.insert(entity, row[self.schema.PKS[entity]], row)
 
                 self.audit_repository.append(
                     entity="_System",
