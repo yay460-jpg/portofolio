@@ -57,6 +57,12 @@
       bind('#dashboardTopo3DShaded',function(){engine.setMode('shaded');});
       bind('#dashboardTopo3DElevation',function(){engine.setMode('elevation');});
       bind('#dashboardTopo3DWire',function(){engine.setMode('wire');});
+      var guide=host.querySelector('#dashboardTopo3DGuideToggle');
+      var guidePanel=host.querySelector('#dashboardTopo3DGuide');
+      if(guide&&guidePanel)guide.addEventListener('click',function(){
+        var open=guidePanel.classList.toggle('open');
+        guide.setAttribute('aria-expanded',open?'true':'false');
+      });
     }catch(error){setStatus(error&&error.message?error.message:'Topo3D initialization failed','error');}
     global.MineServicesTopo3D={getEngine:function(){return engine;}};
   }
