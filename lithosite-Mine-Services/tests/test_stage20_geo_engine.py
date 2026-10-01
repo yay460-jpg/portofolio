@@ -150,4 +150,7 @@ def test_stage20_point_interaction_contract():
     assert "function syncPickedMarkers()" in map_engine
     assert "engine.projectCoordinate(point.easting,point.northing,point.elevation)" in map_engine
     assert "onRender:function(){syncPickedMarkers();}" in map_engine
+    assert "bearingDistance=geo?geo.bearingDistance" in map_engine
+    assert "dashboardTopo3DMeasureLine" in map_engine
+    assert "topo3d-measure-line" in css
     assert "this.onRender" in topo_engine
