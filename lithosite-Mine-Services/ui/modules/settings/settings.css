@@ -1,8 +1,10 @@
 /* Lithosite Mine Services — V30 Settings module
-   Visual redesign proof for isolated module styling.
-   IMPORTANT: V30 shell, workspace and navigation are not modified here.
+   Stage 18 — Settings / Local Preferences
+   Desktop Master only. This module owns Settings layout.
+   V30 shell, navigation, runtime and database are not modified here.
 */
 
+/* Screen participates in the existing V30 workspace slot. */
 #settingsScreen{
   position:relative;
   flex:1 1 auto;
@@ -18,39 +20,69 @@
   display:flex!important;
 }
 
-.settings-boundary{
+/* Settings boundary stays inside the V30 shell. */
+#settingsScreen .settings-boundary{
   flex:1 1 auto!important;
+  min-width:0;
   min-height:0;
-  overflow:hidden;
   box-sizing:border-box;
+  overflow:auto!important;
 }
 
-/* --- Desktop Master two-column layout --- */
-.settings-grid{
+/* AUTHORITATIVE SETTINGS LAYOUT
+   Desktop Master is always 2 x 2.
+   No viewport breakpoint is allowed to collapse this grid.
+   This prevents the shell's <=1400px rule from changing Settings. */
+#settingsScreen.active .settings-grid{
   display:grid!important;
   grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
-  gap:10px;
-  min-height:0;
-  align-items:start;
-  width:100%;
-  max-height:calc(100% - 46px);
-  overflow:hidden;
-  box-sizing:border-box;
+  grid-template-rows:auto auto!important;
+  grid-auto-flow:row!important;
+  gap:10px!important;
+  width:100%!important;
+  height:auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
+  align-items:start!important;
+  box-sizing:border-box!important;
 }
 
-.settings-panel{
-  min-width:0;
-  width:100%;
-  box-sizing:border-box;
-  align-self:start;
-  overflow:hidden;
+/* Explicit placement removes any dependency on grid auto-placement. */
+#settingsScreen.active .settings-grid > .settings-panel:nth-child(1){
+  grid-column:1!important;
+  grid-row:1!important;
+}
+#settingsScreen.active .settings-grid > .settings-panel:nth-child(2){
+  grid-column:2!important;
+  grid-row:1!important;
+}
+#settingsScreen.active .settings-grid > .settings-panel:nth-child(3){
+  grid-column:1!important;
+  grid-row:2!important;
+}
+#settingsScreen.active .settings-grid > .settings-panel:nth-child(4){
+  grid-column:2!important;
+  grid-row:2!important;
+}
+
+#settingsScreen.active .settings-panel{
+  min-width:0!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  align-self:start!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
   border:1px solid #294762!important;
   border-radius:10px!important;
   background:linear-gradient(180deg,#11243a 0%,#0d1e31 100%)!important;
   box-shadow:0 6px 18px rgba(0,0,0,.16);
 }
 
-.settings-panel .panelhead{
+#settingsScreen.active .settings-panel .panelhead{
   min-height:38px;
   padding:0 13px!important;
   display:flex;
@@ -59,7 +91,7 @@
   background:linear-gradient(90deg,#142b44 0%,#102238 100%)!important;
 }
 
-.settings-panel .ptitle{
+#settingsScreen.active .settings-panel .ptitle{
   font-size:10px!important;
   font-weight:700;
   letter-spacing:.35px;
@@ -67,19 +99,23 @@
   color:#dce9f6;
 }
 
-.settings-panel:nth-child(1) .panelhead{
+#settingsScreen.active .settings-panel:nth-child(1) .panelhead{
   box-shadow:inset 3px 0 0 #5aa9ff;
 }
 
-.settings-panel:nth-child(2) .panelhead{
+#settingsScreen.active .settings-panel:nth-child(2) .panelhead{
   box-shadow:inset 3px 0 0 #f59e0b;
 }
 
-.settings-body{
+#settingsScreen.active .settings-body{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:visible!important;
   padding:4px 12px 5px!important;
 }
 
-.setting-row{
+#settingsScreen.active .setting-row{
   min-height:48px;
   display:flex;
   align-items:center;
@@ -90,22 +126,22 @@
   box-sizing:border-box;
 }
 
-.setting-row:last-child{
+#settingsScreen.active .setting-row:last-child{
   border-bottom:0;
 }
 
-.setting-row > div:first-child{
+#settingsScreen.active .setting-row > div:first-child{
   min-width:0;
 }
 
-.setting-row b{
+#settingsScreen.active .setting-row b{
   display:block;
   font-size:10px;
   line-height:1.2;
   color:#e5eef8;
 }
 
-.setting-row small{
+#settingsScreen.active .setting-row small{
   display:block;
   margin-top:3px;
   color:#8ea3ba;
@@ -113,22 +149,17 @@
   line-height:1.2;
 }
 
-.setting-value{
+#settingsScreen.active .setting-value{
   flex:0 0 auto;
   font-size:9px;
   color:#dbe8f5;
   white-space:nowrap;
 }
 
-.setting-value.locked{
-  color:#fbbf24;
-}
+#settingsScreen.active .setting-value.locked{color:#fbbf24}
+#settingsScreen.active .setting-value.ready{color:#4ade80}
 
-.setting-value.ready{
-  color:#4ade80;
-}
-
-.settings-body select{
+#settingsScreen.active .settings-body select{
   flex:0 0 auto;
   min-width:94px;
   height:30px;
@@ -142,64 +173,37 @@
   outline:none;
 }
 
-.settings-body select:hover{
+#settingsScreen.active .settings-body select:hover{
   border-color:#5a7c9d;
 }
 
-.settings-body select:focus{
+#settingsScreen.active .settings-body select:focus{
   border-color:#63b3ff;
   box-shadow:0 0 0 2px rgba(99,179,255,.12);
 }
 
- .settings-panel:nth-child(4) .settings-body{
-  min-height:92px;
-  display:block;
-  padding:10px 13px!important;
-  color:#c9d8e8;
-  font-size:10px;
-  line-height:1.45;
+/* Local Preferences is intentionally compact but remains a normal grid cell. */
+#settingsScreen.active .settings-panel:nth-child(4) .settings-body{
+  display:block!important;
+  padding:8px 13px 10px!important;
 }
 
-#settingsMessage{
-  margin-top:4px;
-}
-
-.settings-module-status{
-  font-size:9px;
-  color:#8ea3ba;
-}
-
-.settings-module-status.ready{
-  color:#4ade80;
-}
-
-@media(max-width:700px){
-  .settings-grid{
-    grid-template-columns:1fr;
-    max-height:none;
-    overflow:visible;
-  }
-
-  .settings-boundary{
-    overflow:auto;
-  }
-}
-
-
-/* --- Local Preferences information rows --- */
 .local-preferences-list{
   width:100%;
-  display:grid;
-  gap:0;
+  display:block!important;
+  height:auto!important;
 }
 
 .local-preference-row{
-  min-height:30px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
+  min-height:28px!important;
+  height:28px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
   gap:12px;
+  width:100%!important;
   border-bottom:1px solid #223b55;
+  box-sizing:border-box;
 }
 
 .local-preference-row:last-child{
@@ -221,166 +225,12 @@
   color:#4ade80;
 }
 
-/* V30 Stage 18 — final layout guard
-   Scoped to Settings only. Prevents the shell's <=1400px media rule from
-   collapsing the Desktop Master Settings grid and prevents Local Preferences
-   content from being clipped.
-*/
-#settingsScreen .settings-boundary{
-  overflow:auto!important;
-}
-
-#settingsScreen .settings-grid{
-  display:grid!important;
-  grid-template-columns:repeat(2,minmax(0,1fr))!important;
-  grid-template-rows:auto auto!important;
-  width:100%!important;
-  max-height:none!important;
-  overflow:visible!important;
-  align-items:start;
-}
-
-#settingsScreen .settings-panel{
-  min-width:0!important;
-  min-height:0;
-  width:100%;
-  overflow:hidden;
-}
-
-#settingsScreen .settings-panel:nth-child(4) .settings-body{
-  display:block!important;
-  min-height:0!important;
-  height:auto!important;
-  overflow:visible!important;
-  padding:8px 13px 10px!important;
-}
-
-#settingsScreen .settings-panel:nth-child(4) .local-preference-row{
-  min-height:28px;
-}
-
-#settingsScreen .settings-panel:nth-child(4) #settingsMessage{
-  display:block;
-  margin-top:8px;
-}
-
-@media(max-width:700px){
-  #settingsScreen .settings-grid{
-    grid-template-columns:1fr!important;
-    grid-template-rows:auto!important;
-  }
-}
-
-/* FINAL V30 SETTINGS STRUCTURE — explicit placement, no auto-placement */
-#settingsScreen .settings-grid{
-  display:grid!important;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
-  grid-template-rows:auto auto!important;
-  gap:10px!important;
-  width:100%!important;
-  height:auto!important;
-  max-height:none!important;
-  min-height:0!important;
-  overflow:visible!important;
-  align-items:start!important;
-}
-
-#settingsScreen .settings-grid > .settings-panel{
-  grid-column:auto!important;
-  grid-row:auto!important;
-  width:100%!important;
-  height:auto!important;
-  min-width:0!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:hidden!important;
-}
-
-#settingsScreen .settings-grid > .settings-panel:nth-child(1){grid-area:1 / 1!important;}
-#settingsScreen .settings-grid > .settings-panel:nth-child(2){grid-area:1 / 2!important;}
-#settingsScreen .settings-grid > .settings-panel:nth-child(3){grid-area:2 / 1!important;}
-#settingsScreen .settings-grid > .settings-panel:nth-child(4){grid-area:2 / 2!important;}
-
-#settingsScreen .settings-grid > .settings-panel .settings-body{
-  height:auto!important;
-  min-height:0!important;
-  max-height:none!important;
-  overflow:visible!important;
-}
-
-#settingsScreen .settings-grid > .settings-panel:nth-child(4) .settings-body{
-  display:block!important;
-  padding:8px 13px 10px!important;
-}
-
-#settingsScreen .settings-grid > .settings-panel:nth-child(4) .local-preferences-list{
-  display:block!important;
-  width:100%!important;
-  height:auto!important;
-}
-
-#settingsScreen .settings-grid > .settings-panel:nth-child(4) .local-preference-row{
-  display:flex!important;
-  width:100%!important;
-  min-height:28px!important;
-  height:28px!important;
-  align-items:center!important;
-  justify-content:space-between!important;
-}
-
-#settingsScreen .settings-grid > .settings-panel:nth-child(4) .settings-local-message{
-  display:block!important;
-  width:100%!important;
+#settingsScreen.active #settingsMessage{
   margin:8px 0 0!important;
+}
+
+#settingsScreen.active .settings-local-message{
+  display:block!important;
+  width:100%!important;
   box-sizing:border-box!important;
-}
-
-@media(max-width:700px){
-  #settingsScreen .settings-grid{
-    grid-template-columns:1fr!important;
-    grid-template-rows:auto auto auto auto!important;
-  }
-  #settingsScreen .settings-grid > .settings-panel:nth-child(1){grid-area:1 / 1!important;}
-  #settingsScreen .settings-grid > .settings-panel:nth-child(2){grid-area:2 / 1!important;}
-  #settingsScreen .settings-grid > .settings-panel:nth-child(3){grid-area:3 / 1!important;}
-  #settingsScreen .settings-grid > .settings-panel:nth-child(4){grid-area:4 / 1!important;}
-}
-
-/* STAGE 18 — Desktop Master lock.
-   V30 shell has a <=1400px single-column rule. Settings remains 2-column
-   on desktop; only genuinely narrow screens (<=700px) collapse. */
-@media (min-width:701px){
-  #settingsScreen.active .settings-boundary{
-    overflow:auto!important;
-  }
-
-  #settingsScreen.active .settings-grid{
-    display:grid!important;
-    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
-    grid-template-rows:auto auto!important;
-    gap:10px!important;
-    width:100%!important;
-    max-height:none!important;
-    overflow:visible!important;
-  }
-
-  #settingsScreen.active .settings-grid > .settings-panel:nth-child(1){
-    grid-column:1!important;
-    grid-row:1!important;
-  }
-
-  #settingsScreen.active .settings-grid > .settings-panel:nth-child(2){
-    grid-column:2!important;
-    grid-row:1!important;
-  }
-
-  #settingsScreen.active .settings-grid > .settings-panel:nth-child(3){
-    grid-column:1!important;
-    grid-row:2!important;
-  }
-
-  #settingsScreen.active .settings-grid > .settings-panel:nth-child(4){
-    grid-column:2!important;
-    grid-row:2!important;
-  }
 }
