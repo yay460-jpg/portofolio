@@ -48,6 +48,11 @@
       bind('#dashboardTopo3DShaded',function(){engine.setMode('shaded');});
       bind('#dashboardTopo3DElevation',function(){engine.setMode('elevation');});
       bind('#dashboardTopo3DWire',function(){engine.setMode('wire');});
+      var rotate360=host.querySelector('#dashboardTopo3DRotate360');
+      if(rotate360)rotate360.addEventListener('click',function(){
+        engine.angleY+=Math.PI/2;
+        if(engine.angleY>Math.PI*2)engine.angleY-=Math.PI*2;
+      });
       var guide=host.querySelector('#dashboardTopo3DGuideToggle');
       var guidePanel=host.querySelector('#dashboardTopo3DGuide');
       if(guide&&guidePanel)guide.addEventListener('click',function(){
