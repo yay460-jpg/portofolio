@@ -12,7 +12,7 @@ def test_stage20_geo_engine_sources_are_loaded_in_order():
     html = ARTIFACT.read_text(encoding="utf-8")
     assert "../shared/geo-engine.js" in html
     assert "../ui/modules/map-engine/geo-adapter.js?v=20261001" in html
-    assert "../ui/modules/map-engine/map-engine.js?v=20261001" in html
+    assert "../ui/modules/map-engine/map-engine.js?v=20261002" in html
     assert html.index("../shared/geo-engine.js") < html.index("../ui/modules/map-engine/geo-adapter.js")
     assert html.index("../ui/modules/map-engine/geo-adapter.js") < html.index("../ui/modules/map-engine/map-engine.js")
 
