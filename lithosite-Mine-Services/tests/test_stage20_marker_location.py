@@ -207,11 +207,13 @@ def test_stage20_marker_location_is_integrated_into_v32_overlay_layer():
     assert html.index("../ui/modules/map-engine/marker-location.js?v=20261002") < html.index("../ui/modules/map-engine/map-engine.js?v=20261002")
 
 
-def test_stage20_marker_location_css_is_namespaced_and_inert_until_loaded():
+def test_stage20_marker_location_css_is_namespaced_and_ready_for_v32_overlay():
     css = MARKER_CSS.read_text(encoding="utf-8")
 
     assert ".map-location-marker" in css
     assert ".map-location-marker__label" in css
     assert ".map-marker-layer" in css
     assert ".map-location-marker.is-selected" in css
-    assert "Intentionally not loaded by V32 Stage 20 yet" in css
+    assert ".map-location-marker::before" in css
+    assert ".map-location-marker::after" in css
+    assert "Loaded by V32 Stage 20 as the centralized marker overlay presentation layer." in css
