@@ -19,8 +19,13 @@
     await Promise.all(jobs);
   }
 
+  let refreshQueue = Promise.resolve();
+
   window.addEventListener('lithosite:runtime-mutated', function (event) {
-    refreshAll(event.detail || {});
+    const detail = event.detail || {};
+    refreshQueue = refreshQueue.then(function () {
+      return refreshAll(detail);
+    });
   });
 
   global.LithositeDataSync = Object.freeze({
