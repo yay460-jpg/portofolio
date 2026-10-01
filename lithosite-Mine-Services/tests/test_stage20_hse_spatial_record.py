@@ -96,4 +96,4 @@ def test_stage20_hse_spatial_record_is_integrated_through_central_marker_overlay
     assert "marker-location.js" in html
     assert "marker-location.css" in html
     assert "../ui/modules/map-engine/marker-location.js?v=20261005" in html
-    assert "../ui/modules/map-engine/marker-location.css?v=20261004" in html
+    assert "../ui/modules/map-engine/marker-location.css?v=20261006" in html
