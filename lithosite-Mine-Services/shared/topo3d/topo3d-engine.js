@@ -144,6 +144,20 @@
     var ndcX=clipX/clipW,ndcY=clipY/clipW,ndcZ=clipZ/clipW;
     return {x:(ndcX*.5+.5)*this.canvas.clientWidth,y:(1-(ndcY*.5+.5))*this.canvas.clientHeight,depth:ndcZ,inside:ndcX>=-1.25&&ndcX<=1.25&&ndcY>=-1.25&&ndcY<=1.25&&ndcZ>=-1&&ndcZ<=1};
   };
+  Topo3DEngine.prototype.pickCoordinate=function(screenX,screenY,maxDistance){
+    if(!this.model||!this.canvas)return null;
+    screenX=Number(screenX);screenY=Number(screenY);
+    maxDistance=Number.isFinite(Number(maxDistance))?Number(maxDistance):18;
+    if(!Number.isFinite(screenX)||!Number.isFinite(screenY)||maxDistance<=0)return null;
+    var raw=this.model.rawXYZ,best=null,bestD=maxDistance*maxDistance;
+    for(var i=0;i<raw.length;i+=3){
+      var p=this.projectCoordinate(raw[i],raw[i+1],raw[i+2]);
+      if(!p||!p.inside)continue;
+      var dx=p.x-screenX,dy=p.y-screenY,d=dx*dx+dy*dy;
+      if(d<=bestD){bestD=d;best={easting:raw[i],northing:raw[i+1],elevation:raw[i+2],screenX:p.x,screenY:p.y,distancePixels:Math.sqrt(d)};}
+    }
+    return best;
+  };
   Topo3DEngine.prototype.getState=function(){return {prepared:this.prepared,ready:!!this.model,view:this.view,mode:this.mode,meta:this.model?this.model.meta:null};};
   Topo3DEngine.prototype._pointerDown=function(e){this.activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});this.canvas.setPointerCapture(e.pointerId);if(this.activePointers.size===1){this.dragging=true;this.lastX=e.clientX;this.lastY=e.clientY;}if(this.activePointers.size===2){var a=Array.from(this.activePointers.values());this.pinchStart=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);this.pinchZoom=this.zoom;}};
   Topo3DEngine.prototype._pointerMove=function(e){if(!this.activePointers.has(e.pointerId))return;this.activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(this.activePointers.size===2){var a=Array.from(this.activePointers.values()),d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(this.pinchStart>0)this.zoom=Math.max(.45,Math.min(4,this.pinchZoom*(d/this.pinchStart)));return;}if(!this.dragging)return;var dx=e.clientX-this.lastX,dy=e.clientY-this.lastY;this.lastX=e.clientX;this.lastY=e.clientY;if(e.shiftKey){this.panX+=dx*.0025;this.panY-=dy*.0025;}else{this.angleY+=dx*.006;this.angleX+=dy*.006;this.angleX=Math.max(-1.50,Math.min(1.50,this.angleX));}};
