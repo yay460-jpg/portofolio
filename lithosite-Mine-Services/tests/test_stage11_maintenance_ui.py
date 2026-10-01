@@ -1,10 +1,10 @@
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v30-LOCKED.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v31-LOCKED.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 MAINTENANCE_JS = (ROOT / "ui" / "modules" / "maintenance" / "maintenance.js").read_text(encoding="utf-8")
-SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v30.js").read_text(encoding="utf-8")
+SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v31.js").read_text(encoding="utf-8")
 
 
 def test_stage11_maintenance_screen_and_module_are_wired():
@@ -49,7 +49,7 @@ def test_stage11_shell_contract_includes_maintenance():
     assert "'Maintenance'" in SHELL_JS
     assert "const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports'];" in SHELL_JS
     assert "let currentScreen = 'Dashboard';" in SHELL_JS
-    assert "const STORAGE_KEY = 'lithosite-v30-active-screen';" in SHELL_JS
+    assert "const STORAGE_KEY = 'lithosite-v31-active-screen';" in SHELL_JS
     assert "readInitialScreen" in SHELL_JS
     assert "setScreen(readInitialScreen(), false);" in SHELL_JS
 
