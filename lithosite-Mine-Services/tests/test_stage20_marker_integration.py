@@ -9,8 +9,8 @@ def test_stage20_marker_overlay_assets_are_loaded_before_map_engine():
     html = ARTIFACT.read_text(encoding="utf-8")
     assert "../ui/modules/map-engine/marker-location.css?v=20261003" in html
     assert "../ui/modules/map-engine/marker-location.js?v=20261004" in html
-    assert html.index("../ui/modules/map-engine/geo-adapter.js?v=20261001") < html.index("../ui/modules/map-engine/marker-location.js?v=20261003")
-    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261003") < html.index("../ui/modules/map-engine/map-engine.js?v=20261002")
+    assert html.index("../ui/modules/map-engine/geo-adapter.js?v=20261001") < html.index("../ui/modules/map-engine/marker-location.js?v=20261004")
+    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261004") < html.index("../ui/modules/map-engine/map-engine.js?v=20261002")
 
 def test_stage20_marker_renderer_is_only_a_map_render_overlay():
     js = MAP_ENGINE.read_text(encoding="utf-8")
