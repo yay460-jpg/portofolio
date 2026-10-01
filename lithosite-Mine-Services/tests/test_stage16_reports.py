@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v30-STAGE18.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v31-STAGE19.html"
 SHELL = ROOT / "ui" / "shared" / "shell-navigation-v30.js"
 MODULE = ROOT / "ui" / "modules" / "reports" / "reports.js"
 
