@@ -178,5 +178,6 @@ function bind(){
   const del=e.target.closest('.delete-equipment');if(del)remove(del.dataset.id);
  });
 }
+if(global.LithositeDataSync)global.LithositeDataSync.register('Equipment',refreshData);
 bind();load();
 })(window);
