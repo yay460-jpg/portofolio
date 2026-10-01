@@ -12,6 +12,7 @@
   async function refreshAll(detail) {
     const jobs = [];
     subscribers.forEach(function (refresh, name) {
+      if (detail && detail.entity && name === detail.entity) return;
       jobs.push(Promise.resolve().then(refresh).catch(function (error) {
         console.error('[Lithosite Data Sync] Refresh failed for ' + name + ':', error);
       }));
