@@ -349,11 +349,11 @@
   }
 
   function init() {
-    const expand = document.getElementById('expand');
-
-    if (expand && !expand.dataset.bound) {
-      expand.dataset.bound = '1';
-      expand.addEventListener('click', function () {
+    if (!document.body.dataset.dashboardExpandBound) {
+      document.body.dataset.dashboardExpandBound = '1';
+      document.addEventListener('click', function (event) {
+        const expand = event.target.closest('#expand');
+        if (!expand) return;
         const app = document.querySelector('.app');
         if (!app) return;
         app.classList.toggle('expanded-tables');
