@@ -152,3 +152,7 @@ class ValidationEngine:
                 seen[entity].add(key)
                 errors.extend(self.validate(entity, row, store, context))
         return errors
+
+
+# MapMarker validation is intentionally provided by
+# mine_services.map_marker_validation for the opt-in A.3 schema.
