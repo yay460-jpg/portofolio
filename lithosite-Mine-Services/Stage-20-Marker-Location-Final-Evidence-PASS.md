@@ -16,22 +16,31 @@
   - per-type ACTIVE spatial-marker limits
   - duplicate ACTIVE source protection
   - runtime source-record selector for Equipment, WorkFront, and HSE
+- separation of global spatial markers from domain-linked markers
   - automatic label population from selected source record
 
 ## Operational spatial limits
-| Marker type | ACTIVE spatial-marker limit |
-|---|---:|
-| HSE | 5 |
-| Asset / Equipment | 5 |
-| WorkFront | 5 |
-| Facility | 1 |
-| Workshop | 1 |
-| Stockpile | 3 |
-| Disposal | 5 |
-| Drainage | 3 |
-| Other | 3 |
+| Marker type | ACTIVE spatial-marker limit | Marker class |
+|---|---:|---|
+| HSE | 5 | Domain-linked |
+| Asset / Equipment | 5 | Domain-linked |
+| WorkFront | 5 | Domain-linked |
+| Facility | 3 | Global spatial |
+| Workshop | 2 | Global spatial |
+| Stockpile | 3 | Global spatial |
+| Disposal | 5 | Global spatial |
+| Drainage | 3 | Global spatial |
+| Other | 3 | Global spatial |
 
 Limits apply to spatial markers only. Domain records are not limited. INACTIVE and REMOVED spatial markers do not consume capacity.
+
+### Global spatial contract
+Facility, Workshop, Stockpile, Disposal, Drainage, and Other are global spatial marker types. They do not require source_entity or source_id. Their label and E/N/Elevation define the spatial reference. Global markers are reported as NOT_LINKED rather than ORPHAN domain links.
+
+### Domain-linked contract
+Only HSE, Asset/Equipment, and WorkFront require source_entity + source_id. Their source records are selected from runtime data and active duplicate source links are rejected.
+
+The complete contract is documented in Marker-Location-Global-Spatial-Contract.md.
 
 ## Domain source workflow
 For Equipment, WorkFront, and HSE, Marker Location reads the corresponding runtime domain records and provides a source-record selector. The selected record populates Source ID and Label, reducing manual re-entry and duplicate-ID risk.
