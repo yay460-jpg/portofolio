@@ -342,3 +342,32 @@ def test_stage20_marker_location_duplicate_source_check_ignores_inactive_and_rem
     block = js[start:end]
     assert "marker.status==='ACTIVE'" in block
     assert "ids[i]!==exclude" in block
+
+
+def test_stage20_marker_location_source_selector_uses_runtime_domain_records():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "function sourceRecordKey(entity)" in js
+    assert "entity==='Equipment'?'equipment_id'" in js
+    assert "entity==='WorkFront'?'work_front_id'" in js
+    assert "entity==='HSE'?'hse_id'" in js
+    assert "function loadMarkerLocationSources()" in js
+    assert "operation:'READ',entity:entity" in js
+    assert "Select '+entity+' record" in js
+    assert "markerLocationSourceId" in js
+
+
+def test_stage20_marker_location_source_selection_autofills_label():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "labelEl.readOnly=true" in js
+    assert "sourceEl.onchange=function()" in js
+    assert "labelEl.value=opt&&opt.value?(opt.dataset.label||opt.value):''" in js
+
+
+def test_stage20_marker_location_non_domain_types_keep_manual_source_fallback():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "['Equipment','WorkFront','HSE'].includes(entity)" in js
+    assert "Manual source ID required" in js
+    assert "labelEl.readOnly=false" in js
