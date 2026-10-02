@@ -22,12 +22,24 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from mine_services import PersistenceStore, RuntimeAdapter, RuntimeInterface, ApplicationService  # noqa: E402
+from mine_services import schema_a3  # noqa: E402
 
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("MINE_SERVICES_PORT", "8765"))
 STATIC_ROOT = REPO_ROOT.resolve()
 STATIC_ENTRY = os.environ.get("MINE_SERVICES_ENTRY", "/lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v30-STAGE18.html")
-DB_PATH = Path(os.environ.get("MINE_SERVICES_DB", str(MODULE_ROOT / "Database" / "Mine-Services-Database.xlsx"))).resolve()
+DB_PATH = Path(os.environ.get("MINE_SERVICES_DB", str(MODULE_ROOT / "Database" / "Mine-Services-Database-A3.xlsx"))).resolve()
+
+SCHEMA_NAME = os.environ.get("MINE_SERVICES_SCHEMA", "A3").upper()
+
+if SCHEMA_NAME == "A2":
+    SCHEMA_MODULE = None
+elif SCHEMA_NAME == "A3":
+    SCHEMA_MODULE = schema_a3
+else:
+    raise RuntimeError(
+        f"Unsupported MINE_SERVICES_SCHEMA: {SCHEMA_NAME}. Expected A2 or A3."
+    )
 ALLOWED_ORIGINS = {
     "http://127.0.0.1:5500",
     "http://localhost:5500",
@@ -49,7 +61,7 @@ def is_allowed_origin(origin: str | None) -> bool:
 
 
 def build_adapter() -> RuntimeAdapter:
-    store = PersistenceStore(DB_PATH)
+    store = PersistenceStore(DB_PATH, schema_module=SCHEMA_MODULE)
     application = ApplicationService(store=store)
     return RuntimeAdapter(RuntimeInterface(application=application))
 
@@ -87,7 +99,7 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {
                 "status": "READY",
                 "offline": True,
-                "schema": "A.2",
+                "schema": ("A.2" if SCHEMA_NAME == "A2" else "A.3"),
                 "runtime": "RuntimeAdapter",
                 "database": str(DB_PATH),
             }, origin)

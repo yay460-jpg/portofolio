@@ -50,6 +50,7 @@ def test_health_endpoint_is_offline_ready(monkeypatch, tmp_path):
     db_path = tmp_path / "desktop-host-a2.xlsx"
     _make_test_database(db_path)
     monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A2")
     import server
 
     httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
@@ -72,6 +73,7 @@ def test_runtime_endpoint_routes_to_adapter(monkeypatch, tmp_path):
     db_path = tmp_path / "desktop-host-a2.xlsx"
     _make_test_database(db_path)
     monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A2")
     import server
 
     httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
@@ -103,6 +105,7 @@ def test_disallowed_origin_is_rejected(monkeypatch, tmp_path):
     db_path = tmp_path / "desktop-host-a2.xlsx"
     _make_test_database(db_path)
     monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A2")
     import server
 
     httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
