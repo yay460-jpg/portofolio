@@ -66,7 +66,10 @@ def test_stage20_marker_location_domain_links_are_centralized():
     assert "HSE:'HSE'" in js
     assert "ASSET:'Equipment'" in js
     assert "WORKFRONT:'WorkFront'" in js
-    assert "FACILITY:'Facility'" in js
+    assert "HSE:'HSE'" in js
+    assert "ASSET:'Equipment'" in js
+    assert "WORKFRONT:'WorkFront'" in js
+    assert "GLOBAL_SPATIAL_TYPES" in js
     assert "getDomainLinkDefinition" in js
     assert "listDomainLinkDefinitions" in js
 
@@ -280,11 +283,11 @@ def test_stage20_marker_location_has_operational_active_limits_by_type():
         ("HSE", 5),
         ("ASSET", 5),
         ("WORKFRONT", 5),
-        ("FACILITY", 1),
+        ("FACILITY", 3),
         ("STOCKPILE", 3),
         ("DISPOSAL", 5),
         ("DRAINAGE", 3),
-        ("WORKSHOP", 1),
+        ("WORKSHOP", 2),
         ("OTHER", 3),
     ):
         assert "%s:%s" % (marker_type, limit) in js
@@ -369,5 +372,30 @@ def test_stage20_marker_location_non_domain_types_keep_manual_source_fallback():
     js = MARKER_JS.read_text(encoding="utf-8")
 
     assert "['Equipment','WorkFront','HSE'].includes(entity)" in js
-    assert "Manual source ID required" in js
+    assert "Source records unavailable" in js
     assert "labelEl.readOnly=false" in js
+
+
+def test_stage20_marker_location_separates_global_spatial_types_from_domain_linked_types():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "var GLOBAL_SPATIAL_TYPES = ['FACILITY','WORKSHOP','STOCKPILE','DISPOSAL','DRAINAGE','OTHER'];" in js
+    assert "function isDomainLinkedType(type)" in js
+    assert "function isGlobalSpatialType(type)" in js
+    assert "link_mode:DOMAIN_LINK_DEFINITIONS[normalized]?'DOMAIN_LINKED':'GLOBAL_SPATIAL'" in js
+
+
+def test_stage20_marker_location_global_spatial_creation_does_not_require_domain_source():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "def.link_mode==='DOMAIN_LINKED'?createDomainSpatialMarker" in js
+    assert "source_entity:'',source_id:''" in js
+    assert "label:label||markerId||getMarkerTypeDefinition(type).label" in js
+    assert "Not required for global spatial marker" in js
+
+
+def test_stage20_marker_location_global_spatial_links_are_not_reported_as_orphans():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "status:'NOT_LINKED'" in js
+    assert "!entity && !sourceId && isGlobalSpatialType(marker.marker_type)" in js
