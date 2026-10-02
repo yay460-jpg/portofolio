@@ -39,6 +39,17 @@
   };
 
   var VALID_STATUS = ['ACTIVE','INACTIVE','REMOVED'];
+  var MAX_ACTIVE_MARKERS_BY_TYPE = {
+    HSE:5,
+    ASSET:5,
+    WORKFRONT:5,
+    FACILITY:1,
+    STOCKPILE:3,
+    DISPOSAL:5,
+    DRAINAGE:3,
+    WORKSHOP:1,
+    OTHER:3
+  };
   var markers = {};
   var sequence = 0;
   var visibility = {};
@@ -152,9 +163,41 @@
     return createMarker(input);
   }
 
+  function getActiveMarkerCount(markerType, excludeMarkerId){
+    var type=normalizeType(markerType);
+    var exclude=String(excludeMarkerId||'').trim();
+    return Object.keys(markers).reduce(function(count,id){
+      var marker=markers[id];
+      if(id!==exclude && marker && marker.status==='ACTIVE' && marker.marker_type===type)return count+1;
+      return count;
+    },0);
+  }
+
+  function getMarkerLimit(markerType){
+    var type=normalizeType(markerType);
+    return MAX_ACTIVE_MARKERS_BY_TYPE[type];
+  }
+
+  function getMarkerCapacity(markerType){
+    var type=normalizeType(markerType);
+    var limit=getMarkerLimit(type);
+    var active=getActiveMarkerCount(type);
+    return {marker_type:type,active:active,limit:limit,available:Math.max(0,limit-active)};
+  }
+
+  function assertMarkerCapacity(marker, excludeMarkerId){
+    if(marker.status!=='ACTIVE')return;
+    var active=getActiveMarkerCount(marker.marker_type,excludeMarkerId);
+    var limit=getMarkerLimit(marker.marker_type);
+    if(active>=limit){
+      throw new Error('Marker Location limit reached for '+marker.marker_type+': '+limit+' active spatial markers maximum');
+    }
+  }
+
   function createMarker(input){
     var marker=normalizeMarker(input);
     if(markers[marker.marker_id])throw new Error('Marker already exists: '+marker.marker_id);
+    assertMarkerCapacity(marker);
     markers[marker.marker_id]=marker;
     return clone(marker);
   }
@@ -169,6 +212,7 @@
     });
     next=normalizeMarker(next);
     next.marker_id=id;
+    assertMarkerCapacity(next,id);
     markers[id]=next;
     return clone(next);
   }
@@ -671,6 +715,9 @@
     removeMarker:removeMarker,
     getMarker:getMarker,
     listMarkers:listMarkers,
+    getActiveMarkerCount:getActiveMarkerCount,
+    getMarkerLimit:getMarkerLimit,
+    getMarkerCapacity:getMarkerCapacity,
     selectMarker:selectMarker,
     clearSelectedMarker:clearSelectedMarker,
     getSelectedMarker:getSelectedMarker,
