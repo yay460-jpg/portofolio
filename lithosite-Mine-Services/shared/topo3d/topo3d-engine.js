@@ -144,6 +144,24 @@
     var ndcX=clipX/clipW,ndcY=clipY/clipW,ndcZ=clipZ/clipW;
     return {x:(ndcX*.5+.5)*this.canvas.clientWidth,y:(1-(ndcY*.5+.5))*this.canvas.clientHeight,depth:ndcZ,inside:ndcX>=-1.25&&ndcX<=1.25&&ndcY>=-1.25&&ndcY<=1.25&&ndcZ>=-1&&ndcZ<=1};
   };
+  Topo3DEngine.prototype.focusCoordinate=function(x,y,z){
+    if(!this.model||!this.canvas)return false;
+    var targetX=this.canvas.clientWidth/2,targetY=this.canvas.clientHeight/2;
+    var p=this.projectCoordinate(x,y,z);
+    if(!p)return false;
+    var basePanX=this.panX,basePanY=this.panY;
+    this.panX=basePanX+0.01;
+    var px=this.projectCoordinate(x,y,z);
+    this.panX=basePanX;
+    this.panY=basePanY+0.01;
+    var py=this.projectCoordinate(x,y,z);
+    this.panY=basePanY;
+    var dx=px&&Number.isFinite(px.x)?px.x-p.x:0;
+    var dy=py&&Number.isFinite(py.y)?py.y-p.y:0;
+    if(Math.abs(dx)>1e-6)this.panX=basePanX+(targetX-p.x)/dx*0.01;
+    if(Math.abs(dy)>1e-6)this.panY=basePanY+(targetY-p.y)/dy*0.01;
+    return true;
+  };
   Topo3DEngine.prototype.pickCoordinate=function(screenX,screenY,maxDistance){
     if(!this.model||!this.canvas)return null;
     screenX=Number(screenX);screenY=Number(screenY);
