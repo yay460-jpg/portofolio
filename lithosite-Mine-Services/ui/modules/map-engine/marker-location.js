@@ -29,25 +29,20 @@
   var DOMAIN_LINK_DEFINITIONS = {
     HSE:'HSE',
     ASSET:'Equipment',
-    WORKFRONT:'WorkFront',
-    FACILITY:'Facility',
-    STOCKPILE:'Stockpile',
-    DISPOSAL:'Disposal',
-    DRAINAGE:'Drainage',
-    WORKSHOP:'Workshop',
-    OTHER:'Other'
+    WORKFRONT:'WorkFront'
   };
+  var GLOBAL_SPATIAL_TYPES = ['FACILITY','WORKSHOP','STOCKPILE','DISPOSAL','DRAINAGE','OTHER'];
 
   var VALID_STATUS = ['ACTIVE','INACTIVE','REMOVED'];
   var MAX_ACTIVE_MARKERS_BY_TYPE = {
     HSE:5,
     ASSET:5,
     WORKFRONT:5,
-    FACILITY:1,
+    FACILITY:3,
     STOCKPILE:3,
     DISPOSAL:5,
     DRAINAGE:3,
-    WORKSHOP:1,
+    WORKSHOP:2,
     OTHER:3
   };
   var markers = {};
@@ -104,11 +99,22 @@
     });
   }
 
+  function isDomainLinkedType(type){
+    var normalized=normalizeType(type);
+    return !!DOMAIN_LINK_DEFINITIONS[normalized];
+  }
+
+  function isGlobalSpatialType(type){
+    var normalized=normalizeType(type);
+    return GLOBAL_SPATIAL_TYPES.indexOf(normalized)!==-1;
+  }
+
   function getDomainLinkDefinition(type){
     var normalized=normalizeType(type);
     return {
       marker_type:normalized,
-      source_entity:DOMAIN_LINK_DEFINITIONS[normalized]
+      source_entity:DOMAIN_LINK_DEFINITIONS[normalized]||'',
+      link_mode:DOMAIN_LINK_DEFINITIONS[normalized]?'DOMAIN_LINKED':'GLOBAL_SPATIAL'
     };
   }
 
@@ -312,6 +318,15 @@
     if(!marker)return {status:'MISSING_MARKER',marker_id:String(markerId||'').trim()};
     var entity=String(marker.source_entity||'').trim();
     var sourceId=String(marker.source_id||'').trim();
+    if(!entity && !sourceId && isGlobalSpatialType(marker.marker_type)){
+      return {
+        status:'NOT_LINKED',
+        marker_id:marker.marker_id,
+        source_entity:'',
+        source_id:'',
+        marker:marker
+      };
+    }
     if(!entity || !sourceId){
       return {
         status:'ORPHAN',
@@ -668,8 +683,14 @@
     list.innerHTML=rows.map(function(marker){var def=getMarkerTypeDefinition(marker.marker_type);return '<div class="marker-location-row" data-marker-id="'+String(marker.marker_id).replace(/"/g,'&quot;')+'"><span class="marker-location-row__icon '+def.visual_class+'">'+def.visual_symbol+'</span><span class="marker-location-row__main"><b>'+String(marker.label||marker.marker_id).replace(/[&<>"']/g,'')+'</b><small>'+def.label+' · '+String(marker.source_id||'No source').replace(/[&<>"']/g,'')+'</small></span><button type="button" class="control mini marker-location-show" data-marker-id="'+String(marker.marker_id).replace(/"/g,'&quot;')+'">Show</button></div>';}).join('');
   }
   function syncMarkerLocationSourceEntity(){
-    var typeEl=document.getElementById('markerLocationType'),entityEl=document.getElementById('markerLocationSourceEntity');if(!typeEl||!entityEl)return;
-    var def=getDomainLinkDefinition(typeEl.value);entityEl.value=def.source_entity||'Other';
+    var typeEl=document.getElementById('markerLocationType'),entityEl=document.getElementById('markerLocationSourceEntity'),sourceEl=document.getElementById('markerLocationSourceId'),labelEl=document.getElementById('markerLocationLabel');if(!typeEl||!entityEl||!sourceEl||!labelEl)return;
+    var def=getDomainLinkDefinition(typeEl.value);
+    entityEl.value=def.link_mode==='GLOBAL_SPATIAL'?'Global Spatial':def.source_entity;
+    sourceEl.disabled=def.link_mode==='GLOBAL_SPATIAL';
+    if(def.link_mode==='GLOBAL_SPATIAL'){
+      sourceEl.innerHTML='<option value="">Not required for global spatial marker</option>';
+      labelEl.readOnly=false;
+    }
   }
   function sourceRecordKey(entity){
     return entity==='Equipment'?'equipment_id':entity==='WorkFront'?'work_front_id':entity==='HSE'?'hse_id':'id';
@@ -685,11 +706,19 @@
     var typeEl=document.getElementById('markerLocationType'),entityEl=document.getElementById('markerLocationSourceEntity'),sourceEl=document.getElementById('markerLocationSourceId'),labelEl=document.getElementById('markerLocationLabel');
     if(!typeEl||!entityEl||!sourceEl||!labelEl)return;
     var entity=entityEl.value;
+    var def=getDomainLinkDefinition(typeEl.value);
+    labelEl.value='';
+    if(def.link_mode==='GLOBAL_SPATIAL'){
+      sourceEl.innerHTML='<option value="">Not required for global spatial marker</option>';
+      sourceEl.disabled=true;
+      labelEl.readOnly=false;
+      return;
+    }
     sourceEl.innerHTML='<option value="">Loading source records…</option>';
-    sourceEl.disabled=true;labelEl.value='';
+    sourceEl.disabled=true;
     var key=sourceRecordKey(entity);
     if(!global.LithositeRuntimeClient || !['Equipment','WorkFront','HSE'].includes(entity)){
-      sourceEl.innerHTML='<option value="">Manual source ID required</option>';
+      sourceEl.innerHTML='<option value="">Source records unavailable</option>';
       sourceEl.disabled=false;
       labelEl.readOnly=false;
       return;
@@ -722,7 +751,7 @@
     if(!host||!toolbar||document.getElementById('markerLocationToggle'))return;
     var toggle=document.createElement('button');toggle.type='button';toggle.id='markerLocationToggle';toggle.textContent='Marker Location';toolbar.appendChild(toggle);
     var panel=document.createElement('section');panel.id='markerLocationPanel';panel.className='marker-location-panel';panel.hidden=true;
-    panel.innerHTML='<div class="marker-location-panel__head"><div><strong>Marker Location</strong><small>Spatial reference &amp; domain link</small></div><button type="button" class="marker-location-close" aria-label="Close Marker Location">×</button></div><div class="marker-location-panel__body"><div class="marker-location-fields"><label>Marker Type<select id="markerLocationType"></select></label><label>Source Entity<input id="markerLocationSourceEntity" type="text" readonly></label><label>Source ID<select id="markerLocationSourceId"><option value="">Select source record</option></select></label><label>Label<input id="markerLocationLabel" type="text" placeholder="Marker label" readonly></label><label>Marker ID<input id="markerLocationId" type="text" placeholder="Optional · auto ML-xxxx"></label><label>Easting<input id="markerLocationEasting" type="number" step="any" placeholder="Easting"></label><label>Northing<input id="markerLocationNorthing" type="number" step="any" placeholder="Northing"></label><label>Elevation<input id="markerLocationElevation" type="number" step="any" placeholder="Elevation"></label></div><div class="marker-location-actions"><button type="button" class="control mini" id="markerLocationPick">Pick on Map</button><button type="button" class="control mini primary" id="markerLocationCreate">Add Marker</button></div><div class="marker-location-message">Pick on Map switches to Top View before coordinate picking.</div></div>';
+    panel.innerHTML='<div class="marker-location-panel__head"><div><strong>Marker Location</strong><small>Spatial reference &amp; domain link</small></div><button type="button" class="marker-location-close" aria-label="Close Marker Location">×</button></div><div class="marker-location-panel__body"><div class="marker-location-fields"><label>Marker Type<select id="markerLocationType"></select></label><label>Source Entity<input id="markerLocationSourceEntity" type="text" readonly></label><label>Source ID<select id="markerLocationSourceId"><option value="">Select source record</option></select></label><label>Label<input id="markerLocationLabel" type="text" placeholder="Marker label"></label><label>Marker ID<input id="markerLocationId" type="text" placeholder="Optional · auto ML-xxxx"></label><label>Easting<input id="markerLocationEasting" type="number" step="any" placeholder="Easting"></label><label>Northing<input id="markerLocationNorthing" type="number" step="any" placeholder="Northing"></label><label>Elevation<input id="markerLocationElevation" type="number" step="any" placeholder="Elevation"></label></div><div class="marker-location-actions"><button type="button" class="control mini" id="markerLocationPick">Pick on Map</button><button type="button" class="control mini primary" id="markerLocationCreate">Add Marker</button></div><div class="marker-location-message">Pick on Map switches to Top View before coordinate picking.</div></div>';
     host.appendChild(panel);
     var typeEl=panel.querySelector('#markerLocationType');typeEl.innerHTML=TYPES.map(function(type){return '<option value="'+type+'">'+getMarkerTypeDefinition(type).label+'</option>';}).join('');syncMarkerLocationSourceEntity();
     function refreshMarkerLocationCapacityMessage(){
@@ -735,7 +764,7 @@
     panel.querySelector('#markerLocationPick').addEventListener('click',function(){document.dispatchEvent(new CustomEvent('mine-services:marker-pick-request'));setMarkerLocationPanelMessage('Pick mode aktif · Top View. Klik satu titik pada terrain.',false);});
     panel.querySelector('#markerLocationCreate').addEventListener('click',function(){
       var type=typeEl.value,entity=panel.querySelector('#markerLocationSourceEntity').value.trim(),sourceId=panel.querySelector('#markerLocationSourceId').value.trim(),label=panel.querySelector('#markerLocationLabel').value.trim(),markerId=panel.querySelector('#markerLocationId').value.trim(),e=Number(panel.querySelector('#markerLocationEasting').value),n=Number(panel.querySelector('#markerLocationNorthing').value),z=Number(panel.querySelector('#markerLocationElevation').value);
-      try{var marker=createDomainSpatialMarker({marker_id:markerId||undefined,marker_type:type,label:label||sourceId,easting:e,northing:n,elevation:z,source_entity:entity,source_id:sourceId,status:'ACTIVE'});selectMarker(marker.marker_id);renderMarkerLocationNow();showMarkerDomainPopup(marker,host);setMarkerLocationPanelMessage('Marker '+marker.marker_id+' berhasil dibuat dan ditampilkan di Map.',false);}
+      try{var def=getDomainLinkDefinition(type);var marker=def.link_mode==='DOMAIN_LINKED'?createDomainSpatialMarker({marker_id:markerId||undefined,marker_type:type,label:label||sourceId,easting:e,northing:n,elevation:z,source_entity:entity,source_id:sourceId,status:'ACTIVE'}):createMarker({marker_id:markerId||undefined,marker_type:type,label:label||markerId||getMarkerTypeDefinition(type).label,easting:e,northing:n,elevation:z,source_entity:'',source_id:'',status:'ACTIVE'});selectMarker(marker.marker_id);renderMarkerLocationNow();showMarkerDomainPopup(marker,host);setMarkerLocationPanelMessage('Marker '+marker.marker_id+' berhasil dibuat dan ditampilkan di Map.',false);}
       catch(error){setMarkerLocationPanelMessage(error&&error.message?error.message:'Gagal membuat marker.',true);}
     });
     document.addEventListener('mine-services:marker-coordinate-picked',function(event){var point=event&&event.detail;if(!point)return;panel.querySelector('#markerLocationEasting').value=Number(point.easting).toFixed(3);panel.querySelector('#markerLocationNorthing').value=Number(point.northing).toFixed(3);panel.querySelector('#markerLocationElevation').value=Number(point.elevation).toFixed(3);setMarkerLocationPanelMessage('Koordinat terrain terpilih · E '+Number(point.easting).toFixed(3)+' · N '+Number(point.northing).toFixed(3)+' · Z '+Number(point.elevation).toFixed(3),false);});
@@ -756,6 +785,8 @@
     listMarkerTypeDefinitions:listMarkerTypeDefinitions,
     getDomainLinkDefinition:getDomainLinkDefinition,
     listDomainLinkDefinitions:listDomainLinkDefinitions,
+    isDomainLinkedType:isDomainLinkedType,
+    isGlobalSpatialType:isGlobalSpatialType,
     createMarker:createMarker,
     createDomainSpatialMarker:createDomainSpatialMarker,
     createHSESpatialMarker:createHSESpatialMarker,
