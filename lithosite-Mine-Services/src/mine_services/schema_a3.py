@@ -1,8 +1,7 @@
 """A.3 runtime schema for the MapMarker persistence rollout.
 
-A.2 remains the default schema until the production workbook migration and
-runtime activation are completed. This module provides an explicit opt-in A.3
-schema for isolated persistence testing.
+A.3 is the active runtime schema. The A2 schema remains available only for
+explicit compatibility and migration/test paths.
 """
 
 from .schema import (
