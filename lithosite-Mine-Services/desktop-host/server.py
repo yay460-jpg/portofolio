@@ -27,7 +27,7 @@ from mine_services import schema_a3  # noqa: E402
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("MINE_SERVICES_PORT", "8765"))
 STATIC_ROOT = REPO_ROOT.resolve()
-STATIC_ENTRY = os.environ.get("MINE_SERVICES_ENTRY", "/lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v30-STAGE18.html")
+STATIC_ENTRY = os.environ.get("MINE_SERVICES_ENTRY", "/lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v33-STAGE21.html")
 DB_PATH = Path(os.environ.get("MINE_SERVICES_DB", str(MODULE_ROOT / "Database" / "Mine-Services-Database-A3.xlsx"))).resolve()
 
 SCHEMA_NAME = os.environ.get("MINE_SERVICES_SCHEMA", "A3").upper()
@@ -171,7 +171,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    print(f"Mine Services Desktop Host â€” http://{HOST}:{PORT}")
+    print(f"Mine Services Desktop Host — http://{HOST}:{PORT}")
     print(f"UI: http://{HOST}:{PORT}/")
     print(f"Database: {DB_PATH}")
     print("Offline local runtime. Press Ctrl+C to stop.")
