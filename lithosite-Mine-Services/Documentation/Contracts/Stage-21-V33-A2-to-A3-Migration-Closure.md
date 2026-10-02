@@ -129,7 +129,7 @@ This prevents two competing database source-of-truth files from remaining in the
 
 The following were intentionally preserved:
 
-- V32-LOCKED baseline.
+- Historical V32/V29 evidence documents.
 - Existing A3 data migrated from A2.
 - Existing Map/Top View behavior and stabilized map functionality.
 - Existing migration support required for A2-to-A3 transition.
@@ -147,11 +147,10 @@ Commit message:
 
 `stage33: retire A2 database source`
 
-The commit was pushed to `origin/main`.
+The migration closure commit was pushed to `origin/main`.
 
-At closure, local `HEAD` and `origin/main` were both:
-
-`19cdee18d7f2951d99ff7cd54f98d8ac61f18977`
+Subsequent V33 baseline cleanup commits retired the V32 locked artifact from
+the active repository and removed generated Python cache files from Git tracking.
 
 ## 13. Final V33 State
 
