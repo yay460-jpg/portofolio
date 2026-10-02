@@ -322,3 +322,23 @@ def test_stage20_marker_location_ui_surfaces_capacity_before_add():
     assert "spatial markers: '+capacity.active+'/'+capacity.limit+' active" in js
     assert "Batas tercapai; nonaktifkan/hapus marker spatial untuk membuat lokasi baru." in js
     assert "refreshMarkerLocationCapacityMessage();" in js
+
+
+def test_stage20_marker_location_rejects_duplicate_active_domain_source():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "function findActiveMarkerBySource(sourceEntity, sourceId, excludeMarkerId)" in js
+    assert "marker.source_entity===entity && marker.source_id===source" in js
+    assert "Spatial marker already assigned to " in js
+    assert "findActiveMarkerBySource(marker.source_entity,marker.source_id,excludeMarkerId)" in js
+    assert "findActiveMarkerBySource:findActiveMarkerBySource" in js
+
+
+def test_stage20_marker_location_duplicate_source_check_ignores_inactive_and_removed_markers():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    start = js.index("function findActiveMarkerBySource")
+    end = js.index("function assertMarkerCapacity", start)
+    block = js[start:end]
+    assert "marker.status==='ACTIVE'" in block
+    assert "ids[i]!==exclude" in block
