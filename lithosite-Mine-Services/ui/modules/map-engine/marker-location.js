@@ -185,8 +185,25 @@
     return {marker_type:type,active:active,limit:limit,available:Math.max(0,limit-active)};
   }
 
+  function findActiveMarkerBySource(sourceEntity, sourceId, excludeMarkerId){
+    var entity=String(sourceEntity||'').trim();
+    var source=String(sourceId||'').trim();
+    var exclude=String(excludeMarkerId||'').trim();
+    if(!entity || !source)return null;
+    var ids=Object.keys(markers);
+    for(var i=0;i<ids.length;i++){
+      var marker=markers[ids[i]];
+      if(ids[i]!==exclude && marker && marker.status==='ACTIVE' && marker.source_entity===entity && marker.source_id===source)return marker;
+    }
+    return null;
+  }
+
   function assertMarkerCapacity(marker, excludeMarkerId){
     if(marker.status!=='ACTIVE')return;
+    var duplicate=findActiveMarkerBySource(marker.source_entity,marker.source_id,excludeMarkerId);
+    if(duplicate){
+      throw new Error('Spatial marker already assigned to '+marker.source_entity+' '+marker.source_id+' ('+duplicate.marker_id+')');
+    }
     var active=getActiveMarkerCount(marker.marker_type,excludeMarkerId);
     var limit=getMarkerLimit(marker.marker_type);
     if(active>=limit){
@@ -722,6 +739,7 @@
     getActiveMarkerCount:getActiveMarkerCount,
     getMarkerLimit:getMarkerLimit,
     getMarkerCapacity:getMarkerCapacity,
+    findActiveMarkerBySource:findActiveMarkerBySource,
     selectMarker:selectMarker,
     clearSelectedMarker:clearSelectedMarker,
     getSelectedMarker:getSelectedMarker,
