@@ -270,3 +270,55 @@ def test_stage20_marker_location_css_is_namespaced_and_ready_for_v32_overlay():
     assert ".map-location-marker__icon" in css
     assert ".map-location-marker__icon" in css
     assert "Loaded by V32 Stage 20 as the centralized marker overlay presentation layer." in css
+
+
+def test_stage20_marker_location_has_operational_active_limits_by_type():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "var MAX_ACTIVE_MARKERS_BY_TYPE" in js
+    for marker_type, limit in (
+        ("HSE", 5),
+        ("ASSET", 5),
+        ("WORKFRONT", 5),
+        ("FACILITY", 1),
+        ("STOCKPILE", 3),
+        ("DISPOSAL", 5),
+        ("DRAINAGE", 3),
+        ("WORKSHOP", 1),
+        ("OTHER", 3),
+    ):
+        assert "%s:%s" % (marker_type, limit) in js
+
+    assert "function getActiveMarkerCount(markerType, excludeMarkerId)" in js
+    assert "function getMarkerLimit(markerType)" in js
+    assert "function getMarkerCapacity(markerType)" in js
+    assert "function assertMarkerCapacity(marker, excludeMarkerId)" in js
+    assert "Marker Location limit reached for " in js
+    assert "active spatial markers maximum" in js
+    assert "getActiveMarkerCount:getActiveMarkerCount" in js
+    assert "getMarkerLimit:getMarkerLimit" in js
+    assert "getMarkerCapacity:getMarkerCapacity" in js
+
+
+def test_stage20_marker_location_limit_applies_only_to_active_spatial_markers():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    start = js.index("function getActiveMarkerCount")
+    end = js.index("function createMarker", start)
+    block = js[start:end]
+    assert "marker.status==='ACTIVE'" in block
+    assert "Math.max(0,limit-active)" in block
+
+    start = js.index("function assertMarkerCapacity")
+    end = js.index("function createMarker", start)
+    block = js[start:end]
+    assert "if(marker.status!=='ACTIVE')return;" in block
+
+
+def test_stage20_marker_location_ui_surfaces_capacity_before_add():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "refreshMarkerLocationCapacityMessage" in js
+    assert "spatial markers: '+capacity.active+'/'+capacity.limit+' active" in js
+    assert "Batas tercapai; nonaktifkan/hapus marker spatial untuk membuat lokasi baru." in js
+    assert "refreshMarkerLocationCapacityMessage();" in js
