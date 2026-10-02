@@ -344,7 +344,12 @@
     }
     var map=document.getElementById('dashboardSiteMap');
     if(map && typeof map.scrollIntoView==='function'){
-      setTimeout(function(){map.scrollIntoView({behavior:'smooth',block:'center'});},0);
+      setTimeout(function(){
+        map.scrollIntoView({behavior:'smooth',block:'center'});
+        document.dispatchEvent(new CustomEvent('mine-services:focus-marker',{detail:{marker:marker}}));
+      },40);
+    }else{
+      document.dispatchEvent(new CustomEvent('mine-services:focus-marker',{detail:{marker:marker}}));
     }
     return {ok:true,status:'SHOWN_ON_MAP',source_entity:entity,source_id:id,marker:marker};
   }
@@ -618,7 +623,7 @@
     if(!host||!toolbar||document.getElementById('markerLocationToggle'))return;
     var toggle=document.createElement('button');toggle.type='button';toggle.id='markerLocationToggle';toggle.textContent='Marker Location';toolbar.appendChild(toggle);
     var panel=document.createElement('section');panel.id='markerLocationPanel';panel.className='marker-location-panel';panel.hidden=true;
-    panel.innerHTML='<div class="marker-location-panel__head"><div><strong>Marker Location</strong><small>Spatial reference &amp; domain link</small></div><button type="button" class="marker-location-close" aria-label="Close Marker Location">×</button></div><div class="marker-location-panel__body"><div class="marker-location-fields"><label>Marker Type<select id="markerLocationType"></select></label><label>Source Entity<input id="markerLocationSourceEntity" type="text" readonly></label><label>Source ID<input id="markerLocationSourceId" type="text" placeholder="Equipment / WorkFront / HSE ID"></label><label>Label<input id="markerLocationLabel" type="text" placeholder="Marker label"></label><label>Marker ID<input id="markerLocationId" type="text" placeholder="Optional · auto ML-xxxx"></label><label>Easting<input id="markerLocationEasting" type="number" step="any" placeholder="Easting"></label><label>Northing<input id="markerLocationNorthing" type="number" step="any" placeholder="Northing"></label><label>Elevation<input id="markerLocationElevation" type="number" step="any" placeholder="Elevation"></label></div><div class="marker-location-actions"><button type="button" class="control mini" id="markerLocationPick">Pick on Map</button><button type="button" class="control mini primary" id="markerLocationCreate">Add Marker</button></div><div class="marker-location-message">Pick on Map switches to Top View before coordinate picking.</div><div class="marker-location-list-head"><strong>Current Markers</strong><span class="marker-location-count">0 markers</span></div><div class="marker-location-list"></div></div>';
+    panel.innerHTML='<div class="marker-location-panel__head"><div><strong>Marker Location</strong><small>Spatial reference &amp; domain link</small></div><button type="button" class="marker-location-close" aria-label="Close Marker Location">×</button></div><div class="marker-location-panel__body"><div class="marker-location-fields"><label>Marker Type<select id="markerLocationType"></select></label><label>Source Entity<input id="markerLocationSourceEntity" type="text" readonly></label><label>Source ID<input id="markerLocationSourceId" type="text" placeholder="Equipment / WorkFront / HSE ID"></label><label>Label<input id="markerLocationLabel" type="text" placeholder="Marker label"></label><label>Marker ID<input id="markerLocationId" type="text" placeholder="Optional · auto ML-xxxx"></label><label>Easting<input id="markerLocationEasting" type="number" step="any" placeholder="Easting"></label><label>Northing<input id="markerLocationNorthing" type="number" step="any" placeholder="Northing"></label><label>Elevation<input id="markerLocationElevation" type="number" step="any" placeholder="Elevation"></label></div><div class="marker-location-actions"><button type="button" class="control mini" id="markerLocationPick">Pick on Map</button><button type="button" class="control mini primary" id="markerLocationCreate">Add Marker</button></div><div class="marker-location-message">Pick on Map switches to Top View before coordinate picking.</div></div>';
     host.appendChild(panel);
     var typeEl=panel.querySelector('#markerLocationType');typeEl.innerHTML=TYPES.map(function(type){return '<option value="'+type+'">'+getMarkerTypeDefinition(type).label+'</option>';}).join('');syncMarkerLocationSourceEntity();
     toggle.addEventListener('click',function(){panel.hidden=!panel.hidden;toggle.classList.toggle('is-active',!panel.hidden);if(!panel.hidden)refreshMarkerLocationUI();});
@@ -630,7 +635,6 @@
       try{var marker=createDomainSpatialMarker({marker_id:markerId||undefined,marker_type:type,label:label||sourceId,easting:e,northing:n,elevation:z,source_entity:entity,source_id:sourceId,status:'ACTIVE'});selectMarker(marker.marker_id);renderMarkerLocationNow();showMarkerDomainPopup(marker,host);setMarkerLocationPanelMessage('Marker '+marker.marker_id+' berhasil dibuat dan ditampilkan di Map.',false);}
       catch(error){setMarkerLocationPanelMessage(error&&error.message?error.message:'Gagal membuat marker.',true);}
     });
-    panel.querySelector('.marker-location-list').addEventListener('click',function(event){var show=event.target.closest('.marker-location-show');if(!show)return;try{var marker=selectMarker(show.dataset.markerId);renderMarkerLocationNow();showMarkerDomainPopup(marker,host);}catch(error){setMarkerLocationPanelMessage(error&&error.message?error.message:'Marker tidak dapat dipilih.',true);}});
     document.addEventListener('mine-services:marker-coordinate-picked',function(event){var point=event&&event.detail;if(!point)return;panel.querySelector('#markerLocationEasting').value=Number(point.easting).toFixed(3);panel.querySelector('#markerLocationNorthing').value=Number(point.northing).toFixed(3);panel.querySelector('#markerLocationElevation').value=Number(point.elevation).toFixed(3);setMarkerLocationPanelMessage('Koordinat terrain terpilih · E '+Number(point.easting).toFixed(3)+' · N '+Number(point.northing).toFixed(3)+' · Z '+Number(point.elevation).toFixed(3),false);});
     refreshMarkerLocationUI();
   }
