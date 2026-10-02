@@ -8,9 +8,9 @@ TOPO_ENGINE = ROOT / "shared" / "topo3d" / "topo3d-engine.js"
 def test_stage20_marker_overlay_assets_are_loaded_before_map_engine():
     html = ARTIFACT.read_text(encoding="utf-8")
     assert "../ui/modules/map-engine/marker-location.css?v=20261011" in html
-    assert "../ui/modules/map-engine/marker-location.js?v=20261014" in html
-    assert html.index("../ui/modules/map-engine/geo-adapter.js?v=20261001") < html.index("../ui/modules/map-engine/marker-location.js?v=20261014")
-    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261014") < html.index("../ui/modules/map-engine/map-engine.js?v=20261005")
+    assert "../ui/modules/map-engine/marker-location.js?v=20261015" in html
+    assert html.index("../ui/modules/map-engine/geo-adapter.js?v=20261001") < html.index("../ui/modules/map-engine/marker-location.js?v=20261015")
+    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261015") < html.index("../ui/modules/map-engine/map-engine.js?v=20261005")
 
 def test_stage20_marker_renderer_is_only_a_map_render_overlay():
     js = MAP_ENGINE.read_text(encoding="utf-8")
