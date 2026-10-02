@@ -25,3 +25,9 @@
 
 /* V32 Stage 20 — keep status pill fully inside its status column. */
 #dashboardScreen .tablegrid.issue.row>span:last-child{justify-self:start}
+
+/* V32 Stage 20 — explicit Issues & Alerts 3-column alignment. */
+#dashboardScreen .tablegrid.issue.head,
+#dashboardScreen .tablegrid.issue.row{grid-template-columns:90px minmax(0,1fr) 82px !important}
+#dashboardScreen .tablegrid.issue.row>span:last-child{display:flex;align-items:center;justify-content:flex-start;min-width:0;overflow:visible}
+#dashboardScreen .tablegrid.issue.row>span:last-child .pill{flex:0 0 52px;width:52px;min-width:52px;box-sizing:border-box}
