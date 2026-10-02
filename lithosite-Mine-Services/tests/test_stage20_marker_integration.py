@@ -1,7 +1,7 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v32-LOCKED.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v33-STAGE21.html"
 MAP_ENGINE = ROOT / "ui" / "modules" / "map-engine" / "map-engine.js"
 TOPO_ENGINE = ROOT / "shared" / "topo3d" / "topo3d-engine.js"
 
@@ -35,3 +35,4 @@ def test_stage20_marker_overlay_preserves_measurement_layer_contract():
     assert 'id="dashboardTopo3DMeasureLine"' in html
     assert "dashboardTopo3DMeasureLine" in js
     assert "syncPickedMarkers" in js
+

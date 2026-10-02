@@ -102,7 +102,7 @@ def test_plans_period_and_numeric_validation():
 
 def test_v27_plans_shell_contract():
     root = Path(__file__).parents[1]
-    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v32-LOCKED.html").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v33-STAGE21.html").read_text(encoding="utf-8")
     shell = (root / "ui" / "shared" / "shell-navigation-v31.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "plans" / "plans.js").read_text(encoding="utf-8")
 
@@ -124,6 +124,7 @@ def test_v27_plans_shell_contract():
     assert "'Plans'" in shell
     assert "entity:'Plans'" in module
     assert "RuntimeAdapter" in module
+
 
 
 

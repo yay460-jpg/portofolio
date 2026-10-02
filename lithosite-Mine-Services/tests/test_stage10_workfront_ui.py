@@ -1,7 +1,7 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v32-LOCKED.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v33-STAGE21.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 WORKFRONT_JS = (ROOT / "ui" / "modules" / "workfront" / "workfront.js").read_text(encoding="utf-8")
 SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v31.js").read_text(encoding="utf-8")
@@ -70,5 +70,6 @@ def test_stage10_runtime_error_is_not_rendered_as_empty_dataset():
     assert "state.status='error'" in WORKFRONT_JS
     assert "Work Front data unavailable" in WORKFRONT_JS
     assert "state.rows=[]" not in WORKFRONT_JS
+
 
 

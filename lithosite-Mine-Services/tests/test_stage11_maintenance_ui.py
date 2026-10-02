@@ -1,7 +1,7 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v32-LOCKED.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v33-STAGE21.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 MAINTENANCE_JS = (ROOT / "ui" / "modules" / "maintenance" / "maintenance.js").read_text(encoding="utf-8")
 SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v31.js").read_text(encoding="utf-8")
@@ -74,6 +74,7 @@ def test_stage11_modal_and_runtime_message_present():
     assert 'id="maintenanceModal"' in TEXT
     assert 'id="maintenanceRuntimeMsg"' in TEXT
     assert 'id="maintenanceSave"' in TEXT
+
 
 
 

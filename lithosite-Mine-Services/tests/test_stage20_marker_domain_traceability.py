@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
@@ -7,7 +7,7 @@ MARKER_CSS = ROOT / "ui" / "modules" / "map-engine" / "marker-location.css"
 EQUIPMENT_JS = ROOT / "ui" / "modules" / "equipment" / "equipment.js"
 WORKFRONT_JS = ROOT / "ui" / "modules" / "workfront" / "workfront.js"
 HSE_JS = ROOT / "ui" / "modules" / "hse" / "hse.js"
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v32-LOCKED.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v33-STAGE21.html"
 
 
 def test_stage20_10_marker_click_opens_domain_popup():
@@ -66,3 +66,4 @@ def test_stage20_10_v32_loads_current_assets():
         "../ui/modules/hse/hse.js?v=20261005",
     ):
         assert marker in html
+
