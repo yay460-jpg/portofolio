@@ -1,8 +1,8 @@
-"""Stage 20.8K-C1 schema migration contract.
+"""A2-to-A3 schema migration contract.
 
-This module describes the target A.3 workbook shape without changing the
-currently active A.2 runtime schema. Migration activation is deliberately
-deferred to the next isolated step.
+This module records the A3 workbook shape produced from the A2 baseline.
+A3 is now the active runtime schema; A2 remains represented here as the
+historical migration source and compatibility boundary.
 """
 
 from .map_marker_contract import MAP_MARKER_ENTITY, MAP_MARKER_HEADERS, MAP_MARKER_PRIMARY_KEY
