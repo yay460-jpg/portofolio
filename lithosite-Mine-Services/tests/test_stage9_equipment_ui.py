@@ -9,7 +9,7 @@ SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation-v31.
 def test_stage9_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
-    assert "equipment.js?v=20261001" in TEXT
+    assert "equipment.js?v=20261005" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
