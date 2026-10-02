@@ -34,10 +34,10 @@
 .map-location-marker.marker-type-other{--marker-accent:#94a3b8;}
 .map-location-marker__icon{
   position:absolute;
-  left:4px;
-  top:4px;
-  width:20px;
-  height:20px;
+  left:5px;
+  top:5px;
+  width:17px;
+  height:17px;
   display:block;
   box-sizing:border-box;
   border:2px solid #fff;
@@ -55,9 +55,9 @@
   position:absolute;
   left:50%;
   top:50%;
-  width:6px;
-  height:6px;
-  margin:-3px 0 0 -3px;
+  width:5px;
+  height:5px;
+  margin:-2.5px 0 0 -2.5px;
   border-radius:50%;
   background:#fff;
 }
