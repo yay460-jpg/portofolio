@@ -671,6 +671,44 @@
     var typeEl=document.getElementById('markerLocationType'),entityEl=document.getElementById('markerLocationSourceEntity');if(!typeEl||!entityEl)return;
     var def=getDomainLinkDefinition(typeEl.value);entityEl.value=def.source_entity||'Other';
   }
+  function sourceRecordKey(entity){
+    return entity==='Equipment'?'equipment_id':entity==='WorkFront'?'work_front_id':entity==='HSE'?'hse_id':'id';
+  }
+  function sourceRecordLabel(entity,row){
+    if(!row)return '';
+    if(entity==='Equipment')return String(row.unit_no||row.equipment_id||'').trim();
+    if(entity==='WorkFront')return String(row.location||row.work_front_id||'').trim();
+    if(entity==='HSE')return String(row.event_type||row.domain||row.hse_id||'').trim();
+    return String(row.name||row.label||row.id||'').trim();
+  }
+  async function loadMarkerLocationSources(){
+    var typeEl=document.getElementById('markerLocationType'),entityEl=document.getElementById('markerLocationSourceEntity'),sourceEl=document.getElementById('markerLocationSourceId'),labelEl=document.getElementById('markerLocationLabel');
+    if(!typeEl||!entityEl||!sourceEl||!labelEl)return;
+    var entity=entityEl.value;
+    sourceEl.innerHTML='<option value="">Loading source records…</option>';
+    sourceEl.disabled=true;labelEl.value='';
+    var key=sourceRecordKey(entity);
+    if(!global.LithositeRuntimeClient || !['Equipment','WorkFront','HSE'].includes(entity)){
+      sourceEl.innerHTML='<option value="">Manual source ID required</option>';
+      sourceEl.disabled=false;
+      labelEl.readOnly=false;
+      return;
+    }
+    try{
+      var result=await global.LithositeRuntimeClient.request({operation:'READ',entity:entity});
+      var rows=Array.isArray(result.data)?result.data:[];
+      var available=rows.filter(function(row){return row&&String(row[key]||'').trim();});
+      sourceEl.innerHTML='<option value="">Select '+entity+' record</option>'+available.map(function(row){var id=String(row[key]).trim();var desc=sourceRecordLabel(entity,row);return '<option value="'+id.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" data-label="'+desc.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">'+id.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+(desc?' · '+desc.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):'')+'</option>';}).join('');
+      sourceEl.disabled=false;
+      labelEl.readOnly=true;
+      sourceEl.onchange=function(){var opt=sourceEl.options[sourceEl.selectedIndex];labelEl.value=opt&&opt.value?(opt.dataset.label||opt.value):'';};
+    }catch(error){
+      sourceEl.innerHTML='<option value="">Source records unavailable</option>';
+      sourceEl.disabled=false;
+      labelEl.readOnly=false;
+      setMarkerLocationPanelMessage('Source records unavailable: '+(error&&error.message?error.message:'Runtime error')+'.',true);
+    }
+  }
   function setMarkerLocationPanelMessage(message,error){
     var el=document.querySelector('#markerLocationPanel .marker-location-message');if(!el)return;
     el.textContent=message||'';el.classList.toggle('error',!!error);
@@ -684,16 +722,16 @@
     if(!host||!toolbar||document.getElementById('markerLocationToggle'))return;
     var toggle=document.createElement('button');toggle.type='button';toggle.id='markerLocationToggle';toggle.textContent='Marker Location';toolbar.appendChild(toggle);
     var panel=document.createElement('section');panel.id='markerLocationPanel';panel.className='marker-location-panel';panel.hidden=true;
-    panel.innerHTML='<div class="marker-location-panel__head"><div><strong>Marker Location</strong><small>Spatial reference &amp; domain link</small></div><button type="button" class="marker-location-close" aria-label="Close Marker Location">×</button></div><div class="marker-location-panel__body"><div class="marker-location-fields"><label>Marker Type<select id="markerLocationType"></select></label><label>Source Entity<input id="markerLocationSourceEntity" type="text" readonly></label><label>Source ID<input id="markerLocationSourceId" type="text" placeholder="Equipment / WorkFront / HSE ID"></label><label>Label<input id="markerLocationLabel" type="text" placeholder="Marker label"></label><label>Marker ID<input id="markerLocationId" type="text" placeholder="Optional · auto ML-xxxx"></label><label>Easting<input id="markerLocationEasting" type="number" step="any" placeholder="Easting"></label><label>Northing<input id="markerLocationNorthing" type="number" step="any" placeholder="Northing"></label><label>Elevation<input id="markerLocationElevation" type="number" step="any" placeholder="Elevation"></label></div><div class="marker-location-actions"><button type="button" class="control mini" id="markerLocationPick">Pick on Map</button><button type="button" class="control mini primary" id="markerLocationCreate">Add Marker</button></div><div class="marker-location-message">Pick on Map switches to Top View before coordinate picking.</div></div>';
+    panel.innerHTML='<div class="marker-location-panel__head"><div><strong>Marker Location</strong><small>Spatial reference &amp; domain link</small></div><button type="button" class="marker-location-close" aria-label="Close Marker Location">×</button></div><div class="marker-location-panel__body"><div class="marker-location-fields"><label>Marker Type<select id="markerLocationType"></select></label><label>Source Entity<input id="markerLocationSourceEntity" type="text" readonly></label><label>Source ID<select id="markerLocationSourceId"><option value="">Select source record</option></select></label><label>Label<input id="markerLocationLabel" type="text" placeholder="Marker label" readonly></label><label>Marker ID<input id="markerLocationId" type="text" placeholder="Optional · auto ML-xxxx"></label><label>Easting<input id="markerLocationEasting" type="number" step="any" placeholder="Easting"></label><label>Northing<input id="markerLocationNorthing" type="number" step="any" placeholder="Northing"></label><label>Elevation<input id="markerLocationElevation" type="number" step="any" placeholder="Elevation"></label></div><div class="marker-location-actions"><button type="button" class="control mini" id="markerLocationPick">Pick on Map</button><button type="button" class="control mini primary" id="markerLocationCreate">Add Marker</button></div><div class="marker-location-message">Pick on Map switches to Top View before coordinate picking.</div></div>';
     host.appendChild(panel);
     var typeEl=panel.querySelector('#markerLocationType');typeEl.innerHTML=TYPES.map(function(type){return '<option value="'+type+'">'+getMarkerTypeDefinition(type).label+'</option>';}).join('');syncMarkerLocationSourceEntity();
     function refreshMarkerLocationCapacityMessage(){
       var capacity=getMarkerCapacity(typeEl.value);
       setMarkerLocationPanelMessage(getMarkerTypeDefinition(typeEl.value).label+' spatial markers: '+capacity.active+'/'+capacity.limit+' active. '+(capacity.available?'Masih tersedia '+capacity.available+' slot.':'Batas tercapai; nonaktifkan/hapus marker spatial untuk membuat lokasi baru.'),capacity.available===0);
     }
-    toggle.addEventListener('click',function(){panel.hidden=!panel.hidden;toggle.classList.toggle('is-active',!panel.hidden);if(!panel.hidden){refreshMarkerLocationUI();refreshMarkerLocationCapacityMessage();}});
+    toggle.addEventListener('click',function(){panel.hidden=!panel.hidden;toggle.classList.toggle('is-active',!panel.hidden);if(!panel.hidden){refreshMarkerLocationUI();refreshMarkerLocationCapacityMessage();loadMarkerLocationSources();}});
     panel.querySelector('.marker-location-close').addEventListener('click',function(){panel.hidden=true;toggle.classList.remove('is-active');});
-    typeEl.addEventListener('change',function(){syncMarkerLocationSourceEntity();refreshMarkerLocationCapacityMessage();});
+    typeEl.addEventListener('change',function(){syncMarkerLocationSourceEntity();refreshMarkerLocationCapacityMessage();loadMarkerLocationSources();});
     panel.querySelector('#markerLocationPick').addEventListener('click',function(){document.dispatchEvent(new CustomEvent('mine-services:marker-pick-request'));setMarkerLocationPanelMessage('Pick mode aktif · Top View. Klik satu titik pada terrain.',false);});
     panel.querySelector('#markerLocationCreate').addEventListener('click',function(){
       var type=typeEl.value,entity=panel.querySelector('#markerLocationSourceEntity').value.trim(),sourceId=panel.querySelector('#markerLocationSourceId').value.trim(),label=panel.querySelector('#markerLocationLabel').value.trim(),markerId=panel.querySelector('#markerLocationId').value.trim(),e=Number(panel.querySelector('#markerLocationEasting').value),n=Number(panel.querySelector('#markerLocationNorthing').value),z=Number(panel.querySelector('#markerLocationElevation').value);
