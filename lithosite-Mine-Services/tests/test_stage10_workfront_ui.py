@@ -10,7 +10,7 @@ SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v31.js").read_text(encodi
 def test_stage10_workfront_screen_exists():
     assert 'id="workfrontScreen"' in TEXT
     assert ">Work Front<" in TEXT
-    assert "workfront.js?v=20261001" in TEXT
+    assert "workfront.js?v=20261007" in TEXT
     assert "entity:'WorkFront'" in WORKFRONT_JS
 
 
