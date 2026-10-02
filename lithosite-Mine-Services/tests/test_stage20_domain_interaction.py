@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v32-STAGE20.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v32-LOCKED.html"
 MARKER_JS = ROOT / "ui" / "modules" / "map-engine" / "marker-location.js"
 EQUIPMENT_JS = ROOT / "ui" / "modules" / "equipment" / "equipment.js"
 WORKFRONT_JS = ROOT / "ui" / "modules" / "workfront" / "workfront.js"
