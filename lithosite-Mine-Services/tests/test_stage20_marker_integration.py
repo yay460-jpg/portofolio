@@ -10,7 +10,7 @@ def test_stage20_marker_overlay_assets_are_loaded_before_map_engine():
     assert "../ui/modules/map-engine/marker-location.css?v=20261007" in html
     assert "../ui/modules/map-engine/marker-location.js?v=20261006" in html
     assert html.index("../ui/modules/map-engine/geo-adapter.js?v=20261001") < html.index("../ui/modules/map-engine/marker-location.js?v=20261006")
-    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261006") < html.index("../ui/modules/map-engine/map-engine.js?v=20261003")
+    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261006") < html.index("../ui/modules/map-engine/map-engine.js?v=20261004")
 
 def test_stage20_marker_renderer_is_only_a_map_render_overlay():
     js = MAP_ENGINE.read_text(encoding="utf-8")
