@@ -233,6 +233,13 @@
         else{startAutoRotate();rotate360.classList.add('is-active');rotate360.textContent='360° Auto';}
       });
       document.addEventListener('mine-services:marker-pick-request',function(){if(!engine||!engine.getState().ready)return;engine.setView('top');syncTopViewClass();updateNorthArrow();activePickPoint='__MARKER__';setStatus('Marker Location · Top View aktif · klik terrain untuk memilih koordinat');});
+      document.addEventListener('mine-services:focus-marker',function(event){
+        var marker=event&&event.detail&&event.detail.marker;
+        if(!marker||!engine||!engine.getState().ready)return;
+        requestAnimationFrame(function(){
+          if(engine.focusCoordinate)engine.focusCoordinate(marker.easting,marker.northing,marker.elevation);
+        });
+      });
       var northSync=setInterval(updateNorthArrow,100);
       var guide=host.querySelector('#dashboardTopo3DGuideToggle');
       var guidePanel=host.querySelector('#dashboardTopo3DGuide');
