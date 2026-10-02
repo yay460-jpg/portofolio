@@ -59,3 +59,16 @@ Marker Location remains an in-memory spatial marker model at this stage. A.2 dom
 **Stage 20 Marker Location: FUNCTIONALLY VALIDATED / READY FOR BASELINE REVIEW**
 
 The next action should be baseline lock/checkpoint handling before starting unrelated Stage 21 work.
+
+
+## Baseline Transition
+
+Stage 20 V32 is now treated as the stable baseline.
+
+- Locked artifact: `Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v32-LOCKED.html`
+- Retired artifact: V31 locked artifact removed from the repository.
+- New workspace: `Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v33-STAGE21.html`
+- V33 is a direct copy of the locked V32 Stage 20 artifact and is the workspace for Stage 21.
+- Stage 20 automated tests now target the locked V32 artifact so the baseline is tested independently of the V33 workspace.
+
+The V32 locked artifact must be treated as immutable baseline evidence. New Stage 21 changes belong in V33 and must not be applied back to the V32 baseline.
