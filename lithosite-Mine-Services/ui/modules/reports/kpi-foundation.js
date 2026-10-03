@@ -89,7 +89,7 @@
   function calculateEquipment(input){
     const payload=input||{},timeline=buildEquipmentTimeline(payload);
     if(timeline.status!==center.KPI_STATUS.READY)return{equipmentId:payload.equipmentId||null,status:timeline.status,timeline,results:{PA:{kpi:'PA',status:timeline.status,value:null,unit:'%'},UA:{kpi:'UA',status:timeline.status,value:null,unit:'%'},EU:{kpi:'EU',status:center.KPI_STATUS.PENDING_DEFINITION,value:null,unit:'%'}}};
-    const bundle=center.calculateBundle({timeline:timeline.events,timelineGaps:timeline.issues.filter(i=>i.code==='TIMELINE_GAP'),scheduledTime:{status:center.KPI_STATUS.READY,scheduledHours:timeline.scheduledHours,baseline_id:timeline.baseline.baseline_id,version:timeline.baseline.version}});
+    const bundle=center.calculateBundle({timeline:timeline.events,timelineGaps:timeline.issues.filter(i=>i.code==='TIMELINE_GAP'),scheduledWindows:timeline.windows,scheduledTime:{status:center.KPI_STATUS.READY,scheduledHours:timeline.scheduledHours,baseline_id:timeline.baseline.baseline_id,version:timeline.baseline.version}});
     return{equipmentId:payload.equipmentId||null,status:bundle.status,timeline,results:bundle.results,calculationVersion:VERSION};
   }
   function calculateFleet(input){
