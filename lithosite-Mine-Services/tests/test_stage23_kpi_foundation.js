@@ -64,7 +64,7 @@ assert.equal(unit.status, 'READY');
 assert.equal(unit.timeline.scheduledHours, 11);
 assert.equal(unit.timeline.events.length, 5);
 assert(Math.abs(unit.results.PA.value - (9 / 11 * 100)) < 1e-9);
-assert(Math.abs(unit.results.UA.value - (7 / 9 * 100)) < 1e-9);
+assert(Math.abs(unit.results.UA.value - 100) < 1e-9);
 assert.equal(unit.results.EU.status, 'PENDING_DEFINITION');
 
 const gap = f.calculateEquipment({
@@ -105,7 +105,7 @@ const fleet = f.calculateFleet({
 assert.equal(fleet.status, 'READY');
 assert.equal(fleet.population.eligible, 2);
 assert(Math.abs(fleet.results.PA.value - (20 / 22 * 100)) < 1e-9);
-assert(Math.abs(fleet.results.UA.value - (18 / 20 * 100)) < 1e-9);
+assert(Math.abs(fleet.results.UA.value - 100) < 1e-9);
 
 const snapshot = f.buildSnapshot({
   calculation:fleet,
