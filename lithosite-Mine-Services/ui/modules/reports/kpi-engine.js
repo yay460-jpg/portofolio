@@ -456,9 +456,17 @@
         : payload.availableHours
     });
 
-    const ua = ENGINE_REGISTRY.UA.engine
-      ? ENGINE_REGISTRY.UA.engine.calculate(uaInput)
-      : calculateUA(uaInput);
+    const ua = pa && pa.status === KPI_STATUS.READY
+      ? (ENGINE_REGISTRY.UA.engine
+          ? ENGINE_REGISTRY.UA.engine.calculate(uaInput)
+          : calculateUA(uaInput))
+      : {
+          kpi: 'UA',
+          status: KPI_STATUS.NEEDS_VALIDATION,
+          value: null,
+          unit: '%',
+          reason: 'PA prerequisite is not READY.'
+        };
 
     const euInput = Object.assign({}, payload, {
       availableHours: ua && Number.isFinite(Number(ua.denominatorHours))
@@ -469,9 +477,17 @@
         : payload.usedHours
     });
 
-    const eu = ENGINE_REGISTRY.EU.engine
-      ? ENGINE_REGISTRY.EU.engine.calculate(euInput)
-      : calculateEU(euInput);
+    const eu = ua && ua.status === KPI_STATUS.READY
+      ? (ENGINE_REGISTRY.EU.engine
+          ? ENGINE_REGISTRY.EU.engine.calculate(euInput)
+          : calculateEU(euInput))
+      : {
+          kpi: 'EU',
+          status: KPI_STATUS.NEEDS_VALIDATION,
+          value: null,
+          unit: '%',
+          reason: 'UA prerequisite is not READY.'
+        };
 
     return {
       status: KPI_STATUS.READY,
