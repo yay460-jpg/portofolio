@@ -14,6 +14,7 @@ vm.createContext(context);
   'kpi-engine.js',
   'availability-time-contract.js',
   'pa-engine.js',
+  'used-time-contract.js',
   'ua-engine.js',
   'eu-engine.js'
 ].forEach(function (file) {
