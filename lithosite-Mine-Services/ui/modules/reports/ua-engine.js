@@ -35,7 +35,27 @@
     }
 
     const availableHours = Number(payload.availableHours);
-    const usedHours = Number.isFinite(Number(payload.usedHours))
+    let usedHours;
+    let usedTimeContract = null;
+
+    if (global.LithositeUsedTimeContract) {
+      usedTimeContract = global.LithositeUsedTimeContract.summarize({ timeline: payload.timeline || [] });
+      if (usedTimeContract.status !== center.KPI_STATUS.READY) {
+        return { kpi: ENGINE_ID, status: usedTimeContract.status, value: null, unit: '%', reason: 'Used Time is not validated.', usedTimeContract: usedTimeContract };
+      }
+      usedHours = usedTimeContract.usedHours;
+    } else {
+      usedHours = Number.isFinite(Number(payload.usedHours))
+        ? Number(payload.usedHours)
+        : center.sumTimelineHours(
+            timelineResult.events,
+            function (event) {
+              return event.availability === center.AVAILABILITY.AVAILABLE &&
+                event.usage === center.USAGE.USED;
+            }
+          );
+    }
+
       ? Number(payload.usedHours)
       : center.sumTimelineHours(
           timelineResult.events,
