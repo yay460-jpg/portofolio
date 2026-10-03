@@ -281,7 +281,11 @@
     }, 0);
   }
 
-  function classifyTimeline(events) {
+  function classifyTimeline(events, options) {
+    const config = Object.assign({
+      requireUsageForAvailable: true,
+      requireEffectiveness: false
+    }, options || {});
     const normalized = normalizeTimeline(events);
 
     if (normalized.status !== KPI_STATUS.READY) {
@@ -293,11 +297,17 @@
     }
 
     const unresolved = normalized.events.filter(function (event) {
-      return (
-        event.availability === AVAILABILITY.UNRESOLVED ||
-        event.usage === USAGE.UNRESOLVED ||
+      if (event.availability === AVAILABILITY.UNRESOLVED) return true;
+      if (
+        config.requireUsageForAvailable &&
+        event.availability === AVAILABILITY.AVAILABLE &&
+        event.usage === USAGE.UNRESOLVED
+      ) return true;
+      if (
+        config.requireEffectiveness &&
         event.effectiveness === EFFECTIVENESS.UNRESOLVED
-      );
+      ) return true;
+      return false;
     });
 
     return {
@@ -430,7 +440,7 @@
    */
   function calculateBundle(input) {
     const payload = input || {};
-    const timelineResult = classifyTimeline(payload.timeline || []);
+    const timelineResult = classifyTimeline(payload.timeline || [], { requireEffectiveness: false });
 
     if (timelineResult.status !== KPI_STATUS.READY) {
       return {
@@ -507,7 +517,7 @@
       timeline: {
         status: timelineResult.status,
         issues: timelineResult.issues,
-        gaps: findTimelineGaps(payload.timeline || [])
+        gaps: Array.isArray(payload.timelineGaps) ? payload.timelineGaps : findTimelineGaps(payload.timeline || [])
       },
       results: {
         PA: pa,
