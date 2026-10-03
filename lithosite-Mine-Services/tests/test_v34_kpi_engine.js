@@ -31,7 +31,7 @@ function testReadyCascade() {
       {
         event_id: 'E1',
         start: '2026-10-03T06:00:00',
-        end: '2026-10-03T10:00:00',
+        end: '2026-10-03T11:00:00',
         availability: engine.AVAILABILITY.AVAILABLE,
         usage: engine.USAGE.USED,
         effectiveness: engine.EFFECTIVENESS.EFFECTIVE
@@ -49,9 +49,9 @@ function testReadyCascade() {
 
   assert.strictEqual(result.status, engine.KPI_STATUS.READY);
   assert.strictEqual(result.results.PA.status, engine.KPI_STATUS.READY);
-  assert.strictEqual(result.results.PA.value, 40);
+  assert.strictEqual(result.results.PA.value, 60);
   assert.strictEqual(result.results.UA.status, engine.KPI_STATUS.READY);
-  assert.strictEqual(result.results.UA.value, 50);
+  assert.strictEqual(result.results.UA.value, (5 / 6) * 100);
   assert.strictEqual(result.results.EU.status, engine.KPI_STATUS.PENDING_DEFINITION);
   assert.strictEqual(result.results.EU.value, null);
   assert.strictEqual(result.results.MTBF.status, engine.KPI_STATUS.HOLD);
