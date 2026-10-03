@@ -2,7 +2,7 @@ from .runtime import RuntimeInterface
 
 
 class AdapterContractError(ValueError):
-    """Raised when an adapter request violates the Stage 5 envelope contract."""
+    """Raised when an adapter request violates the runtime envelope contract."""
 
     def __init__(self, code, message, field=None):
         super().__init__(message)
@@ -21,6 +21,8 @@ class RuntimeAdapter:
         "IMPORT_XLSX",
         "BACKUP",
         "RESTORE",
+        "FINALIZE_KPI",
+        "READ_KPI_SNAPSHOTS",
     }
 
     def __init__(self, runtime=None):
@@ -30,18 +32,25 @@ class RuntimeAdapter:
     def _required(request, field):
         value = request.get(field)
         if value in (None, ""):
-            raise AdapterContractError("ADP-003", f"Missing required field: {field}", field)
+            raise AdapterContractError(
+                "ADP-003",
+                f"Missing required field: {field}",
+                field,
+            )
         return value
 
     @classmethod
     def _validate_request(cls, request):
         if not isinstance(request, dict):
             raise AdapterContractError("ADP-001", "Request must be an object")
-
         request_id = cls._required(request, "request_id")
         operation = cls._required(request, "operation")
         if operation not in cls.OPERATIONS:
-            raise AdapterContractError("ADP-002", f"Unsupported operation: {operation}", "operation")
+            raise AdapterContractError(
+                "ADP-002",
+                f"Unsupported operation: {operation}",
+                "operation",
+            )
         return request_id, operation
 
     @staticmethod
@@ -52,7 +61,6 @@ class RuntimeAdapter:
         else:
             response["status"] = "OK"
             response["data"] = result
-
         if response.get("errors"):
             response["errors"] = [
                 {
@@ -104,6 +112,17 @@ class RuntimeAdapter:
                 result = self._runtime.import_xlsx(path)
             elif operation == "BACKUP":
                 result = self._runtime.backup(source=request.get("source", "runtime"))
+            elif operation == "FINALIZE_KPI":
+                snapshot = self._required(request, "snapshot")
+                result = self._runtime.finalize_kpi(
+                    snapshot,
+                    source=request.get("source", "runtime"),
+                )
+            elif operation == "READ_KPI_SNAPSHOTS":
+                result = self._runtime.read_kpi_snapshots(
+                    scope_id=request.get("scope_id"),
+                    period_id=request.get("period_id"),
+                )
             else:
                 snapshot = self._required(request, "snapshot")
                 result = self._runtime.restore(
