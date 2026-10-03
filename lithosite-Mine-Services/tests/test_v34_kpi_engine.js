@@ -100,7 +100,8 @@ function testAvailableCannotExceedScheduled() {
   });
 
   assert.strictEqual(result.results.PA.status, engine.KPI_STATUS.NEEDS_VALIDATION);
-  assert.strictEqual(result.results.UA.status, engine.KPI_STATUS.INVALID_INPUT);
+  assert.strictEqual(result.results.UA.status, engine.KPI_STATUS.NEEDS_VALIDATION);
+  assert.strictEqual(result.results.EU.status, engine.KPI_STATUS.NEEDS_VALIDATION);
 }
 
 function testHoldEnginesRemainHold() {
