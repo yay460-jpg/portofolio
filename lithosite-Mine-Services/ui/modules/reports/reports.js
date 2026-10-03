@@ -13,7 +13,11 @@ const rows=name=>Array.isArray(state.data[name])?state.data[name]:[];
 function msg(text,error){const el=document.getElementById('reportsRuntimeMsg');if(el){el.textContent=text;el.classList.toggle('error',!!error);}}
 function latestOperationalDate(){const values=rows('Operations').map(r=>String(r.transaction_date||'').slice(0,10)).filter(Boolean).sort();return values.length?values[values.length-1]:new Date().toISOString().slice(0,10);}
 function fmtHours(value){const n=Number(value);return Number.isFinite(n)?n.toFixed(2):'—';}
-function fmtPct(value){const n=Number(value);return Number.isFinite(n)?n.toFixed(2)+'%':'—';}
+function fmtPct(value,status){
+  if(status && status!=='READY') return '—';
+  const n=Number(value);
+  return Number.isFinite(n)?n.toFixed(2)+'%':'—';
+}
 function setDateControl(){const el=document.getElementById('reportsKpiDate');if(!el)return;if(!state.date)state.date=latestOperationalDate();el.value=state.date;}
 
 function renderCounts(){
@@ -28,7 +32,8 @@ function renderCounts(){
 function renderKpi(){
   const k=state.kpi,pa=k&&k.results?k.results.PA:null,ua=k&&k.results?k.results.UA:null;
   const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
-  set('reportsFleetPA',fmtPct(pa&&pa.value));set('reportsFleetUA',fmtPct(ua&&ua.value));set('reportsFleetEU','—');
+  set('reportsFleetPA',fmtPct(pa&&pa.value,pa&&pa.status));
+  set('reportsFleetUA',fmtPct(ua&&ua.value,ua&&ua.status));set('reportsFleetEU','—');
   set('reportsFleetStatus',k?String(k.status):'—');set('reportsEligible',k&&k.population?String(k.population.eligible):'0');set('reportsExcluded',k&&k.population?String(k.population.excluded):'0');
   const baseline=foundation.DEFAULT_BASELINE;
   set('reportsBaseline',baseline.baseline_id+' · '+baseline.shift_start+'–'+baseline.shift_end+' · break '+baseline.breaks.map(b=>b.start+'–'+b.end).join(', '));
@@ -44,7 +49,7 @@ function renderKpi(){
       const et=Number.isNaN(e.getTime())?'—':e.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
       return '<div class="kpi-event"><span>'+esc(st)+'–'+esc(et)+'</span><b>'+esc(ev.availability)+' / '+esc(ev.usage)+'</b><span>'+esc(ev.source_entity)+':'+esc(ev.source_id)+' '+esc(ev.event_version||'')+'</span></div>';
     }).join('');
-    return '<details class="equipment-kpi-detail"><summary><span class="eq-id">'+esc(result.equipmentId)+'</span><span>'+fmtHours(rpa.denominatorHours)+'</span><span>'+fmtHours(rpa.numeratorHours)+'</span><span>'+fmtHours(rua.numeratorHours)+'</span><strong>'+fmtPct(rpa.value)+'</strong><strong>'+fmtPct(rua.value)+'</strong><em class="'+classes+'">'+esc(result.status||'—')+'</em></summary><div class="kpi-lineage"><div><b>Timeline</b> '+esc(t.events?t.events.length:0)+' event slices · baseline '+esc(t.baseline&&t.baseline.version||'—')+'</div>'+(t.issues&&t.issues.length?'<div class="kpi-issues">'+t.issues.map(i=>esc(i.code)).join(' · ')+'</div>':'<div class="kpi-issues ok">Timeline validated</div>')+'<div class="kpi-event-list">'+(events||'<div class="kpi-event">No event evidence</div>')+'</div></div></details>';
+    return '<details class="equipment-kpi-detail"><summary><span class="eq-id">'+esc(result.equipmentId)+'</span><span>'+fmtHours(rpa.denominatorHours)+'</span><span>'+fmtHours(rpa.numeratorHours)+'</span><span>'+fmtHours(rua.numeratorHours)+'</span><strong>'+fmtPct(rpa.value,rpa.status)+'</strong><strong>'+fmtPct(rua.value,rua.status)+'</strong><em class="'+classes+'">'+esc(result.status||'—')+'</em></summary><div class="kpi-lineage"><div><b>Timeline</b> '+esc(t.events?t.events.length:0)+' event slices · baseline '+esc(t.baseline&&t.baseline.version||'—')+'</div>'+(t.issues&&t.issues.length?'<div class="kpi-issues">'+t.issues.map(i=>esc(i.code)).join(' · ')+'</div>':'<div class="kpi-issues ok">Timeline validated</div>')+'<div class="kpi-event-list">'+(events||'<div class="kpi-event">No event evidence</div>')+'</div></div></details>';
   }).join('')||'<div class="kpi-empty">No equipment records.</div>';
 
   const issueHost=document.getElementById('kpiExclusions');
