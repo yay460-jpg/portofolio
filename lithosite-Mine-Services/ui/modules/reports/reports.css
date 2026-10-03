@@ -34,3 +34,16 @@
 @media(max-width:1500px){#reportsScreen .report-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:1400px){#reportsScreen .report-kpis{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:900px){#reportsScreen .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#reportsScreen .report-body{grid-template-columns:1fr}}
+
+
+/* V34 Reports & KPI — equipment KPI presentation only; calculation remains downstream of validated Event & Time History */
+#reportsScreen .report-kpi-status{font-size:8px;color:#8fa5bb;font-weight:700;letter-spacing:.5px}
+#reportsScreen .equipment-kpi-list{display:flex;flex-direction:column;padding:8px 10px 0;gap:6px}
+#reportsScreen .equipment-kpi-row{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(120px,.8fr) minmax(150px,.9fr);gap:10px;align-items:center;min-height:64px;padding:9px 10px;border:1px solid #223b55;border-radius:8px;background:#0c1b2c}
+#reportsScreen .equipment-kpi-row b{display:block;font-size:10px;color:#e5eef8}
+#reportsScreen .equipment-kpi-row small{display:block;margin-top:3px;color:#8fa5bb;font-size:8.5px;line-height:1.35}
+#reportsScreen .equipment-kpi-formula{font-size:9px;color:#dce8f5;font-weight:700;text-align:center;padding:7px 8px;border:1px solid #29435d;border-radius:7px;background:#101f31}
+#reportsScreen .equipment-kpi-state{font-size:8.5px;color:#8fa5bb;text-align:right}
+#reportsScreen .report-scope-note{padding:10px 12px 12px;font-size:9px}
+@media(max-width:1400px){#reportsScreen .equipment-kpi-row{grid-template-columns:minmax(0,1.15fr) minmax(115px,.8fr) minmax(135px,.85fr);gap:8px}}
+@media(max-width:900px){#reportsScreen .equipment-kpi-row{grid-template-columns:1fr}.equipment-kpi-formula,.equipment-kpi-state{text-align:left}}
