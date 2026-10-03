@@ -35,7 +35,9 @@
       };
     }
 
-    const scheduledHours = Number(payload.scheduledHours);
+    const scheduledHours = payload.scheduledTime && payload.scheduledTime.status === 'READY'
+      ? Number(payload.scheduledTime.scheduledHours)
+      : Number(payload.scheduledHours);
     const availableHours = Number.isFinite(Number(payload.availableHours))
       ? Number(payload.availableHours)
       : center.sumTimelineHours(
@@ -44,6 +46,16 @@
             return event.availability === center.AVAILABILITY.AVAILABLE;
           }
         );
+
+    if (payload.scheduledTime && payload.scheduledTime.status === 'PENDING_DEFINITION') {
+      return {
+        kpi: ENGINE_ID,
+        status: center.KPI_STATUS.PENDING_DEFINITION,
+        value: null,
+        unit: '%',
+        reason: 'Scheduled Time definition is not locked.'
+      };
+    }
 
     if (!Number.isFinite(scheduledHours) || scheduledHours <= 0) {
       return {
