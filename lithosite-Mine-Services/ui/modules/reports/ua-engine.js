@@ -40,7 +40,8 @@
 
     if (global.LithositeUsedTimeContract) {
       usedTimeContract = global.LithositeUsedTimeContract.summarize({
-        timeline: payload.timeline || []
+        timeline: payload.timeline || [],
+        scheduledWindows: payload.scheduledWindows || []
       });
 
       if (usedTimeContract.status !== center.KPI_STATUS.READY) {
