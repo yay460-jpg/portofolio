@@ -446,9 +446,15 @@
       };
     }
 
+    const paInput = Object.assign({}, payload);
+
+    if (payload.scheduledTime) {
+      paInput.scheduledTime = payload.scheduledTime;
+    }
+
     const pa = ENGINE_REGISTRY.PA.engine
-      ? ENGINE_REGISTRY.PA.engine.calculate(payload)
-      : calculatePA(payload);
+      ? ENGINE_REGISTRY.PA.engine.calculate(paInput)
+      : calculatePA(paInput);
 
     const uaInput = Object.assign({}, payload, {
       availableHours: pa && Number.isFinite(Number(pa.numeratorHours))
