@@ -39,7 +39,7 @@
       };
     }
 
-    const gaps = center.findTimelineGaps(events);
+    const gaps = center.findTimelineGaps(events, payload.scheduledWindows);
 
     if (gaps.length) {
       return {
