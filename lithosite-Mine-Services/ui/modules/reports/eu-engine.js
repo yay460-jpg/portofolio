@@ -35,16 +35,23 @@
       };
     }
 
-    const effectiveHours = Number(payload.effectiveHours);
+    const hasEffectiveEvidence =
+      payload.effectiveHours !== undefined &&
+      payload.effectiveHours !== null &&
+      payload.effectiveHours !== '';
 
-    if (!Number.isFinite(effectiveHours) || effectiveHours < 0) {
-      return {
-        kpi: ENGINE_ID,
-        status: center.KPI_STATUS.INVALID_INPUT,
-        value: null,
-        unit: '%',
-        reason: 'Effective Time evidence is invalid.'
-      };
+    let effectiveHours = null;
+    if (hasEffectiveEvidence) {
+      effectiveHours = Number(payload.effectiveHours);
+      if (!Number.isFinite(effectiveHours) || effectiveHours < 0) {
+        return {
+          kpi: ENGINE_ID,
+          status: center.KPI_STATUS.INVALID_INPUT,
+          value: null,
+          unit: '%',
+          reason: 'Effective Time evidence is invalid.'
+        };
+      }
     }
 
     return {
@@ -54,9 +61,7 @@
       value: null,
       unit: '%',
       reason: 'EU formula and denominator are not locked; follow the applicable company/site SOP.',
-      evidence: {
-        effectiveHours: effectiveHours
-      },
+      evidence: hasEffectiveEvidence ? { effectiveHours: effectiveHours } : null,
       timelineStatus: timelineResult.status
     };
   }
