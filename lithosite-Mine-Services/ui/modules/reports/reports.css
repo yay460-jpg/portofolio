@@ -47,3 +47,42 @@
 #reportsScreen .report-scope-note{padding:10px 12px 12px;font-size:9px}
 @media(max-width:1400px){#reportsScreen .equipment-kpi-row{grid-template-columns:minmax(0,1.15fr) minmax(115px,.8fr) minmax(135px,.85fr);gap:8px}}
 @media(max-width:900px){#reportsScreen .equipment-kpi-row{grid-template-columns:1fr}.equipment-kpi-formula,.equipment-kpi-state{text-align:left}}
+
+/* V34 Stage 23 — live KPI foundation */
+#reportsScreen .kpi-toolbar{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #263e57}
+#reportsScreen .kpi-toolbar label{color:#8fa5bb;font-size:8.5px;font-weight:700;text-transform:uppercase}
+#reportsScreen .kpi-toolbar input{height:32px;padding:0 9px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;font:inherit;font-size:10px}
+#reportsScreen .kpi-toolbar .kpi-baseline{margin-left:auto;color:#8fa5bb;font-size:8px;white-space:nowrap}
+#reportsScreen .kpi-summary{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;padding:8px}
+#reportsScreen .kpi-summary-card{background:#0c1b2c;border:1px solid #223b55;border-radius:8px;padding:8px}
+#reportsScreen .kpi-summary-card small{display:block;color:#8fa5bb;font-size:7.5px;text-transform:uppercase;font-weight:700}
+#reportsScreen .kpi-summary-card b{display:block;font-size:18px;margin-top:3px}
+#reportsScreen .kpi-summary-card span{display:block;margin-top:2px;color:#8fa5bb;font-size:7.5px}
+#reportsScreen .kpi-equipment-head{display:grid;grid-template-columns:1.25fr .75fr .75fr .75fr .8fr .8fr .85fr;gap:8px;padding:7px 10px;border-bottom:1px solid #263e57;color:#8fa5bb;font-size:7.5px;font-weight:700;text-transform:uppercase}
+#reportsScreen .equipment-kpi-list{padding:0 8px 8px;overflow:auto;max-height:300px}
+#reportsScreen .equipment-kpi-detail{border:1px solid #223b55;border-radius:8px;background:#0c1b2c;margin-top:6px;overflow:hidden}
+#reportsScreen .equipment-kpi-detail summary{display:grid;grid-template-columns:1.25fr .75fr .75fr .75fr .8fr .8fr .85fr;gap:8px;align-items:center;min-height:46px;padding:7px 10px;cursor:pointer;list-style:none;font-size:9px}
+#reportsScreen .equipment-kpi-detail summary::-webkit-details-marker{display:none}
+#reportsScreen .equipment-kpi-detail summary:hover{background:#12243a}
+#reportsScreen .equipment-kpi-detail .eq-id{font-weight:800;color:#e5eef8}
+#reportsScreen .equipment-kpi-detail summary strong{font-size:10px;text-align:center}
+#reportsScreen .equipment-kpi-detail summary em{font-style:normal;font-size:7.5px;color:#8fa5bb;text-align:right}
+#reportsScreen .equipment-kpi-detail summary em.ready{color:#4ade80}
+#reportsScreen .equipment-kpi-detail summary em.needs_validation{color:#f59e0b}
+#reportsScreen .kpi-lineage{padding:8px 10px 10px;border-top:1px solid #223b55;color:#a9bbcf;font-size:8px;line-height:1.45}
+#reportsScreen .kpi-issues{margin-top:4px;color:#fca5a5}
+#reportsScreen .kpi-issues.ok{color:#4ade80}
+#reportsScreen .kpi-event-list{display:flex;flex-direction:column;gap:4px;margin-top:7px}
+#reportsScreen .kpi-event{display:grid;grid-template-columns:100px 170px 1fr;gap:8px;padding:5px 7px;background:#101f31;border:1px solid #20354d;border-radius:5px}
+#reportsScreen .kpi-event b{color:#dce8f5}
+#reportsScreen .kpi-exclusions{padding:0 8px 8px;max-height:120px;overflow:auto}
+#reportsScreen .kpi-exclusion{padding:5px 7px;margin-top:4px;border:1px solid #5a3e21;background:#2a2014;border-radius:6px;color:#f8d7a1;font-size:8px}
+#reportsScreen .kpi-exclusion.ok{border-color:#244b35;background:#10261a;color:#86efac}
+#reportsScreen .kpi-history{padding:8px 10px;border-top:1px solid #263e57}
+#reportsScreen .kpi-history-row{display:grid;grid-template-columns:1.3fr .8fr .8fr 1.6fr .7fr;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid #20354d;font-size:8px;color:#c8d6e6}
+#reportsScreen .kpi-history-row:last-child{border-bottom:0}
+#reportsScreen .kpi-history-empty,.kpi-empty{padding:12px;color:#8fa5bb;font-size:8.5px}
+#reportsScreen .control:disabled{opacity:.45;cursor:not-allowed;transform:none}
+#reportsScreen .report-panel.kpi-panel{min-height:0}
+@media(max-width:1400px){#reportsScreen .kpi-summary{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:900px){#reportsScreen .kpi-toolbar{flex-wrap:wrap}#reportsScreen .kpi-toolbar .kpi-baseline{width:100%;margin-left:0}#reportsScreen .kpi-summary{grid-template-columns:repeat(2,minmax(0,1fr))}#reportsScreen .kpi-equipment-head,#reportsScreen .equipment-kpi-detail summary{grid-template-columns:1.2fr .75fr .75fr .75fr .8fr .8fr .9fr}#reportsScreen .kpi-event{grid-template-columns:1fr}}
