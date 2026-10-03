@@ -45,7 +45,8 @@
 
     if (global.LithositeAvailableTimeContract) {
       availabilityContract = global.LithositeAvailableTimeContract.summarize({
-        timeline: payload.timeline || []
+        timeline: payload.timeline || [],
+        scheduledWindows: payload.scheduledWindows || []
       });
 
       if (availabilityContract.status !== center.KPI_STATUS.READY) {
