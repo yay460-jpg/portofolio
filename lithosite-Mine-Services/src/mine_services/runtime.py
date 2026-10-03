@@ -1,14 +1,14 @@
+import json
+from pathlib import Path
+
+from .snapshot import SnapshotManager
+from .kpi_snapshot_store import KPIHistoryStore
 from .application import ApplicationService
 from .import_engine import ImportCoordinator
-from .snapshot import SnapshotManager
 
 
 class RuntimeInterface:
-    """Single integration boundary for UI/API adapters.
-
-    The interface exposes commands and queries without exposing the persistence
-    or repository objects to callers.
-    """
+    """Single integration boundary for UI/API adapters."""
 
     def __init__(self, application=None, importer=None, snapshots=None):
         self._application = application or ApplicationService()
@@ -20,6 +20,9 @@ class RuntimeInterface:
             self._application.store,
             audit_repository=self._application.audit_repository,
         )
+        store_path = getattr(self._application.store, "path", None)
+        history_path = Path(store_path).with_name("KPI-History.json") if store_path else None
+        self._kpi_history = KPIHistoryStore(history_path)
 
     def create(self, entity, row, request_id):
         return self._application.create(entity, row, request_id)
@@ -56,3 +59,29 @@ class RuntimeInterface:
 
     def restore(self, snapshot, mode="REPLACE_RUNTIME"):
         return self._snapshots.restore(snapshot, mode=mode)
+
+    def finalize_kpi(self, snapshot, source="runtime"):
+        result = self._kpi_history.finalize(snapshot, source=source)
+        if result.get("status") == "COMMITTED":
+            before = self._application.store.snapshot()
+            try:
+                self._application.audit_repository.append(
+                    entity="KPI_Snapshot",
+                    entity_id=result.get("snapshot_id"),
+                    action="FINALIZE",
+                    request_id=result.get("snapshot_id"),
+                    new_value=json.dumps(snapshot, default=str, sort_keys=True),
+                    source=source,
+                )
+                self._application.store.save()
+                result["audit_status"] = "APPENDED"
+            except Exception:
+                self._application.store.replace(before)
+                result["audit_status"] = "NOT_APPENDED"
+        return result
+
+    def read_kpi_snapshots(self, scope_id=None, period_id=None):
+        return self._kpi_history.list(
+            scope_id=scope_id,
+            period_id=period_id,
+        )
