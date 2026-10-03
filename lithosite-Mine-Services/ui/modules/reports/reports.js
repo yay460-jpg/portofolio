@@ -1,3 +1,4 @@
+/* V34 Stage 23: operational data display remains read-only; KPI snapshot finalization is an explicit runtime operation. */
 (function(global){
 'use strict';
 const rc=global.LithositeRuntimeClient;
