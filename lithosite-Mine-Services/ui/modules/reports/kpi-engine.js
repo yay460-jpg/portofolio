@@ -495,8 +495,15 @@
           reason: 'UA prerequisite is not READY.'
         };
 
+    const bundleStatus =
+      pa && pa.status !== KPI_STATUS.READY
+        ? pa.status
+        : ua && ua.status !== KPI_STATUS.READY
+          ? ua.status
+          : KPI_STATUS.READY;
+
     return {
-      status: KPI_STATUS.READY,
+      status: bundleStatus,
       timeline: {
         status: timelineResult.status,
         issues: timelineResult.issues,
