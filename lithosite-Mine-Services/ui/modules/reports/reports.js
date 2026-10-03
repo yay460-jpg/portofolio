@@ -15,6 +15,7 @@ function msg(text,error){const el=document.getElementById('reportsRuntimeMsg');i
 function latestOperationalDate(){const values=rows('Operations').map(r=>String(r.transaction_date||'').slice(0,10)).filter(Boolean).sort();return values.length?values[values.length-1]:new Date().toISOString().slice(0,10);}
 function fmtHours(value){const n=Number(value);return Number.isFinite(n)?n.toFixed(2):'—';}
 function fmtPct(value,status){
+  if(value===null||value===undefined||value==='') return '—';
   if(status && status!=='READY') return '—';
   const n=Number(value);
   return Number.isFinite(n)?n.toFixed(2)+'%':'—';
