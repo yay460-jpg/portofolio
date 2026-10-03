@@ -39,10 +39,21 @@
     let usedTimeContract = null;
 
     if (global.LithositeUsedTimeContract) {
-      usedTimeContract = global.LithositeUsedTimeContract.summarize({ timeline: payload.timeline || [] });
+      usedTimeContract = global.LithositeUsedTimeContract.summarize({
+        timeline: payload.timeline || []
+      });
+
       if (usedTimeContract.status !== center.KPI_STATUS.READY) {
-        return { kpi: ENGINE_ID, status: usedTimeContract.status, value: null, unit: '%', reason: 'Used Time is not validated.', usedTimeContract: usedTimeContract };
+        return {
+          kpi: ENGINE_ID,
+          status: usedTimeContract.status,
+          value: null,
+          unit: '%',
+          reason: 'Used Time is not validated.',
+          usedTimeContract: usedTimeContract
+        };
       }
+
       usedHours = usedTimeContract.usedHours;
     } else {
       usedHours = Number.isFinite(Number(payload.usedHours))
@@ -56,22 +67,14 @@
           );
     }
 
-      ? Number(payload.usedHours)
-      : center.sumTimelineHours(
-          timelineResult.events,
-          function (event) {
-            return event.availability === center.AVAILABILITY.AVAILABLE &&
-              event.usage === center.USAGE.USED;
-          }
-        );
-
     if (!Number.isFinite(availableHours) || availableHours <= 0) {
       return {
         kpi: ENGINE_ID,
         status: center.KPI_STATUS.INVALID_INPUT,
         value: null,
         unit: '%',
-        reason: 'Available Time is required and must be greater than zero.'
+        reason: 'Available Time is required and must be greater than zero.',
+        usedTimeContract: usedTimeContract
       };
     }
 
@@ -81,7 +84,8 @@
         status: center.KPI_STATUS.INVALID_INPUT,
         value: null,
         unit: '%',
-        reason: 'Used Time is invalid.'
+        reason: 'Used Time is invalid.',
+        usedTimeContract: usedTimeContract
       };
     }
 
@@ -91,7 +95,8 @@
         status: center.KPI_STATUS.NEEDS_VALIDATION,
         value: null,
         unit: '%',
-        reason: 'Used Time cannot exceed Available Time.'
+        reason: 'Used Time cannot exceed Available Time.',
+        usedTimeContract: usedTimeContract
       };
     }
 
@@ -102,7 +107,8 @@
 
     return Object.assign({}, result, {
       engine: ENGINE_ID,
-      timelineStatus: timelineResult.status
+      timelineStatus: timelineResult.status,
+      usedTimeContract: usedTimeContract
     });
   }
 
