@@ -247,16 +247,62 @@
    * Gaps are reported, not automatically classified as Available,
    * Standby, Operating, or Not Available.
    */
-  function findTimelineGaps(events) {
+  function findTimelineGaps(events, expectedWindows) {
     const normalized = normalizeTimeline(events);
     const gaps = [];
+    const windows = Array.isArray(expectedWindows) && expectedWindows.length
+      ? expectedWindows.map(function (window) {
+          const start = toDate(window.start);
+          const end = toDate(window.end);
+          return start && end && end > start ? { start: start, end: end } : null;
+        }).filter(Boolean)
+      : null;
+
+    function collectWindowGaps(window) {
+      let cursor = window.start;
+      const inside = normalized.events.filter(function (event) {
+        if (!event._start || !event._end) return false;
+        return event._start < window.end && window.start < event._end;
+      }).sort(function (a, b) {
+        return a._start - b._start;
+      });
+
+      inside.forEach(function (event) {
+        const start = event._start < window.start ? window.start : event._start;
+        const end = event._end > window.end ? window.end : event._end;
+        if (end <= start) return;
+        if (start > cursor) {
+          gaps.push({
+            from: cursor.toISOString(),
+            to: start.toISOString(),
+            durationHours: durationHours(cursor, start),
+            status: AVAILABILITY.UNRESOLVED,
+            reason: 'NO_EVIDENCE'
+          });
+        }
+        if (end > cursor) cursor = end;
+      });
+
+      if (cursor < window.end) {
+        gaps.push({
+          from: cursor.toISOString(),
+          to: window.end.toISOString(),
+          durationHours: durationHours(cursor, window.end),
+          status: AVAILABILITY.UNRESOLVED,
+          reason: 'NO_EVIDENCE'
+        });
+      }
+    }
+
+    if (windows) {
+      windows.forEach(collectWindowGaps);
+      return gaps;
+    }
 
     for (let i = 1; i < normalized.events.length; i += 1) {
       const previous = normalized.events[i - 1];
       const current = normalized.events[i];
-
       if (!previous._end || !current._start) continue;
-
       const gapHours = durationHours(previous._end, current._start);
       if (gapHours !== null && gapHours > 0) {
         gaps.push({
@@ -268,7 +314,6 @@
         });
       }
     }
-
     return gaps;
   }
 
