@@ -450,13 +450,28 @@
       ? ENGINE_REGISTRY.PA.engine.calculate(payload)
       : calculatePA(payload);
 
+    const uaInput = Object.assign({}, payload, {
+      availableHours: pa && Number.isFinite(Number(pa.numeratorHours))
+        ? Number(pa.numeratorHours)
+        : payload.availableHours
+    });
+
     const ua = ENGINE_REGISTRY.UA.engine
-      ? ENGINE_REGISTRY.UA.engine.calculate(payload)
-      : calculateUA(payload);
+      ? ENGINE_REGISTRY.UA.engine.calculate(uaInput)
+      : calculateUA(uaInput);
+
+    const euInput = Object.assign({}, payload, {
+      availableHours: ua && Number.isFinite(Number(ua.denominatorHours))
+        ? Number(ua.denominatorHours)
+        : uaInput.availableHours,
+      usedHours: ua && Number.isFinite(Number(ua.numeratorHours))
+        ? Number(ua.numeratorHours)
+        : payload.usedHours
+    });
 
     const eu = ENGINE_REGISTRY.EU.engine
-      ? ENGINE_REGISTRY.EU.engine.calculate(payload)
-      : calculateEU(payload);
+      ? ENGINE_REGISTRY.EU.engine.calculate(euInput)
+      : calculateEU(euInput);
 
     return {
       status: KPI_STATUS.READY,
@@ -502,6 +517,7 @@
     calculatePA,
     calculateUA,
     calculateEU,
+    sumTimelineHours,
     calculateBundle,
     getEngineStatus,
     registerEngine,
