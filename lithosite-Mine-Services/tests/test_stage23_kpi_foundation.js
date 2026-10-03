@@ -97,7 +97,8 @@ const fleet = f.calculateFleet({
     { transaction_id:'OPS-21', transaction_date:'2026-10-04', transaction_time:'06:00', equipment_id:'EQ-02', work_front_id:'WF-01', activity:'Hauling', actual_hours:5, status:'VALIDATED' },
     { transaction_id:'OPS-22', transaction_date:'2026-10-04', transaction_time:'11:00', equipment_id:'EQ-02', work_front_id:'WF-01', activity:'Hauling', actual_hours:1, status:'VALIDATED' },
     { transaction_id:'OPS-23', transaction_date:'2026-10-04', transaction_time:'13:00', equipment_id:'EQ-02', work_front_id:'WF-01', activity:'Hauling', actual_hours:3, status:'VALIDATED' },
-    { transaction_id:'OPS-24', transaction_date:'2026-10-04', transaction_time:'17:00', equipment_id:'EQ-02', work_front_id:'WF-01', activity:'Hauling', actual_hours:1, status:'VALIDATED' }
+    { transaction_id:'OPS-24', transaction_date:'2026-10-04', transaction_time:'16:00', equipment_id:'EQ-02', work_front_id:'WF-01', activity:'Hauling', actual_hours:1, status:'VALIDATED' },
+    { transaction_id:'OPS-25', transaction_date:'2026-10-04', transaction_time:'17:00', equipment_id:'EQ-02', work_front_id:'WF-01', activity:'Hauling', actual_hours:1, status:'VALIDATED' }
   ]),
   maintenance:maintenance
 });
