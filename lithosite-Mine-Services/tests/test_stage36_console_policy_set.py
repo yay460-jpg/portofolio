@@ -57,3 +57,14 @@ def test_stage36_equipment_list_owns_scroll_without_visible_scrollbar():
     assert "#reportsScreen .kpi-panel{overflow:hidden}" in css
     assert "#reportsScreen .equipment-kpi-list{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;scrollbar-width:none;" in css
     assert "#reportsScreen .equipment-kpi-list::-webkit-scrollbar{width:0;height:0;display:none}" in css
+
+def test_stage36_dedicated_equipment_scroll_viewport():
+    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v36-STAGE25.html")
+    css = read("ui/modules/reports/reports.css")
+    reports = read("ui/modules/reports/reports.js")
+
+    assert '<div class="equipment-kpi-scroll"><div id="equipmentKpiRows"' in html
+    assert '#reportsScreen .equipment-kpi-scroll{flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;' in css
+    assert '#reportsScreen .equipment-kpi-scroll::-webkit-scrollbar{width:0;height:0;display:none}' in css
+    assert "equipmentScroll.addEventListener('wheel'" in reports
+    assert "e.preventDefault()" in reports

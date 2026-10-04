@@ -128,6 +128,14 @@ function bind(){
   const clear=document.getElementById('reportsClear');if(clear)clear.onclick=()=>{document.getElementById('reportsSearch').value='';renderCounts();};
   const search=document.getElementById('reportsSearch');if(search)search.addEventListener('input',filteredCount);
   const date=document.getElementById('reportsKpiDate');if(date)date.addEventListener('change',calculate);
+  const equipmentScroll=document.querySelector('#reportsScreen .equipment-kpi-scroll');
+  if(equipmentScroll){
+    equipmentScroll.addEventListener('wheel',e=>{
+      if(equipmentScroll.scrollHeight<=equipmentScroll.clientHeight)return;
+      equipmentScroll.scrollTop+=e.deltaY;
+      e.preventDefault();
+    },{passive:false});
+  }
   const consoleModal=document.getElementById('reportsConsoleModal');
   const openConsole=document.getElementById('reportsConsole');
   const closeConsole=document.getElementById('reportsCloseConsole');
