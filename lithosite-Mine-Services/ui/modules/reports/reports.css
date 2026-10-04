@@ -125,3 +125,23 @@
 footer.status{z-index:30;box-sizing:border-box;white-space:nowrap;overflow:hidden}
 @media(max-width:1200px){#reportsScreen .kpi-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){#reportsScreen .report-body{grid-template-columns:1fr;overflow:auto}#reportsScreen .report-body>.report-panel{min-height:260px}}
+
+/* V34 Stage 23.2 — preserve the locked workspace/footer breathing room */
+#reportsScreen{
+  flex:1 1 auto;
+  height:auto;
+  min-height:0;
+  overflow:hidden;
+}
+#reportsScreen .boundary{
+  height:auto !important;
+  flex:1 1 auto;
+  min-height:0;
+  margin:0;
+}
+.workspace{
+  padding-bottom:20px;
+}
+footer.status{
+  bottom:0;
+}
