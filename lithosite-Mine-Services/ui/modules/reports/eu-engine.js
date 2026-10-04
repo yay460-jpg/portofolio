@@ -1,74 +1,69 @@
-/*
- * V34 — EU Engine
- * Equipment Effectiveness
- *
- * EU remains definition-pending in V34.
- * This engine exists to reserve the KPI boundary without
- * hard-coding a site/company-specific denominator.
- *
- * The engine accepts effectiveHours only as evidence/input for
- * future definition work. It does not calculate a percentage yet.
- */
-
-(function (global) {
+﻿(function (global) {
   'use strict';
 
   const center = global.LithositeKPIEngine;
+  const contract = global.LithositeEffectiveTimeContract;
+
   if (!center) {
     throw new Error('LithositeKPIEngine is required before eu-engine.js');
+  }
+
+  if (!contract) {
+    throw new Error('LithositeEffectiveTimeContract is required before eu-engine.js');
   }
 
   const ENGINE_ID = 'EU';
 
   function calculate(input) {
     const payload = input || {};
-    const timelineResult = center.classifyTimeline(payload.timeline || []);
 
-    if (timelineResult.status !== center.KPI_STATUS.READY) {
+    const timelineResult = center.classifyTimeline(
+      payload.timeline || []
+    );
+
+    if (timelineResult.status !== 'READY') {
       return {
         kpi: ENGINE_ID,
         status: timelineResult.status,
         value: null,
         unit: '%',
-        reason: 'Timeline is not ready for EU definition evaluation.',
+        reason: 'Timeline is not ready for EU evaluation.',
         issues: timelineResult.issues || []
       };
     }
 
-    const hasEffectiveEvidence =
-      payload.effectiveHours !== undefined &&
-      payload.effectiveHours !== null &&
-      payload.effectiveHours !== '';
+    const evidence = contract.summarize({
+      timeline: payload.timeline || [],
+      availableHours: payload.availableHours,
+      effectiveHours: payload.effectiveHours
+    });
 
-    let effectiveHours = null;
-    if (hasEffectiveEvidence) {
-      effectiveHours = Number(payload.effectiveHours);
-      if (!Number.isFinite(effectiveHours) || effectiveHours < 0) {
-        return {
-          kpi: ENGINE_ID,
-          status: center.KPI_STATUS.INVALID_INPUT,
-          value: null,
-          unit: '%',
-          reason: 'Effective Time evidence is invalid.'
-        };
-      }
+    if (evidence.status !== 'READY') {
+      return {
+        kpi: ENGINE_ID,
+        status: evidence.status,
+        value: null,
+        unit: '%',
+        reason: evidence.reason || 'Effective Time evidence is not validated.',
+        evidence
+      };
     }
 
-    return {
-      kpi: ENGINE_ID,
+    const result = center.calculateEU({
+      effectiveHours: evidence.effectiveHours,
+      availableHours: evidence.availableHours
+    });
+
+    return Object.assign({}, result, {
       engine: ENGINE_ID,
-      status: center.KPI_STATUS.PENDING_DEFINITION,
-      value: null,
-      unit: '%',
-      reason: 'EU formula and denominator are not locked; follow the applicable company/site SOP.',
-      evidence: hasEffectiveEvidence ? { effectiveHours: effectiveHours } : null,
-      timelineStatus: timelineResult.status
-    };
+      evidence
+    });
   }
 
   const api = Object.freeze({
     id: ENGINE_ID,
     name: 'Equipment Effectiveness',
+    version: 'V35-EU-ENGINE-0.1',
     status: center.ENGINE_STATUS.ACTIVE,
     calculate
   });

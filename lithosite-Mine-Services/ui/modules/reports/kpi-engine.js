@@ -81,9 +81,9 @@
       id: 'EU',
       name: 'Effective Utilization',
       status: ENGINE_STATUS.ACTIVE,
-      dependsOn: ['UA', 'TIMELINE'],
-      formulaId: null,
-      definitionStatus: KPI_STATUS.PENDING_DEFINITION,
+      dependsOn: ['UA', 'TIMELINE', 'EFFECTIVE_TIME'],
+      formulaId: 'EU-EFFECTIVE-OVER-AVAILABLE',
+      definitionStatus: KPI_STATUS.READY,
       engine: null
     },
     MTBF: {
@@ -129,10 +129,12 @@
      * applicable company/site SOP before implementation is locked.
      */
     EU: {
-      id: null,
+      id: 'EU-EFFECTIVE-OVER-AVAILABLE',
       numerator: 'effectiveHours',
-      denominator: null,
-      calculate: null
+      denominator: 'availableHours',
+      calculate: function (effectiveHours, availableHours) {
+        return ratioPercent(effectiveHours, availableHours);
+      }
     },
 
     MTBF: {
@@ -440,13 +442,49 @@
     };
   }
 
-  function calculateEU() {
+  function calculateEU(input) {
+    const payload = input || {};
+    const effectiveHours = asFiniteNumber(payload.effectiveHours);
+    const availableHours = asFiniteNumber(payload.availableHours);
+
+    if (availableHours === null || availableHours <= 0) {
+      return {
+        kpi: 'EU',
+        status: KPI_STATUS.INVALID_INPUT,
+        value: null,
+        unit: '%',
+        reason: 'Available Time is required and must be greater than zero.'
+      };
+    }
+
+    if (effectiveHours === null || effectiveHours < 0) {
+      return {
+        kpi: 'EU',
+        status: KPI_STATUS.NEEDS_VALIDATION,
+        value: null,
+        unit: '%',
+        reason: 'Effective Time evidence is required.'
+      };
+    }
+
+    if (effectiveHours > availableHours) {
+      return {
+        kpi: 'EU',
+        status: KPI_STATUS.NEEDS_VALIDATION,
+        value: null,
+        unit: '%',
+        reason: 'Effective Time cannot exceed Available Time.'
+      };
+    }
+
     return {
       kpi: 'EU',
-      status: KPI_STATUS.PENDING_DEFINITION,
-      value: null,
+      status: KPI_STATUS.READY,
+      value: FORMULAS.EU.calculate(effectiveHours, availableHours),
       unit: '%',
-      reason: 'Official EU definition/denominator is not locked.'
+      numeratorHours: effectiveHours,
+      denominatorHours: availableHours,
+      formulaId: FORMULAS.EU.id
     };
   }
 
@@ -555,7 +593,7 @@
         ? pa.status
         : ua && ua.status !== KPI_STATUS.READY
           ? ua.status
-          : KPI_STATUS.READY;
+          : eu && eu.status !== KPI_STATUS.READY ? eu.status : KPI_STATUS.READY;
 
     return {
       status: bundleStatus,
