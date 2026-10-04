@@ -14,7 +14,7 @@ def snapshot(pa, ua, event_version):
         "scope_id": "FLEET:ALL",
         "period_id": "2026-10-04",
         "status": "FINAL_CANDIDATE",
-        "calculation_version": "V34-KPI-FOUNDATION-E2E-0.1",
+        "calculation_version": "V35-KPI-FOUNDATION-E2E-0.1",
         "policy": {"id": "V34-PA-UA-BASELINE", "version": "1.0"},
         "time_baseline": {"id": "TB-PROJECT-DAY-0600-1800", "version": "1.0"},
         "result": {

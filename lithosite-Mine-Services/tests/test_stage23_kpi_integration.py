@@ -24,7 +24,7 @@ def test_stage23_artifact_wires_foundation():
 def test_stage23_foundation_contracts():
     js = FOUNDATION.read_text(encoding="utf-8")
     for term in (
-        "V34-KPI-FOUNDATION-E2E-0.1",
+        "V35-KPI-FOUNDATION-E2E-0.1",
         "buildEquipmentTimeline",
         "calculateEquipment",
         "calculateFleet",

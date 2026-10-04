@@ -2,7 +2,7 @@
   'use strict';
   const center = global.LithositeKPIEngine;
   if (!center) throw new Error('LithositeKPIEngine is required before kpi-foundation.js');
-  const VERSION = 'V34-KPI-FOUNDATION-E2E-0.1';
+  const VERSION = 'V35-KPI-FOUNDATION-E2E-0.1';
   const DEFAULT_BASELINE = Object.freeze({
     baseline_id: 'TB-PROJECT-DAY-0600-1800',
     version: '1.0',
@@ -88,16 +88,16 @@
   }
   function calculateEquipment(input){
     const payload=input||{},timeline=buildEquipmentTimeline(payload);
-    if(timeline.status!==center.KPI_STATUS.READY)return{equipmentId:payload.equipmentId||null,status:timeline.status,timeline,results:{PA:{kpi:'PA',status:timeline.status,value:null,unit:'%'},UA:{kpi:'UA',status:timeline.status,value:null,unit:'%'},EU:{kpi:'EU',status:center.KPI_STATUS.PENDING_DEFINITION,value:null,unit:'%'}}};
-    const bundle=center.calculateBundle({timeline:timeline.events,timelineGaps:timeline.issues.filter(i=>i.code==='TIMELINE_GAP'),scheduledWindows:timeline.windows,scheduledTime:{status:center.KPI_STATUS.READY,scheduledHours:timeline.scheduledHours,baseline_id:timeline.baseline.baseline_id,version:timeline.baseline.version}});
+    if(timeline.status!==center.KPI_STATUS.READY)return{equipmentId:payload.equipmentId||null,status:timeline.status,timeline,results:{PA:{kpi:'PA',status:timeline.status,value:null,unit:'%'},UA:{kpi:'UA',status:timeline.status,value:null,unit:'%'},EU:{kpi:'EU',status:center.KPI_STATUS.NEEDS_VALIDATION,value:null,unit:'%',reason:'Effective Time evidence is not validated.'}}};
+    const bundle=center.calculateBundle({timeline:timeline.events,effectiveHours:payload.effectiveHours,timelineGaps:timeline.issues.filter(i=>i.code==='TIMELINE_GAP'),scheduledWindows:timeline.windows,scheduledTime:{status:center.KPI_STATUS.READY,scheduledHours:timeline.scheduledHours,baseline_id:timeline.baseline.baseline_id,version:timeline.baseline.version}});
     return{equipmentId:payload.equipmentId||null,status:bundle.status,timeline,results:bundle.results,calculationVersion:VERSION};
   }
   function calculateFleet(input){
-    const payload=input||{},equipment=Array.isArray(payload.equipment)?payload.equipment:[],results=equipment.map(row=>calculateEquipment({equipmentId:row.equipment_id,date:payload.date,baseline:payload.baseline,operations:payload.operations,maintenance:payload.maintenance}));
+    const payload=input||{},equipment=Array.isArray(payload.equipment)?payload.equipment:[],results=equipment.map(row=>calculateEquipment({equipmentId:row.equipment_id,date:payload.date,baseline:payload.baseline,effectiveHours:payload.effectiveHoursByEquipment?payload.effectiveHoursByEquipment[row.equipment_id]:undefined,operations:payload.operations,maintenance:payload.maintenance}));
     const eligible=results.filter(result=>result.results&&result.results.PA&&result.results.PA.status===center.KPI_STATUS.READY&&result.results.UA&&result.results.UA.status===center.KPI_STATUS.READY);
     const scheduled=eligible.reduce((sum,r)=>sum+Number(r.results.PA.denominatorHours||0),0),available=eligible.reduce((sum,r)=>sum+Number(r.results.PA.numeratorHours||0),0),used=eligible.reduce((sum,r)=>sum+Number(r.results.UA.numeratorHours||0),0);
-    const exclusions=results.filter(r=>!eligible.includes(r)).map(r=>({equipmentId:r.equipmentId,status:r.status,issues:r.timeline&&r.timeline.issues?r.timeline.issues:[]}));
-    return{status:exclusions.length?center.KPI_STATUS.NEEDS_VALIDATION:(eligible.length?center.KPI_STATUS.READY:center.KPI_STATUS.NEEDS_VALIDATION),date:payload.date,baseline:clone(payload.baseline||DEFAULT_BASELINE),population:{total:equipment.length,eligible:eligible.length,excluded:exclusions.length},contributingHours:{scheduledHours:scheduled,availableHours:available,usedHours:used},results:{PA:eligible.length?center.calculatePA({scheduledHours:scheduled,availableHours:available}):null,UA:eligible.length?center.calculateUA({availableHours:available,usedHours:used}):null,EU:{kpi:'EU',status:center.KPI_STATUS.PENDING_DEFINITION,value:null,unit:'%',reason:'EU definition is not locked.'}},equipment:results,exclusions,calculationVersion:VERSION};
+    const exclusions=results.filter(r=>!eligible.includes(r)).map(r=>({equipmentId:r.equipmentId,status:r.status,issues:r.timeline&&r.timeline.issues?r.timeline.issues:[]}));const euReady=eligible.length>0&&eligible.every(r=>r.results&&r.results.EU&&r.results.EU.status===center.KPI_STATUS.READY);const effectiveHours=euReady?eligible.reduce((sum,r)=>sum+Number(r.results.EU.numeratorHours||0),0):0;const fleetEU=euReady?center.calculateEU({effectiveHours:effectiveHours,availableHours:available}):{kpi:'EU',status:center.KPI_STATUS.NEEDS_VALIDATION,value:null,unit:'%',reason:'Effective Time evidence is not validated.'};
+    return{status:exclusions.length||!euReady?center.KPI_STATUS.NEEDS_VALIDATION:(eligible.length?center.KPI_STATUS.READY:center.KPI_STATUS.NEEDS_VALIDATION),date:payload.date,baseline:clone(payload.baseline||DEFAULT_BASELINE),population:{total:equipment.length,eligible:eligible.length,excluded:exclusions.length},contributingHours:{scheduledHours:scheduled,availableHours:available,usedHours:used},results:{PA:eligible.length?center.calculatePA({scheduledHours:scheduled,availableHours:available}):null,UA:eligible.length?center.calculateUA({availableHours:available,usedHours:used}):null,EU:fleetEU},equipment:results,exclusions,calculationVersion:VERSION};
   }
   function buildSnapshot(input){
     const payload=input||{},calculation=payload.calculation;
