@@ -132,6 +132,7 @@ function bind(){
   const openConsole=document.getElementById('reportsConsole');
   const closeConsole=document.getElementById('reportsCloseConsole');
   const cancelConsole=document.getElementById('reportsCancelConsole');
+  const resetConsole=document.getElementById('reportsResetConsole');
   const applyConsoleButton=document.getElementById('reportsApplyConsole');
   const baselineSelect=document.getElementById('reportsTimeBaseline');
   const euDenominatorSelect=document.getElementById('reportsEUDenominator');
@@ -164,6 +165,12 @@ function bind(){
     renderTimeConsole();
     renderKpi();
   };
+  const resetConsolePolicy=()=>{
+    if(baselineSelect)baselineSelect.value=DEFAULT_POLICY.baseline.baseline_id;
+    if(euDenominatorSelect)euDenominatorSelect.value=DEFAULT_POLICY.euDenominator;
+    if(effectiveRuleSelect)effectiveRuleSelect.value=DEFAULT_POLICY.effectiveTimeRule;
+    syncConsolePreview();
+  };
   const syncConsolePreview=()=>{
     const p={baseline:TIME_BASELINES.find(item=>item.baseline_id===baselineSelect?.value)||DEFAULT_POLICY.baseline,euDenominator:euDenominatorSelect?.value||DEFAULT_POLICY.euDenominator,effectiveTimeRule:effectiveRuleSelect?.value||DEFAULT_POLICY.effectiveTimeRule};
     const stateEl=document.getElementById('reportsTimeBaselineState');
@@ -177,6 +184,7 @@ function bind(){
   if(openConsole)openConsole.onclick=showConsole;
   if(closeConsole)closeConsole.onclick=hideConsole;
   if(cancelConsole)cancelConsole.onclick=hideConsole;
+  if(resetConsole)resetConsole.onclick=resetConsolePolicy;
   if(applyConsoleButton)applyConsoleButton.onclick=applyConsole;
   if(consoleModal)consoleModal.onclick=e=>{if(e.target===consoleModal)hideConsole();};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&consoleModal&&consoleModal.classList.contains('open'))hideConsole();});

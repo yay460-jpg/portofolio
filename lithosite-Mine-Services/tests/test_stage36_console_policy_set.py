@@ -14,6 +14,7 @@ def test_stage36_console_policy_set_surface():
     assert 'id="reportsTimeBaseline"' in html
     assert 'id="reportsEUDenominator"' in html
     assert 'id="reportsEffectiveTimeRule"' in html
+    assert 'id="reportsResetConsole"' in html
     assert "Apply Policy Set" in html
 
     assert "TIME_BASELINES" in reports
@@ -43,3 +44,10 @@ def test_stage36_console_contains_policy_only():
     assert 'id="reportsTimelineEvidence"' not in modal
     assert 'id="reportsDowntimeSummary"' not in modal
     assert 'id="reportsEUEvidence"' not in modal
+
+def test_stage36_console_reset_restores_default_selection():
+    reports = read("ui/modules/reports/reports.js")
+    assert "DEFAULT_POLICY.baseline.baseline_id" in reports
+    assert "DEFAULT_POLICY.euDenominator" in reports
+    assert "DEFAULT_POLICY.effectiveTimeRule" in reports
+    assert "resetConsolePolicy" in reports
