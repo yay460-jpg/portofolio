@@ -204,7 +204,7 @@
     const policy=payload.policy||{};
     const euDenominator=policy.euDenominator==='SCHEDULED'?'SCHEDULED':'AVAILABLE';
     const effectiveTimeRule=policy.effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE';
-    const results=equipment.map(row=>calculateEquipment({
+    const results=equipment.map(row=>Object.assign(calculateEquipment({
       equipmentId:row.equipment_id,
       date:payload.date,
       baseline:payload.baseline,
@@ -213,7 +213,7 @@
       euDenominator:euDenominator,
       operations:payload.operations,
       maintenance:payload.maintenance
-    }));
+    }),{unitNo:row.unit_no}));
     const eligible=results.filter(result=>result.results&&result.results.PA&&result.results.PA.status===center.KPI_STATUS.READY&&result.results.UA&&result.results.UA.status===center.KPI_STATUS.READY);
     const scheduled=eligible.reduce((sum,r)=>sum+Number(r.results.PA.denominatorHours||0),0);
     const available=eligible.reduce((sum,r)=>sum+Number(r.results.PA.numeratorHours||0),0);

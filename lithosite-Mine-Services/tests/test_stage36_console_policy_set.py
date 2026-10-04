@@ -68,3 +68,14 @@ def test_stage36_dedicated_equipment_scroll_viewport():
     assert '#reportsScreen .equipment-kpi-scroll::-webkit-scrollbar{width:0;height:0;display:none}' in css
     assert "equipmentScroll.addEventListener('wheel'" in reports
     assert "e.preventDefault()" in reports
+
+def test_stage36_equipment_unit_column():
+    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v36-STAGE25.html")
+    reports = read("ui/modules/reports/reports.js")
+    foundation = read("ui/modules/reports/kpi-foundation.js")
+    css = read("ui/modules/reports/reports.css")
+
+    assert '<span>Equipment</span><span>Unit</span><span>Scheduled h</span>' in html
+    assert 'class="eq-unit"' in reports
+    assert 'unitNo:row.unit_no' in foundation
+    assert '.eq-unit' in css
