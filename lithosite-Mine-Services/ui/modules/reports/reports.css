@@ -187,4 +187,8 @@ footer.status{
 /* V36 Reports — interactive controls show pointer cursor */
 #reportsScreen #reportsRefresh,
 #reportsScreen #reportsOpenHistory,
-#reportsScreen #reportsConsole{cursor:pointer}
+#reportsScreen #reportsConsole,
+#reportsScreen #reportsApplyConsole,
+#reportsScreen #reportsCancelConsole,
+#reportsScreen #reportsCloseConsole{cursor:pointer}
+#reportsScreen #reportsApplyConsole{background:#1f6feb;border-color:#3b82f6;color:#fff}
