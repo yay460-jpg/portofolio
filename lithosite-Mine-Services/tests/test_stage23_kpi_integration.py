@@ -53,5 +53,5 @@ def test_stage23_runtime_dispatch():
 def test_stage23_default_entry():
     server = SERVER.read_text(encoding="utf-8")
     bat = BAT.read_text(encoding="utf-8")
-    assert "v35-STAGE24.html" in server
-    assert "v35-STAGE24.html" in bat
+    assert "v36-STAGE25.html" in server
+    assert "v36-STAGE25.html" in bat
