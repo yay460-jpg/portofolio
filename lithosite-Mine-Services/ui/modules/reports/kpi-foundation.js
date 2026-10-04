@@ -59,6 +59,47 @@
   function sliceToWindows(event,windows){
     const slices=[];windows.forEach(function(window){if(!intersects(event,window))return;const start=event.start>window.start?event.start:window.start;const end=event.end<window.end?event.end:window.end;if(end>start)slices.push({start,end});});return slices;
   }
+  function normalizeActivity(value){return String(value||'').trim().toLowerCase().replace(/\\s+/g,' ');}
+
+  function classifyEffectiveActivity(activity,rule,context){
+    const text=normalizeActivity(activity);
+    if(!text)return center.EFFECTIVENESS.UNRESOLVED;
+
+    const excluded=/waiting|wait truck|wait excavator|queue|antri|no material|lack of work|idle|refuel|fueling|shift change|safety talk|toolbox|p2h|relocat|travel empty|empty travel|long travel|manuver kosong|manoeuvre kosong|cleaning idle/.test(text);
+    if(excluded)return center.EFFECTIVENESS.NOT_EFFECTIVE;
+
+    const pure=/(^|\\b)(digging|dig)(\\b|$)|swinging|loading|hauling( loaded)?|dumping|pushing|ripping|grading/.test(text);
+    if(pure)return center.EFFECTIVENESS.EFFECTIVE;
+
+    if(rule==='STANDARD_CYCLE'){
+      if(/spotting|normal spotting|face cleaning/.test(text))return center.EFFECTIVENESS.EFFECTIVE;
+      if(/short travel|travel < ?50 ?m|< ?50 ?m/.test(text))return center.EFFECTIVENESS.EFFECTIVE;
+      if(/reposition/.test(text)){
+        const sameFront=context&&context.previousWorkFrontId&&context.workFrontId
+          ?String(context.previousWorkFrontId)===String(context.workFrontId):false;
+        return sameFront?center.EFFECTIVENESS.EFFECTIVE:center.EFFECTIVENESS.UNRESOLVED;
+      }
+    }
+
+    return center.EFFECTIVENESS.UNRESOLVED;
+  }
+
+  function applyEffectiveTimePolicy(events,rule){
+    let previousWorkFrontId=null;
+    events.forEach(function(event){
+      if(event.source_entity!=='Operations')return;
+      event.effectiveness=classifyEffectiveActivity(event.activity,rule,{
+        previousWorkFrontId:previousWorkFrontId,
+        workFrontId:event.work_front_id||null
+      });
+      previousWorkFrontId=event.work_front_id||previousWorkFrontId;
+      event.effective_time_rule=rule;
+    });
+    events.forEach(function(event){
+      if(event.source_entity==='Maintenance')event.effective_time_rule=rule;
+    });
+  }
+
   function buildOperationSource(row){
     const actual=asNumber(row.actual_hours),start=localDateTime(row.transaction_date,row.transaction_time);
     if(!start||actual===null||actual<=0)return null;
@@ -75,7 +116,7 @@
     return{event:{start,end,event_id:'MNT:'+row.maintenance_id,event_version:sourceVersion(row),equipment_id:row.equipment_id,source_entity:'Maintenance',source_id:row.maintenance_id,source_reference:row.maintenance_id,boundary_type:'EXPLICIT',formation_rule:'maintenance.start_time/end_time',event_type:row.event_type,failure_code:row.failure_code||null,availability:center.AVAILABILITY.NOT_AVAILABLE,usage:center.USAGE.NOT_USED,effectiveness:center.EFFECTIVENESS.NOT_EFFECTIVE,validation_status:'VALID'}};
   }
   function buildEquipmentTimeline(input){
-    const payload=input||{},date=String(payload.date||'').slice(0,10),equipmentId=payload.equipmentId,baseline=Object.assign({},DEFAULT_BASELINE,payload.baseline||{});
+    const payload=input||{},date=String(payload.date||'').slice(0,10),equipmentId=payload.equipmentId,baseline=Object.assign({},DEFAULT_BASELINE,payload.baseline||{}),effectiveTimeRule=payload.effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE';
     if(!date)return{status:center.KPI_STATUS.INVALID_INPUT,issues:[{code:'REPORT_DATE_REQUIRED'}]};
     if(!equipmentId)return{status:center.KPI_STATUS.INVALID_INPUT,issues:[{code:'EQUIPMENT_ID_REQUIRED'}]};
     const windows=baselineWindows(date,baseline);if(!windows.length)return{status:center.KPI_STATUS.INVALID_INPUT,issues:[{code:'TIME_BASELINE_HAS_NO_SCHEDULED_WINDOW'}]};
@@ -92,6 +133,7 @@
       sliceToWindows(result.event,windows).forEach(function(slice,index){events.push(Object.assign({},result.event,{event_id:result.event.event_id+':S'+(index+1),start_time:slice.start.toISOString(),end_time:slice.end.toISOString(),_source_event_id:result.event.event_id,_durationHours:hoursBetween(slice.start,slice.end)}));});
     });
     events.sort((a,b)=>new Date(a.start_time)-new Date(b.start_time));
+    applyEffectiveTimePolicy(events,effectiveTimeRule);
     for(let i=1;i<events.length;i+=1){const previous=events[i-1],current=events[i];if(new Date(current.start_time)<new Date(previous.end_time))issues.push({code:'TIMELINE_OVERLAP',previousEventId:previous.event_id,eventId:current.event_id,from:current.start_time,to:previous.end_time});}
     windows.forEach(function(window){
       let cursor=window.start;
@@ -99,12 +141,62 @@
       inside.forEach(function(event){const start=parseDate(event.start_time),end=parseDate(event.end_time),clippedStart=start<window.start?window.start:start,clippedEnd=end>window.end?window.end:end;if(clippedEnd<=clippedStart)return;if(clippedStart>cursor)issues.push({code:'TIMELINE_GAP',from:cursor.toISOString(),to:clippedStart.toISOString(),durationHours:hoursBetween(cursor,clippedStart),reason:'NO_EVIDENCE'});if(clippedEnd>cursor)cursor=clippedEnd;});
       if(cursor<window.end)issues.push({code:'TIMELINE_GAP',from:cursor.toISOString(),to:window.end.toISOString(),durationHours:hoursBetween(cursor,window.end),reason:'NO_EVIDENCE'});
     });
-    return{status:issues.length?center.KPI_STATUS.NEEDS_VALIDATION:center.KPI_STATUS.READY,baseline:clone(baseline),windows:windows.map(w=>({start:w.start.toISOString(),end:w.end.toISOString(),kind:w.kind})),scheduledHours:scheduledHours(windows),events,issues,lineage:{equipmentId,date,sourceEntities:['Equipment','Operations','Maintenance'],eventCount:events.length}};
+    return{status:issues.length?center.KPI_STATUS.NEEDS_VALIDATION:center.KPI_STATUS.READY,baseline:clone(baseline),effectiveTimeRule,windows:windows.map(w=>({start:w.start.toISOString(),end:w.end.toISOString(),kind:w.kind})),scheduledHours:scheduledHours(windows),events,issues,lineage:{equipmentId,date,sourceEntities:['Equipment','Operations','Maintenance'],eventCount:events.length}};
   }
   function calculateEquipment(input){
-    const payload=input||{},timeline=buildEquipmentTimeline(payload);
+    const payload=input||{};
+    const effectiveTimeRule=payload.effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE';
+    const timeline=buildEquipmentTimeline(Object.assign({},payload,{effectiveTimeRule}));
     if(timeline.status!==center.KPI_STATUS.READY)return{equipmentId:payload.equipmentId||null,status:timeline.status,timeline,results:{PA:{kpi:'PA',status:timeline.status,value:null,unit:'%'},UA:{kpi:'UA',status:timeline.status,value:null,unit:'%'},EU:{kpi:'EU',status:center.KPI_STATUS.NEEDS_VALIDATION,value:null,unit:'%',reason:'Effective Time evidence is not validated.'}}};
-    const bundle=center.calculateBundle({timeline:timeline.events,effectiveHours:payload.effectiveHours,timelineGaps:timeline.issues.filter(i=>i.code==='TIMELINE_GAP'),scheduledWindows:timeline.windows,scheduledTime:{status:center.KPI_STATUS.READY,scheduledHours:timeline.scheduledHours,baseline_id:timeline.baseline.baseline_id,version:timeline.baseline.version}});
+
+    const derivedEffectiveHours=timeline.events
+      .filter(event=>event.effectiveness===center.EFFECTIVENESS.EFFECTIVE)
+      .reduce((sum,event)=>sum+Number(event._durationHours||0),0);
+
+    const effectiveHours=payload.effectiveHours!==undefined&&payload.effectiveHours!==null&&payload.effectiveHours!==''
+      ?payload.effectiveHours:derivedEffectiveHours;
+
+    const bundle=center.calculateBundle({
+      timeline:timeline.events,
+      effectiveHours,
+      timelineGaps:timeline.issues.filter(i=>i.code==='TIMELINE_GAP'),
+      scheduledWindows:timeline.windows,
+      scheduledTime:{status:center.KPI_STATUS.READY,scheduledHours:timeline.scheduledHours,baseline_id:timeline.baseline.baseline_id,version:timeline.baseline.version}
+    });
+
+    if(bundle.results){
+      const euDenominator=payload.euDenominator==='SCHEDULED'?'SCHEDULED':'AVAILABLE';
+      const availableHours=bundle.results.PA&&Number.isFinite(Number(bundle.results.PA.numeratorHours))
+        ?Number(bundle.results.PA.numeratorHours):0;
+      const denominatorHours=euDenominator==='SCHEDULED'?Number(timeline.scheduledHours):availableHours;
+      const effectiveNumber=Number(effectiveHours);
+      const euBase={
+        kpi:'EU',
+        status:center.KPI_STATUS.NEEDS_VALIDATION,
+        value:null,
+        unit:'%',
+        numeratorHours:Number.isFinite(effectiveNumber)?effectiveNumber:null,
+        denominatorHours:Number.isFinite(denominatorHours)?denominatorHours:null,
+        denominatorType:euDenominator,
+        effectiveTimeRule,
+        formulaId:euDenominator==='SCHEDULED'?'EU-EFFECTIVE-OVER-SCHEDULED':'EU-EFFECTIVE-OVER-AVAILABLE'
+      };
+      if(bundle.results.EU&&bundle.results.EU.status===center.KPI_STATUS.READY&&Number.isFinite(effectiveNumber)&&Number.isFinite(denominatorHours)&&denominatorHours>0&&effectiveNumber<=denominatorHours){
+        euBase.status=center.KPI_STATUS.READY;
+        euBase.value=(effectiveNumber/denominatorHours)*100;
+      }else if(!Number.isFinite(effectiveNumber)||effectiveNumber<0){
+        euBase.reason='Effective Time evidence is required.';
+      }else if(denominatorHours<=0){
+        euBase.reason=(euDenominator==='SCHEDULED'?'Scheduled Time':'Available Time')+' is required and must be greater than zero.';
+      }else if(effectiveNumber>denominatorHours){
+        euBase.reason='Effective Time cannot exceed the selected EU denominator.';
+      }else{
+        euBase.reason=bundle.results.EU&&bundle.results.EU.reason?bundle.results.EU.reason:'Effective Time evidence is not validated.';
+      }
+      bundle.results.EU=euBase;
+      bundle.status=bundle.results.EU.status===center.KPI_STATUS.READY?bundle.status:bundle.results.EU.status;
+    }
+
     return{equipmentId:payload.equipmentId||null,status:bundle.status,timeline,results:bundle.results,calculationVersion:VERSION};
   }
   function calculateFleet(input){
@@ -117,6 +209,8 @@
       date:payload.date,
       baseline:payload.baseline,
       effectiveHours:payload.effectiveHoursByEquipment?payload.effectiveHoursByEquipment[row.equipment_id]:undefined,
+      effectiveTimeRule:effectiveTimeRule,
+      euDenominator:euDenominator,
       operations:payload.operations,
       maintenance:payload.maintenance
     }));
