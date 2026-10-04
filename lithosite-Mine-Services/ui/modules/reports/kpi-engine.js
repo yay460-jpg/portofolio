@@ -18,7 +18,7 @@
 (function (global) {
   'use strict';
 
-  const VERSION = 'V34-KPI-ENGINE-CENTER-0.1';
+  const VERSION = 'V35-KPI-ENGINE-CENTER-0.1';
 
   const ENGINE_STATUS = Object.freeze({
     ACTIVE: 'ACTIVE',
