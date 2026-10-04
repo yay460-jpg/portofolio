@@ -51,3 +51,9 @@ def test_stage36_console_reset_restores_default_selection():
     assert "DEFAULT_POLICY.euDenominator" in reports
     assert "DEFAULT_POLICY.effectiveTimeRule" in reports
     assert "resetConsolePolicy" in reports
+
+def test_stage36_equipment_list_owns_scroll_without_visible_scrollbar():
+    css = read("ui/modules/reports/reports.css")
+    assert "#reportsScreen .kpi-panel{overflow:hidden}" in css
+    assert "#reportsScreen .equipment-kpi-list{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;scrollbar-width:none;" in css
+    assert "#reportsScreen .equipment-kpi-list::-webkit-scrollbar{width:0;height:0;display:none}" in css
