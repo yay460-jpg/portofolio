@@ -3,7 +3,7 @@ from pathlib import Path
 
 def test_stage15_data_management_ui_contract():
     root = Path(__file__).parents[1]
-    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v33-STAGE21.html").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v35-STAGE24.html").read_text(encoding="utf-8")
     shell = (root / "ui" / "shared" / "shell-navigation-v31.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "data-management" / "data-management.js").read_text(encoding="utf-8")
 

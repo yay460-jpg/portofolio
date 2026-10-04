@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 MARKER_JS = ROOT / "ui" / "modules" / "map-engine" / "marker-location.js"
 MARKER_CSS = ROOT / "ui" / "modules" / "map-engine" / "marker-location.css"
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v33-STAGE21.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v35-STAGE24.html"
 
 
 def test_stage20_marker_location_model_exists_and_is_centralized():
