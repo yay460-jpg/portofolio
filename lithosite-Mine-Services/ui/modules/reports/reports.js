@@ -132,6 +132,7 @@ function bind(){
   const openConsole=document.getElementById('reportsConsole');
   const closeConsole=document.getElementById('reportsCloseConsole');
   const cancelConsole=document.getElementById('reportsCancelConsole');
+  const applyConsoleButton=document.getElementById('reportsApplyConsole');
   const baselineSelect=document.getElementById('reportsTimeBaseline');
   const euDenominatorSelect=document.getElementById('reportsEUDenominator');
   const effectiveRuleSelect=document.getElementById('reportsEffectiveTimeRule');
@@ -176,6 +177,7 @@ function bind(){
   if(openConsole)openConsole.onclick=showConsole;
   if(closeConsole)closeConsole.onclick=hideConsole;
   if(cancelConsole)cancelConsole.onclick=hideConsole;
+  if(applyConsoleButton)applyConsoleButton.onclick=applyConsole;
   if(consoleModal)consoleModal.onclick=e=>{if(e.target===consoleModal)hideConsole();};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&consoleModal&&consoleModal.classList.contains('open'))hideConsole();});
 

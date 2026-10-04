@@ -20,6 +20,8 @@ def test_stage36_console_policy_set_surface():
     assert "EU_DENOMINATOR_OPTIONS" in reports
     assert "EFFECTIVE_RULE_OPTIONS" in reports
     assert "renderConsolePolicy" in reports
+    assert "applyConsoleButton" in reports
+    assert "applyConsoleButton.onclick=applyConsole" in reports
 
     assert "TIME_BASELINES" in foundation
     assert "effectiveTimeRule" in foundation
