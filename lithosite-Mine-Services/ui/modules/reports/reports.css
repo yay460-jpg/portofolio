@@ -102,7 +102,9 @@
 #reportsScreen #reportsFleetStatus{font-size:11px;font-weight:700;line-height:1.1}
 #reportsScreen .kpi-summary-card span{margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #reportsScreen .kpi-equipment-head{flex:0 0 28px;grid-template-columns:1.3fr .72fr .72fr .72fr .7fr .7fr .9fr;align-items:center}
-#reportsScreen .equipment-kpi-list{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;padding:0 7px 4px}
+#reportsScreen .kpi-panel{overflow:auto;scrollbar-width:none}
+#reportsScreen .kpi-panel::-webkit-scrollbar{width:0;height:0;display:none}
+#reportsScreen .equipment-kpi-list{flex:0 0 auto;min-height:0;max-height:none;overflow:visible;padding:0 7px 4px}
 #reportsScreen .equipment-kpi-detail{margin-top:5px}
 #reportsScreen .equipment-kpi-detail summary{grid-template-columns:1.3fr .72fr .72fr .72fr .7fr .7fr .9fr;min-height:38px;padding:6px 8px;font-size:8.5px}
 #reportsScreen .equipment-kpi-detail summary strong{font-size:9px}
