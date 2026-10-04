@@ -28,7 +28,7 @@
 #reportsScreen .filters .control{height:32px}
 #reportsScreen .report-kpis{grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:8px}
 #reportsScreen .report-card{min-width:0}
-#reportsScreen .report-body{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:8px}
+#reportsScreen .report-body{grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);gap:8px}
 #reportsScreen .report-summary{overflow:hidden;padding:8px}
 #reportsScreen .report-row{min-height:31px;grid-template-columns:125px 62px minmax(0,1fr);gap:6px}
 @media(max-width:1500px){#reportsScreen .report-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -94,7 +94,7 @@
 #reportsScreen .head{flex:0 0 42px}
 #reportsScreen .filters{flex:0 0 auto}
 #reportsScreen .report-kpis{flex:0 0 auto}
-#reportsScreen .report-body{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:8px;flex:1 1 auto;min-height:0;overflow:hidden}
+#reportsScreen .report-body{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);gap:8px;flex:1 1 auto;min-height:0;overflow:hidden}
 #reportsScreen .report-body>.report-panel{min-height:0;overflow:hidden}
 #reportsScreen .report-operational-panel .report-summary{flex:1 1 auto;min-height:0;overflow:auto}
 #reportsScreen .kpi-panel{display:flex;flex-direction:column;min-height:0;overflow:hidden}
@@ -103,13 +103,11 @@
 #reportsScreen .kpi-toolbar-group label{flex:0 0 auto}
 #reportsScreen .kpi-toolbar-group .control{flex:0 0 auto}
 #reportsScreen .kpi-toolbar .kpi-baseline{overflow:hidden;text-overflow:ellipsis}
-#reportsScreen .kpi-summary{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:7px 8px}
-#reportsScreen .kpi-summary-card{min-width:0;padding:7px 8px}
+#reportsScreen .kpi-summary{flex:0 0 auto;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;padding:7px 8px}
+#reportsScreen .kpi-summary-card{min-width:0;padding:7px 8px;display:flex;flex-direction:column}
 #reportsScreen .kpi-summary-card b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #reportsScreen #reportsFleetStatus{font-size:11px;font-weight:700;line-height:1.1}
-#reportsScreen .kpi-summary-card span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#reportsScreen .kpi-population{flex:0 0 27px;display:flex;align-items:center;gap:14px;padding:0 10px;color:#8fa5bb;font-size:8px;border-bottom:1px solid #263e57}
-#reportsScreen .kpi-population b{color:#dce8f5;margin-left:3px}
+#reportsScreen .kpi-summary-card span{margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #reportsScreen .kpi-equipment-head{flex:0 0 28px;grid-template-columns:1.3fr .72fr .72fr .72fr .7fr .7fr .9fr;align-items:center}
 #reportsScreen .equipment-kpi-list{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;padding:0 7px 4px}
 #reportsScreen .equipment-kpi-detail{margin-top:5px}
