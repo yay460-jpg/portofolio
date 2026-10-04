@@ -94,79 +94,6 @@ function renderConsolePolicy(){
   if(active)active.textContent=p.baseline.baseline_id+' · '+p.baseline.shift_start+'–'+p.baseline.shift_end+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
 }
 
-function renderConsoleEquipment(){
-  const select=document.getElementById('reportsConsoleEquipment');
-  if(!select)return;
-  const items=Array.isArray(state.kpi?.equipment)?state.kpi.equipment:[];
-  select.innerHTML=items.map(item=>{
-    const id=String(item.equipmentId||'');
-    return '<option value="'+esc(id)+'">'+esc(id)+'</option>';
-  }).join('');
-  if(items.length)renderConsoleTimeline(items[0].equipmentId);
-}
-
-function renderConsoleTimeline(equipmentId){
-  const host=document.getElementById('reportsTimelineEvidence');
-  if(!host)return;
-  const items=Array.isArray(state.kpi?.equipment)?state.kpi.equipment:[];
-  const result=items.find(item=>String(item.equipmentId)===String(equipmentId));
-  if(!result){
-    host.innerHTML='<div class="kpi-history-empty">No equipment timeline available.</div>';
-    return;
-  }
-  const t=result.timeline||{};
-  const events=Array.isArray(t.events)?t.events:[];
-  const issues=Array.isArray(t.issues)?t.issues:[];
-  let html='';
-  if(events.length){
-    html=events.map(ev=>{
-      const s=new Date(ev.start_time),e=new Date(ev.end_time);
-      const st=Number.isNaN(s.getTime())?'—':s.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-      const et=Number.isNaN(e.getTime())?'—':e.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-      const label=ev.activity||ev.event_type||ev.source_entity||'Event';
-      const stateText=String(ev.availability||'—')+' / '+String(ev.usage||'—');
-      const source=String(ev.source_entity||'')+(ev.source_id?':'+String(ev.source_id):'');
-      return '<div class="reports-timeline-row"><b>'+esc(st)+'–'+esc(et)+'</b><span>'+esc(label)+'</span><span>'+esc(stateText)+'</span><span>'+esc(ev.boundary_type||'—')+' · '+esc(ev.validation_status||'—')+'</span><span>'+esc(source)+'</span></div>';
-    }).join('');
-  }else{
-    html='<div class="kpi-history-empty">No event evidence for this equipment.</div>';
-  }
-  if(issues.length){
-    html+=issues.map(issue=>'<div class="reports-timeline-issue">'+esc(String(issue.code||'TIMELINE_ISSUE'))+'</div>').join('');
-  }
-  host.innerHTML=html;
-}
-
-function renderTimeConsole(){
-  const p=state.policy||DEFAULT_POLICY;
-  const b=p.baseline||foundation.DEFAULT_BASELINE;
-  const status=document.getElementById('reportsBaselineStatus');
-  if(status)status.textContent=b.status||'PROJECT_DEFAULT';
-  renderConsolePolicy();
-
-  const downtime=rows('Maintenance').filter(r=>String(r.event_date||'').slice(0,10)===String(state.date||'').slice(0,10)&&['breakdown','corrective'].includes(String(r.event_type||'').toLowerCase())&&String(r.status||'').toLowerCase()!=='cancelled');
-  const dh=downtime.reduce((sum,r)=>{
-    if(!r.start_time||!r.end_time)return sum;
-    const a=new Date(String(r.event_date)+'T'+String(r.start_time).slice(0,5)+':00');
-    let e=new Date(String(r.event_date)+'T'+String(r.end_time).slice(0,5)+':00');
-    if(Number.isNaN(a.getTime())||Number.isNaN(e.getTime()))return sum;
-    if(e<=a)e=new Date(e.getTime()+86400000);
-    return sum+(e-a)/3600000;
-  },0);
-  const dhost=document.getElementById('reportsDowntimeSummary');
-  if(dhost)dhost.textContent=downtime.length+' downtime evidence record(s) · '+dh.toFixed(2)+' h · classified NOT_AVAILABLE';
-
-  const eu=state.kpi&&state.kpi.results?state.kpi.results.EU:null;
-  const ehost=document.getElementById('reportsEUEvidence');
-  if(ehost){
-    ehost.textContent=(eu?String(eu.status||'NEEDS_VALIDATION'):'KPI evidence unavailable')
-      +' · denominator '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)
-      +' · numerator Effective Time'
-      +' · rule '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
-  }
-  renderConsoleEquipment();
-}
-
 async function finalizeCurrent(){
   if(!state.kpi||state.kpi.status!=='READY'){msg('Finalization blocked: calculation is not READY.',true);return;}
   try{
@@ -208,12 +135,10 @@ function bind(){
   const baselineSelect=document.getElementById('reportsTimeBaseline');
   const euDenominatorSelect=document.getElementById('reportsEUDenominator');
   const effectiveRuleSelect=document.getElementById('reportsEffectiveTimeRule');
-  const consoleEquipment=document.getElementById('reportsConsoleEquipment');
 
   const showConsole=()=>{
     if(!consoleModal)return;
     renderConsolePolicy();
-    renderTimeConsole();
     consoleModal.classList.add('open');
     consoleModal.setAttribute('aria-hidden','false');
   };
@@ -248,7 +173,6 @@ function bind(){
   if(baselineSelect)baselineSelect.onchange=syncConsolePreview;
   if(euDenominatorSelect)euDenominatorSelect.onchange=syncConsolePreview;
   if(effectiveRuleSelect)effectiveRuleSelect.onchange=syncConsolePreview;
-  if(consoleEquipment)consoleEquipment.addEventListener('change',e=>renderConsoleTimeline(e.target.value));
   if(openConsole)openConsole.onclick=showConsole;
   if(closeConsole)closeConsole.onclick=hideConsole;
   if(cancelConsole)cancelConsole.onclick=hideConsole;

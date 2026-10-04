@@ -27,3 +27,17 @@ def test_stage36_console_policy_set_surface():
     assert "EU-EFFECTIVE-OVER-AVAILABLE" in foundation
     assert "STANDARD_CYCLE" in foundation
     assert "PURE_EFFECTIVE" in foundation
+
+def test_stage36_console_contains_policy_only():
+    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v36-STAGE25.html")
+    start = html.index('<div id="reportsConsoleModal"')
+    end = html.index('<div id="reportsHistoryModal"', start)
+    modal = html[start:end]
+
+    assert 'id="reportsTimeBaseline"' in modal
+    assert 'id="reportsEUDenominator"' in modal
+    assert 'id="reportsEffectiveTimeRule"' in modal
+    assert 'id="reportsActivePolicy"' in modal
+    assert 'id="reportsTimelineEvidence"' not in modal
+    assert 'id="reportsDowntimeSummary"' not in modal
+    assert 'id="reportsEUEvidence"' not in modal
