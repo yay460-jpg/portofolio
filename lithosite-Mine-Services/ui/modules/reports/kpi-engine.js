@@ -11,7 +11,7 @@
  * - Time Baseline is an input/reference, not an equipment event.
  * - Raw evidence must remain unchanged.
  * - Company/site-specific KPI definitions remain configurable.
- * - EU formula is intentionally NOT locked.
+ * - EU formula is locked as Effective Time / Available Time.
  * - MTBF and MTTR engines are intentionally HOLD.
  */
 
@@ -124,7 +124,7 @@
     },
 
     /*
-     * EU deliberately has no calculation function yet.
+     * EU calculation is locked to Effective Time / Available Time.
      * The official denominator/definition must be supplied by the
      * applicable company/site SOP before implementation is locked.
      */
