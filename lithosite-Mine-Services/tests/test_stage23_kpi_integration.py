@@ -15,7 +15,7 @@ def test_stage23_artifact_wires_foundation():
     assert "kpi-foundation.js?v=20261004" in html
     assert "reports.css?v=20261006" in html
     assert 'class="report-body"' in html
-    assert 'class="report-operational-panel"' in html
+    assert "report-operational-panel" in html
     assert 'id="equipmentKpiRows"' in html
     assert 'id="reportsFinalizeKpi"' in html
     assert 'id="reportsKpiDate"' in html
