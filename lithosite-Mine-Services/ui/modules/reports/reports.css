@@ -190,7 +190,8 @@ footer.status{
 #reportsScreen #reportsConsole,
 #reportsScreen #reportsApplyConsole,
 #reportsScreen #reportsCancelConsole,
-#reportsScreen #reportsCloseConsole{cursor:pointer}
+#reportsScreen #reportsCloseConsole,
+#reportsScreen #reportsResetConsole{cursor:pointer}
 #reportsScreen #reportsApplyConsole{background:#1f6feb;border-color:#3b82f6;color:#fff}
 
 #reportsScreen .reports-console-foot-spacer{flex:1 1 auto}
