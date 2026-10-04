@@ -59,7 +59,7 @@
   function sliceToWindows(event,windows){
     const slices=[];windows.forEach(function(window){if(!intersects(event,window))return;const start=event.start>window.start?event.start:window.start;const end=event.end<window.end?event.end:window.end;if(end>start)slices.push({start,end});});return slices;
   }
-  function normalizeActivity(value){return String(value||'').trim().toLowerCase().replace(/\\s+/g,' ');}
+  function normalizeActivity(value){return String(value||'').trim().toLowerCase().replace(/\s+/g,' ');}
 
   function classifyEffectiveActivity(activity,rule,context){
     const text=normalizeActivity(activity);
@@ -68,7 +68,7 @@
     const excluded=/waiting|wait truck|wait excavator|queue|antri|no material|lack of work|idle|refuel|fueling|shift change|safety talk|toolbox|p2h|relocat|travel empty|empty travel|long travel|manuver kosong|manoeuvre kosong|cleaning idle/.test(text);
     if(excluded)return center.EFFECTIVENESS.NOT_EFFECTIVE;
 
-    const pure=/(^|\\b)(digging|dig)(\\b|$)|swinging|loading|hauling( loaded)?|dumping|pushing|ripping|grading/.test(text);
+    const pure=/(^|\b)(digging|dig)(\b|$)|swinging|loading|hauling( loaded)?|dumping|pushing|ripping|grading/.test(text);
     if(pure)return center.EFFECTIVENESS.EFFECTIVE;
 
     if(rule==='STANDARD_CYCLE'){
