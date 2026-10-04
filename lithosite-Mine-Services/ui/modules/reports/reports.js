@@ -72,7 +72,7 @@ function renderSnapshotHistory(){
   if(!snapshots.length){host.innerHTML='<div class="kpi-history-empty">No finalized snapshot for this scope/date.</div>';return;}
   const sorted=snapshots.slice().sort((a,b)=>Number(a.revision||0)-Number(b.revision||0));
   const current=sorted[sorted.length-1];
-  host.innerHTML=sorted.map(s=>'<div class="kpi-history-row"><span>Revision '+esc(s.revision)+(String(s.snapshot_id||'')===String(current.snapshot_id||'')?' CURRENT':'')+'</span><b>'+fmtPct(s.result&&s.result.PA&&s.result.PA.value)+'</b><b>'+fmtPct(s.result&&s.result.UA&&s.result.UA.value)+'</b><span>'+esc(s.finalized_at||s.created_at||'')+'</span><span>'+esc(s.status||'FINAL')+'</span></div>').join('');
+  host.innerHTML=sorted.map(s=>'<div class="kpi-history-row"><span>Revision '+esc(s.revision)+(String(s.snapshot_id||'')===String(current.snapshot_id||'')?' CURRENT':'')+'</span><b>'+fmtPct(s.result&&s.result.PA&&s.result.PA.value)+'</b><b>'+fmtPct(s.result&&s.result.UA&&s.result.UA.value)+'</b><b>'+fmtPct(s.result&&s.result.EU&&s.result.EU.value)+'</b><span>'+esc(s.finalized_at||s.created_at||'')+'</span><span>'+esc(s.status||'FINAL')+'</span></div>').join('');
 }
 
 async function finalizeCurrent(){

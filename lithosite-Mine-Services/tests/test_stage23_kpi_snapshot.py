@@ -9,7 +9,7 @@ from mine_services.kpi_snapshot_store import KPIHistoryStore
 
 def snapshot(pa, ua, event_version):
     return {
-        "snapshot_version": "V34-KPI-SNAPSHOT-1",
+        "snapshot_version": "V35-KPI-SNAPSHOT-1",
         "scope_type": "FLEET",
         "scope_id": "FLEET:ALL",
         "period_id": "2026-10-04",
