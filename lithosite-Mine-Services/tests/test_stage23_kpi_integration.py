@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v34-STAGE23.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v35-STAGE24.html"
 KPI_ENGINE = ROOT / "ui" / "modules" / "reports" / "kpi-engine.js"
 FOUNDATION = ROOT / "ui" / "modules" / "reports" / "kpi-foundation.js"
 ADAPTER = ROOT / "src" / "mine_services" / "adapter.py"
