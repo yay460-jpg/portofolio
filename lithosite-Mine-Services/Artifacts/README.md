@@ -2,13 +2,16 @@
 
 Current Mine Services UI artifacts.
 
-## Authoritative file
+## Active working artifact
 
-- `Mine-Services-Concept-2-Dashboard-Operations-v20-LOCKED.html`
-  - Locked Desktop Master containing Dashboard + Operations.
-  - This is the authoritative Stage 8 desktop UI artifact.
-  - Do not create separate Dashboard or Operations progress HTML files.
+- `Mine-Services-Concept-2-Dashboard-Operations-v36-STAGE25.html`
+  - Current Stage 25 working artifact on `v36-workspace`.
+  - V36 is the active working line derived from the V35 locked baseline.
 
-Superseded v19 and unlocked progress artifacts are removed from this folder to avoid ambiguity.
+## Historical / locked artifacts
+
+- `Mine-Services-Concept-2-Dashboard-Operations-v35-STAGE24.html`
+  - V35 locked baseline/reference artifact.
+- Earlier versioned artifacts remain historical and are not active V36 entry points.
 
 Authoritative contracts and test plans remain under `Documentation/`; the A.1 database remains under `Database/`.
