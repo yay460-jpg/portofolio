@@ -30,7 +30,7 @@
 #reportsScreen .report-card{min-width:0}
 #reportsScreen .report-body{grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:8px}
 #reportsScreen .report-summary{overflow:hidden;padding:8px}
-#reportsScreen .report-row{min-height:31px;grid-template-columns:1.5fr 70px 1fr}
+#reportsScreen .report-row{min-height:31px;grid-template-columns:125px 62px minmax(0,1fr);gap:6px}
 @media(max-width:1500px){#reportsScreen .report-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:1400px){#reportsScreen .report-kpis{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:900px){#reportsScreen .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#reportsScreen .report-body{grid-template-columns:1fr}}
@@ -106,6 +106,7 @@
 #reportsScreen .kpi-summary{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:7px 8px}
 #reportsScreen .kpi-summary-card{min-width:0;padding:7px 8px}
 #reportsScreen .kpi-summary-card b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#reportsScreen #reportsFleetStatus{font-size:11px;font-weight:700;line-height:1.1}
 #reportsScreen .kpi-summary-card span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #reportsScreen .kpi-population{flex:0 0 27px;display:flex;align-items:center;gap:14px;padding:0 10px;color:#8fa5bb;font-size:8px;border-bottom:1px solid #263e57}
 #reportsScreen .kpi-population b{color:#dce8f5;margin-left:3px}
