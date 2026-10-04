@@ -15,6 +15,21 @@
     status: 'PROJECT_DEFAULT',
     source: 'V34 Stage 23 prototype'
   });
+  const TIME_BASELINES=Object.freeze([
+    DEFAULT_BASELINE,
+    Object.freeze({
+      baseline_id:'TB-PROJECT-DAY-0700-1800',
+      version:'1.0',
+      name:'Project Alternate Day Shift',
+      shift_start:'07:00',
+      shift_end:'18:00',
+      breaks:[{start:'12:00',end:'13:00'}],
+      effective_from:'2026-01-01',
+      effective_to:null,
+      status:'ALTERNATE_POLICY',
+      source:'V36 Console Policy Set — alternate work timeline; break carried from project baseline until site-specific override'
+    })
+  ]);
   function clone(value){return JSON.parse(JSON.stringify(value));}
   function asNumber(value){const n=Number(value);return Number.isFinite(n)?n:null;}
   function parseDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?null:d;}
@@ -93,19 +108,77 @@
     return{equipmentId:payload.equipmentId||null,status:bundle.status,timeline,results:bundle.results,calculationVersion:VERSION};
   }
   function calculateFleet(input){
-    const payload=input||{},equipment=Array.isArray(payload.equipment)?payload.equipment:[],results=equipment.map(row=>calculateEquipment({equipmentId:row.equipment_id,date:payload.date,baseline:payload.baseline,effectiveHours:payload.effectiveHoursByEquipment?payload.effectiveHoursByEquipment[row.equipment_id]:undefined,operations:payload.operations,maintenance:payload.maintenance}));
+    const payload=input||{},equipment=Array.isArray(payload.equipment)?payload.equipment:[];
+    const policy=payload.policy||{};
+    const euDenominator=policy.euDenominator==='SCHEDULED'?'SCHEDULED':'AVAILABLE';
+    const effectiveTimeRule=policy.effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE';
+    const results=equipment.map(row=>calculateEquipment({
+      equipmentId:row.equipment_id,
+      date:payload.date,
+      baseline:payload.baseline,
+      effectiveHours:payload.effectiveHoursByEquipment?payload.effectiveHoursByEquipment[row.equipment_id]:undefined,
+      operations:payload.operations,
+      maintenance:payload.maintenance
+    }));
     const eligible=results.filter(result=>result.results&&result.results.PA&&result.results.PA.status===center.KPI_STATUS.READY&&result.results.UA&&result.results.UA.status===center.KPI_STATUS.READY);
-    const scheduled=eligible.reduce((sum,r)=>sum+Number(r.results.PA.denominatorHours||0),0),available=eligible.reduce((sum,r)=>sum+Number(r.results.PA.numeratorHours||0),0),used=eligible.reduce((sum,r)=>sum+Number(r.results.UA.numeratorHours||0),0);
-    const exclusions=results.filter(r=>!eligible.includes(r)).map(r=>({equipmentId:r.equipmentId,status:r.status,issues:r.timeline&&r.timeline.issues?r.timeline.issues:[]}));const euReady=eligible.length>0&&eligible.every(r=>r.results&&r.results.EU&&r.results.EU.status===center.KPI_STATUS.READY);const effectiveHours=euReady?eligible.reduce((sum,r)=>sum+Number(r.results.EU.numeratorHours||0),0):0;const fleetEU=euReady?center.calculateEU({effectiveHours:effectiveHours,availableHours:available}):{kpi:'EU',status:center.KPI_STATUS.NEEDS_VALIDATION,value:null,unit:'%',reason:'Effective Time evidence is not validated.'};
-    return{status:exclusions.length||!euReady?center.KPI_STATUS.NEEDS_VALIDATION:(eligible.length?center.KPI_STATUS.READY:center.KPI_STATUS.NEEDS_VALIDATION),date:payload.date,baseline:clone(payload.baseline||DEFAULT_BASELINE),population:{total:equipment.length,eligible:eligible.length,excluded:exclusions.length},contributingHours:{scheduledHours:scheduled,availableHours:available,usedHours:used},results:{PA:eligible.length?center.calculatePA({scheduledHours:scheduled,availableHours:available}):null,UA:eligible.length?center.calculateUA({availableHours:available,usedHours:used}):null,EU:fleetEU},equipment:results,exclusions,calculationVersion:VERSION};
+    const scheduled=eligible.reduce((sum,r)=>sum+Number(r.results.PA.denominatorHours||0),0);
+    const available=eligible.reduce((sum,r)=>sum+Number(r.results.PA.numeratorHours||0),0);
+    const used=eligible.reduce((sum,r)=>sum+Number(r.results.UA.numeratorHours||0),0);
+    const exclusions=results.filter(r=>!eligible.includes(r)).map(r=>({equipmentId:r.equipmentId,status:r.status,issues:r.timeline&&r.timeline.issues?r.timeline.issues:[]}));
+    const euReady=eligible.length>0&&eligible.every(r=>r.results&&r.results.EU&&r.results.EU.status===center.KPI_STATUS.READY);
+    const effectiveHours=euReady?eligible.reduce((sum,r)=>sum+Number(r.results.EU.numeratorHours||0),0):0;
+    let fleetEU={
+      kpi:'EU',
+      status:center.KPI_STATUS.NEEDS_VALIDATION,
+      value:null,
+      unit:'%',
+      denominatorType:euDenominator,
+      effectiveTimeRule:effectiveTimeRule
+    };
+    if(euReady){
+      const denominatorHours=euDenominator==='SCHEDULED'?scheduled:available;
+      if(!Number.isFinite(denominatorHours)||denominatorHours<=0){
+        fleetEU.reason=(euDenominator==='SCHEDULED'?'Scheduled Time':'Available Time')+' is required and must be greater than zero.';
+      }else if(effectiveHours>denominatorHours){
+        fleetEU.reason='Effective Time cannot exceed the selected EU denominator.';
+      }else{
+        fleetEU={
+          kpi:'EU',
+          status:center.KPI_STATUS.READY,
+          value:(effectiveHours/denominatorHours)*100,
+          unit:'%',
+          numeratorHours:effectiveHours,
+          denominatorHours:denominatorHours,
+          denominatorType:euDenominator,
+          effectiveTimeRule:effectiveTimeRule,
+          formulaId:euDenominator==='SCHEDULED'?'EU-EFFECTIVE-OVER-SCHEDULED':'EU-EFFECTIVE-OVER-AVAILABLE'
+        };
+      }
+    }
+    return{
+      status:exclusions.length||!euReady?center.KPI_STATUS.NEEDS_VALIDATION:(eligible.length?center.KPI_STATUS.READY:center.KPI_STATUS.NEEDS_VALIDATION),
+      date:payload.date,
+      baseline:clone(payload.baseline||DEFAULT_BASELINE),
+      policy:{
+        baseline:clone(payload.baseline||DEFAULT_BASELINE),
+        euDenominator:euDenominator,
+        effectiveTimeRule:effectiveTimeRule
+      },
+      population:{total:equipment.length,eligible:eligible.length,excluded:exclusions.length},
+      contributingHours:{scheduledHours:scheduled,availableHours:available,usedHours:used},
+      results:{PA:eligible.length?center.calculatePA({scheduledHours:scheduled,availableHours:available}):null,UA:eligible.length?center.calculateUA({availableHours:available,usedHours:used}):null,EU:fleetEU},
+      equipment:results,
+      exclusions,
+      calculationVersion:VERSION
+    };
   }
   function buildSnapshot(input){
     const payload=input||{},calculation=payload.calculation;
     if(!calculation||!calculation.results)return{status:center.KPI_STATUS.INVALID_INPUT,reason:'CALCULATION_REQUIRED'};
     const eventVersions=[];(calculation.equipment||[]).forEach(e=>((e.timeline&&e.timeline.events)||[]).forEach(event=>eventVersions.push({event_id:event.event_id,source_entity:event.source_entity,source_id:event.source_id,version:event.event_version||'V1',validation_status:event.validation_status||'VALID'})));
-    return{snapshot_version:'V35-KPI-SNAPSHOT-1',scope_type:payload.scopeType||'FLEET',scope_id:payload.scopeId||'FLEET:ALL',period_id:payload.periodId||calculation.date,status:calculation.status===center.KPI_STATUS.READY?'FINAL_CANDIDATE':calculation.status,calculation_version:calculation.calculationVersion||VERSION,policy:{id:'V34-PA-UA-BASELINE',version:'1.0',status:'PROJECT_DEFAULT'},time_baseline:{id:calculation.baseline.baseline_id,version:calculation.baseline.version,status:calculation.baseline.status,shift_start:calculation.baseline.shift_start,shift_end:calculation.baseline.shift_end,breaks:clone(calculation.baseline.breaks)},result:{PA:calculation.results.PA,UA:calculation.results.UA,EU:calculation.results.EU},population:clone(calculation.population),contributing_hours:clone(calculation.contributingHours),event_versions:eventVersions,exclusions:clone(calculation.exclusions||[]),source_fingerprint:fingerprint({scope_id:payload.scopeId||'FLEET:ALL',period_id:payload.periodId||calculation.date,calculation_version:calculation.calculationVersion||VERSION,policy_version:'1.0',baseline_version:calculation.baseline.version,event_versions:eventVersions,result:calculation.results})};
+    return{snapshot_version:'V35-KPI-SNAPSHOT-1',scope_type:payload.scopeType||'FLEET',scope_id:payload.scopeId||'FLEET:ALL',period_id:payload.periodId||calculation.date,status:calculation.status===center.KPI_STATUS.READY?'FINAL_CANDIDATE':calculation.status,calculation_version:calculation.calculationVersion||VERSION,policy:{id:'V34-PA-UA-BASELINE',version:'1.0',status:'PROJECT_DEFAULT'},kpi_policy:clone(calculation.policy||null),time_baseline:{id:calculation.baseline.baseline_id,version:calculation.baseline.version,status:calculation.baseline.status,shift_start:calculation.baseline.shift_start,shift_end:calculation.baseline.shift_end,breaks:clone(calculation.baseline.breaks)},result:{PA:calculation.results.PA,UA:calculation.results.UA,EU:calculation.results.EU},population:clone(calculation.population),contributing_hours:clone(calculation.contributingHours),event_versions:eventVersions,exclusions:clone(calculation.exclusions||[]),source_fingerprint:fingerprint({scope_id:payload.scopeId||'FLEET:ALL',period_id:payload.periodId||calculation.date,calculation_version:calculation.calculationVersion||VERSION,policy_version:'1.0',baseline_version:calculation.baseline.version,event_versions:eventVersions,result:calculation.results})};
   }
   async function finalizeSnapshot(snapshot){const rc=global.LithositeRuntimeClient;if(!rc)throw new Error('LithositeRuntimeClient is required for snapshot finalization');return rc.request({operation:'FINALIZE_KPI',snapshot});}
   async function listSnapshots(scopeId,periodId){const rc=global.LithositeRuntimeClient;if(!rc)throw new Error('LithositeRuntimeClient is required for KPI snapshot history');const result=await rc.request({operation:'READ_KPI_SNAPSHOTS',scope_id:scopeId||null,period_id:periodId||null});return Array.isArray(result.data)?result.data:[];}
-  global.LithositeKPIFoundation=Object.freeze({VERSION,DEFAULT_BASELINE,baselineWindows,scheduledHours,buildEquipmentTimeline,calculateEquipment,calculateFleet,buildSnapshot,finalizeSnapshot,listSnapshots,fingerprint});
+  global.LithositeKPIFoundation=Object.freeze({VERSION,DEFAULT_BASELINE,TIME_BASELINES,baselineWindows,scheduledHours,buildEquipmentTimeline,calculateEquipment,calculateFleet,buildSnapshot,finalizeSnapshot,listSnapshots,fingerprint});
 })(window);

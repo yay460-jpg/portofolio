@@ -273,13 +273,13 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
             <button class="control" id="reportsFinalizeKpi">Finalize Current</button>
             <button class="control" id="reportsOpenHistory" type="button">Finalized History</button>
           </div>
-          <span id="reportsBaseline" class="kpi-baseline">Baseline loading…</span>
+          <div class="kpi-toolbar-right"><span id="reportsBaseline" class="kpi-baseline">Baseline loading…</span><span id="reportsBaselineStatus" class="kpi-baseline-status">PROJECT_DEFAULT</span><button class="control kpi-console-button" id="reportsConsole" type="button" title="Console" aria-label="Console">⚙</button></div>
         </div>
 
         <div class="kpi-summary">
           <div class="kpi-summary-card"><small>Fleet PA</small><b id="reportsFleetPA">—</b><span>Available / Scheduled</span></div>
           <div class="kpi-summary-card"><small>Fleet UA</small><b id="reportsFleetUA">—</b><span>Used / Available</span></div>
-          <div class="kpi-summary-card"><small>Fleet EU</small><b id="reportsFleetEU">—</b><span>Effective / Available</span></div>
+          <div class="kpi-summary-card"><small>Fleet EU</small><b id="reportsFleetEU">—</b><span id="reportsFleetEUContext">Effective / Available Time</span></div>
           <div class="kpi-summary-card"><small>Calculation State</small><b id="reportsFleetStatus">—</b><span>Validation gate</span></div>
           <div class="kpi-summary-card"><small>Eligible</small><b id="reportsEligible">0</b><span>Calculation scope</span></div>
           <div class="kpi-summary-card"><small>Excluded</small><b id="reportsExcluded">0</b><span>Validation required</span></div>
@@ -291,8 +291,66 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
         </div>
 
         <div id="equipmentKpiRows" class="equipment-kpi-list"></div>
-        <div id="kpiExclusions" class="kpi-exclusions"></div>
-        <div id="reportsHistoryModal" class="reports-history-modal" aria-hidden="true"><div class="reports-history-dialog" role="dialog" aria-modal="true" aria-labelledby="reportsHistoryTitle"><div class="reports-history-head"><div><b id="reportsHistoryTitle">Finalized KPI History</b><span>Revision / scope</span></div><button class="control" id="reportsCloseHistory" type="button">Close</button></div><div id="kpiSnapshotHistory" class="reports-history-body"></div></div></div>
+        <details class="kpi-validation-notice"><summary title="KPI Validation Notice" aria-label="KPI Validation Notice"><span class="kpi-validation-icon">⚠</span></summary><div id="kpiExclusions" class="kpi-exclusions"></div></details>
+        <div id="reportsConsoleModal" class="reports-history-modal" aria-hidden="true">
+  <div class="reports-console-dialog" role="dialog" aria-modal="true" aria-labelledby="reportsConsoleTitle">
+    <div class="reports-history-head">
+      <div><b id="reportsConsoleTitle">KPI Time Console</b><span>Policy Set &amp; KPI Evidence</span></div>
+      <button class="control" id="reportsCloseConsole" type="button">Close</button>
+    </div>
+    <div class="reports-console-body">
+      <section class="reports-console-section reports-policy-section">
+        <div class="reports-console-section-head"><b>Policy Set</b><span>Company / Site KPI configuration</span></div>
+
+        <div class="reports-console-subhead"><b>Work Time Baseline</b><span>Versioned work timeline</span></div>
+        <select id="reportsTimeBaseline" class="control">
+          <option value="TB-PROJECT-DAY-0600-1800">TB-PROJECT-DAY-0600-1800 · 06:00–18:00 · break 12:00–13:00</option>
+          <option value="TB-PROJECT-DAY-0700-1800">TB-PROJECT-DAY-0700-1800 · 07:00–18:00 · break 12:00–13:00*</option>
+        </select>
+        <div id="reportsTimeBaselineState" class="reports-console-status">PROJECT_DEFAULT</div>
+        <div class="reports-console-hint">* Alternate work timeline; break is carried from the current project baseline until a site-specific override is recorded.</div>
+
+        <div class="reports-console-subhead"><b>EU Denominator</b><span>Policy choice</span></div>
+        <select id="reportsEUDenominator" class="control">
+          <option value="AVAILABLE">Available Time</option>
+          <option value="SCHEDULED">Scheduled Time</option>
+        </select>
+
+        <div class="reports-console-subhead"><b>Effective Time Rule</b><span>Numerator definition</span></div>
+        <select id="reportsEffectiveTimeRule" class="control">
+          <option value="PURE_EFFECTIVE">Pure Effective / Net Operating</option>
+          <option value="STANDARD_CYCLE">Standard Cycle Operating</option>
+        </select>
+
+        <div class="reports-console-subhead"><b>Active Policy</b><span>Applied runtime configuration</span></div>
+        <div id="reportsActivePolicy" class="reports-console-policy-value">Loading…</div>
+      </section>
+
+      <section class="reports-console-section">
+        <div class="reports-console-section-head"><b>Timeline Work</b><span>Evidence</span></div>
+        <div class="reports-console-subhead"><b>Equipment</b><span>Timeline scope</span></div>
+        <select id="reportsConsoleEquipment" class="control"></select>
+        <div id="reportsTimelineEvidence" class="reports-timeline-evidence"></div>
+      </section>
+
+      <section class="reports-console-section">
+        <div class="reports-console-section-head"><b>Downtime Evidence</b><span>Maintenance</span></div>
+        <div id="reportsDowntimeSummary" class="reports-console-value">Loading…</div>
+      </section>
+
+      <section class="reports-console-section">
+        <div class="reports-console-section-head"><b>EU Evidence</b><span>Effective Time / selected denominator</span></div>
+        <div id="reportsEUEvidence" class="reports-console-value">Loading…</div>
+      </section>
+    </div>
+
+    <div class="reports-console-foot">
+      <button class="control" id="reportsCancelConsole" type="button">Cancel</button>
+      <button class="control primary" id="reportsApplyConsole" type="button">Apply Policy Set</button>
+    </div>
+  </div>
+</div>
+<div id="reportsHistoryModal" class="reports-history-modal" aria-hidden="true"><div class="reports-history-dialog" role="dialog" aria-modal="true" aria-labelledby="reportsHistoryTitle"><div class="reports-history-head"><div><b id="reportsHistoryTitle">Finalized KPI History</b><span>Revision / scope</span></div><button class="control" id="reportsCloseHistory" type="button">Close</button></div><div id="kpiSnapshotHistory" class="reports-history-body"></div></div></div>
 
       </section>
     </section>

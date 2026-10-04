@@ -7,7 +7,11 @@ if(!rc)throw new Error('LithositeRuntimeClient is required before reports.js');
 if(!foundation)throw new Error('LithositeKPIFoundation is required before reports.js');
 
 const entities=['Operations','Equipment','WorkFront','Maintenance','Issues','Plans','HSE'];
-const state={data:{},status:'loading',kpi:null,snapshots:[],date:null};
+const TIME_BASELINES=foundation.TIME_BASELINES||Object.freeze([foundation.DEFAULT_BASELINE]);
+const EU_DENOMINATOR_OPTIONS=Object.freeze({AVAILABLE:'Available Time',SCHEDULED:'Scheduled Time'});
+const EFFECTIVE_RULE_OPTIONS=Object.freeze({PURE_EFFECTIVE:'Pure Effective / Net Operating',STANDARD_CYCLE:'Standard Cycle Operating'});
+const DEFAULT_POLICY=Object.freeze({baseline:TIME_BASELINES[0],euDenominator:'AVAILABLE',effectiveTimeRule:'PURE_EFFECTIVE'});
+const state={data:{},status:'loading',kpi:null,snapshots:[],date:null,baseline:DEFAULT_POLICY.baseline,policy:DEFAULT_POLICY};
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const rows=name=>Array.isArray(state.data[name])?state.data[name]:[];
 
@@ -37,8 +41,9 @@ function renderKpi(){
   set('reportsFleetPA',fmtPct(pa&&pa.value,pa&&pa.status));
   set('reportsFleetUA',fmtPct(ua&&ua.value,ua&&ua.status));set('reportsFleetEU',fmtPct(eu&&eu.value,eu&&eu.status));
   set('reportsFleetStatus',k?String(k.status):'—');set('reportsEligible',k&&k.population?String(k.population.eligible):'0');set('reportsExcluded',k&&k.population?String(k.population.excluded):'0');
-  const baseline=foundation.DEFAULT_BASELINE;
-  set('reportsBaseline',baseline.baseline_id+' · '+baseline.shift_start+'–'+baseline.shift_end+' · break '+baseline.breaks.map(b=>b.start+'–'+b.end).join(', '));
+  const baseline=state.baseline||foundation.DEFAULT_BASELINE;
+  set('reportsBaseline',baseline.baseline_id+' · '+baseline.shift_start+'–'+baseline.shift_end+' · break '+baseline.breaks.map(b=>b.start+'–'+b.end).join(', '));set('reportsBaselineStatus',baseline.status||'PROJECT_DEFAULT');
+  const euContext=document.getElementById('reportsFleetEUContext');if(euContext){const p=state.policy||DEFAULT_POLICY;euContext.textContent='Effective / '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator);}
 
   const host=document.getElementById('equipmentKpiRows');if(!host)return;
   if(!k){host.innerHTML='<div class="kpi-empty">KPI calculation unavailable.</div>';return;}
@@ -61,7 +66,7 @@ function renderKpi(){
 
 async function calculate(){
   state.date=(document.getElementById('reportsKpiDate')?.value||state.date||latestOperationalDate()).slice(0,10);
-  state.kpi=foundation.calculateFleet({date:state.date,baseline:foundation.DEFAULT_BASELINE,equipment:rows('Equipment'),operations:rows('Operations'),maintenance:rows('Maintenance')});
+  state.kpi=foundation.calculateFleet({date:state.date,baseline:state.baseline||foundation.DEFAULT_BASELINE,policy:state.policy||DEFAULT_POLICY,equipment:rows('Equipment'),operations:rows('Operations'),maintenance:rows('Maintenance')});
   renderKpi();
   try{state.snapshots=await foundation.listSnapshots('FLEET:ALL',state.date);renderSnapshotHistory();}catch(error){state.snapshots=[];renderSnapshotHistory();msg('KPI calculated; snapshot history unavailable: '+error.message,true);}
 }
@@ -73,6 +78,93 @@ function renderSnapshotHistory(){
   const sorted=snapshots.slice().sort((a,b)=>Number(a.revision||0)-Number(b.revision||0));
   const current=sorted[sorted.length-1];
   host.innerHTML=sorted.map(s=>'<div class="kpi-history-row"><span>Revision '+esc(s.revision)+(String(s.snapshot_id||'')===String(current.snapshot_id||'')?' CURRENT':'')+'</span><b>'+fmtPct(s.result&&s.result.PA&&s.result.PA.value)+'</b><b>'+fmtPct(s.result&&s.result.UA&&s.result.UA.value)+'</b><b>'+fmtPct(s.result&&s.result.EU&&s.result.EU.value)+'</b><span>'+esc(s.finalized_at||s.created_at||'')+'</span><span>'+esc(s.status||'FINAL')+'</span></div>').join('');
+}
+
+function renderConsolePolicy(){
+  const p=state.policy||DEFAULT_POLICY;
+  const baselineSelect=document.getElementById('reportsTimeBaseline');
+  const euSelect=document.getElementById('reportsEUDenominator');
+  const effectiveSelect=document.getElementById('reportsEffectiveTimeRule');
+  const stateHost=document.getElementById('reportsTimeBaselineState');
+  const active=document.getElementById('reportsActivePolicy');
+  if(baselineSelect)baselineSelect.value=p.baseline.baseline_id;
+  if(euSelect)euSelect.value=p.euDenominator;
+  if(effectiveSelect)effectiveSelect.value=p.effectiveTimeRule;
+  if(stateHost)stateHost.textContent=p.baseline.status||'PROJECT_DEFAULT';
+  if(active)active.textContent=p.baseline.baseline_id+' · '+p.baseline.shift_start+'–'+p.baseline.shift_end+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
+}
+
+function renderConsoleEquipment(){
+  const select=document.getElementById('reportsConsoleEquipment');
+  if(!select)return;
+  const items=Array.isArray(state.kpi?.equipment)?state.kpi.equipment:[];
+  select.innerHTML=items.map(item=>{
+    const id=String(item.equipmentId||'');
+    return '<option value="'+esc(id)+'">'+esc(id)+'</option>';
+  }).join('');
+  if(items.length)renderConsoleTimeline(items[0].equipmentId);
+}
+
+function renderConsoleTimeline(equipmentId){
+  const host=document.getElementById('reportsTimelineEvidence');
+  if(!host)return;
+  const items=Array.isArray(state.kpi?.equipment)?state.kpi.equipment:[];
+  const result=items.find(item=>String(item.equipmentId)===String(equipmentId));
+  if(!result){
+    host.innerHTML='<div class="kpi-history-empty">No equipment timeline available.</div>';
+    return;
+  }
+  const t=result.timeline||{};
+  const events=Array.isArray(t.events)?t.events:[];
+  const issues=Array.isArray(t.issues)?t.issues:[];
+  let html='';
+  if(events.length){
+    html=events.map(ev=>{
+      const s=new Date(ev.start_time),e=new Date(ev.end_time);
+      const st=Number.isNaN(s.getTime())?'—':s.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      const et=Number.isNaN(e.getTime())?'—':e.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+      const label=ev.activity||ev.event_type||ev.source_entity||'Event';
+      const stateText=String(ev.availability||'—')+' / '+String(ev.usage||'—');
+      const source=String(ev.source_entity||'')+(ev.source_id?':'+String(ev.source_id):'');
+      return '<div class="reports-timeline-row"><b>'+esc(st)+'–'+esc(et)+'</b><span>'+esc(label)+'</span><span>'+esc(stateText)+'</span><span>'+esc(ev.boundary_type||'—')+' · '+esc(ev.validation_status||'—')+'</span><span>'+esc(source)+'</span></div>';
+    }).join('');
+  }else{
+    html='<div class="kpi-history-empty">No event evidence for this equipment.</div>';
+  }
+  if(issues.length){
+    html+=issues.map(issue=>'<div class="reports-timeline-issue">'+esc(String(issue.code||'TIMELINE_ISSUE'))+'</div>').join('');
+  }
+  host.innerHTML=html;
+}
+
+function renderTimeConsole(){
+  const p=state.policy||DEFAULT_POLICY;
+  const b=p.baseline||foundation.DEFAULT_BASELINE;
+  const status=document.getElementById('reportsBaselineStatus');
+  if(status)status.textContent=b.status||'PROJECT_DEFAULT';
+  renderConsolePolicy();
+
+  const downtime=rows('Maintenance').filter(r=>String(r.event_date||'').slice(0,10)===String(state.date||'').slice(0,10)&&['breakdown','corrective'].includes(String(r.event_type||'').toLowerCase())&&String(r.status||'').toLowerCase()!=='cancelled');
+  const dh=downtime.reduce((sum,r)=>{
+    if(!r.start_time||!r.end_time)return sum;
+    const a=new Date(String(r.event_date)+'T'+String(r.start_time).slice(0,5)+':00');
+    let e=new Date(String(r.event_date)+'T'+String(r.end_time).slice(0,5)+':00');
+    if(Number.isNaN(a.getTime())||Number.isNaN(e.getTime()))return sum;
+    if(e<=a)e=new Date(e.getTime()+86400000);
+    return sum+(e-a)/3600000;
+  },0);
+  const dhost=document.getElementById('reportsDowntimeSummary');
+  if(dhost)dhost.textContent=downtime.length+' downtime evidence record(s) · '+dh.toFixed(2)+' h · classified NOT_AVAILABLE';
+
+  const eu=state.kpi&&state.kpi.results?state.kpi.results.EU:null;
+  const ehost=document.getElementById('reportsEUEvidence');
+  if(ehost){
+    ehost.textContent=(eu?String(eu.status||'NEEDS_VALIDATION'):'KPI evidence unavailable')
+      +' · denominator '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)
+      +' · numerator Effective Time'
+      +' · rule '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
+  }
+  renderConsoleEquipment();
 }
 
 async function finalizeCurrent(){
@@ -95,7 +187,7 @@ async function load(){
     entities.forEach((e,i)=>state.data[e]=Array.isArray(result[i].data)?result[i].data:[]);
     if(!state.date)state.date=latestOperationalDate();
     setDateControl();renderCounts();await calculate();state.status='ready';
-    msg('RuntimeAdapter connected — KPI Foundation E2E active. Baseline is PROJECT_DEFAULT, not an official site SOP.');
+    msg('RuntimeAdapter connected — KPI Foundation E2E active. Policy Set is project-configurable and is not an official site SOP.');
   }catch(error){state.status='error';renderCounts();const meta=document.getElementById('reportsCount');if(meta)meta.textContent='Unavailable · Runtime Error';msg('Reports/KPI unavailable: '+error.message,true);}
 }
 function filteredCount(){
@@ -109,6 +201,60 @@ function bind(){
   const clear=document.getElementById('reportsClear');if(clear)clear.onclick=()=>{document.getElementById('reportsSearch').value='';renderCounts();};
   const search=document.getElementById('reportsSearch');if(search)search.addEventListener('input',filteredCount);
   const date=document.getElementById('reportsKpiDate');if(date)date.addEventListener('change',calculate);
+  const consoleModal=document.getElementById('reportsConsoleModal');
+  const openConsole=document.getElementById('reportsConsole');
+  const closeConsole=document.getElementById('reportsCloseConsole');
+  const cancelConsole=document.getElementById('reportsCancelConsole');
+  const baselineSelect=document.getElementById('reportsTimeBaseline');
+  const euDenominatorSelect=document.getElementById('reportsEUDenominator');
+  const effectiveRuleSelect=document.getElementById('reportsEffectiveTimeRule');
+  const consoleEquipment=document.getElementById('reportsConsoleEquipment');
+
+  const showConsole=()=>{
+    if(!consoleModal)return;
+    renderConsolePolicy();
+    renderTimeConsole();
+    consoleModal.classList.add('open');
+    consoleModal.setAttribute('aria-hidden','false');
+  };
+  const hideConsole=()=>{
+    if(!consoleModal)return;
+    consoleModal.classList.remove('open');
+    consoleModal.setAttribute('aria-hidden','true');
+  };
+  const applyConsole=async()=>{
+    const baselineId=baselineSelect?.value||DEFAULT_POLICY.baseline.baseline_id;
+    const euDenominator=euDenominatorSelect?.value||DEFAULT_POLICY.euDenominator;
+    const effectiveTimeRule=effectiveRuleSelect?.value||DEFAULT_POLICY.effectiveTimeRule;
+    const baseline=TIME_BASELINES.find(item=>item.baseline_id===baselineId)||DEFAULT_POLICY.baseline;
+    state.policy=Object.freeze({
+      baseline,
+      euDenominator:euDenominator==='SCHEDULED'?'SCHEDULED':'AVAILABLE',
+      effectiveTimeRule:effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE'
+    });
+    state.baseline=state.policy.baseline;
+    hideConsole();
+    await calculate();
+    renderTimeConsole();
+    renderKpi();
+  };
+  const syncConsolePreview=()=>{
+    const p={baseline:TIME_BASELINES.find(item=>item.baseline_id===baselineSelect?.value)||DEFAULT_POLICY.baseline,euDenominator:euDenominatorSelect?.value||DEFAULT_POLICY.euDenominator,effectiveTimeRule:effectiveRuleSelect?.value||DEFAULT_POLICY.effectiveTimeRule};
+    const stateEl=document.getElementById('reportsTimeBaselineState');
+    const active=document.getElementById('reportsActivePolicy');
+    if(stateEl)stateEl.textContent=p.baseline.status||'PROJECT_DEFAULT';
+    if(active)active.textContent=p.baseline.baseline_id+' · '+p.baseline.shift_start+'–'+p.baseline.shift_end+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
+  };
+  if(baselineSelect)baselineSelect.onchange=syncConsolePreview;
+  if(euDenominatorSelect)euDenominatorSelect.onchange=syncConsolePreview;
+  if(effectiveRuleSelect)effectiveRuleSelect.onchange=syncConsolePreview;
+  if(consoleEquipment)consoleEquipment.addEventListener('change',e=>renderConsoleTimeline(e.target.value));
+  if(openConsole)openConsole.onclick=showConsole;
+  if(closeConsole)closeConsole.onclick=hideConsole;
+  if(cancelConsole)cancelConsole.onclick=hideConsole;
+  if(consoleModal)consoleModal.onclick=e=>{if(e.target===consoleModal)hideConsole();};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&consoleModal&&consoleModal.classList.contains('open'))hideConsole();});
+
   const historyModal=document.getElementById('reportsHistoryModal');
   const openHistory=document.getElementById('reportsOpenHistory');
   const closeHistory=document.getElementById('reportsCloseHistory');
