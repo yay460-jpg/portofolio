@@ -184,3 +184,7 @@ footer.status{
   #reportsScreen .reports-console-dialog{width:calc(100vw - 28px);max-height:calc(100vh - 28px)}
   #reportsScreen .reports-timeline-row{grid-template-columns:1fr}
 }
+/* V36 Reports — interactive controls show pointer cursor */
+#reportsScreen #reportsRefresh,
+#reportsScreen #reportsOpenHistory,
+#reportsScreen #reportsConsole{cursor:pointer}
