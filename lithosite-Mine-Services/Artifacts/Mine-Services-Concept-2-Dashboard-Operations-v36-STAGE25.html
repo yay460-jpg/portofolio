@@ -255,16 +255,6 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
       <button class="control" id="reportsClear">Clear</button>
     </section>
 
-    <section class="report-kpis">
-      <div class="report-card"><small>Operations</small><b id="reportKpiOperations">0</b></div>
-      <div class="report-card"><small>Equipment</small><b id="reportKpiEquipment">0</b></div>
-      <div class="report-card"><small>Work Front</small><b id="reportKpiWorkfront">0</b></div>
-      <div class="report-card"><small>Maintenance</small><b id="reportKpiMaintenance">0</b></div>
-      <div class="report-card"><small>Issues</small><b id="reportKpiIssues">0</b></div>
-      <div class="report-card"><small>Plans</small><b id="reportKpiPlans">0</b></div>
-      <div class="report-card"><small>HSE</small><b id="reportKpiHse">0</b></div>
-    </section>
-
     <section class="report-body">
       <section class="report-panel report-operational-panel">
         <div class="report-panelhead">
@@ -272,6 +262,7 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
           <span id="reportsCount">Loading</span>
         </div>
         <div id="reportsSummary" class="report-summary"></div>
+        <div class="report-scope-compact"><b>&#8505; Report Scope</b><span>Read-only reporting · RuntimeAdapter source · No direct XLSX/domain mutation</span></div>
       </section>
 
       <section class="report-panel kpi-panel">
@@ -280,6 +271,7 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
             <label for="reportsKpiDate">KPI Date</label>
             <input id="reportsKpiDate" type="date">
             <button class="control" id="reportsFinalizeKpi">Finalize Current</button>
+            <button class="control" id="reportsOpenHistory" type="button">Finalized History</button>
           </div>
           <span id="reportsBaseline" class="kpi-baseline">Baseline loading…</span>
         </div>
@@ -300,16 +292,8 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
 
         <div id="equipmentKpiRows" class="equipment-kpi-list"></div>
         <div id="kpiExclusions" class="kpi-exclusions"></div>
+        <div id="reportsHistoryModal" class="reports-history-modal" aria-hidden="true"><div class="reports-history-dialog" role="dialog" aria-modal="true" aria-labelledby="reportsHistoryTitle"><div class="reports-history-head"><div><b id="reportsHistoryTitle">Finalized KPI History</b><span>Revision / scope</span></div><button class="control" id="reportsCloseHistory" type="button">Close</button></div><div id="kpiSnapshotHistory" class="reports-history-body"></div></div></div>
 
-        <div class="kpi-history">
-          <div class="report-panelhead"><span>Finalized KPI History</span><span>Revision / scope</span></div>
-          <div id="kpiSnapshotHistory"></div>
-        </div>
-
-        <div class="report-note report-scope-note">
-          Stage 23 reads existing RuntimeAdapter data and builds a validated calculation timeline. Raw XLSX records are not changed by the KPI layer. The prototype Time Baseline is explicitly marked PROJECT_DEFAULT and is not an official site/company SOP.
-          <div id="reportsRuntimeMsg" class="report-runtime">Connecting…</div>
-        </div>
       </section>
     </section>
   </section>

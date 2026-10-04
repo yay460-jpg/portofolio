@@ -1,10 +1,6 @@
 /* Stage 18 — Reports module stylesheet */
 #reportsScreen{position:relative;flex:1 1 auto;display:flex;flex-direction:column;width:100%;min-width:0;min-height:0}
 #reportsScreen .boundary{height:auto;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-#reportsScreen .report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
-#reportsScreen .report-card{background:#101f31;border:1px solid #28425c;border-radius:9px;padding:11px}
-#reportsScreen .report-card small{display:block;color:#8fa5bb;font-size:8.5px;text-transform:uppercase;font-weight:700}
-#reportsScreen .report-card b{display:block;font-size:22px;margin-top:4px}
 #reportsScreen .report-body{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;min-height:0}
 #reportsScreen .report-panel{background:#101f31;border:1px solid #28425c;border-radius:9px;overflow:hidden;display:flex;flex-direction:column}
 #reportsScreen .report-panelhead{height:40px;padding:0 12px;border-bottom:1px solid #263e57;display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:800}
@@ -26,14 +22,10 @@
 #reportsScreen .filters .field input{box-sizing:border-box;width:100%;height:32px;padding:0 10px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;font:inherit;font-size:10px;outline:none}
 #reportsScreen .filters .field input:focus{border-color:#4d8dff}
 #reportsScreen .filters .control{height:32px}
-#reportsScreen .report-kpis{grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-bottom:8px}
-#reportsScreen .report-card{min-width:0}
 #reportsScreen .report-body{grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);gap:8px}
 #reportsScreen .report-summary{overflow:hidden;padding:8px}
 #reportsScreen .report-row{min-height:31px;grid-template-columns:125px 62px minmax(0,1fr);gap:6px}
-@media(max-width:1500px){#reportsScreen .report-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media(max-width:1400px){#reportsScreen .report-kpis{grid-template-columns:repeat(4,1fr)}}
-@media(max-width:900px){#reportsScreen .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#reportsScreen .report-body{grid-template-columns:1fr}}
+@media(max-width:900px){#reportsScreen .report-body{grid-template-columns:1fr}}
 
 
 /* V34 Reports & KPI — equipment KPI presentation only; calculation remains downstream of validated Event & Time History */
@@ -44,7 +36,6 @@
 #reportsScreen .equipment-kpi-row small{display:block;margin-top:3px;color:#8fa5bb;font-size:8.5px;line-height:1.35}
 #reportsScreen .equipment-kpi-formula{font-size:9px;color:#dce8f5;font-weight:700;text-align:center;padding:7px 8px;border:1px solid #29435d;border-radius:7px;background:#101f31}
 #reportsScreen .equipment-kpi-state{font-size:8.5px;color:#8fa5bb;text-align:right}
-#reportsScreen .report-scope-note{padding:10px 12px 12px;font-size:9px}
 @media(max-width:1400px){#reportsScreen .equipment-kpi-row{grid-template-columns:minmax(0,1.15fr) minmax(115px,.8fr) minmax(135px,.85fr);gap:8px}}
 @media(max-width:900px){#reportsScreen .equipment-kpi-row{grid-template-columns:1fr}.equipment-kpi-formula,.equipment-kpi-state{text-align:left}}
 
@@ -93,10 +84,12 @@
 #reportsScreen .boundary{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #reportsScreen .head{flex:0 0 42px}
 #reportsScreen .filters{flex:0 0 auto}
-#reportsScreen .report-kpis{flex:0 0 auto}
 #reportsScreen .report-body{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);gap:8px;flex:1 1 auto;min-height:0;overflow:hidden}
 #reportsScreen .report-body>.report-panel{min-height:0;overflow:hidden}
 #reportsScreen .report-operational-panel .report-summary{flex:1 1 auto;min-height:0;overflow:auto}
+#reportsScreen .report-scope-compact{flex:0 0 auto;margin:0 8px 8px;padding:7px 9px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#8fa5bb;font-size:7.5px;line-height:1.35;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden}
+#reportsScreen .report-scope-compact b{flex:0 0 auto;color:#dce8f5;font-size:8px}
+#reportsScreen .report-scope-compact span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 #reportsScreen .kpi-panel{display:flex;flex-direction:column;min-height:0;overflow:hidden}
 #reportsScreen .kpi-toolbar{flex:0 0 auto;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 #reportsScreen .kpi-toolbar-group{display:flex;align-items:center;gap:8px;min-width:0}
@@ -119,8 +112,6 @@
 #reportsScreen .kpi-history{flex:0 0 58px;min-height:0;padding:6px 8px;overflow:hidden}
 #reportsScreen .kpi-history .report-panelhead{height:22px;font-size:8.5px}
 #reportsScreen .kpi-history-row{padding:3px 0;font-size:7px}
-#reportsScreen .report-scope-note{flex:0 0 auto;max-height:54px;overflow:hidden;padding:6px 9px;font-size:7.5px;line-height:1.35}
-#reportsScreen .report-scope-note .report-runtime{padding:5px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 footer.status{z-index:30;box-sizing:border-box;white-space:nowrap;overflow:hidden}
 @media(max-width:1200px){#reportsScreen .kpi-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){#reportsScreen .report-body{grid-template-columns:1fr;overflow:auto}#reportsScreen .report-body>.report-panel{min-height:260px}}
@@ -144,3 +135,13 @@ footer.status{z-index:30;box-sizing:border-box;white-space:nowrap;overflow:hidde
 footer.status{
   bottom:0;
 }
+
+#reportsScreen .reports-history-modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(3,10,18,.72);align-items:center;justify-content:center;padding:24px}
+#reportsScreen .reports-history-modal.open{display:flex}
+#reportsScreen .reports-history-dialog{width:min(760px,calc(100vw - 48px));max-height:min(620px,calc(100vh - 48px));background:#101f31;border:1px solid #29435d;border-radius:10px;box-shadow:0 18px 50px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden}
+#reportsScreen .reports-history-head{flex:0 0 48px;padding:0 12px;border-bottom:1px solid #263e57;display:flex;align-items:center;justify-content:space-between}
+#reportsScreen .reports-history-head>div{display:flex;align-items:baseline;gap:10px}
+#reportsScreen .reports-history-head b{font-size:11px;color:#dce8f5}
+#reportsScreen .reports-history-head span{font-size:8px;color:#8fa5bb}
+#reportsScreen .reports-history-body{flex:1 1 auto;min-height:0;overflow:auto;padding:8px 12px}
+#reportsScreen .reports-history-body .kpi-history-empty{padding:18px 6px}

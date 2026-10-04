@@ -109,6 +109,15 @@ function bind(){
   const clear=document.getElementById('reportsClear');if(clear)clear.onclick=()=>{document.getElementById('reportsSearch').value='';renderCounts();};
   const search=document.getElementById('reportsSearch');if(search)search.addEventListener('input',filteredCount);
   const date=document.getElementById('reportsKpiDate');if(date)date.addEventListener('change',calculate);
+  const historyModal=document.getElementById('reportsHistoryModal');
+  const openHistory=document.getElementById('reportsOpenHistory');
+  const closeHistory=document.getElementById('reportsCloseHistory');
+  const showHistory=()=>{if(historyModal){historyModal.classList.add('open');historyModal.setAttribute('aria-hidden','false');renderSnapshotHistory();}};
+  const hideHistory=()=>{if(historyModal){historyModal.classList.remove('open');historyModal.setAttribute('aria-hidden','true');}};
+  if(openHistory)openHistory.onclick=showHistory;
+  if(closeHistory)closeHistory.onclick=hideHistory;
+  if(historyModal)historyModal.onclick=e=>{if(e.target===historyModal)hideHistory();};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&historyModal&&historyModal.classList.contains('open'))hideHistory();});
   const finalize=document.getElementById('reportsFinalizeKpi');if(finalize)finalize.onclick=finalizeCurrent;
 }
 if(global.LithositeDataSync)global.LithositeDataSync.register('Reports',load);
