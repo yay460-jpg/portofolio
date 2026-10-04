@@ -125,8 +125,7 @@
 
     /*
      * EU calculation is locked to Effective Time / Available Time.
-     * The official denominator/definition must be supplied by the
-     * applicable company/site SOP before implementation is locked.
+     * This prototype locks the EU definition to Effective Time / Available Time.
      */
     EU: {
       id: 'EU-EFFECTIVE-OVER-AVAILABLE',
