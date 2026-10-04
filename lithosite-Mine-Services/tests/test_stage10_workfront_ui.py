@@ -1,7 +1,7 @@
 ﻿from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v33-STAGE21.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v35-STAGE24.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 WORKFRONT_JS = (ROOT / "ui" / "modules" / "workfront" / "workfront.js").read_text(encoding="utf-8")
 SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v31.js").read_text(encoding="utf-8")
