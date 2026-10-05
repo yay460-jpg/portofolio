@@ -171,6 +171,9 @@ footer.status{
 #reportsScreen .reports-console-subhead b{font-size:8.5px;color:#dce8f5}
 #reportsScreen .reports-console-subhead span{font-size:7px;color:#7f95ab}
 #reportsScreen .reports-console-status{margin-top:5px;color:#7fb5f2;font-size:7.5px;font-weight:800}
+#reportsScreen .reports-console-selection{display:flex;align-items:center;gap:7px;min-width:0}
+#reportsScreen .reports-console-selection select{flex:1 1 auto;min-width:0}
+#reportsScreen .reports-console-selection .reports-console-status{flex:0 0 auto;margin-top:0;padding:4px 7px;border-left:2px solid #4d8dff;border-radius:0 5px 5px 0;background:#102944;color:#7fb5f2;white-space:nowrap}
 #reportsScreen .reports-console-hint{margin-top:4px;font-size:6.8px;line-height:1.35;color:#7f95ab}
 #reportsScreen .reports-console-policy-value{padding:7px 8px;border:1px solid #315b87;border-radius:6px;background:#102944;color:#dce8f5;font-size:7.5px;line-height:1.35}
 #reportsScreen .reports-console-foot{display:flex;justify-content:flex-end;gap:7px;padding:8px 12px;border-top:1px solid #263e57;background:#0e1d2d}
