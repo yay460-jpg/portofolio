@@ -19,6 +19,7 @@ def test_stage8_operations_ui_contract_markers():
         'operations.js',
         "does not write directly to the database",
         'id="f_unit"',
+        'Unit / Fleet No.',
     ]
 
     required_ops = [
@@ -70,3 +71,12 @@ def test_stage8_operations_uses_controlled_domain_and_unit_lists():
     assert '<select id="f_unit">' in ui_text
     assert "dataState.lists.service_domain" in ops_text
     assert "dataState.lists.unit" in ops_text
+
+
+def test_stage8_operations_renders_equipment_unit_fleet_reference():
+    ui_text = UI.read_text(encoding="utf-8")
+    ops_text = OPS_JS.read_text(encoding="utf-8")
+
+    assert '<div class="cell">Unit / Fleet No.</div>' in ui_text
+    assert "const unitFleetNo = equipment ? equipment.unit_no : '';" in ops_text
+    assert "esc(unitFleetNo)" in ops_text
