@@ -84,6 +84,17 @@
 #modal.modalback{position:fixed;inset:0;background:#02081299;display:none;align-items:center;justify-content:center;z-index:20}
 #modal.modalback.show{display:flex}
 #modal .modal{width:620px;background:#101f31;border:1px solid #31506d;border-radius:12px;box-shadow:0 20px 70px #0009}
+#modal.modal-fade-in .modal,#timelineModal.modal-fade-in .modal{animation:opsModalFadeIn .16s ease both}
+#modal.modal-fade-out .modal,#timelineModal.modal-fade-out .modal{animation:opsModalFadeOut .14s ease both}
+#modal.modal-fade-out,#timelineModal.modal-fade-out{pointer-events:none}
+@keyframes opsModalFadeIn{
+  from{opacity:0;transform:translateY(4px) scale(.985)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes opsModalFadeOut{
+  from{opacity:1;transform:translateY(0) scale(1)}
+  to{opacity:0;transform:translateY(4px) scale(.985)}
+}
 #modal .modalhead{height:48px;padding:0 16px;border-bottom:1px solid #29435d;display:flex;align-items:center;justify-content:space-between}
 #modal .modalhead .ptitle{font-weight:700}
 #modal .modalbody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
