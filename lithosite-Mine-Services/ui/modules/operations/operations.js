@@ -140,6 +140,10 @@
     const output = rows.map(function (row) {
       const cls = String(row.status || '').toLowerCase().replace(/[^a-z]/g, '') || 'draft';
       const id = esc(row.transaction_id);
+      const equipment = dataState.equipment.find(function (item) {
+        return String(item.equipment_id || '') === String(row.equipment_id || '');
+      });
+      const unitFleetNo = equipment ? equipment.unit_no : '';
 
       return '<div class="tr td">' +
         '<div class="cell">' + esc(row.transaction_date) + '</div>' +
@@ -147,6 +151,7 @@
         '<div class="cell">' + esc(row.domain) + '</div>' +
         '<div class="cell">' + esc(row.work_front_id) + '</div>' +
         '<div class="cell">' + esc(row.equipment_id) + '</div>' +
+        '<div class="cell">' + esc(unitFleetNo) + '</div>' +
         '<div class="cell">' + esc(row.activity) + '</div>' +
         '<div class="cell">' + esc(row.quantity) + '</div>' +
         '<div class="cell">' + esc(row.unit) + '</div>' +
