@@ -474,6 +474,7 @@
     document.getElementById('timelineRows').addEventListener('click', function (event) {
       const edit = event.target.closest('.edit-timeline-row');
       if (edit) {
+        document.getElementById('timelineModal').classList.remove('show');
         openEdit(edit.dataset.id);
         return;
       }
