@@ -268,8 +268,14 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
       <section class="report-panel kpi-panel">
         <div class="kpi-toolbar">
           <div class="kpi-toolbar-group">
+            <label for="reportsKpiScope">KPI View</label>
+            <select id="reportsKpiScope" class="control">
+              <option value="ALL_DATES">All Dates / Global</option>
+              <option value="DATE">Specific Date</option>
+            </select>
             <label for="reportsKpiDate">KPI Date</label>
-            <input id="reportsKpiDate" type="date">
+            <input id="reportsKpiDate" type="date" hidden>
+            <span id="reportsKpiScopeLabel" class="kpi-scope-label">All Dates / Global · validated data</span>
             <button class="control" id="reportsFinalizeKpi">Finalize Current</button>
             <button class="control" id="reportsOpenHistory" type="button">Finalized History</button>
           </div>
