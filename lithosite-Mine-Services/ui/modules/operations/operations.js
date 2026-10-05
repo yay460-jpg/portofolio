@@ -153,9 +153,9 @@
         '<div class="cell">' + esc(row.equipment_id) + '</div>' +
         '<div class="cell">' + esc(unitFleetNo) + '</div>' +
         '<div class="cell">' + esc(row.activity) + '</div>' +
+        '<div class="cell">' + esc(row.actual_hours) + '</div>' +
         '<div class="cell">' + esc(row.quantity) + '</div>' +
         '<div class="cell">' + esc(row.unit) + '</div>' +
-        '<div class="cell">' + esc(row.actual_hours) + '</div>' +
         '<div class="cell">' + esc(row.target_hours) + '</div>' +
         '<div class="cell"><span class="statuspill ' + cls + '">' + esc(row.status) + '</span></div>' +
         '<div class="cell muted">' + esc(row.source) + '</div>' +
