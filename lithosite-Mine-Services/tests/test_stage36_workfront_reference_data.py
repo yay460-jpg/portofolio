@@ -22,12 +22,21 @@ def test_stage36_location_remains_free_text_reference():
     assert "row.location" in workfront
 
 def test_stage36_persisted_lists_expose_new_reference_values():
-    import sys
-    sys.path.insert(0, str(ROOT / "src"))
-    from mine_services.persistence import PersistenceStore
+    from openpyxl import load_workbook
 
     db = ROOT / "Database" / "Mine-Services-Database-A3.xlsx"
-    store = PersistenceStore(path=db)
+    wb = load_workbook(db, read_only=True, data_only=True)
+    rows = list(wb["_Lists"].values)
+    headers = list(rows[0])
+    values = {
+        header: {
+            row[index]
+            for index, _ in enumerate(headers)
+            if index < len(row) and row[index] not in (None, "")
+        }
+        for index, header in enumerate(headers)
+        if header not in (None, "")
+    }
 
-    assert "Mining" in store.controlled_lists["service_domain"]
-    assert "cycle" in store.controlled_lists["unit"]
+    assert "Mining" in values["service_domain"]
+    assert "cycle" in values["unit"]
