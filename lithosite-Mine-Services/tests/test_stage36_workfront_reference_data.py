@@ -31,7 +31,7 @@ def test_stage36_persisted_lists_expose_new_reference_values():
     values = {
         header: {
             row[index]
-            for index, _ in enumerate(headers)
+            for row in rows[1:]
             if index < len(row) and row[index] not in (None, "")
         }
         for index, header in enumerate(headers)
