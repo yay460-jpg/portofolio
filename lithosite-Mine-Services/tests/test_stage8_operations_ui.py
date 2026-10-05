@@ -81,3 +81,15 @@ def test_stage8_operations_renders_equipment_unit_fleet_reference():
     assert "const unitFleetNo = equipment ? equipment.unit_no : '';" in ops_text
     assert "esc(unitFleetNo)" in ops_text
 
+
+
+def test_stage8_operations_work_timeline_detail_contract():
+    ui_text = UI.read_text(encoding="utf-8")
+    ops_text = OPS_JS.read_text(encoding="utf-8")
+
+    assert 'id="timelineModal"' in ui_text
+    assert 'id="timelineRows"' in ui_text
+    assert "function timelineGroups(rows)" in ops_text
+    assert "function openTimeline(key)" in ops_text
+    assert "data-key=" in ops_text
+    assert "Work Timeline" in ui_text
