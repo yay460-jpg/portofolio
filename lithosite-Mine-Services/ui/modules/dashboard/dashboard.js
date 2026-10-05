@@ -11,7 +11,8 @@
     equipment: [],
     workFronts: [],
     operations: [],
-    issues: []
+    issues: [],
+    maintenance: []
   };
 
   function setText(id, value) {
@@ -145,13 +146,13 @@
         policy: policy,
         equipment: state.equipment,
         operations: state.operations,
-        maintenance: []
+        maintenance: state.maintenance
       });
       const results = calculation && calculation.results ? calculation.results : {};
       const format = function (result) {
         if (!result || result.status !== 'READY' || result.value === null || result.value === undefined) return '—';
         const value = Number(result.value);
-        return Number.isFinite(value) ? value.toFixed(0) + '%' : '—';
+        return Number.isFinite(value) ? value.toFixed(2) + '%' : '—';
       };
 
       setText('dashboardFleetPA', format(results.PA));
@@ -393,13 +394,15 @@
         runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
         runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
         runtimeClient.request({ operation: 'READ', entity: 'Operations' }),
-        runtimeClient.request({ operation: 'READ', entity: 'Issues' })
+        runtimeClient.request({ operation: 'READ', entity: 'Issues' }),
+        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' })
       ]);
 
       state.equipment = Array.isArray(results[0].data) ? results[0].data : [];
       state.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
       state.operations = Array.isArray(results[2].data) ? results[2].data : [];
       state.issues = Array.isArray(results[3].data) ? results[3].data : [];
+      state.maintenance = Array.isArray(results[4].data) ? results[4].data : [];
 
       render();
     } catch (error) {
