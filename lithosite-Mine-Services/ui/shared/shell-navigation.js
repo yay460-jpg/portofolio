@@ -1,61 +1,132 @@
 (function (global) {
   'use strict';
 
-  // Desktop Master screen router.
-  // One workspace, two sibling screens. Visibility is owned here only.
-  function setScreen(name) {
-    const dashboard = document.getElementById('dashboardScreen');
-    const operations = document.getElementById('operationsScreen');
-    const items = document.querySelectorAll('.sidebar .nav-item');
-    const isOperations = name === 'Operations';
+  const SCREENS = Object.freeze({
+    Dashboard: 'dashboardScreen',
+    Operations: 'operationsScreen',
+    Equipment: 'equipmentScreen',
+    'Work Front': 'workfrontScreen',
+    Maintenance: 'maintenanceScreen',
+    Issues: 'issuesScreen',
+    Plans: 'plansScreen',
+    HSE: 'hseScreen',
+    Reports: 'reportsScreen'
+  });
 
-    if (dashboard) {
-      dashboard.hidden = isOperations;
-      dashboard.setAttribute('aria-hidden', String(isOperations));
+  const STORAGE_KEY = 'lithosite-active-screen';
+  let currentScreen = 'Dashboard';
+  let initialized = false;
+
+  function setScreen(name, persist) {
+    if (!SCREENS[name]) return false;
+    currentScreen = name;
+
+    if (persist !== false) {
+      try { sessionStorage.setItem(STORAGE_KEY, name); } catch (_) {}
     }
 
-    if (operations) {
-      operations.hidden = !isOperations;
-      operations.setAttribute('aria-hidden', String(!isOperations));
-    }
-
-    items.forEach(function (item) {
-      const label = item.querySelector('.nav-text')?.textContent.trim();
-      item.classList.toggle('active', label === name);
+    Object.keys(SCREENS).forEach(function (screenName) {
+      const element = document.getElementById(SCREENS[screenName]);
+      if (!element) return;
+      const active = screenName === name;
+      element.hidden = !active;
+      element.setAttribute('aria-hidden', String(!active));
+      element.classList.toggle('active', active);
     });
+
+    document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
+      const screen = item.getAttribute('data-screen');
+      const active = screen === name;
+      item.classList.toggle('active', active);
+      item.setAttribute('aria-current', active ? 'page' : 'false');
+    });
+
+    return true;
+  }
+
+  function validateShellContract() {
+    const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports'];
+    const missing = required.filter(function (name) {
+      return !document.getElementById(SCREENS[name]);
+    });
+
+    if (missing.length) {
+      console.error('[Lithosite Shell] Missing required screen DOM:', missing.join(', '));
+      return false;
+    }
+
+    if (!document.getElementById('side') || !document.getElementById('toggle')) {
+      console.error('[Lithosite Shell] Missing required sidebar/toggle DOM.');
+      return false;
+    }
+
+    return true;
+  }
+
+  function readInitialScreen() {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved && SCREENS[saved]) return saved;
+    } catch (_) {}
+    return 'Dashboard';
   }
 
   function init() {
+    if (initialized) return true;
+    if (!validateShellContract()) return false;
+
+    initialized = true;
+
     const side = document.getElementById('side');
     const toggle = document.getElementById('toggle');
 
     if (toggle && side) {
-      toggle.addEventListener('click', function () {
+      toggle.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
         side.classList.toggle('expanded');
       });
     }
 
-    document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
-      item.addEventListener('click', function () {
-        const label = item.querySelector('.nav-text')?.textContent.trim();
+    const nav = document.querySelector('.sidebar .nav');
+    if (nav) {
+      nav.addEventListener('click', function (event) {
+        const item = event.target.closest('.nav-item');
+        if (!item || !nav.contains(item)) return;
 
-        if (label === 'Dashboard' || label === 'Operations') {
-          setScreen(label);
+        event.preventDefault();
+        event.stopPropagation();
+
+        const screen = item.getAttribute('data-screen');
+        if (screen && SCREENS[screen]) {
+          setScreen(screen);
           return;
         }
 
+        const labelNode = item.querySelector('.nav-text');
+        const label = labelNode ? labelNode.textContent.trim() : '';
+        if (label === 'Data Manage' && global.LithositeDataManagement) {
+          global.LithositeDataManagement.open();
+          return;
+        }
         window.alert(label + ' module belum tersedia pada Desktop Master.');
       });
-    });
+    }
 
-    setScreen('Dashboard');
+    setScreen(readInitialScreen(), false);
+    return true;
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', init, { once: true });
   } else {
     init();
   }
 
-  global.LithositeShellNavigation = { init, setScreen };
+  global.LithositeShellNavigation = Object.freeze({
+    init,
+    setScreen,
+    screens: SCREENS,
+    getCurrentScreen: function () { return currentScreen; }
+  });
 })(window);
