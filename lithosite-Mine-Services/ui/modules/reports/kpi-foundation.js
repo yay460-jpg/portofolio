@@ -298,7 +298,7 @@
       }
     }
     return{
-      status:exclusions.length||!euReady?center.KPI_STATUS.NEEDS_VALIDATION:(eligible.length?center.KPI_STATUS.READY:center.KPI_STATUS.NEEDS_VALIDATION),
+      status:eligible.length&&exclusions.length?'PARTIAL_VALIDATION':(euReady&&eligible.length?center.KPI_STATUS.READY:center.KPI_STATUS.NEEDS_VALIDATION),
       date:null,
       scope:'ALL_DATES',
       dates,
