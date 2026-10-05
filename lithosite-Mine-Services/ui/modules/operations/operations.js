@@ -153,7 +153,6 @@
         '<div class="cell">' + esc(row.equipment_id) + '</div>' +
         '<div class="cell">' + esc(unitFleetNo) + '</div>' +
         '<div class="cell">' + esc(row.activity) + '</div>' +
-        '<div class="cell">' + esc(row.actual_hours) + '</div>' +
         '<div class="cell">' + esc(row.quantity) + '</div>' +
         '<div class="cell">' + esc(row.unit) + '</div>' +
         '<div class="cell">' + esc(row.target_hours) + '</div>' +
