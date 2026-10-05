@@ -107,6 +107,64 @@
     );
   }
 
+  function updateFleetKpi() {
+    const foundation = global.LithositeKPIFoundation;
+    if (!foundation || typeof foundation.calculateFleetAllDates !== 'function') {
+      setText('dashboardFleetPA', '—');
+      setText('dashboardFleetUA', '—');
+      setText('dashboardFleetEU', '—');
+      return;
+    }
+
+    const baselines = foundation.TIME_BASELINES || [];
+    const defaultBaseline = foundation.DEFAULT_BASELINE || baselines[0];
+    let policy = {
+      baseline: defaultBaseline,
+      euDenominator: 'AVAILABLE',
+      effectiveTimeRule: 'PURE_EFFECTIVE'
+    };
+
+    try {
+      const raw = global.localStorage && global.localStorage.getItem('lithosite.mine-services.v36.kpi-policy');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        const baseline = baselines.find(function (item) {
+          return item.baseline_id === saved.baselineId;
+        });
+        policy = {
+          baseline: baseline || defaultBaseline,
+          euDenominator: saved.euDenominator === 'SCHEDULED' ? 'SCHEDULED' : 'AVAILABLE',
+          effectiveTimeRule: saved.effectiveTimeRule === 'STANDARD_CYCLE' ? 'STANDARD_CYCLE' : 'PURE_EFFECTIVE'
+        };
+      }
+    } catch (_) {}
+
+    try {
+      const calculation = foundation.calculateFleetAllDates({
+        baseline: policy.baseline,
+        policy: policy,
+        equipment: state.equipment,
+        operations: state.operations,
+        maintenance: []
+      });
+      const results = calculation && calculation.results ? calculation.results : {};
+      const format = function (result) {
+        if (!result || result.status !== 'READY' || result.value === null || result.value === undefined) return '—';
+        const value = Number(result.value);
+        return Number.isFinite(value) ? value.toFixed(0) + '%' : '—';
+      };
+
+      setText('dashboardFleetPA', format(results.PA));
+      setText('dashboardFleetUA', format(results.UA));
+      setText('dashboardFleetEU', format(results.EU));
+    } catch (error) {
+      console.warn('[Dashboard] Fleet KPI calculation unavailable:', error);
+      setText('dashboardFleetPA', '—');
+      setText('dashboardFleetUA', '—');
+      setText('dashboardFleetEU', '—');
+    }
+  }
+
   function updateEquipmentStatus() {
     const equipment = state.equipment;
     const total = equipment.length;
@@ -322,6 +380,7 @@
 
   function render() {
     updateKpis();
+    updateFleetKpi();
     updateEquipmentStatus();
     updateRecentOperations();
     updateIssuesAlerts();
