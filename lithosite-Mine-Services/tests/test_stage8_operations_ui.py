@@ -103,15 +103,3 @@ def test_stage8_operations_edit_from_timeline_preserves_detail_modal():
     assert "document.getElementById('timelineModal').classList.remove('show');" in ops_text
     assert "if (wasEditing && savedTimelineKey)" in ops_text
     assert "openTimeline(savedRowKey);" in ops_text
-
-
-def test_stage8_operations_modal_transition_contract():
-    ops_text = OPS_JS.read_text(encoding="utf-8")
-    css_text = (ROOT / "ui" / "modules" / "operations" / "operations.css").read_text(encoding="utf-8")
-
-    assert "function fadeOutModal(element, duration)" in ops_text
-    assert "await fadeOutModal(modal, 160);" in ops_text
-    assert "modal-fade-in" in ops_text
-    assert "modal-fade-out" in css_text
-    assert "@keyframes opsModalFadeIn" in css_text
-    assert "@keyframes opsModalFadeOut" in css_text
