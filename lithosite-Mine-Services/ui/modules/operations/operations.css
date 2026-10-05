@@ -23,7 +23,29 @@
 #operationsScreen .controls{display:flex;gap:7px}
 #operationsScreen .control{height:34px;padding:7px 10px;border:1px solid #29435d;border-radius:8px;background:#12243a;color:#dbe8f5;font-size:10.5px;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer}
 #operationsScreen .control.primary{background:#2563eb;border-color:#3b82f6;color:#fff;font-weight:700}
-#operationsScreen .control:hover{border-color:#4d8dff}
+#operationsScreen .control:hover,
+#timelineModal .control:hover{
+  border-color:#4d8dff;
+  box-shadow:0 0 0 1px #4d8dff55,0 4px 12px #02081255;
+  transform:translateY(-1px);
+}
+#operationsScreen .control:focus-visible,
+#timelineModal .control:focus-visible{
+  outline:none;
+  border-color:#60a5fa;
+  box-shadow:0 0 0 2px #60a5fa55;
+}
+#operationsScreen .field input:hover,
+#operationsScreen .field select:hover,
+#operationsScreen .field input:focus,
+#operationsScreen .field select:focus{
+  border-color:#4d8dff;
+}
+#operationsScreen .field input:focus,
+#operationsScreen .field select:focus{
+  box-shadow:0 0 0 1px #4d8dff44;
+}
+
 #operationsScreen .icon{width:15px;height:15px;display:block;color:currentColor}
 #operationsScreen .panel{background:var(--ops-panel);border:1px solid var(--ops-line);border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
 #operationsScreen .filters{height:auto;min-height:0;flex:0 0 auto;flex-shrink:0;padding:12px;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;align-items:end}
