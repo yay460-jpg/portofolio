@@ -24,12 +24,15 @@ def test_stage8_operations_ui_contract_markers():
         "operation: 'READ', entity: 'Operations'",
         "operation: 'READ', entity: 'WorkFront'",
         "operation: 'READ', entity: 'Equipment'",
+        "operation: 'READ', entity: '_Lists'",
         "operation: 'CREATE'",
         "operation: 'UPDATE'",
         "operation: 'DELETE'",
         "openEdit",
         "removeRow",
         "RuntimeAdapter connected",
+        'id="f_unit"'
+
     ]
 
     for marker in required_ui:
@@ -58,3 +61,4 @@ def test_stage8_operations_ui_uses_schema_status_values():
     assert "Pending</option>" not in ui_text
 
 
+\n\ndef test_stage8_operations_uses_controlled_domain_and_unit_lists():\n    ui_text = UI.read_text(encoding="utf-8")\n    ops_text = OPS_JS.read_text(encoding="utf-8")\n\n    assert '<select id="f_unit">' in ui_text\n    assert "dataState.lists.service_domain" in ops_text\n    assert "dataState.lists.unit" in ops_text\n
