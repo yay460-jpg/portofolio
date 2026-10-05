@@ -7,7 +7,7 @@
   }
 
   const modal = document.getElementById('modal');
-  const dataState = { operations: [], workFronts: [], equipment: [] };
+  const dataState = { operations: [], workFronts: [], equipment: [], lists: {} };
 
   let editId = null;
   let runtimeReady = false;
@@ -55,9 +55,9 @@
       'All equipment'
     );
 
-    const domains = Array.from(new Set(
-      dataState.workFronts.map(function (x) { return x.domain; }).filter(Boolean)
-    )).sort();
+    const domains = Array.isArray(dataState.lists.service_domain)
+      ? dataState.lists.service_domain
+      : [];
 
     optionize(
       'domain',
@@ -65,6 +65,24 @@
       'domain',
       function (x) { return x.domain; },
       'All domains'
+    );
+
+    optionize(
+      'f_domain',
+      domains.map(function (domain) { return { domain: domain }; }),
+      'domain',
+      function (x) { return x.domain; },
+      'Select domain'
+    );
+
+    optionize(
+      'f_unit',
+      Array.isArray(dataState.lists.unit)
+        ? dataState.lists.unit.map(function (unit) { return { unit: unit }; })
+        : [],
+      'unit',
+      function (x) { return x.unit; },
+      'Select unit'
     );
 
     optionize(
@@ -81,14 +99,6 @@
       'equipment_id',
       function (x) { return x.equipment_id + ' — ' + (x.type || ''); },
       'None'
-    );
-
-    optionize(
-      'f_domain',
-      domains.map(function (domain) { return { domain: domain }; }),
-      'domain',
-      function (x) { return x.domain; },
-      'Select domain'
     );
   }
 
@@ -166,12 +176,14 @@
       const results = await Promise.all([
         runtimeClient.request({ operation: 'READ', entity: 'Operations' }),
         runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
-        runtimeClient.request({ operation: 'READ', entity: 'Equipment' })
+        runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
+        runtimeClient.request({ operation: 'READ', entity: '_Lists' })
       ]);
 
       dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
       dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
       dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
+      dataState.lists = (results[3].data && typeof results[3].data === 'object') ? results[3].data : {};
 
       fillRefs();
       render();
