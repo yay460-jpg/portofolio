@@ -95,6 +95,10 @@
 #reportsScreen .kpi-toolbar-group{display:flex;align-items:center;gap:8px;min-width:0}
 #reportsScreen .kpi-toolbar-group label{flex:0 0 auto}
 #reportsScreen .kpi-toolbar-group .control{flex:0 0 auto}
+#reportsScreen .kpi-toolbar-group select.control{height:32px;padding:0 9px;font-size:9px;min-width:145px}
+#reportsScreen .kpi-scope-label{color:#dce8f5;font-size:8px;white-space:nowrap}
+#reportsScreen #reportsKpiDate[hidden],#reportsScreen label[for="reportsKpiDate"][hidden]{display:none}
+#reportsScreen #reportsFleetStatus{white-space:normal}
 #reportsScreen .kpi-toolbar .kpi-baseline{overflow:hidden;text-overflow:ellipsis}
 #reportsScreen .kpi-summary{flex:0 0 auto;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;padding:7px 8px}
 #reportsScreen .kpi-summary-card{min-width:0;padding:7px 8px;display:flex;flex-direction:column}
