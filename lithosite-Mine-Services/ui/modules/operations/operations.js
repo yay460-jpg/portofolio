@@ -154,6 +154,23 @@
     });
   }
 
+  function fadeOutModal(element, duration) {
+    return new Promise(function (resolve) {
+      if (!element || !element.classList.contains('show')) {
+        resolve();
+        return;
+      }
+
+      element.classList.remove('modal-fade-in');
+      element.classList.add('modal-fade-out');
+
+      window.setTimeout(function () {
+        element.classList.remove('show', 'modal-fade-out');
+        resolve();
+      }, duration || 160);
+    });
+  }
+
   function openTimeline(key) {
     activeTimelineKey = key;
     const rows = dataState.operations
@@ -209,7 +226,9 @@
       '</div>';
     }).join('');
 
-    document.getElementById('timelineModal').classList.add('show');
+    const timelineModal = document.getElementById('timelineModal');
+    timelineModal.classList.remove('modal-fade-out');
+    timelineModal.classList.add('show', 'modal-fade-in');
   }
 
   function render() {
@@ -342,7 +361,8 @@
     document.getElementById('modalTitle').textContent = 'Add Operation';
     document.getElementById('stage').textContent = 'Save via RuntimeAdapter';
     resetForm();
-    modal.classList.add('show');
+    modal.classList.remove('modal-fade-out');
+    modal.classList.add('show', 'modal-fade-in');
   }
 
   function openEdit(id) {
@@ -377,7 +397,8 @@
       document.getElementById(entry[0]).value = entry[1] ?? '';
     });
 
-    modal.classList.add('show');
+    modal.classList.remove('modal-fade-out');
+    modal.classList.add('show', 'modal-fade-in');
   }
 
   async function removeRow(id) {
@@ -432,8 +453,12 @@
     // Keep controls reliable after external JS extraction.
     document.getElementById('add').onclick = openAdd;
     document.getElementById('refresh').onclick = loadData;
-    document.getElementById('close').onclick = function () { modal.classList.remove('show'); };
-    document.getElementById('cancel').onclick = function () { modal.classList.remove('show'); };
+    document.getElementById('close').onclick = function () {
+      fadeOutModal(modal, 160);
+    };
+    document.getElementById('cancel').onclick = function () {
+      fadeOutModal(modal, 160);
+    };
     document.getElementById('stage').onclick = saveForm;
 
     const clear = document.getElementById('clear');
@@ -468,14 +493,16 @@
     });
 
     document.getElementById('timelineClose').onclick = function () {
-      document.getElementById('timelineModal').classList.remove('show');
-      activeTimelineKey = null;
+      fadeOutModal(document.getElementById('timelineModal'), 160).then(function () {
+        activeTimelineKey = null;
+      });
     };
     document.getElementById('timelineRows').addEventListener('click', function (event) {
       const edit = event.target.closest('.edit-timeline-row');
       if (edit) {
-        document.getElementById('timelineModal').classList.remove('show');
-        openEdit(edit.dataset.id);
+        fadeOutModal(document.getElementById('timelineModal'), 160).then(function () {
+          openEdit(edit.dataset.id);
+        });
         return;
       }
 
@@ -551,7 +578,7 @@
         (String(row.equipment_id || '').trim() ||
           'NO-EQUIPMENT|' + String(row.transaction_id || ''));
 
-      modal.classList.remove('show');
+      await fadeOutModal(modal, 160);
       await refreshData();
 
       if (wasEditing && savedTimelineKey) {
