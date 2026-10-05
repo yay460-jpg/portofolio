@@ -61,4 +61,12 @@ def test_stage8_operations_ui_uses_schema_status_values():
     assert "Pending</option>" not in ui_text
 
 
-\n\ndef test_stage8_operations_uses_controlled_domain_and_unit_lists():\n    ui_text = UI.read_text(encoding="utf-8")\n    ops_text = OPS_JS.read_text(encoding="utf-8")\n\n    assert '<select id="f_unit">' in ui_text\n    assert "dataState.lists.service_domain" in ops_text\n    assert "dataState.lists.unit" in ops_text\n
+
+
+def test_stage8_operations_uses_controlled_domain_and_unit_lists():
+    ui_text = UI.read_text(encoding="utf-8")
+    ops_text = OPS_JS.read_text(encoding="utf-8")
+
+    assert '<select id="f_unit">' in ui_text
+    assert "dataState.lists.service_domain" in ops_text
+    assert "dataState.lists.unit" in ops_text
