@@ -11,6 +11,7 @@
 
   let editId = null;
   let runtimeReady = false;
+  let activeTimelineKey = null;
 
   function setRuntimeState(text, error) {
     const el = document.getElementById('runtimeMsg');
@@ -154,6 +155,7 @@
   }
 
   function openTimeline(key) {
+    activeTimelineKey = key;
     const rows = dataState.operations
       .filter(function (row) {
         const equipmentId = String(row.equipment_id || '').trim();
@@ -467,11 +469,11 @@
 
     document.getElementById('timelineClose').onclick = function () {
       document.getElementById('timelineModal').classList.remove('show');
+      activeTimelineKey = null;
     };
     document.getElementById('timelineRows').addEventListener('click', function (event) {
       const edit = event.target.closest('.edit-timeline-row');
       if (edit) {
-        document.getElementById('timelineModal').classList.remove('show');
         openEdit(edit.dataset.id);
         return;
       }
@@ -542,10 +544,23 @@
         );
       }
 
+      const wasEditing = Boolean(editId);
+      const savedTimelineKey = activeTimelineKey;
+      const savedRowKey = String(row.transaction_date || '') + '|' +
+        (String(row.equipment_id || '').trim() ||
+          'NO-EQUIPMENT|' + String(row.transaction_id || ''));
+
       modal.classList.remove('show');
       await refreshData();
+
+      if (wasEditing && savedTimelineKey) {
+        openTimeline(savedRowKey);
+      } else if (!wasEditing) {
+        activeTimelineKey = null;
+      }
+
       setRuntimeState(
-        editId ? 'Operation updated and audited.' : 'Operation created and audited.'
+        wasEditing ? 'Operation updated and audited.' : 'Operation created and audited.'
       );
     } catch (error) {
       setRuntimeState('Validation/runtime error: ' + error.message, true);
