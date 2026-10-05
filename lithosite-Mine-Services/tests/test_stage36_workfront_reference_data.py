@@ -22,7 +22,9 @@ def test_stage36_location_remains_free_text_reference():
     assert "row.location" in workfront
 
 def test_stage36_persisted_lists_expose_new_reference_values():
-    from src.mine_services.persistence import PersistenceStore
+    import sys
+    sys.path.insert(0, str(ROOT / "src"))
+    from mine_services.persistence import PersistenceStore
 
     db = ROOT / "Database" / "Mine-Services-Database-A3.xlsx"
     store = PersistenceStore(path=db)
