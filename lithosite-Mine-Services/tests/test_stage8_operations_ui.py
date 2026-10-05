@@ -80,3 +80,11 @@ def test_stage8_operations_renders_equipment_unit_fleet_reference():
     assert '<div class="cell">Unit / Fleet No.</div>' in ui_text
     assert "const unitFleetNo = equipment ? equipment.unit_no : '';" in ops_text
     assert "esc(unitFleetNo)" in ops_text
+
+
+def test_stage8_operations_exposes_event_hours_before_quantity():
+    ui_text = UI.read_text(encoding="utf-8")
+    ops_text = OPS_JS.read_text(encoding="utf-8")
+
+    assert '<div class="cell">Activity</div><div class="cell">Hours</div><div class="cell">Quantity</div>' in ui_text
+    assert "'<div class=\"cell\">' + esc(row.activity) + '</div>' +\n        '<div class=\"cell\">' + esc(row.actual_hours) + '</div>' +\n        '<div class=\"cell\">' + esc(row.quantity) + '</div>' +" in ops_text
