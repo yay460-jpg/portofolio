@@ -183,7 +183,7 @@
       dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
       dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
       dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
-      dataState.lists = (results[3].data && typeof results[3].data === 'object') ? results[3].data : {};
+      dataState.lists = (results[3].data && typeof results[3].data === 'object') ? results[3].data : results[3];
 
       fillRefs();
       render();
