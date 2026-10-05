@@ -9,7 +9,18 @@ const FOUNDATION = path.join(ROOT, 'ui', 'modules', 'reports', 'kpi-foundation.j
 const context = { console };
 context.window = context;
 vm.createContext(context);
+const AVAILABILITY_CONTRACT = path.join(ROOT, 'ui', 'modules', 'reports', 'availability-time-contract.js');
+const PA_ENGINE = path.join(ROOT, 'ui', 'modules', 'reports', 'pa-engine.js');
+const UA_ENGINE = path.join(ROOT, 'ui', 'modules', 'reports', 'ua-engine.js');
+const EFFECTIVE_CONTRACT = path.join(ROOT, 'ui', 'modules', 'reports', 'effective-time-contract.js');
+const EU_ENGINE = path.join(ROOT, 'ui', 'modules', 'reports', 'eu-engine.js');
+
 vm.runInContext(fs.readFileSync(ENGINE, 'utf8'), context, { filename: ENGINE });
+vm.runInContext(fs.readFileSync(AVAILABILITY_CONTRACT, 'utf8'), context, { filename: AVAILABILITY_CONTRACT });
+vm.runInContext(fs.readFileSync(PA_ENGINE, 'utf8'), context, { filename: PA_ENGINE });
+vm.runInContext(fs.readFileSync(UA_ENGINE, 'utf8'), context, { filename: UA_ENGINE });
+vm.runInContext(fs.readFileSync(EFFECTIVE_CONTRACT, 'utf8'), context, { filename: EFFECTIVE_CONTRACT });
+vm.runInContext(fs.readFileSync(EU_ENGINE, 'utf8'), context, { filename: EU_ENGINE });
 vm.runInContext(fs.readFileSync(FOUNDATION, 'utf8'), context, { filename: FOUNDATION });
 
 const f = context.LithositeKPIFoundation;
@@ -57,7 +68,7 @@ for (const [label, result] of [
   ['06/STANDARD/SCHEDULED', standardSched06],
   ['07/STANDARD/AVAILABLE', standardAvail07]
 ]) {
-  if (result.status !== 'READY') throw new Error(label + ': expected READY, got ' + result.status);
+  if (result.status !== 'READY') throw new Error(label + ': expected READY, got ' + result.status + ' issues=' + JSON.stringify((result.equipment&&result.equipment[0]&&result.equipment[0].timeline&&result.equipment[0].timeline.issues)||[]));
   if (result.population.excluded !== 0) throw new Error(label + ': expected zero exclusions');
 }
 
