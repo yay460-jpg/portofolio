@@ -60,7 +60,7 @@ function fmtPct(value,status){
   const n=Number(value);
   return Number.isFinite(n)?n.toFixed(2)+'%':'—';
 }
-function setDateControl(){const el=document.getElementById('reportsKpiDate');if(!el)return;if(!state.date)state.date=latestOperationalDate();el.value=state.date;el.disabled=state.scope!=='DATE';el.hidden=state.scope!=='DATE';const label=document.querySelector('label[for="reportsKpiDate"]');if(label)label.hidden=state.scope!=='DATE';const scopeEl=document.getElementById('reportsKpiScope');if(scopeEl)scopeEl.value=state.scope;const scopeLabel=document.getElementById('reportsKpiScopeLabel');if(scopeLabel)scopeLabel.textContent=state.scope==='DATE'?'Specific Date':'All Dates / Global';}
+function setDateControl(){const el=document.getElementById('reportsKpiDate');if(!el)return;if(!state.date)state.date=latestOperationalDate();el.value=state.date;el.disabled=state.scope!=='DATE';el.hidden=state.scope!=='DATE';const label=document.querySelector('label[for="reportsKpiDate"]');if(label)label.hidden=state.scope!=='DATE';const scopeEl=document.getElementById('reportsKpiScope');if(scopeEl)scopeEl.value=state.scope;const scopeLabel=document.getElementById('reportsKpiScopeLabel');if(scopeLabel){scopeLabel.textContent='Valid data';scopeLabel.hidden=state.scope==='DATE';}}
 
 function renderCounts(){
   const total=entities.reduce((n,e)=>n+rows(e).length,0);
@@ -99,7 +99,7 @@ function renderKpi(){
   if(issueHost)issueHost.innerHTML=(k.exclusions||[]).length?(k.exclusions||[]).map(x=>'<div class="kpi-exclusion"><b>'+esc(x.equipmentId)+'</b> · '+esc(x.status)+' · '+esc((x.issues||[]).map(i=>i.code).join(', ')||'validation required')+'</div>').join(''):'<div class="kpi-exclusion ok">All equipment eligible for this calculation scope.</div>';
   const finalize=document.getElementById('reportsFinalizeKpi');if(finalize)finalize.disabled=state.scope!=='DATE'||!k||k.status!=='READY';
   const history=document.getElementById('reportsOpenHistory');if(history)history.disabled=state.scope!=='DATE';
-  const scopeLabel=document.getElementById('reportsKpiScopeLabel');if(scopeLabel)scopeLabel.textContent=state.scope==='DATE'?'Specific Date · '+state.date:'Valid data';
+  const scopeLabel=document.getElementById('reportsKpiScopeLabel');if(scopeLabel){scopeLabel.textContent='Valid data';scopeLabel.hidden=state.scope==='DATE';}
 }
 
 async function calculate(){
