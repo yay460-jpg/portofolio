@@ -303,11 +303,13 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
         <div class="reports-console-section-head"><b>Policy Set</b><span>Company / Site KPI configuration</span></div>
 
         <div class="reports-console-subhead"><b>Work Time Baseline</b><span>Versioned work timeline</span></div>
-        <select id="reportsTimeBaseline" class="control">
-          <option value="TB-PROJECT-DAY-0600-1800">TB-PROJECT-DAY-0600-1800 · 06:00–18:00 · break 12:00–13:00</option>
-          <option value="TB-PROJECT-DAY-0700-1800">TB-PROJECT-DAY-0700-1800 · 07:00–18:00 · break 12:00–13:00</option>
-        </select>
-        <div id="reportsTimeBaselineState" class="reports-console-status">PROJECT_DEFAULT</div>
+        <div class="reports-console-selection">
+          <select id="reportsTimeBaseline" class="control">
+            <option value="TB-PROJECT-DAY-0600-1800">TB-PROJECT-DAY-0600-1800 · 06:00–18:00 · break 12:00–13:00</option>
+            <option value="TB-PROJECT-DAY-0700-1800">TB-PROJECT-DAY-0700-1800 · 07:00–18:00 · break 12:00–13:00</option>
+          </select>
+          <span id="reportsTimeBaselineState" class="reports-console-status">PROJECT_DEFAULT</span>
+        </div>
         <div class="reports-console-hint">Note: Alternate work timeline; break is carried from the current project baseline until a site-specific override is recorded.</div>
 
         <div class="reports-console-subhead"><b>EU Denominator</b><span>Policy choice</span></div>
