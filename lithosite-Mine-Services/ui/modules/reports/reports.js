@@ -209,7 +209,6 @@ function bind(){
     persistPolicy(state.policy);
     hideConsole();
     await calculate();
-    renderTimeConsole();
     renderKpi();
   };
   const resetConsolePolicy=()=>{
