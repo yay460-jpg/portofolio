@@ -199,6 +199,120 @@
 
     return{equipmentId:payload.equipmentId||null,status:bundle.status,timeline,results:bundle.results,calculationVersion:VERSION};
   }
+  function calculateFleetAllDates(input){
+    const payload=input||{},equipment=Array.isArray(payload.equipment)?payload.equipment:[];
+    const policy=payload.policy||{};
+    const euDenominator=policy.euDenominator==='SCHEDULED'?'SCHEDULED':'AVAILABLE';
+    const effectiveTimeRule=policy.effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE';
+    const dateSet=new Set();
+    [payload.operations,payload.maintenance].forEach(list=>{
+      (Array.isArray(list)?list:[]).forEach(row=>{
+        const date=String(row.transaction_date||row.maintenance_date||'').slice(0,10);
+        if(date)dateSet.add(date);
+      });
+    });
+    const dates=Array.from(dateSet).sort();
+    const results=equipment.map(row=>{
+      const dayResults=dates.map(date=>Object.assign(calculateEquipment({
+        equipmentId:row.equipment_id,
+        date,
+        baseline:payload.baseline,
+        effectiveTimeRule,
+        euDenominator,
+        operations:payload.operations,
+        maintenance:payload.maintenance
+      }),{date}));
+      const readyDays=dayResults.filter(r=>r.results&&r.results.PA&&r.results.PA.status===center.KPI_STATUS.READY&&r.results.UA&&r.results.UA.status===center.KPI_STATUS.READY);
+      const scheduled=readyDays.reduce((sum,r)=>sum+Number(r.results.PA.denominatorHours||0),0);
+      const available=readyDays.reduce((sum,r)=>sum+Number(r.results.PA.numeratorHours||0),0);
+      const used=readyDays.reduce((sum,r)=>sum+Number(r.results.UA.numeratorHours||0),0);
+      const euDays=readyDays.filter(r=>r.results&&r.results.EU&&r.results.EU.status===center.KPI_STATUS.READY);
+      const effective=euDays.reduce((sum,r)=>sum+Number(r.results.EU.numeratorHours||0),0);
+      const denominator=euDenominator==='SCHEDULED'?scheduled:available;
+      const issues=[];
+      dayResults.filter(r=>!readyDays.includes(r)).forEach(r=>{
+        (r.timeline&&r.timeline.issues||[]).forEach(issue=>issues.push(Object.assign({date:r.date},issue)));
+      });
+      const events=readyDays.flatMap(r=>(r.timeline&&r.timeline.events)||[]);
+      let fleetEU={
+        kpi:'EU',
+        status:center.KPI_STATUS.NEEDS_VALIDATION,
+        value:null,
+        unit:'%',
+        denominatorType:euDenominator,
+        effectiveTimeRule
+      };
+      if(readyDays.length&&euDays.length===readyDays.length){
+        if(denominator>0&&effective<=denominator){
+          fleetEU={
+            kpi:'EU',
+            status:center.KPI_STATUS.READY,
+            value:(effective/denominator)*100,
+            unit:'%',
+            numeratorHours:effective,
+            denominatorHours:denominator,
+            denominatorType:euDenominator,
+            effectiveTimeRule,
+            formulaId:euDenominator==='SCHEDULED'?'EU-EFFECTIVE-OVER-SCHEDULED':'EU-EFFECTIVE-OVER-AVAILABLE'
+          };
+        }
+      }
+      const status=readyDays.length?center.KPI_STATUS.READY:center.KPI_STATUS.NEEDS_VALIDATION;
+      return{
+        equipmentId:row.equipment_id||null,
+        unitNo:row.unit_no,
+        status,
+        scope:'ALL_DATES',
+        dates:dayResults.map(r=>({date:r.date,status:r.status})),
+        timeline:{
+          status,
+          events,
+          issues,
+          dates:dayResults.map(r=>({date:r.date,status:r.status})),
+          baseline:clone(payload.baseline||DEFAULT_BASELINE),
+          scheduledHours:scheduled
+        },
+        results:{
+          PA:readyDays.length?center.calculatePA({scheduledHours:scheduled,availableHours:available}):{kpi:'PA',status:center.KPI_STATUS.NEEDS_VALIDATION,value:null,unit:'%'},
+          UA:readyDays.length?center.calculateUA({availableHours:available,usedHours:used}):{kpi:'UA',status:center.KPI_STATUS.NEEDS_VALIDATION,value:null,unit:'%'},
+          EU:fleetEU
+        },
+        contributingHours:{scheduledHours:scheduled,availableHours:available,usedHours:used},
+        validatedDates:readyDays.map(r=>r.date),
+        invalidDates:dayResults.filter(r=>!readyDays.includes(r)).map(r=>r.date),
+        calculationVersion:VERSION
+      };
+    });
+    const eligible=results.filter(r=>r.results&&r.results.PA&&r.results.PA.status===center.KPI_STATUS.READY&&r.results.UA&&r.results.UA.status===center.KPI_STATUS.READY);
+    const scheduled=eligible.reduce((sum,r)=>sum+Number(r.contributingHours.scheduledHours||0),0);
+    const available=eligible.reduce((sum,r)=>sum+Number(r.contributingHours.availableHours||0),0);
+    const used=eligible.reduce((sum,r)=>sum+Number(r.contributingHours.usedHours||0),0);
+    const exclusions=results.filter(r=>!eligible.includes(r)).map(r=>({equipmentId:r.equipmentId,status:r.status,issues:r.timeline&&r.timeline.issues?r.timeline.issues:[]}));
+    const euReady=eligible.length>0&&eligible.every(r=>r.results&&r.results.EU&&r.results.EU.status===center.KPI_STATUS.READY);
+    const effectiveHours=euReady?eligible.reduce((sum,r)=>sum+Number(r.results.EU.numeratorHours||0),0):0;
+    let fleetEU={kpi:'EU',status:center.KPI_STATUS.NEEDS_VALIDATION,value:null,unit:'%',denominatorType:euDenominator,effectiveTimeRule};
+    if(euReady){
+      const denominatorHours=euDenominator==='SCHEDULED'?scheduled:available;
+      if(denominatorHours>0&&effectiveHours<=denominatorHours){
+        fleetEU={kpi:'EU',status:center.KPI_STATUS.READY,value:(effectiveHours/denominatorHours)*100,unit:'%',numeratorHours:effectiveHours,denominatorHours,denominatorType:euDenominator,effectiveTimeRule,formulaId:euDenominator==='SCHEDULED'?'EU-EFFECTIVE-OVER-SCHEDULED':'EU-EFFECTIVE-OVER-AVAILABLE'};
+      }
+    }
+    return{
+      status:exclusions.length||!euReady?center.KPI_STATUS.NEEDS_VALIDATION:(eligible.length?center.KPI_STATUS.READY:center.KPI_STATUS.NEEDS_VALIDATION),
+      date:null,
+      scope:'ALL_DATES',
+      dates,
+      baseline:clone(payload.baseline||DEFAULT_BASELINE),
+      policy:{baseline:clone(payload.baseline||DEFAULT_BASELINE),euDenominator,effectiveTimeRule},
+      population:{total:equipment.length,eligible:eligible.length,excluded:exclusions.length,validatedDates:dates.length},
+      contributingHours:{scheduledHours:scheduled,availableHours:available,usedHours:used},
+      results:{PA:eligible.length?center.calculatePA({scheduledHours:scheduled,availableHours:available}):null,UA:eligible.length?center.calculateUA({availableHours:available,usedHours:used}):null,EU:fleetEU},
+      equipment:results,
+      exclusions,
+      calculationVersion:VERSION
+    };
+  }
+
   function calculateFleet(input){
     const payload=input||{},equipment=Array.isArray(payload.equipment)?payload.equipment:[];
     const policy=payload.policy||{};
@@ -274,5 +388,5 @@
   }
   async function finalizeSnapshot(snapshot){const rc=global.LithositeRuntimeClient;if(!rc)throw new Error('LithositeRuntimeClient is required for snapshot finalization');return rc.request({operation:'FINALIZE_KPI',snapshot});}
   async function listSnapshots(scopeId,periodId){const rc=global.LithositeRuntimeClient;if(!rc)throw new Error('LithositeRuntimeClient is required for KPI snapshot history');const result=await rc.request({operation:'READ_KPI_SNAPSHOTS',scope_id:scopeId||null,period_id:periodId||null});return Array.isArray(result.data)?result.data:[];}
-  global.LithositeKPIFoundation=Object.freeze({VERSION,DEFAULT_BASELINE,TIME_BASELINES,baselineWindows,scheduledHours,buildEquipmentTimeline,calculateEquipment,calculateFleet,buildSnapshot,finalizeSnapshot,listSnapshots,fingerprint});
+  global.LithositeKPIFoundation=Object.freeze({VERSION,DEFAULT_BASELINE,TIME_BASELINES,baselineWindows,scheduledHours,buildEquipmentTimeline,calculateEquipment,calculateFleet,calculateFleetAllDates,buildSnapshot,finalizeSnapshot,listSnapshots,fingerprint});
 })(window);
