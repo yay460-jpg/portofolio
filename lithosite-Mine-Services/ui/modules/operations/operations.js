@@ -134,34 +134,122 @@
     });
   }
 
-  function render() {
-    const rows = filterRows();
+  function timelineGroups(rows) {
+    const groups = new Map();
 
-    const output = rows.map(function (row) {
+    rows.forEach(function (row) {
+      const equipmentId = String(row.equipment_id || '').trim();
+      const key = String(row.transaction_date || '') + '|' +
+        (equipmentId || 'NO-EQUIPMENT|' + String(row.transaction_id || ''));
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(row);
+    });
+
+    return Array.from(groups.values()).map(function (items) {
+      items.sort(function (a, b) {
+        return String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
+      });
+      return items;
+    });
+  }
+
+  function openTimeline(key) {
+    const rows = dataState.operations
+      .filter(function (row) {
+        const equipmentId = String(row.equipment_id || '').trim();
+        const rowKey = String(row.transaction_date || '') + '|' +
+          (equipmentId || 'NO-EQUIPMENT|' + String(row.transaction_id || ''));
+        return rowKey === key;
+      })
+      .sort(function (a, b) {
+        return String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
+      });
+
+    if (!rows.length) return;
+
+    const first = rows[0];
+    const equipment = dataState.equipment.find(function (item) {
+      return String(item.equipment_id || '') === String(first.equipment_id || '');
+    });
+    const unitFleetNo = equipment ? equipment.unit_no : '';
+
+    document.getElementById('timelineTitle').textContent =
+      'Work Timeline — ' + (first.equipment_id || 'Unassigned');
+
+    document.getElementById('timelineMeta').textContent =
+      String(first.transaction_date || '—') + ' · Start ' +
+      String(first.transaction_time || '—') + ' · End ' +
+      String(rows[rows.length - 1].transaction_time || '—') +
+      ' · ' + rows.length + ' events';
+
+    document.getElementById('timelineSummary').innerHTML =
+      '<span><b>Domain</b> ' + esc(first.domain) + '</span>' +
+      '<span><b>Work Front</b> ' + esc(first.work_front_id) + '</span>' +
+      '<span><b>Unit / Fleet No.</b> ' + esc(unitFleetNo) + '</span>';
+
+    document.getElementById('timelineRows').innerHTML = rows.map(function (row) {
       const cls = String(row.status || '').toLowerCase().replace(/[^a-z]/g, '') || 'draft';
       const id = esc(row.transaction_id);
-      const equipment = dataState.equipment.find(function (item) {
-        return String(item.equipment_id || '') === String(row.equipment_id || '');
-      });
-      const unitFleetNo = equipment ? equipment.unit_no : '';
-
-      return '<div class="tr td">' +
-        '<div class="cell">' + esc(row.transaction_date) + '</div>' +
+      return '<div class="timeline-tr">' +
         '<div class="cell">' + esc(row.transaction_time) + '</div>' +
-        '<div class="cell">' + esc(row.domain) + '</div>' +
-        '<div class="cell">' + esc(row.work_front_id) + '</div>' +
-        '<div class="cell">' + esc(row.equipment_id) + '</div>' +
-        '<div class="cell">' + esc(unitFleetNo) + '</div>' +
         '<div class="cell">' + esc(row.activity) + '</div>' +
         '<div class="cell">' + esc(row.quantity) + '</div>' +
         '<div class="cell">' + esc(row.unit) + '</div>' +
+        '<div class="cell">' + esc(row.actual_hours) + '</div>' +
         '<div class="cell">' + esc(row.target_hours) + '</div>' +
         '<div class="cell"><span class="statuspill ' + cls + '">' + esc(row.status) + '</span></div>' +
         '<div class="cell muted">' + esc(row.source) + '</div>' +
         '<div class="cell row-actions">' +
-          '<button class="control mini edit-row" data-id="' + id + '">Edit</button>' +
-          '<button class="control mini danger delete-row" data-id="' + id + '">Delete</button>' +
+          '<button class="control mini edit-timeline-row" data-id="' + id + '">Edit</button>' +
+          '<button class="control mini danger delete-timeline-row" data-id="' + id + '">Delete</button>' +
         '</div>' +
+      '</div>';
+    }).join('');
+
+    document.getElementById('timelineModal').classList.add('show');
+  }
+
+  function render() {
+    const rows = filterRows();
+    const groups = timelineGroups(rows);
+
+    const output = groups.map(function (items) {
+      const first = items[0];
+      const equipment = dataState.equipment.find(function (item) {
+        return String(item.equipment_id || '') === String(first.equipment_id || '');
+      });
+      const unitFleetNo = equipment ? equipment.unit_no : '';
+      const key = esc(
+        String(first.transaction_date || '') + '|' +
+        (String(first.equipment_id || '').trim() ||
+          'NO-EQUIPMENT|' + String(first.transaction_id || ''))
+      );
+      const statusValues = Array.from(new Set(items.map(function (row) {
+        return String(row.status || '');
+      })));
+      const status = statusValues.length === 1 ? statusValues[0] : 'MIXED';
+      const cls = status.toLowerCase().replace(/[^a-z]/g, '') || 'draft';
+      const actualHours = items.reduce(function (sum, row) {
+        return sum + (Number(row.actual_hours) || 0);
+      }, 0);
+      const targetHours = items.reduce(function (sum, row) {
+        return sum + (Number(row.target_hours) || 0);
+      }, 0);
+
+      return '<div class="tr td">' +
+        '<div class="cell">' + esc(first.transaction_date) + '</div>' +
+        '<div class="cell">' + esc(first.transaction_time) + '</div>' +
+        '<div class="cell">' + esc(first.domain) + '</div>' +
+        '<div class="cell">' + esc(first.work_front_id) + '</div>' +
+        '<div class="cell">' + esc(first.equipment_id) + '</div>' +
+        '<div class="cell">' + esc(unitFleetNo) + '</div>' +
+        '<div class="cell"><button class="control mini timeline-row" data-key="' + key + '">' +
+          items.length + ' event' + (items.length === 1 ? '' : 's') +
+        '</button></div>' +
+        '<div class="cell">' + esc(actualHours || '—') + '</div>' +
+        '<div class="cell">' + esc(targetHours || '—') + '</div>' +
+        '<div class="cell"><span class="statuspill ' + cls + '">' + esc(status) + '</span></div>' +
+        '<div class="cell row-actions"><button class="control mini timeline-row" data-key="' + key + '">View</button></div>' +
       '</div>';
     }).join('');
 
@@ -169,7 +257,8 @@
       output || '<div class="empty">No operations match the current filters.</div>';
 
     document.getElementById('count').textContent =
-      rows.length + ' records · ' + (runtimeReady ? 'Runtime Ready' : 'Runtime Not Connected');
+      groups.length + ' work timelines · ' + rows.length + ' events · ' +
+      (runtimeReady ? 'Runtime Ready' : 'Runtime Not Connected');
   }
 
   async function loadData() {
@@ -362,10 +451,31 @@
       });
 
     document.getElementById('rows').addEventListener('click', function (event) {
+      const timeline = event.target.closest('.timeline-row');
+      if (timeline) {
+        openTimeline(timeline.dataset.key);
+        return;
+      }
+
       const edit = event.target.closest('.edit-row');
       if (edit) openEdit(edit.dataset.id);
 
       const del = event.target.closest('.delete-row');
+      if (del) removeRow(del.dataset.id);
+    });
+
+    document.getElementById('timelineClose').onclick = function () {
+      document.getElementById('timelineModal').classList.remove('show');
+    };
+    document.getElementById('timelineRows').addEventListener('click', function (event) {
+      const edit = event.target.closest('.edit-timeline-row');
+      if (edit) {
+        document.getElementById('timelineModal').classList.remove('show');
+        openEdit(edit.dataset.id);
+        return;
+      }
+
+      const del = event.target.closest('.delete-timeline-row');
       if (del) removeRow(del.dataset.id);
     });
   }
