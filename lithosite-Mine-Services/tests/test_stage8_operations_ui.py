@@ -15,7 +15,7 @@ def test_stage8_operations_ui_contract_markers():
         'id="activityFilter"',
         'id="sourceFilter"',
         'runtime-client.js',
-        'shell-navigation-v31.js',
+        'shell-navigation.js',
         'operations.js',
         "does not write directly to the database",
     ]
