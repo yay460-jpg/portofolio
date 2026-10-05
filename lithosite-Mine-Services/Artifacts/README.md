@@ -2,16 +2,15 @@
 
 Current Mine Services UI artifacts.
 
-## Active working artifact
+## V36 locked baseline
 
-- `Mine-Services-Concept-2-Dashboard-Operations-v36-STAGE25.html`
-  - Current Stage 25 working artifact on `v36-workspace`.
-  - V36 is the active working line derived from the V35 locked baseline.
+- `Mine-Services-Concept-2-Dashboard-Operations-v36-LOCKED.html`
+  - Locked Stage 25 V36 baseline.
+  - Frozen handoff baseline for V37.
 
-## Historical / locked artifacts
+## Historical / retired
 
-- `Mine-Services-Concept-2-Dashboard-Operations-v35-STAGE24.html`
-  - V35 locked baseline/reference artifact.
-- Earlier versioned artifacts remain historical and are not active V36 entry points.
+- V35 active artifact is retired from the active artifact set.
+- Earlier versioned artifacts remain historical only unless explicitly reactivated.
 
-Authoritative contracts and test plans remain under `Documentation/`; the A.1 database remains under `Database/`.
+Authoritative contracts and test plans remain under `Documentation/`; the A3 database remains under `Database/`.
