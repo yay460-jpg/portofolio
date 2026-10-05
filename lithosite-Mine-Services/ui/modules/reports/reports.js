@@ -46,7 +46,7 @@ function persistPolicy(policy){
     }));
   }catch(error){}
 }
-const state={data:{},status:'loading',kpi:null,snapshots:[],date:null,baseline:DEFAULT_POLICY.baseline,policy:loadStoredPolicy()};
+const state={data:{},status:'loading',kpi:null,snapshots:[],date:null,scope:'ALL_DATES',baseline:DEFAULT_POLICY.baseline,policy:loadStoredPolicy()};
 state.baseline=state.policy.baseline;
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const rows=name=>Array.isArray(state.data[name])?state.data[name]:[];
@@ -60,7 +60,7 @@ function fmtPct(value,status){
   const n=Number(value);
   return Number.isFinite(n)?n.toFixed(2)+'%':'—';
 }
-function setDateControl(){const el=document.getElementById('reportsKpiDate');if(!el)return;if(!state.date)state.date=latestOperationalDate();el.value=state.date;}
+function setDateControl(){const el=document.getElementById('reportsKpiDate');if(!el)return;if(!state.date)state.date=latestOperationalDate();el.value=state.date;el.disabled=state.scope!=='DATE';el.hidden=state.scope!=='DATE';const label=document.querySelector('label[for="reportsKpiDate"]');if(label)label.hidden=state.scope!=='DATE';const scopeEl=document.getElementById('reportsKpiScope');if(scopeEl)scopeEl.value=state.scope;const scopeLabel=document.getElementById('reportsKpiScopeLabel');if(scopeLabel)scopeLabel.textContent=state.scope==='DATE'?'Specific Date':'All Dates / Global';}
 
 function renderCounts(){
   const total=entities.reduce((n,e)=>n+rows(e).length,0);
@@ -97,14 +97,23 @@ function renderKpi(){
 
   const issueHost=document.getElementById('kpiExclusions');
   if(issueHost)issueHost.innerHTML=(k.exclusions||[]).length?(k.exclusions||[]).map(x=>'<div class="kpi-exclusion"><b>'+esc(x.equipmentId)+'</b> · '+esc(x.status)+' · '+esc((x.issues||[]).map(i=>i.code).join(', ')||'validation required')+'</div>').join(''):'<div class="kpi-exclusion ok">All equipment eligible for this calculation scope.</div>';
-  const finalize=document.getElementById('reportsFinalizeKpi');if(finalize)finalize.disabled=!k||k.status!=='READY';
+  const finalize=document.getElementById('reportsFinalizeKpi');if(finalize)finalize.disabled=state.scope!=='DATE'||!k||k.status!=='READY';
+  const scopeLabel=document.getElementById('reportsKpiScopeLabel');if(scopeLabel)scopeLabel.textContent=state.scope==='DATE'?'Specific Date · '+state.date:'All Dates / Global · validated data';
 }
 
 async function calculate(){
-  state.date=(document.getElementById('reportsKpiDate')?.value||state.date||latestOperationalDate()).slice(0,10);
-  state.kpi=foundation.calculateFleet({date:state.date,baseline:state.baseline||foundation.DEFAULT_BASELINE,policy:state.policy||DEFAULT_POLICY,equipment:rows('Equipment'),operations:rows('Operations'),maintenance:rows('Maintenance')});
+  state.scope=document.getElementById('reportsKpiScope')?.value||state.scope||'ALL_DATES';
+  if(state.scope==='DATE'){
+    state.date=(document.getElementById('reportsKpiDate')?.value||state.date||latestOperationalDate()).slice(0,10);
+    state.kpi=foundation.calculateFleet({date:state.date,baseline:state.baseline||foundation.DEFAULT_BASELINE,policy:state.policy||DEFAULT_POLICY,equipment:rows('Equipment'),operations:rows('Operations'),maintenance:rows('Maintenance')});
+    try{state.snapshots=await foundation.listSnapshots('FLEET:ALL',state.date);renderSnapshotHistory();}catch(error){state.snapshots=[];renderSnapshotHistory();msg('KPI calculated; snapshot history unavailable: '+error.message,true);}
+  }else{
+    state.kpi=foundation.calculateFleetAllDates({baseline:state.baseline||foundation.DEFAULT_BASELINE,policy:state.policy||DEFAULT_POLICY,equipment:rows('Equipment'),operations:rows('Operations'),maintenance:rows('Maintenance')});
+    state.snapshots=[];
+    renderSnapshotHistory();
+  }
+  setDateControl();
   renderKpi();
-  try{state.snapshots=await foundation.listSnapshots('FLEET:ALL',state.date);renderSnapshotHistory();}catch(error){state.snapshots=[];renderSnapshotHistory();msg('KPI calculated; snapshot history unavailable: '+error.message,true);}
 }
 
 function renderSnapshotHistory(){
@@ -131,6 +140,7 @@ function renderConsolePolicy(){
 }
 
 async function finalizeCurrent(){
+  if(state.scope!=='DATE'){msg('Finalization is available only for a specific KPI date.',true);return;}
   if(!state.kpi||state.kpi.status!=='READY'){msg('Finalization blocked: calculation is not READY.',true);return;}
   try{
     const snapshot=foundation.buildSnapshot({calculation:state.kpi,scopeType:'FLEET',scopeId:'FLEET:ALL',periodId:state.date});
@@ -151,6 +161,7 @@ async function load(){
     const result=await Promise.all(entities.map(entity=>rc.request({operation:'READ',entity})));
     entities.forEach((e,i)=>state.data[e]=Array.isArray(result[i].data)?result[i].data:[]);
     if(!state.date)state.date=latestOperationalDate();
+    state.scope=document.getElementById('reportsKpiScope')?.value||'ALL_DATES';
     setDateControl();renderCounts();await calculate();state.status='ready';
     msg('RuntimeAdapter connected — KPI Foundation E2E active. Policy Set is project-configurable and is not an official site SOP.');
   }catch(error){state.status='error';renderCounts();const meta=document.getElementById('reportsCount');if(meta)meta.textContent='Unavailable · Runtime Error';msg('Reports/KPI unavailable: '+error.message,true);}
@@ -165,6 +176,7 @@ function bind(){
   const refresh=document.getElementById('reportsRefresh');if(refresh)refresh.onclick=load;
   const clear=document.getElementById('reportsClear');if(clear)clear.onclick=()=>{document.getElementById('reportsSearch').value='';renderCounts();};
   const search=document.getElementById('reportsSearch');if(search)search.addEventListener('input',filteredCount);
+  const scope=document.getElementById('reportsKpiScope');if(scope)scope.addEventListener('change',()=>{state.scope=scope.value==='DATE'?'DATE':'ALL_DATES';setDateControl();calculate();});
   const date=document.getElementById('reportsKpiDate');if(date)date.addEventListener('change',calculate);
   const equipmentScroll=document.querySelector('#reportsScreen .equipment-kpi-scroll');
   if(equipmentScroll){
