@@ -230,6 +230,7 @@
 
   function openAdd() {
     editId = null;
+    setRuntimeState('');
     document.getElementById('modalTitle').textContent = 'Add Operation';
     document.getElementById('stage').textContent = 'Save via RuntimeAdapter';
     resetForm();
@@ -237,6 +238,7 @@
   }
 
   function openEdit(id) {
+    setRuntimeState('');
     const row = dataState.operations.find(function (item) {
       return String(item.transaction_id) === String(id);
     });
