@@ -11,7 +11,43 @@ const TIME_BASELINES=foundation.TIME_BASELINES||Object.freeze([foundation.DEFAUL
 const EU_DENOMINATOR_OPTIONS=Object.freeze({AVAILABLE:'Available Time',SCHEDULED:'Scheduled Time'});
 const EFFECTIVE_RULE_OPTIONS=Object.freeze({PURE_EFFECTIVE:'Pure Effective / Net Operating',STANDARD_CYCLE:'Standard Cycle Operating'});
 const DEFAULT_POLICY=Object.freeze({baseline:TIME_BASELINES[0],euDenominator:'AVAILABLE',effectiveTimeRule:'PURE_EFFECTIVE'});
-const state={data:{},status:'loading',kpi:null,snapshots:[],date:null,baseline:DEFAULT_POLICY.baseline,policy:DEFAULT_POLICY};
+const POLICY_STORAGE_KEY='lithosite.mine-services.v36.kpi-policy';
+function clonePolicy(policy){
+  const p=policy||DEFAULT_POLICY;
+  return Object.freeze({
+    baseline:p.baseline||DEFAULT_POLICY.baseline,
+    euDenominator:p.euDenominator==='SCHEDULED'?'SCHEDULED':'AVAILABLE',
+    effectiveTimeRule:p.effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE'
+  });
+}
+function samePolicy(a,b){
+  const x=clonePolicy(a),y=clonePolicy(b);
+  return x.baseline.baseline_id===y.baseline.baseline_id&&x.euDenominator===y.euDenominator&&x.effectiveTimeRule===y.effectiveTimeRule;
+}
+function loadStoredPolicy(){
+  try{
+    if(!global.localStorage)return DEFAULT_POLICY;
+    const raw=global.localStorage.getItem(POLICY_STORAGE_KEY);
+    if(!raw)return DEFAULT_POLICY;
+    const saved=JSON.parse(raw);
+    const baseline=TIME_BASELINES.find(item=>item.baseline_id===saved.baselineId)||DEFAULT_POLICY.baseline;
+    return clonePolicy({baseline,euDenominator:saved.euDenominator,effectiveTimeRule:saved.effectiveTimeRule});
+  }catch(error){return DEFAULT_POLICY;}
+}
+function persistPolicy(policy){
+  try{
+    if(!global.localStorage)return;
+    const p=clonePolicy(policy);
+    global.localStorage.setItem(POLICY_STORAGE_KEY,JSON.stringify({
+      version:'1',
+      baselineId:p.baseline.baseline_id,
+      euDenominator:p.euDenominator,
+      effectiveTimeRule:p.effectiveTimeRule
+    }));
+  }catch(error){}
+}
+const state={data:{},status:'loading',kpi:null,snapshots:[],date:null,baseline:DEFAULT_POLICY.baseline,policy:loadStoredPolicy()};
+state.baseline=state.policy.baseline;
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const rows=name=>Array.isArray(state.data[name])?state.data[name]:[];
 
@@ -109,6 +145,8 @@ async function finalizeCurrent(){
 async function load(){
   state.status='loading';
   try{
+    state.policy=loadStoredPolicy();
+    state.baseline=state.policy.baseline;
     const h=await rc.health();if(h.status!=='READY')throw new Error('Runtime health is not READY');
     const result=await Promise.all(entities.map(entity=>rc.request({operation:'READ',entity})));
     entities.forEach((e,i)=>state.data[e]=Array.isArray(result[i].data)?result[i].data:[]);
@@ -168,12 +206,18 @@ function bind(){
       effectiveTimeRule:effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE'
     });
     state.baseline=state.policy.baseline;
+    persistPolicy(state.policy);
     hideConsole();
     await calculate();
     renderTimeConsole();
     renderKpi();
   };
   const resetConsolePolicy=()=>{
+    const changedFromDefault=!samePolicy(state.policy,DEFAULT_POLICY)||
+      baselineSelect?.value!==DEFAULT_POLICY.baseline.baseline_id||
+      euDenominatorSelect?.value!==DEFAULT_POLICY.euDenominator||
+      effectiveRuleSelect?.value!==DEFAULT_POLICY.effectiveTimeRule;
+    if(changedFromDefault&&!global.confirm('Reset Policy Set to the project default? The current selection will be replaced. No runtime policy changes occur until Apply Policy Set.'))return;
     if(baselineSelect)baselineSelect.value=DEFAULT_POLICY.baseline.baseline_id;
     if(euDenominatorSelect)euDenominatorSelect.value=DEFAULT_POLICY.euDenominator;
     if(effectiveRuleSelect)effectiveRuleSelect.value=DEFAULT_POLICY.effectiveTimeRule;

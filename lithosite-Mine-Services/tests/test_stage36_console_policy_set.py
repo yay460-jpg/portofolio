@@ -79,3 +79,18 @@ def test_stage36_equipment_unit_column():
     assert 'class="eq-unit"' in reports
     assert 'unitNo:row.unit_no' in foundation
     assert '.eq-unit' in css
+
+def test_stage36_console_policy_persists_across_reload():
+    reports = read("ui/modules/reports/reports.js")
+    assert "POLICY_STORAGE_KEY" in reports
+    assert "global.localStorage.getItem(POLICY_STORAGE_KEY)" in reports
+    assert "global.localStorage.setItem(POLICY_STORAGE_KEY" in reports
+    assert "state.policy=loadStoredPolicy()" in reports
+    assert "persistPolicy(state.policy)" in reports
+    assert "No runtime policy changes occur until Apply Policy Set." in reports
+
+
+def test_stage36_console_reset_warns_before_replacing_policy_selection():
+    reports = read("ui/modules/reports/reports.js")
+    assert "global.confirm('Reset Policy Set to the project default?" in reports
+    assert "samePolicy(state.policy,DEFAULT_POLICY)" in reports
