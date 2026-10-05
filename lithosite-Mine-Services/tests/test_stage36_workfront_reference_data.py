@@ -20,3 +20,12 @@ def test_stage36_location_remains_free_text_reference():
     workfront = read("ui/modules/workfront/workfront.js")
     assert "f_wf_location" in workfront
     assert "row.location" in workfront
+
+def test_stage36_persisted_lists_expose_new_reference_values():
+    from src.mine_services.persistence import PersistenceStore
+
+    db = ROOT / "Database" / "Mine-Services-Database-A3.xlsx"
+    store = PersistenceStore(path=db)
+
+    assert "Mining" in store.controlled_lists["service_domain"]
+    assert "cycle" in store.controlled_lists["unit"]

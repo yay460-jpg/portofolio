@@ -123,11 +123,11 @@ class PersistenceStore:
                 for i, header in enumerate(values[0])
                 if header not in (None, "")
             }
-            # Keep the runtime vocabulary backward-compatible when an older
-            # workbook predates a newly locked reference value. Existing
-            # workbook values are preserved; required baseline values are added.
-            for name, defaults in self.controlled_lists.items():
-                workbook_lists.setdefault(name, set()).update(defaults)
+            # Keep only newly locked reference values available when an
+            # older workbook predates them. Existing workbook values remain
+            # unchanged and all other vocabulary stays workbook-defined.
+            workbook_lists.setdefault("service_domain", set()).add("Mining")
+            workbook_lists.setdefault("unit", set()).add("cycle")
             self.controlled_lists = workbook_lists
 
         rows = list(wb["AuditLog"].values)
