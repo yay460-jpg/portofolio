@@ -18,6 +18,7 @@ def test_stage8_operations_ui_contract_markers():
         'shell-navigation.js',
         'operations.js',
         "does not write directly to the database",
+        'id="f_unit"',
     ]
 
     required_ops = [
@@ -31,7 +32,6 @@ def test_stage8_operations_ui_contract_markers():
         "openEdit",
         "removeRow",
         "RuntimeAdapter connected",
-        'id="f_unit"'
 
     ]
 
