@@ -42,6 +42,7 @@
 #operationsScreen .cell{padding:0 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 #operationsScreen .validated{background:#123d2b;color:#4ade80}
+#operationsScreen .mixed{background:#3d3420;color:#fbbf24}
 #operationsScreen .draft{background:#493715;color:#fbbf24}
 #operationsScreen .rejected{background:#4b2024;color:#f87171}
 #operationsScreen .voided{background:#27364a;color:#a9b8c9}
@@ -72,7 +73,7 @@
 #operationsScreen .timeline-summary span{background:#0c1b2c;border:1px solid #29435d;border-radius:7px;padding:7px 9px}
 #operationsScreen .timeline-summary b{color:#8fa5bb;margin-right:5px;font-weight:600}
 #operationsScreen .timeline-grid{margin:0 16px 16px;border:1px solid #29435d;border-radius:8px;overflow:auto;max-height:55vh}
-#operationsScreen .timeline-tr{display:grid;grid-template-columns:70px 1.6fr 90px 70px 90px 90px 100px 90px 120px;min-width:880px;align-items:center}
+#operationsScreen .timeline-tr{display:grid;grid-template-columns:70px 125px 1.5fr 80px 65px 85px 85px 90px 110px;min-width:880px;align-items:center}
 #operationsScreen .timeline-th{height:34px;background:#12243a;color:#8fa5bb;font-size:8px;text-transform:uppercase;font-weight:600;letter-spacing:.3px;position:sticky;top:0;z-index:2}
 #operationsScreen .timeline-tr:not(.timeline-th){min-height:39px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}
 #operationsScreen .timeline-tr .cell{padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
