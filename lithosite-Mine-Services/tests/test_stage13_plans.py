@@ -108,13 +108,13 @@ def test_v27_plans_shell_contract():
 
     assert 'id="plansScreen"' in html
     assert 'id="plansModal"' in html
-    assert "shell-navigation-v31.js?v=20261001" in html
+    assert "shell-navigation.js?v=20261005" in html
     assert "../ui/modules/plans/plans.js?v=20261001" in html
     assert "Plans: 'plansScreen'" in shell
     assert "let initialized = false;" in shell
     assert "event.preventDefault();" in shell
     assert "event.stopPropagation();" in shell
-    assert "const STORAGE_KEY = 'lithosite-v31-active-screen';" in shell
+    assert "const STORAGE_KEY = 'lithosite-active-screen';" in shell
     assert "sessionStorage.setItem(STORAGE_KEY, name)" in shell
     assert "sessionStorage.getItem(STORAGE_KEY)" in shell
     assert "setScreen(readInitialScreen(), false);" in shell
