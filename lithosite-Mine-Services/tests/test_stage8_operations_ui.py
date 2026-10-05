@@ -93,3 +93,13 @@ def test_stage8_operations_work_timeline_detail_contract():
     assert "function openTimeline(key)" in ops_text
     assert "data-key=" in ops_text
     assert "Work Timeline" in ui_text
+
+
+def test_stage8_operations_edit_from_timeline_preserves_detail_modal():
+    ops_text = OPS_JS.read_text(encoding="utf-8")
+
+    assert "let activeTimelineKey = null;" in ops_text
+    assert "openEdit(edit.dataset.id);" in ops_text
+    assert "document.getElementById('timelineModal').classList.remove('show');" in ops_text
+    assert "if (wasEditing && savedTimelineKey)" in ops_text
+    assert "openTimeline(savedRowKey);" in ops_text
