@@ -121,9 +121,26 @@
 }
 #timelineModal .timeline-tr{
   display:grid;
-  grid-template-columns:70px 125px 1.5fr 80px 65px 85px 85px 90px 110px 110px;
-  min-width:990px;
+  grid-template-columns:70px 125px 1.5fr 80px 65px 85px 85px 90px 110px 140px;
+  min-width:1020px;
   align-items:center;
+}
+#timelineModal .timeline-tr .row-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  flex-wrap:nowrap;
+  gap:6px;
+  overflow:visible;
+}
+#timelineModal .timeline-tr .row-actions .mini{
+  flex:0 0 auto;
+  width:58px;
+  min-width:58px;
+  height:28px;
+  padding:4px 7px;
+  justify-content:center;
+  white-space:nowrap;
 }
 #timelineModal .timeline-th{
   height:34px;
