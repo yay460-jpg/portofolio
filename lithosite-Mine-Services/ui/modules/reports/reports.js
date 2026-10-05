@@ -98,6 +98,7 @@ function renderKpi(){
   const issueHost=document.getElementById('kpiExclusions');
   if(issueHost)issueHost.innerHTML=(k.exclusions||[]).length?(k.exclusions||[]).map(x=>'<div class="kpi-exclusion"><b>'+esc(x.equipmentId)+'</b> · '+esc(x.status)+' · '+esc((x.issues||[]).map(i=>i.code).join(', ')||'validation required')+'</div>').join(''):'<div class="kpi-exclusion ok">All equipment eligible for this calculation scope.</div>';
   const finalize=document.getElementById('reportsFinalizeKpi');if(finalize)finalize.disabled=state.scope!=='DATE'||!k||k.status!=='READY';
+  const history=document.getElementById('reportsOpenHistory');if(history)history.disabled=state.scope!=='DATE';
   const scopeLabel=document.getElementById('reportsKpiScopeLabel');if(scopeLabel)scopeLabel.textContent=state.scope==='DATE'?'Specific Date · '+state.date:'All Dates / Global · validated data';
 }
 
