@@ -187,6 +187,43 @@
 #dashboardSiteMap .topo3d-guide #dashboardTopo3DGuideStatus{margin-bottom:5px;color:#dbe8f5}
 #dashboardSiteMap .topo3d-guide b{color:#dbe8f5}
 
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button{
+  height:28px;
+  box-sizing:border-box;
+  border:1px solid #29435d;
+  border-radius:6px;
+  background:#0c1d30e8;
+  color:#dbe8f5;
+  padding:0 10px;
+  cursor:pointer;
+  font:700 9px/1 Arial,sans-serif;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  box-shadow:0 2px 8px #02081255;
+}
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button:hover{
+  border-color:#4d8dff;
+  background:#15304d;
+}
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button:focus-visible{
+  outline:2px solid #5b9aff;
+  outline-offset:1px;
+}
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button.primary{
+  border-color:#3d78d8;
+  background:#15304d;
+  color:#fff;
+}
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button.primary:hover{
+  border-color:#6da7ff;
+  background:#1b426b;
+}
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
 #dashboardScreen .panelhead .topo3d-toolbar button.is-active{
   border-color:#5b9aff;
   background:#15304d;
