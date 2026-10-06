@@ -10,7 +10,7 @@ SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation.js").read_text(encoding="
 def test_stage11_maintenance_screen_and_module_are_wired():
     assert 'id="maintenanceScreen"' in TEXT
     assert ">Maintenance<" in TEXT
-    assert "maintenance.js?v=20261007" in TEXT
+    assert "maintenance.js?v=20261008" in TEXT
     assert "entity:'Maintenance'" in MAINTENANCE_JS
 
 
@@ -80,3 +80,10 @@ def test_stage11_modal_and_runtime_message_present():
 
 
 
+
+
+def test_stage11_maintenance_trace_focus_contract():
+    assert "function focusTrace(target)" in MAINTENANCE_JS
+    assert "data-trace-key" in MAINTENANCE_JS
+    assert "trace-highlight" in MAINTENANCE_JS
+    assert "focusTrace," in MAINTENANCE_JS
