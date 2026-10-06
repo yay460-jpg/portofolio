@@ -6,14 +6,9 @@
     initialized: false
   };
 
-  const NON_BLOCKING = new Set([
-    'stage15DataModal',
+  const OPEN_CLASS_BY_ID = new Set([
     'reportsConsoleModal',
-    'reportsHistoryModal',
-    'timelineModal',
-    'appInfoModal',
-    'userGuideModal',
-    'userGuideReaderModal'
+    'reportsHistoryModal'
   ]);
 
   function isVisible(el) {
@@ -49,10 +44,15 @@
   function show(id) {
     const el = document.getElementById(id);
     if (!el) return false;
+
     closeAll(id);
+
+    const openClass = OPEN_CLASS_BY_ID.has(id) ? 'open' : 'show';
+    const closedClass = openClass === 'open' ? 'show' : 'open';
+
     el.hidden = false;
-    el.classList.add('show');
-    el.classList.remove('open');
+    el.classList.remove(closedClass);
+    el.classList.add(openClass);
     el.setAttribute('aria-hidden', 'false');
     state.activeId = id;
     return true;
@@ -109,6 +109,6 @@
     closeAll: closeAll,
     closeTransient: closeTransient,
     isVisible: isVisible,
-    nonBlocking: NON_BLOCKING
+    openClassById: OPEN_CLASS_BY_ID
   });
 })(window);
