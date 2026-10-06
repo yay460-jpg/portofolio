@@ -21,13 +21,11 @@
           '</div>' +
           '<div class="dm-pane active" id="stage15PaneData">' +
             '<div class="dm-help">Save updates the active dataset file. Save As creates a new dataset and makes it the active working dataset. Load Data switches the runtime to a saved dataset.</div>' +
-            '<div class="dm-actions dm-data-actions">' +
-              '<button class="control primary" id="stage15SaveRun">Save</button>' +
-              '<button class="control" id="stage15SaveAsRun">Save As</button>' +
-            '</div>' +
             '<div class="dm-load">' +
               '<label for="stage15DatasetSelect">Load Data</label>' +
-              '<div class="dm-actions">' +
+              '<div class="dm-actions dm-data-actions">' +
+                '<button class="control primary" id="stage15SaveRun">Save</button>' +
+                '<button class="control" id="stage15SaveAsRun">Save As</button>' +
                 '<select id="stage15DatasetSelect"><option value="">No saved datasets</option></select>' +
                 '<button class="control" id="stage15DatasetRefresh">Refresh</button>' +
                 '<button class="control primary" id="stage15LoadRun">Load Data</button>' +
