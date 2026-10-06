@@ -15,9 +15,9 @@ def test_stage15_data_management_ui_contract():
     assert "SAVE_AS_DATASET" in module
     assert "LOAD_DATASET" in module
     assert "LIST_DATASETS" in module
-    assert "data-management.css?v=20261011" in html
+    assert "data-management.css?v=20261014" in html
     assert "runtime-client.js?v=20261009" in html
-    assert "data-management.js?v=20261013" in html
+    assert "data-management.js?v=20261014" in html
     assert "LithositeDataManagement" in module
     assert "operation: 'IMPORT_XLSX'" in module
     assert "operation: 'BACKUP'" in module
