@@ -81,7 +81,7 @@
       const stylesheet = document.createElement('link');
       stylesheet.id = 'userGuideStyles';
       stylesheet.rel = 'stylesheet';
-      stylesheet.href = '../ui/shared/user-guide.css?v=20261006';
+      stylesheet.href = '../ui/shared/user-guide.css?v=20261007';
       document.head.appendChild(stylesheet);
     }
 
@@ -111,7 +111,7 @@
       const stylesheet = document.createElement('link');
       stylesheet.id = 'appInfoStyles';
       stylesheet.rel = 'stylesheet';
-      stylesheet.href = '../ui/shared/app-info.css?v=20261007';
+      stylesheet.href = '../ui/shared/app-info.css?v=20261008';
       document.head.appendChild(stylesheet);
     }
 
