@@ -16,3 +16,11 @@
 #stage15DataModal .dm-msg.error{border-color:#71343d;color:#ff9aa4;background:#28171c}
 #stage15DataModal .dm-help{color:#8ea3ba;font-size:9px;line-height:1.45}
 #stage15DataModal .dm-actions{display:flex;gap:8px}
+
+#stage15DataModal .dm-active{padding:9px 10px;border:1px solid #29435d;border-radius:7px;background:#10243a;color:#dbe8f5;font-size:9.5px}
+#stage15DataModal .dm-load{display:grid;gap:6px}
+#stage15DataModal .dm-load label{font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px}
+#stage15DataModal .dm-load select{flex:1;min-width:0;height:34px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:7px 9px;font-size:10px}
+#stage15DataModal .dm-data-actions{margin-top:2px}
+#stage15DataModal .dm-data-actions .control{min-width:92px}
+#stage15DataModal .dm-load .dm-actions{align-items:center}
