@@ -260,8 +260,25 @@ function bind(){
   const historyModal=document.getElementById('reportsHistoryModal');
   const openHistory=document.getElementById('reportsOpenHistory');
   const closeHistory=document.getElementById('reportsCloseHistory');
-  const showHistory=()=>{if(historyModal){historyModal.classList.add('open');historyModal.setAttribute('aria-hidden','false');renderSnapshotHistory();}};
-  const hideHistory=()=>{if(historyModal){historyModal.classList.remove('open');historyModal.setAttribute('aria-hidden','true');}};
+  const showHistory=()=>{
+    if(!historyModal)return;
+    renderSnapshotHistory();
+    if(global.LithositeModalShowContract){
+      global.LithositeModalShowContract.show('reportsHistoryModal');
+    }else{
+      historyModal.classList.add('open');
+      historyModal.setAttribute('aria-hidden','false');
+    }
+  };
+  const hideHistory=()=>{
+    if(!historyModal)return;
+    if(global.LithositeModalShowContract){
+      global.LithositeModalShowContract.close('reportsHistoryModal');
+    }else{
+      historyModal.classList.remove('open');
+      historyModal.setAttribute('aria-hidden','true');
+    }
+  };
   if(openHistory)openHistory.onclick=showHistory;
   if(closeHistory)closeHistory.onclick=hideHistory;
   if(historyModal)historyModal.onclick=e=>{if(e.target===historyModal)hideHistory();};
