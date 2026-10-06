@@ -350,12 +350,6 @@
     document.getElementById('stage15SaveAsRun').addEventListener('click', runSaveAs);
     document.getElementById('stage15DatasetRefresh').addEventListener('click', function () { refreshDatasets(); });
     document.getElementById('stage15LoadRun').addEventListener('click', runLoad);
-    document.getElementById('stage15DatasetDialog').addEventListener('click', function (event) {
-      if (event.target.id === 'stage15DatasetDialog') hideDialog('stage15DatasetDialog');
-    });
-    document.getElementById('stage15ConfirmDialog').addEventListener('click', function (event) {
-      if (event.target.id === 'stage15ConfirmDialog') hideDialog('stage15ConfirmDialog');
-    });
     document.getElementById('stage15DataModal').addEventListener('click', function (event) {
       if (event.target.id === 'stage15DataModal') close();
     });
