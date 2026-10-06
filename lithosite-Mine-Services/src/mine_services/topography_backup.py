@@ -52,6 +52,10 @@ class TopographyBackupManager:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")[:-3]
         stem = self._safe_name(filename or "topography")
         target = self.directory / f"{stem}-{stamp}.ltdtm"
+        suffix = 1
+        while target.exists():
+            target = self.directory / f"{stem}-{stamp}-{suffix}.ltdtm"
+            suffix += 1
         target.write_bytes(payload)
         files = self._files()
         for old in files[self.MAX_BACKUPS:]:
