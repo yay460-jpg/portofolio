@@ -84,11 +84,19 @@
       state.reason = item.message;
     });
 
-    if (!state.blocked) {
-      document.querySelectorAll('.navigation-guard-active').forEach(function (el) {
-        el.classList.remove('navigation-guard-active');
-      });
-    }
+    const nonBlocking = new Set([
+      'timelineModal',
+      'reportsConsoleModal',
+      'reportsHistoryModal'
+    ]);
+    document.querySelectorAll('.modalback').forEach(function (modal) {
+      if (!modal.id || nonBlocking.has(modal.id)) return;
+      if (!modal.classList.contains('show')) return;
+      state.blocked = true;
+      state.reason = 'Close your table or card before leaving.';
+      modal.classList.add('navigation-guard-active');
+    });
+
     return state.blocked;
   }
 
