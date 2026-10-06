@@ -6,6 +6,7 @@ outside the local machine is required.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import sys
@@ -109,6 +110,28 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", STATIC_ENTRY)
             self.end_headers()
+            return
+
+        if path == "/user-guide":
+            from urllib.parse import parse_qs
+            requested = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "").get("file", [""])[0]
+            guide_root = (REPO_ROOT / "docs" / "lithosite" / "02_Mine-Services" / "10_User-Guides").resolve()
+            target = (guide_root / requested).resolve() if requested else guide_root
+            try:
+                target.relative_to(guide_root)
+            except ValueError:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-007", "message": "Invalid user guide path"}]}, origin)
+                return
+            if target.suffix.lower() != ".pdf" or not target.is_file():
+                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "User guide not found"}]}, origin)
+                return
+            payload = {
+                "status": "READY",
+                "filename": target.name,
+                "mime": "application/pdf",
+                "data": base64.b64encode(target.read_bytes()).decode("ascii"),
+            }
+            self._json(200, payload, origin)
             return
 
         try:
