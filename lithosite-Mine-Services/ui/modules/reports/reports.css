@@ -49,10 +49,10 @@
 #reportsScreen .kpi-summary-card small{display:block;color:#8fa5bb;font-size:7.5px;text-transform:uppercase;font-weight:700}
 #reportsScreen .kpi-summary-card b{display:block;font-size:18px;margin-top:3px}
 #reportsScreen .kpi-summary-card span{display:block;margin-top:2px;color:#8fa5bb;font-size:7.5px}
-#reportsScreen .kpi-equipment-head{display:grid;grid-template-columns:1.2fr .95fr .72fr .72fr .72fr .68fr .68fr .88fr;gap:8px;padding:7px 10px;border-bottom:1px solid #263e57;color:#8fa5bb;font-size:7.5px;font-weight:700;text-transform:uppercase}
+#reportsScreen .kpi-equipment-head{display:grid;grid-template-columns:1.2fr .9fr .95fr .72fr .72fr .72fr .68fr .68fr .88fr;gap:8px;padding:7px 10px;border-bottom:1px solid #263e57;color:#8fa5bb;font-size:7.5px;font-weight:700;text-transform:uppercase}
 #reportsScreen .equipment-kpi-list{padding:0 8px 8px;overflow:auto;max-height:300px}
 #reportsScreen .equipment-kpi-detail{border:1px solid #223b55;border-radius:8px;background:#0c1b2c;margin-top:6px;overflow:hidden}
-#reportsScreen .equipment-kpi-detail summary{display:grid;grid-template-columns:1.2fr .95fr .72fr .72fr .72fr .68fr .68fr .88fr;gap:8px;align-items:center;min-height:46px;padding:7px 10px;cursor:pointer;list-style:none;font-size:9px}
+#reportsScreen .equipment-kpi-detail summary{display:grid;grid-template-columns:1.2fr .9fr .95fr .72fr .72fr .72fr .68fr .68fr .88fr;gap:8px;align-items:center;min-height:46px;padding:7px 10px;cursor:pointer;list-style:none;font-size:9px}
 #reportsScreen .equipment-kpi-detail summary::-webkit-details-marker{display:none}
 #reportsScreen .equipment-kpi-detail summary:hover{background:#12243a}
 #reportsScreen .equipment-kpi-detail .eq-id{font-weight:800;color:#e5eef8}
@@ -105,12 +105,12 @@
 #reportsScreen .kpi-summary-card b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #reportsScreen #reportsFleetStatus{font-size:11px;font-weight:700;line-height:1.1}
 #reportsScreen .kpi-summary-card span{margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#reportsScreen .kpi-equipment-head{flex:0 0 28px;grid-template-columns:1.2fr .95fr .72fr .72fr .72fr .68fr .68fr .88fr;align-items:center}
+#reportsScreen .kpi-equipment-head{flex:0 0 28px;grid-template-columns:1.2fr .9fr .95fr .72fr .72fr .72fr .68fr .68fr .88fr;align-items:center}
 #reportsScreen .kpi-panel{overflow:hidden}
 #reportsScreen .equipment-kpi-list{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;scrollbar-width:none;padding:0 7px 4px}
 #reportsScreen .equipment-kpi-list::-webkit-scrollbar{width:0;height:0;display:none}
 #reportsScreen .equipment-kpi-detail{margin-top:5px}
-#reportsScreen .equipment-kpi-detail summary{grid-template-columns:1.2fr .95fr .72fr .72fr .72fr .68fr .68fr .88fr;min-height:38px;padding:6px 8px;font-size:8.5px}
+#reportsScreen .equipment-kpi-detail summary{grid-template-columns:1.2fr .9fr .95fr .72fr .72fr .72fr .68fr .68fr .88fr;min-height:38px;padding:6px 8px;font-size:8.5px}
 #reportsScreen .equipment-kpi-detail summary strong{font-size:9px}
 #reportsScreen .kpi-lineage{padding:7px 8px;font-size:7.5px}
 #reportsScreen .kpi-event{grid-template-columns:82px 150px 1fr;padding:4px 6px}
@@ -211,3 +211,6 @@ footer.status{
 #reportsScreen .equipment-kpi-list{display:flex;flex-direction:column;gap:5px;padding:0;overflow:visible}
 
 #reportsScreen .equipment-kpi-detail .eq-unit{font-weight:700;color:#dce8f5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Stage 26 — KPI source date is explicit between Equipment and Unit. */
+#reportsScreen .equipment-kpi-detail .eq-date{color:#9fc3e8;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
