@@ -3,7 +3,7 @@
 #reportsScreen .boundary{height:auto;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #reportsScreen .report-body{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;min-height:0}
 #reportsScreen .report-panel{background:#101f31;border:1px solid #28425c;border-radius:9px;overflow:hidden;display:flex;flex-direction:column}
-#reportsScreen .report-panelhead{height:40px;padding:0 12px;border-bottom:1px solid #263e57;display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:800}
+#reportsScreen .report-panelhead{height:40px;padding:0 12px;border-bottom:1px solid #263e57;display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:650}
 #reportsScreen .report-summary{overflow:auto;padding:8px}
 .report-row{display:grid;grid-template-columns:1.5fr 80px 1fr;gap:8px;align-items:center;min-height:34px;border-bottom:1px solid #223b55;font-size:9.5px;color:#dce8f5}
 .report-row:last-child{border-bottom:0}
@@ -214,3 +214,7 @@ footer.status{
 
 /* Stage 26 — KPI source date is explicit between Equipment and Unit. */
 #reportsScreen .equipment-kpi-detail .eq-date{color:#9fc3e8;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+
+/* Stage 26 — Reports operational header: keep title readable without heavy bold; runtime count stays secondary. */
+#reportsScreen #reportsCount{font-weight:500}
