@@ -413,6 +413,7 @@
       bind('#dashboardTopo3DWire',function(){engine.setMode('wire');});
       bind('#dashboardTopo3DBackup',backupTopography);
       bind('#dashboardTopo3DRestore',openTopoBackupPanel);
+      bind('#dashboardTopo3DClear',clearTopography);
       var rotate360=(panel||host).querySelector('#dashboardTopo3DRotate360');
       if(rotate360)rotate360.addEventListener('click',function(){
         if(autoRotate){stopAutoRotate();rotate360.classList.remove('is-active');rotate360.textContent='360°';}
