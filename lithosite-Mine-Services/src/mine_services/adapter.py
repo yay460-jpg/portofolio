@@ -25,6 +25,9 @@ class RuntimeAdapter:
         "SAVE_DATASET",
         "SAVE_AS_DATASET",
         "LOAD_DATASET",
+        "SAVE_TOPOGRAPHY_BACKUP",
+        "LIST_TOPOGRAPHY_BACKUPS",
+        "LOAD_TOPOGRAPHY_BACKUP",
         "FINALIZE_KPI",
         "READ_KPI_SNAPSHOTS",
     }
@@ -126,6 +129,19 @@ class RuntimeAdapter:
             elif operation == "LOAD_DATASET":
                 name = self._required(request, "name")
                 result = self._runtime.load_dataset(name=name)
+            elif operation == "SAVE_TOPOGRAPHY_BACKUP":
+                package_base64 = self._required(request, "package_base64")
+                result = self._runtime.save_topography_backup(
+                    package_base64,
+                    filename=request.get("filename"),
+                    source=request.get("source", "Map-Topography"),
+                )
+                result["status"] = "SAVED"
+            elif operation == "LIST_TOPOGRAPHY_BACKUPS":
+                result = self._runtime.list_topography_backups()
+            elif operation == "LOAD_TOPOGRAPHY_BACKUP":
+                name = self._required(request, "filename")
+                result = self._runtime.load_topography_backup(name)
             elif operation == "FINALIZE_KPI":
                 snapshot = self._required(request, "snapshot")
                 result = self._runtime.finalize_kpi(
