@@ -39,6 +39,14 @@
 
 /* Stage 26 — Data Management opens beside the actual sidebar; shift only left, keep the workspace visible. */
 #stage15DataModal .dm-native-dialog{pointer-events:auto}
+
+/* Stage 26 — keep Data Management aligned with the sidebar state. */
+body:has(.sidebar.expanded) #stage15DataModal{
+  padding-left:146px;
+}
+body:has(.sidebar.expanded) #stage15DataModal .dm-card{
+  max-width:calc(100vw - 248px);
+}
 @media (max-width:1100px){
   #stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 108px)}
 }
