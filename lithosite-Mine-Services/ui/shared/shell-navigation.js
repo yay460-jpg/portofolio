@@ -194,8 +194,8 @@
       frame._userGuideObjectUrl = null;
     }
 
-    frame.src = url;
-    document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader';
+    frame.src = url + '#zoom=page-width';
+    document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader · Fit Width';
   }
 
   function closeUserGuideReader() {
