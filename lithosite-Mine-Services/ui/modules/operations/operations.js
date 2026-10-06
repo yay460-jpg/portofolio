@@ -245,7 +245,7 @@
       '</div>';
     }).join('');
 
-    document.getElementById('timelineModal').classList.add('show');
+    if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('timelineModal');}else{document.getElementById('timelineModal').classList.add('show')};
   }
 
   function render() {
