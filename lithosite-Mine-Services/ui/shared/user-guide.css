@@ -154,3 +154,75 @@
 @media(prefers-reduced-motion:reduce){
   .user-guide-item{transition:none}
 }
+
+
+.user-guide-item{
+  appearance:none;
+  width:100%;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.user-guide-reader-modal{
+  position:fixed;
+  inset:0;
+  z-index:70;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:#020812cc;
+}
+.user-guide-reader-modal.show{display:flex}
+.user-guide-reader-dialog{
+  width:min(1180px,calc(100vw - 36px));
+  height:min(90vh,900px);
+  overflow:hidden;
+  background:#101f31;
+  border:1px solid #31506d;
+  border-radius:12px;
+  box-shadow:0 20px 80px #000b;
+  display:flex;
+  flex-direction:column;
+}
+.user-guide-reader-head{
+  height:50px;
+  min-height:50px;
+  padding:0 14px 0 16px;
+  border-bottom:1px solid #29435d;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.user-guide-reader-head>div{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.user-guide-reader-head b{
+  color:#e8f0fa;
+  font-size:11px;
+}
+.user-guide-reader-head span{
+  color:#8fa5bb;
+  font-size:8px;
+}
+.user-guide-reader-body{
+  min-height:0;
+  flex:1;
+  background:#fff;
+}
+.user-guide-reader-body iframe{
+  display:block;
+  width:100%;
+  height:100%;
+  border:0;
+  background:#fff;
+}
+@media(max-width:700px){
+  .user-guide-reader-modal{padding:8px}
+  .user-guide-reader-dialog{
+    width:calc(100vw - 16px);
+    height:calc(100vh - 16px);
+  }
+}
