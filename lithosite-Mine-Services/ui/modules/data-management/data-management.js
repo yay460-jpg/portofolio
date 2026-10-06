@@ -208,37 +208,18 @@
     );
   }
 
-  function closeOtherModals() {
-    const modalSelectors = [
-      '#modal',
-      '#equipmentModal',
-      '#workfrontModal',
-      '#maintenanceModal',
-      '#maintenanceTimelineModal',
-      '#plansModal',
-      '#hseModal',
-      '#issuesModal',
-      '#reportsConsoleModal',
-      '#reportsHistoryModal',
-      '#timelineModal'
-    ];
-    modalSelectors.forEach(function (selector) {
-      const modal = document.querySelector(selector);
-      if (!modal || modal.id === 'stage15DataModal') return;
-      modal.classList.remove('show', 'open');
-      if (modal.hasAttribute('aria-hidden')) modal.setAttribute('aria-hidden', 'true');
-    });
-  }
-
   function open() {
     ensureDom();
     if (!initialized) {
       bind();
       initialized = true;
     }
-    closeOtherModals();
     openPane('data');
-    document.getElementById('stage15DataModal').classList.add('show');
+    if (global.LithositeModalShowContract) {
+      global.LithositeModalShowContract.show('stage15DataModal');
+    } else {
+      document.getElementById('stage15DataModal').classList.add('show');
+    }
   }
 
   function close() {
@@ -367,30 +348,6 @@
       restorePayload = null;
       msg('Restore failed: ' + error.message, true);
     }
-  }
-
-  function bindTransientModalLifecycle() {
-    if (document.documentElement.dataset.dmModalLifecycleBound === 'true') return;
-    document.documentElement.dataset.dmModalLifecycleBound = 'true';
-
-    const observer = new MutationObserver(function (mutations) {
-      for (const mutation of mutations) {
-        if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') continue;
-        const target = mutation.target;
-        if (!(target instanceof HTMLElement)) continue;
-        if (target.id === 'stage15DataModal') continue;
-        const isModalState = target.classList.contains('show') || target.classList.contains('open');
-        if (isModalState) {
-          const modal = document.getElementById('stage15DataModal');
-          if (modal && modal.classList.contains('show')) {
-            close();
-          }
-          break;
-        }
-      }
-    });
-
-    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
   }
 
   function bind() {
