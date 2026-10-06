@@ -1,0 +1,38 @@
+/* Lithosite Mine Services — Global User Guide launcher
+   Shared shell utility. The guide document is not version-owned.
+*/
+.user-guide-launcher{
+  width:30px;
+  height:30px;
+  margin-left:10px;
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 30px;
+  border:1px solid #29435d;
+  border-radius:8px;
+  background:#12243a;
+  color:#dbe8f5;
+  font-size:14px;
+  font-weight:700;
+  line-height:1;
+  text-decoration:none;
+  cursor:pointer;
+  transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease,transform .14s ease;
+}
+.user-guide-launcher:hover{
+  border-color:#4d8dff;
+  background:#142b43;
+  box-shadow:0 0 0 1px #4d8dff55,0 4px 12px #02081255;
+  transform:translateY(-1px);
+}
+.user-guide-launcher:focus-visible{
+  outline:none;
+  border-color:#60a5fa;
+  box-shadow:0 0 0 2px #60a5fa55;
+}
+.user-guide-launcher:active{
+  transform:none;
+}
+@media(prefers-reduced-motion:reduce){
+  .user-guide-launcher{transition:none}
+}
