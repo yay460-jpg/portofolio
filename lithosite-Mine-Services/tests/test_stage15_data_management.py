@@ -17,7 +17,7 @@ def test_stage15_data_management_ui_contract():
     assert "LIST_DATASETS" in module
     assert "data-management.css?v=20261010" in html
     assert "runtime-client.js?v=20261009" in html
-    assert "data-management.js?v=20261011" in html
+    assert "data-management.js?v=20261012" in html
     assert "LithositeDataManagement" in module
     assert "operation: 'IMPORT_XLSX'" in module
     assert "operation: 'BACKUP'" in module
@@ -64,5 +64,6 @@ def test_stage15_uses_lithosite_owned_dataset_dialogs():
     assert "stage15DatasetDialog" in module
     assert "stage15ConfirmDialog" in module
     assert "stage15DatasetNameInput" in module
+    assert "stage15ActiveDataset" not in module
     assert "stage15DatasetDialogConfirm" in module
     assert "dm-native-dialog" in css
