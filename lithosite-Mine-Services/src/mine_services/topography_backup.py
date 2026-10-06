@@ -58,12 +58,20 @@ class TopographyBackupManager:
             suffix += 1
         target.write_bytes(payload)
         files = self._files()
+        removed = []
         for old in files[self.MAX_BACKUPS:]:
             old.unlink(missing_ok=True)
-        return self._info(target, source=source)
+            removed.append(old.name)
+        stored = self._files()[: self.MAX_BACKUPS]
+        result = self._info(target, source=source)
+        result["removed"] = removed
+        result["storage_used"] = len(stored)
+        result["storage_max"] = self.MAX_BACKUPS
+        return result
 
     def list(self):
-        return [self._info(path) for path in self._files()[: self.MAX_BACKUPS]]
+        backups = self._files()[: self.MAX_BACKUPS]
+        return [self._info(path) for path in backups]
 
     def read(self, filename):
         safe = Path(str(filename or "")).name
