@@ -27,6 +27,8 @@ def test_stage8_operations_ui_contract_markers():
         "operation: 'READ', entity: 'WorkFront'",
         "operation: 'READ', entity: 'Equipment'",
         "operation: 'READ', entity: '_Lists'",
+        "operation: 'READ', entity: 'Maintenance'",
+        "maintenanceLinksFor",
         "operation: 'CREATE'",
         "operation: 'UPDATE'",
         "operation: 'DELETE'",
@@ -103,3 +105,15 @@ def test_stage8_operations_edit_from_timeline_preserves_detail_modal():
     assert "document.getElementById('timelineModal').classList.remove('show');" in ops_text
     assert "if (wasEditing && savedTimelineKey)" in ops_text
     assert "openTimeline(savedRowKey);" in ops_text
+
+
+def test_stage8_operations_maintenance_trace_contract():
+    ops_text = OPS_JS.read_text(encoding="utf-8")
+    ui_text = UI.read_text(encoding="utf-8")
+
+    assert "maintenanceLinksFor" in ops_text
+    assert "dataState.maintenance" in ops_text
+    assert 'class="maintenance-link"' in ops_text
+    assert "LithositeMaintenance.focusTrace" in ops_text
+    assert "setScreen('Maintenance')" in ops_text
+    assert '<div class="cell">Maintenance</div>' in ui_text
