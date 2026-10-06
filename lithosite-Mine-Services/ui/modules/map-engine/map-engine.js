@@ -309,7 +309,7 @@
           return;
         }
         panel.querySelector('#dashboardTopo3DBackupRestore').disabled=false;
-        list.innerHTML='<label style="display:block;margin-bottom:4px;color:#93c5fd">Select backup</label><select id="dashboardTopo3DBackupSelect" style="width:100%;height:30px;box-sizing:border-box;padding:0 8px;border-radius:6px;background:#071525;color:#dbe8f5;border:1px solid #29415f;font:700 10px/28px Segoe UI,Arial,sans-serif">'+backups.map(function(item){
+        list.innerHTML='<label style="display:block;margin-bottom:4px;color:#93c5fd">Select backup</label><select id="dashboardTopo3DBackupSelect" style="width:100%;height:30px;box-sizing:border-box;padding:0 8px;border-radius:6px;background:#071525;color:#dbe8f5;border:1px solid #29415f;font:600 9px/28px Segoe UI,Arial,sans-serif">'+backups.map(function(item){
           var label=item.filename+' · '+(Number(item.size_bytes||0)/1048576).toFixed(2)+' MB';
           return '<option value="'+String(item.filename).replace(/"/g,'&quot;')+'">'+label+'</option>';
         }).join('')+'</select>';
