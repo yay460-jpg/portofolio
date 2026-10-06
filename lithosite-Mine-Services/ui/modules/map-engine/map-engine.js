@@ -302,14 +302,14 @@
         var backups=Array.isArray(result.backups)?result.backups:[];
         var max=Math.max(1,Number(result.max_backups)||5);
         var used=Math.min(backups.length,Number(result.storage_used)||backups.length);
-        storage.innerHTML='<div style="font-weight:700;color:#dbeafe">LT-DTM Backup Storage</div><div style="margin-top:3px;font-size:15px;font-weight:700">'+used+' / '+max+' backups used'+(used>=max?' · FULL':'')+'</div><div style="margin-top:3px;color:#8fa7bf">'+(used<max?used+' backup'+(used===1?'':'s')+' stored.':'Storage full — saving a new backup will automatically remove the oldest backup.')+'</div>';
+        storage.innerHTML='<div style="font-weight:800;color:#dbe8f5;font-size:10px;line-height:1.2">LT-DTM Backup Storage</div><div style="margin-top:3px;font-size:11px;line-height:1.2;font-weight:800">'+used+' / '+max+' backups used'+(used>=max?' · FULL':'')+'</div><div style="margin-top:3px;color:#8fa7bf;font-size:9px;line-height:1.35">'+(used<max?used+' backup'+(used===1?'':'s')+' stored.':'Storage full — saving a new backup will automatically remove the oldest backup.')+'</div>';
         if(!backups.length){
           list.textContent='No topography backups yet.';
           panel.querySelector('#dashboardTopo3DBackupRestore').disabled=true;
           return;
         }
         panel.querySelector('#dashboardTopo3DBackupRestore').disabled=false;
-        list.innerHTML='<label style="display:block;margin-bottom:4px;color:#93c5fd">Select backup</label><select id="dashboardTopo3DBackupSelect" style="width:100%;padding:8px;border-radius:7px;background:#071525;color:#dbeafe;border:1px solid #29415f">'+backups.map(function(item){
+        list.innerHTML='<label style="display:block;margin-bottom:4px;color:#93c5fd">Select backup</label><select id="dashboardTopo3DBackupSelect" style="width:100%;height:30px;box-sizing:border-box;padding:0 8px;border-radius:6px;background:#071525;color:#dbe8f5;border:1px solid #29415f;font:700 10px/28px Segoe UI,Arial,sans-serif">'+backups.map(function(item){
           var label=item.filename+' · '+(Number(item.size_bytes||0)/1048576).toFixed(2)+' MB';
           return '<option value="'+String(item.filename).replace(/"/g,'&quot;')+'">'+label+'</option>';
         }).join('')+'</select>';
