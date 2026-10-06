@@ -50,7 +50,7 @@
           '</div>' +
           '<div class="dm-msg" id="stage15DataMsg">RuntimeAdapter ready.</div>' +
         '</div>' +
-        '<div class="dm-foot"><button class="control" id="stage15DataClose2">Done</button></div>' +
+        '' +
       '</div>' +
       '<div class="dm-native-dialog" id="stage15DatasetDialog" hidden aria-hidden="true">' +
         '<div class="dm-dialog-card" role="dialog" aria-modal="true" aria-labelledby="stage15DatasetDialogTitle">' +
@@ -277,7 +277,6 @@
       });
       if (result.status !== 'LOADED') throw new Error('Load rejected');
       activeDataset = result;
-      renderActiveDataset();
       if (global.LithositeDataSync) await global.LithositeDataSync.refreshAll();
       msg('Loaded: ' + result.filename + ' · runtime refreshed.');
     } catch (error) {
@@ -352,7 +351,6 @@
   function bind() {
     ensureDom();
     document.getElementById('stage15DataClose').addEventListener('click', close);
-    document.getElementById('stage15DataClose2').addEventListener('click', close);
     document.querySelectorAll('#stage15DataModal .dm-tab').forEach(function (tab) {
       tab.addEventListener('click', function () { openPane(tab.dataset.pane); });
     });
