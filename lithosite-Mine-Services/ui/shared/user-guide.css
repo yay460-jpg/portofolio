@@ -40,3 +40,117 @@
 @media(prefers-reduced-motion:reduce){
   .user-guide-launcher{transition:none}
 }
+
+.user-guide-modal{
+  position:fixed;
+  inset:0;
+  z-index:60;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:#02081299;
+}
+.user-guide-modal.show{display:flex}
+.user-guide-dialog{
+  width:min(560px,calc(100vw - 48px));
+  max-height:calc(100vh - 48px);
+  overflow:hidden;
+  background:#101f31;
+  border:1px solid #31506d;
+  border-radius:12px;
+  box-shadow:0 20px 70px #0009;
+  display:flex;
+  flex-direction:column;
+}
+.user-guide-head{
+  min-height:52px;
+  padding:0 16px;
+  border-bottom:1px solid #29435d;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.user-guide-head>div{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.user-guide-head b{
+  color:#e8f0fa;
+  font-size:12px;
+}
+.user-guide-head span{
+  color:#8fa5bb;
+  font-size:8.5px;
+}
+.user-guide-close{
+  width:30px;
+  min-width:30px;
+  height:30px;
+  padding:0;
+  justify-content:center;
+  font-size:18px;
+}
+.user-guide-body{
+  padding:12px;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.user-guide-item{
+  min-height:66px;
+  display:grid;
+  grid-template-columns:34px 1fr auto;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  border:1px solid #29435d;
+  border-radius:9px;
+  background:#0c1b2c;
+  color:#dce8f5;
+  text-decoration:none;
+  transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease,transform .14s ease;
+}
+.user-guide-item:hover{
+  border-color:#4d8dff;
+  background:#10243a;
+  box-shadow:0 0 0 1px #4d8dff44,0 4px 12px #02081255;
+  transform:translateY(-1px);
+}
+.user-guide-item-icon{
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  border:1px solid #31506d;
+  background:#12243a;
+  color:#7db0ff;
+  font-size:12px;
+  font-weight:700;
+}
+.user-guide-item>span:nth-child(2){
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.user-guide-item b{
+  font-size:10.5px;
+  color:#e8f0fa;
+}
+.user-guide-item small{
+  color:#8fa5bb;
+  font-size:8.5px;
+  line-height:1.35;
+}
+.user-guide-open{
+  color:#7db0ff;
+  font-size:8.5px;
+  white-space:nowrap;
+}
+@media(prefers-reduced-motion:reduce){
+  .user-guide-item{transition:none}
+}
