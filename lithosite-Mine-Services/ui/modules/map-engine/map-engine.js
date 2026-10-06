@@ -302,7 +302,7 @@
         var backups=Array.isArray(result.backups)?result.backups:[];
         var max=Math.max(1,Number(result.max_backups)||5);
         var used=Math.min(backups.length,Number(result.storage_used)||backups.length);
-        storage.innerHTML='<div style="display:flex;align-items:center;gap:7px;color:#dbe8f5;font-size:10px;line-height:1.2;font-weight:700;white-space:nowrap">LT-DTM Backup Storage <span style="color:#8fb8e8;font-weight:700">·</span> <span>'+used+' / '+max+' backups used'+(used>=max?' · FULL':'')+'</span></div><div style="margin-top:3px;color:#8fa7bf;font-size:9px;line-height:1.35">'+(used<max?used+' backup'+(used===1?'':'s')+' stored.':'Storage full — saving a new backup will automatically remove the oldest backup.')+'</div>';
+        storage.innerHTML='<div style="display:flex;align-items:center;gap:7px;color:#dbe8f5;font-size:10px;line-height:1.2;font-weight:650;white-space:nowrap">LT-DTM Backup Storage <span style="color:#8fb8e8;font-weight:700">·</span> <span>'+used+' / '+max+' backups used'+(used>=max?' · FULL':'')+'</span></div><div style="margin-top:3px;color:#8fa7bf;font-size:9px;line-height:1.35">'+(used<max?used+' backup'+(used===1?'':'s')+' stored.':'Storage full — saving a new backup will automatically remove the oldest backup.')+'</div>';
         if(!backups.length){
           list.textContent='No topography backups yet.';
           panel.querySelector('#dashboardTopo3DBackupRestore').disabled=true;
