@@ -180,6 +180,7 @@
     if (!visible &&
         global.LithositeModalShowContract &&
         global.LithositeModalShowContract.hasOtherVisible('appInfoModal')) {
+      global.LithositeModalShowContract.notifyBlocked('Close the current modal before opening About Mine Services.');
       return;
     }
 
@@ -255,6 +256,7 @@
     if (!visible &&
         global.LithositeModalShowContract &&
         global.LithositeModalShowContract.hasOtherVisible('userGuideModal')) {
+      global.LithositeModalShowContract.notifyBlocked('Close the current modal before opening How To Use.');
       return;
     }
 
