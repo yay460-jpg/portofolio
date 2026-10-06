@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from .snapshot import SnapshotManager
+from .dataset import DatasetManager
 from .kpi_snapshot_store import KPIHistoryStore
 from .application import ApplicationService
 from .import_engine import ImportCoordinator
@@ -23,6 +24,8 @@ class RuntimeInterface:
         store_path = getattr(self._application.store, "path", None)
         history_path = Path(store_path).with_name("KPI-History.json") if store_path else None
         self._kpi_history = KPIHistoryStore(history_path)
+        dataset_dir = Path(store_path).with_name("Datasets") if store_path else Path("Datasets")
+        self._datasets = DatasetManager(self._application.store, dataset_dir)
 
     def create(self, entity, row, request_id):
         return self._application.create(entity, row, request_id)
@@ -59,6 +62,54 @@ class RuntimeInterface:
 
     def restore(self, snapshot, mode="REPLACE_RUNTIME"):
         return self._snapshots.restore(snapshot, mode=mode)
+
+    def list_datasets(self):
+        return {"status": "READY", "datasets": self._datasets.list(), "active": self._datasets.active_info()}
+
+    def save_dataset(self, name=None):
+        result = self._datasets.save(name=name)
+        self._application.audit_repository.append(
+            entity="_System",
+            entity_id=result["dataset_id"],
+            action="DATASET_SAVE",
+            request_id=result["dataset_id"],
+            new_value=json.dumps(result, default=str, sort_keys=True),
+            source="DatasetManager",
+        )
+        self._application.store.save()
+        return result
+
+    def save_dataset_as(self, name):
+        result = self._datasets.save_as(name=name)
+        self._application.audit_repository.append(
+            entity="_System",
+            entity_id=result["dataset_id"],
+            action="DATASET_SAVE_AS",
+            request_id=result["dataset_id"],
+            new_value=json.dumps(result, default=str, sort_keys=True),
+            source="DatasetManager",
+        )
+        self._application.store.save()
+        return result
+
+    def load_dataset(self, name):
+        before = self._application.store.snapshot()
+        try:
+            result = self._datasets.load(name=name)
+            self._application.audit_repository.append(
+                entity="_System",
+                entity_id=result["dataset_id"],
+                action="DATASET_LOAD",
+                request_id=result["dataset_id"],
+                old_value=json.dumps(before, default=str, sort_keys=True),
+                new_value=json.dumps(result, default=str, sort_keys=True),
+                source="DatasetManager",
+            )
+            self._application.store.save()
+            return result
+        except Exception:
+            self._application.store.replace(before)
+            raise
 
     def finalize_kpi(self, snapshot, source="runtime"):
         result = self._kpi_history.finalize(snapshot, source=source)
