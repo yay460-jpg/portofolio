@@ -70,7 +70,13 @@ class RuntimeInterface:
         return self._topography.save(package_base64, filename=filename, source=source)
 
     def list_topography_backups(self):
-        return {"status": "READY", "backups": self._topography.list(), "max_backups": self._topography.MAX_BACKUPS}
+        backups = self._topography.list()
+        return {
+            "status": "READY",
+            "backups": backups,
+            "max_backups": self._topography.MAX_BACKUPS,
+            "storage_used": len(backups),
+        }
 
     def load_topography_backup(self, filename):
         result = self._topography.read(filename)
