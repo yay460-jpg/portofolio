@@ -7,7 +7,7 @@
   }
 
   const modal = document.getElementById('modal');
-  const dataState = { operations: [], workFronts: [], equipment: [], lists: {} };
+  const dataState = { operations: [], workFronts: [], equipment: [], maintenance: [], lists: {} };
 
   let editId = null;
   let runtimeReady = false;
@@ -132,6 +132,18 @@
         '"': '&quot;',
         "'": '&#39;'
       }[match];
+    });
+  }
+
+  function maintenanceLinksFor(items) {
+    if (!Array.isArray(dataState.maintenance) || !items.length) return [];
+    const first = items[0];
+    const date = String(first.transaction_date || '');
+    const equipmentId = String(first.equipment_id || '').trim();
+    if (!date || !equipmentId) return [];
+    return dataState.maintenance.filter(function (row) {
+      return String(row.event_date || '') === date &&
+        String(row.equipment_id || '').trim() === equipmentId;
     });
   }
 
@@ -276,6 +288,10 @@
         '<div class="cell">' + esc(actualHours || '—') + '</div>' +
         '<div class="cell">' + esc(targetHours || '—') + '</div>' +
         '<div class="cell"><span class="statuspill ' + cls + '">' + esc(status) + '</span></div>' +
+        (maintenanceLinksFor(items).length
+          ? '<div class="cell"><button class="control mini maintenance-link" data-date="' + esc(first.transaction_date) + '" data-equipment="' + esc(first.equipment_id) + '">' +
+              maintenanceLinksFor(items).length + ' linked</button></div>'
+          : '<div class="cell muted">—</div>') +
         '<div class="cell row-actions"><button class="control mini timeline-row" data-key="' + key + '">View</button></div>' +
       '</div>';
     }).join('');
@@ -297,13 +313,15 @@
         runtimeClient.request({ operation: 'READ', entity: 'Operations' }),
         runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
         runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
-        runtimeClient.request({ operation: 'READ', entity: '_Lists' })
+        runtimeClient.request({ operation: 'READ', entity: '_Lists' }),
+        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' })
       ]);
 
       dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
       dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
       dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
       dataState.lists = (results[3].data && typeof results[3].data === 'object') ? results[3].data : results[3];
+      dataState.maintenance = Array.isArray(results[4].data) ? results[4].data : [];
 
       fillRefs();
       render();
@@ -323,11 +341,13 @@
       const results = await Promise.all([
         runtimeClient.request({ operation: 'READ', entity: 'Operations' }),
         runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
-        runtimeClient.request({ operation: 'READ', entity: 'Equipment' })
+        runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
+        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' })
       ]);
       dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
       dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
       dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
+      dataState.maintenance = Array.isArray(results[3].data) ? results[3].data : [];
       fillRefs();
       render();
     } catch (error) {
@@ -479,6 +499,24 @@
       });
 
     document.getElementById('rows').addEventListener('click', function (event) {
+      const maintenanceLink = event.target.closest('.maintenance-link');
+      if (maintenanceLink) {
+        const date = maintenanceLink.dataset.date || '';
+        const equipmentId = maintenanceLink.dataset.equipment || '';
+        if (global.LithositeShellNavigation) {
+          global.LithositeShellNavigation.setScreen('Maintenance');
+        }
+        window.setTimeout(function () {
+          if (global.LithositeMaintenance && typeof global.LithositeMaintenance.focusTrace === 'function') {
+            global.LithositeMaintenance.focusTrace({
+              date: date,
+              equipmentId: equipmentId
+            });
+          }
+        }, 0);
+        return;
+      }
+
       const timeline = event.target.closest('.timeline-row');
       if (timeline) {
         openTimeline(timeline.dataset.key);
