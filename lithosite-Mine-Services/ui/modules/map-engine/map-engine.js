@@ -175,6 +175,51 @@
       var result=host.querySelector('#dashboardTopo3DMeasureResult');
       if(result)result.textContent='Bearing — · Distance —';
     }
+    var ACTIVE_TOPO_DB='lithosite-mine-services';
+    var ACTIVE_TOPO_STORE='active-topography';
+    function openActiveTopoStore(){
+      return new Promise(function(resolve,reject){
+        if(!global.indexedDB){reject(new Error('Browser storage unavailable'));return;}
+        var request=global.indexedDB.open(ACTIVE_TOPO_DB,1);
+        request.onupgradeneeded=function(){var db=request.result;if(!db.objectStoreNames.contains(ACTIVE_TOPO_STORE))db.createObjectStore(ACTIVE_TOPO_STORE);};
+        request.onsuccess=function(){resolve(request.result);};
+        request.onerror=function(){reject(request.error||new Error('Active topography storage unavailable'));};
+      });
+    }
+    async function saveActiveTopography(buffer,filename){
+      try{
+        var db=await openActiveTopoStore();
+        await new Promise(function(resolve,reject){
+          var tx=db.transaction(ACTIVE_TOPO_STORE,'readwrite');
+          tx.objectStore(ACTIVE_TOPO_STORE).put({buffer:buffer,filename:filename||'Lithosite_Topography.ltdtm',savedAt:new Date().toISOString()},'current');
+          tx.oncomplete=resolve; tx.onerror=function(){reject(tx.error||new Error('Active topography cache failed'));};
+        });
+        db.close();
+      }catch(error){}
+    }
+    async function restoreActiveTopography(){
+      try{
+        var db=await openActiveTopoStore();
+        var saved=await new Promise(function(resolve,reject){
+          var tx=db.transaction(ACTIVE_TOPO_STORE,'readonly'),request=tx.objectStore(ACTIVE_TOPO_STORE).get('current');
+          request.onsuccess=function(){resolve(request.result||null);};
+          request.onerror=function(){reject(request.error||new Error('Active topography cache unavailable'));};
+        });
+        db.close();
+        if(!saved||!saved.buffer)return false;
+        setStatus('Memulihkan topography terakhir…');
+        var file=new File([saved.buffer],saved.filename||'Lithosite_Topography.ltdtm',{type:'application/octet-stream'});
+        await engine.loadLTDtm(file);
+        engine.fit();
+        updateCoordinateInfo(engine.getState().meta);
+        setStatus('Topography 3D dipulihkan otomatis · '+(saved.filename||'LT-DTM'),'ready');
+        startAutoRotate();
+        return true;
+      }catch(error){
+        setStatus('Topography cache tidak dapat dipulihkan otomatis','error');
+        return false;
+      }
+    }
     function bytesToBase64(buffer){
       var bytes=new Uint8Array(buffer), binary='';
       var chunk=0x8000;
@@ -209,6 +254,7 @@
           await engine.loadLTDtm(file);
           engine.fit();
           updateCoordinateInfo(engine.getState().meta);
+          saveActiveTopography(await bytes.buffer.slice(0),result.filename||select.value);
           setStatus('Topography restored · '+(result.filename||select.value),'ready');
           startAutoRotate();
           panel.style.display='none';
@@ -290,8 +336,8 @@
         onReady:function(payload){setStatus('Topo3D siap. Menunggu data topografi…');if(payload&&payload.meta)updateCoordinateInfo(payload.meta);},
         onError:function(error){setStatus(error&&error.message?error.message:'Topo3D error','error');}
       });
-      engine.prepare().then(function(){
-        setStatus('Topo3D siap · pilih .ltdtm atau pasangan .dtm + .str');
+      engine.prepare().then(async function(){
+        if(!(await restoreActiveTopography()))setStatus('Topo3D siap · pilih .ltdtm ou pasangan .dtm + .str');
       }).catch(function(error){
         setStatus(error&&error.message?error.message:'WebGL tidak tersedia','error');
       });
@@ -303,6 +349,10 @@
           await engine.loadFiles(input.files);
           engine.fit();
           updateCoordinateInfo(engine.getState().meta);
+          try{
+            var activeExport=await engine.exportLTDtm({filename:'Lithosite_Active_Topography'});
+            saveActiveTopography(await activeExport.blob.arrayBuffer(),activeExport.filename);
+          }catch(error){}
           setStatus('Topography 3D siap · Auto 360° aktif','ready');
           startAutoRotate();
         }catch(error){
