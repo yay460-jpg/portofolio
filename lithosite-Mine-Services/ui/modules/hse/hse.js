@@ -164,7 +164,7 @@ function openAdd(){
  document.getElementById('hseModalTitle').textContent='Add HSE Event';
  document.getElementById('hseSave').textContent='Save via RuntimeAdapter';
  resetForm();
- document.getElementById('hseModal').classList.add('show');
+ if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('hseModal');}else{document.getElementById('hseModal').classList.add('show')};
 }
 function openEdit(id){
  const row=state.rows.find(x=>String(x.hse_id)===String(id));if(!row)return;
@@ -180,7 +180,7 @@ function openEdit(id){
  };
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
  syncClosedAtField();
- document.getElementById('hseModal').classList.add('show');
+ if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('hseModal');}else{document.getElementById('hseModal').classList.add('show')};
 }
 function payload(){
  const status=document.getElementById('f_hse_status').value;
