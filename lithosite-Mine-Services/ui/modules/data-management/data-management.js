@@ -21,7 +21,6 @@
           '</div>' +
           '<div class="dm-pane active" id="stage15PaneData">' +
             '<div class="dm-help">Save updates the active dataset file. Save As creates a new dataset and makes it the active working dataset. Load Data switches the runtime to a saved dataset.</div>' +
-            '<div class="dm-active" id="stage15ActiveDataset">Active dataset: none</div>' +
             '<div class="dm-actions dm-data-actions">' +
               '<button class="control primary" id="stage15SaveRun">Save</button>' +
               '<button class="control" id="stage15SaveAsRun">Save As</button>' +
@@ -171,14 +170,6 @@
     el.classList.toggle('error', !!error);
   }
 
-  function renderActiveDataset() {
-    const el = document.getElementById('stage15ActiveDataset');
-    if (!el) return;
-    el.textContent = activeDataset
-      ? 'Active dataset: ' + activeDataset.dataset_name + ' · ' + activeDataset.filename
-      : 'Active dataset: none · Save will create Mine-Services-Working';
-  }
-
   async function refreshDatasets(selectName) {
     try {
       const result = await runtimeClient.request({ operation: 'LIST_DATASETS' });
@@ -197,7 +188,6 @@
       if (target && datasets.some(function (item) { return item.dataset_name === target; })) {
         select.value = target;
       }
-      renderActiveDataset();
     } catch (error) {
       msg('Dataset list failed: ' + error.message, true);
     }
@@ -244,7 +234,6 @@
       });
       if (result.status !== 'SAVED') throw new Error('Save rejected');
       activeDataset = result;
-      renderActiveDataset();
       await refreshDatasets(result.dataset_name);
       msg('Saved: ' + result.filename);
     } catch (error) {
