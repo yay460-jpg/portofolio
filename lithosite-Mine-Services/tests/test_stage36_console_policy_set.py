@@ -75,9 +75,11 @@ def test_stage36_equipment_unit_column():
     foundation = read("ui/modules/reports/kpi-foundation.js")
     css = read("ui/modules/reports/reports.css")
 
-    assert '<span>Equipment</span><span>Unit</span><span>Scheduled h</span>' in html
+    assert '<span>Equipment</span><span>Date</span><span>Unit</span><span>Scheduled h</span>' in html
+    assert 'class="eq-date"' in reports
     assert 'class="eq-unit"' in reports
     assert 'unitNo:row.unit_no' in foundation
+    assert '.eq-date' in css
     assert '.eq-unit' in css
 
 def test_stage36_console_policy_persists_across_reload():
