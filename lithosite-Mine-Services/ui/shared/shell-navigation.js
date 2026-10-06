@@ -116,12 +116,12 @@
             '<button type="button" class="control user-guide-close" id="userGuideClose" aria-label="Close">×</button>' +
           '</div>' +
           '<div class="user-guide-body">' +
-            '<a class="user-guide-item" href="../../docs/lithosite/02_Mine-Services/10_User-Guides/1.HowTo_Uji_KPI_Grader.pdf" target="_blank" rel="noopener">' +
+            '<a class="user-guide-item" href="https://github.com/yay460-jpg/portofolio/blob/v37-workspace/docs/lithosite/02_Mine-Services/10_User-Guides/1.HowTo_Uji_KPI_Grader.pdf" target="_blank" rel="noopener">' +
               '<span class="user-guide-item-icon">?</span>' +
               '<span><b>How To Use — Uji KPI Grader</b><small>Work Front → Equipment → Operations → Validation → Timeline Integrity → KPI → Fleet → Dashboard</small></span>' +
               '<span class="user-guide-open">Open ↗</span>' +
             '</a>' +
-            '<a class="user-guide-item" href="../../docs/lithosite/02_Mine-Services/10_User-Guides/0.Xample_Uji_Grader.pdf" target="_blank" rel="noopener">' +
+            '<a class="user-guide-item" href="https://github.com/yay460-jpg/portofolio/blob/v37-workspace/docs/lithosite/02_Mine-Services/10_User-Guides/0.Xample_Uji_Grader.pdf" target="_blank" rel="noopener">' +
               '<span class="user-guide-item-icon">✓</span>' +
               '<span><b>Example — Uji Grader</b><small>Example evidence and test reference for the KPI Grader flow.</small></span>' +
               '<span class="user-guide-open">Open ↗</span>' +
