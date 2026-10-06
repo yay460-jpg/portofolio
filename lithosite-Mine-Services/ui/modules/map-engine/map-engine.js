@@ -254,7 +254,7 @@
           await engine.loadLTDtm(file);
           engine.fit();
           updateCoordinateInfo(engine.getState().meta);
-          saveActiveTopography(await bytes.buffer.slice(0),result.filename||select.value);
+          await saveActiveTopography(await bytes.buffer.slice(0),result.filename||select.value);
           setStatus('Topography restored · '+(result.filename||select.value),'ready');
           startAutoRotate();
           panel.style.display='none';
@@ -351,7 +351,7 @@
           updateCoordinateInfo(engine.getState().meta);
           try{
             var activeExport=await engine.exportLTDtm({filename:'Lithosite_Active_Topography'});
-            saveActiveTopography(await activeExport.blob.arrayBuffer(),activeExport.filename);
+            await saveActiveTopography(await activeExport.blob.arrayBuffer(),activeExport.filename);
           }catch(error){}
           setStatus('Topography 3D siap · Auto 360° aktif','ready');
           startAutoRotate();
