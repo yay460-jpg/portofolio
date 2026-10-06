@@ -5,6 +5,7 @@ if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 11 Main
 const state={rows:[],equipment:[],status:'loading'};
 let editId=null;
 let runtimeReady=false;
+let activeTimelineKey=null;
 const LISTS={event_type:[],status:[],action:[]};
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function setMsg(text,error){const el=document.getElementById('maintenanceRuntimeMsg');if(el){el.textContent=text;el.classList.toggle('error',!!error);}}
@@ -21,14 +22,96 @@ async function refreshData(){
  }catch(e){setMsg('Refresh failed: '+e.message,true);}
 }
 function filtered(){const id=document.getElementById('maintenanceIdFilter').value.trim().toLowerCase();const eq=document.getElementById('maintenanceEquipmentFilter').value;const type=document.getElementById('maintenanceEventTypeFilter').value;const status=document.getElementById('maintenanceStatusFilter').value;const source=document.getElementById('maintenanceSourceFilter').value.trim().toLowerCase();return state.rows.filter(r=>(!id||String(r.maintenance_id||'').toLowerCase().includes(id))&&(!eq||r.equipment_id===eq)&&(!type||r.event_type===type)&&(!status||r.status===status)&&(!source||String(r.source||'').toLowerCase().includes(source)));}
-function render(){const host=document.getElementById('maintenanceRows');if(!host)return;if(state.status==='loading')host.innerHTML='<div class="empty">Loading Maintenance from RuntimeAdapter…</div>';else if(state.status==='error')host.innerHTML='<div class="empty">Maintenance data unavailable. Check RuntimeAdapter connection and use Refresh.</div>';else{const rows=filtered().slice().sort(function(a,b){const dateCompare=String(a.event_date||'').localeCompare(String(b.event_date||''));if(dateCompare!==0)return dateCompare;const timeCompare=String(a.start_time||'').localeCompare(String(b.start_time||''));if(timeCompare!==0)return timeCompare;const equipmentCompare=String(a.equipment_id||'').localeCompare(String(b.equipment_id||''));if(equipmentCompare!==0)return equipmentCompare;return String(a.maintenance_id||'').localeCompare(String(b.maintenance_id||''));});host.innerHTML=rows.length?rows.map(r=>'<div class="tr td"><div class="cell">'+esc(r.maintenance_id)+'</div><div class="cell">'+equipmentLabel(r.equipment_id)+'</div><div class="cell">'+esc(r.event_date)+'</div><div class="cell">'+esc(r.event_type)+'</div><div class="cell">'+esc(r.failure_code)+'</div><div class="cell">'+esc(r.start_time)+'</div><div class="cell">'+esc(r.end_time)+'</div><div class="cell">'+esc(r.downtime_hours)+'</div><div class="cell">'+esc(r.action)+'</div><div class="cell">'+esc(r.status)+'</div><div class="cell">'+esc(r.source)+'</div><div class="cell row-actions"><button class="control mini edit-maintenance" data-id="'+esc(r.maintenance_id)+'">Edit</button><button class="control mini danger delete-maintenance" data-id="'+esc(r.maintenance_id)+'">Delete</button></div></div>').join(''):'<div class="empty">No Maintenance records match the current filters.</div>';document.getElementById('maintenanceCount').textContent=rows.length+' records · Runtime Ready';}if(state.status==='loading')document.getElementById('maintenanceCount').textContent='Loading · Runtime Connecting';if(state.status==='error')document.getElementById('maintenanceCount').textContent='Unavailable · Runtime Error';}
+function maintenanceGroups(rows){
+ const groups=new Map();
+ rows.forEach(function(row){
+  const equipmentId=String(row.equipment_id||'').trim();
+  const key=String(row.event_date||'')+'|'+(equipmentId||'NO-EQUIPMENT|'+String(row.maintenance_id||''));
+  if(!groups.has(key))groups.set(key,[]);
+  groups.get(key).push(row);
+ });
+ const grouped=Array.from(groups.values()).map(function(items){
+  items.sort(function(a,b){return String(a.start_time||'').localeCompare(String(b.start_time||''));});
+  return items;
+ });
+ grouped.sort(function(a,b){
+  const ad=String(a[0]?.event_date||''),bd=String(b[0]?.event_date||'');
+  if(ad!==bd)return ad.localeCompare(bd);
+  const at=String(a[0]?.start_time||''),bt=String(b[0]?.start_time||'');
+  if(at!==bt)return at.localeCompare(bt);
+  return String(a[0]?.equipment_id||'').localeCompare(String(b[0]?.equipment_id||''));
+ });
+ return grouped;
+}
+function openMaintenanceTimeline(key){
+ activeTimelineKey=key;
+ const rows=state.rows.filter(function(row){
+  const equipmentId=String(row.equipment_id||'').trim();
+  return String(row.event_date||'')+'|'+(equipmentId||'NO-EQUIPMENT|'+String(row.maintenance_id||''))===key;
+ }).sort(function(a,b){return String(a.start_time||'').localeCompare(String(b.start_time||''));});
+ if(!rows.length)return;
+ const first=rows[0];
+ const equipment=state.equipment.find(function(item){return String(item.equipment_id||'')===String(first.equipment_id||'');});
+ document.getElementById('maintenanceTimelineTitle').textContent='Maintenance Timeline — '+(equipment?.unit_no||first.equipment_id||'Unassigned');
+ document.getElementById('maintenanceTimelineMeta').textContent=String(first.event_date||'—')+' · '+rows.length+' events · '+rows.reduce(function(sum,row){return sum+(Number(row.downtime_hours)||0);},0)+' downtime hrs';
+ document.getElementById('maintenanceTimelineSummary').innerHTML='<span><b>Equipment</b> '+esc(equipment?.unit_no||first.equipment_id||'—')+'</span><span><b>Type</b> '+esc(equipment?.type||'—')+'</span><span><b>Status</b> '+esc(equipment?.status||'—')+'</span>';
+ document.getElementById('maintenanceTimelineRows').innerHTML=rows.map(function(row){
+  const cls=String(row.status||'').toLowerCase().replace(/[^a-z]/g,'')||'open';
+  return '<div class="maintenance-timeline-tr"><div class="cell">'+esc(row.start_time||'—')+'</div><div class="cell">'+esc(row.end_time||'—')+'</div><div class="cell">'+esc(row.event_type)+'</div><div class="cell">'+esc(row.failure_code||'—')+'</div><div class="cell">'+esc(row.downtime_hours??'—')+'</div><div class="cell">'+esc(row.action)+'</div><div class="cell"><span class="statuspill '+cls+'">'+esc(row.status)+'</span></div><div class="cell">'+esc(row.source)+'</div><div class="cell row-actions"><button class="control mini edit-maintenance-timeline" data-id="'+esc(row.maintenance_id)+'">Edit</button><button class="control mini danger delete-maintenance-timeline" data-id="'+esc(row.maintenance_id)+'">Delete</button></div></div>';
+ }).join('');
+ document.getElementById('maintenanceTimelineModal').classList.add('show');
+}
+function render(){
+ const host=document.getElementById('maintenanceRows');
+ if(!host)return;
+ if(state.status==='loading')host.innerHTML='<div class="empty">Loading Maintenance from RuntimeAdapter…</div>';
+ else if(state.status==='error')host.innerHTML='<div class="empty">Maintenance data unavailable. Check RuntimeAdapter connection and use Refresh.</div>';
+ else{
+  const rows=filtered().slice().sort(function(a,b){return String(a.event_date||'').localeCompare(String(b.event_date||''))||String(a.start_time||'').localeCompare(String(b.start_time||''))||String(a.equipment_id||'').localeCompare(String(b.equipment_id||''))||String(a.maintenance_id||'').localeCompare(String(b.maintenance_id||''));});
+  const groups=maintenanceGroups(rows);
+  host.innerHTML=groups.length?groups.map(function(items){
+   const first=items[0];
+   const equipment=state.equipment.find(function(item){return String(item.equipment_id||'')===String(first.equipment_id||'');});
+   const key=esc(String(first.event_date||'')+'|'+(String(first.equipment_id||'').trim()||'NO-EQUIPMENT|'+String(first.maintenance_id||'')));
+   const statuses=Array.from(new Set(items.map(function(row){return String(row.status||'');})));
+   const status=statuses.length===1?statuses[0]:'MIXED';
+   const cls=status.toLowerCase().replace(/[^a-z]/g,'')||'open';
+   const downtime=items.reduce(function(sum,row){return sum+(Number(row.downtime_hours)||0);},0);
+   return '<div class="tr td"><div class="cell">'+esc(first.event_date)+'</div><div class="cell">'+esc(equipment?.unit_no||first.equipment_id||'—')+'</div><div class="cell">'+esc(equipment?.type||'—')+'</div><div class="cell"><button class="control mini maintenance-timeline-row" data-key="'+key+'">'+items.length+' event'+(items.length===1?'':'s')+'</button></div><div class="cell">'+esc(downtime||'—')+'</div><div class="cell"><span class="statuspill '+cls+'">'+esc(status)+'</span></div><div class="cell row-actions"><button class="control mini maintenance-timeline-row" data-key="'+key+'">View</button></div></div>';
+  }).join(''):'<div class="empty">No Maintenance records match the current filters.</div>';
+  document.getElementById('maintenanceCount').textContent=groups.length+' maintenance timelines · '+rows.length+' events · Runtime Ready';
+ }
+ if(state.status==='loading')document.getElementById('maintenanceCount').textContent='Loading · Runtime Connecting';
+ if(state.status==='error')document.getElementById('maintenanceCount').textContent='Unavailable · Runtime Error';
+}
 function resetForm(){const now=new Date();const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);document.getElementById('f_maintenance_id').value='MNT-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();document.getElementById('f_maintenance_equipment').value=state.equipment[0]?.equipment_id||'';document.getElementById('f_maintenance_event_date').value=d;document.getElementById('f_maintenance_event_type').value=LISTS.event_type[0]||'';document.getElementById('f_maintenance_failure_code').value='';document.getElementById('f_maintenance_start_time').value='';document.getElementById('f_maintenance_end_time').value='';document.getElementById('f_maintenance_downtime_hours').value='';document.getElementById('f_maintenance_action').value=LISTS.action[0]||'';document.getElementById('f_maintenance_status').value=LISTS.status.includes('Open')?'Open':(LISTS.status[0]||'');document.getElementById('f_maintenance_source').value='Manual';}
 function openAdd(){editId=null;document.getElementById('maintenanceModalTitle').textContent='Add Maintenance';document.getElementById('maintenanceSave').textContent='Save via RuntimeAdapter';resetForm();document.getElementById('maintenanceModal').classList.add('show');}
 function openEdit(id){const row=state.rows.find(x=>String(x.maintenance_id)===String(id));if(!row)return;editId=id;document.getElementById('maintenanceModalTitle').textContent='Edit Maintenance';document.getElementById('maintenanceSave').textContent='Update via RuntimeAdapter';const map={f_maintenance_id:row.maintenance_id,f_maintenance_equipment:row.equipment_id,f_maintenance_event_date:row.event_date,f_maintenance_event_type:row.event_type,f_maintenance_failure_code:row.failure_code,f_maintenance_start_time:row.start_time,f_maintenance_end_time:row.end_time,f_maintenance_downtime_hours:row.downtime_hours,f_maintenance_action:row.action,f_maintenance_status:row.status,f_maintenance_source:row.source};Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');document.getElementById('maintenanceModal').classList.add('show');}
 function payload(){return {maintenance_id:document.getElementById('f_maintenance_id').value,equipment_id:document.getElementById('f_maintenance_equipment').value,event_date:document.getElementById('f_maintenance_event_date').value,event_type:document.getElementById('f_maintenance_event_type').value,failure_code:document.getElementById('f_maintenance_failure_code').value,start_time:document.getElementById('f_maintenance_start_time').value||null,end_time:document.getElementById('f_maintenance_end_time').value||null,downtime_hours:document.getElementById('f_maintenance_downtime_hours').value===''?null:Number(document.getElementById('f_maintenance_downtime_hours').value),action:document.getElementById('f_maintenance_action').value,status:document.getElementById('f_maintenance_status').value,source:document.getElementById('f_maintenance_source').value};}
-async function save(){if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}const row=payload();if(!row.equipment_id||!row.event_date||!row.event_type||!row.action||!row.status){setMsg('Equipment, Event Date, Event Type, Action and Status are required.',true);return;}try{const result=editId?await rc.request({operation:'UPDATE',entity:'Maintenance',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Maintenance',row});if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the Maintenance record');document.getElementById('maintenanceModal').classList.remove('show');await refreshData();setMsg(editId?'Maintenance updated and audited.':'Maintenance created and audited.');}catch(e){setMsg('Validation/runtime error: '+e.message,true);}}
+async function save(){if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}const row=payload();if(!row.equipment_id||!row.event_date||!row.event_type||!row.action||!row.status){setMsg('Equipment, Event Date, Event Type, Action and Status are required.',true);return;}try{const wasEditing=Boolean(editId);const savedTimelineKey=activeTimelineKey;const result=editId?await rc.request({operation:'UPDATE',entity:'Maintenance',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Maintenance',row});if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the Maintenance record');document.getElementById('maintenanceModal').classList.remove('show');await refreshData();if(wasEditing&&savedTimelineKey){const savedKey=String(row.event_date||'')+'|'+(String(row.equipment_id||'').trim()||'NO-EQUIPMENT|'+String(row.maintenance_id||''));openMaintenanceTimeline(savedKey);}else{activeTimelineKey=null;}setMsg(wasEditing?'Maintenance updated and audited.':'Maintenance created and audited.');}catch(e){setMsg('Validation/runtime error: '+e.message,true);}}
 async function remove(id){if(!confirm('Delete Maintenance '+id+'?\nRuntime will validate references and audit the mutation.'))return;try{const result=await rc.request({operation:'DELETE',entity:'Maintenance',entity_id:id});if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');await refreshData();setMsg('Maintenance deleted and audited.');}catch(e){setMsg('Delete failed: '+e.message,true);}}
-function bind(){document.getElementById('maintenanceAdd').onclick=openAdd;document.getElementById('maintenanceRefresh').onclick=load;document.getElementById('maintenanceSave').onclick=save;document.getElementById('maintenanceClose').onclick=()=>document.getElementById('maintenanceModal').classList.remove('show');document.getElementById('maintenanceCancel').onclick=()=>document.getElementById('maintenanceModal').classList.remove('show');document.getElementById('maintenanceClear').onclick=()=>{['maintenanceIdFilter','maintenanceEquipmentFilter','maintenanceEventTypeFilter','maintenanceStatusFilter','maintenanceSourceFilter'].forEach(id=>document.getElementById(id).value='');render();};['maintenanceIdFilter','maintenanceEquipmentFilter','maintenanceEventTypeFilter','maintenanceStatusFilter','maintenanceSourceFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});document.getElementById('maintenanceRows').addEventListener('click',e=>{const edit=e.target.closest('.edit-maintenance');if(edit)openEdit(edit.dataset.id);const del=e.target.closest('.delete-maintenance');if(del)remove(del.dataset.id);});}
+function bind(){
+ document.getElementById('maintenanceAdd').onclick=openAdd;
+ document.getElementById('maintenanceRefresh').onclick=load;
+ document.getElementById('maintenanceSave').onclick=save;
+ document.getElementById('maintenanceClose').onclick=()=>document.getElementById('maintenanceModal').classList.remove('show');
+ document.getElementById('maintenanceCancel').onclick=()=>document.getElementById('maintenanceModal').classList.remove('show');
+ document.getElementById('maintenanceClear').onclick=()=>{['maintenanceIdFilter','maintenanceEquipmentFilter','maintenanceEventTypeFilter','maintenanceStatusFilter','maintenanceSourceFilter'].forEach(id=>document.getElementById(id).value='');render();};
+ ['maintenanceIdFilter','maintenanceEquipmentFilter','maintenanceEventTypeFilter','maintenanceStatusFilter','maintenanceSourceFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
+ document.getElementById('maintenanceRows').addEventListener('click',function(e){
+  const timeline=e.target.closest('.maintenance-timeline-row');
+  if(timeline){openMaintenanceTimeline(timeline.dataset.key);return;}
+  const edit=e.target.closest('.edit-maintenance');if(edit)openEdit(edit.dataset.id);
+  const del=e.target.closest('.delete-maintenance');if(del)remove(del.dataset.id);
+ });
+ document.getElementById('maintenanceTimelineClose').onclick=function(){document.getElementById('maintenanceTimelineModal').classList.remove('show');activeTimelineKey=null;};
+ document.getElementById('maintenanceTimelineRows').addEventListener('click',function(e){
+  const edit=e.target.closest('.edit-maintenance-timeline');
+  if(edit){document.getElementById('maintenanceTimelineModal').classList.remove('show');openEdit(edit.dataset.id);return;}
+  const del=e.target.closest('.delete-maintenance-timeline');
+  if(del)remove(del.dataset.id);
+ });
+}
 function init(){if(!document.getElementById('maintenanceScreen'))return;if(document.getElementById('maintenanceAdd'))bind();load();}
 if(global.LithositeDataSync)global.LithositeDataSync.register('Maintenance',refreshData);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
