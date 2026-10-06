@@ -61,6 +61,19 @@
   }
   function normalizeActivity(value){return String(value||'').trim().toLowerCase().replace(/\s+/g,' ');}
 
+  function classifyUsageActivity(activity){
+    const text=normalizeActivity(activity);
+    if(!text)return center.USAGE.UNRESOLVED;
+
+    // Operational standby/waiting is still Available Time, but it is not Used Time.
+    // This is derived KPI evidence; the raw Operations row remains unchanged.
+    if(/standby|waiting|wait truck|wait excavator|queue|antri|idle/.test(text)){
+      return center.USAGE.NOT_USED;
+    }
+
+    return center.USAGE.USED;
+  }
+
   function classifyEffectiveActivity(activity,rule,context){
     const text=normalizeActivity(activity);
     if(!text)return center.EFFECTIVENESS.UNRESOLVED;
@@ -103,7 +116,7 @@
   function buildOperationSource(row){
     const actual=asNumber(row.actual_hours),start=localDateTime(row.transaction_date,row.transaction_time);
     if(!start||actual===null||actual<=0)return null;
-    return{start,end:addHours(start,actual),event_id:'OPS:'+row.transaction_id,event_version:sourceVersion(row),equipment_id:row.equipment_id,source_entity:'Operations',source_id:row.transaction_id,source_reference:row.transaction_id,boundary_type:'DERIVED',formation_rule:'transaction_time + actual_hours',source_boundary:'transaction_time',source_duration_hours:actual,activity:row.activity||null,work_front_id:row.work_front_id||null,availability:center.AVAILABILITY.AVAILABLE,usage:center.USAGE.USED,effectiveness:center.EFFECTIVENESS.UNRESOLVED,validation_status:'VALID'};
+    return{start,end:addHours(start,actual),event_id:'OPS:'+row.transaction_id,event_version:sourceVersion(row),equipment_id:row.equipment_id,source_entity:'Operations',source_id:row.transaction_id,source_reference:row.transaction_id,boundary_type:'DERIVED',formation_rule:'transaction_time + actual_hours',source_boundary:'transaction_time',source_duration_hours:actual,activity:row.activity||null,work_front_id:row.work_front_id||null,availability:center.AVAILABILITY.AVAILABLE,usage:classifyUsageActivity(row.activity),effectiveness:center.EFFECTIVENESS.UNRESOLVED,validation_status:'VALID'};
   }
   function buildMaintenanceSource(row){
     const type=String(row.event_type||'').toLowerCase();
