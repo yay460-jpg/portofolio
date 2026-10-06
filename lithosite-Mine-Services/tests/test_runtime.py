@@ -188,3 +188,39 @@ def test_workfront_controlled_vocab_and_xlsx_roundtrip(tmp_path):
     reloaded = PersistenceStore(path)
     assert reloaded.get("WorkFront", "WF-XLSX")["domain"] == "Road & Hauling"
     assert "Road & Hauling" in reloaded.controlled_lists["service_domain"]
+
+def test_runtime_dataset_save_overwrites_same_file_and_save_as_creates_new(tmp_path):
+    app = ApplicationService(PersistenceStore())
+    runtime = RuntimeInterface(application=app)
+    runtime._datasets.directory = tmp_path
+
+    assert app.create("Equipment", valid_equipment("E-DATASET"), "dataset-create")["status"] == "COMMITTED"
+
+    first = runtime.save_dataset()
+    second = runtime.save_dataset()
+    assert first["filename"] == second["filename"]
+    assert first["dataset_id"] == second["dataset_id"]
+    assert len(list(tmp_path.glob("*.json"))) == 1
+
+    saved_as = runtime.save_dataset_as("October Review")
+    assert saved_as["dataset_name"] == "October Review"
+    assert saved_as["dataset_id"] != first["dataset_id"]
+    assert len(list(tmp_path.glob("*.json"))) == 2
+
+
+def test_runtime_dataset_load_replaces_runtime_data(tmp_path):
+    app = ApplicationService(PersistenceStore())
+    runtime = RuntimeInterface(application=app)
+    runtime._datasets.directory = tmp_path
+
+    assert app.create("Equipment", valid_equipment("E-ORIGINAL"), "dataset-original")["status"] == "COMMITTED"
+    saved = runtime.save_dataset("Original State")
+
+    assert app.create("Equipment", valid_equipment("E-SECOND"), "dataset-second")["status"] == "COMMITTED"
+    assert app.store.exists("Equipment", "E-SECOND")
+
+    loaded = runtime.load_dataset(saved["dataset_name"])
+    assert loaded["status"] == "LOADED"
+    assert app.store.exists("Equipment", "E-ORIGINAL")
+    assert not app.store.exists("Equipment", "E-SECOND")
+    assert runtime.list_datasets()["active"]["dataset_name"] == "Original State"
