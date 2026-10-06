@@ -91,7 +91,7 @@
   border-radius:8px;
   background:#0c1b2c;
   display:grid;
-  grid-template-columns:112px 1fr;
+  grid-template-columns:126px 1fr;
   align-items:center;
   gap:10px;
 }
@@ -119,3 +119,7 @@
 .app-info-value .brand-litho{color:#60a5fa}
 .app-info-value .brand-site{color:#f97316}
 .app-info-value .developer-name{color:#dbe8f5}
+
+.app-info-label-wrap{display:flex;align-items:center;gap:7px}
+.app-info-label-icon{width:15px;height:15px;display:inline-grid;place-items:center;color:#7da9d8;flex:0 0 15px}
+.app-info-label-icon svg{width:15px;height:15px;display:block}
