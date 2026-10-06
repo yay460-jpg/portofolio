@@ -59,7 +59,10 @@ class TopographyBackupManager:
         target.write_bytes(payload)
         files = self._files()
         removed = []
-        for old in files[self.MAX_BACKUPS:]:
+        # Never evict the package just written. If filesystem timestamps tie,
+        # the new target may not sort first, so retain it explicitly.
+        candidates = [path for path in files if path != target]
+        for old in candidates[self.MAX_BACKUPS - 1:]:
             old.unlink(missing_ok=True)
             removed.append(old.name)
         stored = self._files()[: self.MAX_BACKUPS]
