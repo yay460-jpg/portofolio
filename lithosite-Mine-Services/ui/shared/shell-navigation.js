@@ -17,15 +17,15 @@
   let currentScreen = 'Dashboard';
   let initialized = false;
 
-  function closeTransientModuleOverlays() {
-    if (global.LithositeDataManagement && typeof global.LithositeDataManagement.close === 'function') {
-      global.LithositeDataManagement.close();
-    }
-  }
-
   function setScreen(name, persist) {
     if (!SCREENS[name]) return false;
-    closeTransientModuleOverlays();
+    if (global.LithositeNavigationGuardContract &&
+        !global.LithositeNavigationGuardContract.guard()) {
+      return false;
+    }
+    if (global.LithositeModalShowContract) {
+      global.LithositeModalShowContract.closeTransient();
+    }
     currentScreen = name;
 
     if (persist !== false) {
@@ -321,6 +321,9 @@
     if (!validateShellContract()) return false;
 
     initialized = true;
+
+    if (global.LithositeModalShowContract) global.LithositeModalShowContract.init();
+    if (global.LithositeNavigationGuardContract) global.LithositeNavigationGuardContract.init();
 
     const side = document.getElementById('side');
     const toggle = document.getElementById('toggle');
