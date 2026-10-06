@@ -10,7 +10,7 @@ SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation-v31.js").read_text(encodi
 def test_stage11_maintenance_screen_and_module_are_wired():
     assert 'id="maintenanceScreen"' in TEXT
     assert ">Maintenance<" in TEXT
-    assert "maintenance.js?v=20261001" in TEXT
+    assert "maintenance.js?v=20261006" in TEXT
     assert "entity:'Maintenance'" in MAINTENANCE_JS
 
 
@@ -49,7 +49,7 @@ def test_stage11_shell_contract_includes_maintenance():
     assert "'Maintenance'" in SHELL_JS
     assert "const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports'];" in SHELL_JS
     assert "let currentScreen = 'Dashboard';" in SHELL_JS
-    assert "const STORAGE_KEY = 'lithosite-v31-active-screen';" in SHELL_JS
+    assert "const STORAGE_KEY = 'lithosite-active-screen';" in SHELL_JS
     assert "readInitialScreen" in SHELL_JS
     assert "setScreen(readInitialScreen(), false);" in SHELL_JS
 
