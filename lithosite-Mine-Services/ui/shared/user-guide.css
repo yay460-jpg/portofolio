@@ -1,15 +1,19 @@
 /* Lithosite Mine Services — Global User Guide launcher
    Shared shell utility. The guide document is not version-owned.
 */
+.topbar .topmeta{
+  margin-left:auto;
+}
+
 .user-guide-launcher{
-  width:30px;
-  height:30px;
-  margin-left:10px;
+  width:34px;
+  height:34px;
+  margin-left:8px;
   display:inline-grid;
   place-items:center;
   flex:0 0 30px;
   border:1px solid #29435d;
-  border-radius:8px;
+  border-radius:50%;
   background:#12243a;
   color:#dbe8f5;
   font-size:14px;
