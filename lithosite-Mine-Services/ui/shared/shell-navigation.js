@@ -111,7 +111,7 @@
       const stylesheet = document.createElement('link');
       stylesheet.id = 'appInfoStyles';
       stylesheet.rel = 'stylesheet';
-      stylesheet.href = '../ui/shared/app-info.css?v=20261006';
+      stylesheet.href = '../ui/shared/app-info.css?v=20261007';
       document.head.appendChild(stylesheet);
     }
 
@@ -146,11 +146,11 @@
             '<button type="button" class="control app-info-close" id="appInfoClose" aria-label="Close">×</button>' +
           '</div>' +
           '<div class="app-info-body">' +
-            '<div class="app-info-row"><span class="app-info-label">Application</span><span class="app-info-value"><span class="brand-litho">Litho</span><span class="brand-site">site</span> | Mine Services Development</span></div>' +
-            '<div class="app-info-row"><span class="app-info-label">Version</span><span class="app-info-value accent">V37 · Stage 26</span></div>' +
-            '<div class="app-info-row"><span class="app-info-label">Artifact</span><span class="app-info-value">Mine Services Concept 2 · Operations</span></div>' +
-            '<div class="app-info-row"><span class="app-info-label">Runtime</span><span class="app-info-value">A.3 · Desktop Master</span></div>' +
-            '<div class="app-info-row"><span class="app-info-label">Developer</span><span class="app-info-value"><span class="developer-name">Lithosite</span> Team</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label"><span class="app-info-label-wrap"><span class="app-info-label-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 20h8"/><path d="M12 18v2"/></svg></span><span>Application</span></span></span><span class="app-info-value"><span class="brand-litho">Litho</span><span class="brand-site">site</span> | Mine Services Development</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label"><span class="app-info-label-wrap"><span class="app-info-label-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg></span><span>Version</span></span></span><span class="app-info-value accent">V37 · Stage 26</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label"><span class="app-info-label-wrap"><span class="app-info-label-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v4h4M9 12h6M9 16h6"/></svg></span><span>Artifact</span></span></span><span class="app-info-value">Mine Services Concept 2 · Operations</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label"><span class="app-info-label-wrap"><span class="app-info-label-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></span><span>Runtime</span></span></span><span class="app-info-value">A.3 · Desktop Master</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label"><span class="app-info-label-wrap"><span class="app-info-label-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3"/><path d="M5 20c.8-3.3 3-5 7-5s6.2 1.7 7 5"/></svg></span><span>Developer</span></span></span><span class="app-info-value"><span class="developer-name">Lithosite Team</span> | Sanjaya</span></div>' +
             '<div class="app-info-note">Version and runtime information for the current application workspace.</div>' +
           '</div>' +
         '</div>';
