@@ -89,9 +89,13 @@
       'reportsConsoleModal',
       'reportsHistoryModal'
     ]);
-    document.querySelectorAll('.modalback').forEach(function (modal) {
+    document.querySelectorAll('.modalback, #stage15DataModal, .reports-history-modal, .app-info-modal, .user-guide-modal, .user-guide-reader-modal').forEach(function (modal) {
       if (!modal.id || nonBlocking.has(modal.id)) return;
-      if (!modal.classList.contains('show')) return;
+      const visible = !modal.hidden && (
+        modal.classList.contains('show') ||
+        modal.classList.contains('open')
+      );
+      if (!visible) return;
       state.blocked = true;
       state.reason = 'Close your table or card before leaving.';
       modal.classList.add('navigation-guard-active');
