@@ -282,6 +282,7 @@
           updateCoordinateInfo(engine.getState().meta);
           await saveActiveTopography(await bytes.buffer.slice(0),result.filename||select.value);
           setStatus('Topography restored · '+(result.filename||select.value),'ready');
+          showTopoNotice('Restore successful · '+(result.filename||select.value)+' restored to the active map.','ready');
           startAutoRotate();
           panel.style.display='none';
         }catch(error){
@@ -332,10 +333,13 @@
         });
         if(result.status!=='SAVED')throw new Error('Topography backup rejected');
         var removed=Array.isArray(result.removed)?result.removed:[];
+        var storageText=String(result.storage_used||'')+' / '+String(result.storage_max||5);
         if(removed.length){
           setStatus('LT-DTM backup saved · oldest backup removed: '+removed.join(', '),'ready');
+          showTopoNotice('Backup successful · '+result.filename+' saved. Oldest backup removed: '+removed.join(', ')+' · Storage '+storageText,'ready');
         }else{
-          setStatus('LT-DTM backup saved · storage '+String(result.storage_used||'')+' / '+String(result.storage_max||5),'ready');
+          setStatus('LT-DTM backup saved · storage '+storageText,'ready');
+          showTopoNotice('Backup successful · '+result.filename+' saved · Storage '+storageText,'ready');
         }
       }catch(error){
         setStatus(error&&error.message?error.message:'Topography backup failed','error');
@@ -343,6 +347,16 @@
     }
     function syncTopViewClass(){
       host.classList.toggle('is-top-view',!!engine&&engine.getState().view==='top');
+    }
+    function showTopoNotice(message,kind){
+      var existing=host.querySelector('#dashboardTopo3DNotice');
+      if(existing)existing.remove();
+      var notice=document.createElement('div');
+      notice.id='dashboardTopo3DNotice';
+      notice.style.cssText='position:absolute;top:12px;right:12px;z-index:60;max-width:360px;padding:10px 13px;border:1px solid '+(kind==='error'?'rgba(248,113,113,.5)':'rgba(74,222,128,.45)')+';border-radius:8px;background:'+(kind==='error'?'rgba(69,10,10,.94)':'rgba(5,46,22,.94)')+';color:#ecfdf5;box-shadow:0 10px 24px rgba(0,0,0,.35);font:600 12px Segoe UI,Arial,sans-serif;line-height:1.45;';
+      notice.textContent=message;
+      host.appendChild(notice);
+      setTimeout(function(){if(notice.parentNode)notice.remove();},4500);
     }
     function setStatus(message,kind){
       if(status){
