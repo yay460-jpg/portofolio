@@ -197,6 +197,32 @@
         db.close();
       }catch(error){}
     }
+    async function clearActiveTopography(){
+      try{
+        var db=await openActiveTopoStore();
+        await new Promise(function(resolve,reject){
+          var tx=db.transaction(ACTIVE_TOPO_STORE,'readwrite');
+          tx.objectStore(ACTIVE_TOPO_STORE).delete('current');
+          tx.oncomplete=resolve; tx.onerror=function(){reject(tx.error||new Error('Active topography cache clear failed'));};
+        });
+        db.close();
+      }catch(error){}
+    }
+    function clearTopography(){
+      stopAutoRotate();
+      var rotate360=(panel||host).querySelector('#dashboardTopo3DRotate360');
+      if(rotate360){rotate360.classList.remove('is-active');rotate360.textContent='360°';}
+      if(engine&&typeof engine.clear==='function')engine.clear();
+      clearActiveTopography();
+      pickedPoints={A:null,B:null};
+      activePickPoint=null;
+      clearMeasurement();
+      var input=(panel||host).querySelector('#dashboardTopo3DFile');
+      if(input)input.value='';
+      var coordinate=host.querySelector('#dashboardTopo3DCoordinate');
+      if(coordinate)coordinate.textContent='No topography loaded';
+      setStatus('Topography cleared · pilih map baru','ready');
+    }
     async function restoreActiveTopography(){
       try{
         var db=await openActiveTopoStore();
