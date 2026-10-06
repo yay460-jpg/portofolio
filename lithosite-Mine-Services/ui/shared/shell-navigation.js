@@ -88,14 +88,60 @@
     const launcher = document.createElement('a');
     launcher.id = 'userGuideLauncher';
     launcher.className = 'user-guide-launcher';
-    launcher.href = '../docs/lithosite/02_Mine-Services/10_User-Guides/1.HowTo_Uji_KPI_Grader.pdf';
-    launcher.target = '_blank';
-    launcher.rel = 'noopener';
+    launcher.href = '#';
     launcher.title = 'How To Use';
     launcher.setAttribute('aria-label', 'How To Use');
     launcher.textContent = '?';
+    launcher.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleUserGuideModal();
+    });
 
     topbar.appendChild(launcher);
+  }
+
+  function toggleUserGuideModal() {
+    let modal = document.getElementById('userGuideModal');
+
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'userGuideModal';
+      modal.className = 'user-guide-modal';
+      modal.setAttribute('aria-hidden', 'true');
+      modal.innerHTML =
+        '<div class="user-guide-dialog" role="dialog" aria-modal="true" aria-labelledby="userGuideTitle">' +
+          '<div class="user-guide-head">' +
+            '<div><b id="userGuideTitle">How To Use</b><span>Mine Services User Guides</span></div>' +
+            '<button type="button" class="control user-guide-close" id="userGuideClose" aria-label="Close">×</button>' +
+          '</div>' +
+          '<div class="user-guide-body">' +
+            '<a class="user-guide-item" href="../../docs/lithosite/02_Mine-Services/10_User-Guides/1.HowTo_Uji_KPI_Grader.pdf" target="_blank" rel="noopener">' +
+              '<span class="user-guide-item-icon">?</span>' +
+              '<span><b>How To Use — Uji KPI Grader</b><small>Work Front → Equipment → Operations → Validation → Timeline Integrity → KPI → Fleet → Dashboard</small></span>' +
+              '<span class="user-guide-open">Open ↗</span>' +
+            '</a>' +
+            '<a class="user-guide-item" href="../../docs/lithosite/02_Mine-Services/10_User-Guides/0.Xample_Uji_Grader.pdf" target="_blank" rel="noopener">' +
+              '<span class="user-guide-item-icon">✓</span>' +
+              '<span><b>Example — Uji Grader</b><small>Example evidence and test reference for the KPI Grader flow.</small></span>' +
+              '<span class="user-guide-open">Open ↗</span>' +
+            '</a>' +
+          '</div>' +
+        '</div>';
+
+      document.body.appendChild(modal);
+
+      document.getElementById('userGuideClose').addEventListener('click', function () {
+        toggleUserGuideModal();
+      });
+
+      modal.addEventListener('click', function (event) {
+        if (event.target === modal) toggleUserGuideModal();
+      });
+    }
+
+    const visible = modal.classList.toggle('show');
+    modal.setAttribute('aria-hidden', String(!visible));
   }
 
   function init() {
