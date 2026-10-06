@@ -120,7 +120,7 @@
   }
   function buildMaintenanceSource(row){
     const type=String(row.event_type||'').toLowerCase();
-    if(type!=='breakdown'&&type!=='corrective')return null;
+    if(type!=='breakdown'&&type!=='corrective'&&type!=='inspection')return null;
     if(String(row.status||'').toLowerCase()==='cancelled')return null;
     if(!row.start_time||!row.end_time)return{issue:{code:'MAINTENANCE_BOUNDARY_REQUIRED',eventId:row.maintenance_id||null,equipmentId:row.equipment_id||null}};
     const start=localDateTime(row.event_date,row.start_time);let end=localDateTime(row.event_date,row.end_time);
