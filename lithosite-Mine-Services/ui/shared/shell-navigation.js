@@ -116,16 +116,16 @@
             '<button type="button" class="control user-guide-close" id="userGuideClose" aria-label="Close">×</button>' +
           '</div>' +
           '<div class="user-guide-body">' +
-            '<a class="user-guide-item" href="https://github.com/yay460-jpg/portofolio/blob/v37-workspace/docs/lithosite/02_Mine-Services/10_User-Guides/1.HowTo_Uji_KPI_Grader.pdf" target="_blank" rel="noopener">' +
+            '<button type="button" class="user-guide-item" data-guide-url="https://raw.githubusercontent.com/yay460-jpg/portofolio/v37-workspace/docs/lithosite/02_Mine-Services/10_User-Guides/1.HowTo_Uji_KPI_Grader.pdf" data-guide-title="How To Use — Uji KPI Grader">' +
               '<span class="user-guide-item-icon">?</span>' +
               '<span><b>How To Use — Uji KPI Grader</b><small>Work Front → Equipment → Operations → Validation → Timeline Integrity → KPI → Fleet → Dashboard</small></span>' +
               '<span class="user-guide-open">Open ↗</span>' +
-            '</a>' +
-            '<a class="user-guide-item" href="https://github.com/yay460-jpg/portofolio/blob/v37-workspace/docs/lithosite/02_Mine-Services/10_User-Guides/0.Xample_Uji_Grader.pdf" target="_blank" rel="noopener">' +
+            '</button>' +
+            '<button type="button" class="user-guide-item" data-guide-url="https://raw.githubusercontent.com/yay460-jpg/portofolio/v37-workspace/docs/lithosite/02_Mine-Services/10_User-Guides/0.Xample_Uji_Grader.pdf" data-guide-title="Example — Uji Grader">' +
               '<span class="user-guide-item-icon">✓</span>' +
               '<span><b>Example — Uji Grader</b><small>Example evidence and test reference for the KPI Grader flow.</small></span>' +
               '<span class="user-guide-open">Open ↗</span>' +
-            '</a>' +
+            '</button>' +
           '</div>' +
         '</div>';
 
@@ -138,10 +138,64 @@
       modal.addEventListener('click', function (event) {
         if (event.target === modal) toggleUserGuideModal();
       });
+
+      modal.querySelectorAll('.user-guide-item').forEach(function (item) {
+        item.addEventListener('click', function () {
+          openUserGuideReader(item.getAttribute('data-guide-url'), item.getAttribute('data-guide-title'));
+        });
+      });
     }
 
     const visible = modal.classList.toggle('show');
     modal.setAttribute('aria-hidden', String(!visible));
+  }
+
+  function openUserGuideReader(url, title) {
+    let reader = document.getElementById('userGuideReaderModal');
+
+    if (!reader) {
+      reader = document.createElement('div');
+      reader.id = 'userGuideReaderModal';
+      reader.className = 'user-guide-reader-modal';
+      reader.setAttribute('aria-hidden', 'true');
+      reader.innerHTML =
+        '<div class="user-guide-reader-dialog" role="dialog" aria-modal="true" aria-labelledby="userGuideReaderTitle">' +
+          '<div class="user-guide-reader-head">' +
+            '<div><b id="userGuideReaderTitle">How To Use</b><span id="userGuideReaderMeta">PDF Reader</span></div>' +
+            '<button type="button" class="control user-guide-close" id="userGuideReaderClose" aria-label="Close">×</button>' +
+          '</div>' +
+          '<div class="user-guide-reader-body"><iframe id="userGuideReaderFrame" title="User Guide PDF Reader"></iframe></div>' +
+        '</div>';
+      document.body.appendChild(reader);
+
+      document.getElementById('userGuideReaderClose').addEventListener('click', function () {
+        closeUserGuideReader();
+      });
+      reader.addEventListener('click', function (event) {
+        if (event.target === reader) closeUserGuideReader();
+      });
+    }
+
+    document.getElementById('userGuideReaderTitle').textContent = title || 'How To Use';
+    document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader';
+    document.getElementById('userGuideReaderFrame').src = url;
+    reader.classList.add('show');
+    reader.setAttribute('aria-hidden', 'false');
+
+    const guideMenu = document.getElementById('userGuideModal');
+    if (guideMenu) {
+      guideMenu.classList.remove('show');
+      guideMenu.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function closeUserGuideReader() {
+    const reader = document.getElementById('userGuideReaderModal');
+    if (!reader) return;
+    reader.classList.remove('show');
+    reader.setAttribute('aria-hidden', 'true');
+    const frame = document.getElementById('userGuideReaderFrame');
+    if (frame) frame.src = 'about:blank';
   }
 
   function init() {
