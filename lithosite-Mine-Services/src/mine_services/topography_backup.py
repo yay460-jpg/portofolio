@@ -32,7 +32,7 @@ class TopographyBackupManager:
     @classmethod
     def _validate_bytes(cls, payload):
         if not payload or len(payload) < 12:
-            raise ValueError("Invalid LT-DTM package.")
+            raise ValueError("File is not a valid LITHODTM package.")
         if len(payload) > cls.MAX_PACKAGE_BYTES:
             raise ValueError("LT-DTM package exceeds the 128 MB limit.")
         if payload[:8] != cls.MAGIC:
