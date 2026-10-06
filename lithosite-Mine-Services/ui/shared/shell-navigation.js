@@ -116,12 +116,12 @@
             '<button type="button" class="control user-guide-close" id="userGuideClose" aria-label="Close">×</button>' +
           '</div>' +
           '<div class="user-guide-body">' +
-            '<button type="button" class="user-guide-item" data-guide-url="../../docs/lithosite/02_Mine-Services/10_User-Guides/1.HowTo_Uji_KPI_Grader.pdf" data-guide-title="How To Use — Uji KPI Grader">' +
+            '<button type="button" class="user-guide-item" data-guide-url="/user-guide?file=1.HowTo_Uji_KPI_Grader.pdf" data-guide-title="How To Use — Uji KPI Grader">' +
               '<span class="user-guide-item-icon">?</span>' +
               '<span><b>How To Use — Uji KPI Grader</b><small>Work Front → Equipment → Operations → Validation → Timeline Integrity → KPI → Fleet → Dashboard</small></span>' +
               '<span class="user-guide-open">Open ↗</span>' +
             '</button>' +
-            '<button type="button" class="user-guide-item" data-guide-url="../../docs/lithosite/02_Mine-Services/10_User-Guides/0.Xample_Uji_Grader.pdf" data-guide-title="Example — Uji Grader">' +
+            '<button type="button" class="user-guide-item" data-guide-url="/user-guide?file=0.Xample_Uji_Grader.pdf" data-guide-title="Example — Uji Grader">' +
               '<span class="user-guide-item-icon">✓</span>' +
               '<span><b>Example — Uji Grader</b><small>Example evidence and test reference for the KPI Grader flow.</small></span>' +
               '<span class="user-guide-open">Open ↗</span>' +
@@ -199,13 +199,16 @@
     fetch(url, { credentials: 'same-origin', cache: 'no-store' })
       .then(function (response) {
         if (!response.ok) throw new Error('HTTP ' + response.status);
-        return response.blob();
+        return response.json();
       })
-      .then(function (blob) {
-        if (blob.type && blob.type !== 'application/pdf') {
-          throw new Error('Expected application/pdf, received ' + blob.type);
+      .then(function (payload) {
+        if (!payload || payload.status !== 'READY' || payload.mime !== 'application/pdf' || !payload.data) {
+          throw new Error('User guide payload is not a PDF');
         }
-        const objectUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+        const raw = atob(payload.data);
+        const bytes = new Uint8Array(raw.length);
+        for (let index = 0; index < raw.length; index += 1) bytes[index] = raw.charCodeAt(index);
+        const objectUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
         frame._userGuideObjectUrl = objectUrl;
         frame.src = objectUrl + '#zoom=page-width';
         document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader · Fit Width';
