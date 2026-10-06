@@ -77,13 +77,37 @@ function render(){
    const status=statuses.length===1?statuses[0]:'MIXED';
    const cls=status.toLowerCase().replace(/[^a-z]/g,'')||'open';
    const downtime=items.reduce(function(sum,row){return sum+(Number(row.downtime_hours)||0);},0);
-   return '<div class="tr td"><div class="cell">'+esc(first.event_date)+'</div><div class="cell">'+esc(equipment?.unit_no||first.equipment_id||'—')+'</div><div class="cell">'+esc(equipment?.type||'—')+'</div><div class="cell"><button class="control mini maintenance-timeline-row" data-key="'+key+'">'+items.length+' event'+(items.length===1?'':'s')+'</button></div><div class="cell">'+esc(downtime||'—')+'</div><div class="cell"><span class="statuspill '+cls+'">'+esc(status)+'</span></div><div class="cell row-actions"><button class="control mini maintenance-timeline-row" data-key="'+key+'">View</button></div></div>';
+   return '<div class="tr td maintenance-trace-row" data-trace-key="'+key+'"><div class="cell">'+esc(first.event_date)+'</div><div class="cell">'+esc(equipment?.unit_no||first.equipment_id||'—')+'</div><div class="cell">'+esc(equipment?.type||'—')+'</div><div class="cell"><button class="control mini maintenance-timeline-row" data-key="'+key+'" data-trace-key="'+key+'">'+items.length+' event'+(items.length===1?'':'s')+'</button></div><div class="cell">'+esc(downtime||'—')+'</div><div class="cell"><span class="statuspill '+cls+'">'+esc(status)+'</span></div><div class="cell row-actions"><button class="control mini maintenance-timeline-row" data-key="'+key+'" data-trace-key="'+key+'">View</button></div></div>';
   }).join(''):'<div class="empty">No Maintenance records match the current filters.</div>';
   document.getElementById('maintenanceCount').textContent=groups.length+' maintenance timelines · '+rows.length+' events · Runtime Ready';
  }
  if(state.status==='loading')document.getElementById('maintenanceCount').textContent='Loading · Runtime Connecting';
  if(state.status==='error')document.getElementById('maintenanceCount').textContent='Unavailable · Runtime Error';
 }
+function focusTrace(target) {
+ const date=String(target&&target.date||'');
+ const equipmentId=String(target&&target.equipmentId||'').trim();
+ if(!equipmentId)return;
+ const filter=document.getElementById('maintenanceEquipmentFilter');
+ if(filter)filter.value=equipmentId;
+ render();
+ const key=date+'|'+equipmentId;
+ const buttons=Array.from(document.querySelectorAll('#maintenanceRows .maintenance-timeline-row'));
+ const targetButtons=buttons.filter(function(button){return String(button.dataset.traceKey||'')===key;});
+ targetButtons.forEach(function(button){
+  button.classList.remove('trace-highlight');
+  void button.offsetWidth;
+  button.classList.add('trace-highlight');
+ });
+ if(targetButtons.length){
+  const row=targetButtons[0].closest('.tr');
+  if(row)row.scrollIntoView({behavior:'smooth',block:'center'});
+ }
+ window.setTimeout(function(){
+  targetButtons.forEach(function(button){button.classList.remove('trace-highlight');});
+ },2400);
+}
+
 function resetForm(){const now=new Date();const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);document.getElementById('f_maintenance_id').value='MNT-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();document.getElementById('f_maintenance_equipment').value=state.equipment[0]?.equipment_id||'';document.getElementById('f_maintenance_event_date').value=d;document.getElementById('f_maintenance_event_type').value=LISTS.event_type[0]||'';document.getElementById('f_maintenance_failure_code').value='';document.getElementById('f_maintenance_start_time').value='';document.getElementById('f_maintenance_end_time').value='';document.getElementById('f_maintenance_downtime_hours').value='';document.getElementById('f_maintenance_action').value=LISTS.action[0]||'';document.getElementById('f_maintenance_status').value=LISTS.status.includes('Open')?'Open':(LISTS.status[0]||'');document.getElementById('f_maintenance_source').value='Manual';}
 function openAdd(){editId=null;document.getElementById('maintenanceModalTitle').textContent='Add Maintenance';document.getElementById('maintenanceSave').textContent='Save via RuntimeAdapter';resetForm();document.getElementById('maintenanceModal').classList.add('show');}
 function openEdit(id){const row=state.rows.find(x=>String(x.maintenance_id)===String(id));if(!row)return;editId=id;document.getElementById('maintenanceModalTitle').textContent='Edit Maintenance';document.getElementById('maintenanceSave').textContent='Update via RuntimeAdapter';const map={f_maintenance_id:row.maintenance_id,f_maintenance_equipment:row.equipment_id,f_maintenance_event_date:row.event_date,f_maintenance_event_type:row.event_type,f_maintenance_failure_code:row.failure_code,f_maintenance_start_time:row.start_time,f_maintenance_end_time:row.end_time,f_maintenance_downtime_hours:row.downtime_hours,f_maintenance_action:row.action,f_maintenance_status:row.status,f_maintenance_source:row.source};Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');document.getElementById('maintenanceModal').classList.add('show');}
@@ -115,5 +139,5 @@ function bind(){
 function init(){if(!document.getElementById('maintenanceScreen'))return;if(document.getElementById('maintenanceAdd'))bind();load();}
 if(global.LithositeDataSync)global.LithositeDataSync.register('Maintenance',refreshData);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-global.LithositeMaintenance=Object.freeze({entity:'Maintenance',readAll:()=>rc.request({operation:'READ',entity:'Maintenance'}),getLists:()=>rc.request({operation:'READ',entity:'_Lists'}),create:(row)=>rc.request({operation:'CREATE',entity:'Maintenance',row}),update:(id,patch)=>rc.request({operation:'UPDATE',entity:'Maintenance',entity_id:id,patch}),delete:(id)=>rc.request({operation:'DELETE',entity:'Maintenance',entity_id:id})});
+global.LithositeMaintenance=Object.freeze({entity:'Maintenance',focusTrace,readAll:()=>rc.request({operation:'READ',entity:'Maintenance'}),getLists:()=>rc.request({operation:'READ',entity:'_Lists'}),create:(row)=>rc.request({operation:'CREATE',entity:'Maintenance',row}),update:(id,patch)=>rc.request({operation:'UPDATE',entity:'Maintenance',entity_id:id,patch}),delete:(id)=>rc.request({operation:'DELETE',entity:'Maintenance',entity_id:id})});
 })(window);
