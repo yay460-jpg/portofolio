@@ -386,7 +386,7 @@
     document.getElementById('modalTitle').textContent = 'Add Operation';
     document.getElementById('stage').textContent = 'Save via RuntimeAdapter';
     resetForm();
-    modal.classList.add('show');
+    if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('modal');}else{modal.classList.add('show');}
   }
 
   function openEdit(id) {
