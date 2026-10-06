@@ -346,6 +346,29 @@
     }
   }
 
+  function bindTransientModalLifecycle() {
+    if (document.documentElement.dataset.dmModalLifecycleBound === 'true') return;
+    document.documentElement.dataset.dmModalLifecycleBound = 'true';
+
+    const observer = new MutationObserver(function (mutations) {
+      for (const mutation of mutations) {
+        if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') continue;
+        const target = mutation.target;
+        if (!(target instanceof HTMLElement)) continue;
+        if (target.id === 'stage15DataModal') continue;
+        if (target.classList.contains('show')) {
+          const modal = document.getElementById('stage15DataModal');
+          if (modal && modal.classList.contains('show')) {
+            close();
+          }
+          break;
+        }
+      }
+    });
+
+    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  }
+
   function bind() {
     ensureDom();
     document.getElementById('stage15DataClose').addEventListener('click', close);
@@ -367,6 +390,7 @@
   function init() {
     if (initialized) return;
     initialized = true;
+    bindTransientModalLifecycle();
     bind();
   }
 
