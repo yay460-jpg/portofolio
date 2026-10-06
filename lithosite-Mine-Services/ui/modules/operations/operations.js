@@ -146,12 +146,36 @@
       groups.get(key).push(row);
     });
 
-    return Array.from(groups.values()).map(function (items) {
+    const grouped = Array.from(groups.values()).map(function (items) {
       items.sort(function (a, b) {
         return String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
       });
       return items;
     });
+
+    // Always render work timelines chronologically: date first, then start time.
+    // This is derived from the operation records, so new records are auto-positioned
+    // without relying on database insertion order.
+    grouped.sort(function (a, b) {
+      const aFirst = a[0] || {};
+      const bFirst = b[0] || {};
+      const dateCompare = String(aFirst.transaction_date || '')
+        .localeCompare(String(bFirst.transaction_date || ''));
+      if (dateCompare !== 0) return dateCompare;
+
+      const timeCompare = String(aFirst.transaction_time || '')
+        .localeCompare(String(bFirst.transaction_time || ''));
+      if (timeCompare !== 0) return timeCompare;
+
+      const equipmentCompare = String(aFirst.equipment_id || '')
+        .localeCompare(String(bFirst.equipment_id || ''));
+      if (equipmentCompare !== 0) return equipmentCompare;
+
+      return String(aFirst.transaction_id || '')
+        .localeCompare(String(bFirst.transaction_id || ''));
+    });
+
+    return grouped;
   }
 
   function openTimeline(key) {
