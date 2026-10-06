@@ -177,8 +177,9 @@
     }
 
     document.getElementById('userGuideReaderTitle').textContent = title || 'How To Use';
-    document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader';
-    document.getElementById('userGuideReaderFrame').src = url;
+    document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader · Loading…';
+    const frame = document.getElementById('userGuideReaderFrame');
+
     reader.classList.add('show');
     reader.setAttribute('aria-hidden', 'false');
 
@@ -187,6 +188,31 @@
       guideMenu.classList.remove('show');
       guideMenu.setAttribute('aria-hidden', 'true');
     }
+
+    if (frame._userGuideObjectUrl) {
+      URL.revokeObjectURL(frame._userGuideObjectUrl);
+      frame._userGuideObjectUrl = null;
+    }
+
+    fetch(url, { credentials: 'omit', cache: 'no-cache' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.blob();
+      })
+      .then(function (blob) {
+        if (blob.type !== 'application/pdf') {
+          throw new Error('Document did not return as PDF');
+        }
+        const objectUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+        frame._userGuideObjectUrl = objectUrl;
+        frame.src = objectUrl;
+        document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader';
+      })
+      .catch(function (error) {
+        frame.removeAttribute('src');
+        document.getElementById('userGuideReaderMeta').textContent = 'Unable to load PDF inline';
+        console.error('[Lithosite User Guide] PDF load failed:', error);
+      });
   }
 
   function closeUserGuideReader() {
@@ -195,7 +221,13 @@
     reader.classList.remove('show');
     reader.setAttribute('aria-hidden', 'true');
     const frame = document.getElementById('userGuideReaderFrame');
-    if (frame) frame.src = 'about:blank';
+    if (frame) {
+      frame.src = 'about:blank';
+      if (frame._userGuideObjectUrl) {
+        URL.revokeObjectURL(frame._userGuideObjectUrl);
+        frame._userGuideObjectUrl = null;
+      }
+    }
   }
 
   function init() {
