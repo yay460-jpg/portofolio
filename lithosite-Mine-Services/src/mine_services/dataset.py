@@ -49,6 +49,11 @@ class DatasetManager:
             raise ValueError("DATASET_PAYLOAD_INVALID")
 
         candidate = PersistenceStore(schema_module=self.store.schema)
+        controlled_lists = document.get("controlled_lists")
+        if isinstance(controlled_lists, dict):
+            candidate.controlled_lists = {
+                name: set(values) for name, values in controlled_lists.items() if isinstance(values, list)
+            }
         for entity in self.store.schema.DOMAIN_ENTITIES:
             rows = payload["data"].get(entity, {})
             if not isinstance(rows, dict):
@@ -77,6 +82,7 @@ class DatasetManager:
             "schema_version": self.store.schema.SCHEMA_VERSION,
             "created_at": created_at or now,
             "updated_at": now,
+            "controlled_lists": {name: sorted(values) for name, values in self.store.controlled_lists.items()},
             "payload": {"data": snapshot["data"]},
             "status": "READY",
         }
@@ -158,6 +164,11 @@ class DatasetManager:
             "data": document["payload"]["data"],
             "audit": before.get("audit", []),
         })
+        controlled_lists = document.get("controlled_lists")
+        if isinstance(controlled_lists, dict):
+            self.store.controlled_lists = {
+                name: set(values) for name, values in controlled_lists.items() if isinstance(values, list)
+            }
         self.active = {
             "dataset_id": document["dataset_id"],
             "dataset_name": document["dataset_name"],
