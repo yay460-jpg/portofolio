@@ -116,12 +116,12 @@
             '<button type="button" class="control user-guide-close" id="userGuideClose" aria-label="Close">×</button>' +
           '</div>' +
           '<div class="user-guide-body">' +
-            '<button type="button" class="user-guide-item" data-guide-url="https://raw.githubusercontent.com/yay460-jpg/portofolio/v37-workspace/docs/lithosite/02_Mine-Services/10_User-Guides/1.HowTo_Uji_KPI_Grader.pdf" data-guide-title="How To Use — Uji KPI Grader">' +
+            '<button type="button" class="user-guide-item" data-guide-url="../../docs/lithosite/02_Mine-Services/10_User-Guides/1.HowTo_Uji_KPI_Grader.pdf" data-guide-title="How To Use — Uji KPI Grader">' +
               '<span class="user-guide-item-icon">?</span>' +
               '<span><b>How To Use — Uji KPI Grader</b><small>Work Front → Equipment → Operations → Validation → Timeline Integrity → KPI → Fleet → Dashboard</small></span>' +
               '<span class="user-guide-open">Open ↗</span>' +
             '</button>' +
-            '<button type="button" class="user-guide-item" data-guide-url="https://raw.githubusercontent.com/yay460-jpg/portofolio/v37-workspace/docs/lithosite/02_Mine-Services/10_User-Guides/0.Xample_Uji_Grader.pdf" data-guide-title="Example — Uji Grader">' +
+            '<button type="button" class="user-guide-item" data-guide-url="../../docs/lithosite/02_Mine-Services/10_User-Guides/0.Xample_Uji_Grader.pdf" data-guide-title="Example — Uji Grader">' +
               '<span class="user-guide-item-icon">✓</span>' +
               '<span><b>Example — Uji Grader</b><small>Example evidence and test reference for the KPI Grader flow.</small></span>' +
               '<span class="user-guide-open">Open ↗</span>' +
@@ -194,25 +194,8 @@
       frame._userGuideObjectUrl = null;
     }
 
-    fetch(url, { credentials: 'omit', cache: 'no-cache' })
-      .then(function (response) {
-        if (!response.ok) throw new Error('HTTP ' + response.status);
-        return response.blob();
-      })
-      .then(function (blob) {
-        if (blob.type !== 'application/pdf') {
-          throw new Error('Document did not return as PDF');
-        }
-        const objectUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-        frame._userGuideObjectUrl = objectUrl;
-        frame.src = objectUrl;
-        document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader';
-      })
-      .catch(function (error) {
-        frame.removeAttribute('src');
-        document.getElementById('userGuideReaderMeta').textContent = 'Unable to load PDF inline';
-        console.error('[Lithosite User Guide] PDF load failed:', error);
-      });
+    frame.src = url;
+    document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader';
   }
 
   function closeUserGuideReader() {
