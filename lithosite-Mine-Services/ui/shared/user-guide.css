@@ -175,7 +175,7 @@
 }
 .user-guide-reader-modal.show{display:flex}
 .user-guide-reader-dialog{
-  width:min(1100px,calc(100vw - 36px));
+  width:min(1050px,calc(100vw - 36px));
   height:min(90vh,900px);
   overflow:hidden;
   background:#101f31;
