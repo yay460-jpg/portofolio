@@ -17,8 +17,15 @@
   let currentScreen = 'Dashboard';
   let initialized = false;
 
+  function closeTransientModuleOverlays() {
+    if (global.LithositeDataManagement && typeof global.LithositeDataManagement.close === 'function') {
+      global.LithositeDataManagement.close();
+    }
+  }
+
   function setScreen(name, persist) {
     if (!SCREENS[name]) return false;
+    closeTransientModuleOverlays();
     currentScreen = name;
 
     if (persist !== false) {
