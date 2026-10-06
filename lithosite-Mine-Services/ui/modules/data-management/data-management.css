@@ -24,3 +24,15 @@
 #stage15DataModal .dm-data-actions{margin-top:2px}
 #stage15DataModal .dm-data-actions .control{min-width:92px}
 #stage15DataModal .dm-load .dm-actions{align-items:center}
+
+/* Stage 26 — Lithosite-owned dataset dialogs; avoid native browser prompt/confirm chrome. */
+#stage15DataModal .dm-native-dialog{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:#020812aa}
+#stage15DataModal .dm-native-dialog[hidden]{display:none}
+#stage15DataModal .dm-dialog-card{width:min(440px,calc(100% - 36px));background:#0e1d2e;border:1px solid #35506b;border-radius:10px;box-shadow:0 18px 60px #0009}
+#stage15DataModal .dm-dialog-title{padding:13px 16px;border-bottom:1px solid #263e57;color:#dbe8f5;font-size:13px;font-weight:650}
+#stage15DataModal .dm-dialog-body{padding:14px 16px;display:grid;gap:7px}
+#stage15DataModal .dm-dialog-body label{font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px}
+#stage15DataModal .dm-dialog-body input[type=text]{width:100%;height:36px;border:1px solid #35506b;border-radius:7px;background:#0b1a2b;color:#e5eef8;padding:8px 10px;font-size:11px;outline:none}
+#stage15DataModal .dm-dialog-body input[type=text]:focus{border-color:#60a5fa;box-shadow:0 0 0 2px #60a5fa22}
+#stage15DataModal .dm-dialog-help{color:#8ea3ba;font-size:9.5px;line-height:1.45}
+#stage15DataModal .dm-dialog-foot{display:flex;justify-content:flex-end;gap:8px;padding:11px 16px;border-top:1px solid #263e57}
