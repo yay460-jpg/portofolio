@@ -173,7 +173,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > 2_000_000:
+            if length <= 0 or length > 180_000_000:
                 raise ValueError("Invalid request size")
             request = json.loads(self.rfile.read(length).decode("utf-8"))
             if not isinstance(request, dict):
