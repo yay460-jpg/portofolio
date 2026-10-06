@@ -175,6 +175,89 @@
       var result=host.querySelector('#dashboardTopo3DMeasureResult');
       if(result)result.textContent='Bearing — · Distance —';
     }
+    function bytesToBase64(buffer){
+      var bytes=new Uint8Array(buffer), binary='';
+      var chunk=0x8000;
+      for(var i=0;i<bytes.length;i+=chunk){
+        binary+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+chunk,bytes.length)));
+      }
+      return btoa(binary);
+    }
+    function base64ToBytes(value){
+      var binary=atob(value||''), bytes=new Uint8Array(binary.length);
+      for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+      return bytes;
+    }
+    function ensureTopoBackupPanel(){
+      var existing=host.querySelector('#dashboardTopo3DBackupPanel');
+      if(existing)return existing;
+      var panel=document.createElement('div');
+      panel.id='dashboardTopo3DBackupPanel';
+      panel.style.cssText='position:absolute;top:42px;left:8px;z-index:30;width:320px;padding:12px;border:1px solid rgba(96,165,250,.35);border-radius:10px;background:#0b1b2d;box-shadow:0 16px 36px rgba(0,0,0,.42);display:none;color:#dbeafe;font:12px Segoe UI,Arial,sans-serif;';
+      panel.innerHTML='<div style="font-weight:700;margin-bottom:8px">Topography Backups</div><div id="dashboardTopo3DBackupList"></div><div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px"><button type="button" id="dashboardTopo3DBackupClose">Close</button><button type="button" id="dashboardTopo3DBackupRestore" class="primary">Restore Selected</button></div>';
+      host.appendChild(panel);
+      panel.querySelector('#dashboardTopo3DBackupClose').addEventListener('click',function(){panel.style.display='none';});
+      panel.querySelector('#dashboardTopo3DBackupRestore').addEventListener('click',async function(){
+        var select=panel.querySelector('#dashboardTopo3DBackupSelect');
+        if(!select||!select.value)return;
+        try{
+          setStatus('Reading topography backup…');
+          var result=await global.LithositeRuntimeClient.request({operation:'LOAD_TOPOGRAPHY_BACKUP',filename:select.value});
+          if(result.status!=='READY'||!result.data)throw new Error('Topography backup unavailable');
+          var bytes=base64ToBytes(result.data);
+          var file=new File([bytes],result.filename||select.value,{type:'application/octet-stream'});
+          await engine.loadLTDtm(file);
+          engine.fit();
+          updateCoordinateInfo(engine.getState().meta);
+          setStatus('Topography restored · '+(result.filename||select.value),'ready');
+          startAutoRotate();
+          panel.style.display='none';
+        }catch(error){
+          setStatus(error&&error.message?error.message:'Topography restore failed','error');
+        }
+      });
+      return panel;
+    }
+    async function openTopoBackupPanel(){
+      var panel=ensureTopoBackupPanel(), list=panel.querySelector('#dashboardTopo3DBackupList');
+      list.textContent='Loading backups…';
+      panel.style.display='block';
+      try{
+        var result=await global.LithositeRuntimeClient.request({operation:'LIST_TOPOGRAPHY_BACKUPS'});
+        var backups=Array.isArray(result.backups)?result.backups:[];
+        if(!backups.length){
+          list.textContent='No topography backups yet.';
+          panel.querySelector('#dashboardTopo3DBackupRestore').disabled=true;
+          return;
+        }
+        panel.querySelector('#dashboardTopo3DBackupRestore').disabled=false;
+        list.innerHTML='<label style="display:block;margin-bottom:4px;color:#93c5fd">Select backup</label><select id="dashboardTopo3DBackupSelect" style="width:100%;padding:8px;border-radius:7px;background:#071525;color:#dbeafe;border:1px solid #29415f">'+backups.map(function(item){
+          var label=item.filename+' · '+(Number(item.size_bytes||0)/1048576).toFixed(2)+' MB';
+          return '<option value="'+String(item.filename).replace(/"/g,'&quot;')+'">'+label+'</option>';
+        }).join('')+'</select><div style="margin-top:7px;color:#8fa7bf">Local Mine Services storage · max '+String(result.max_backups||5)+' backups</div>';
+      }catch(error){
+        list.textContent=error&&error.message?error.message:'Backup list unavailable';
+        panel.querySelector('#dashboardTopo3DBackupRestore').disabled=true;
+      }
+    }
+    async function backupTopography(){
+      try{
+        if(!engine||!engine.getState().meta)throw new Error('Load a topography before creating a backup.');
+        setStatus('Creating LT-DTM backup…');
+        var exported=await engine.exportLTDtm({filename:'Lithosite_Topography'});
+        var buffer=await exported.blob.arrayBuffer();
+        var result=await global.LithositeRuntimeClient.request({
+          operation:'SAVE_TOPOGRAPHY_BACKUP',
+          package_base64:bytesToBase64(buffer),
+          filename:exported.filename,
+          source:'Mine-Services-Map'
+        });
+        if(result.status!=='SAVED')throw new Error('Topography backup rejected');
+        setStatus('LT-DTM backup saved · '+result.filename,'ready');
+      }catch(error){
+        setStatus(error&&error.message?error.message:'Topography backup failed','error');
+      }
+    }
     function syncTopViewClass(){
       host.classList.toggle('is-top-view',!!engine&&engine.getState().view==='top');
     }
