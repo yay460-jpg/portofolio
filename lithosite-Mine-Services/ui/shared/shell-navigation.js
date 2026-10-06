@@ -177,6 +177,12 @@
       ? global.LithositeModalShowContract.isVisible(modal)
       : modal.classList.contains('show');
 
+    if (!visible &&
+        global.LithositeModalShowContract &&
+        global.LithositeModalShowContract.hasOtherVisible('appInfoModal')) {
+      return;
+    }
+
     if (visible) {
       if (global.LithositeModalShowContract) {
         global.LithositeModalShowContract.close('appInfoModal');
@@ -245,6 +251,12 @@
     const visible = global.LithositeModalShowContract
       ? global.LithositeModalShowContract.isVisible(modal)
       : modal.classList.contains('show');
+
+    if (!visible &&
+        global.LithositeModalShowContract &&
+        global.LithositeModalShowContract.hasOtherVisible('userGuideModal')) {
+      return;
+    }
 
     if (visible) {
       if (global.LithositeModalShowContract) {
