@@ -1,0 +1,118 @@
+/* Lithosite Mine Services — Global application info launcher
+   Shared shell utility for version and project metadata.
+*/
+.topbar .topmeta{
+  margin-left:auto;
+}
+
+.app-info-launcher{
+  width:28px;
+  height:28px;
+  margin-left:6px;
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 28px;
+  border:1px solid #29435d;
+  border-radius:50%;
+  background:#12243a;
+  color:#dbe8f5;
+  font-size:13px;
+  font-weight:700;
+  line-height:1;
+  text-decoration:none;
+  cursor:pointer;
+  transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease,transform .14s ease;
+}
+.app-info-launcher:hover{
+  border-color:#4d8dff;
+  background:#142b43;
+  box-shadow:0 0 0 1px #4d8dff55,0 4px 12px #02081255;
+  transform:translateY(-1px);
+}
+.app-info-launcher:focus-visible{
+  outline:none;
+  border-color:#60a5fa;
+  box-shadow:0 0 0 2px #60a5fa55;
+}
+.app-info-launcher:active{transform:none}
+
+.app-info-modal{
+  position:fixed;
+  inset:0;
+  z-index:61;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:#02081299;
+}
+.app-info-modal.show{display:flex}
+.app-info-dialog{
+  width:min(480px,calc(100vw - 48px));
+  background:#101f31;
+  border:1px solid #31506d;
+  border-radius:12px;
+  box-shadow:0 20px 70px #0009;
+  overflow:hidden;
+}
+.app-info-head{
+  min-height:52px;
+  padding:0 16px;
+  border-bottom:1px solid #29435d;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.app-info-head>div{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.app-info-head b{color:#e8f0fa;font-size:12px}
+.app-info-head span{color:#8fa5bb;font-size:8.5px}
+.app-info-close{
+  width:30px;
+  min-width:30px;
+  height:30px;
+  padding:0;
+  justify-content:center;
+  font-size:18px;
+}
+.app-info-body{
+  padding:14px 16px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.app-info-row{
+  min-height:42px;
+  padding:9px 11px;
+  border:1px solid #29435d;
+  border-radius:8px;
+  background:#0c1b2c;
+  display:grid;
+  grid-template-columns:112px 1fr;
+  align-items:center;
+  gap:10px;
+}
+.app-info-label{
+  color:#8fa5bb;
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.app-info-value{
+  color:#e8f0fa;
+  font-size:10.5px;
+  font-weight:600;
+}
+.app-info-value.accent{color:#7db0ff}
+.app-info-note{
+  padding:4px 2px 0;
+  color:#7189a2;
+  font-size:8.5px;
+  line-height:1.4;
+}
+@media(prefers-reduced-motion:reduce){
+  .app-info-launcher{transition:none}
+}
