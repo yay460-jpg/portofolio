@@ -209,3 +209,14 @@
   cursor:pointer;
 }
 #timelineModal .control:hover{border-color:#4d8dff}
+#timelineModal .control.danger{
+  color:#fecaca;
+  border-color:#7f1d1d;
+  background:#3a171c;
+}
+#timelineModal .control.danger:hover{
+  color:#fff;
+  border-color:#ef4444;
+  background:#7f1d1d;
+  box-shadow:0 0 0 1px #ef444455,0 4px 12px #02081255;
+}
