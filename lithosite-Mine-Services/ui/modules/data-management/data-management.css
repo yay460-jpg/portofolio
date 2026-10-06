@@ -1,7 +1,7 @@
 /* Stage 18 — Data Management module stylesheet */
 #stage15DataModal{position:fixed;inset:0 0 0 84px;z-index:100;background:transparent;display:none;align-items:center;justify-content:flex-start;padding-left:18px;pointer-events:none}
 #stage15DataModal.show{display:flex}
-#stage15DataModal .dm-card{width:960px;max-width:calc(100vw - 108px);max-height:calc(100vh - 96px);overflow:auto;background:#0e1d2e;border:1px solid #35506b;border-radius:12px;box-shadow:0 18px 60px #0009;pointer-events:auto}
+#stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 108px);max-height:calc(100vh - 96px);overflow:auto;background:#0e1d2e;border:1px solid #35506b;border-radius:12px;box-shadow:0 18px 60px #0009;pointer-events:auto}
 #stage15DataModal .dm-head,#stage15DataModal .dm-foot{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #263e57}
 #stage15DataModal .dm-foot{border-bottom:0;border-top:1px solid #263e57;justify-content:flex-end;gap:8px}
 #stage15DataModal .dm-body{padding:16px;display:grid;gap:12px}
@@ -40,9 +40,9 @@
 /* Stage 26 — Data Management opens beside the actual sidebar; shift only left, keep the workspace visible. */
 #stage15DataModal .dm-native-dialog{pointer-events:auto}
 @media (max-width:1100px){
-  #stage15DataModal .dm-card{width:960px;max-width:calc(100vw - 108px)}
+  #stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 108px)}
 }
 @media (max-width:900px){
   #stage15DataModal{inset:64px 14px 14px 82px}
-  #stage15DataModal .dm-card{width:960px;max-width:calc(100vw - 96px);max-height:calc(100vh - 78px)}
+  #stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 96px);max-height:calc(100vh - 78px)}
 }
