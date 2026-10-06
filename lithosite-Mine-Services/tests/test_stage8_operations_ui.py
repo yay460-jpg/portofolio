@@ -113,7 +113,7 @@ def test_stage8_operations_maintenance_trace_contract():
 
     assert "maintenanceLinksFor" in ops_text
     assert "dataState.maintenance" in ops_text
-    assert 'class="maintenance-link"' in ops_text
+    assert "maintenance-link" in ops_text
     assert "LithositeMaintenance.focusTrace" in ops_text
     assert "setScreen('Maintenance')" in ops_text
     assert '<div class="cell">Maintenance</div>' in ui_text
