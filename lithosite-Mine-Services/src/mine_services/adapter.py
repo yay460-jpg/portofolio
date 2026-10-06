@@ -21,6 +21,10 @@ class RuntimeAdapter:
         "IMPORT_XLSX",
         "BACKUP",
         "RESTORE",
+        "LIST_DATASETS",
+        "SAVE_DATASET",
+        "SAVE_AS_DATASET",
+        "LOAD_DATASET",
         "FINALIZE_KPI",
         "READ_KPI_SNAPSHOTS",
     }
@@ -112,6 +116,16 @@ class RuntimeAdapter:
                 result = self._runtime.import_xlsx(path)
             elif operation == "BACKUP":
                 result = self._runtime.backup(source=request.get("source", "runtime"))
+            elif operation == "LIST_DATASETS":
+                result = self._runtime.list_datasets()
+            elif operation == "SAVE_DATASET":
+                result = self._runtime.save_dataset(name=request.get("name"))
+            elif operation == "SAVE_AS_DATASET":
+                name = self._required(request, "name")
+                result = self._runtime.save_dataset_as(name=name)
+            elif operation == "LOAD_DATASET":
+                name = self._required(request, "name")
+                result = self._runtime.load_dataset(name=name)
             elif operation == "FINALIZE_KPI":
                 snapshot = self._required(request, "snapshot")
                 result = self._runtime.finalize_kpi(
