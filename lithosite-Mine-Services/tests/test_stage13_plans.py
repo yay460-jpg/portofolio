@@ -108,7 +108,7 @@ def test_v27_plans_shell_contract():
 
     assert 'id="plansScreen"' in html
     assert 'id="plansModal"' in html
-    assert "shell-navigation.js?v=20261006" in html
+    assert "shell-navigation.js?v=20261007" in html
     assert "../ui/modules/plans/plans.js?v=20261001" in html
     assert "Plans: 'plansScreen'" in shell
     assert "let initialized = false;" in shell
