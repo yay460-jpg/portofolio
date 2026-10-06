@@ -3,7 +3,8 @@
 
   const state = {
     activeId: null,
-    initialized: false
+    initialized: false,
+    blockedToast: null
   };
 
   const OPEN_CLASS_BY_ID = new Set([
@@ -37,6 +38,42 @@
     return getApplicationModals().some(function (el) {
       return !id || el.id !== id;
     });
+  }
+
+  function notifyBlocked(message) {
+    if (!document.body) return;
+    let toast = state.blockedToast;
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'modalShowGuardToast';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      toast.style.cssText = [
+        'position:fixed',
+        'left:50%',
+        'bottom:48px',
+        'transform:translateX(-50%)',
+        'z-index:100000',
+        'display:none',
+        'max-width:min(520px,calc(100vw - 32px))',
+        'padding:10px 14px',
+        'border:1px solid #6b4d22',
+        'border-radius:8px',
+        'background:#241b0d',
+        'color:#f8d58a',
+        'box-shadow:0 12px 32px #0009',
+        'font:600 11px Segoe UI,Arial,sans-serif',
+        'text-align:center'
+      ].join(';');
+      document.body.appendChild(toast);
+      state.blockedToast = toast;
+    }
+    toast.textContent = message || 'Close the current modal before opening this.';
+    toast.style.display = 'block';
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(function () {
+      toast.style.display = 'none';
+    }, 3200);
   }
 
   function closeAll(exceptId) {
@@ -116,6 +153,7 @@
     closeTransient: closeTransient,
     isVisible: isVisible,
     hasOtherVisible: hasOtherVisible,
+    notifyBlocked: notifyBlocked,
     openClassById: OPEN_CLASS_BY_ID
   });
 })(window);
