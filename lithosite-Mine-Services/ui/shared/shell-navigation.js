@@ -146,11 +146,11 @@
             '<button type="button" class="control app-info-close" id="appInfoClose" aria-label="Close">×</button>' +
           '</div>' +
           '<div class="app-info-body">' +
-            '<div class="app-info-row"><span class="app-info-label">Application</span><span class="app-info-value">Lithosite | Mine Services</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label">Application</span><span class="app-info-value"><span class="brand-litho">Litho</span><span class="brand-site">site</span> | Mine Services Development</span></div>' +
             '<div class="app-info-row"><span class="app-info-label">Version</span><span class="app-info-value accent">V37 · Stage 26</span></div>' +
-            '<div class="app-info-row"><span class="app-info-label">Artifact</span><span class="app-info-value">Mine Services Concept 2 · Dashboard Operations</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label">Artifact</span><span class="app-info-value">Mine Services Concept 2 · Operations</span></div>' +
             '<div class="app-info-row"><span class="app-info-label">Runtime</span><span class="app-info-value">A.3 · Desktop Master</span></div>' +
-            '<div class="app-info-row"><span class="app-info-label">Developer</span><span class="app-info-value">Lithosite Mine Services Development</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label">Developer</span><span class="app-info-value"><span class="developer-name">Lithosite</span> Team</span></div>' +
             '<div class="app-info-note">Version and runtime information for the current application workspace.</div>' +
           '</div>' +
         '</div>';
