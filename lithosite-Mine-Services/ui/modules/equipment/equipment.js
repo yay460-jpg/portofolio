@@ -66,7 +66,15 @@ function render(){
  }else if(state.status==='error'){
    host.innerHTML='<div class="empty">Equipment data unavailable. Check RuntimeAdapter connection and use Refresh.</div>';
  }else{
-   const rows=filtered();
+   const rows=filtered().slice().sort(function(a,b){
+     const dateCompare=String(a.effective_from||'').localeCompare(String(b.effective_from||''));
+     if(dateCompare!==0)return dateCompare;
+     const statusCompare=String(a.status||'').localeCompare(String(b.status||''));
+     if(statusCompare!==0)return statusCompare;
+     const unitCompare=String(a.unit_no||'').localeCompare(String(b.unit_no||''));
+     if(unitCompare!==0)return unitCompare;
+     return String(a.equipment_id||'').localeCompare(String(b.equipment_id||''));
+   });
    host.innerHTML=rows.length?rows.map(r=>{
    const cls=String(r.status||'').toLowerCase().replace(/[^a-z]/g,'')||'inactive-status';
    return '<div class="tr td">'+
