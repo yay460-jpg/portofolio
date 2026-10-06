@@ -29,7 +29,7 @@
       );
     }
 
-    const mutating = ['CREATE', 'UPDATE', 'DELETE', 'IMPORT_XLSX', 'RESTORE'].includes(String(req.operation || '').toUpperCase());
+    const mutating = ['CREATE', 'UPDATE', 'DELETE', 'IMPORT_XLSX', 'RESTORE', 'LOAD_DATASET'].includes(String(req.operation || '').toUpperCase());
     const committed = result.status === 'COMMITTED';
     if (mutating && committed) {
       window.dispatchEvent(new CustomEvent('lithosite:runtime-mutated', {
