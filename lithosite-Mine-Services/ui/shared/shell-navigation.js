@@ -194,8 +194,27 @@
       frame._userGuideObjectUrl = null;
     }
 
-    frame.src = url + '#zoom=page-width';
-    document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader · Fit Width';
+    document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader · Loading…';
+
+    fetch(url, { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.blob();
+      })
+      .then(function (blob) {
+        if (blob.type && blob.type !== 'application/pdf') {
+          throw new Error('Expected application/pdf, received ' + blob.type);
+        }
+        const objectUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+        frame._userGuideObjectUrl = objectUrl;
+        frame.src = objectUrl + '#zoom=page-width';
+        document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader · Fit Width';
+      })
+      .catch(function (error) {
+        frame.removeAttribute('src');
+        document.getElementById('userGuideReaderMeta').textContent = 'Unable to load PDF inline';
+        console.error('[Lithosite User Guide] PDF load failed:', error);
+      });
   }
 
   function closeUserGuideReader() {
