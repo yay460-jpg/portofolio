@@ -15,6 +15,8 @@ def test_stage15_data_management_ui_contract():
     assert "SAVE_AS_DATASET" in module
     assert "LOAD_DATASET" in module
     assert "LIST_DATASETS" in module
+    assert "data-management.css?v=20261009" in html
+    assert "runtime-client.js?v=20261009" in html
     assert "data-management.js?v=20261009" in html
     assert "LithositeDataManagement" in module
     assert "operation: 'IMPORT_XLSX'" in module
@@ -35,3 +37,20 @@ def test_stage15_runtime_adapter_data_operations():
     assert '"SAVE_AS_DATASET"' in adapter
     assert '"LOAD_DATASET"' in adapter
 
+
+
+def test_stage15_dataset_manager_contract():
+    root = Path(__file__).parents[1]
+    manager = (root / "src" / "mine_services" / "dataset.py").read_text(encoding="utf-8")
+    runtime = (root / "src" / "mine_services" / "runtime.py").read_text(encoding="utf-8")
+    client = (root / "ui" / "shared" / "runtime-client.js").read_text(encoding="utf-8")
+
+    assert "class DatasetManager" in manager
+    assert "def save(" in manager
+    assert "def save_as(" in manager
+    assert "def load(" in manager
+    assert "def list(" in manager
+    assert "def save_dataset(" in runtime
+    assert "def save_dataset_as(" in runtime
+    assert "def load_dataset(" in runtime
+    assert "'LOAD_DATASET'" in client
