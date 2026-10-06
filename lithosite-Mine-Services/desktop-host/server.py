@@ -135,6 +135,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        if target.suffix.lower() == ".pdf":
+            self.send_header("Content-Disposition", "inline")
         self.end_headers()
         self.wfile.write(body)
 
