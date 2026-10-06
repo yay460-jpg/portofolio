@@ -123,3 +123,10 @@
 .app-info-label-wrap{display:flex;align-items:center;gap:7px}
 .app-info-label-icon{width:15px;height:15px;display:inline-grid;place-items:center;color:#7da9d8;flex:0 0 15px}
 .app-info-label-icon svg{width:15px;height:15px;display:block}
+
+/* Stage 26 — Metadata icons use restrained role-based accents. */
+.app-info-row:nth-child(1) .app-info-label-icon{color:#60a5fa}
+.app-info-row:nth-child(2) .app-info-label-icon{color:#a78bfa}
+.app-info-row:nth-child(3) .app-info-label-icon{color:#f59e0b}
+.app-info-row:nth-child(4) .app-info-label-icon{color:#22c55e}
+.app-info-row:nth-child(5) .app-info-label-icon{color:#38bdf8}
