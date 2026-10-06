@@ -413,6 +413,10 @@
         const labelNode = item.querySelector('.nav-text');
         const label = labelNode ? labelNode.textContent.trim() : '';
         if (label === 'Data Manage' && global.LithositeDataManagement) {
+          if (global.LithositeNavigationGuardContract &&
+              !global.LithositeNavigationGuardContract.guard()) {
+            return;
+          }
           global.LithositeDataManagement.open();
           return;
         }
