@@ -22,8 +22,8 @@
 #stage15DataModal .dm-load label{font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px}
 #stage15DataModal .dm-load select{flex:1;min-width:0;height:34px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:7px 9px;font-size:10px}
 #stage15DataModal .dm-data-actions{margin-top:2px}
-#stage15DataModal .dm-data-actions .control{min-width:92px}
-#stage15DataModal .dm-load .dm-actions{align-items:center}
+#stage15DataModal .dm-data-actions .control{width:86px;min-width:86px;padding-left:10px;padding-right:10px}
+#stage15DataModal .dm-load .dm-actions{align-items:center}#stage15DataModal .dm-load .dm-actions > .control{width:86px;min-width:86px;padding-left:10px;padding-right:10px}
 
 /* Stage 26 — Lithosite-owned dataset dialogs; avoid native browser prompt/confirm chrome. */
 #stage15DataModal .dm-native-dialog{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:#020812aa}
