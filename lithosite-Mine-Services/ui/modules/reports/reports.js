@@ -204,13 +204,21 @@ function bind(){
   const showConsole=()=>{
     if(!consoleModal)return;
     renderConsolePolicy();
-    consoleModal.classList.add('open');
-    consoleModal.setAttribute('aria-hidden','false');
+    if(global.LithositeModalShowContract){
+      global.LithositeModalShowContract.show('reportsConsoleModal');
+    }else{
+      consoleModal.classList.add('open');
+      consoleModal.setAttribute('aria-hidden','false');
+    }
   };
   const hideConsole=()=>{
     if(!consoleModal)return;
-    consoleModal.classList.remove('open');
-    consoleModal.setAttribute('aria-hidden','true');
+    if(global.LithositeModalShowContract){
+      global.LithositeModalShowContract.close('reportsConsoleModal');
+    }else{
+      consoleModal.classList.remove('open');
+      consoleModal.setAttribute('aria-hidden','true');
+    }
   };
   const applyConsole=async()=>{
     const baselineId=baselineSelect?.value||DEFAULT_POLICY.baseline.baseline_id;
