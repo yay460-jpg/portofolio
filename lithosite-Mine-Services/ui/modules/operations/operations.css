@@ -60,8 +60,8 @@
 #operationsScreen .grid{flex:1 1 auto;min-width:0;min-height:0;height:auto;overflow:auto}
 #operationsScreen .tr{
   display:grid;
-  grid-template-columns:90px 70px 1fr 1.15fr 1.2fr 1.15fr 1.15fr 95px 95px 95px 95px;
-  min-width:1150px;
+  grid-template-columns:90px 70px 1fr 1.15fr 1.2fr 1.15fr 1.15fr 95px 95px 95px 105px 95px;
+  min-width:1250px;
   width:100%;
   align-items:center;
 }
@@ -220,3 +220,7 @@
   background:#7f1d1d;
   box-shadow:0 0 0 1px #f8717155,0 4px 12px #02081255;
 }
+
+/* Stage 26 — Cross-module traceability: Operations → Maintenance. */
+#operationsScreen .maintenance-link{color:#93c5fd;border-color:#315a86;min-width:64px;justify-content:center}
+#operationsScreen .maintenance-link:hover{border-color:#60a5fa;background:#16304b}
