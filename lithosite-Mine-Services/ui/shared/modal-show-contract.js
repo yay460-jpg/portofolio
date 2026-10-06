@@ -33,6 +33,12 @@
       });
   }
 
+  function hasOtherVisible(id) {
+    return getApplicationModals().some(function (el) {
+      return !id || el.id !== id;
+    });
+  }
+
   function closeAll(exceptId) {
     getApplicationModals().forEach(function (el) {
       if (exceptId && el.id === exceptId) return;
@@ -109,6 +115,7 @@
     closeAll: closeAll,
     closeTransient: closeTransient,
     isVisible: isVisible,
+    hasOtherVisible: hasOtherVisible,
     openClassById: OPEN_CLASS_BY_ID
   });
 })(window);
