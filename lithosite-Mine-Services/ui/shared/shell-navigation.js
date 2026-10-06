@@ -173,8 +173,23 @@
       });
     }
 
-    const visible = modal.classList.toggle('show');
-    modal.setAttribute('aria-hidden', String(!visible));
+    const visible = global.LithositeModalShowContract
+      ? global.LithositeModalShowContract.isVisible(modal)
+      : modal.classList.contains('show');
+
+    if (visible) {
+      if (global.LithositeModalShowContract) {
+        global.LithositeModalShowContract.close('appInfoModal');
+      } else {
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+    } else if (global.LithositeModalShowContract) {
+      global.LithositeModalShowContract.show('appInfoModal');
+    } else {
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+    }
   }
 
   function toggleUserGuideModal() {
@@ -227,8 +242,23 @@
       });
     }
 
-    const visible = modal.classList.toggle('show');
-    modal.setAttribute('aria-hidden', String(!visible));
+    const visible = global.LithositeModalShowContract
+      ? global.LithositeModalShowContract.isVisible(modal)
+      : modal.classList.contains('show');
+
+    if (visible) {
+      if (global.LithositeModalShowContract) {
+        global.LithositeModalShowContract.close('userGuideModal');
+      } else {
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+    } else if (global.LithositeModalShowContract) {
+      global.LithositeModalShowContract.show('userGuideModal');
+    } else {
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+    }
   }
 
   function openUserGuideReader(url, title) {
@@ -261,13 +291,21 @@
     document.getElementById('userGuideReaderMeta').textContent = 'Inline PDF Reader · Loading…';
     const frame = document.getElementById('userGuideReaderFrame');
 
-    reader.classList.add('show');
-    reader.setAttribute('aria-hidden', 'false');
+    if (global.LithositeModalShowContract) {
+      global.LithositeModalShowContract.show('userGuideReaderModal');
+    } else {
+      reader.classList.add('show');
+      reader.setAttribute('aria-hidden', 'false');
+    }
 
     const guideMenu = document.getElementById('userGuideModal');
     if (guideMenu) {
-      guideMenu.classList.remove('show');
-      guideMenu.setAttribute('aria-hidden', 'true');
+      if (global.LithositeModalShowContract) {
+        global.LithositeModalShowContract.close('userGuideModal');
+      } else {
+        guideMenu.classList.remove('show');
+        guideMenu.setAttribute('aria-hidden', 'true');
+      }
     }
 
     if (frame._userGuideObjectUrl) {
@@ -304,8 +342,12 @@
   function closeUserGuideReader() {
     const reader = document.getElementById('userGuideReaderModal');
     if (!reader) return;
-    reader.classList.remove('show');
-    reader.setAttribute('aria-hidden', 'true');
+    if (global.LithositeModalShowContract) {
+      global.LithositeModalShowContract.close('userGuideReaderModal');
+    } else {
+      reader.classList.remove('show');
+      reader.setAttribute('aria-hidden', 'true');
+    }
     const frame = document.getElementById('userGuideReaderFrame');
     if (frame) {
       frame.src = 'about:blank';
