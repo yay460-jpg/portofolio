@@ -93,13 +93,13 @@ function resetForm(){
  document.getElementById('f_wf_responsible').value='';document.getElementById('f_wf_status').value=LISTS.status.includes('ACTIVE')?'ACTIVE':(LISTS.status[0]||'');
  document.getElementById('f_wf_from').value=d;document.getElementById('f_wf_to').value='';
 }
-function openAdd(){editId=null;document.getElementById('workfrontModalTitle').textContent='Add Work Front';document.getElementById('workfrontSave').textContent='Save via RuntimeAdapter';resetForm();document.getElementById('workfrontModal').classList.add('show');}
+function openAdd(){editId=null;document.getElementById('workfrontModalTitle').textContent='Add Work Front';document.getElementById('workfrontSave').textContent='Save via RuntimeAdapter';resetForm();if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('workfrontModal');}else{document.getElementById('workfrontModal').classList.add('show')};}
 function openEdit(id){
  const row=state.rows.find(x=>String(x.work_front_id)===String(id));if(!row)return;
  editId=id;document.getElementById('workfrontModalTitle').textContent='Edit Work Front';document.getElementById('workfrontSave').textContent='Update via RuntimeAdapter';
  const map={f_wf_id:row.work_front_id,f_wf_domain:row.domain,f_wf_location:row.location,f_wf_responsible:row.responsible,f_wf_status:row.status,f_wf_from:row.effective_from,f_wf_to:row.effective_to};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
- document.getElementById('workfrontModal').classList.add('show');
+ if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('workfrontModal');}else{document.getElementById('workfrontModal').classList.add('show')};
 }
 function payload(){return {work_front_id:document.getElementById('f_wf_id').value,domain:document.getElementById('f_wf_domain').value,location:document.getElementById('f_wf_location').value,responsible:document.getElementById('f_wf_responsible').value,status:document.getElementById('f_wf_status').value,effective_from:document.getElementById('f_wf_from').value||null,effective_to:document.getElementById('f_wf_to').value||null};}
 async function save(){
