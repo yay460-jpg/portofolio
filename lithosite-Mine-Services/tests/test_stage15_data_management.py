@@ -10,7 +10,12 @@ def test_stage15_data_management_ui_contract():
     assert "Data Manage" in html
     assert "Import Data" in module
     assert "Backup / Restore" in module
-    assert "data-management.js?v=20261001" in html
+    assert "Data Files" in module
+    assert "SAVE_DATASET" in module
+    assert "SAVE_AS_DATASET" in module
+    assert "LOAD_DATASET" in module
+    assert "LIST_DATASETS" in module
+    assert "data-management.js?v=20261009" in html
     assert "LithositeDataManagement" in module
     assert "operation: 'IMPORT_XLSX'" in module
     assert "operation: 'BACKUP'" in module
@@ -24,4 +29,9 @@ def test_stage15_runtime_adapter_data_operations():
     assert '"IMPORT_XLSX"' in adapter
     assert '"BACKUP"' in adapter
     assert '"RESTORE"' in adapter
+
+    assert '"LIST_DATASETS"' in adapter
+    assert '"SAVE_DATASET"' in adapter
+    assert '"SAVE_AS_DATASET"' in adapter
+    assert '"LOAD_DATASET"' in adapter
 
