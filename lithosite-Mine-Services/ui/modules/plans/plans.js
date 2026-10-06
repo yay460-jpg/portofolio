@@ -129,7 +129,7 @@ function openAdd(){
  editId=null;
  document.getElementById('plansModalTitle').textContent='Add Plan';
  document.getElementById('plansSave').textContent='Save via RuntimeAdapter';
- resetForm();document.getElementById('plansModal').classList.add('show');
+ resetForm();if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('plansModal');}else{document.getElementById('plansModal').classList.add('show')};
 }
 function openEdit(id){
  const row=state.rows.find(x=>String(x.plan_id)===String(id));if(!row)return;
@@ -139,7 +139,7 @@ function openEdit(id){
  const map={f_plan_id:row.plan_id,f_plan_period:row.period,f_plan_domain:row.domain,f_plan_work_front:row.work_front_id,
   f_plan_activity:row.activity,f_plan_target_quantity:row.target_quantity,f_plan_unit:row.unit,f_plan_target_hours:row.target_hours,f_plan_status:row.status};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
- document.getElementById('plansModal').classList.add('show');
+ if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('plansModal');}else{document.getElementById('plansModal').classList.add('show')};
 }
 function payload(){
  return {
