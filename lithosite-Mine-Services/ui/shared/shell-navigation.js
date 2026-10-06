@@ -121,6 +121,11 @@
               '<span><b>How To Use — Uji KPI Grader</b><small>Work Front → Equipment → Operations → Validation → Timeline Integrity → KPI → Fleet → Dashboard</small></span>' +
               '<span class="user-guide-open">Open ↗</span>' +
             '</button>' +
+            '<button type="button" class="user-guide-item" data-guide-url="../user-guide?file=2.HowTo_Uji_KPI_Dump_Truck.pdf" data-guide-title="How To Use — Uji KPI Dump Truck">' +
+              '<span class="user-guide-item-icon">?</span>' +
+              '<span><b>How To Use — Uji KPI Dump Truck</b><small>Guide for the KPI Dump Truck test flow.</small></span>' +
+              '<span class="user-guide-open">Open ↗</span>' +
+            '</button>' +
             '<button type="button" class="user-guide-item" data-guide-url="../user-guide?file=0.Xample_Uji_Grader.pdf" data-guide-title="Example — Uji Grader">' +
               '<span class="user-guide-item-icon">✓</span>' +
               '<span><b>Example — Uji Grader</b><small>Example evidence and test reference for the KPI Grader flow.</small></span>' +
