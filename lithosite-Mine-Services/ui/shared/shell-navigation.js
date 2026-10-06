@@ -101,6 +101,75 @@
     topbar.appendChild(launcher);
   }
 
+  function ensureAppInfo() {
+    if (document.getElementById('appInfoLauncher')) return;
+
+    const topbar = document.querySelector('.topbar');
+    if (!topbar) return;
+
+    if (!document.getElementById('appInfoStyles')) {
+      const stylesheet = document.createElement('link');
+      stylesheet.id = 'appInfoStyles';
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = '../ui/shared/app-info.css?v=20261006';
+      document.head.appendChild(stylesheet);
+    }
+
+    const launcher = document.createElement('a');
+    launcher.id = 'appInfoLauncher';
+    launcher.className = 'app-info-launcher';
+    launcher.href = '#';
+    launcher.title = 'Version & Developer';
+    launcher.setAttribute('aria-label', 'Version & Developer');
+    launcher.textContent = 'i';
+    launcher.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleAppInfo();
+    });
+
+    topbar.appendChild(launcher);
+  }
+
+  function toggleAppInfo() {
+    let modal = document.getElementById('appInfoModal');
+
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'appInfoModal';
+      modal.className = 'app-info-modal';
+      modal.setAttribute('aria-hidden', 'true');
+      modal.innerHTML =
+        '<div class="app-info-dialog" role="dialog" aria-modal="true" aria-labelledby="appInfoTitle">' +
+          '<div class="app-info-head">' +
+            '<div><b id="appInfoTitle">About Mine Services</b><span>Application information</span></div>' +
+            '<button type="button" class="control app-info-close" id="appInfoClose" aria-label="Close">×</button>' +
+          '</div>' +
+          '<div class="app-info-body">' +
+            '<div class="app-info-row"><span class="app-info-label">Application</span><span class="app-info-value">Lithosite | Mine Services</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label">Version</span><span class="app-info-value accent">V37 · Stage 26</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label">Artifact</span><span class="app-info-value">Mine Services Concept 2 · Dashboard Operations</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label">Runtime</span><span class="app-info-value">A.3 · Desktop Master</span></div>' +
+            '<div class="app-info-row"><span class="app-info-label">Developer</span><span class="app-info-value">Lithosite Mine Services Development</span></div>' +
+            '<div class="app-info-note">Version and runtime information for the current application workspace.</div>' +
+          '</div>' +
+        '</div>';
+
+      document.body.appendChild(modal);
+
+      document.getElementById('appInfoClose').addEventListener('click', function () {
+        toggleAppInfo();
+      });
+
+      modal.addEventListener('click', function (event) {
+        if (event.target === modal) toggleAppInfo();
+      });
+    }
+
+    const visible = modal.classList.toggle('show');
+    modal.setAttribute('aria-hidden', String(!visible));
+  }
+
   function toggleUserGuideModal() {
     let modal = document.getElementById('userGuideModal');
 
@@ -259,6 +328,7 @@
 
     const nav = document.querySelector('.sidebar .nav');
     ensureUserGuide();
+    ensureAppInfo();
 
     if (nav) {
       nav.addEventListener('click', function (event) {
