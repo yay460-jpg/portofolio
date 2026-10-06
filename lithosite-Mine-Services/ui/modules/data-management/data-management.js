@@ -56,6 +56,90 @@
     document.body.appendChild(modal);
   }
 
+  function showDialog(id) {
+    const dialog = document.getElementById(id);
+    if (!dialog) return;
+    dialog.hidden = false;
+    dialog.setAttribute('aria-hidden', 'false');
+    window.setTimeout(function () {
+      const input = dialog.querySelector('input');
+      if (input) { input.focus(); input.select(); }
+    }, 0);
+  }
+
+  function hideDialog(id) {
+    const dialog = document.getElementById(id);
+    if (!dialog) return;
+    dialog.hidden = true;
+    dialog.setAttribute('aria-hidden', 'true');
+  }
+
+  function askSaveAsName(current) {
+    return new Promise(function (resolve) {
+      const dialog = document.getElementById('stage15DatasetDialog');
+      const input = document.getElementById('stage15DatasetNameInput');
+      const confirm = document.getElementById('stage15DatasetDialogConfirm');
+      const cancel = document.getElementById('stage15DatasetDialogCancel');
+      if (!dialog || !input || !confirm || !cancel) return resolve(null);
+
+      input.value = current;
+      const finish = function (value) {
+        confirm.removeEventListener('click', onConfirm);
+        cancel.removeEventListener('click', onCancel);
+        input.removeEventListener('keydown', onKeydown);
+        hideDialog('stage15DatasetDialog');
+        resolve(value);
+      };
+      const onConfirm = function () {
+        const value = input.value.trim();
+        if (!value) {
+          input.focus();
+          return;
+        }
+        finish(value);
+      };
+      const onCancel = function () { finish(null); };
+      const onKeydown = function (event) {
+        if (event.key === 'Enter') { event.preventDefault(); onConfirm(); }
+        if (event.key === 'Escape') { event.preventDefault(); onCancel(); }
+      };
+
+      confirm.addEventListener('click', onConfirm);
+      cancel.addEventListener('click', onCancel);
+      input.addEventListener('keydown', onKeydown);
+      showDialog('stage15DatasetDialog');
+    });
+  }
+
+  function askLoadConfirmation(name) {
+    return new Promise(function (resolve) {
+      const dialog = document.getElementById('stage15ConfirmDialog');
+      const text = document.getElementById('stage15ConfirmDialogText');
+      const confirm = document.getElementById('stage15ConfirmDialogConfirm');
+      const cancel = document.getElementById('stage15ConfirmDialogCancel');
+      if (!dialog || !text || !confirm || !cancel) return resolve(false);
+
+      text.textContent = 'Load dataset "' + name + '" and replace the current runtime data?';
+      const finish = function (value) {
+        confirm.removeEventListener('click', onConfirm);
+        cancel.removeEventListener('click', onCancel);
+        hideDialog('stage15ConfirmDialog');
+        resolve(value);
+      };
+      const onConfirm = function () { finish(true); };
+      const onCancel = function () { finish(false); };
+      const onKeydown = function (event) {
+        if (event.key === 'Enter') { event.preventDefault(); onConfirm(); }
+        if (event.key === 'Escape') { event.preventDefault(); onCancel(); }
+      };
+      dialog.addEventListener('keydown', onKeydown);
+      confirm.addEventListener('click', onConfirm);
+      cancel.addEventListener('click', onCancel);
+      showDialog('stage15ConfirmDialog');
+      confirm.focus();
+    });
+  }
+
   function msg(text, error) {
     const el = document.getElementById('stage15DataMsg');
     if (!el) return;
@@ -148,9 +232,8 @@
     const current = activeDataset && activeDataset.dataset_name
       ? activeDataset.dataset_name
       : 'Mine-Services-Working';
-    const name = window.prompt('Save dataset as:', current);
+    const name = await askSaveAsName(current);
     if (name === null) return;
-    if (!name.trim()) return msg('Dataset name is required.', true);
 
     try {
       msg('Creating new dataset…');
@@ -171,7 +254,7 @@
     const select = document.getElementById('stage15DatasetSelect');
     const name = select && select.value;
     if (!name) return msg('Select a saved dataset first.', true);
-    if (!window.confirm('Load dataset "' + name + '" and replace the current runtime data?')) return;
+    if (!(await askLoadConfirmation(name))) return;
 
     try {
       msg('Loading and validating dataset…');
@@ -267,6 +350,12 @@
     document.getElementById('stage15SaveAsRun').addEventListener('click', runSaveAs);
     document.getElementById('stage15DatasetRefresh').addEventListener('click', function () { refreshDatasets(); });
     document.getElementById('stage15LoadRun').addEventListener('click', runLoad);
+    document.getElementById('stage15DatasetDialog').addEventListener('click', function (event) {
+      if (event.target.id === 'stage15DatasetDialog') hideDialog('stage15DatasetDialog');
+    });
+    document.getElementById('stage15ConfirmDialog').addEventListener('click', function (event) {
+      if (event.target.id === 'stage15ConfirmDialog') hideDialog('stage15ConfirmDialog');
+    });
     document.getElementById('stage15DataModal').addEventListener('click', function (event) {
       if (event.target.id === 'stage15DataModal') close();
     });
