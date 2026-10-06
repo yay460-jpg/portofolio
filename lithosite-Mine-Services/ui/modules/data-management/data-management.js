@@ -52,6 +52,30 @@
           '<div class="dm-msg" id="stage15DataMsg">RuntimeAdapter ready.</div>' +
         '</div>' +
         '<div class="dm-foot"><button class="control" id="stage15DataClose2">Done</button></div>' +
+      '</div>' +
+      '<div class="dm-native-dialog" id="stage15DatasetDialog" hidden aria-hidden="true">' +
+        '<div class="dm-dialog-card" role="dialog" aria-modal="true" aria-labelledby="stage15DatasetDialogTitle">' +
+          '<div class="dm-dialog-title" id="stage15DatasetDialogTitle">Save Dataset As</div>' +
+          '<div class="dm-dialog-body">' +
+            '<label for="stage15DatasetNameInput">Dataset name</label>' +
+            '<input id="stage15DatasetNameInput" type="text" autocomplete="off" spellcheck="false">' +
+            '<div class="dm-dialog-help">Create a new working dataset from the current runtime.</div>' +
+          '</div>' +
+          '<div class="dm-dialog-foot">' +
+            '<button class="control" id="stage15DatasetDialogCancel">Cancel</button>' +
+            '<button class="control primary" id="stage15DatasetDialogConfirm">Save As</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="dm-native-dialog" id="stage15ConfirmDialog" hidden aria-hidden="true">' +
+        '<div class="dm-dialog-card" role="dialog" aria-modal="true" aria-labelledby="stage15ConfirmDialogTitle">' +
+          '<div class="dm-dialog-title" id="stage15ConfirmDialogTitle">Load Dataset</div>' +
+          '<div class="dm-dialog-body"><div class="dm-dialog-help" id="stage15ConfirmDialogText"></div></div>' +
+          '<div class="dm-dialog-foot">' +
+            '<button class="control" id="stage15ConfirmDialogCancel">Cancel</button>' +
+            '<button class="control primary" id="stage15ConfirmDialogConfirm">Load Data</button>' +
+          '</div>' +
+        '</div>' +
       '</div>';
     document.body.appendChild(modal);
   }
