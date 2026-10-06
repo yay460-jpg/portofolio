@@ -194,7 +194,7 @@
       var panel=document.createElement('div');
       panel.id='dashboardTopo3DBackupPanel';
       panel.style.cssText='position:absolute;top:42px;left:8px;z-index:30;width:320px;padding:12px;border:1px solid rgba(96,165,250,.35);border-radius:10px;background:#0b1b2d;box-shadow:0 16px 36px rgba(0,0,0,.42);display:none;color:#dbeafe;font:12px Segoe UI,Arial,sans-serif;';
-      panel.innerHTML='<div style="font-weight:700;margin-bottom:8px">Topography Backups</div><div id="dashboardTopo3DBackupList"></div><div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px"><button type="button" id="dashboardTopo3DBackupClose">Close</button><button type="button" id="dashboardTopo3DBackupRestore" class="primary">Restore Selected</button></div>';
+      panel.innerHTML='<div style="font-weight:700;margin-bottom:8px">Topography Backups</div><div id="dashboardTopo3DBackupStorage" style="margin-bottom:8px;padding:8px 9px;border:1px solid rgba(96,165,250,.2);border-radius:7px;background:rgba(7,21,37,.72)"></div><div id="dashboardTopo3DBackupList"></div><div id="dashboardTopo3DBackupPolicy" style="margin-top:8px;color:#8fa7bf;line-height:1.45">Maximum 5 backups. When a new backup is saved while storage is full, the oldest backup is automatically deleted.</div><div style="display:flex;justify-content:flex-end;gap:6px;margin-top:10px"><button type="button" id="dashboardTopo3DBackupClose">Close</button><button type="button" id="dashboardTopo3DBackupRestore" class="primary">Restore Selected</button></div>';
       host.appendChild(panel);
       panel.querySelector('#dashboardTopo3DBackupClose').addEventListener('click',function(){panel.style.display='none';});
       panel.querySelector('#dashboardTopo3DBackupRestore').addEventListener('click',async function(){
@@ -220,11 +220,16 @@
     }
     async function openTopoBackupPanel(){
       var panel=ensureTopoBackupPanel(), list=panel.querySelector('#dashboardTopo3DBackupList');
+      var storage=panel.querySelector('#dashboardTopo3DBackupStorage');
       list.textContent='Loading backups…';
+      storage.textContent='Checking LT-DTM storage…';
       panel.style.display='block';
       try{
         var result=await global.LithositeRuntimeClient.request({operation:'LIST_TOPOGRAPHY_BACKUPS'});
         var backups=Array.isArray(result.backups)?result.backups:[];
+        var max=Math.max(1,Number(result.max_backups)||5);
+        var used=Math.min(backups.length,Number(result.storage_used)||backups.length);
+        storage.innerHTML='<div style="font-weight:700;color:#dbeafe">LT-DTM Backup Storage</div><div style="margin-top:3px;font-size:15px;font-weight:700">'+used+' / '+max+' backups used'+(used>=max?' · FULL':'')+'</div><div style="margin-top:3px;color:#8fa7bf">'+(used<max?used+' backup'+(used===1?'':'s')+' stored.':'Storage full — saving a new backup will automatically remove the oldest backup.')+'</div>';
         if(!backups.length){
           list.textContent='No topography backups yet.';
           panel.querySelector('#dashboardTopo3DBackupRestore').disabled=true;
@@ -234,9 +239,10 @@
         list.innerHTML='<label style="display:block;margin-bottom:4px;color:#93c5fd">Select backup</label><select id="dashboardTopo3DBackupSelect" style="width:100%;padding:8px;border-radius:7px;background:#071525;color:#dbeafe;border:1px solid #29415f">'+backups.map(function(item){
           var label=item.filename+' · '+(Number(item.size_bytes||0)/1048576).toFixed(2)+' MB';
           return '<option value="'+String(item.filename).replace(/"/g,'&quot;')+'">'+label+'</option>';
-        }).join('')+'</select><div style="margin-top:7px;color:#8fa7bf">Local Mine Services storage · max '+String(result.max_backups||5)+' backups</div>';
+        }).join('')+'</select>';
       }catch(error){
         list.textContent=error&&error.message?error.message:'Backup list unavailable';
+        storage.textContent='LT-DTM Backup Storage · unavailable';
         panel.querySelector('#dashboardTopo3DBackupRestore').disabled=true;
       }
     }
@@ -253,7 +259,12 @@
           source:'Mine-Services-Map'
         });
         if(result.status!=='SAVED')throw new Error('Topography backup rejected');
-        setStatus('LT-DTM backup saved · '+result.filename,'ready');
+        var removed=Array.isArray(result.removed)?result.removed:[];
+        if(removed.length){
+          setStatus('LT-DTM backup saved · oldest backup removed: '+removed.join(', '),'ready');
+        }else{
+          setStatus('LT-DTM backup saved · storage '+String(result.storage_used||'')+' / '+String(result.storage_max||5),'ready');
+        }
       }catch(error){
         setStatus(error&&error.message?error.message:'Topography backup failed','error');
       }
