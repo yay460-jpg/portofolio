@@ -282,7 +282,7 @@
           updateCoordinateInfo(engine.getState().meta);
           await saveActiveTopography(await bytes.buffer.slice(0),result.filename||select.value);
           setStatus('Topography restored · '+(result.filename||select.value),'ready');
-          showTopoNotice('Restore successful · '+(result.filename||select.value)+' restored to the active map.','ready');
+          showTopoNotice('Success — your map has been restored.','ready');
           startAutoRotate();
           panel.style.display='none';
         }catch(error){
@@ -336,10 +336,10 @@
         var storageText=String(result.storage_used||'')+' / '+String(result.storage_max||5);
         if(removed.length){
           setStatus('LT-DTM backup saved · oldest backup removed: '+removed.join(', '),'ready');
-          showTopoNotice('Backup successful · '+result.filename+' saved. Oldest backup removed: '+removed.join(', ')+' · Storage '+storageText,'ready');
+          showTopoNotice('Success — your map has been backed up.','ready');
         }else{
           setStatus('LT-DTM backup saved · storage '+storageText,'ready');
-          showTopoNotice('Backup successful · '+result.filename+' saved · Storage '+storageText,'ready');
+          showTopoNotice('Success — your map has been backed up.','ready');
         }
       }catch(error){
         setStatus(error&&error.message?error.message:'Topography backup failed','error');
