@@ -6,6 +6,7 @@ from .dataset import DatasetManager
 from .kpi_snapshot_store import KPIHistoryStore
 from .application import ApplicationService
 from .import_engine import ImportCoordinator
+from .topography_backup import TopographyBackupManager
 
 
 class RuntimeInterface:
@@ -26,6 +27,8 @@ class RuntimeInterface:
         self._kpi_history = KPIHistoryStore(history_path)
         dataset_dir = Path(store_path).with_name("Datasets") if store_path else Path("Datasets")
         self._datasets = DatasetManager(self._application.store, dataset_dir)
+        topography_dir = Path(store_path).with_name("topography") if store_path else Path("topography")
+        self._topography = TopographyBackupManager(topography_dir)
 
     def create(self, entity, row, request_id):
         return self._application.create(entity, row, request_id)
@@ -62,6 +65,17 @@ class RuntimeInterface:
 
     def restore(self, snapshot, mode="REPLACE_RUNTIME"):
         return self._snapshots.restore(snapshot, mode=mode)
+
+    def save_topography_backup(self, package_base64, filename=None, source="runtime"):
+        return self._topography.save(package_base64, filename=filename, source=source)
+
+    def list_topography_backups(self):
+        return {"status": "READY", "backups": self._topography.list(), "max_backups": self._topography.MAX_BACKUPS}
+
+    def load_topography_backup(self, filename):
+        result = self._topography.read(filename)
+        result["status"] = "READY"
+        return result
 
     def list_datasets(self):
         return {"status": "READY", "datasets": self._datasets.list(), "active": self._datasets.active_info()}
