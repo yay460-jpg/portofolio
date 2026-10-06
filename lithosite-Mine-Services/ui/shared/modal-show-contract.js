@@ -26,7 +26,7 @@
   }
 
   function getApplicationModals() {
-    return Array.from(document.querySelectorAll('.modalback, .modal, [role="dialog"], .app-info-modal, .user-guide-modal, .user-guide-reader-modal'))
+    return Array.from(document.querySelectorAll('.modalback, .modal, [role="dialog"], .app-info-modal, .user-guide-modal, .user-guide-reader-modal, #stage15DataModal'))
       .filter(function (el) {
         if (!el.id) return false;
         if (el.closest('.modalback') && el !== el.closest('.modalback')) return false;
