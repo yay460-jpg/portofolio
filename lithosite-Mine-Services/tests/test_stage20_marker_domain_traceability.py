@@ -61,7 +61,7 @@ def test_stage20_10_v32_loads_current_assets():
     for marker in (
         "../ui/modules/map-engine/marker-location.js?v=20261015",
         "../ui/modules/map-engine/marker-location.css?v=20261011",
-        "../ui/modules/equipment/equipment.js?v=20261005",
+        "../ui/modules/equipment/equipment.js?v=20261006",
         "../ui/modules/workfront/workfront.js?v=20261007",
         "../ui/modules/hse/hse.js?v=20261005",
     ):
