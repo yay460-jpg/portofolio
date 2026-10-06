@@ -23,3 +23,15 @@
 #maintenanceTimelineModal .row-actions .mini{flex:0 0 auto;width:58px;min-width:58px;height:28px;padding:4px 7px;justify-content:center;white-space:nowrap}
 #maintenanceTimelineModal .control:hover{border-color:#4d8dff;box-shadow:0 0 0 1px #4d8dff55,0 4px 12px #02081255;transform:translateY(-1px)}
 #maintenanceTimelineModal .control:focus-visible{outline:none;border-color:#60a5fa;box-shadow:0 0 0 2px #60a5fa55}
+
+/* Stage 26 — Cross-module traceability target. */
+#maintenanceScreen .maintenance-trace-row.trace-active{background:#142d46}
+#maintenanceScreen .maintenance-timeline-row.trace-highlight{
+  animation:maintenanceTracePulse .8s ease-in-out 3;
+  border-color:#60a5fa;
+  box-shadow:0 0 0 2px #60a5fa55,0 0 18px #3b82f655;
+}
+@keyframes maintenanceTracePulse{
+  0%,100%{transform:translateY(0);box-shadow:0 0 0 1px #60a5fa22}
+  50%{transform:translateY(-1px);box-shadow:0 0 0 2px #60a5fa99,0 0 20px #3b82f655}
+}
