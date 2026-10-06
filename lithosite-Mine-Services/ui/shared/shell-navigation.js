@@ -71,6 +71,33 @@
     return 'Dashboard';
   }
 
+  function ensureUserGuide() {
+    if (document.getElementById('userGuideLauncher')) return;
+
+    const topbar = document.querySelector('.topbar');
+    if (!topbar) return;
+
+    if (!document.getElementById('userGuideStyles')) {
+      const stylesheet = document.createElement('link');
+      stylesheet.id = 'userGuideStyles';
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = '../ui/shared/user-guide.css?v=20261006';
+      document.head.appendChild(stylesheet);
+    }
+
+    const launcher = document.createElement('a');
+    launcher.id = 'userGuideLauncher';
+    launcher.className = 'user-guide-launcher';
+    launcher.href = '../docs/lithosite/02_Mine-Services/10_User-Guides/1.HowTo_Uji_KPI_Grader.pdf';
+    launcher.target = '_blank';
+    launcher.rel = 'noopener';
+    launcher.title = 'How To Use';
+    launcher.setAttribute('aria-label', 'How To Use');
+    launcher.textContent = '?';
+
+    topbar.appendChild(launcher);
+  }
+
   function init() {
     if (initialized) return true;
     if (!validateShellContract()) return false;
@@ -89,6 +116,8 @@
     }
 
     const nav = document.querySelector('.sidebar .nav');
+    ensureUserGuide();
+
     if (nav) {
       nav.addEventListener('click', function (event) {
         const item = event.target.closest('.nav-item');
