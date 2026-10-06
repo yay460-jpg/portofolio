@@ -321,6 +321,8 @@
       canvas.addEventListener('click',function(event){if(activePickPoint==='__MARKER__'){var rect=canvas.getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top,point=engine.pickCoordinate(x,y,22);if(point){activePickPoint=null;document.dispatchEvent(new CustomEvent('mine-services:marker-coordinate-picked',{detail:point}));setStatus('Marker coordinate picked · E '+point.easting.toFixed(3)+' · N '+point.northing.toFixed(3)+' · Z '+point.elevation.toFixed(3),'ready');}return;}handlePointPick(event);});
       bind('#dashboardTopo3DMeasureClear',clearMeasurement);
       bind('#dashboardTopo3DWire',function(){engine.setMode('wire');});
+      bind('#dashboardTopo3DBackup',backupTopography);
+      bind('#dashboardTopo3DRestore',openTopoBackupPanel);
       var rotate360=(panel||host).querySelector('#dashboardTopo3DRotate360');
       if(rotate360)rotate360.addEventListener('click',function(){
         if(autoRotate){stopAutoRotate();rotate360.classList.remove('is-active');rotate360.textContent='360°';}
