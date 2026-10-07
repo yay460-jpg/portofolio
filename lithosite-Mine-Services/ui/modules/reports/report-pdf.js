@@ -76,15 +76,68 @@ const text=v=>{
 };
 function render(model){
   if(!model)throw new Error('Report model is required.');
-  const win=window.open('','_blank'); if(!win)throw new Error('PDF window was blocked by the browser.');
+  const win=window.open('','_blank');
+  if(!win)throw new Error('PDF window was blocked by the browser.');
   const k=model.kpi||{}, counts=model.source_counts||{}, sections=model.section_data||{};
-  const title=(model.report_type||'REPORT')+' Report · '+model.period.start+(model.period.start!==model.period.end?' → '+model.period.end:'');
-  const rows=Object.keys(counts).map(d=>'<tr><td>'+esc(d)+'</td><td>'+esc(counts[d])+'</td></tr>').join('');
-  const section=(name,value)=>'<section><h2>'+esc(name)+'</h2><p>'+esc(text(value)||'Source evidence retained in the immutable snapshot.')+'</p></section>';
+  const type=String(model.report_type||'REPORT').toUpperCase();
+  const period=model.period||{start:'—',end:'—'};
+  const title=type+' Report';
+  const periodText=period.start===period.end?period.start:(period.start+' → '+period.end);
+  const escAttr=v=>esc(v).replace(/\n/g,' ');
+  const rows=Object.keys(counts).map(domain=>'<tr><td>'+esc(domain)+'</td><td class="num">'+esc(counts[domain])+'</td></tr>').join('');
+  const section=(name,value)=>{
+    const body=text(value)||'Source evidence retained in the immutable snapshot.';
+    return '<section class="report-section"><h2>'+esc(name)+'</h2><div class="section-body">'+esc(body)+'</div></section>';
+  };
   const plan=Array.isArray(model.sections)?model.sections:[];
-  const body=plan.map(name=>section(name,sections[name]||'Source evidence retained in the immutable snapshot.')).join('');
+  const body=plan.map(name=>section(name,sections[name])).join('');
+  const status=String(model.status||'DRAFT');
+  const statusClass=status==='ISSUED'?'issued':(status==='READY'?'ready':(status==='VALIDATION REQUIRED'?'warning':'draft'));
+  const attention=status==='VALIDATION REQUIRED'
+    ? '<div class="attention warning"><b>Validation Required</b><span>This report cannot be treated as final until the KPI/source validation gate is resolved.</span></div>'
+    : '<div class="attention"><b>Report Status</b><span>'+esc(status)+' · Generated from the selected report period and immutable report snapshot.</span></div>';
+  const documentControl='<table class="control"><tbody>'+
+    '<tr><th>Report Type</th><td>'+esc(type)+'</td><th>Period</th><td>'+esc(periodText)+'</td></tr>'+
+    '<tr><th>Status</th><td><span class="status '+statusClass+'">'+esc(status)+'</span></td><th>Scope</th><td>'+esc(model.scope||'ALL')+'</td></tr>'+
+    '<tr><th>Report ID</th><td>'+esc(model.report_id||'—')+'</td><th>Snapshot</th><td>'+esc(model.snapshot_id||'DRAFT')+'</td></tr>'+
+    '<tr><th>Records</th><td>'+esc(model.total_records??model.total_source_records??0)+'</td><th>Data Status</th><td>'+esc(model.report_data_status||'REQUESTED_PERIOD')+'</td></tr>'+
+    '</tbody></table>';
+  const kpiCards=[
+    ['PA',pctText(k.PA)],
+    ['UA',pctText(k.UA)],
+    ['EU',pctText(k.EU)],
+    ['KPI Status',String(k.status||'UNAVAILABLE')]
+  ].map(item=>'<div class="kpi-card"><small>'+esc(item[0])+'</small><strong>'+esc(item[1])+'</strong></div>').join('');
   win.document.open();
-  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>body{font-family:Arial,sans-serif;color:#172333;margin:28px;font-size:9px}h1{font-size:22px;margin:0 0 4px}h2{font-size:13px;margin:18px 0 6px;border-bottom:1px solid #cbd5e1;padding-bottom:4px}p{line-height:1.45;color:#475569;white-space:pre-line}.meta{color:#64748b;margin-bottom:16px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.kpi{border:1px solid #cbd5e1;padding:8px;border-radius:5px}.kpi small{display:block;color:#64748b;text-transform:uppercase}.kpi b{font-size:16px}table{width:100%;border-collapse:collapse;margin:7px 0 14px}th,td{text-align:left;padding:5px;border-bottom:1px solid #e2e8f0}th{font-size:7px;text-transform:uppercase;color:#64748b}td{font-size:8px}section{break-inside:avoid}.footer{margin-top:22px;color:#64748b;font-size:8px}@media print{button{display:none}}</style></head><body><h1>Reports &amp; KPI</h1><div class="meta">'+esc(title)+' · '+esc(model.status)+' · Report ID '+esc(model.report_id||'—')+' · Snapshot '+esc(model.snapshot_id||'DRAFT')+'</div><div class="kpis"><div class="kpi"><small>Records</small><b>'+esc(model.total_records??model.total_source_records??0)+'</b></div><div class="kpi"><small>PA</small><b>'+pct(k.PA)+'</b></div><div class="kpi"><small>UA</small><b>'+pct(k.UA)+'</b></div><div class="kpi"><small>EU</small><b>'+pct(k.EU)+'</b></div></div><h2>Operational Source Summary</h2><table><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+rows+'</tbody></table>'+body+'<div class="footer">Lithosite Mine Services · V38 · Generated from the report snapshot.</div><script>window.onload=function(){setTimeout(function(){window.print()},150)}</script></body></html>');
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+escAttr(title+' · '+periodText)+'</title><style>'+
+    '@page{size:A4 portrait;margin:16mm 15mm 17mm}'+
+    '*{box-sizing:border-box}'+
+    'html,body{margin:0;padding:0;background:#fff;color:#172333;font-family:Arial,Helvetica,sans-serif;font-size:9.5px}'+
+    'body{line-height:1.45}'+
+    '.page{width:100%;max-width:180mm;margin:0 auto}'+
+    '.brand{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #24456f;padding:0 0 9px;margin-bottom:14px}'+
+    '.brand-main{display:flex;flex-direction:column;gap:2px}.brand-name{font-size:10px;font-weight:700;letter-spacing:.7px;color:#24456f;text-transform:uppercase}.brand-title{font-size:21px;font-weight:700;color:#172f4d}.brand-sub{font-size:9px;color:#64748b}'+
+    '.brand-mark{font-size:8px;color:#64748b;text-align:right;line-height:1.5}.brand-mark b{color:#24456f}'+
+    '.document-title{margin:0 0 5px;font-size:18px;color:#173a63}.document-period{font-size:9px;color:#64748b;margin-bottom:10px}'+
+    '.control{width:100%;border-collapse:collapse;margin:8px 0 12px}.control th,.control td{border:1px solid #cbd5e1;padding:5px 7px;text-align:left}.control th{width:14%;background:#e9eff7;color:#29476b;font-size:7.5px;text-transform:uppercase}.control td{width:36%;color:#24364a}.status{display:inline-block;font-weight:700}.status.issued{color:#15803d}.status.ready{color:#2563eb}.status.warning{color:#b45309}.status.draft{color:#64748b}'+
+    '.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0 14px}.kpi-card{border:1px solid #cbd5e1;border-top:3px solid #315a86;padding:7px 8px;background:#f8fafc;min-height:43px}.kpi-card small{display:block;color:#64748b;font-size:7px;text-transform:uppercase;letter-spacing:.4px}.kpi-card strong{display:block;margin-top:3px;color:#173a63;font-size:13px}'+
+    '.attention{display:flex;gap:8px;align-items:flex-start;border:1px solid #c8d7e8;border-left:4px solid #315a86;background:#f3f7fb;padding:7px 9px;margin:0 0 14px}.attention b{color:#24456f;white-space:nowrap}.attention span{color:#475569}.attention.warning{border-color:#e7c77d;border-left-color:#d18a00;background:#fff8e8}.attention.warning b{color:#a15c00}'+
+    '.summary-title{font-size:11px;font-weight:700;color:#24456f;text-transform:uppercase;letter-spacing:.5px;margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid #cbd5e1}'+
+    '.summary-table{width:100%;border-collapse:collapse;margin:0 0 14px}.summary-table th{background:#24456f;color:#fff;padding:5px 7px;text-align:left;font-size:7.5px;text-transform:uppercase}.summary-table td{border:1px solid #d7dee8;padding:4px 7px}.summary-table td.num{text-align:right;font-variant-numeric:tabular-nums}'+
+    '.report-section{break-inside:avoid;margin:0 0 12px}.report-section h2{font-size:12px;color:#24456f;margin:0 0 6px;padding:5px 7px;background:#e8eef6;border-left:4px solid #315a86;border-bottom:1px solid #cbd5e1}.section-body{padding:3px 7px;color:#334155;white-space:pre-line;line-height:1.5}'+
+    '.footer{margin-top:18px;padding-top:6px;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;color:#64748b;font-size:7.5px}.footer b{color:#24456f}'+
+    '.page-break{break-before:page}'+
+    '@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.report-section{break-inside:avoid}.footer{position:fixed;left:0;right:0;bottom:-10mm;background:#fff}.no-print{display:none}}'+
+    '</style></head><body><main class="page">'+
+    '<header class="brand"><div class="brand-main"><div class="brand-name">Lithosite Mine Services</div><div class="brand-title">Reports &amp; KPI</div><div class="brand-sub">Operational Management Report · V38</div></div><div class="brand-mark"><b>'+esc(type)+' REPORT</b><br>'+esc(periodText)+'</div></header>'+
+    '<h1 class="document-title">'+esc(title)+'</h1><div class="document-period">'+esc(periodText)+' · '+esc(status)+'</div>'+
+    documentControl+
+    '<div class="kpi-grid">'+kpiCards+'</div>'+
+    attention+
+    '<h2 class="summary-title">Operational Source Summary</h2><table class="summary-table"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    body+
+    '<footer class="footer"><span><b>Lithosite Mine Services</b> · V38 · Report Snapshot</span><span>Generated '+esc((model.generated_at||new Date().toISOString()).slice(0,19).replace('T',' '))+'</span></footer>'+
+    '</main><script>window.onload=function(){setTimeout(function(){window.print()},180)}</script></body></html>');
   win.document.close();
   return true;
 }
