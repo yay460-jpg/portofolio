@@ -107,3 +107,21 @@ def test_report_period_contract_and_notice():
     assert 'id="reportCenterNotice"' in html
     css = read(BASE / "ui/modules/reports/reports.css")
     assert ".report-center-notice" in css
+
+def test_report_renderers_serialize_structured_section_data():
+    reports = read(REPORTS)
+    pdf = read(BASE / "ui/modules/reports/report-pdf.js")
+    assert "function reportSectionText(value)" in reports
+    assert "JSON.stringify(value,null,2)" in reports
+    assert "const text=v=>" in pdf
+    assert "JSON.stringify(v,null,2)" in pdf
+
+def test_report_period_filters_require_dated_source_evidence():
+    reports = read(REPORTS)
+    daily = read(BASE / "ui/modules/reports/daily-report.js")
+    weekly = read(BASE / "ui/modules/reports/weekly-report.js")
+    assert "return !d || (d>=period.start&&d<=period.end);" not in reports
+    assert "return !d||(d>=start&&d<=end)" not in weekly
+    assert "return !d||(d>=start&&d<=end);" not in daily
+    assert "return !!d&&d>=start&&d<=end;" in daily
+    assert "return !!d&&d>=a&&d<=b" in weekly
