@@ -75,7 +75,10 @@ def test_report_preview_uses_specialized_report_contract_fields():
     assert "const totalRecords=" in reports
     assert "equipment:Array.isArray(k?.equipment)?k.equipment:[]" in reports
     assert "validation_issues:Array.isArray(k.validation_issues)?k.validation_issues.slice():[]" in monthly
+    daily = read(BASE / "ui/modules/reports/daily-report.js")
     assert "equipment:Array.isArray(k.equipment)?k.equipment:[]" in monthly
+    assert "equipment:Array.isArray(k.equipment)?k.equipment:[]" in daily
+    assert "model.total_records+' records</span>" in reports
 
 def test_release_readiness_contract():
     for path in (ENGINE, VALIDATION, SNAPSHOT, PDF, HISTORY, REPORTS):
