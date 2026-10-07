@@ -167,6 +167,7 @@ class ApplicationService:
         refs = {
             "Equipment": [
                 ("Operations", "equipment_id"),
+                ("Checker", "equipment_id"),
                 ("Maintenance", "equipment_id"),
                 ("Issues", "equipment_id"),
             ],
