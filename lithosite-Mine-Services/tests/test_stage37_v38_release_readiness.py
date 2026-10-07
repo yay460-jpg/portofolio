@@ -63,7 +63,7 @@ def test_artifact_stage_order():
         "report-snapshot.js?v=20261007",
         "report-pdf.js?v=20261010",
         "report-history.js?v=20261007",
-        "reports.js?v=20261014",
+        "reports.js?v=20261015",
     ]
     positions = [html.index(value) for value in order]
     assert positions == sorted(positions)
@@ -116,16 +116,27 @@ def test_report_pdf_uses_inline_reader_without_new_tab():
     reports = read(REPORTS)
     pdf = read(BASE / "ui/modules/reports/report-pdf.js")
     artifact = read(ARTIFACT)
+    css = read(BASE / "ui/modules/reports/reports.css")
     assert "renderInline(model,iframe)" in pdf
     assert "buildDocumentHtml" in pdf
     assert "window.open('','_blank')" in pdf
     assert "reportPdfReaderModal" in artifact
     assert "reportPdfReaderFrame" in artifact
+    assert "reportPdfReaderSidebar" in artifact
+    assert "reportPdfReaderZoomOut" in artifact
+    assert "reportPdfReaderZoomIn" in artifact
+    assert "reportPdfReaderFit" in artifact
+    assert "reportPdfReaderRotate" in artifact
+    assert "reportPdfReaderPrint" in artifact
+    assert "reportPdfReaderSave" in artifact
+    assert "reportPdfReaderOutline" in artifact
     assert "reportPdfReaderPrint" in reports
     assert "contentWindow.print()" in reports
+    assert ".report-pdf-reader-toolgroup" in css
     generate_start = reports.index("function generatePdf")
     bind_start = reports.index("function bind")
     assert "window.open" not in reports[generate_start:bind_start]
+
 
 def test_report_renderers_present_management_readable_section_data():
     reports = read(REPORTS)
