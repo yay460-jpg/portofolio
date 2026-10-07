@@ -31,8 +31,9 @@ DATETIME_FIELDS = {
 }
 TEXT_FIELDS = {
     "Equipment": {"equipment_id", "category", "type", "owner_type", "owner_name", "status"},
-    "WorkFront": {"work_front_id", "domain", "location", "responsible", "status"},
-    "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "unit", "status", "source"},
+    "WorkFront": {"work_front_id", "domain", "location", "responsible", "status", "capacity_profile_id"},
+    "GlobalCapacity": {"capacity_profile_id", "capacity_name", "unit", "status"},
+    "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "unit", "status", "source", "capacity_profile_id", "capacity_unit"},
     "Maintenance": {"maintenance_id", "equipment_id", "event_type", "failure_code", "action", "status", "source"},
     "Issues": {"issue_id", "domain", "work_front_id", "equipment_id", "description", "severity", "status", "assigned_to"},
     "Plans": {"plan_id", "period", "domain", "work_front_id", "activity", "unit", "status"},
@@ -121,6 +122,12 @@ class ValidationEngine:
                 code = "VAL-E003" if reason == "required" else "VAL-E002"
                 errors.append(ValidationError(code, field, f"MapMarker validation failed: {reason}"))
 
+        if entity == "GlobalCapacity":
+            if row.get("capacity_value") in (None, "") or float(row.get("capacity_value")) <= 0:
+                errors.append(ValidationError("VAL-E007", "capacity_value", "Capacity must be greater than zero"))
+            if row.get("unit") != "ton":
+                errors.append(ValidationError("VAL-E006", "unit", "Global Capacity unit must be ton"))
+
         if entity == "Equipment" and row.get("owner_type") == "Contractor" and not row.get("owner_name"):
             errors.append(ValidationError("VAL-E008", "owner_name", "owner_name required for Contractor"))
 
@@ -129,6 +136,16 @@ class ValidationEngine:
                 errors.append(ValidationError("VAL-E008", "closed_at", "closed_at required when Closed"))
             if row.get("status") != "Closed" and row.get("closed_at") not in (None, ""):
                 errors.append(ValidationError("VAL-E008", "closed_at", "closed_at must be blank unless Closed"))
+
+        if entity == "Operations" and str(row.get("activity") or "").strip().lower() == "hauling":
+            if row.get("retase") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "retase", "Retase is required for Dump Truck Hauling"))
+            if row.get("applied_capacity") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "applied_capacity", "Applied Capacity is required for Dump Truck Hauling"))
+            if row.get("quantity") not in (None, "") and row.get("retase") not in (None, "") and row.get("applied_capacity") not in (None, ""):
+                expected = float(row["retase"]) * float(row["applied_capacity"])
+                if abs(float(row["quantity"]) - expected) > 1e-9:
+                    errors.append(ValidationError("VAL-E008", "quantity", "Quantity must equal Retase × Applied Capacity"))
 
         if entity == "Operations" and row.get("quantity") not in (None, "") and not row.get("unit"):
             errors.append(ValidationError("VAL-E008", "unit", "unit required with quantity"))
