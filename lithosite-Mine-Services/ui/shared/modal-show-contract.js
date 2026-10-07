@@ -9,7 +9,8 @@
 
   const OPEN_CLASS_BY_ID = new Set([
     'reportsConsoleModal',
-    'reportsHistoryModal'
+    'reportsHistoryModal',
+    'reportPreviewModal'
   ]);
 
   function isVisible(el) {
