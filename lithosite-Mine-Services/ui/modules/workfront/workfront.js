@@ -2,7 +2,7 @@
 'use strict';
 const rc=global.LithositeRuntimeClient;
 if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 10 Work Front');
-const state={rows:[],status:'loading'};
+const state={rows:[],capacities:[],status:'loading'};
 let editId=null;
 let runtimeReady=false;
 const LISTS={domain:[],status:[]};
@@ -72,7 +72,9 @@ async function load(){
   if(!runtimeReady)throw new Error('Runtime health is not READY');
   await loadLists();
   const result=await rc.request({operation:'READ',entity:'WorkFront'});
+  const capResult=await rc.request({operation:'READ',entity:'GlobalCapacity'});
   state.rows=Array.isArray(result.data)?result.data:[];
+  state.capacities=Array.isArray(capResult.data)?capResult.data:[];
   state.status='ready';render();
   setMsg('RuntimeAdapter connected — offline local persistence active.');
  }catch(e){
@@ -83,25 +85,27 @@ async function load(){
 async function refreshData(){
  try{
   const result=await rc.request({operation:'READ',entity:'WorkFront'});
-  state.rows=Array.isArray(result.data)?result.data:[];state.status='ready';render();
+  const capResult=await rc.request({operation:'READ',entity:'GlobalCapacity'});
+  state.rows=Array.isArray(result.data)?result.data:[];
+  state.capacities=Array.isArray(capResult.data)?capResult.data:[];state.status='ready';render();
  }catch(e){setMsg('Refresh failed: '+e.message,true);}
 }
 function resetForm(){
  const now=new Date();const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
  document.getElementById('f_wf_id').value='WF-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
  document.getElementById('f_wf_domain').value='';document.getElementById('f_wf_location').value='';
- document.getElementById('f_wf_responsible').value='';document.getElementById('f_wf_status').value=LISTS.status.includes('ACTIVE')?'ACTIVE':(LISTS.status[0]||'');
+ document.getElementById('f_wf_responsible').value='';document.getElementById('f_wf_status').value=LISTS.status.includes('ACTIVE')?'ACTIVE':(LISTS.status[0]||'');document.getElementById('f_wf_capacity').value='';
  document.getElementById('f_wf_from').value=d;document.getElementById('f_wf_to').value='';
 }
 function openAdd(){editId=null;document.getElementById('workfrontModalTitle').textContent='Add Work Front';document.getElementById('workfrontSave').textContent='Save via RuntimeAdapter';resetForm();if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('workfrontModal');}else{document.getElementById('workfrontModal').classList.add('show')};}
 function openEdit(id){
  const row=state.rows.find(x=>String(x.work_front_id)===String(id));if(!row)return;
  editId=id;document.getElementById('workfrontModalTitle').textContent='Edit Work Front';document.getElementById('workfrontSave').textContent='Update via RuntimeAdapter';
- const map={f_wf_id:row.work_front_id,f_wf_domain:row.domain,f_wf_location:row.location,f_wf_responsible:row.responsible,f_wf_status:row.status,f_wf_from:row.effective_from,f_wf_to:row.effective_to};
+ const map={f_wf_id:row.work_front_id,f_wf_domain:row.domain,f_wf_location:row.location,f_wf_responsible:row.responsible,f_wf_status:row.status,f_wf_capacity:row.capacity_profile_id,f_wf_from:row.effective_from,f_wf_to:row.effective_to};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
  if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('workfrontModal');}else{document.getElementById('workfrontModal').classList.add('show')};
 }
-function payload(){return {work_front_id:document.getElementById('f_wf_id').value,domain:document.getElementById('f_wf_domain').value,location:document.getElementById('f_wf_location').value,responsible:document.getElementById('f_wf_responsible').value,status:document.getElementById('f_wf_status').value,effective_from:document.getElementById('f_wf_from').value||null,effective_to:document.getElementById('f_wf_to').value||null};}
+function payload(){return {work_front_id:document.getElementById('f_wf_id').value,domain:document.getElementById('f_wf_domain').value,location:document.getElementById('f_wf_location').value,responsible:document.getElementById('f_wf_responsible').value,status:document.getElementById('f_wf_status').value,effective_from:document.getElementById('f_wf_from').value||null,effective_to:document.getElementById('f_wf_to').value||null,capacity_profile_id:document.getElementById('f_wf_capacity').value||null};}
 async function save(){
  if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}
  const row=payload();if(!row.domain||!row.status){setMsg('Domain and Status are required.',true);return;}
