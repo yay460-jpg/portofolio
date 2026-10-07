@@ -62,10 +62,17 @@ def test_artifact_stage_order():
         "report-snapshot.js?v=20261007",
         "report-pdf.js?v=20261007",
         "report-history.js?v=20261007",
-        "reports.js?v=20261010",
+        "reports.js?v=20261011",
     ]
     positions = [html.index(value) for value in order]
     assert positions == sorted(positions)
+
+def test_report_kpi_uses_selected_period_scope():
+    reports = read(REPORTS)
+    assert "function reportKpiForPeriod(period)" in reports
+    assert "calculateFleetAllDates(payload)" in reports
+    assert "calculateFleet({...payload,date:period.start})" in reports
+    assert "const k=reportKpiForPeriod(effectivePeriod)||state.kpi;" in reports
 
 def test_report_preview_uses_specialized_report_contract_fields():
     reports = read(REPORTS)
