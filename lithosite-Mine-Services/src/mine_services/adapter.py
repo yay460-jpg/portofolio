@@ -28,6 +28,9 @@ class RuntimeAdapter:
         "SAVE_TOPOGRAPHY_BACKUP",
         "LIST_TOPOGRAPHY_BACKUPS",
         "LOAD_TOPOGRAPHY_BACKUP",
+        "SAVE_MARKER_LOCATION_BACKUP",
+        "LIST_MARKER_LOCATION_BACKUPS",
+        "LOAD_MARKER_LOCATION_BACKUP",
         "FINALIZE_KPI",
         "READ_KPI_SNAPSHOTS",
     }
@@ -142,6 +145,19 @@ class RuntimeAdapter:
             elif operation == "LOAD_TOPOGRAPHY_BACKUP":
                 name = self._required(request, "filename")
                 result = self._runtime.load_topography_backup(name)
+            elif operation == "SAVE_MARKER_LOCATION_BACKUP":
+                package_base64 = self._required(request, "package_base64")
+                result = self._runtime.save_marker_location_backup(
+                    package_base64,
+                    filename=request.get("filename"),
+                    source=request.get("source", "Marker-Location"),
+                )
+                result["status"] = "SAVED"
+            elif operation == "LIST_MARKER_LOCATION_BACKUPS":
+                result = self._runtime.list_marker_location_backups()
+            elif operation == "LOAD_MARKER_LOCATION_BACKUP":
+                name = self._required(request, "filename")
+                result = self._runtime.load_marker_location_backup(name)
             elif operation == "FINALIZE_KPI":
                 snapshot = self._required(request, "snapshot")
                 result = self._runtime.finalize_kpi(
