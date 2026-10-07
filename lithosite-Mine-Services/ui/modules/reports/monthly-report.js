@@ -13,7 +13,7 @@ function scoped(s,n,a,b){return rows(s,n).filter(r=>{const d=dateOf(r);return !d
 function text(row,keys){for(const k of keys){const v=String(row?.[k]??'').trim();if(v)return v}return 'Unspecified'}
 function count(a,keys){const o={};a.forEach(r=>{const k=text(r,keys);o[k]=(o[k]||0)+1});return o}
 function sum(a,keys){let total=0,found=0;a.forEach(r=>{for(const k of keys){const n=Number(r?.[k]);if(Number.isFinite(n)){total+=n;found++;break}}});return found?total:null}
-function kpiSummary(k){k=k&&typeof k==='object'?k:{status:'UNAVAILABLE'};return {status:String(k.status||'UNAVAILABLE'),PA:k.PA??null,UA:k.UA??null,EU:k.EU??null,eligible:Number(k.eligible)||0,excluded:Number(k.excluded)||0,validation_issues:Array.isArray(k.validation_issues)?k.validation_issues.slice():[]}}
+function kpiSummary(k){k=k&&typeof k==='object'?k:{status:'UNAVAILABLE'};return {status:String(k.status||'UNAVAILABLE'),PA:k.PA??null,UA:k.UA??null,EU:k.EU??null,eligible:Number(k.eligible)||0,excluded:Number(k.excluded)||0,validation_issues:Array.isArray(k.validation_issues)?k.validation_issues.slice():[],equipment:Array.isArray(k.equipment)?k.equipment:[]}}
 function buildMonthlyReport(o){
  o=o&&typeof o==='object'?o:{};const a=String(o.period_start||o.start||'').slice(0,10),b=String(o.period_end||o.end||'').slice(0,10);
  if(!/^\d{4}-\d{2}-\d{2}$/.test(a)||!/^\d{4}-\d{2}-\d{2}$/.test(b)||b<a)throw new Error('Invalid Monthly report period.');
