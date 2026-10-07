@@ -62,7 +62,7 @@ def test_artifact_stage_order():
         "report-snapshot.js?v=20261007",
         "report-pdf.js?v=20261007",
         "report-history.js?v=20261007",
-        "reports.js?v=20261012",
+        "reports.js?v=20261013",
     ]
     positions = [html.index(value) for value in order]
     assert positions == sorted(positions)
@@ -111,13 +111,22 @@ def test_report_period_contract_and_notice():
     css = read(BASE / "ui/modules/reports/reports.css")
     assert ".report-center-notice" in css
 
-def test_report_renderers_serialize_structured_section_data():
+def test_report_renderers_present_management_readable_section_data():
     reports = read(REPORTS)
     pdf = read(BASE / "ui/modules/reports/report-pdf.js")
     assert "function reportSectionText(value)" in reports
-    assert "JSON.stringify(value,null,2)" in reports
-    assert "const text=v=>" in pdf
-    assert "JSON.stringify(v,null,2)" in pdf
+    assert "function reportCountText(value)" in reports
+    assert "Structured report data is available in the issued snapshot." in reports
+    assert "const pctText=v=>" in pdf
+    assert "const countText=v=>" in pdf
+    assert "Structured report data is available in the issued snapshot." in pdf
+    assert "JSON.stringify(value,null,2)" not in reports
+    assert "JSON.stringify(v,null,2)" not in pdf
+
+def test_weekly_monthly_no_data_status_does_not_fallback_to_latest():
+    reports = read(REPORTS)
+    assert reports.count("report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD'") == 3
+    assert "LATEST_AVAILABLE_DATA" not in reports
 
 def test_report_period_filters_require_dated_source_evidence():
     reports = read(REPORTS)
