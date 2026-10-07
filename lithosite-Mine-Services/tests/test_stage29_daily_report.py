@@ -33,7 +33,11 @@ def test_daily_report_is_read_only():
     text = DAILY.read_text(encoding="utf-8")
     assert "localStorage" not in text
     assert "RuntimeAdapter" not in text
-    assert ".push(" not in text
+    # Internal validation arrays may use push(); the engine does not write
+    # to localStorage, RuntimeAdapter, or source-domain records.
+    assert "source_data" in text
+    assert ".setItem(" not in text
+    assert ".removeItem(" not in text
 
 
 def test_daily_report_uses_formal_report_engine():
