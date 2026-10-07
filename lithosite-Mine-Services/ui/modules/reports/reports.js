@@ -558,7 +558,6 @@ function generatePdf(model,reader){
     reader.status.textContent='Immutable Snapshot · Ready to Print';
     reader.modal.classList.add('show');
     reader.modal.setAttribute('aria-hidden','false');
-    reader.frame.onload=()=>{buildReportReaderOutline();applyReportReaderView();};
     global.LithositePdfRenderer.renderInline(model,reader.frame);
   }catch(error){
     if(reader?.modal){
@@ -751,10 +750,13 @@ function bind(){
   };
   const toggleReportReaderOutline=()=>reportPdfReaderOutline?.classList.toggle('show');
 
-  if(reportPdf)reportPdf.onclick=()=>generatePdf(reportDraft,{
-    modal:reportPdfReaderModal,frame:reportPdfReaderFrame,title:reportPdfReaderTitle,
-    meta:reportPdfReaderMeta,status:reportPdfReaderStatus
-  });
+  if(reportPdf)reportPdf.onclick=()=>{
+    if(reportPdfReaderFrame)reportPdfReaderFrame.onload=()=>{buildReportReaderOutline();applyReportReaderView();};
+    generatePdf(reportDraft,{
+      modal:reportPdfReaderModal,frame:reportPdfReaderFrame,title:reportPdfReaderTitle,
+      meta:reportPdfReaderMeta,status:reportPdfReaderStatus
+    });
+  };
   if(reportPdfReaderPrint)reportPdfReaderPrint.onclick=printReportPdf;
   if(reportPdfReaderSave)reportPdfReaderSave.onclick=saveReportPdf;
   if(reportPdfReaderSidebar)reportPdfReaderSidebar.onclick=toggleReportReaderOutline;
