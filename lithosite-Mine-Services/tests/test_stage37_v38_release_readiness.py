@@ -41,7 +41,8 @@ def test_stage34_report_center_issue_flow():
 def test_stage35_pdf_renderer():
     text = read(PDF)
     assert "LithositePdfRenderer" in text
-    assert "window.print" in text
+    assert "print()" in text
+    assert "contentWindow.print()" in text
     reports = read(REPORTS)
     assert "LithositePdfRenderer.render" in reports
 
