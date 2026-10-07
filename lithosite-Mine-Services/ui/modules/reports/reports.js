@@ -418,35 +418,45 @@ function renderReportPreview(model){
 }
 function generatePdf(model){
   if(!model)return;
-  const win=window.open('','_blank');
-  if(!win){msg('PDF window was blocked by the browser.',true);return;}
-  const title=model.report_type+' Report · '+model.period.start+(model.period.start!==model.period.end?' → '+model.period.end:'');
-  const k=model.kpi||{},eq=reportKpiEquipment(model);
-  const pct=v=>fmtPct(v);
-  const bar=v=>'<div class="bar"><i style="width:'+Math.max(0,Math.min(100,Number(v)||0)).toFixed(1)+'%"></i></div>';
-  const eqRows=eq.map(r=>'<tr><td>'+esc(r.id)+'</td><td>'+esc(r.unit)+'</td><td>'+esc(r.date)+'</td><td>'+fmtHours(r.scheduled)+'</td><td>'+fmtHours(r.available)+'</td><td>'+fmtHours(r.used)+'</td><td>'+pct(r.pa)+'</td><td>'+pct(r.ua)+'</td><td>'+pct(r.eu)+'</td><td>'+esc(r.status)+'</td></tr>').join('');
-  const sourceRows=entities.map(e=>'<tr><td>'+esc(e)+'</td><td>'+model.source_counts[e]+'</td></tr>').join('');
-  const section=(title,text)=>'<section><h2>'+esc(title)+'</h2><p>'+esc(text||'Source evidence retained in the snapshot.')+'</p></section>';
-  win.document.open();
-  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>body{font-family:Arial,sans-serif;color:#172333;margin:28px;font-size:9px}h1{font-size:22px;margin:0 0 4px}h2{font-size:13px;margin:18px 0 6px;border-bottom:1px solid #cbd5e1;padding-bottom:4px}p{line-height:1.45;color:#475569}.meta{color:#64748b;margin-bottom:16px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.kpi{border:1px solid #cbd5e1;padding:8px;border-radius:5px}.kpi small{display:block;color:#64748b;text-transform:uppercase}.kpi b{font-size:16px}.bar{height:7px;background:#e2e8f0;border-radius:8px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:#2563eb}table{width:100%;border-collapse:collapse;margin:7px 0 14px}th,td{text-align:left;padding:5px;border-bottom:1px solid #e2e8f0}th{font-size:7px;text-transform:uppercase;color:#64748b}td{font-size:8px}section{break-inside:avoid}.footer{margin-top:22px;color:#64748b;font-size:8px}</style></head><body><h1>Reports &amp; KPI</h1><div class="meta">'+esc(title)+' · DRAFT · Report ID '+esc(model.report_id||'DRAFT')+' · Effective '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+model.report_period_effective.end:'')+'</div><div class="kpis"><div class="kpi"><small>Records</small><b>'+model.total_records+'</b></div><div class="kpi"><small>PA</small><b>'+pct(k.PA)+'</b>'+bar(k.PA)+'</div><div class="kpi"><small>UA</small><b>'+pct(k.UA)+'</b>'+bar(k.UA)+'</div><div class="kpi"><small>EU</small><b>'+pct(k.EU)+'</b>'+bar(k.EU)+'</div></div>'+section('Executive Summary','Operational source records: '+model.total_records+'. KPI validation state: '+(k.status||'UNAVAILABLE')+'.')+'<h2>Equipment Performance</h2><table><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table><h2>Operational Source Summary</h2><table><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table>'+section('Planned vs Actual',model.section_data['Planned vs Actual'])+section('Maintenance / Downtime',model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime'])+section('HSE Summary',model.section_data['HSE Summary']||model.section_data['HSE Events'])+section('Issues and Actions',model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities'])+'<div class="footer">Generated from the same Report Snapshot used by Preview.</div><script>window.onload=function(){setTimeout(function(){window.print()},150)}</script></body></html>');
-  win.document.close();
+  if(!model.snapshot?.immutable){
+    msg('Issue the report before generating the final PDF.',true);
+    return;
+  }
+  try{
+    if(global.LithositePdfRenderer)global.LithositePdfRenderer.render(model);
+    else throw new Error('PDF renderer is unavailable.');
+  }catch(error){msg(error.message||'PDF generation failed.',true);}
 }
+
 function bind(){
   const reportType=document.getElementById('reportCenterType');
   const reportDate=document.getElementById('reportCenterDate');
   const reportPrepare=document.getElementById('reportCenterPrepare');
   const reportPreview=document.getElementById('reportCenterPreview');
+  const reportValidate=document.getElementById('reportCenterValidate');
+  const reportIssue=document.getElementById('reportCenterIssue');
+  const reportHistory=document.getElementById('reportCenterHistory');
   const reportPdf=document.getElementById('reportCenterPdf');
+  const issuedHistoryModal=document.getElementById('reportIssuedHistoryModal');
+  const issuedHistoryBody=document.getElementById('reportIssuedHistoryBody');
+  const issuedHistoryClose=document.getElementById('reportIssuedHistoryClose');
   const previewModal=document.getElementById('reportPreviewModal');
   const previewClose=document.getElementById('reportPreviewClose');
   let reportDraft=null;
   const latest=latestOperationalDate();
   if(reportDate)reportDate.value=latest;
   const prepareReport=()=>{
-    reportDraft=buildReportModel();
+    const raw=buildReportModel();
+    reportDraft=global.LithositeReportValidation
+      ? global.LithositeReportValidation.apply(raw,{kpi:raw.kpi})
+      : raw;
     renderReportCenterSummary(reportDraft);
     if(reportPreview)reportPreview.disabled=!reportDraft;
-    if(reportPdf)reportPdf.disabled=!reportDraft;
+    if(reportValidate)reportValidate.disabled=!reportDraft;
+    if(reportIssue)reportIssue.disabled=!reportDraft||reportDraft.status!=='READY';
+    if(reportPdf)reportPdf.disabled=!reportDraft||!reportDraft.snapshot?.immutable;
+    if(reportDraft?.status==='VALIDATION REQUIRED')msg('Report prepared but validation is required before issue.',true);
+    else msg('Report prepared and ready for review.',false);
   };
   const showReportPreview=()=>{
     if(!reportDraft||!previewModal)return;
@@ -463,10 +473,53 @@ function bind(){
   if(reportDate)reportDate.onchange=()=>{prepareReport();};
   if(reportPrepare)reportPrepare.onclick=prepareReport;
   if(reportPreview)reportPreview.onclick=showReportPreview;
+  if(reportValidate)reportValidate.onclick=()=>{
+    if(!reportDraft)return;
+    reportDraft=global.LithositeReportValidation
+      ? global.LithositeReportValidation.apply(reportDraft,{kpi:reportDraft.kpi})
+      : reportDraft;
+    renderReportCenterSummary(reportDraft);
+    if(reportIssue)reportIssue.disabled=reportDraft.status!=='READY';
+    msg(reportDraft.status==='READY'?'Validation PASS — report is ready to issue.':'Validation required — resolve the report gate before issue.',reportDraft.status!=='READY');
+  };
+  if(reportIssue)reportIssue.onclick=async()=>{
+    if(!reportDraft)return;
+    if(!global.LithositeReportSnapshot||!global.LithositeReportHistory){msg('Report snapshot/history engine is unavailable.',true);return;}
+    try{
+      reportDraft=await global.LithositeReportSnapshot.create(reportDraft);
+      global.LithositeReportHistory.save(reportDraft);
+      renderReportCenterSummary(reportDraft);
+      renderReportPreview(reportDraft);
+      if(reportIssue)reportIssue.disabled=true;
+      if(reportPdf)reportPdf.disabled=false;
+      msg('Report issued — immutable snapshot saved to Report History.',false);
+    }catch(error){msg(error.message||'Report issue failed.',true);}
+  };
   if(reportPdf)reportPdf.onclick=()=>generatePdf(reportDraft);
   if(previewClose)previewClose.onclick=hideReportPreview;
   if(previewModal)previewModal.onclick=e=>{if(e.target===previewModal)hideReportPreview();};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&previewModal&&previewModal.classList.contains('open'))hideReportPreview();});
+
+  const renderIssuedHistory=()=>{
+    if(!issuedHistoryBody||!global.LithositeReportHistory)return;
+    const items=global.LithositeReportHistory.list();
+    issuedHistoryBody.innerHTML=items.length
+      ? items.map(item=>'<div class="kpi-history-row"><span>'+esc(item.report_type||'REPORT')+'</span><b>'+esc(item.period?.start||'—')+'</b><b>'+esc(item.period?.end||'—')+'</b><span>'+esc(item.snapshot_id||'—')+'</span><span>'+esc(item.snapshot?.issued_at||'')+'</span></div>').join('')
+      : '<div class="kpi-history-empty">No issued report snapshot yet.</div>';
+  };
+  const showIssuedHistory=()=>{
+    renderIssuedHistory();
+    if(global.LithositeModalShowContract)global.LithositeModalShowContract.show('reportIssuedHistoryModal');
+    else if(issuedHistoryModal){issuedHistoryModal.classList.add('open');issuedHistoryModal.setAttribute('aria-hidden','false');}
+  };
+  const hideIssuedHistory=()=>{
+    if(!issuedHistoryModal)return;
+    if(global.LithositeModalShowContract)global.LithositeModalShowContract.close('reportIssuedHistoryModal');
+    else{issuedHistoryModal.classList.remove('open');issuedHistoryModal.setAttribute('aria-hidden','true');}
+  };
+  if(reportHistory)reportHistory.onclick=showIssuedHistory;
+  if(issuedHistoryClose)issuedHistoryClose.onclick=hideIssuedHistory;
+  if(issuedHistoryModal)issuedHistoryModal.onclick=e=>{if(e.target===issuedHistoryModal)hideIssuedHistory();};
 
   const refresh=document.getElementById('reportsRefresh');if(refresh)refresh.onclick=load;
   const clear=document.getElementById('reportsClear');if(clear)clear.onclick=()=>{document.getElementById('reportsSearch').value='';renderCounts();};
