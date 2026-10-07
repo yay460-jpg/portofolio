@@ -30,7 +30,7 @@ function rows(source,name){
 }
 function inPeriod(row,start,end){
   const d=dateOf(row);
-  return !d||(d>=start&&d<=end);
+  return !!d&&d>=start&&d<=end;
 }
 function scoped(source,name,start,end){
   return rows(source,name).filter(r=>inPeriod(r,start,end));
