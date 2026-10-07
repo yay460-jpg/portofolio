@@ -224,3 +224,7 @@
 /* Stage 26 — Cross-module traceability: Operations → Maintenance. */
 #operationsScreen .maintenance-link{color:#93c5fd;border-color:#315a86;min-width:64px;justify-content:center}
 #operationsScreen .maintenance-link:hover{border-color:#60a5fa;background:#16304b}
+
+
+/* V38 — Clear control width parity across module filter panels */
+#operationsScreen .clear{width:56px;min-width:56px;height:32px;padding:0 10px;justify-content:center;box-sizing:border-box}
