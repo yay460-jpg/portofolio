@@ -250,9 +250,11 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
     <section class="panel filters">
       <div class="field reports-search-field">
         <label>Search Data</label>
-        <input id="reportsSearch" placeholder="Search across operational records">
+        <div class="reports-search-row">
+          <button class="control reports-search-clear" id="reportsClear" type="button">Clear</button>
+          <input id="reportsSearch" placeholder="Search across operational records">
+        </div>
       </div>
-      <button class="control reports-search-clear" id="reportsClear">Clear</button>
       <label class="report-filter-field">Report Type
         <select id="reportCenterType" class="control">
           <option value="DAILY">Daily Report</option>
