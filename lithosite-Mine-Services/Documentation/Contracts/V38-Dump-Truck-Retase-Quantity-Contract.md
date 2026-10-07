@@ -8,11 +8,11 @@
 
 This contract defines how Dump Truck hauling production is recorded in V38.
 
-The system must use the **actual retase recorded by the field checker** as the operational observation, obtain the **Payload from the selected equipment configuration**, and calculate **Quantity automatically**.
+The system must use the **actual retase recorded by the field checker** as the operational observation, obtain the **Applied Capacity from the applicable Global Capacity / Work Front / Console configuration**, and calculate **Quantity automatically**. Equipment remains supporting fleet data and does not automatically define operational capacity.
 
 The intended flow is:
 
-**Checker → Retase → Payload → Quantity**
+**Global Capacity / Console → Equipment → Checker → Retase → Applied Capacity → Quantity**
 
 This avoids making Quantity a second, manually entered source of truth.
 
@@ -23,7 +23,7 @@ This avoids making Quantity a second, manually entered source of truth.
 - Dump Truck (DT).
 - Activity: **Hauling**.
 - Retase recorded from field/checker notes.
-- Payload read from equipment configuration.
+- Global Capacity manually configured as an operational capacity profile.
 - Quantity calculated automatically.
 - Retase and Quantity displayed together in the Work Timeline.
 
@@ -54,15 +54,20 @@ For example, Actual Hours = 4 does not mean the system should guess the number o
 
 ## 4. Equipment Payload
 
-Payload is an attribute of the selected Dump Truck and is not retyped for every transaction.
+Equipment is supporting fleet data for Operation. It identifies the selected Dump Truck but does not automatically define the operational hauling capacity.
 
-| Equipment | Type / Brand | Payload |
-|---|---|---:|
-| DT-TEST-001 | Hino | 25 ton |
-| DT-TEST-002 | Fuso | According to unit configuration |
-| DT-TEST-003 | Shacman | According to unit configuration |
+Operational capacity is maintained separately through **Global Capacity** and the applicable Work Front / Console configuration.
 
-The value **25 ton** is an example for the configured Hino unit, not a global payload rule for every Dump Truck.
+Global Capacity supports manual/free-value decimal entries, for example:
+
+- 25 ton
+- 25.5 ton
+- 27.5 ton
+- 29 ton
+- 32 ton
+- 35.5 ton
+
+The configured value used by a transaction becomes its **Applied Capacity**.
 
 ## 5. Add Operation — Hauling
 
@@ -73,7 +78,7 @@ For Dump Truck + Hauling, the relevant transaction fields are conceptually:
 | Equipment | Input | Select Dump Truck |
 | Activity | Input | Hauling |
 | Retase | Manual input | Enter actual checker result |
-| Payload | Auto / read-only | Read from equipment configuration |
+| Applied Capacity | Auto / read-only | Resolve from Global Capacity / Work Front / Console configuration |
 | Quantity | Auto-calculated | Retase × Payload |
 | Unit | Auto / context | ton |
 | Actual Hours | Input | Actual operating duration |
@@ -95,7 +100,7 @@ Selected equipment:
 
 - Equipment: DT-TEST-001
 - Type: Hino
-- Payload: 25 ton/rit
+- Applied Capacity: 27.5 ton/rit
 
 Checker record:
 
@@ -103,15 +108,15 @@ Checker record:
 
 System result:
 
-**4 rit × 25 ton = 100 ton**
+**4 rit × 27.5 ton = 110 ton**
 
-The operator enters **Retase = 4**. The system produces **Quantity = 100 ton**.
+The operator enters **Retase = 4**. The system produces **Quantity = 110 ton**.
 
 ## 7. Work Timeline Example
 
-| Time | Activity | Retase | Payload | Quantity | Actual Hrs |
+| Time | Activity | Retase | Applied Capacity | Quantity | Actual Hrs |
 |---|---|---:|---:|---:|---:|
-| 06:00 | Hauling | 4 | 25 ton | 100 ton | 4 |
+| 06:00 | Hauling | 4 | 27.5 ton | 110 ton | 4 |
 
 The Work Timeline must preserve the relationship between the observed Retase and the calculated Quantity.
 
@@ -159,20 +164,23 @@ The V38 Dump Truck contract must not assume that Excavator production uses the s
 
 ## 11. Acceptance Criteria
 
-1. Selecting a Dump Truck resolves its configured Payload.
-2. Hauling allows Retase to be entered from the checker record.
-3. Payload is not manually re-entered for each hauling transaction.
-4. Quantity is calculated automatically as **Retase × Payload**.
+1. Selecting a Dump Truck resolves the fleet identity; it does not automatically define operational capacity.
+2. Hauling resolves the applicable Global Capacity / Work Front / Console value.
+3. Global Capacity supports manual decimal values and is not restricted to fixed tonnage options.
+4. Hauling allows Retase to be entered from the checker record.
+5. Applied Capacity is not manually re-entered for each hauling transaction.
+6. Quantity is calculated automatically as **Retase × Applied Capacity**.
 5. Quantity does not require duplicate manual input.
 6. Work Timeline displays Retase and Quantity together.
-7. Actual Hours remains an independent operational field.
-8. The rule does not change Excavator logic or introduce distance/cycle-time calculations.
-9. The design preserves checker evidence as the source of actual Retase.
+7. The Applied Capacity used by the transaction is preserved for historical integrity.
+8. Actual Hours remains an independent operational field.
+9. The rule does not change Excavator logic or introduce distance/cycle-time calculations.
+10. The design preserves checker evidence as the source of actual Retase.
 
 ## 12. Design Decision
 
 **V38 decision:**
 
-> For Dump Truck Hauling, **Retase is the actual field observation, Payload is the equipment configuration, and Quantity is the system-calculated result of Retase × Payload.**
+> For Dump Truck Hauling, **Retase is the actual field observation, Global Capacity is the configurable operational capacity, Equipment is the fleet-support master, Applied Capacity is the capacity snapshot used by the transaction, and Quantity is the system-calculated result of Retase × Applied Capacity.**
 
 This contract is the baseline for the next implementation step in V38.
