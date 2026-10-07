@@ -461,6 +461,26 @@ def build_report_pdf(model: dict) -> bytes:
             y -= 2
             continue
 
+        if name_upper == "EQUIPMENT PERFORMANCE" and isinstance(value, dict):
+            record_count = value.get("record_count", value.get("Record Count"))
+            if record_count is not None:
+                field_pair("Record Count", display_value("record_count", record_count), "", "", 22)
+            kpi_value = value.get("kpi") or value.get("Kpi")
+            if isinstance(kpi_value, dict):
+                pairs = []
+                if "status" in kpi_value:
+                    pairs.append(("Status", str(kpi_value["status"]).upper()))
+                for key in ("PA", "UA", "EU"):
+                    if key in kpi_value:
+                        pairs.append((key, display_value(key, kpi_value[key])))
+                for i in range(0, len(pairs), 2):
+                    a_pair = pairs[i]
+                    b_pair = pairs[i + 1] if i + 1 < len(pairs) else ("", "")
+                    field_pair(a_pair[0], a_pair[1], b_pair[0], b_pair[1], 22)
+            elif kpi_value:
+                paragraph(kpi_value, 7.8, 10.2, 104)
+            continue
+
         if name_upper == "KPI TREND" and isinstance(value, dict):
             if "comparison_available" in value:
                 v = value["comparison_available"]
