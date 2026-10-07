@@ -120,9 +120,10 @@ def test_report_pdf_uses_user_guide_native_reader_without_custom_toolbar():
     css = read(BASE / "ui/modules/reports/reports.css")
     server = read(SERVER)
     assert "renderInline(model,iframe)" in pdf
-    assert "form.method='POST'" in pdf
-    assert "form.target=iframe.name" in pdf
-    assert "form.submit()" in pdf
+    assert "fetch(endpoint" in pdf
+    assert "method:'POST'" in pdf
+    assert "response.json()" in pdf
+    assert "URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}))" in pdf
     assert "report-pdf" in pdf
     assert "window.open('','_blank')" in pdf
     assert 'class="user-guide-reader-modal"' in artifact
@@ -139,9 +140,8 @@ def test_report_pdf_uses_user_guide_native_reader_without_custom_toolbar():
     assert "contentWindow.print()" not in reports
     assert ".report-pdf-reader-toolgroup" not in css
     assert 'if self.path == "/report-pdf":' in server
-    assert 'self.send_header("Content-Type", "application/pdf")' in server
-    assert 'application/x-www-form-urlencoded' in server
-    assert 'form.get("payload", [""])[0]' in server
+    assert '"mime": "application/pdf"' in server
+    assert '"data": base64.b64encode(payload).decode("ascii")' in server
     assert "def build_report_pdf(model: dict)" in server
     generate_start = reports.index("function generatePdf")
     bind_start = reports.index("function bind")
