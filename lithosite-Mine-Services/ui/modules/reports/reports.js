@@ -411,7 +411,7 @@ function renderReportPreview(model){
     '</div></section>'+
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Equipment Performance</b><span>'+eq.length+' KPI rows</span></div>'+
       '<div class="report-table-wrap"><table class="report-preview-table"><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table></div></section>'+
-    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Operational Source Summary</b><span>'+model.total_records+' records</span></div><div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table></div></section>'+
+    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Operational Source Summary</b><span>'+totalRecords+' records</span></div><div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table></div></section>'+
     narrative('Planned vs Actual',model.section_data['Planned vs Actual']||'Plan and actual source data are retained for the selected period.')+
     narrative('Maintenance / Downtime',model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime']||'Maintenance source evidence is retained below.')+
     narrative('HSE Summary',model.section_data['HSE Summary']||model.section_data['HSE Events']||'HSE source evidence is retained below.')+
