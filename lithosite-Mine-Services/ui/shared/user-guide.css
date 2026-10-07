@@ -250,7 +250,7 @@
 }
 #reportsScreen .user-guide-reader-dialog{
   width:min(850px,calc(100% - 20px));
-  height:calc(100% - 20px);
+  height:calc(100% - 56px); /* deliberate shell-safe reduction: 28px breathing room top/bottom */
   max-height:none;
   min-height:0;
   margin:0 auto;
@@ -278,6 +278,6 @@
   }
   #reportsScreen .user-guide-reader-dialog{
     width:100%;
-    height:calc(100% - 12px);
+    height:calc(100% - 28px);
   }
 }
