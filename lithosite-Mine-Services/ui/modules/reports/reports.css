@@ -277,3 +277,7 @@ footer.status{
 #reportsScreen .report-center-compact-title{display:flex;align-items:baseline;gap:6px;padding:0 0 4px;border-bottom:0;color:#e5eef8}
 #reportsScreen .report-center-compact-title b{font-size:8.5px;font-weight:700;text-transform:uppercase}
 #reportsScreen .report-center-compact-title span{font-size:8px;font-weight:400;color:#8fa5bb}
+
+#reportsScreen .reports-search-label{display:flex!important;align-items:baseline;gap:6px;margin-bottom:5px!important}
+#reportsScreen .reports-search-label b{font-size:8.5px;font-weight:700;text-transform:uppercase;color:#8fa5bb}
+#reportsScreen .reports-search-label span{font-size:8px;font-weight:400;color:#8fa5bb}
