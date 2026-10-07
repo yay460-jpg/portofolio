@@ -138,11 +138,15 @@ class ValidationEngine:
                 errors.append(ValidationError("VAL-E008", "closed_at", "closed_at must be blank unless Closed"))
 
         if entity == "Operations" and str(row.get("activity") or "").strip().lower() == "hauling":
-            if row.get("retase") in (None, ""):
+            equipment = store.get("Equipment", row.get("equipment_id")) if store and row.get("equipment_id") else None
+            is_dump_truck = str((equipment or {}).get("type") or "").strip().lower() == "dump truck"
+            if is_dump_truck and row.get("retase") in (None, ""):
                 errors.append(ValidationError("VAL-E003", "retase", "Retase is required for Dump Truck Hauling"))
-            if row.get("applied_capacity") in (None, ""):
+            if is_dump_truck and row.get("applied_capacity") in (None, ""):
                 errors.append(ValidationError("VAL-E003", "applied_capacity", "Applied Capacity is required for Dump Truck Hauling"))
-            if row.get("quantity") not in (None, "") and row.get("retase") not in (None, "") and row.get("applied_capacity") not in (None, ""):
+            if is_dump_truck and row.get("unit") != "ton":
+                errors.append(ValidationError("VAL-E006", "unit", "Dump Truck Hauling quantity unit must be ton"))
+            if is_dump_truck and row.get("quantity") not in (None, "") and row.get("retase") not in (None, "") and row.get("applied_capacity") not in (None, ""):
                 expected = float(row["retase"]) * float(row["applied_capacity"])
                 if abs(float(row["quantity"]) - expected) > 1e-9:
                     errors.append(ValidationError("VAL-E008", "quantity", "Quantity must equal Retase × Applied Capacity"))
