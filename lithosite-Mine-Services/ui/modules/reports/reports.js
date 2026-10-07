@@ -552,15 +552,22 @@ function generatePdf(model,reader){
   }
   try{
     if(!global.LithositePdfRenderer?.renderInline)throw new Error('PDF renderer is unavailable.');
-    global.LithositePdfRenderer.renderInline(model,reader.frame);
     reportReaderZoom=1;reportReaderRotation=0;reportReaderIndex=0;
-    reader.frame.onload=()=>{buildReportReaderOutline();applyReportReaderView();};
     reader.title.textContent=(model.report_type||'REPORT')+' Report';
     reader.meta.textContent=(model.period?.start||'—')+(model.period?.start!==model.period?.end?' → '+(model.period?.end||'—'):'')+' · '+(model.status||'ISSUED');
     reader.status.textContent='Immutable Snapshot · Ready to Print';
     reader.modal.classList.add('show');
     reader.modal.setAttribute('aria-hidden','false');
-  }catch(error){msg(error.message||'PDF generation failed.',true);}
+    reader.frame.onload=()=>{buildReportReaderOutline();applyReportReaderView();};
+    global.LithositePdfRenderer.renderInline(model,reader.frame);
+  }catch(error){
+    if(reader?.modal){
+      reader.modal.classList.add('show');
+      reader.modal.setAttribute('aria-hidden','false');
+      if(reader.status)reader.status.textContent='PDF render error';
+    }
+    msg(error.message||'PDF generation failed.',true);
+  }
 }
 
 function bind(){
