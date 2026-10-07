@@ -234,6 +234,8 @@ Backup storage is located at:
 
 `Database/marker-location/`
 
+The portable package uses the `LT-MARKER` format, version `1`, with the package magic `LITMARKR`.
+
 The backup store retains a maximum of **5 backup files**. When a sixth backup is saved, the oldest backup is automatically removed.
 
 The 5-file backup retention limit is a storage limit and is independent from per-marker-type ACTIVE capacity.
