@@ -295,6 +295,24 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
       </div>
     </div>
 
+    <div id="reportPdfReaderModal" class="report-pdf-reader-modal" aria-hidden="true">
+      <div class="report-pdf-reader-dialog" role="dialog" aria-modal="true" aria-labelledby="reportPdfReaderTitle">
+        <div class="report-pdf-reader-head">
+          <div><b id="reportPdfReaderTitle">Report PDF</b><span id="reportPdfReaderMeta">Inline PDF Reader · Fit Width</span></div>
+          <button class="control" id="reportPdfReaderClose" type="button">×</button>
+        </div>
+        <div class="report-pdf-reader-toolbar">
+          <span class="report-pdf-reader-label">Reports &amp; KPI</span>
+          <span id="reportPdfReaderStatus" class="report-pdf-reader-status">Issued Snapshot</span>
+          <div class="report-pdf-reader-actions">
+            <button class="control" id="reportPdfReaderPrint" type="button">🖨 Print</button>
+            <button class="control" id="reportPdfReaderCloseBottom" type="button">Cancel</button>
+          </div>
+        </div>
+        <div class="report-pdf-reader-body"><iframe id="reportPdfReaderFrame" title="Report PDF preview"></iframe></div>
+      </div>
+    </div>
+
     <div id="reportIssuedHistoryModal" class="reports-history-modal" aria-hidden="true"><div class="reports-history-dialog" role="dialog" aria-modal="true" aria-labelledby="reportIssuedHistoryTitle"><div class="reports-history-head"><div><b id="reportIssuedHistoryTitle">Issued Report History</b><span>Immutable report snapshots</span></div><button class="control" id="reportIssuedHistoryClose" type="button">Close</button></div><div id="reportIssuedHistoryBody" class="reports-history-body"></div></div></div>
 
     <section class="report-body">
