@@ -73,6 +73,9 @@ def test_report_kpi_uses_selected_period_scope():
     assert "calculateFleetAllDates(payload)" in reports
     assert "calculateFleet({...payload,date:period.start})" in reports
     assert "const k=reportKpiForPeriod(effectivePeriod)||state.kpi;" in reports
+    assert "function reportScopedSource(period)" in reports
+    assert "scoped.Equipment=rows('Equipment').filter" in reports
+    assert "scoped.WorkFront=rows('WorkFront').filter" in reports
 
 def test_report_preview_uses_specialized_report_contract_fields():
     reports = read(REPORTS)
@@ -120,8 +123,11 @@ def test_report_period_filters_require_dated_source_evidence():
     reports = read(REPORTS)
     daily = read(BASE / "ui/modules/reports/daily-report.js")
     weekly = read(BASE / "ui/modules/reports/weekly-report.js")
+    monthly = read(BASE / "ui/modules/reports/monthly-report.js")
     assert "return !d || (d>=period.start&&d<=period.end);" not in reports
     assert "return !d||(d>=start&&d<=end)" not in weekly
     assert "return !d||(d>=start&&d<=end);" not in daily
+    assert "return !d||(d>=a&&d<=b)" not in monthly
     assert "return !!d&&d>=start&&d<=end;" in daily
     assert "return !!d&&d>=a&&d<=b" in weekly
+    assert "return !!d&&d>=a&&d<=b" in monthly
