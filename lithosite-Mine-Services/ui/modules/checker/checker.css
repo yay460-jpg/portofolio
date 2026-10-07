@@ -1,0 +1,6 @@
+#checkerScreen .boundary{height:100%;position:relative}
+#checkerScreen .checker-grid{min-width:1260px}
+#checkerScreen .checker-tr{display:grid;grid-template-columns:110px 135px 75px 110px 105px 135px minmax(130px,1fr) 90px 70px 120px 150px;min-width:1260px}
+#checkerScreen .checker-tr .cell{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#checkerScreen .checker-modal .modalbody{max-height:calc(100vh - 220px);overflow:auto}
+#checkerScreen .checker-required{color:#8ec5ff}
