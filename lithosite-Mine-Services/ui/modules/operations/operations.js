@@ -39,6 +39,15 @@
     }
   }
 
+  function matchesEquipmentGroup(type, group) {
+    const normalizedType = String(type || '').trim().toLowerCase();
+    if (!group) return true;
+    if (group === 'dump-truck') return normalizedType === 'dump truck';
+    if (group === 'excavator') return normalizedType === 'excavator';
+    if (group === 'support-unit') return normalizedType === 'grader' || normalizedType === 'dozer';
+    return true;
+  }
+
   function fillRefs() {
     optionize(
       'wf',
@@ -107,7 +116,13 @@
     const date = document.getElementById('date').value;
     const domain = document.getElementById('domain').value;
     const wf = document.getElementById('wf').value;
+    const equipmentGroup = document.getElementById('equipmentGroupFilter').value;
     const eq = document.getElementById('eq').value;
+    const equipmentById = new Map(
+      dataState.equipment.map(function (item) {
+        return [String(item.equipment_id || ''), item];
+      })
+    );
     const activity = document.getElementById('activityFilter').value.trim().toLowerCase();
     const status = document.getElementById('statusFilter').value;
     const source = document.getElementById('sourceFilter').value.trim().toLowerCase();
@@ -116,6 +131,10 @@
       return (!date || String(row.transaction_date || '') === date) &&
         (!domain || row.domain === domain) &&
         (!wf || row.work_front_id === wf) &&
+        (!equipmentGroup || matchesEquipmentGroup(
+          equipmentById.get(String(row.equipment_id || ''))?.type,
+          equipmentGroup
+        )) &&
         (!eq || row.equipment_id === eq) &&
         (!activity || String(row.activity || '').toLowerCase().includes(activity)) &&
         (!status || row.status === status) &&
@@ -484,7 +503,7 @@
     const clear = document.getElementById('clear');
     if (!clear) throw new Error('Operations UI element #clear not found');
     clear.addEventListener('click', function () {
-      ['date', 'domain', 'wf', 'eq', 'activityFilter', 'statusFilter', 'sourceFilter']
+      ['date', 'domain', 'wf', 'equipmentGroupFilter', 'eq', 'activityFilter', 'statusFilter', 'sourceFilter']
         .forEach(function (id) {
           document.getElementById(id).value = '';
         });
@@ -492,7 +511,7 @@
     });
 
     document
-      .querySelectorAll('#date,#domain,#wf,#eq,#activityFilter,#statusFilter,#sourceFilter')
+      .querySelectorAll('#date,#domain,#wf,#equipmentGroupFilter,#eq,#activityFilter,#statusFilter,#sourceFilter')
       .forEach(function (element) {
         element.addEventListener('input', render);
         element.addEventListener('change', render);
