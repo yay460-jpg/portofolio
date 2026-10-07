@@ -20,10 +20,12 @@ DATE_FIELDS = {
     "Maintenance": {"event_date"},
     "Issues": {"issue_date"},
     "HSE": {"event_date"},
+    "Checker": {"observation_date"},
 }
 TIME_FIELDS = {
     "Operations": {"transaction_time"},
     "Maintenance": {"start_time", "end_time"},
+    "Checker": {"start_time", "end_time"},
 }
 DATETIME_FIELDS = {
     "Operations": {"created_at", "updated_at"},
@@ -33,6 +35,7 @@ TEXT_FIELDS = {
     "Equipment": {"equipment_id", "category", "type", "owner_type", "owner_name", "status"},
     "WorkFront": {"work_front_id", "domain", "location", "responsible", "status", "capacity_profile_id"},
     "GlobalCapacity": {"capacity_profile_id", "capacity_name", "unit", "status"},
+    "Checker": {"checker_id", "checker_name", "shift", "equipment_id", "work_front_id", "activity", "material", "source"},
     "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "unit", "status", "source", "capacity_profile_id", "capacity_unit"},
     "Maintenance": {"maintenance_id", "equipment_id", "event_type", "failure_code", "action", "status", "source"},
     "Issues": {"issue_id", "domain", "work_front_id", "equipment_id", "description", "severity", "status", "assigned_to"},
@@ -50,11 +53,11 @@ class ValidationEngine:
             return True
         if field in DATE_FIELDS.get(entity, set()):
             return (isinstance(value, date) and not isinstance(value, datetime)) or (
-                isinstance(value, str) and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", value))
+                isinstance(value, str) and bool(re.fullmatch(r"d{4}-d{2}-d{2}", value))
             )
         if field in TIME_FIELDS.get(entity, set()):
             return isinstance(value, time) or (
-                isinstance(value, str) and bool(re.fullmatch(r"\d{2}:\d{2}(:\d{2})?", value))
+                isinstance(value, str) and bool(re.fullmatch(r"d{2}:d{2}(:d{2})?", value))
             )
         if field in DATETIME_FIELDS.get(entity, set()):
             return isinstance(value, datetime) or (
@@ -96,14 +99,9 @@ class ValidationEngine:
         if existing is not None and row.get(pk) != existing.get(pk):
             errors.append(ValidationError("VAL-E010", pk, "Primary key is immutable"))
 
-        for field in row:
-            if field in self.schema.SYSTEM_FIELDS and context in {"CREATE", "IMPORT", "UPDATE"}:
+        for field in self.schema.SYSTEM_FIELDS:
+            if field in row and context in {"CREATE", "IMPORT", "UPDATE"}:
                 errors.append(ValidationError("VAL-E010", field, "System field is generated"))
-
-        for field in self.schema.NUMERIC:
-            if field in row and row[field] not in (None, ""):
-                if not isinstance(row[field], (int, float)) or isinstance(row[field], bool) or row[field] < 0:
-                    errors.append(ValidationError("VAL-E007", field, "Numeric value must be >= 0"))
 
         for key, (target, targetpk, required) in self.schema.FK.items():
             owner, field = key.split(".")
@@ -128,14 +126,20 @@ class ValidationEngine:
             if row.get("unit") != "ton":
                 errors.append(ValidationError("VAL-E006", "unit", "Global Capacity unit must be ton"))
 
-        if entity == "Equipment" and row.get("owner_type") == "Contractor" and not row.get("owner_name"):
-            errors.append(ValidationError("VAL-E008", "owner_name", "owner_name required for Contractor"))
+        if entity == "Checker":
+            start = row.get("start_time")
+            end = row.get("end_time")
+            if start not in (None, "") and end not in (None, ""):
+                start_text = start.strftime("%H:%M:%S") if isinstance(start, time) else str(start)
+                end_text = end.strftime("%H:%M:%S") if isinstance(end, time) else str(end)
+                if end_text < start_text:
+                    errors.append(ValidationError("VAL-E008", "end_time", "end_time must be >= start_time"))
 
-        if entity in {"Issues", "HSE"}:
-            if row.get("status") == "Closed" and not row.get("closed_at"):
-                errors.append(ValidationError("VAL-E008", "closed_at", "closed_at required when Closed"))
-            if row.get("status") != "Closed" and row.get("closed_at") not in (None, ""):
-                errors.append(ValidationError("VAL-E008", "closed_at", "closed_at must be blank unless Closed"))
+            activity = str(row.get("activity") or "").strip().lower()
+            equipment = store.get("Equipment", row.get("equipment_id")) if store and row.get("equipment_id") else None
+            is_dump_truck = str((equipment or {}).get("type") or "").strip().lower() == "dump truck"
+            if is_dump_truck and activity == "hauling" and row.get("retase") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "retase", "Retase is required for Dump Truck Hauling"))
 
         if entity == "Operations" and str(row.get("activity") or "").strip().lower() == "hauling":
             equipment = store.get("Equipment", row.get("equipment_id")) if store and row.get("equipment_id") else None
@@ -157,7 +161,7 @@ class ValidationEngine:
         if entity == "Plans" and row.get("target_quantity") not in (None, "") and not row.get("unit"):
             errors.append(ValidationError("VAL-E008", "unit", "unit required with target_quantity"))
 
-        if entity == "Plans" and row.get("period") and not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", str(row["period"])):
+        if entity == "Plans" and row.get("period") and not re.fullmatch(r"d{4}-(0[1-9]|1[0-2])", str(row["period"])):
             errors.append(ValidationError("VAL-E009", "period", "period must be YYYY-MM"))
 
         if row.get("effective_from") and row.get("effective_to"):
