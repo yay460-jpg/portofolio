@@ -540,15 +540,24 @@ function renderReportPreview(model){
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Source Evidence</b><span>Traceable RuntimeAdapter records</span></div><div class="report-preview-copy">Detailed source rows remain available in the report snapshot. No source data is invented when a domain does not provide the required field.</div></section>'+
     '<div class="report-preview-note">Preview is read-only. Generate PDF uses this same Report Snapshot.</div>';
 }
-function generatePdf(model){
+function generatePdf(model,reader){
   if(!model)return;
   if(!model.snapshot?.immutable){
     msg('Issue the report before generating the final PDF.',true);
     return;
   }
+  if(!reader?.modal||!reader?.frame){
+    msg('Inline PDF reader is unavailable.',true);
+    return;
+  }
   try{
-    if(global.LithositePdfRenderer)global.LithositePdfRenderer.render(model);
-    else throw new Error('PDF renderer is unavailable.');
+    if(!global.LithositePdfRenderer?.renderInline)throw new Error('PDF renderer is unavailable.');
+    global.LithositePdfRenderer.renderInline(model,reader.frame);
+    reader.title.textContent=(model.report_type||'REPORT')+' Report';
+    reader.meta.textContent=(model.period?.start||'—')+(model.period?.start!==model.period?.end?' → '+(model.period?.end||'—'):'')+' · '+(model.status||'ISSUED');
+    reader.status.textContent='Immutable Snapshot · Ready to Print';
+    reader.modal.classList.add('show');
+    reader.modal.setAttribute('aria-hidden','false');
   }catch(error){msg(error.message||'PDF generation failed.',true);}
 }
 
@@ -561,6 +570,14 @@ function bind(){
   const reportIssue=document.getElementById('reportCenterIssue');
   const reportHistory=document.getElementById('reportCenterHistory');
   const reportPdf=document.getElementById('reportCenterPdf');
+  const reportPdfReaderModal=document.getElementById('reportPdfReaderModal');
+  const reportPdfReaderFrame=document.getElementById('reportPdfReaderFrame');
+  const reportPdfReaderTitle=document.getElementById('reportPdfReaderTitle');
+  const reportPdfReaderMeta=document.getElementById('reportPdfReaderMeta');
+  const reportPdfReaderStatus=document.getElementById('reportPdfReaderStatus');
+  const reportPdfReaderPrint=document.getElementById('reportPdfReaderPrint');
+  const reportPdfReaderClose=document.getElementById('reportPdfReaderClose');
+  const reportPdfReaderCloseBottom=document.getElementById('reportPdfReaderCloseBottom');
   const issuedHistoryModal=document.getElementById('reportIssuedHistoryModal');
   const issuedHistoryBody=document.getElementById('reportIssuedHistoryBody');
   const issuedHistoryClose=document.getElementById('reportIssuedHistoryClose');
@@ -652,7 +669,26 @@ function bind(){
       msg('Report issued — immutable snapshot saved to Report History.',false);
     }catch(error){msg(error.message||'Report issue failed.',true);}
   };
-  if(reportPdf)reportPdf.onclick=()=>generatePdf(reportDraft);
+  const closeReportPdfReader=()=>{
+    if(!reportPdfReaderModal)return;
+    reportPdfReaderModal.classList.remove('show');
+    reportPdfReaderModal.setAttribute('aria-hidden','true');
+    if(reportPdfReaderFrame)reportPdfReaderFrame.srcdoc='';
+  };
+  const printReportPdf=()=>{
+    if(!reportPdfReaderFrame?.contentWindow)return;
+    reportPdfReaderFrame.contentWindow.focus();
+    reportPdfReaderFrame.contentWindow.print();
+  };
+  if(reportPdf)reportPdf.onclick=()=>generatePdf(reportDraft,{
+    modal:reportPdfReaderModal,frame:reportPdfReaderFrame,title:reportPdfReaderTitle,
+    meta:reportPdfReaderMeta,status:reportPdfReaderStatus
+  });
+  if(reportPdfReaderPrint)reportPdfReaderPrint.onclick=printReportPdf;
+  if(reportPdfReaderClose)reportPdfReaderClose.onclick=closeReportPdfReader;
+  if(reportPdfReaderCloseBottom)reportPdfReaderCloseBottom.onclick=closeReportPdfReader;
+  if(reportPdfReaderModal)reportPdfReaderModal.onclick=e=>{if(e.target===reportPdfReaderModal)closeReportPdfReader();};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&reportPdfReaderModal?.classList.contains('show'))closeReportPdfReader();});
   if(previewClose)previewClose.onclick=hideReportPreview;
   if(previewModal)previewModal.onclick=e=>{if(e.target===previewModal)hideReportPreview();};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&previewModal&&previewModal.classList.contains('open'))hideReportPreview();});
