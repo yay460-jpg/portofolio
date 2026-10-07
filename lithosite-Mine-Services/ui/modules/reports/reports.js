@@ -307,16 +307,57 @@ function renderReportCenterSummary(model){
   host.innerHTML='<b>'+esc(model.report_type)+' REPORT</b> · '+esc(p.start)+(p.start!==p.end?' → '+esc(p.end):'')+' · '+model.total_records+' source records · KPI '+esc(model.kpi?.status||'UNAVAILABLE');
   if(status)status.textContent='Draft prepared';
 }
+function reportBar(value,max){
+  const n=Number(value);
+  if(!Number.isFinite(n)||!Number.isFinite(max)||max<=0)return '<span class="report-bar"><i style="width:0%"></i></span>';
+  const pct=Math.max(0,Math.min(100,(n/max)*100));
+  return '<span class="report-bar"><i style="width:'+pct.toFixed(1)+'%"></i></span>';
+}
+function reportKpiEquipment(model){
+  return (model.kpi?.equipment||[]).slice(0,20).map(result=>{
+    const pa=result.results?.PA||{},ua=result.results?.UA||{},eu=result.results?.EU||{};
+    return {
+      id:String(result.equipmentId||'—'),
+      unit:String(result.unitNo||'—'),
+      date:(result.validatedDates||[]).join(', ')||result.timeline?.lineage?.date||'—',
+      scheduled:pa.denominatorHours,
+      available:pa.numeratorHours,
+      used:ua.numeratorHours,
+      pa:pa.value,
+      ua:ua.value,
+      eu:eu.value,
+      status:String(result.status||'—')
+    };
+  });
+}
 function renderReportPreview(model){
   const host=document.getElementById('reportPreviewBody'),meta=document.getElementById('reportPreviewMeta');
   if(!host||!model)return;
   if(meta)meta.textContent=model.report_type+' · '+model.period.start+(model.period.start!==model.period.end?' → '+model.period.end:'')+' · DRAFT';
-  const sectionHtml=model.sections.map(section=>'<div class="report-preview-section"><b>'+esc(section)+'</b><p>'+esc(model.section_data[section]||'Source evidence retained below.')+'</p></div>').join('');
-  const sourceHtml=entities.map(entity=>{
-    const rowsHtml=(model.source_tables[entity]||[]).map(row=>'<tr><td>'+esc(row.date)+'</td><td>'+esc(row.label)+'</td><td>'+esc(row.status)+'</td></tr>').join('');
-    return '<div class="report-preview-source"><b>'+esc(entity)+' · '+model.source_counts[entity]+'</b><table><thead><tr><th>Date</th><th>Record</th><th>Status</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div>';
-  }).join('');
-  host.innerHTML='<div class="report-preview-kpis"><div><small>Records</small><b>'+model.total_records+'</b></div><div><small>PA</small><b>'+fmtPct(model.kpi?.PA)+'</b></div><div><small>UA</small><b>'+fmtPct(model.kpi?.UA)+'</b></div><div><small>EU</small><b>'+fmtPct(model.kpi?.EU)+'</b></div></div><div class="report-preview-period"><b>Effective data period</b> '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+esc(model.report_period_effective.end):'')+' · '+esc(model.report_data_status)+'</div>'+sectionHtml+sourceHtml+'<div class="report-preview-note">Preview is read-only. PDF is generated from this same report snapshot.</div>';
+  const k=model.kpi||{}, pa=Number(k.PA),ua=Number(k.UA),eu=Number(k.EU);
+  const maxPct=100;
+  const eq=reportKpiEquipment(model);
+  const eqRows=eq.map(r=>'<tr><td><b>'+esc(r.id)+'</b></td><td>'+esc(r.unit)+'</td><td>'+esc(r.date)+'</td><td>'+fmtHours(r.scheduled)+'</td><td>'+fmtHours(r.available)+'</td><td>'+fmtHours(r.used)+'</td><td><b>'+fmtPct(r.pa)+'</b></td><td>'+fmtPct(r.ua)+'</td><td>'+fmtPct(r.eu)+'</td><td>'+esc(r.status)+'</td></tr>').join('');
+  const sourceRows=entities.map(entity=>'<tr><td>'+esc(entity)+'</td><td>'+model.source_counts[entity]+'</td></tr>').join('');
+  const narrative=(title,text)=>'<section class="report-preview-block"><div class="report-preview-block-head"><b>'+esc(title)+'</b></div><div class="report-preview-copy">'+esc(text)+'</div></section>';
+  host.innerHTML=
+    '<div class="report-preview-kpis"><div><small>Records</small><b>'+model.total_records+'</b></div><div><small>PA</small><b>'+fmtPct(k.PA)+'</b></div><div><small>UA</small><b>'+fmtPct(k.UA)+'</b></div><div><small>EU</small><b>'+fmtPct(k.EU)+'</b></div></div>'+
+    '<div class="report-preview-period"><b>Effective data period</b> '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+esc(model.report_period_effective.end):'')+' · '+esc(model.report_data_status)+'</div>'+
+    narrative('Executive Summary','Operational source records: '+model.total_records+'. KPI validation state: '+(k.status||'UNAVAILABLE')+'. The report uses the same KPI snapshot and source evidence shown in Report Center.')+
+    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Fleet KPI</b><span>Current KPI snapshot</span></div><div class="report-kpi-bars">'+
+      '<div><label>PA <b>'+fmtPct(k.PA)+'</b></label>'+reportBar(pa,maxPct)+'</div>'+
+      '<div><label>UA <b>'+fmtPct(k.UA)+'</b></label>'+reportBar(ua,maxPct)+'</div>'+
+      '<div><label>EU <b>'+fmtPct(k.EU)+'</b></label>'+reportBar(eu,maxPct)+'</div>'+
+    '</div></section>'+
+    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Equipment Performance</b><span>'+eq.length+' KPI rows</span></div>'+
+      '<div class="report-table-wrap"><table class="report-preview-table"><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table></div></section>'+
+    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Operational Source Summary</b><span>'+model.total_records+' records</span></div><div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table></div></section>'+
+    narrative('Planned vs Actual',model.section_data['Planned vs Actual']||'Plan and actual source data are retained for the selected period.')+
+    narrative('Maintenance / Downtime',model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime']||'Maintenance source evidence is retained below.')+
+    narrative('HSE Summary',model.section_data['HSE Summary']||model.section_data['HSE Events']||'HSE source evidence is retained below.')+
+    narrative('Issues and Actions',model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities']||'Issue source evidence is retained below.')+
+    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Source Evidence</b><span>Traceable RuntimeAdapter records</span></div><div class="report-preview-copy">Detailed source rows remain available in the report snapshot. No source data is invented when a domain does not provide the required field.</div></section>'+
+    '<div class="report-preview-note">Preview is read-only. Generate PDF uses this same Report Snapshot.</div>';
 }
 function generatePdf(model){
   if(!model)return;
