@@ -214,53 +214,6 @@ function reportRowsForEntity(entity,period){
     return !d || (d>=period.start&&d<=period.end);
   });
 }
-function reportValue(row,keys,fallback='—'){
-  for(const key of keys){
-    const value=row?.[key];
-    if(value!==undefined&&value!==null&&String(value).trim()!=='')return String(value).trim();
-  }
-  return fallback;
-}
-function reportDetailRows(entity,records){
-  const configs={
-    Operations:{
-      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Activity',r=>reportValue(r,['activity','activity_name','task','task_name','description','work_description'])],['Equipment',r=>reportValue(r,['equipment_id','equipmentId','unit_no','unitNo'])],['Work Front',r=>reportValue(r,['work_front','workfront','work_front_name','workfront_name'])],['Status',r=>reportRecordStatus(r)]]
-    },
-    Equipment:{
-      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Equipment',r=>reportValue(r,['equipment_id','equipmentId','id','record_id'])],['Unit',r=>reportValue(r,['unit_no','unitNo','unit','equipment_unit'])],['Status',r=>reportRecordStatus(r)],['Condition',r=>reportValue(r,['condition','equipment_condition','availability_status'])]]
-    },
-    WorkFront:{
-      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Work Front',r=>reportValue(r,['work_front','workfront','name','work_front_name','workfront_name'])],['Activity',r=>reportValue(r,['activity','activity_name','task','task_name','description'])],['Status',r=>reportRecordStatus(r)],['Progress',r=>reportValue(r,['progress','progress_pct','completion','completion_pct'])]
-    },
-    Maintenance:{
-      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Equipment',r=>reportValue(r,['equipment_id','equipmentId','unit_no','unitNo'])],['Maintenance',r=>reportValue(r,['maintenance_type','type','activity','description','work_description'])],['Duration',r=>reportValue(r,['duration','duration_hours','downtime_hours','hours'])],['Status',r=>reportRecordStatus(r)]]
-    },
-    Issues:{
-      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Issue',r=>reportValue(r,['issue','issue_type','title','description','problem'])],['Severity',r=>reportValue(r,['severity','priority'])],['Status',r=>reportRecordStatus(r)],['Owner',r=>reportValue(r,['owner','assigned_to','responsible','pic'])]
-    },
-    Plans:{
-      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Plan',r=>reportValue(r,['plan','plan_name','activity','activity_name','task','description'])],['Target',r=>reportValue(r,['target','target_value','planned_qty','quantity'])],['Status',r=>reportRecordStatus(r)],['Owner',r=>reportValue(r,['owner','assigned_to','responsible','pic'])]
-    },
-    HSE:{
-      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Event',r=>reportValue(r,['event','event_type','incident','incident_type','activity','description'])],['Severity',r=>reportValue(r,['severity','risk_level','priority'])],['Status',r=>reportRecordStatus(r)],['Action',r=>reportValue(r,['action','corrective_action','recommendation'])]
-    }
-  };
-  const config=configs[entity]||configs.Operations;
-  return {columns:config.columns.map(x=>x[0]),rows:records.slice(0,80).map(row=>config.columns.map(x=>x[1](row)))};
-}
-function reportDailyTrend(records){
-  const counts={};
-  records.forEach(row=>{const d=reportRecordDate(row)||'Undated';counts[d]=(counts[d]||0)+1;});
-  return Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,count])=>({date,count}));
-}
-function reportKpiTrend(model){
-  const dates=[...new Set((model.kpi?.equipment||[]).flatMap(r=>r.validatedDates||[]))].sort();
-  return dates.map(date=>{
-    const items=(model.kpi?.equipment||[]).filter(r=>(r.validatedDates||[]).includes(date));
-    const avg=(key)=>{const v=items.map(r=>Number(r.results?.[key]?.value)).filter(Number.isFinite);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
-    return {date,PA:avg('PA'),UA:avg('UA'),EU:avg('EU')};
-  });
-}
 function reportTableRows(records){
   return records.slice(0,80).map(row=>({
     date:reportRecordDate(row)||'Undated',
@@ -291,11 +244,6 @@ function buildReportModel(){
     equipment:Array.isArray(k?.equipment)?k.equipment:[]
   };
   const sourceTables=Object.fromEntries(entities.map(entity=>[entity,reportTableRows(scoped[entity])]));
-  const detailTables=Object.fromEntries(entities.map(entity=>[entity,reportDetailRows(entity,scoped[entity])]));
-  const activityTrend=reportDailyTrend(scoped.Operations);
-  const maintenanceTrend=reportDailyTrend(scoped.Maintenance);
-  const issueTrend=reportDailyTrend(scoped.Issues);
-  const kpiTrend=reportKpiTrend({kpi});
   const sections=type==='DAILY'
     ? ['Executive Summary','Work / Task Completed','Equipment Status','Work Front Status','HSE Events','Maintenance / Downtime','Material Movement','Issues and Abnormalities','Site Map / Spatial Activities','KPI Summary','Outstanding / Carry-over Tasks','Supporting Evidence']
     : type==='WEEKLY'
@@ -339,13 +287,21 @@ function buildReportModel(){
     'Appendix / Evidence':'Source tables below retain report-period evidence from the RuntimeAdapter.'
   };
   return {
-    report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,
+    report_period_requested:requestedPeriod,
+    report_period_effective:effectivePeriod,
     report_data_status:requestedRows>0?'REQUESTED_PERIOD':'LATEST_AVAILABLE_DATA',
     report_id:'DRAFT-'+type+'-'+requestedPeriod.start+'-'+requestedPeriod.end,
-    report_type:type,period:requestedPeriod,scope:'ALL',status:'DRAFT',generated_at:new Date().toISOString(),
+    report_type:type,
+    period:requestedPeriod,
+    scope:'ALL',
+    status:'DRAFT',
+    generated_at:new Date().toISOString(),
     source_counts:Object.fromEntries(entities.map(e=>[e,scoped[e].length])),
-    total_records:totalRecords,kpi,sections,section_data:sectionData,source_tables:sourceTables,
-    detail_tables:detailTables,activity_trend:activityTrend,maintenance_trend:maintenanceTrend,issue_trend:issueTrend,kpi_trend:kpiTrend
+    total_records:totalRecords,
+    kpi,
+    sections,
+    section_data:sectionData,
+    source_tables:sourceTables
   };
 }
 function renderReportCenterSummary(model){
@@ -378,107 +334,48 @@ function reportKpiEquipment(model){
     };
   });
 }
-function reportPreviewTable(table,empty='No source records in this period.'){
-  if(!table||!table.rows?.length)return '<div class="report-preview-copy">'+esc(empty)+'</div>';
-  return '<div class="report-table-wrap"><table class="report-preview-table"><thead><tr>'+table.columns.map(col=>'<th>'+esc(col)+'</th>').join('')+'</tr></thead><tbody>'+table.rows.map(row=>'<tr>'+row.map(value=>'<td>'+esc(value)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
-}
-function reportPreviewTrend(rows,fields){
-  if(!rows?.length)return '<div class="report-preview-copy">No dated trend records are available for this period.</div>';
-  return '<div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Date</th>'+fields.map(f=>'<th>'+esc(f.label)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr><td>'+esc(row.date)+'</td>'+fields.map(f=>'<td>'+esc(f.format?f.format(row[f.key]):row[f.key]??0)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
-}
 function renderReportPreview(model){
   const host=document.getElementById('reportPreviewBody'),meta=document.getElementById('reportPreviewMeta');
   if(!host||!model)return;
   if(meta)meta.textContent=model.report_type+' · '+model.period.start+(model.period.start!==model.period.end?' → '+model.period.end:'')+' · DRAFT';
-  const k=model.kpi||{},eq=reportKpiEquipment(model);
-  const narrative=(title,text)=>'<section class="report-preview-block"><div class="report-preview-block-head"><b>'+esc(title)+'</b></div><div class="report-preview-copy">'+esc(text||'No evidence summary available.')+'</div></section>';
-  const detail=(title,entity,subtitle)=>'<section class="report-preview-block"><div class="report-preview-block-head"><b>'+esc(title)+'</b><span>'+esc(subtitle||((model.source_counts?.[entity]||0)+' records'))+'</span></div>'+reportPreviewTable(model.detail_tables?.[entity])+'</section>';
-  const fleet='<section class="report-preview-block"><div class="report-preview-block-head"><b>Fleet KPI</b><span>'+esc(k.status||'UNAVAILABLE')+'</span></div><div class="report-kpi-bars">'+['PA','UA','EU'].map(name=>'<div><label>'+name+' <b>'+fmtPct(k[name])+'</b></label>'+reportBar(Number(k[name]),100)+'</div>').join('')+'</div></section>';
-  const planActual='<section class="report-preview-block"><div class="report-preview-block-head"><b>Planned vs Actual</b><span>Plans '+(model.source_counts.Plans||0)+' · Operations '+(model.source_counts.Operations||0)+'</span></div>'+reportPreviewTable(model.detail_tables?.Plans)+'<div class="report-preview-copy">Actual operational activity is represented by the Operations evidence below.</div>'+reportPreviewTrend(model.activity_trend,[{key:'count',label:'Operations'}])+'</section>';
-  const kpiTrend='<section class="report-preview-block"><div class="report-preview-block-head"><b>KPI Trend</b><span>Equipment evidence by validated date</span></div>'+reportPreviewTrend(model.kpi_trend,[{key:'PA',label:'PA',format:fmtPct},{key:'UA',label:'UA',format:fmtPct},{key:'EU',label:'EU',format:fmtPct}])+'</section>';
-  const management= k.status!=='READY'
-    ? narrative(model.report_type==='MONTHLY'?'Management Attention / Decision Required':'Top Management Concerns','KPI validation is '+(k.status||'UNAVAILABLE')+'. Resolve validation evidence before issuing this management report.')
-    : narrative(model.report_type==='MONTHLY'?'Management Attention / Decision Required':'Top Management Concerns','KPI validation is READY. Review operational evidence, recurring issues and actions before issue.');
-  const commonHead='<div class="report-preview-kpis"><div><small>Records</small><b>'+model.total_records+'</b></div><div><small>PA</small><b>'+fmtPct(k.PA)+'</b></div><div><small>UA</small><b>'+fmtPct(k.UA)+'</b></div><div><small>EU</small><b>'+fmtPct(k.EU)+'</b></div></div><div class="report-preview-period"><b>Effective data period</b> '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+esc(model.report_period_effective.end):'')+' · '+esc(model.report_data_status)+'</div>';
-  let body='';
-  if(model.report_type==='DAILY'){
-    body=commonHead+
-      narrative('Executive Summary','Operational source records: '+model.total_records+'. KPI state: '+(k.status||'UNAVAILABLE')+'. Daily report focuses on what happened and what remains outstanding.')+
-      fleet+detail('Work / Task Completed','Operations','Operational activity evidence')+
-      detail('Equipment Status','Equipment')+
-      detail('Work Front Status','WorkFront')+
-      detail('HSE Events','HSE')+
-      detail('Maintenance / Downtime','Maintenance')+
-      detail('Issues and Abnormalities','Issues')+
-      detail('Planned Work','Plans')+
-      management+
-      '<section class="report-preview-block"><div class="report-preview-block-head"><b>Source Evidence</b><span>Traceable RuntimeAdapter records</span></div>'+reportPreviewTable(model.detail_tables?.Operations)+'</section>';
-  }else if(model.report_type==='WEEKLY'){
-    body=commonHead+
-      narrative('Executive Summary','Weekly management view: performance, completed activity, equipment condition, recurring issues and actions for the selected period.')+
-      fleet+planActual+
-      detail('Equipment Performance','Equipment')+
-      detail('Work Front Progress','WorkFront')+
-      detail('HSE Summary','HSE')+
-      detail('Maintenance and Downtime Analysis','Maintenance')+
-      detail('Issues and Recurring Issues','Issues')+
-      kpiTrend+
-      narrative('Key Highlights','Operations '+(model.source_counts.Operations||0)+' · Equipment '+(model.source_counts.Equipment||0)+' · WorkFront '+(model.source_counts.WorkFront||0)+' · Maintenance '+(model.source_counts.Maintenance||0)+' · HSE '+(model.source_counts.HSE||0)+'.')+
-      management+
-      narrative('Recommended Actions','Review outstanding Plans and Issues, confirm KPI validation, then issue the report snapshot.');
-  }else{
-    body=commonHead+
-      narrative('Management Executive Summary','Monthly management view: performance against available evidence, equipment/work-front status, HSE, maintenance, recurring problems and decisions required.')+
-      fleet+
-      planActual+
-      detail('Equipment Performance','Equipment')+
-      detail('Work Front Progress','WorkFront')+
-      detail('HSE Performance','HSE')+
-      detail('Maintenance / Downtime','Maintenance')+
-      detail('Major Issues / Events','Issues')+
-      kpiTrend+
-      narrative('Trend vs Previous Month','The current snapshot contains period evidence. A previous-month comparison will only be shown when an equivalent historical KPI snapshot is available; no synthetic comparison is created.')+
-      management+
-      narrative('Recommendations','Resolve validation gates, review recurring Issues and Plans, and approve the report only after source evidence is confirmed.');
-  }
-  host.innerHTML=body+'<div class="report-preview-note">Preview is read-only. Generate PDF uses this same Report Snapshot. No value is invented when source fields are unavailable.</div>';
+  const k=model.kpi||{}, pa=Number(k.PA),ua=Number(k.UA),eu=Number(k.EU);
+  const maxPct=100;
+  const eq=reportKpiEquipment(model);
+  const eqRows=eq.map(r=>'<tr><td><b>'+esc(r.id)+'</b></td><td>'+esc(r.unit)+'</td><td>'+esc(r.date)+'</td><td>'+fmtHours(r.scheduled)+'</td><td>'+fmtHours(r.available)+'</td><td>'+fmtHours(r.used)+'</td><td><b>'+fmtPct(r.pa)+'</b></td><td>'+fmtPct(r.ua)+'</td><td>'+fmtPct(r.eu)+'</td><td>'+esc(r.status)+'</td></tr>').join('');
+  const sourceRows=entities.map(entity=>'<tr><td>'+esc(entity)+'</td><td>'+model.source_counts[entity]+'</td></tr>').join('');
+  const narrative=(title,text)=>'<section class="report-preview-block"><div class="report-preview-block-head"><b>'+esc(title)+'</b></div><div class="report-preview-copy">'+esc(text)+'</div></section>';
+  host.innerHTML=
+    '<div class="report-preview-kpis"><div><small>Records</small><b>'+model.total_records+'</b></div><div><small>PA</small><b>'+fmtPct(k.PA)+'</b></div><div><small>UA</small><b>'+fmtPct(k.UA)+'</b></div><div><small>EU</small><b>'+fmtPct(k.EU)+'</b></div></div>'+
+    '<div class="report-preview-period"><b>Effective data period</b> '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+esc(model.report_period_effective.end):'')+' · '+esc(model.report_data_status)+'</div>'+
+    narrative('Executive Summary','Operational source records: '+model.total_records+'. KPI validation state: '+(k.status||'UNAVAILABLE')+'. The report uses the same KPI snapshot and source evidence shown in Report Center.')+
+    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Fleet KPI</b><span>Current KPI snapshot</span></div><div class="report-kpi-bars">'+
+      '<div><label>PA <b>'+fmtPct(k.PA)+'</b></label>'+reportBar(pa,maxPct)+'</div>'+
+      '<div><label>UA <b>'+fmtPct(k.UA)+'</b></label>'+reportBar(ua,maxPct)+'</div>'+
+      '<div><label>EU <b>'+fmtPct(k.EU)+'</b></label>'+reportBar(eu,maxPct)+'</div>'+
+    '</div></section>'+
+    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Equipment Performance</b><span>'+eq.length+' KPI rows</span></div>'+
+      '<div class="report-table-wrap"><table class="report-preview-table"><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table></div></section>'+
+    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Operational Source Summary</b><span>'+model.total_records+' records</span></div><div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table></div></section>'+
+    narrative('Planned vs Actual',model.section_data['Planned vs Actual']||'Plan and actual source data are retained for the selected period.')+
+    narrative('Maintenance / Downtime',model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime']||'Maintenance source evidence is retained below.')+
+    narrative('HSE Summary',model.section_data['HSE Summary']||model.section_data['HSE Events']||'HSE source evidence is retained below.')+
+    narrative('Issues and Actions',model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities']||'Issue source evidence is retained below.')+
+    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Source Evidence</b><span>Traceable RuntimeAdapter records</span></div><div class="report-preview-copy">Detailed source rows remain available in the report snapshot. No source data is invented when a domain does not provide the required field.</div></section>'+
+    '<div class="report-preview-note">Preview is read-only. Generate PDF uses this same Report Snapshot.</div>';
 }
 function generatePdf(model){
   if(!model)return;
   const win=window.open('','_blank');
   if(!win){msg('PDF window was blocked by the browser.',true);return;}
   const title=model.report_type+' Report · '+model.period.start+(model.period.start!==model.period.end?' → '+model.period.end:'');
-  const k=model.kpi||{};
-  const tableHtml=table=>{
-    if(!table?.rows?.length)return '<p>No source records in this period.</p>';
-    return '<table><thead><tr>'+table.columns.map(col=>'<th>'+esc(col)+'</th>').join('')+'</tr></thead><tbody>'+table.rows.map(row=>'<tr>'+row.map(v=>'<td>'+esc(v)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
-  };
-  const trendHtml=(rows,fields)=>{
-    if(!rows?.length)return '<p>No dated trend records are available.</p>';
-    return '<table><thead><tr><th>Date</th>'+fields.map(f=>'<th>'+esc(f.label)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.date)+'</td>'+fields.map(f=>'<td>'+esc(f.format?f.format(r[f.key]):r[f.key]??0)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
-  };
-  const section=(heading,content)=>'<section><h2>'+esc(heading)+'</h2>'+content+'</section>';
-  const detail=(heading,entity)=>section(heading,tableHtml(model.detail_tables?.[entity]));
-  let content=section('Executive Summary','<p>Source records: '+model.total_records+'. KPI validation state: '+esc(k.status||'UNAVAILABLE')+'. Effective data period: '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+esc(model.report_period_effective.end):'')+'.</p>');
-  content+='<section><h2>Fleet KPI</h2><div class="kpis"><div class="kpi"><small>PA</small><b>'+fmtPct(k.PA)+'</b></div><div class="kpi"><small>UA</small><b>'+fmtPct(k.UA)+'</b></div><div class="kpi"><small>EU</small><b>'+fmtPct(k.EU)+'</b></div><div class="kpi"><small>Validation</small><b>'+esc(k.status||'UNAVAILABLE')+'</b></div></div></section>';
-  if(model.report_type==='DAILY'){
-    content+=detail('Work / Task Completed','Operations')+detail('Equipment Status','Equipment')+detail('Work Front Status','WorkFront')+detail('HSE Events','HSE')+detail('Maintenance / Downtime','Maintenance')+detail('Issues and Abnormalities','Issues')+detail('Planned Work','Plans');
-  }else if(model.report_type==='WEEKLY'){
-    content+=section('Planned vs Actual',tableHtml(model.detail_tables?.Plans)+trendHtml(model.activity_trend,[{key:'count',label:'Operations'}]));
-    content+=detail('Equipment Performance','Equipment')+detail('Work Front Progress','WorkFront')+detail('HSE Summary','HSE')+detail('Maintenance and Downtime Analysis','Maintenance')+detail('Issues and Recurring Issues','Issues');
-    content+=section('KPI Trend',trendHtml(model.kpi_trend,[{key:'PA',label:'PA',format:fmtPct},{key:'UA',label:'UA',format:fmtPct},{key:'EU',label:'EU',format:fmtPct}]));
-    content+=section('Recommended Actions','<p>Review outstanding Plans and Issues, confirm KPI validation, then issue the report snapshot.</p>');
-  }else{
-    content+=section('Planned vs Actual',tableHtml(model.detail_tables?.Plans)+trendHtml(model.activity_trend,[{key:'count',label:'Operations'}]));
-    content+=detail('Equipment Performance','Equipment')+detail('Work Front Progress','WorkFront')+detail('HSE Performance','HSE')+detail('Maintenance / Downtime','Maintenance')+detail('Major Issues / Events','Issues');
-    content+=section('KPI Trend',trendHtml(model.kpi_trend,[{key:'PA',label:'PA',format:fmtPct},{key:'UA',label:'UA',format:fmtPct},{key:'EU',label:'EU',format:fmtPct}]));
-    content+=section('Management Attention / Decision Required','<p>'+(k.status==='READY'?'KPI validation is READY. Review evidence and approve issue.':'KPI validation is '+esc(k.status||'UNAVAILABLE')+'. Resolve validation before issuing the management report.')+'</p>');
-    content+=section('Recommendations','<p>Resolve validation gates, review recurring Issues and Plans, and approve the report only after source evidence is confirmed.</p>');
-  }
+  const k=model.kpi||{},eq=reportKpiEquipment(model);
+  const pct=v=>fmtPct(v);
+  const bar=v=>'<div class="bar"><i style="width:'+Math.max(0,Math.min(100,Number(v)||0)).toFixed(1)+'%"></i></div>';
+  const eqRows=eq.map(r=>'<tr><td>'+esc(r.id)+'</td><td>'+esc(r.unit)+'</td><td>'+esc(r.date)+'</td><td>'+fmtHours(r.scheduled)+'</td><td>'+fmtHours(r.available)+'</td><td>'+fmtHours(r.used)+'</td><td>'+pct(r.pa)+'</td><td>'+pct(r.ua)+'</td><td>'+pct(r.eu)+'</td><td>'+esc(r.status)+'</td></tr>').join('');
   const sourceRows=entities.map(e=>'<tr><td>'+esc(e)+'</td><td>'+model.source_counts[e]+'</td></tr>').join('');
-  content+=section('Operational Source Summary','<table><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table>');
+  const section=(title,text)=>'<section><h2>'+esc(title)+'</h2><p>'+esc(text||'Source evidence retained in the snapshot.')+'</p></section>';
   win.document.open();
-  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>body{font-family:Arial,sans-serif;color:#172333;margin:28px;font-size:9px}h1{font-size:22px;margin:0 0 4px}h2{font-size:13px;margin:18px 0 6px;border-bottom:1px solid #cbd5e1;padding-bottom:4px}p{line-height:1.45;color:#475569}.meta{color:#64748b;margin-bottom:16px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.kpi{border:1px solid #cbd5e1;padding:8px;border-radius:5px}.kpi small{display:block;color:#64748b;text-transform:uppercase}.kpi b{font-size:15px}table{width:100%;border-collapse:collapse;margin:7px 0 14px}th,td{text-align:left;padding:5px;border-bottom:1px solid #e2e8f0}th{font-size:7px;text-transform:uppercase;color:#64748b}td{font-size:8px}section{break-inside:avoid}.footer{margin-top:22px;color:#64748b;font-size:8px}</style></head><body><h1>Reports &amp; KPI</h1><div class="meta">'+esc(title)+' · DRAFT · Report ID '+esc(model.report_id||'DRAFT')+' · Effective '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+esc(model.report_period_effective.end):'')+'</div>'+content+'<div class="footer">Generated from the same Report Snapshot used by Preview.</div><script>window.onload=function(){setTimeout(function(){window.print()},150)}</script></body></html>');
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>body{font-family:Arial,sans-serif;color:#172333;margin:28px;font-size:9px}h1{font-size:22px;margin:0 0 4px}h2{font-size:13px;margin:18px 0 6px;border-bottom:1px solid #cbd5e1;padding-bottom:4px}p{line-height:1.45;color:#475569}.meta{color:#64748b;margin-bottom:16px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.kpi{border:1px solid #cbd5e1;padding:8px;border-radius:5px}.kpi small{display:block;color:#64748b;text-transform:uppercase}.kpi b{font-size:16px}.bar{height:7px;background:#e2e8f0;border-radius:8px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:#2563eb}table{width:100%;border-collapse:collapse;margin:7px 0 14px}th,td{text-align:left;padding:5px;border-bottom:1px solid #e2e8f0}th{font-size:7px;text-transform:uppercase;color:#64748b}td{font-size:8px}section{break-inside:avoid}.footer{margin-top:22px;color:#64748b;font-size:8px}</style></head><body><h1>Reports &amp; KPI</h1><div class="meta">'+esc(title)+' · DRAFT · Report ID '+esc(model.report_id||'DRAFT')+' · Effective '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+model.report_period_effective.end:'')+'</div><div class="kpis"><div class="kpi"><small>Records</small><b>'+model.total_records+'</b></div><div class="kpi"><small>PA</small><b>'+pct(k.PA)+'</b>'+bar(k.PA)+'</div><div class="kpi"><small>UA</small><b>'+pct(k.UA)+'</b>'+bar(k.UA)+'</div><div class="kpi"><small>EU</small><b>'+pct(k.EU)+'</b>'+bar(k.EU)+'</div></div>'+section('Executive Summary','Operational source records: '+model.total_records+'. KPI validation state: '+(k.status||'UNAVAILABLE')+'.')+'<h2>Equipment Performance</h2><table><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table><h2>Operational Source Summary</h2><table><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table>'+section('Planned vs Actual',model.section_data['Planned vs Actual'])+section('Maintenance / Downtime',model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime'])+section('HSE Summary',model.section_data['HSE Summary']||model.section_data['HSE Events'])+section('Issues and Actions',model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities'])+'<div class="footer">Generated from the same Report Snapshot used by Preview.</div><script>window.onload=function(){setTimeout(function(){window.print()},150)}</script></body></html>');
   win.document.close();
 }
 function bind(){
