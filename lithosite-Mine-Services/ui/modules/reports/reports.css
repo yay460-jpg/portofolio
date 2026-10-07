@@ -293,3 +293,12 @@ footer.status{
 #reportsScreen .report-filter-buttons #reportCenterPreview:hover:not(:disabled){background:#8b4cf5}
 #reportsScreen .report-filter-buttons #reportCenterPdf:hover:not(:disabled){background:#20b34f}
 #reportsScreen .report-filter-buttons .control:disabled{opacity:.42;filter:saturate(.35)}
+
+#reportsScreen .report-preview-period{padding:8px 10px;border:1px solid #203b58;border-radius:6px;margin:8px 0;font-size:9px;color:#9bb0c5}
+#reportsScreen .report-preview-section{padding:8px 10px;border:1px solid #203b58;border-radius:6px;margin:6px 0}
+#reportsScreen .report-preview-section p{margin:4px 0 0;line-height:1.45;color:#9bb0c5}
+#reportsScreen .report-preview-source{margin:8px 0;padding:8px 10px;border:1px solid #203b58;border-radius:6px}
+#reportsScreen .report-preview-source table{width:100%;border-collapse:collapse;margin-top:5px;font-size:8px}
+#reportsScreen .report-preview-source th,#reportsScreen .report-preview-source td{padding:4px 5px;border-bottom:1px solid #1d344d;text-align:left}
+#reportsScreen .report-preview-source th{color:#7890a8;font-size:7px;text-transform:uppercase}
+#reportsScreen .report-preview-source td{color:#b6c7d8}
