@@ -173,11 +173,12 @@ def build_report_pdf(model: dict) -> bytes:
     sections = model.get("section_data") or {}
     section_plan = model.get("sections") or []
 
-    text_line("LITHOSITE MINE SERVICES", margin, 8, True, 11, (0.14, 0.27, 0.44))
+    text_line("LITHOSITE MINE SERVICES", margin, 8, True, 10, (0.14, 0.27, 0.44))
+    y -= 2
     text_line("Reports & KPI", margin, 20, True, 23, (0.08, 0.18, 0.30))
     text_line(f"{report_type} REPORT  ·  {period_text}", margin, 9, False, 13, (0.38, 0.45, 0.54))
     rule(y + 2)
-    y -= 10
+    y -= 9
 
     section_heading("DOCUMENT CONTROL")
     control = [
@@ -189,16 +190,22 @@ def build_report_pdf(model: dict) -> bytes:
     ]
     col_w = (W - 2*margin) / 2
     for idx in range(0, len(control), 2):
-        ensure(22)
-        top = y + 4
+        ensure(24)
+        row_top = y + 4
+        row_height = 21
         for col in range(2):
             label, value = control[idx + col]
             x = margin + col * col_w
-            box(x, top, col_w, 20, fill=(0.97, 0.98, 0.99))
-            text_line(label.upper(), x + 6, 6.5, True, 8, (0.38, 0.45, 0.54))
-            text_line(value, x + 6, 8, False, 10, (0.15, 0.22, 0.30))
-        y -= 21
-    y -= 5
+            box(x, row_top, col_w, row_height, fill=(0.97, 0.98, 0.99))
+            # Keep both columns on the same baseline. Do not let text_line()
+            # mutate the shared row cursor while rendering the second column.
+            saved_y = y
+            y = row_top - 7
+            text_line(label.upper(), x + 6, 6.5, True, 7.5, (0.38, 0.45, 0.54))
+            text_line(value, x + 6, 8, False, 9, (0.15, 0.22, 0.30))
+            y = saved_y
+        y = row_top - row_height - 3
+    y -= 4
 
     section_heading("FLEET KPI")
     cards = [
@@ -206,12 +213,21 @@ def build_report_pdf(model: dict) -> bytes:
         ("EU", kpi.get("EU", "—")), ("KPI STATUS", kpi.get("status", "UNAVAILABLE")),
     ]
     card_w = (W - 2*margin - 18) / 4
+    card_top = y + 4
     for i, (label, value) in enumerate(cards):
         x = margin + i * (card_w + 6)
-        box(x, y + 4, card_w, 42, fill=(0.97, 0.98, 0.99), stroke=(0.74, 0.80, 0.87))
+        box(x, card_top, card_w, 42, fill=(0.97, 0.98, 0.99), stroke=(0.74, 0.80, 0.87))
+        # Render each card from the same local cursor so all four cards
+        # share one horizontal baseline.
+        saved_y = y
+        y = card_top - 8
         text_line(label, x + 7, 6.5, True, 8, (0.39, 0.45, 0.54))
-        text_line(f"{value}%" if isinstance(value, (int, float)) else value, x + 7, 12, True, 15, (0.10, 0.23, 0.39))
-    y -= 50
+        display_value = value
+        if isinstance(value, (int, float)):
+            display_value = f"{value:.2f}%"
+        text_line(display_value, x + 7, 11.5, True, 14, (0.10, 0.23, 0.39))
+        y = saved_y
+    y = card_top - 42 - 8
 
     executive_name = "Management Executive Summary" if report_type == "MONTHLY" else "Executive Summary"
     executive = sections.get(executive_name) or sections.get("Executive Summary") or {}
@@ -229,9 +245,9 @@ def build_report_pdf(model: dict) -> bytes:
     if counts:
         for domain, count in counts.items():
             ensure(16)
-            text_line(f"{domain}: {count} records", margin + 8, 8.5, False, 11)
+            text_line(f"{domain}: {count} records", margin + 8, 8.5, False, 10.5)
     else:
-        text_line("No source records were reported for this snapshot.", margin + 8, 8.5, False, 11)
+        text_line("No source records were reported for this snapshot.", margin + 8, 8.5, False, 10.5)
     y -= 4
 
     for name in section_plan:
