@@ -315,7 +315,7 @@ footer.status{
 #reportsScreen .report-preview-block-head{min-height:30px;padding:0 9px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #203b58}
 #reportsScreen .report-preview-block-head b{color:#dbeafe;font-size:9px}
 #reportsScreen .report-preview-block-head span{color:#7f95ab;font-size:7px}
-#reportsScreen .report-preview-copy{padding:8px 9px;color:#a9bbcf;font-size:8.5px;line-height:1.45}
+#reportsScreen .report-preview-copy{padding:8px 9px;color:#a9bbcf;font-size:8.5px;line-height:1.45;white-space:pre-line}
 #reportsScreen .report-kpi-bars{padding:9px}
 #reportsScreen .report-kpi-bars>div{margin-bottom:8px}
 #reportsScreen .report-kpi-bars>div:last-child{margin-bottom:0}
