@@ -167,6 +167,10 @@ class ApplicationService:
                 ("Maintenance", "equipment_id"),
                 ("Issues", "equipment_id"),
             ],
+            "GlobalCapacity": [
+                ("WorkFront", "capacity_profile_id"),
+                ("Operations", "capacity_profile_id"),
+            ],
             "WorkFront": [
                 ("Operations", "work_front_id"),
                 ("Issues", "work_front_id"),
