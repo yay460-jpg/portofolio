@@ -247,16 +247,28 @@ function buildReportModel(){
       period_start:effectivePeriod.start,
       period_end:effectivePeriod.end,
       scope:'ALL',
-      source_data:{...scoped,MarkerLocation:rows('MarkerLocation'),Topography:rows('Topography')},
+      source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
       kpi
     });
+    const formal=global.LithositeReportEngine
+      ? global.LithositeReportEngine.buildReportModel({
+          report_type:'DAILY',
+          period_start:effectivePeriod.start,
+          period_end:effectivePeriod.end,
+          scope:'ALL',
+          source_data:{...scoped,MarkerLocation:daily.section_data['Site Map / Spatial Activities'] ? reportRowsForEntity('MarkerLocation',effectivePeriod) : [],Topography:reportRowsForEntity('Topography',effectivePeriod)},
+          kpi
+        })
+      : null;
     return {
+      ...(formal||{}),
       ...daily,
       report_period_requested:requestedPeriod,
       report_period_effective:effectivePeriod,
       report_data_status:requestedRows>0?'REQUESTED_PERIOD':'LATEST_AVAILABLE_DATA',
       report_id:'DRAFT-DAILY-'+requestedPeriod.start+'-'+requestedPeriod.end,
-      generated_at:new Date().toISOString()
+      generated_at:new Date().toISOString(),
+      status:daily.status
     };
   }
   const sourceTables=Object.fromEntries(entities.map(entity=>[entity,reportTableRows(scoped[entity])]));
