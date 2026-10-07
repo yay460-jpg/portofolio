@@ -564,8 +564,9 @@ function generatePdf(model,reader){
     if(reader?.modal){
       reader.modal.classList.add('show');
       reader.modal.setAttribute('aria-hidden','false');
-      if(reader.status)reader.status.textContent='PDF render error';
+      if(reader.status)reader.status.textContent='PDF render error: '+String(error?.message||error);
     }
+    console.error('[Lithosite PDF Reader]',error);
     msg(error.message||'PDF generation failed.',true);
   }
 }
@@ -711,7 +712,7 @@ function bind(){
     reportPdfReaderOutline.innerHTML=reportReaderSections.length
       ? reportReaderSections.map((node,i)=>{
           const title=node.querySelector('h2')?.textContent?.trim()||'Management Snapshot';
-          return '<button type="button" data-report-section="'+i+'">'+esc(title)+'</button>';
+          return '<button type="button" data-report-section="'+i+'">'+String(title).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))+'</button>';
         }).join('')
       : '<button type="button" disabled>Document</button>';
     reportPdfReaderOutline.querySelectorAll('[data-report-section]').forEach(btn=>{
