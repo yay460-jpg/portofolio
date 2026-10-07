@@ -240,7 +240,8 @@ function buildReportModel(){
     EU:k?.results?.EU?.value??null,
     eligible:k?.population?.eligible??0,
     excluded:k?.population?.excluded??0,
-    validation_issues:Array.isArray(k?.validation?.issues)?k.validation.issues:[]
+    validation_issues:Array.isArray(k?.validation?.issues)?k.validation.issues:[],
+    equipment:Array.isArray(k?.equipment)?k.equipment:[]
   };
   if(type==='DAILY'&&global.LithositeDailyReport){
     const daily=global.LithositeDailyReport.buildDailyReport({
@@ -397,10 +398,11 @@ function renderReportPreview(model){
   const eqRows=eq.map(r=>'<tr><td><b>'+esc(r.id)+'</b></td><td>'+esc(r.unit)+'</td><td>'+esc(r.date)+'</td><td>'+fmtHours(r.scheduled)+'</td><td>'+fmtHours(r.available)+'</td><td>'+fmtHours(r.used)+'</td><td><b>'+fmtPct(r.pa)+'</b></td><td>'+fmtPct(r.ua)+'</td><td>'+fmtPct(r.eu)+'</td><td>'+esc(r.status)+'</td></tr>').join('');
   const sourceRows=entities.map(entity=>'<tr><td>'+esc(entity)+'</td><td>'+model.source_counts[entity]+'</td></tr>').join('');
   const narrative=(title,text)=>'<section class="report-preview-block"><div class="report-preview-block-head"><b>'+esc(title)+'</b></div><div class="report-preview-copy">'+esc(text)+'</div></section>';
+  const totalRecords=Number.isFinite(Number(model.total_records))?Number(model.total_records):Number(model.total_source_records||0);
   host.innerHTML=
-    '<div class="report-preview-kpis"><div><small>Records</small><b>'+model.total_records+'</b></div><div><small>PA</small><b>'+fmtPct(k.PA)+'</b></div><div><small>UA</small><b>'+fmtPct(k.UA)+'</b></div><div><small>EU</small><b>'+fmtPct(k.EU)+'</b></div></div>'+
+    '<div class="report-preview-kpis"><div><small>Records</small><b>'+totalRecords+'</b></div><div><small>PA</small><b>'+fmtPct(k.PA)+'</b></div><div><small>UA</small><b>'+fmtPct(k.UA)+'</b></div><div><small>EU</small><b>'+fmtPct(k.EU)+'</b></div></div>'+
     '<div class="report-preview-period"><b>Effective data period</b> '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+esc(model.report_period_effective.end):'')+' · '+esc(model.report_data_status)+'</div>'+
-    narrative('Executive Summary','Operational source records: '+model.total_records+'. KPI validation state: '+(k.status||'UNAVAILABLE')+'. The report uses the same KPI snapshot and source evidence shown in Report Center.')+
+    narrative('Executive Summary','Operational source records: '+totalRecords+'. KPI validation state: '+(k.status||'UNAVAILABLE')+'. The report uses the same KPI snapshot and source evidence shown in Report Center.')+
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Fleet KPI</b><span>Current KPI snapshot</span></div><div class="report-kpi-bars">'+
       '<div><label>PA <b>'+fmtPct(k.PA)+'</b></label>'+reportBar(pa,maxPct)+'</div>'+
       '<div><label>UA <b>'+fmtPct(k.UA)+'</b></label>'+reportBar(ua,maxPct)+'</div>'+
