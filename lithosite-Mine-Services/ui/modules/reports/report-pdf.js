@@ -3,13 +3,19 @@
 'use strict';
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const pct=v=>{const n=Number(v);return Number.isFinite(n)?n.toFixed(2)+'%':'—';};
+const text=v=>{
+  if(v===null||v===undefined)return '';
+  if(typeof v==='string')return v;
+  if(typeof v==='number'||typeof v==='boolean')return String(v);
+  try{return JSON.stringify(v,null,2);}catch(error){return 'Structured report data is available in the issued snapshot.';}
+};
 function render(model){
   if(!model)throw new Error('Report model is required.');
   const win=window.open('','_blank'); if(!win)throw new Error('PDF window was blocked by the browser.');
   const k=model.kpi||{}, counts=model.source_counts||{}, sections=model.section_data||{};
   const title=(model.report_type||'REPORT')+' Report · '+model.period.start+(model.period.start!==model.period.end?' → '+model.period.end:'');
   const rows=Object.keys(counts).map(d=>'<tr><td>'+esc(d)+'</td><td>'+esc(counts[d])+'</td></tr>').join('');
-  const section=(name,text)=>'<section><h2>'+esc(name)+'</h2><p>'+esc(text||'Source evidence retained in the immutable snapshot.')+'</p></section>';
+  const section=(name,value)=>'<section><h2>'+esc(name)+'</h2><p>'+esc(text(value)||'Source evidence retained in the immutable snapshot.')+'</p></section>';
   const plan=Array.isArray(model.sections)?model.sections:[];
   const body=plan.map(name=>section(name,sections[name]||'Source evidence retained in the immutable snapshot.')).join('');
   win.document.open();
