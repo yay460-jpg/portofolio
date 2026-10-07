@@ -11,3 +11,8 @@
 
 /* V38 — unified Clear button geometry across all filter panels */
 #workfrontScreen #workfrontClear{width:56px;min-width:56px;max-width:56px;height:32px;padding:0 10px;justify-content:center;align-items:center;box-sizing:border-box;flex:0 0 56px}
+
+
+/* V38 — table header parity with Operations */
+#workfrontScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+#workfrontScreen .icon{width:15px;height:15px;display:block;color:currentColor}
