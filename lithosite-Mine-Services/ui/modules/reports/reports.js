@@ -333,7 +333,7 @@ function buildReportModel(){
       source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
       kpi
     });
-    return {...(formal||{}),...weekly,report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,report_data_status:requestedRows>0?'REQUESTED_PERIOD':'LATEST_AVAILABLE_DATA',report_id:'DRAFT-WEEKLY-'+requestedPeriod.start+'-'+requestedPeriod.end,generated_at:new Date().toISOString()};
+    return {...(formal||{}),...weekly,report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',report_id:'DRAFT-WEEKLY-'+requestedPeriod.start+'-'+requestedPeriod.end,generated_at:new Date().toISOString()};
   }
   if(type==='MONTHLY'&&global.LithositeMonthlyReport){
     const monthly=global.LithositeMonthlyReport.buildMonthlyReport({
@@ -351,7 +351,7 @@ function buildReportModel(){
       source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
       kpi
     });
-    return {...(formal||{}),...monthly,report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,report_data_status:requestedRows>0?'REQUESTED_PERIOD':'LATEST_AVAILABLE_DATA',report_id:'DRAFT-MONTHLY-'+requestedPeriod.start+'-'+requestedPeriod.end,generated_at:new Date().toISOString(),status:monthly.status};
+    return {...(formal||{}),...monthly,report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',report_id:'DRAFT-MONTHLY-'+requestedPeriod.start+'-'+requestedPeriod.end,generated_at:new Date().toISOString(),status:monthly.status};
   }
   const sourceTables=Object.fromEntries(entities.map(entity=>[entity,reportTableRows(scoped[entity])]));
   const sections=global.LithositeReportEngine
@@ -434,11 +434,81 @@ function reportKpiEquipment(model){
     };
   });
 }
+function reportCountText(value){
+  if(!value||typeof value!=='object'||Array.isArray(value))return '';
+  const entries=Object.entries(value);
+  if(!entries.length)return 'None recorded.';
+  return entries.map(([key,count])=>key+': '+count).join(' · ');
+}
 function reportSectionText(value){
   if(value===null||value===undefined)return '';
   if(typeof value==='string')return value;
   if(typeof value==='number'||typeof value==='boolean')return String(value);
-  try{return JSON.stringify(value,null,2);}catch(error){return 'Structured report data is available in the issued snapshot.';}
+  if(Array.isArray(value))return value.length?value.map(item=>reportSectionText(item)).join('\n'):'None recorded.';
+  if(typeof value==='object'){
+    const lines=[];
+    const add=(label,text)=>{if(text!==undefined&&text!==null&&String(text)!=='')lines.push(label+': '+String(text));};
+    if(value.headline)add('Headline',value.headline);
+    if(value.statement)add('Summary',value.statement);
+    if(value.status)add('Status',value.status);
+    if(value.management_attention)add('Management attention',value.management_attention);
+    if(value.record_count!==undefined)add('Records',value.record_count);
+    if(value.completed_count!==undefined)add('Completed / validated',value.completed_count);
+    if(value.open_count!==undefined)add('Open',value.open_count);
+    if(value.open_issue_count!==undefined)add('Open issues',value.open_issue_count);
+    if(value.open_plan_count!==undefined)add('Open plans',value.open_plan_count);
+    if(value.operations!==undefined)add('Operations',value.operations);
+    if(value.completed!==undefined)add('Completed',value.completed);
+    if(value.equipment!==undefined)add('Equipment',value.equipment);
+    if(value.workfront!==undefined)add('WorkFront',value.workfront);
+    if(value.hse!==undefined)add('HSE',value.hse);
+    if(value.maintenance!==undefined)add('Maintenance',value.maintenance);
+    if(value.downtime_hours!==undefined)add('Downtime hours',value.downtime_hours===null?'Not available':value.downtime_hours);
+    if(value.quantity_total!==undefined)add('Quantity total',value.quantity_total===null?'Not available':value.quantity_total);
+    if(value.source_issue_records!==undefined)add('Source issue records',value.source_issue_records);
+    if(value.target_data_available===false)add('Target vs actual','Target data is not available in the current source model; no target is fabricated.');
+    if(value.comparison_available===false)add('Comparison','Historical comparison is not available in this report snapshot.');
+    if(value.classification_available===false)add('Recurring classification','Historical recurring classification is not available in this report snapshot.');
+    if(value.decision_required!==undefined)add('Decision required',value.decision_required?'Yes':'No');
+    if(value.source_domains) add('Source domains',Array.isArray(value.source_domains)?value.source_domains.join(', '):value.source_domains);
+    if(value.by_status){const text=reportCountText(value.by_status);if(text)add('By status',text);}
+    if(value.by_activity){const text=reportCountText(value.by_activity);if(text)add('By activity',text);}
+    if(value.by_workfront){const text=reportCountText(value.by_workfront);if(text)add('By WorkFront',text);}
+    if(value.by_severity){const text=reportCountText(value.by_severity);if(text)add('By severity',text);}
+    if(value.by_unit){const text=reportCountText(value.by_unit);if(text)add('By unit',text);}
+    if(value.planned_by_status){const text=reportCountText(value.planned_by_status);if(text)add('Planned by status',text);}
+    if(value.actual_by_status){const text=reportCountText(value.actual_by_status);if(text)add('Actual by status',text);}
+    if(value.issues_by_status){const text=reportCountText(value.issues_by_status);if(text)add('Issues by status',text);}
+    if(value.plans_by_status){const text=reportCountText(value.plans_by_status);if(text)add('Plans by status',text);}
+    if(value.kpi&&typeof value.kpi==='object'){
+      const k=value.kpi;
+      const parts=[];
+      if(k.status)parts.push('Status '+k.status);
+      if(k.PA!==undefined&&k.PA!==null)parts.push('PA '+fmtPct(k.PA));
+      if(k.UA!==undefined&&k.UA!==null)parts.push('UA '+fmtPct(k.UA));
+      if(k.EU!==undefined&&k.EU!==null)parts.push('EU '+fmtPct(k.EU));
+      if(k.eligible!==undefined)parts.push('Eligible '+k.eligible);
+      if(k.excluded!==undefined)parts.push('Excluded '+k.excluded);
+      if(parts.length)add('KPI',parts.join(' · '));
+    }
+    if(value.current&&typeof value.current==='object'){
+      const current=value.current;
+      const parts=[];
+      if(current.status)parts.push('Status '+current.status);
+      if(current.PA!==undefined&&current.PA!==null)parts.push('PA '+fmtPct(current.PA));
+      if(current.UA!==undefined&&current.UA!==null)parts.push('UA '+fmtPct(current.UA));
+      if(current.EU!==undefined&&current.EU!==null)parts.push('EU '+fmtPct(current.EU));
+      if(parts.length)add('Current KPI',parts.join(' · '));
+    }
+    if(value.items&&Array.isArray(value.items)&&value.items.length)add('Actions',value.items.join(' · '));
+    if(value.note)add('Note',value.note);
+    if(value.evidence&&typeof value.evidence==='object'){
+      const evidenceSummary=Object.entries(value.evidence).map(([domain,items])=>domain+': '+(Array.isArray(items)?items.length:0)).join(' · ');
+      if(evidenceSummary)add('Evidence records',evidenceSummary);
+    }
+    if(lines.length)return lines.join('\n');
+  }
+  return 'Structured report data is available in the issued snapshot.';
 }
 function renderReportPreview(model){
   const host=document.getElementById('reportPreviewBody'),meta=document.getElementById('reportPreviewMeta');
