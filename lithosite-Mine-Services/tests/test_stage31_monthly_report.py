@@ -1,10 +1,9 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE = ROOT / "lithosite-Mine-Services"
-ENGINE = BASE / "ui/modules/reports/monthly-report.js"
-REPORTS = BASE / "ui/modules/reports/reports.js"
-ARTIFACT = BASE / "Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v38-STAGE27.html"
+ENGINE = ROOT / "ui/modules/reports/monthly-report.js"
+REPORTS = ROOT / "ui/modules/reports/reports.js"
+ARTIFACT = ROOT / "Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v38-STAGE27.html"
 
 def read(path):
     return path.read_text(encoding="utf-8")
