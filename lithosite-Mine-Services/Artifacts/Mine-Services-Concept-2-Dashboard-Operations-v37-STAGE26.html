@@ -248,11 +248,26 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
     </div>
 
     <section class="panel filters">
-      <div class="field" style="grid-column:1/-1">
-        <label>Search Report Data</label>
+      <div class="field reports-search-field">
+        <label>Search Data</label>
         <input id="reportsSearch" placeholder="Search across operational records">
       </div>
-      <button class="control" id="reportsClear">Clear</button>
+      <button class="control reports-search-clear" id="reportsClear">Clear</button>
+      <label class="report-filter-field">Report Type
+        <select id="reportCenterType" class="control">
+          <option value="DAILY">Daily Report</option>
+          <option value="WEEKLY">Weekly Report</option>
+          <option value="MONTHLY">Monthly Report</option>
+        </select>
+      </label>
+      <label class="report-filter-field">Report Date
+        <input id="reportCenterDate" type="date">
+      </label>
+      <label class="report-filter-field">Scope
+        <select id="reportCenterScope" class="control">
+          <option value="ALL">All Site</option>
+        </select>
+      </label>
     </section>
 
     <section class="report-center" aria-label="Report Center">
@@ -266,23 +281,6 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
             <button class="control primary" id="reportCenterPdf" type="button" disabled>Generate PDF</button>
           </div>
         </div>
-      </div>
-      <div class="report-center-controls">
-        <label>Report Type
-          <select id="reportCenterType" class="control">
-            <option value="DAILY">Daily Report</option>
-            <option value="WEEKLY">Weekly Report</option>
-            <option value="MONTHLY">Monthly Report</option>
-          </select>
-        </label>
-        <label id="reportCenterDateLabel">Report Date
-          <input id="reportCenterDate" type="date">
-        </label>
-        <label id="reportCenterScopeLabel">Scope
-          <select id="reportCenterScope" class="control">
-            <option value="ALL">All Site</option>
-          </select>
-        </label>
       </div>
       <div id="reportCenterSummary" class="report-center-summary">Select a report type and period, then prepare the report.</div>
     </section>
