@@ -177,6 +177,7 @@ class ApplicationService:
             ],
             "WorkFront": [
                 ("Operations", "work_front_id"),
+                ("Checker", "work_front_id"),
                 ("Issues", "work_front_id"),
                 ("Plans", "work_front_id"),
                 ("HSE", "work_front_id"),
