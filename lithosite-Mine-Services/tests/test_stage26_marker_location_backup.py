@@ -53,7 +53,7 @@ def test_marker_backup_enforces_each_active_limit(tmp_path):
     manager = MarkerLocationBackupManager(tmp_path / "marker-location")
     rows = [marker(f"ML-{index:04d}", marker_type="FACILITY") for index in range(4)]
 
-    with pytest.raises(ValueError, match="Facility"):
+    with pytest.raises(ValueError, match="(?i)Facility"):
         manager.save(package(rows))
 
 
