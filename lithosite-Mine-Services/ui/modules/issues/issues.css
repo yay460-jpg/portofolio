@@ -82,3 +82,7 @@
   #issuesScreen .title h1{font-size:20px}
   #issuesScreen .filters{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}
 }
+
+
+/* V38 — unified Clear button geometry across all filter panels */
+#issuesScreen #issuesClear{width:56px;min-width:56px;max-width:56px;height:32px;padding:0 10px;justify-content:center;align-items:center;box-sizing:border-box;flex:0 0 56px}
