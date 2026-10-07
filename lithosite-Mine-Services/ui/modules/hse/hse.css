@@ -46,3 +46,7 @@
 
 /* V38 — filter panel visual parity with Operations */
 #hseScreen .filters{border:1px solid #28425c;border-radius:9px;background:#101f31;box-shadow:0 2px 9px #02081255}
+
+
+/* V38 — Clear control width parity across module filter panels */
+#hseScreen .clear{width:56px;min-width:56px;height:32px;padding:0 10px;justify-content:center;box-sizing:border-box}
