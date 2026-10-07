@@ -7,7 +7,7 @@
   }
 
   const modal = document.getElementById('modal');
-  const dataState = { operations: [], workFronts: [], equipment: [], maintenance: [], lists: {} };
+  const dataState = { operations: [], workFronts: [], equipment: [], capacities: [], maintenance: [], lists: {} };
 
   let editId = null;
   let runtimeReady = false;
@@ -333,14 +333,17 @@
         runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
         runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
         runtimeClient.request({ operation: 'READ', entity: '_Lists' }),
-        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' })
+        runtimeClient.request({ operation: 'READ', entity: 'GlobalCapacity' }),
+        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' }),
+        runtimeClient.request({ operation: 'READ', entity: 'GlobalCapacity' })
       ]);
 
       dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
       dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
       dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
       dataState.lists = (results[3].data && typeof results[3].data === 'object') ? results[3].data : results[3];
-      dataState.maintenance = Array.isArray(results[4].data) ? results[4].data : [];
+      dataState.capacities = Array.isArray(results[4].data) ? results[4].data : [];
+      dataState.maintenance = Array.isArray(results[5].data) ? results[5].data : [];
 
       fillRefs();
       render();
@@ -367,10 +370,35 @@
       dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
       dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
       dataState.maintenance = Array.isArray(results[3].data) ? results[3].data : [];
+      dataState.capacities = Array.isArray(results[4].data) ? results[4].data : [];
       fillRefs();
       render();
     } catch (error) {
       setRuntimeState('Refresh failed: ' + error.message, true);
+    }
+  }
+
+  function refreshHaulingFields() {
+    const activity = String(document.getElementById('f_activity').value || '').trim().toLowerCase();
+    const eq = dataState.equipment.find(function(x){ return String(x.equipment_id || '') === String(document.getElementById('f_eq').value || ''); });
+    const wf = dataState.workFronts.find(function(x){ return String(x.work_front_id || '') === String(document.getElementById('f_wf').value || ''); });
+    const isHauling = activity === 'hauling' && String(eq && eq.type || '').trim().toLowerCase() === 'dump truck';
+    let capacity = null;
+    if (wf && wf.capacity_profile_id) {
+      const profile = dataState.capacities.find(function(x){ return String(x.capacity_profile_id) === String(wf.capacity_profile_id); });
+      if (profile) capacity = Number(profile.capacity_value);
+    }
+    const capacityEl=document.getElementById('f_capacity'), qtyEl=document.getElementById('f_qty'), retaseEl=document.getElementById('f_retase');
+    capacityEl.value = isHauling && Number.isFinite(capacity) ? String(capacity) : '';
+    capacityEl.disabled = true;
+    qtyEl.readOnly = isHauling;
+    if (isHauling && Number.isFinite(capacity) && retaseEl.value !== '') {
+      const retase=Number(retaseEl.value);
+      qtyEl.value=Number.isFinite(retase) ? String(retase*capacity) : '';
+      document.getElementById('f_unit').value='ton';
+    } else if (!isHauling) {
+      capacityEl.value='';
+      qtyEl.readOnly=false;
     }
   }
 
@@ -391,6 +419,8 @@
     });
 
     document.getElementById('f_activity').value = '';
+    document.getElementById('f_retase').value = '';
+    document.getElementById('f_capacity').value = '';
     document.getElementById('f_qty').value = '';
     document.getElementById('f_unit').value = '';
     document.getElementById('f_actual').value = '';
@@ -428,6 +458,8 @@
       f_wf: row.work_front_id,
       f_eq: row.equipment_id,
       f_activity: row.activity,
+      f_retase: row.retase,
+      f_capacity: row.applied_capacity,
       f_qty: row.quantity,
       f_unit: row.unit,
       f_actual: row.actual_hours,
@@ -492,6 +524,7 @@
     bind('cancel', function () { modal.classList.remove('show'); });
     bind('stage', saveForm);
     bind('refresh', loadData);
+    ['f_wf','f_eq','f_activity','f_retase'].forEach(function(id){const el=document.getElementById(id);if(el){el.addEventListener('input',refreshHaulingFields);el.addEventListener('change',refreshHaulingFields);}});
 
     // Keep controls reliable after external JS extraction.
     document.getElementById('add').onclick = openAdd;
@@ -580,6 +613,10 @@
       work_front_id: document.getElementById('f_wf').value,
       equipment_id: document.getElementById('f_eq').value || null,
       activity: document.getElementById('f_activity').value,
+      retase: numberOrNull('f_retase'),
+      capacity_profile_id: (function(){ const wf=dataState.workFronts.find(function(x){return String(x.work_front_id)===String(document.getElementById('f_wf').value)}); return wf ? (wf.capacity_profile_id || null) : null; })(),
+      applied_capacity: numberOrNull('f_capacity'),
+      capacity_unit: 'ton',
       quantity: numberOrNull('f_qty'),
       unit: document.getElementById('f_unit').value,
       actual_hours: numberOrNull('f_actual'),
