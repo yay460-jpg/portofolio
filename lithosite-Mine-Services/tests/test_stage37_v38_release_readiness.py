@@ -42,7 +42,7 @@ def test_stage35_pdf_renderer():
     text = read(PDF)
     assert "LithositePdfRenderer" in text
     assert "print()" in text
-    assert "contentWindow.print()" in text
+    assert "renderInline(model,iframe)" in text
     reports = read(REPORTS)
     assert "LithositePdfRenderer.render" in reports
 
