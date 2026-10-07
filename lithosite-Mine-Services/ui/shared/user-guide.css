@@ -1,0 +1,233 @@
+/* Lithosite Mine Services — Global User Guide launcher
+   Shared shell utility. The guide document is not version-owned.
+*/
+.topbar .topmeta{
+  margin-left:auto;
+}
+
+.user-guide-launcher{
+  width:28px;
+  height:28px;
+  margin-left:8px;
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 28px;
+  border:1px solid #29435d;
+  border-radius:50%;
+  background:#12243a;
+  color:#dbe8f5;
+  font-size:14px;
+  font-weight:700;
+  line-height:1;
+  text-decoration:none;
+  cursor:pointer;
+  transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease,transform .14s ease;
+}
+.user-guide-launcher:hover{
+  border-color:#4d8dff;
+  background:#142b43;
+  box-shadow:0 0 0 1px #4d8dff55,0 4px 12px #02081255;
+  transform:translateY(-1px);
+}
+.user-guide-launcher:focus-visible{
+  outline:none;
+  border-color:#60a5fa;
+  box-shadow:0 0 0 2px #60a5fa55;
+}
+.user-guide-launcher:active{
+  transform:none;
+}
+@media(prefers-reduced-motion:reduce){
+  .user-guide-launcher{transition:none}
+}
+
+.user-guide-modal{
+  position:fixed;
+  inset:0;
+  z-index:60;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:#02081299;
+}
+.user-guide-modal.show{display:flex}
+.user-guide-dialog{
+  width:min(560px,calc(100vw - 48px));
+  max-height:calc(100vh - 48px);
+  overflow:hidden;
+  background:#101f31;
+  border:1px solid #31506d;
+  border-radius:12px;
+  box-shadow:0 20px 70px #0009;
+  display:flex;
+  flex-direction:column;
+}
+.user-guide-head{
+  min-height:52px;
+  padding:0 16px;
+  border-bottom:1px solid #29435d;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.user-guide-head>div{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.user-guide-head b{
+  color:#e8f0fa;
+  font-size:12px;
+}
+.user-guide-head span{
+  color:#8fa5bb;
+  font-size:8.5px;
+}
+.user-guide-close{
+  width:30px;
+  min-width:30px;
+  height:30px;
+  padding:0;
+  justify-content:center;
+  font-size:18px;
+}
+.user-guide-body{
+  padding:12px;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.user-guide-item{
+  min-height:66px;
+  display:grid;
+  grid-template-columns:34px 1fr auto;
+  align-items:center;
+  gap:10px;
+  padding:10px;
+  border:1px solid #29435d;
+  border-radius:9px;
+  background:#0c1b2c;
+  color:#dce8f5;
+  text-decoration:none;
+  transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease,transform .14s ease;
+}
+.user-guide-item:hover{
+  border-color:#4d8dff;
+  background:#10243a;
+  box-shadow:0 0 0 1px #4d8dff44,0 4px 12px #02081255;
+  transform:translateY(-1px);
+}
+.user-guide-item-icon{
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  border:1px solid #31506d;
+  background:#12243a;
+  color:#7db0ff;
+  font-size:12px;
+  font-weight:700;
+}
+.user-guide-item>span:nth-child(2){
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.user-guide-item b{
+  font-size:10.5px;
+  color:#e8f0fa;
+}
+.user-guide-item small{
+  color:#8fa5bb;
+  font-size:8.5px;
+  line-height:1.35;
+}
+.user-guide-open{
+  color:#7db0ff;
+  font-size:8.5px;
+  white-space:nowrap;
+}
+@media(prefers-reduced-motion:reduce){
+  .user-guide-item{transition:none}
+}
+
+
+.user-guide-item{
+  appearance:none;
+  width:100%;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+}
+.user-guide-reader-modal{
+  position:fixed;
+  inset:0;
+  z-index:70;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:#020812cc;
+}
+.user-guide-reader-modal.show{display:flex}
+.user-guide-reader-dialog{
+  width:min(850px,calc(100vw - 36px));
+  height:min(90vh,900px);
+  overflow:hidden;
+  background:#101f31;
+  border:1px solid #31506d;
+  border-radius:12px;
+  box-shadow:0 20px 80px #000b;
+  display:flex;
+  flex-direction:column;
+}
+.user-guide-reader-head{
+  height:50px;
+  min-height:50px;
+  padding:0 14px 0 16px;
+  border-bottom:1px solid #29435d;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.user-guide-reader-head>div{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.user-guide-reader-head b{
+  color:#e8f0fa;
+  font-size:11px;
+}
+.user-guide-reader-head span{
+  color:#8fa5bb;
+  font-size:8px;
+}
+.user-guide-reader-body{
+  min-height:0;
+  flex:1;
+  background:#fff;
+}
+.user-guide-reader-body iframe{
+  display:block;
+  width:100%;
+  height:100%;
+  border:0;
+  background:#fff;
+}
+@media(max-width:700px){
+  .user-guide-reader-modal{padding:8px}
+  .user-guide-reader-dialog{
+    width:calc(100vw - 16px);
+    height:calc(100vh - 16px);
+  }
+}
+
+/* Stage 26 — Guide icons use restrained role-based accents. */
+.user-guide-item:nth-child(1) .user-guide-item-icon{color:#60a5fa;border-color:#315a86;background:#10243a}
+.user-guide-item:nth-child(2) .user-guide-item-icon{color:#f59e0b;border-color:#66502a;background:#211d14}
+.user-guide-item:nth-child(3) .user-guide-item-icon{color:#22c55e;border-color:#286343;background:#10251b}

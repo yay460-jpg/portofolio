@@ -66,7 +66,15 @@ function render(){
  }else if(state.status==='error'){
    host.innerHTML='<div class="empty">Equipment data unavailable. Check RuntimeAdapter connection and use Refresh.</div>';
  }else{
-   const rows=filtered();
+   const rows=filtered().slice().sort(function(a,b){
+     const dateCompare=String(a.effective_from||'').localeCompare(String(b.effective_from||''));
+     if(dateCompare!==0)return dateCompare;
+     const statusCompare=String(a.status||'').localeCompare(String(b.status||''));
+     if(statusCompare!==0)return statusCompare;
+     const unitCompare=String(a.unit_no||'').localeCompare(String(b.unit_no||''));
+     if(unitCompare!==0)return unitCompare;
+     return String(a.equipment_id||'').localeCompare(String(b.equipment_id||''));
+   });
    host.innerHTML=rows.length?rows.map(r=>{
    const cls=String(r.status||'').toLowerCase().replace(/[^a-z]/g,'')||'inactive-status';
    return '<div class="tr td">'+
@@ -127,7 +135,7 @@ function resetForm(){
 function openAdd(){
  editId=null;document.getElementById('equipmentModalTitle').textContent='Add Equipment';
  document.getElementById('equipmentSave').textContent='Save via RuntimeAdapter';resetForm();
- document.getElementById('equipmentModal').classList.add('show');
+ if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('equipmentModal');}else{document.getElementById('equipmentModal').classList.add('show')};
 }
 function openEdit(id){
  const row=state.rows.find(x=>String(x.equipment_id)===String(id));if(!row)return;
@@ -135,7 +143,7 @@ function openEdit(id){
  document.getElementById('equipmentSave').textContent='Update via RuntimeAdapter';
  const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_owner_name:row.owner_name,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
- document.getElementById('equipmentModal').classList.add('show');
+ if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('equipmentModal');}else{document.getElementById('equipmentModal').classList.add('show')};
 }
 function payload(){
  return {

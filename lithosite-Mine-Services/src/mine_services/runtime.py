@@ -2,9 +2,12 @@ import json
 from pathlib import Path
 
 from .snapshot import SnapshotManager
+from .dataset import DatasetManager
 from .kpi_snapshot_store import KPIHistoryStore
 from .application import ApplicationService
 from .import_engine import ImportCoordinator
+from .topography_backup import TopographyBackupManager
+from .marker_location_backup import MarkerLocationBackupManager
 
 
 class RuntimeInterface:
@@ -23,6 +26,12 @@ class RuntimeInterface:
         store_path = getattr(self._application.store, "path", None)
         history_path = Path(store_path).with_name("KPI-History.json") if store_path else None
         self._kpi_history = KPIHistoryStore(history_path)
+        dataset_dir = Path(store_path).with_name("Datasets") if store_path else Path("Datasets")
+        self._datasets = DatasetManager(self._application.store, dataset_dir)
+        topography_dir = Path(store_path).with_name("topography") if store_path else Path("topography")
+        self._topography = TopographyBackupManager(topography_dir)
+        marker_location_dir = Path(store_path).with_name("marker-location") if store_path else Path("marker-location")
+        self._marker_location = MarkerLocationBackupManager(marker_location_dir)
 
     def create(self, entity, row, request_id):
         return self._application.create(entity, row, request_id)
@@ -59,6 +68,88 @@ class RuntimeInterface:
 
     def restore(self, snapshot, mode="REPLACE_RUNTIME"):
         return self._snapshots.restore(snapshot, mode=mode)
+
+    def save_topography_backup(self, package_base64, filename=None, source="runtime"):
+        return self._topography.save(package_base64, filename=filename, source=source)
+
+    def list_topography_backups(self):
+        backups = self._topography.list()
+        return {
+            "status": "READY",
+            "backups": backups,
+            "max_backups": self._topography.MAX_BACKUPS,
+            "storage_used": len(backups),
+        }
+
+    def load_topography_backup(self, filename):
+        result = self._topography.read(filename)
+        result["status"] = "READY"
+        return result
+
+    def save_marker_location_backup(self, package_base64, filename=None, source="runtime"):
+        return self._marker_location.save(package_base64, filename=filename, source=source)
+
+    def list_marker_location_backups(self):
+        backups = self._marker_location.list()
+        return {
+            "status": "READY",
+            "backups": backups,
+            "max_backups": self._marker_location.MAX_BACKUPS,
+            "storage_used": len(backups),
+        }
+
+    def load_marker_location_backup(self, filename):
+        result = self._marker_location.read(filename)
+        result["status"] = "READY"
+        return result
+
+    def list_datasets(self):
+        return {"status": "READY", "datasets": self._datasets.list(), "active": self._datasets.active_info()}
+
+    def save_dataset(self, name=None):
+        result = self._datasets.save(name=name)
+        self._application.audit_repository.append(
+            entity="_System",
+            entity_id=result["dataset_id"],
+            action="DATASET_SAVE",
+            request_id=result["dataset_id"],
+            new_value=json.dumps(result, default=str, sort_keys=True),
+            source="DatasetManager",
+        )
+        self._application.store.save()
+        return result
+
+    def save_dataset_as(self, name):
+        result = self._datasets.save_as(name=name)
+        self._application.audit_repository.append(
+            entity="_System",
+            entity_id=result["dataset_id"],
+            action="DATASET_SAVE_AS",
+            request_id=result["dataset_id"],
+            new_value=json.dumps(result, default=str, sort_keys=True),
+            source="DatasetManager",
+        )
+        self._application.store.save()
+        return result
+
+    def load_dataset(self, name):
+        before = self._application.store.snapshot()
+        try:
+            result = self._datasets.load(name=name)
+            self._application.audit_repository.append(
+                entity="_System",
+                entity_id=result["dataset_id"],
+                action="DATASET_LOAD",
+                request_id=result["dataset_id"],
+                old_value=json.dumps(before, default=str, sort_keys=True),
+                new_value=json.dumps(result, default=str, sort_keys=True),
+                source="DatasetManager",
+            )
+            self._application.store.save()
+            return result
+        except Exception:
+            self._application.store.replace(before)
+            raise
 
     def finalize_kpi(self, snapshot, source="runtime"):
         result = self._kpi_history.finalize(snapshot, source=source)

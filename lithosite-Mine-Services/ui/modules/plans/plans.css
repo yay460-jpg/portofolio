@@ -16,7 +16,7 @@
 #plansScreen .ptitle{font-size:11.5px;font-weight:700}
 #plansScreen .tablemeta{font-size:9px;color:#8ea3ba}
 #plansScreen .grid{flex:1 1 auto;min-width:0;min-height:0;height:auto;overflow:auto}
-#plansScreen .plantr{display:grid;grid-template-columns:100px 78px 118px 145px minmax(180px,1fr) 90px 70px 82px 88px 132px;min-width:1180px;align-items:center}
+#plansScreen .plantr{display:grid;grid-template-columns:100px 78px 118px 220px minmax(180px,1fr) 90px 70px 82px 88px 132px;min-width:1255px;align-items:center}
 #plansScreen .th{height:34px;background:#12243a;color:#8fa5bb;font-size:8px;text-transform:uppercase;font-weight:600;position:sticky;top:0;z-index:2}
 #plansScreen .td{min-height:42px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}
 #plansScreen .cell{padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

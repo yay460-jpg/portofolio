@@ -135,14 +135,14 @@ def test_hse_closed_with_timestamp_commits():
 
 def test_current_hse_shell_contract():
     root = Path(__file__).parents[1]
-    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v35-STAGE24.html").read_text(encoding="utf-8")
-    shell = (root / "ui" / "shared" / "shell-navigation-v31.js").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html").read_text(encoding="utf-8")
+    shell = (root / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "hse" / "hse.js").read_text(encoding="utf-8")
 
     assert 'id="hseScreen"' in html
     assert 'id="hseModal"' in html
     assert 'data-screen="HSE"' in html
-    assert "shell-navigation-v31.js" in html
+    assert "shell-navigation.js?v=20261008" in html
     assert "../ui/modules/hse/hse.js?v=20261005" in html
     assert "function syncClosedAtField()" in module
     assert "closed.disabled=true" in module

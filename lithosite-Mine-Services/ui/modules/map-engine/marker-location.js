@@ -49,8 +49,117 @@
   var sequence = 0;
   var visibility = {};
   var selectedMarkerId = null;
+  var ACTIVE_MARKER_STORAGE_KEY = 'lithosite-mine-services-active-markers-v1';
+  var MARKER_PACKAGE_MAGIC = 'LITMARKR';
+  var MARKER_PACKAGE_VERSION = 1;
 
   TYPES.forEach(function(type){ visibility[type]=true; });
+
+  function bytesToBase64(buffer){
+    var bytes=new Uint8Array(buffer),binary='',chunk=0x8000;
+    for(var i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+chunk,bytes.length)));
+    return btoa(binary);
+  }
+
+  function base64ToBytes(value){
+    var binary=atob(value||''),bytes=new Uint8Array(binary.length);
+    for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function buildMarkerPackageBytes(rows){
+    var json=JSON.stringify({format:'LT-MARKER',version:MARKER_PACKAGE_VERSION,markers:rows});
+    var body=new TextEncoder().encode(json);
+    var payload=new Uint8Array(12+body.length);
+    for(var i=0;i<8;i++)payload[i]=MARKER_PACKAGE_MAGIC.charCodeAt(i);
+    new DataView(payload.buffer).setUint32(8,MARKER_PACKAGE_VERSION,true);
+    payload.set(body,12);
+    return payload;
+  }
+
+  function parseMarkerPackageBytes(bytes){
+    if(!bytes||bytes.length<12)throw new Error('File is not a valid LT-MARKER package.');
+    for(var i=0;i<8;i++)if(bytes[i]!==MARKER_PACKAGE_MAGIC.charCodeAt(i))throw new Error('File is not a valid LT-MARKER package.');
+    var version=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength).getUint32(8,true);
+    if(version!==MARKER_PACKAGE_VERSION)throw new Error('Unsupported LT-MARKER package version: '+version+'.');
+    var json=new TextDecoder().decode(bytes.subarray(12));
+    var document=JSON.parse(json);
+    if(!document||document.format!=='LT-MARKER'||document.version!==MARKER_PACKAGE_VERSION||!Array.isArray(document.markers)){
+      throw new Error('File is not a valid LT-MARKER package.');
+    }
+    return document.markers;
+  }
+
+  function validateMarkerCollection(rows){
+    if(!Array.isArray(rows))throw new Error('Marker dataset must be an array.');
+    var ids={},activeCounts={},sources={};
+    rows.forEach(function(row){
+      var marker=normalizeMarker(row);
+      if(ids[marker.marker_id])throw new Error('Duplicate marker_id: '+marker.marker_id);
+      ids[marker.marker_id]=true;
+      activeCounts[marker.marker_type]=(activeCounts[marker.marker_type]||0)+(marker.status==='ACTIVE'?1:0);
+      var limit=getMarkerLimit(marker.marker_type);
+      if(activeCounts[marker.marker_type]>limit)throw new Error('Marker Location limit reached for '+marker.marker_type+': '+limit+' active spatial markers maximum');
+      var def=getDomainLinkDefinition(marker.marker_type);
+      if(def.link_mode==='DOMAIN_LINKED'){
+        if(marker.source_entity!==def.source_entity||!marker.source_id)throw new Error(marker.marker_type+' marker requires '+def.source_entity+' source_entity and source_id');
+        var sourceKey=marker.source_entity+'\\u0000'+marker.source_id;
+        if(marker.status==='ACTIVE'&&sources[sourceKey])throw new Error('Spatial marker already assigned to '+marker.source_entity+' '+marker.source_id);
+        if(marker.status==='ACTIVE')sources[sourceKey]=true;
+      }else if(marker.source_entity||marker.source_id){
+        throw new Error('Global spatial marker '+marker.marker_id+' must not contain source_entity or source_id');
+      }
+    });
+    return rows.map(clone);
+  }
+
+  function updateSequenceFromMarkers(rows){
+    var max=sequence;
+    rows.forEach(function(row){
+      var match=String(row.marker_id||'').match(/^ML-(\\d+)$/);
+      if(match)max=Math.max(max,Number(match[1])||0);
+    });
+    sequence=max;
+  }
+
+  function persistActiveMarkers(){
+    try{
+      localStorage.setItem(ACTIVE_MARKER_STORAGE_KEY,JSON.stringify(listMarkers()));
+      return true;
+    }catch(error){return false;}
+  }
+
+  function clearActiveMarkerPersistence(){
+    try{localStorage.removeItem(ACTIVE_MARKER_STORAGE_KEY);}catch(error){}
+  }
+
+  function restoreActiveMarkers(){
+    try{
+      var raw=localStorage.getItem(ACTIVE_MARKER_STORAGE_KEY);
+      if(!raw)return false;
+      var rows=JSON.parse(raw);
+      rows=validateMarkerCollection(rows);
+      var next={};
+      rows.forEach(function(row){next[row.marker_id]=row;});
+      markers=next;
+      updateSequenceFromMarkers(rows);
+      return true;
+    }catch(error){
+      clearActiveMarkerPersistence();
+      return false;
+    }
+  }
+
+  function replaceMarkers(rows){
+    var validated=validateMarkerCollection(rows);
+    var next={};
+    validated.forEach(function(row){next[row.marker_id]=row;});
+    markers=next;
+    selectedMarkerId=null;
+    updateSequenceFromMarkers(validated);
+    persistActiveMarkers();
+    return listMarkers();
+  }
 
   function isFiniteNumber(value){
     return typeof value==='number' && isFinite(value);
@@ -222,6 +331,7 @@
     if(markers[marker.marker_id])throw new Error('Marker already exists: '+marker.marker_id);
     assertMarkerCapacity(marker);
     markers[marker.marker_id]=marker;
+    persistActiveMarkers();
     return clone(marker);
   }
 
@@ -237,6 +347,7 @@
     next.marker_id=id;
     assertMarkerCapacity(next,id);
     markers[id]=next;
+    persistActiveMarkers();
     return clone(next);
   }
 
@@ -448,6 +559,7 @@
     if(!markers[id])return false;
     if(selectedMarkerId===id)selectedMarkerId=null;
     delete markers[id];
+    persistActiveMarkers();
     return true;
   }
 
@@ -599,6 +711,7 @@
   function clearMarkers(){
     markers={};
     selectedMarkerId=null;
+    clearActiveMarkerPersistence();
   }
 
   function ensureRenderLayer(container){
@@ -746,13 +859,90 @@
     var host=document.getElementById('dashboardSiteMap'),topo=global.MineServicesTopo3D,engine=topo&&typeof topo.getEngine==='function'?topo.getEngine():null;
     if(engine&&host)renderMarkers(engine,host);refreshMarkerLocationUI();
   }
+  function showMarkerLocationNotice(message,error){
+    var host=document.getElementById('dashboardSiteMap');if(!host)return;
+    var existing=host.querySelector('#markerLocationNotice');if(existing)existing.remove();
+    var notice=document.createElement('div');notice.id='markerLocationNotice';
+    notice.style.cssText='position:absolute;top:12px;left:12px;z-index:70;max-width:360px;padding:10px 13px;border:1px solid '+(error?'rgba(248,113,113,.5)':'rgba(74,222,128,.45)')+';border-radius:8px;background:'+(error?'rgba(69,10,10,.94)':'rgba(5,46,22,.94)')+';color:#ecfdf5;box-shadow:0 10px 24px rgba(0,0,0,.35);font:600 12px Segoe UI,Arial,sans-serif;line-height:1.45;';
+    notice.textContent=message;host.appendChild(notice);setTimeout(function(){if(notice.parentNode)notice.remove();},4500);
+  }
+
+  async function backupMarkerLocations(){
+    try{
+      var rows=listMarkers();
+      if(!rows.length)throw new Error('Add at least one marker before creating a backup.');
+      var bytes=buildMarkerPackageBytes(rows);
+      var result=await global.LithositeRuntimeClient.request({
+        operation:'SAVE_MARKER_LOCATION_BACKUP',
+        package_base64:bytesToBase64(bytes.buffer),
+        filename:'Lithosite_MarkerLocation',
+        source:'Mine-Services-Marker-Location'
+      });
+      if(result.status!=='SAVED')throw new Error('Marker Location backup rejected');
+      showMarkerLocationNotice('Success — marker locations have been backed up.',false);
+      setMarkerLocationPanelMessage('Marker Location backup saved · '+String(result.storage_used||1)+' / '+String(result.storage_max||5)+' stored.',false);
+      return result;
+    }catch(error){
+      showMarkerLocationNotice(error&&error.message?error.message:'Marker Location backup failed.',true);
+      setMarkerLocationPanelMessage(error&&error.message?error.message:'Marker Location backup failed.',true);
+      return null;
+    }
+  }
+
+  async function openMarkerLocationBackupPanel(){
+    var panel=document.getElementById('markerLocationBackupPanel');
+    if(!panel||!global.LithositeRuntimeClient)return;
+    var list=panel.querySelector('#markerLocationBackupList'),storage=panel.querySelector('#markerLocationBackupStorage'),restore=panel.querySelector('#markerLocationBackupRestore');
+    panel.hidden=false;list.textContent='Loading backups…';storage.textContent='Checking Marker Location storage…';
+    try{
+      var result=await global.LithositeRuntimeClient.request({operation:'LIST_MARKER_LOCATION_BACKUPS'});
+      var backups=Array.isArray(result.backups)?result.backups:[],max=Math.max(1,Number(result.max_backups)||5),used=Math.min(backups.length,Number(result.storage_used)||backups.length);
+      storage.innerHTML='<div style="font-weight:650;white-space:nowrap">Marker Location Backup Storage · '+used+' / '+max+' backups used</div><div style="margin-top:3px;color:#8fa7bf;font-size:9px">'+(used<max?used+' backup'+(used===1?'':'s')+' stored.':'Storage full — saving a new backup will automatically remove the oldest backup.')+'</div>';
+      if(!backups.length){list.textContent='No Marker Location backups yet.';restore.disabled=true;return;}
+      restore.disabled=false;
+      list.innerHTML='<label style="display:block;margin-bottom:4px;color:#93c5fd">Select backup</label><select id="markerLocationBackupSelect" style="width:100%;height:30px;box-sizing:border-box;padding:0 8px;border-radius:6px;background:#071525;color:#dbe8f5;border:1px solid #29415f;font:600 9px/28px Segoe UI,Arial,sans-serif">'+backups.map(function(item){var label=item.filename+' · '+(Number(item.size_bytes||0)/1048576).toFixed(2)+' MB';return '<option value="'+String(item.filename).replace(/"/g,'&quot;')+'">'+label+'</option>';}).join('')+'</select>';
+    }catch(error){
+      list.textContent=error&&error.message?error.message:'Backup list unavailable';storage.textContent='Marker Location Backup Storage · unavailable';restore.disabled=true;
+    }
+  }
+
+  async function restoreMarkerLocations(){
+    var panel=document.getElementById('markerLocationBackupPanel'),select=panel&&panel.querySelector('#markerLocationBackupSelect');
+    if(!select||!select.value)return;
+    try{
+      var result=await global.LithositeRuntimeClient.request({operation:'LOAD_MARKER_LOCATION_BACKUP',filename:select.value});
+      if(result.status!=='READY'||!result.data)throw new Error('Marker Location backup unavailable');
+      var rows=parseMarkerPackageBytes(base64ToBytes(result.data));
+      replaceMarkers(rows);
+      renderMarkerLocationNow();
+      showMarkerLocationNotice('Success — marker locations have been restored.',false);
+      setMarkerLocationPanelMessage('Marker Location restored · '+rows.length+' marker'+(rows.length===1?'':'s')+'.',false);
+      panel.hidden=true;
+    }catch(error){
+      showMarkerLocationNotice(error&&error.message?error.message:'Marker Location restore failed.',true);
+      setMarkerLocationPanelMessage(error&&error.message?error.message:'Marker Location restore failed.',true);
+    }
+  }
+
+  function clearMarkerLocations(){
+    clearMarkers();
+    renderMarkerLocationNow();
+    showMarkerLocationNotice('Marker locations cleared · pilih marker baru',false);
+    setMarkerLocationPanelMessage('Marker locations cleared · pilih marker baru',false);
+  }
+
   function bindMarkerLocationUI(){
     var host=document.getElementById('dashboardSiteMap'),panelHost=host&&host.closest('.panel'),toolbar=panelHost&&panelHost.querySelector('.topo3d-toolbar');
     if(!host||!toolbar||document.getElementById('markerLocationToggle'))return;
     var toggle=document.createElement('button');toggle.type='button';toggle.id='markerLocationToggle';toggle.textContent='Marker Location';toolbar.appendChild(toggle);
     var panel=document.createElement('section');panel.id='markerLocationPanel';panel.className='marker-location-panel';panel.hidden=true;
-    panel.innerHTML='<div class="marker-location-panel__head"><div><strong>Marker Location</strong><small>Spatial reference &amp; domain link</small></div><button type="button" class="marker-location-close" aria-label="Close Marker Location">×</button></div><div class="marker-location-panel__body"><div class="marker-location-fields"><label>Marker Type<select id="markerLocationType"></select></label><label>Source Entity<input id="markerLocationSourceEntity" type="text" readonly></label><label>Source ID<select id="markerLocationSourceId"><option value="">Select source record</option></select></label><label>Label<input id="markerLocationLabel" type="text" placeholder="Marker label"></label><label>Marker ID<input id="markerLocationId" type="text" placeholder="Optional · auto ML-xxxx"></label><label>Easting<input id="markerLocationEasting" type="number" step="any" placeholder="Easting"></label><label>Northing<input id="markerLocationNorthing" type="number" step="any" placeholder="Northing"></label><label>Elevation<input id="markerLocationElevation" type="number" step="any" placeholder="Elevation"></label></div><div class="marker-location-actions"><button type="button" class="control mini" id="markerLocationPick">Pick on Map</button><button type="button" class="control mini primary" id="markerLocationCreate">Add Marker</button></div><div class="marker-location-message">Pick on Map switches to Top View before coordinate picking.</div></div>';
+    panel.innerHTML='<div class="marker-location-panel__head"><div><strong>Marker Location</strong><small>Spatial reference &amp; domain link</small></div><button type="button" class="marker-location-close" aria-label="Close Marker Location">×</button></div><div class="marker-location-panel__body"><div class="marker-location-actions marker-location-backup-actions"><button type="button" class="control mini" id="markerLocationBackup">Backup</button><button type="button" class="control mini" id="markerLocationRestore">Restore</button><button type="button" class="control mini" id="markerLocationClear">Clear</button></div><div id="markerLocationBackupPanel" class="marker-location-backup-panel" hidden><div class="marker-location-backup-storage" id="markerLocationBackupStorage"></div><div id="markerLocationBackupList"></div><div class="marker-location-backup-policy">Maximum 5 backups. When a new backup is saved while storage is full, the oldest backup is automatically deleted.</div><div class="marker-location-backup-actions"><button type="button" class="topo3d-modal-button" id="markerLocationBackupClose">Close</button><button type="button" class="topo3d-modal-button primary" id="markerLocationBackupRestore">Restore Selected</button></div></div><div class="marker-location-fields"><label>Marker Type<select id="markerLocationType"></select></label><label>Source Entity<input id="markerLocationSourceEntity" type="text" readonly></label><label>Source ID<select id="markerLocationSourceId"><option value="">Select source record</option></select></label><label>Label<input id="markerLocationLabel" type="text" placeholder="Marker label"></label><label>Marker ID<input id="markerLocationId" type="text" placeholder="Optional · auto ML-xxxx"></label><label>Easting<input id="markerLocationEasting" type="number" step="any" placeholder="Easting"></label><label>Northing<input id="markerLocationNorthing" type="number" step="any" placeholder="Northing"></label><label>Elevation<input id="markerLocationElevation" type="number" step="any" placeholder="Elevation"></label></div><div class="marker-location-actions"><button type="button" class="control mini" id="markerLocationPick">Pick on Map</button><button type="button" class="control mini primary" id="markerLocationCreate">Add Marker</button></div><div class="marker-location-message">Pick on Map switches to Top View before coordinate picking.</div></div>';
     host.appendChild(panel);
+    panel.querySelector('#markerLocationBackup').addEventListener('click',backupMarkerLocations);
+    panel.querySelector('#markerLocationRestore').addEventListener('click',openMarkerLocationBackupPanel);
+    panel.querySelector('#markerLocationClear').addEventListener('click',clearMarkerLocations);
+    panel.querySelector('#markerLocationBackupClose').addEventListener('click',function(){panel.querySelector('#markerLocationBackupPanel').hidden=true;});
+    panel.querySelector('#markerLocationBackupRestore').addEventListener('click',restoreMarkerLocations);
     var typeEl=panel.querySelector('#markerLocationType');typeEl.innerHTML=TYPES.map(function(type){return '<option value="'+type+'">'+getMarkerTypeDefinition(type).label+'</option>';}).join('');syncMarkerLocationSourceEntity();
     function refreshMarkerLocationCapacityMessage(){
       var capacity=getMarkerCapacity(typeEl.value);
@@ -771,6 +961,7 @@
     refreshMarkerLocationUI();
   }
   function initMarkerLocationUI(){
+    restoreActiveMarkers();
     if(typeof document==='undefined')return;
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindMarkerLocationUI);else bindMarkerLocationUI();
   }
@@ -823,6 +1014,11 @@
     showAllMarkers:showAllMarkers,
     hideAllMarkers:hideAllMarkers,
     clearMarkers:clearMarkers,
+    replaceMarkers:replaceMarkers,
+    exportMarkerPackage:function(){return buildMarkerPackageBytes(listMarkers());},
+    importMarkerPackage:function(bytes){return replaceMarkers(parseMarkerPackageBytes(bytes));},
+    persistActiveMarkers:persistActiveMarkers,
+    restoreActiveMarkers:restoreActiveMarkers,
     renderMarkers:renderMarkers
   };
 })(window);

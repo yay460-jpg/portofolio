@@ -6,6 +6,7 @@ outside the local machine is required.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import sys
@@ -27,9 +28,7 @@ from mine_services import schema_a3  # noqa: E402
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("MINE_SERVICES_PORT", "8765"))
 STATIC_ROOT = REPO_ROOT.resolve()
-# Legacy Stage 21 entry marker retained for regression compatibility only.
-LEGACY_STATIC_ENTRY_V33 = "/lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v33-STAGE21.html"
-STATIC_ENTRY = os.environ.get("MINE_SERVICES_ENTRY", "/lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v35-STAGE24.html")
+STATIC_ENTRY = os.environ.get("MINE_SERVICES_ENTRY", "/lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html")
 DB_PATH = Path(os.environ.get("MINE_SERVICES_DB", str(MODULE_ROOT / "Database" / "Mine-Services-Database-A3.xlsx"))).resolve()
 
 SCHEMA_NAME = os.environ.get("MINE_SERVICES_SCHEMA", "A3").upper()
@@ -113,6 +112,28 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
+        if path in {"/user-guide", "/lithosite-Mine-Services/user-guide"}:
+            from urllib.parse import parse_qs
+            requested = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "").get("file", [""])[0]
+            guide_root = (REPO_ROOT / "docs" / "lithosite" / "02_Mine-Services" / "10_User-Guides").resolve()
+            target = (guide_root / requested).resolve() if requested else guide_root
+            try:
+                target.relative_to(guide_root)
+            except ValueError:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-007", "message": "Invalid user guide path"}]}, origin)
+                return
+            if target.suffix.lower() != ".pdf" or not target.is_file():
+                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "User guide not found"}]}, origin)
+                return
+            payload = {
+                "status": "READY",
+                "filename": target.name,
+                "mime": "application/pdf",
+                "data": base64.b64encode(target.read_bytes()).decode("ascii"),
+            }
+            self._json(200, payload, origin)
+            return
+
         try:
             relative = Path(path.lstrip("/"))
             target = (STATIC_ROOT / relative).resolve()
@@ -137,6 +158,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        if target.suffix.lower() == ".pdf":
+            self.send_header("Content-Disposition", "inline")
         self.end_headers()
         self.wfile.write(body)
 
@@ -150,7 +173,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > 2_000_000:
+            if length <= 0 or length > 180_000_000:
                 raise ValueError("Invalid request size")
             request = json.loads(self.rfile.read(length).decode("utf-8"))
             if not isinstance(request, dict):

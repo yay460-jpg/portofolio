@@ -18,10 +18,10 @@ class PersistenceStore:
             "equipment_type": {"Dump Truck", "Excavator", "Dozer", "Grader", "Water Truck", "Loader", "Light Vehicle", "Other"},
             "owner_type": {"Owner", "Contractor"},
             "equipment_status": {"Active", "Inactive", "Retired"},
-            "service_domain": {"Road & Hauling", "Drainage & Dewatering", "Land Clearing", "Disposal & Stockpile", "Reclamation", "Other"},
+            "service_domain": {"Road & Hauling", "Drainage & Dewatering", "Land Clearing", "Disposal & Stockpile", "Mining", "Reclamation", "Other"},
             "work_front_status": {"Active", "Inactive", "Closed"},
             "transaction_status": {"DRAFT", "VALIDATED", "REJECTED", "VOIDED"},
-            "unit": {"hour", "km", "m", "m2", "m3", "ton", "unit"},
+            "unit": {"hour", "km", "m", "m2", "m3", "ton", "unit", "cycle"},
             "maintenance_event_type": {"Preventive", "Corrective", "Inspection", "Breakdown"},
             "issue_severity": {"Low", "Medium", "High", "Critical"},
             "issue_status": {"Open", "In Progress", "Closed", "Void"},
@@ -114,7 +114,7 @@ class PersistenceStore:
 
         values = list(wb["_Lists"].values)
         if values:
-            self.controlled_lists = {
+            workbook_lists = {
                 header: {
                     row[i]
                     for row in values[1:]
@@ -123,6 +123,12 @@ class PersistenceStore:
                 for i, header in enumerate(values[0])
                 if header not in (None, "")
             }
+            # Keep only newly locked reference values available when an
+            # older workbook predates them. Existing workbook values remain
+            # unchanged and all other vocabulary stays workbook-defined.
+            workbook_lists.setdefault("service_domain", set()).add("Mining")
+            workbook_lists.setdefault("unit", set()).add("cycle")
+            self.controlled_lists = workbook_lists
 
         rows = list(wb["AuditLog"].values)
         self._audit = [

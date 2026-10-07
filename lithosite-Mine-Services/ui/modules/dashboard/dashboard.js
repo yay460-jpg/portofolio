@@ -11,7 +11,8 @@
     equipment: [],
     workFronts: [],
     operations: [],
-    issues: []
+    issues: [],
+    maintenance: []
   };
 
   function setText(id, value) {
@@ -105,6 +106,64 @@
         return key + ' ' + issueSeverities[key];
       }).join(' · ') || 'No open issues'
     );
+  }
+
+  function updateFleetKpi() {
+    const foundation = global.LithositeKPIFoundation;
+    if (!foundation || typeof foundation.calculateFleetAllDates !== 'function') {
+      setText('dashboardFleetPA', '—');
+      setText('dashboardFleetUA', '—');
+      setText('dashboardFleetEU', '—');
+      return;
+    }
+
+    const baselines = foundation.TIME_BASELINES || [];
+    const defaultBaseline = foundation.DEFAULT_BASELINE || baselines[0];
+    let policy = {
+      baseline: defaultBaseline,
+      euDenominator: 'AVAILABLE',
+      effectiveTimeRule: 'PURE_EFFECTIVE'
+    };
+
+    try {
+      const raw = global.localStorage && global.localStorage.getItem('lithosite.mine-services.v36.kpi-policy');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        const baseline = baselines.find(function (item) {
+          return item.baseline_id === saved.baselineId;
+        });
+        policy = {
+          baseline: baseline || defaultBaseline,
+          euDenominator: saved.euDenominator === 'SCHEDULED' ? 'SCHEDULED' : 'AVAILABLE',
+          effectiveTimeRule: saved.effectiveTimeRule === 'STANDARD_CYCLE' ? 'STANDARD_CYCLE' : 'PURE_EFFECTIVE'
+        };
+      }
+    } catch (_) {}
+
+    try {
+      const calculation = foundation.calculateFleetAllDates({
+        baseline: policy.baseline,
+        policy: policy,
+        equipment: state.equipment,
+        operations: state.operations,
+        maintenance: state.maintenance
+      });
+      const results = calculation && calculation.results ? calculation.results : {};
+      const format = function (result) {
+        if (!result || result.status !== 'READY' || result.value === null || result.value === undefined) return '—';
+        const value = Number(result.value);
+        return Number.isFinite(value) ? value.toFixed(2) + '%' : '—';
+      };
+
+      setText('dashboardFleetPA', format(results.PA));
+      setText('dashboardFleetUA', format(results.UA));
+      setText('dashboardFleetEU', format(results.EU));
+    } catch (error) {
+      console.warn('[Dashboard] Fleet KPI calculation unavailable:', error);
+      setText('dashboardFleetPA', '—');
+      setText('dashboardFleetUA', '—');
+      setText('dashboardFleetEU', '—');
+    }
   }
 
   function updateEquipmentStatus() {
@@ -322,6 +381,7 @@
 
   function render() {
     updateKpis();
+    updateFleetKpi();
     updateEquipmentStatus();
     updateRecentOperations();
     updateIssuesAlerts();
@@ -334,13 +394,15 @@
         runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
         runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
         runtimeClient.request({ operation: 'READ', entity: 'Operations' }),
-        runtimeClient.request({ operation: 'READ', entity: 'Issues' })
+        runtimeClient.request({ operation: 'READ', entity: 'Issues' }),
+        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' })
       ]);
 
       state.equipment = Array.isArray(results[0].data) ? results[0].data : [];
       state.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
       state.operations = Array.isArray(results[2].data) ? results[2].data : [];
       state.issues = Array.isArray(results[3].data) ? results[3].data : [];
+      state.maintenance = Array.isArray(results[4].data) ? results[4].data : [];
 
       render();
     } catch (error) {

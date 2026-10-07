@@ -166,7 +166,7 @@ function openAdd(){
  document.getElementById('issuesModalTitle').textContent='Add Issue';
  document.getElementById('issuesSave').textContent='Save via RuntimeAdapter';
  resetForm();
- document.getElementById('issuesModal').classList.add('show');
+ if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('issuesModal');}else{document.getElementById('issuesModal').classList.add('show')};
 }
 function openEdit(id){
  const row=state.rows.find(x=>String(x.issue_id)===String(id));if(!row)return;
@@ -181,7 +181,7 @@ function openEdit(id){
   f_issue_closed_at:row.closed_at?String(row.closed_at).slice(0,16):''
  };
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
- document.getElementById('issuesModal').classList.add('show');
+ if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('issuesModal');}else{document.getElementById('issuesModal').classList.add('show')};
 }
 function payload(){
  const status=document.getElementById('f_issue_status').value;

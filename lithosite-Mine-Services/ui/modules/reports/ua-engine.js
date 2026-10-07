@@ -7,6 +7,9 @@
  *
  * It does not infer usage from activity names and does not modify
  * raw evidence.
+ *
+ * Standby / Waiting is represented by the timeline classifier as
+ * AVAILABLE + NOT_USED, therefore it must never contribute to Used Time.
  */
 
 (function (global) {

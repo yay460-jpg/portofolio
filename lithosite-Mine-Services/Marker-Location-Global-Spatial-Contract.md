@@ -199,3 +199,98 @@ HSE / Equipment / WorkFront = domain-linked spatial markers.
 Facility / Workshop / Stockpile / Disposal / Drainage / Other = global spatial markers.
 
 Future work must not reintroduce a mandatory domain Source ID for global spatial marker types unless a new explicit contract is approved.
+
+
+## 10. Persistence & Backup Extension
+
+The Stage 20 spatial model and marker limits remain authoritative. Persistence and backup add storage behavior without changing marker semantics.
+
+### 10.1 Active persistence
+
+The active Marker Location dataset must survive normal browser refresh/reload.
+
+Persistence stores the centralized marker dataset:
+- marker_id
+- marker_type
+- label
+- easting
+- northing
+- elevation
+- source_entity
+- source_id
+- status
+
+Restoring active persistence must revalidate the same marker rules used by the central marker model.
+
+Active persistence is separate from the official backup retention store.
+
+### 10.2 Backup package
+
+Marker Location backups use the dedicated `.ltmarker` format.
+
+`.ltmarker` contains Marker Location data only. It must not embed or replace the `.ltdtm` topography package.
+
+Backup storage is located at:
+
+`Database/marker-location/`
+
+The portable package uses the `LT-MARKER` format, version `1`, with the package magic `LITMARKR`.
+
+The backup store retains a maximum of **5 backup files**. When a sixth backup is saved, the oldest backup is automatically removed.
+
+The 5-file backup retention limit is a storage limit and is independent from per-marker-type ACTIVE capacity.
+
+### 10.3 Restore validation
+
+A `.ltmarker` restore must validate:
+- package format and supported version;
+- marker structure and required fields;
+- marker status values;
+- marker type validity;
+- finite E/N/Z coordinates;
+- domain-link requirements for HSE, Equipment / Asset, and WorkFront;
+- global-spatial source fields remain empty;
+- duplicate active domain source links are rejected;
+- the existing ACTIVE marker limits are respected for every marker type.
+
+Restore must not provide a bypass around the Stage 20 spatial limits.
+
+A restore containing more ACTIVE markers than the contract allows is rejected rather than partially imported.
+
+### 10.4 Backup and active-state separation
+
+Backup and restore operate on the active Marker Location dataset but do not delete or modify Topography backups.
+
+Clearing active Marker Location data:
+- removes the active marker dataset;
+- removes browser active-marker persistence;
+- does not delete files from `Database/marker-location/`.
+
+Restoring a marker backup replaces the active Marker Location dataset only after the complete package passes validation.
+
+### 10.5 Capacity authority
+
+The Stage 20 ACTIVE limits remain the single source of truth:
+
+| Marker Type | ACTIVE Limit |
+|---|---:|
+| HSE | 5 |
+| Equipment / Asset | 5 |
+| WorkFront | 5 |
+| Facility | 3 |
+| Workshop | 2 |
+| Stockpile | 3 |
+| Disposal | 5 |
+| Drainage | 3 |
+| Other | 3 |
+
+The Marker Location persistence and backup layers must not introduce a second capacity table.
+
+### 10.6 Operational feedback
+
+Successful operations should provide explicit UI feedback:
+- Backup: `Success — marker locations have been backed up.`
+- Restore: `Success — marker locations have been restored.`
+- Clear: `Marker locations cleared · pilih marker baru`
+
+Failed backup/restore operations must leave the existing active Marker Location dataset unchanged.
