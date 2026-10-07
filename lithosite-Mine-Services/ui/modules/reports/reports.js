@@ -237,7 +237,8 @@ function buildReportModel(){
     UA:k?.results?.UA?.value??null,
     EU:k?.results?.EU?.value??null,
     eligible:k?.population?.eligible??0,
-    excluded:k?.population?.excluded??0
+    excluded:k?.population?.excluded??0,
+    equipment:Array.isArray(k?.equipment)?k.equipment:[]
   };
   const sourceTables=Object.fromEntries(entities.map(entity=>[entity,reportTableRows(scoped[entity])]));
   const sections=type==='DAILY'
