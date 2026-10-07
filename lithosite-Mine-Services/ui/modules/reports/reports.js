@@ -243,7 +243,7 @@ function bind(){
     reportDraft=buildReportModel();
     renderReportCenterSummary(reportDraft);
     if(reportPreview)reportPreview.disabled=!reportDraft;
-    if(reportPdf)reportPdf.disabled=true;
+    if(reportPdf)reportPdf.disabled=!reportDraft;
   };
   const showReportPreview=()=>{
     if(!reportDraft||!previewModal)return;
@@ -260,6 +260,7 @@ function bind(){
   if(reportDate)reportDate.onchange=()=>{prepareReport();};
   if(reportPrepare)reportPrepare.onclick=prepareReport;
   if(reportPreview)reportPreview.onclick=showReportPreview;
+  if(reportPdf)reportPdf.onclick=()=>generatePdf(reportDraft);
   if(previewClose)previewClose.onclick=hideReportPreview;
   if(previewModal)previewModal.onclick=e=>{if(e.target===previewModal)hideReportPreview();};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&previewModal&&previewModal.classList.contains('open'))hideReportPreview();});
