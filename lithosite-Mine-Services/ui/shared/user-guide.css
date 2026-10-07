@@ -281,3 +281,36 @@
     height:calc(100% - 28px);
   }
 }
+
+/* V38 Shell Contract — User Guide Reader follows the same shell-safe vertical geometry.
+   The reader is dynamically appended to document.body, so it cannot inherit
+   #reportsScreen containment. Keep the overlay explicitly between topbar and footer. */
+.user-guide-reader-modal{
+  position:fixed;
+  top:64px;
+  right:0;
+  bottom:34px;
+  left:0;
+  box-sizing:border-box;
+  padding:20px 24px 20px 82px;
+  overflow:hidden;
+}
+.user-guide-reader-dialog{
+  width:min(850px,calc(100% - 20px));
+  height:calc(100% - 40px);
+  max-height:none;
+  min-height:0;
+  margin:0 auto;
+  box-sizing:border-box;
+}
+@media(max-width:700px){
+  .user-guide-reader-modal{
+    top:64px;
+    bottom:34px;
+    padding:10px 8px;
+  }
+  .user-guide-reader-dialog{
+    width:100%;
+    height:calc(100% - 20px);
+  }
+}
