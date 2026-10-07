@@ -127,3 +127,9 @@
 
 /* V32 Stage 20 — Current Markers list is intentionally hidden; Map is the spatial source of truth. */
 .marker-location-list-head,.marker-location-list{display:none!important}
+
+
+.marker-location-backup-actions{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.marker-location-backup-panel{margin:0 0 8px;padding:9px;border:1px solid #29415f;border-radius:7px;background:#071525}
+.marker-location-backup-storage{margin-bottom:8px;color:#dbe8f5;font-size:10px;line-height:1.35}
+.marker-location-backup-policy{margin-top:8px;color:#8fa7bf;font-size:9px;line-height:1.4}
