@@ -35,3 +35,7 @@
   0%,100%{transform:translateY(0);box-shadow:0 0 0 1px #60a5fa22}
   50%{transform:translateY(-1px);box-shadow:0 0 0 2px #60a5fa99,0 0 20px #3b82f655}
 }
+
+
+/* V38 — filter panel visual parity with Operations */
+#maintenanceScreen .filters{border:1px solid #28425c;border-radius:9px;background:#101f31;box-shadow:0 2px 9px #02081255}
