@@ -271,6 +271,24 @@ function buildReportModel(){
       status:daily.status
     };
   }
+  if(type==='WEEKLY'&&global.LithositeWeeklyReport){
+    const weekly=global.LithositeWeeklyReport.buildWeeklyReport({
+      period_start:effectivePeriod.start,
+      period_end:effectivePeriod.end,
+      scope:'ALL',
+      source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
+      kpi
+    });
+    const formal=global.LithositeReportEngine?.buildReportModel({
+      report_type:'WEEKLY',
+      period_start:effectivePeriod.start,
+      period_end:effectivePeriod.end,
+      scope:'ALL',
+      source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
+      kpi
+    });
+    return {...(formal||{}),...weekly,report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,report_data_status:requestedRows>0?'REQUESTED_PERIOD':'LATEST_AVAILABLE_DATA',report_id:'DRAFT-WEEKLY-'+requestedPeriod.start+'-'+requestedPeriod.end,generated_at:new Date().toISOString()};
+  }
   const sourceTables=Object.fromEntries(entities.map(entity=>[entity,reportTableRows(scoped[entity])]));
   const sections=global.LithositeReportEngine
     ? global.LithositeReportEngine.sectionPlan(type)
