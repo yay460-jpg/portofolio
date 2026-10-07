@@ -13,7 +13,7 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from mimetypes import guess_type
-from urllib.parse import unquote
+from urllib.parse import unquote, parse_qs
 
 HERE = Path(__file__).resolve().parent
 MODULE_ROOT = HERE.parent
@@ -386,7 +386,16 @@ class Handler(BaseHTTPRequestHandler):
                 length = int(self.headers.get("Content-Length", "0"))
                 if length <= 0 or length > 10_000_000:
                     raise ValueError("Invalid report request size")
-                model = json.loads(self.rfile.read(length).decode("utf-8"))
+                raw_body = self.rfile.read(length)
+                content_type = self.headers.get("Content-Type", "")
+                if content_type.startswith("application/x-www-form-urlencoded"):
+                    form = parse_qs(raw_body.decode("utf-8"), keep_blank_values=True)
+                    raw_model = form.get("payload", [""])[0]
+                    if not raw_model:
+                        raise ValueError("Missing report payload")
+                    model = json.loads(raw_model)
+                else:
+                    model = json.loads(raw_body.decode("utf-8"))
                 payload = build_report_pdf(model)
                 self.send_response(200)
                 self.send_header("Content-Type", "application/pdf")
