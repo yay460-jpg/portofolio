@@ -184,3 +184,87 @@ The V38 Dump Truck contract must not assume that Excavator production uses the s
 > For Dump Truck Hauling, **Retase is the actual field observation, Global Capacity is the configurable operational capacity, Equipment is the fleet-support master, Applied Capacity is the capacity snapshot used by the transaction, and Quantity is the system-calculated result of Retase × Applied Capacity.**
 
 This contract is the baseline for the next implementation step in V38.
+
+
+## 13. Finalized Checker & Retase Operating Model
+
+The V38 design is finalized with a single Checker component. Retase remains part of the Checker domain; a separate Retase sheet/entity and separate retase.js component are not required for this V38 implementation.
+
+### 13.1 Period-based Checker records
+
+One Checker record represents one observed operating condition for one equipment + activity + time period. It is not one record for an entire shift and not one record for each individual trip.
+
+The same Dump Truck may therefore have multiple records in one shift/day when its operating condition changes.
+
+Example:
+
+| Period | Equipment | Area | Activity | Material | Retase |
+|---|---|---|---|---|---:|
+| 06:00–09:00 | DT-01 | Pit A | Hauling | Ore | 4 |
+| 09:00–12:00 | DT-01 | Pit A | Hauling | OB | 3 |
+| 12:00–15:00 | DT-01 | Road Hauling | Hauling | Quarry | 2 |
+| 15:00–17:00 | DT-01 | Workshop | Maintenance | — | — |
+
+This supports operational reassignment without locking an equipment unit to one Work Front or material for the whole shift.
+
+### 13.2 Checker data responsibility
+
+The conceptual Checker record contains:
+
+- Checker identity
+- Date
+- Observation period / time
+- Shift
+- Equipment ID
+- Equipment type resolved from Equipment master
+- Work Front / Area
+- Activity
+- Material: Ore, OB, or Quarry
+- Retase for applicable hauling records
+- Source = Checker / field observation
+
+Material is one controlled field per record, not three simultaneous columns.
+
+### 13.3 Activity rule
+
+For Dump Truck + Hauling, Material and Retase are recorded and Quantity may be calculated.
+
+For Standby / Waiting and Maintenance / Workshop, Retase is not forced and the hauling calculation is not applied.
+
+### 13.4 Checker → Operations
+
+V38 uses Model B as the initial integration pattern:
+
+**Checker → Field Observation → Operations**
+
+Saving a Checker record does not silently create or rewrite an Operations transaction. Operations can use the Checker record as its source so the user does not need to retype the observed data.
+
+If a Checker record is corrected while the related Operations transaction is still open/not final, the operational data may follow the corrected observation.
+
+If the related Operations transaction is already validated/final, the historical transaction must not be silently rewritten. A correction/reconciliation flow may be added later if required.
+
+Direct Checker → Operations creation remains a future option if operational use proves it preferable.
+
+### 13.5 Aggregation
+
+Checker records remain period-level detail.
+
+Day and Night can be aggregated for summary display while retaining the underlying period records.
+
+Example:
+
+- Day Retase = 4 rit
+- Night Retase = 5 rit
+- Total Retase = 9 rit
+
+The main Operations layout may show the total, while Work Timeline/detail views retain the period-level records.
+
+### 13.6 Final design boundary
+
+The V38 implementation uses:
+
+**checker.js = Checker + Retase handling**
+
+and does not create a separate retase.js or Retase database sheet.
+
+The remaining implementation work is limited to the A3 Checker sheet structure and the corresponding UI/runtime integration.
