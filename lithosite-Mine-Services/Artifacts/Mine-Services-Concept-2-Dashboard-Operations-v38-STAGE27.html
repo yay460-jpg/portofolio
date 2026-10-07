@@ -302,14 +302,31 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
           <button class="control" id="reportPdfReaderClose" type="button">×</button>
         </div>
         <div class="report-pdf-reader-toolbar">
-          <span class="report-pdf-reader-label">Reports &amp; KPI</span>
-          <span id="reportPdfReaderStatus" class="report-pdf-reader-status">Issued Snapshot</span>
-          <div class="report-pdf-reader-actions">
-            <button class="control" id="reportPdfReaderPrint" type="button">🖨 Print</button>
-            <button class="control" id="reportPdfReaderCloseBottom" type="button">Cancel</button>
+          <div class="report-pdf-reader-toolgroup">
+            <button class="report-pdf-tool" id="reportPdfReaderSidebar" type="button" title="Toggle document panel">☰</button>
+            <span class="report-pdf-tool-sep"></span>
+            <button class="report-pdf-tool" id="reportPdfReaderZoomOut" type="button" title="Zoom out">−</button>
+            <button class="report-pdf-tool" id="reportPdfReaderZoomIn" type="button" title="Zoom in">＋</button>
+            <button class="report-pdf-tool" id="reportPdfReaderFit" type="button" title="Fit width">↔</button>
+            <span class="report-pdf-tool-sep"></span>
+            <button class="report-pdf-tool page" id="reportPdfReaderPrev" type="button" title="Previous section">‹</button>
+            <span class="report-pdf-page"><b id="reportPdfReaderPage">1</b><span>of</span><b id="reportPdfReaderPageTotal">1</b></span>
+            <button class="report-pdf-tool page" id="reportPdfReaderNext" type="button" title="Next section">›</button>
+            <span class="report-pdf-tool-sep"></span>
+            <button class="report-pdf-tool" id="reportPdfReaderRotate" type="button" title="Rotate document">↻</button>
+            <button class="report-pdf-tool" id="reportPdfReaderPrint" type="button" title="Print report">▣</button>
+            <button class="report-pdf-tool" id="reportPdfReaderSave" type="button" title="Save as PDF">▣</button>
+            <button class="report-pdf-tool" id="reportPdfReaderMore" type="button" title="More">•••</button>
+          </div>
+          <div class="report-pdf-reader-toolmeta">
+            <span id="reportPdfReaderLabel" class="report-pdf-reader-label">Reports &amp; KPI</span>
+            <span id="reportPdfReaderStatus" class="report-pdf-reader-status">Immutable Snapshot · Ready to Print</span>
           </div>
         </div>
-        <div class="report-pdf-reader-body"><iframe id="reportPdfReaderFrame" title="Report PDF preview"></iframe></div>
+        <div class="report-pdf-reader-body">
+          <aside id="reportPdfReaderOutline" class="report-pdf-reader-outline" aria-hidden="true"></aside>
+          <div class="report-pdf-reader-canvas"><iframe id="reportPdfReaderFrame" title="Report PDF preview"></iframe></div>
+        </div>
       </div>
     </div>
 
