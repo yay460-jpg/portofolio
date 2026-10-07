@@ -715,3 +715,83 @@ This guide defines the intended V38 workflow from configuration through reportin
 - the existing V38 Report System and Output contracts
 
 The implementation phase follows this guide; UI/runtime changes must remain contract-compliant with the workflow defined above.
+
+
+---
+
+## 25. Finalized Checker Operating Model
+
+The V38 workflow is now finalized around a single Checker component. Retase is part of Checker and is not a separate database sheet or separate UI module at this stage.
+
+### Period-based observation
+
+Checker records are created by operational period, not once for an entire shift and not once for every individual trip.
+
+One record represents:
+
+**Equipment + Activity + Time Period + Operating Context + Observed Retase**
+
+The same Dump Truck may therefore change Work Front / Area, Material, or Activity during a shift.
+
+Example:
+
+| Period | Equipment | Area | Activity | Material | Retase |
+|---|---|---|---|---|---:|
+| 06:00–09:00 | DT-01 | Pit A | Hauling | Ore | 4 |
+| 09:00–12:00 | DT-01 | Pit A | Hauling | OB | 3 |
+| 12:00–15:00 | DT-01 | Road Hauling | Hauling | Quarry | 2 |
+| 15:00–17:00 | DT-01 | Workshop | Maintenance | — | — |
+
+This is intentional operational flexibility. Equipment is not locked to one area or one material for an entire shift.
+
+### Material
+
+Checker uses one controlled Material field:
+
+- Ore
+- OB
+- Quarry
+
+The material belongs to the period record so that a reassignment from Ore to Quarry, for example, is preserved as a separate operational period.
+
+### Retase rule
+
+Retase is recorded only where the activity produces hauling trips.
+
+- Dump Truck + Hauling → Retase recorded.
+- Standby / Waiting → no hauling Retase.
+- Maintenance / Workshop → no hauling Retase.
+
+### Checker → Operations
+
+V38 initially uses:
+
+**Checker → Field Observation → Operations**
+
+Saving a Checker record does not silently create or rewrite Operations.
+
+Operations may use the Checker record as its source. If the Checker observation is corrected while the related Operations transaction is still open/not final, the Operations data may follow the corrected observation.
+
+If the Operations transaction is already validated/final, historical data must not be silently rewritten. A dedicated correction/reconciliation workflow is not part of the current implementation.
+
+### Day / Night aggregation
+
+Period-level Checker records remain available.
+
+For summary purposes they may be aggregated:
+
+**Day Retase = 4 rit**  
+**Night Retase = 5 rit**  
+**Total Retase = 9 rit**
+
+The main Operations layout may show the total, while Work Timeline/detail views retain the underlying periods.
+
+### Component boundary
+
+The V38 UI uses:
+
+**checker.js = Checker + Retase handling**
+
+There is no separate retase.js and no separate Retase sheet in this design.
+
+The remaining V38 work is the A3 Checker sheet structure and the corresponding UI/runtime implementation.
