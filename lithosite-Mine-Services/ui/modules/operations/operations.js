@@ -251,6 +251,8 @@
         '<div class="cell">' + esc(row.transaction_time) + '</div>' +
         '<div class="cell">' + esc(row.work_front_id) + '</div>' +
         '<div class="cell">' + esc(row.activity) + '</div>' +
+        '<div class="cell">' + esc(row.retase ?? '—') + '</div>' +
+        '<div class="cell">' + esc(row.applied_capacity ?? '—') + '</div>' +
         '<div class="cell">' + esc(row.quantity) + '</div>' +
         '<div class="cell">' + esc(row.unit) + '</div>' +
         '<div class="cell">' + esc(row.actual_hours) + '</div>' +
@@ -435,6 +437,7 @@
     document.getElementById('modalTitle').textContent = 'Add Operation';
     document.getElementById('stage').textContent = 'Save via RuntimeAdapter';
     resetForm();
+    refreshHaulingFields();
     if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('modal');}else{modal.classList.add('show');}
   }
 
@@ -471,6 +474,7 @@
     Object.entries(fields).forEach(function (entry) {
       document.getElementById(entry[0]).value = entry[1] ?? '';
     });
+    refreshHaulingFields();
 
     modal.classList.remove('modal-fade-out');
     modal.classList.add('show', 'modal-fade-in');
