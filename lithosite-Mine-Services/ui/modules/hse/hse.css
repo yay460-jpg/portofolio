@@ -42,3 +42,7 @@
 #hseScreen .field.full{grid-column:1/-1}
 #hseScreen .runtime-msg{grid-column:1/-1;padding:8px 10px;border:1px solid #29435d;border-radius:7px;background:#10243a;color:#8ea3ba;font-size:9.5px}
 #hseScreen .runtime-msg.error{border-color:#71343d;color:#ff9aa4;background:#28171c}
+
+
+/* V38 — filter panel visual parity with Operations */
+#hseScreen .filters{border:1px solid #28425c;border-radius:9px;background:#101f31;box-shadow:0 2px 9px #02081255}
