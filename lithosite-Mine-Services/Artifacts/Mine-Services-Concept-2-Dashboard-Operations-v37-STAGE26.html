@@ -255,6 +255,46 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
       <button class="control" id="reportsClear">Clear</button>
     </section>
 
+    <section class="report-center" aria-label="Report Center">
+      <div class="report-center-head">
+        <div><b>Report Center</b><span>Management report output</span></div>
+        <span id="reportCenterStatus" class="report-center-status">Ready</span>
+      </div>
+      <div class="report-center-controls">
+        <label>Report Type
+          <select id="reportCenterType" class="control">
+            <option value="DAILY">Daily Report</option>
+            <option value="WEEKLY">Weekly Report</option>
+            <option value="MONTHLY">Monthly Report</option>
+          </select>
+        </label>
+        <label id="reportCenterDateLabel">Report Date
+          <input id="reportCenterDate" type="date">
+        </label>
+        <label id="reportCenterScopeLabel">Scope
+          <select id="reportCenterScope" class="control">
+            <option value="ALL">All Site</option>
+          </select>
+        </label>
+        <div class="report-center-actions">
+          <button class="control" id="reportCenterPrepare" type="button">Prepare Report</button>
+          <button class="control" id="reportCenterPreview" type="button" disabled>Preview</button>
+          <button class="control primary" id="reportCenterPdf" type="button" disabled title="PDF renderer will be enabled in the next report stage">Generate PDF</button>
+        </div>
+      </div>
+      <div id="reportCenterSummary" class="report-center-summary">Select a report type and period, then prepare the report.</div>
+    </section>
+
+    <div id="reportPreviewModal" class="reports-history-modal" aria-hidden="true">
+      <div class="report-preview-dialog" role="dialog" aria-modal="true" aria-labelledby="reportPreviewTitle">
+        <div class="reports-history-head">
+          <div><b id="reportPreviewTitle">Report Preview</b><span id="reportPreviewMeta">Draft</span></div>
+          <button class="control" id="reportPreviewClose" type="button">Close</button>
+        </div>
+        <div id="reportPreviewBody" class="report-preview-body"></div>
+      </div>
+    </div>
+
     <section class="report-body">
       <section class="report-panel report-operational-panel">
         <div class="report-panelhead">
