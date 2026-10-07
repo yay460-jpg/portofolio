@@ -7,10 +7,15 @@ const pctText=v=>{
   const n=Number(v);
   return Number.isFinite(n)?n.toFixed(2)+'%':'—';
 };
+const humanize=v=>String(v??'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
 const countText=v=>{
   if(!v||typeof v!=='object'||Array.isArray(v))return '';
   const entries=Object.entries(v);
-  return entries.length?entries.map(([key,count])=>key+': '+count).join(' · '):'None recorded.';
+  return entries.length?entries.map(([key,count])=>humanize(key)+': '+count).join(' · '):'None recorded.';
+};
+const pctText=v=>{
+  const n=Number(v);
+  return Number.isFinite(n)?n.toFixed(2)+'%':'—';
 };
 const text=v=>{
   if(v===null||v===undefined)return '';
@@ -19,34 +24,46 @@ const text=v=>{
   if(Array.isArray(v))return v.length?v.map(item=>text(item)).join('\n'):'None recorded.';
   if(typeof v==='object'){
     const lines=[];
-    const add=(label,value)=>{if(value!==undefined&&value!==null&&String(value)!=='')lines.push(label+': '+String(value));};
-    if(v.headline)add('Headline',v.headline);
-    if(v.statement)add('Summary',v.statement);
-    if(v.status)add('Status',v.status);
-    if(v.management_attention)add('Management attention',v.management_attention);
-    if(v.record_count!==undefined)add('Records',v.record_count);
-    if(v.completed_count!==undefined)add('Completed / validated',v.completed_count);
-    if(v.open_count!==undefined)add('Open',v.open_count);
-    if(v.open_issue_count!==undefined)add('Open issues',v.open_issue_count);
-    if(v.open_plan_count!==undefined)add('Open plans',v.open_plan_count);
-    if(v.operations!==undefined)add('Operations',v.operations);
-    if(v.completed!==undefined)add('Completed',v.completed);
-    if(v.equipment!==undefined)add('Equipment',v.equipment);
-    if(v.workfront!==undefined)add('WorkFront',v.workfront);
-    if(v.hse!==undefined)add('HSE',v.hse);
-    if(v.maintenance!==undefined)add('Maintenance',v.maintenance);
-    if(v.downtime_hours!==undefined)add('Downtime hours',v.downtime_hours===null?'Not available':v.downtime_hours);
-    if(v.quantity_total!==undefined)add('Quantity total',v.quantity_total===null?'Not available':v.quantity_total);
-    if(v.source_issue_records!==undefined)add('Source issue records',v.source_issue_records);
-    if(v.target_data_available===false)add('Target vs actual','Target data is not available in the current source model; no target is fabricated.');
-    if(v.comparison_available===false)add('Comparison','Historical comparison is not available in this report snapshot.');
-    if(v.classification_available===false)add('Recurring classification','Historical recurring classification is not available in this report snapshot.');
-    if(v.decision_required!==undefined)add('Decision required',v.decision_required?'Yes':'No');
-    if(v.source_domains)add('Source domains',Array.isArray(v.source_domains)?v.source_domains.join(', '):v.source_domains);
-    for(const key of ['by_status','by_activity','by_workfront','by_severity','by_unit','planned_by_status','actual_by_status','issues_by_status','plans_by_status']){
-      if(v[key])add(key.replaceAll('_',' '),countText(v[key]));
-    }
+    const add=(label,value)=>{
+      if(value===undefined||value===null||String(value)==='')return;
+      lines.push(label+': '+String(value));
+    };
+    const handled=new Set();
+    const known=[
+      ['headline','Headline'],['statement','Summary'],['status','Status'],
+      ['management_attention','Management attention'],['record_count','Records'],
+      ['completed_count','Completed / validated'],['open_count','Open'],
+      ['open_issue_count','Open issues'],['open_plan_count','Open plans'],
+      ['operations','Operations'],['completed','Completed'],['equipment','Equipment'],
+      ['workfront','WorkFront'],['hse','HSE'],['maintenance','Maintenance'],
+      ['downtime_hours','Downtime hours'],['quantity_total','Quantity total'],
+      ['source_issue_records','Source issue records'],['decision_required','Decision required'],
+      ['source','Source'],['target_data_available','Target data available'],
+      ['actual_records','Actual records'],['planned_records','Planned records'],
+      ['comparison_available','Comparison available'],['classification_available','Recurring classification'],
+      ['note','Note']
+    ];
+    known.forEach(([key,label])=>{
+      if(Object.prototype.hasOwnProperty.call(v,key)){
+        handled.add(key);
+        if(key==='target_data_available'&&v[key]===false)add(label,'No — target values are not available in the current source model.');
+        else if(key==='comparison_available'&&v[key]===false)add(label,'No — historical comparison is not available in this snapshot.');
+        else if(key==='classification_available'&&v[key]===false)add(label,'No — recurring classification is not available in this snapshot.');
+        else if(key==='decision_required')add(label,v[key]?'Yes':'No');
+        else add(label,v[key]);
+      }
+    });
+    if(v.by_status){handled.add('by_status');add('Status breakdown',countText(v.by_status));}
+    if(v.by_activity){handled.add('by_activity');add('Activity breakdown',countText(v.by_activity));}
+    if(v.by_workfront){handled.add('by_workfront');add('WorkFront breakdown',countText(v.by_workfront));}
+    if(v.by_severity){handled.add('Severity breakdown',countText(v.by_severity));}
+    if(v.by_unit){handled.add('Unit breakdown',countText(v.by_unit));}
+    if(v.planned_by_status){handled.add('planned_by_status');add('Planned status',countText(v.planned_by_status));}
+    if(v.actual_by_status){handled.add('actual_by_status');add('Actual status',countText(v.actual_by_status));}
+    if(v.issues_by_status){handled.add('issues_by_status');add('Issue status',countText(v.issues_by_status));}
+    if(v.plans_by_status){handled.add('Plan status',countText(v.plans_by_status));}
     if(v.kpi&&typeof v.kpi==='object'){
+      handled.add('kpi');
       const k=v.kpi,parts=[];
       if(k.status)parts.push('Status '+k.status);
       if(k.PA!==undefined&&k.PA!==null)parts.push('PA '+pctText(k.PA));
@@ -57,6 +74,7 @@ const text=v=>{
       if(parts.length)add('KPI',parts.join(' · '));
     }
     if(v.current&&typeof v.current==='object'){
+      handled.add('current');
       const k=v.current,parts=[];
       if(k.status)parts.push('Status '+k.status);
       if(k.PA!==undefined&&k.PA!==null)parts.push('PA '+pctText(k.PA));
@@ -64,15 +82,25 @@ const text=v=>{
       if(k.EU!==undefined&&k.EU!==null)parts.push('EU '+pctText(k.EU));
       if(parts.length)add('Current KPI',parts.join(' · '));
     }
-    if(Array.isArray(v.items)&&v.items.length)add('Actions',v.items.join(' · '));
-    if(v.note)add('Note',v.note);
+    if(v.source_domains){handled.add('source_domains');add('Source domains',Array.isArray(v.source_domains)?v.source_domains.join(', '):v.source_domains);}
+    if(Array.isArray(v.items)&&v.items.length){handled.add('items');add('Actions',v.items.join(' · '));}
     if(v.evidence&&typeof v.evidence==='object'){
+      handled.add('evidence');
       const summary=Object.entries(v.evidence).map(([domain,items])=>domain+': '+(Array.isArray(items)?items.length:0)).join(' · ');
       if(summary)add('Evidence records',summary);
     }
-    if(lines.length)return lines.join('\n');
+    for(const [key,value] of Object.entries(v)){
+      if(handled.has(key)||value===undefined||value===null||String(value)==='')continue;
+      if(typeof value==='object'){
+        if(Array.isArray(value))add(humanize(key),value.length?value.join(' · '):'None recorded.');
+        else add(humanize(key),countText(value)||'Structured evidence available.');
+      }else{
+        add(humanize(key),value);
+      }
+    }
+    return lines.join('\n');
   }
-  return 'Structured report data is available in the issued snapshot.';
+  return 'No section-specific narrative is available in this report snapshot.';
 };
 function render(model){
   if(!model)throw new Error('Report model is required.');
