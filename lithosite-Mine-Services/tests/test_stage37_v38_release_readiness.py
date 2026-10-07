@@ -7,6 +7,7 @@ ENGINE = BASE / "ui/modules/reports/report-engine.js"
 VALIDATION = BASE / "ui/modules/reports/report-validation.js"
 SNAPSHOT = BASE / "ui/modules/reports/report-snapshot.js"
 PDF = BASE / "ui/modules/reports/report-pdf.js"
+SERVER = BASE / "desktop-host/server.py"
 HISTORY = BASE / "ui/modules/reports/report-history.js"
 ARTIFACT = BASE / "Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v38-STAGE27.html"
 
@@ -61,9 +62,9 @@ def test_artifact_stage_order():
         "report-engine.js?v=20261007",
         "report-validation.js?v=20261007",
         "report-snapshot.js?v=20261007",
-        "report-pdf.js?v=20261010",
+        "report-pdf.js?v=20261011",
         "report-history.js?v=20261007",
-        "reports.js?v=20261016",
+        "reports.js?v=20261019",
     ]
     positions = [html.index(value) for value in order]
     assert positions == sorted(positions)
@@ -112,27 +113,32 @@ def test_report_period_contract_and_notice():
     css = read(BASE / "ui/modules/reports/reports.css")
     assert ".report-center-notice" in css
 
-def test_report_pdf_uses_inline_reader_without_new_tab():
+def test_report_pdf_uses_user_guide_native_reader_without_custom_toolbar():
     reports = read(REPORTS)
     pdf = read(BASE / "ui/modules/reports/report-pdf.js")
     artifact = read(ARTIFACT)
     css = read(BASE / "ui/modules/reports/reports.css")
+    server = read(SERVER)
     assert "renderInline(model,iframe)" in pdf
-    assert "buildDocumentHtml" in pdf
+    assert "URL.createObjectURL(blob)" in pdf
+    assert "report-pdf" in pdf
     assert "window.open('','_blank')" in pdf
-    assert "reportPdfReaderModal" in artifact
-    assert "reportPdfReaderFrame" in artifact
-    assert "reportPdfReaderSidebar" in artifact
-    assert "reportPdfReaderZoomOut" in artifact
-    assert "reportPdfReaderZoomIn" in artifact
-    assert "reportPdfReaderFit" in artifact
-    assert "reportPdfReaderRotate" in artifact
-    assert "reportPdfReaderPrint" in artifact
-    assert "reportPdfReaderSave" in artifact
-    assert "reportPdfReaderOutline" in artifact
-    assert "reportPdfReaderPrint" in reports
-    assert "contentWindow.print()" in reports
-    assert ".report-pdf-reader-toolgroup" in css
+    assert 'class="user-guide-reader-modal"' in artifact
+    assert 'class="user-guide-reader-dialog"' in artifact
+    assert 'class="user-guide-reader-head"' in artifact
+    assert 'class="user-guide-reader-body"' in artifact
+    assert 'id="reportPdfReaderFrame"' in artifact
+    assert "user-guide.css?v=20261007" in artifact
+    assert "reportPdfReaderSidebar" not in artifact
+    assert "reportPdfReaderZoomOut" not in artifact
+    assert "reportPdfReaderPrint" not in artifact
+    assert "reportPdfReaderOutline" not in artifact
+    assert "reportPdfReaderPrint" not in reports
+    assert "contentWindow.print()" not in reports
+    assert ".report-pdf-reader-toolgroup" not in css
+    assert "if self.path == "/report-pdf":" in server
+    assert "Content-Type", "application/pdf"" in server
+    assert "def build_report_pdf(model: dict)" in server
     generate_start = reports.index("function generatePdf")
     bind_start = reports.index("function bind")
     assert "window.open" not in reports[generate_start:bind_start]
