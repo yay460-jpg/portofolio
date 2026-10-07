@@ -691,10 +691,6 @@ function bind(){
       msg('Report issued — immutable snapshot saved to Report History.',false);
     }catch(error){msg(error.message||'Report issue failed.',true);}
   };
-  let reportReaderZoom=1;
-  let reportReaderRotation=0;
-  let reportReaderSections=[];
-  let reportReaderIndex=0;
   const applyReportReaderView=()=>{
     const doc=reportPdfReaderFrame?.contentDocument;
     if(!doc?.body)return;
