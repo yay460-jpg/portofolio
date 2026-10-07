@@ -56,16 +56,25 @@ def test_artifact_stage_order():
     order = [
         "daily-report.js?v=20261007",
         "weekly-report.js?v=20261007",
-        "monthly-report.js?v=20261007",
+        "monthly-report.js?v=20261010",
         "report-engine.js?v=20261007",
         "report-validation.js?v=20261007",
         "report-snapshot.js?v=20261007",
         "report-pdf.js?v=20261007",
         "report-history.js?v=20261007",
-        "reports.js?v=20261009",
+        "reports.js?v=20261010",
     ]
     positions = [html.index(value) for value in order]
     assert positions == sorted(positions)
+
+def test_report_preview_uses_specialized_report_contract_fields():
+    reports = read(REPORTS)
+    monthly = read(BASE / "ui/modules/reports/monthly-report.js")
+    assert "model.total_source_records" in reports
+    assert "model.total_records" in reports
+    assert "const totalRecords=" in reports
+    assert "equipment:Array.isArray(k.equipment)?k.equipment:[]" in reports
+    assert "equipment:Array.isArray(k.equipment)?k.equipment:[]" in monthly
 
 def test_release_readiness_contract():
     for path in (ENGINE, VALIDATION, SNAPSHOT, PDF, HISTORY, REPORTS):
