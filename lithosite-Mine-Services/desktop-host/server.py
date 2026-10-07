@@ -70,6 +70,219 @@ def build_adapter() -> RuntimeAdapter:
 ADAPTER = build_adapter()
 
 
+def _pdf_escape(value: object) -> str:
+    text = str(value if value is not None else "")
+    text = text.encode("latin-1", "replace").decode("latin-1")
+    return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _report_lines(value: object, width: int = 92) -> list[str]:
+    import textwrap
+    if value is None:
+        return []
+    if isinstance(value, bool):
+        return ["Yes" if value else "No"]
+    if isinstance(value, (int, float)):
+        return [str(value)]
+    if isinstance(value, list):
+        value = " · ".join(str(item) for item in value)
+    if isinstance(value, dict):
+        parts = []
+        for key, item in value.items():
+            if isinstance(item, dict):
+                item = " · ".join(f"{k}: {v}" for k, v in item.items())
+            elif isinstance(item, list):
+                item = " · ".join(str(v) for v in item)
+            parts.append(f"{str(key).replace('_', ' ').title()}: {item}")
+        value = "\n".join(parts)
+    return [line for raw in str(value).splitlines() for line in (textwrap.wrap(raw, width=width) or [""])]
+
+
+def build_report_pdf(model: dict) -> bytes:
+    """Create a small self-contained A4 PDF for the native browser PDF reader.
+
+    This intentionally uses only the Python standard library so the offline
+    desktop host does not acquire another runtime dependency.
+    """
+    if not isinstance(model, dict):
+        raise ValueError("Report model must be an object.")
+
+    W, H = 595, 842
+    margin = 42
+    pages: list[list[str]] = []
+    current: list[str] = []
+    y = H - 48
+
+    def start_page() -> None:
+        nonlocal current, y
+        current = []
+        pages.append(current)
+        y = H - 48
+
+    def emit(command: str) -> None:
+        current.append(command)
+
+    def ensure(height: float = 18) -> None:
+        nonlocal y
+        if y - height < 45:
+            start_page()
+
+    def text_line(value: object, x: float = margin, size: float = 9, bold: bool = False,
+                  leading: float = 13, color: tuple[float, float, float] = (0.15, 0.22, 0.30)) -> None:
+        nonlocal y
+        ensure(leading)
+        r, g, b = color
+        emit(f"{r:.3f} {g:.3f} {b:.3f} rg")
+        font = "F2" if bold else "F1"
+        emit(f"BT /{font} {size:.2f} Tf {x:.2f} {y:.2f} Td ({_pdf_escape(value)}) Tj ET")
+        y -= leading
+
+    def wrapped(value: object, x: float = margin, size: float = 9, bold: bool = False,
+                leading: float = 12, width: int = 92) -> None:
+        lines = _report_lines(value, width)
+        for line in lines:
+            text_line(line, x, size, bold, leading)
+
+    def rule(ypos: float, color=(0.14, 0.27, 0.44), width=1.5) -> None:
+        r, g, b = color
+        emit(f"{r:.3f} {g:.3f} {b:.3f} RG {width:.2f} w {margin:.2f} {ypos:.2f} m {W-margin:.2f} {ypos:.2f} l S")
+
+    def box(x: float, top: float, w: float, h: float, fill=(0.97, 0.98, 0.99),
+            stroke=(0.78, 0.82, 0.87)) -> None:
+        fr, fg, fb = fill
+        sr, sg, sb = stroke
+        emit(f"{fr:.3f} {fg:.3f} {fb:.3f} rg {sr:.3f} {sg:.3f} {sb:.3f} RG 0.6 w {x:.2f} {top-h:.2f} {w:.2f} {h:.2f} re B")
+
+    def section_heading(title: str) -> None:
+        nonlocal y
+        ensure(31)
+        top = y + 4
+        box(margin, top, W - 2*margin, 23, fill=(0.91, 0.94, 0.97), stroke=(0.76, 0.81, 0.87))
+        text_line(title, margin + 8, 10.5, True, 14, (0.14, 0.27, 0.44))
+        y -= 2
+
+    start_page()
+    report_type = str(model.get("report_type") or "REPORT").upper()
+    period = model.get("period") or {}
+    start = str(period.get("start") or "—")
+    end = str(period.get("end") or start)
+    period_text = start if start == end else f"{start} → {end}"
+    status = str(model.get("status") or "DRAFT")
+    kpi = model.get("kpi") or {}
+    counts = model.get("source_counts") or {}
+    sections = model.get("section_data") or {}
+    section_plan = model.get("sections") or []
+
+    text_line("LITHOSITE MINE SERVICES", margin, 8, True, 11, (0.14, 0.27, 0.44))
+    text_line("Reports & KPI", margin, 20, True, 23, (0.08, 0.18, 0.30))
+    text_line(f"{report_type} REPORT  ·  {period_text}", margin, 9, False, 13, (0.38, 0.45, 0.54))
+    rule(y + 2)
+    y -= 10
+
+    section_heading("DOCUMENT CONTROL")
+    control = [
+        ("Report Type", report_type), ("Period", period_text),
+        ("Status", status), ("Scope", model.get("scope") or "ALL"),
+        ("Report ID", model.get("report_id") or "—"), ("Snapshot", model.get("snapshot_id") or "DRAFT"),
+        ("Records", model.get("total_records", model.get("total_source_records", 0))),
+        ("Data Status", model.get("report_data_status") or "REQUESTED_PERIOD"),
+    ]
+    col_w = (W - 2*margin) / 2
+    for idx in range(0, len(control), 2):
+        ensure(22)
+        top = y + 4
+        for col in range(2):
+            label, value = control[idx + col]
+            x = margin + col * col_w
+            box(x, top, col_w, 20, fill=(0.97, 0.98, 0.99))
+            text_line(label.upper(), x + 6, 6.5, True, 8, (0.38, 0.45, 0.54))
+            text_line(value, x + 6, 8, False, 10, (0.15, 0.22, 0.30))
+        y -= 21
+    y -= 5
+
+    section_heading("FLEET KPI")
+    cards = [
+        ("PA", kpi.get("PA", "—")), ("UA", kpi.get("UA", "—")),
+        ("EU", kpi.get("EU", "—")), ("KPI STATUS", kpi.get("status", "UNAVAILABLE")),
+    ]
+    card_w = (W - 2*margin - 18) / 4
+    for i, (label, value) in enumerate(cards):
+        x = margin + i * (card_w + 6)
+        box(x, y + 4, card_w, 42, fill=(0.97, 0.98, 0.99), stroke=(0.74, 0.80, 0.87))
+        text_line(label, x + 7, 6.5, True, 8, (0.39, 0.45, 0.54))
+        text_line(f"{value}%" if isinstance(value, (int, float)) else value, x + 7, 12, True, 15, (0.10, 0.23, 0.39))
+    y -= 50
+
+    executive_name = "Management Executive Summary" if report_type == "MONTHLY" else "Executive Summary"
+    executive = sections.get(executive_name) or sections.get("Executive Summary") or {}
+    section_heading(executive_name.upper())
+    wrapped(executive, size=9, leading=12, width=92)
+    y -= 3
+
+    attention = executive.get("management_attention") if isinstance(executive, dict) else None
+    if attention:
+        section_heading("MANAGEMENT ATTENTION")
+        wrapped(attention, size=9, leading=12, width=92)
+        y -= 3
+
+    section_heading("OPERATIONAL SOURCE SUMMARY")
+    if counts:
+        for domain, count in counts.items():
+            ensure(16)
+            text_line(f"{domain}: {count} records", margin + 8, 8.5, False, 11)
+    else:
+        text_line("No source records were reported for this snapshot.", margin + 8, 8.5, False, 11)
+    y -= 4
+
+    for name in section_plan:
+        if name == executive_name:
+            continue
+        value = sections.get(name)
+        section_heading(str(name).upper())
+        wrapped(value if value is not None else "Source evidence retained in the immutable snapshot.",
+                size=8.8, leading=12, width=92)
+        y -= 3
+
+    ensure(22)
+    rule(y + 4, color=(0.78, 0.82, 0.87), width=0.7)
+    text_line(f"Lithosite Mine Services · V38 · {report_type} Report", margin, 7, False, 9, (0.40, 0.46, 0.54))
+    text_line("Immutable report snapshot · Native browser PDF reader", W - 265, 7, False, 9, (0.40, 0.46, 0.54))
+
+    # Build a valid PDF from page content streams.
+    objects: list[bytes] = []
+    objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
+    page_object_ids = []
+    content_object_ids = []
+    for index in range(len(pages)):
+        page_object_ids.append(5 + index * 2)
+        content_object_ids.append(6 + index * 2)
+    kids = " ".join(f"{obj} 0 R" for obj in page_object_ids)
+    objects.append(f"<< /Type /Pages /Kids [{kids}] /Count {len(pages)} >>".encode())
+    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")
+
+    for index, commands in enumerate(pages):
+        stream = "\n".join(commands).encode("latin-1", "replace")
+        page_obj = f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {W} {H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents {content_object_ids[index]} 0 R >>".encode()
+        objects.append(page_obj)
+        objects.append(f"<< /Length {len(stream)} >>\nstream\n".encode() + stream + b"\nendstream")
+    # Object numbers are intentionally contiguous: catalog=1, pages=2, fonts=3/4.
+    pdf = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets = [0]
+    for number, obj in enumerate(objects, 1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{number} 0 obj\n".encode())
+        pdf.extend(obj)
+        pdf.extend(b"\nendobj\n")
+    xref = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects)+1}\n".encode())
+    pdf.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode())
+    pdf.extend(f"trailer\n<< /Size {len(objects)+1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode())
+    return bytes(pdf)
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "MineServicesDesktopHost/1.0"
 
@@ -165,6 +378,28 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         origin = self.headers.get("Origin")
+        if self.path == "/report-pdf":
+            if origin and not is_allowed_origin(origin):
+                self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 10_000_000:
+                    raise ValueError("Invalid report request size")
+                model = json.loads(self.rfile.read(length).decode("utf-8"))
+                payload = build_report_pdf(model)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/pdf")
+                self.send_header("Content-Length", str(len(payload)))
+                self.send_header("Content-Disposition", 'inline; filename="lithosite-report.pdf"')
+                if is_allowed_origin(origin):
+                    self.send_header("Access-Control-Allow-Origin", origin or "*")
+                    self.send_header("Vary", "Origin")
+                self.end_headers()
+                self.wfile.write(payload)
+            except Exception as exc:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-008", "message": str(exc)}]}, origin)
+            return
         if self.path != "/runtime":
             self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Endpoint not found"}]}, origin)
             return
