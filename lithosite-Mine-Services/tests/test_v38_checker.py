@@ -78,7 +78,7 @@ def test_checker_requires_retase_for_dump_truck_hauling():
         "source": "Checker",
     }, "checker-missing-retase")
     assert result["status"] == "REJECTED"
-    assert any(error["field"] == "retase" for error in result["errors"])
+    assert any(error.field == "retase" for error in result["errors"])
 
 
 def test_checker_does_not_force_retase_for_maintenance():
@@ -119,6 +119,6 @@ def test_checker_rejects_invalid_shift_and_material():
         "source": "Checker",
     }, "checker-invalid-controlled")
     assert result["status"] == "REJECTED"
-    fields = {error["field"] for error in result["errors"]}
+    fields = {error.field for error in result["errors"]}
     assert "shift" in fields
     assert "material" in fields
