@@ -553,6 +553,8 @@ function generatePdf(model,reader){
   try{
     if(!global.LithositePdfRenderer?.renderInline)throw new Error('PDF renderer is unavailable.');
     global.LithositePdfRenderer.renderInline(model,reader.frame);
+    reportReaderZoom=1;reportReaderRotation=0;reportReaderIndex=0;
+    reader.frame.onload=()=>{buildReportReaderOutline();applyReportReaderView();};
     reader.title.textContent=(model.report_type||'REPORT')+' Report';
     reader.meta.textContent=(model.period?.start||'—')+(model.period?.start!==model.period?.end?' → '+(model.period?.end||'—'):'')+' · '+(model.status||'ISSUED');
     reader.status.textContent='Immutable Snapshot · Ready to Print';
@@ -576,6 +578,18 @@ function bind(){
   const reportPdfReaderMeta=document.getElementById('reportPdfReaderMeta');
   const reportPdfReaderStatus=document.getElementById('reportPdfReaderStatus');
   const reportPdfReaderPrint=document.getElementById('reportPdfReaderPrint');
+  const reportPdfReaderSidebar=document.getElementById('reportPdfReaderSidebar');
+  const reportPdfReaderZoomOut=document.getElementById('reportPdfReaderZoomOut');
+  const reportPdfReaderZoomIn=document.getElementById('reportPdfReaderZoomIn');
+  const reportPdfReaderFit=document.getElementById('reportPdfReaderFit');
+  const reportPdfReaderPrev=document.getElementById('reportPdfReaderPrev');
+  const reportPdfReaderNext=document.getElementById('reportPdfReaderNext');
+  const reportPdfReaderPage=document.getElementById('reportPdfReaderPage');
+  const reportPdfReaderPageTotal=document.getElementById('reportPdfReaderPageTotal');
+  const reportPdfReaderRotate=document.getElementById('reportPdfReaderRotate');
+  const reportPdfReaderSave=document.getElementById('reportPdfReaderSave');
+  const reportPdfReaderMore=document.getElementById('reportPdfReaderMore');
+  const reportPdfReaderOutline=document.getElementById('reportPdfReaderOutline');
   const reportPdfReaderClose=document.getElementById('reportPdfReaderClose');
   const reportPdfReaderCloseBottom=document.getElementById('reportPdfReaderCloseBottom');
   const issuedHistoryModal=document.getElementById('reportIssuedHistoryModal');
@@ -669,22 +683,84 @@ function bind(){
       msg('Report issued — immutable snapshot saved to Report History.',false);
     }catch(error){msg(error.message||'Report issue failed.',true);}
   };
+  let reportReaderZoom=1;
+  let reportReaderRotation=0;
+  let reportReaderSections=[];
+  let reportReaderIndex=0;
+  const applyReportReaderView=()=>{
+    const doc=reportPdfReaderFrame?.contentDocument;
+    if(!doc?.body)return;
+    doc.body.style.zoom=String(reportReaderZoom);
+    doc.body.style.transform=reportReaderRotation?('rotate('+reportReaderRotation+'deg)'):'';
+    doc.body.style.transformOrigin='top left';
+    if(reportPdfReaderPage)reportPdfReaderPage.textContent=String(reportReaderIndex+1);
+    if(reportPdfReaderPageTotal)reportPdfReaderPageTotal.textContent=String(Math.max(1,reportReaderSections.length));
+  };
+  const buildReportReaderOutline=()=>{
+    if(!reportPdfReaderOutline||!reportPdfReaderFrame?.contentDocument)return;
+    const doc=reportPdfReaderFrame.contentDocument;
+    reportReaderSections=[...doc.querySelectorAll('.management-snapshot,.report-section')];
+    reportReaderIndex=Math.min(reportReaderIndex,Math.max(0,reportReaderSections.length-1));
+    reportPdfReaderOutline.innerHTML=reportReaderSections.length
+      ? reportReaderSections.map((node,i)=>{
+          const title=node.querySelector('h2')?.textContent?.trim()||'Management Snapshot';
+          return '<button type="button" data-report-section="'+i+'">'+esc(title)+'</button>';
+        }).join('')
+      : '<button type="button" disabled>Document</button>';
+    reportPdfReaderOutline.querySelectorAll('[data-report-section]').forEach(btn=>{
+      btn.onclick=()=>{reportReaderIndex=Number(btn.dataset.reportSection)||0;reportReaderSections[reportReaderIndex]?.scrollIntoView({behavior:'smooth',block:'start'});refreshReportReaderOutline();};
+    });
+    refreshReportReaderOutline();
+  };
+  const refreshReportReaderOutline=()=>{
+    reportPdfReaderOutline?.querySelectorAll('[data-report-section]').forEach((btn,i)=>btn.classList.toggle('active',i===reportReaderIndex));
+    if(reportPdfReaderPage)reportPdfReaderPage.textContent=String(reportReaderIndex+1);
+    if(reportPdfReaderPageTotal)reportPdfReaderPageTotal.textContent=String(Math.max(1,reportReaderSections.length));
+  };
   const closeReportPdfReader=()=>{
     if(!reportPdfReaderModal)return;
     reportPdfReaderModal.classList.remove('show');
     reportPdfReaderModal.setAttribute('aria-hidden','true');
     if(reportPdfReaderFrame)reportPdfReaderFrame.srcdoc='';
+    if(reportPdfReaderOutline)reportPdfReaderOutline.classList.remove('show');
+    reportReaderZoom=1;reportReaderRotation=0;reportReaderSections=[];reportReaderIndex=0;
   };
   const printReportPdf=()=>{
     if(!reportPdfReaderFrame?.contentWindow)return;
     reportPdfReaderFrame.contentWindow.focus();
     reportPdfReaderFrame.contentWindow.print();
   };
+  const saveReportPdf=printReportPdf;
+  const setReportReaderZoom=(value)=>{
+    reportReaderZoom=Math.max(.6,Math.min(1.8,Number(value)||1));
+    applyReportReaderView();
+  };
+  const jumpReportReader=(delta)=>{
+    if(!reportReaderSections.length)return;
+    reportReaderIndex=Math.max(0,Math.min(reportReaderSections.length-1,reportReaderIndex+delta));
+    reportReaderSections[reportReaderIndex]?.scrollIntoView({behavior:'smooth',block:'start'});
+    refreshReportReaderOutline();
+  };
+  const rotateReportReader=()=>{
+    reportReaderRotation=(reportReaderRotation+90)%360;
+    applyReportReaderView();
+  };
+  const toggleReportReaderOutline=()=>reportPdfReaderOutline?.classList.toggle('show');
+
   if(reportPdf)reportPdf.onclick=()=>generatePdf(reportDraft,{
     modal:reportPdfReaderModal,frame:reportPdfReaderFrame,title:reportPdfReaderTitle,
     meta:reportPdfReaderMeta,status:reportPdfReaderStatus
   });
   if(reportPdfReaderPrint)reportPdfReaderPrint.onclick=printReportPdf;
+  if(reportPdfReaderSave)reportPdfReaderSave.onclick=saveReportPdf;
+  if(reportPdfReaderSidebar)reportPdfReaderSidebar.onclick=toggleReportReaderOutline;
+  if(reportPdfReaderZoomOut)reportPdfReaderZoomOut.onclick=()=>setReportReaderZoom(reportReaderZoom-.1);
+  if(reportPdfReaderZoomIn)reportPdfReaderZoomIn.onclick=()=>setReportReaderZoom(reportReaderZoom+.1);
+  if(reportPdfReaderFit)reportPdfReaderFit.onclick=()=>setReportReaderZoom(1);
+  if(reportPdfReaderPrev)reportPdfReaderPrev.onclick=()=>jumpReportReader(-1);
+  if(reportPdfReaderNext)reportPdfReaderNext.onclick=()=>jumpReportReader(1);
+  if(reportPdfReaderRotate)reportPdfReaderRotate.onclick=rotateReportReader;
+  if(reportPdfReaderMore)reportPdfReaderMore.onclick=()=>{setReportReaderZoom(1);reportReaderRotation=0;applyReportReaderView();};
   if(reportPdfReaderClose)reportPdfReaderClose.onclick=closeReportPdfReader;
   if(reportPdfReaderCloseBottom)reportPdfReaderCloseBottom.onclick=closeReportPdfReader;
   if(reportPdfReaderModal)reportPdfReaderModal.onclick=e=>{if(e.target===reportPdfReaderModal)closeReportPdfReader();};
