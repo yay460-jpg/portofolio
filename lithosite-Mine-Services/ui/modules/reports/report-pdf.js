@@ -188,25 +188,30 @@ async function renderInline(model,iframe){
     : 'http://127.0.0.1:8765/report-pdf';
   const previous=iframe.dataset?.reportPdfObjectUrl;
   if(previous&&global.URL?.revokeObjectURL)global.URL.revokeObjectURL(previous);
-  const response=await global.fetch(endpoint,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(model)
-  });
-  if(!response.ok){
-    let message='Report PDF generation failed.';
-    try{
-      const payload=await response.json();
-      message=payload?.errors?.[0]?.message||message;
-    }catch(_error){}
-    throw new Error(message);
+  delete iframe.dataset.reportPdfObjectUrl;
+
+  // Edge's native PDF viewer can render a direct HTTP PDF response in an
+  // iframe more reliably than a blob: URL. Submit the report model directly
+  // to the iframe so the browser receives application/pdf as its document.
+  const form=document.createElement('form');
+  form.method='POST';
+  form.action=endpoint;
+  form.target=iframe.name||'';
+  form.style.display='none';
+  const payload=document.createElement('input');
+  payload.type='hidden';
+  payload.name='payload';
+  payload.value=JSON.stringify(model);
+  form.appendChild(payload);
+  if(!iframe.name){
+    iframe.name='lithositeReportPdfFrame';
+    form.target=iframe.name;
   }
-  const blob=await response.blob();
-  if(!blob.size)throw new Error('Generated report PDF is empty.');
-  const objectUrl=global.URL.createObjectURL(blob);
-  iframe.dataset.reportPdfObjectUrl=objectUrl;
-  iframe.src=objectUrl;
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
   return true;
 }
+
 global.LithositePdfRenderer=Object.freeze({render,renderInline,buildDocumentHtml});
 })(window);
