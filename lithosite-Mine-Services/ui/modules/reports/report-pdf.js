@@ -3,10 +3,6 @@
 'use strict';
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const pct=v=>{const n=Number(v);return Number.isFinite(n)?n.toFixed(2)+'%':'—';};
-const pctText=v=>{
-  const n=Number(v);
-  return Number.isFinite(n)?n.toFixed(2)+'%':'—';
-};
 const humanize=v=>String(v??'').replace(/_/g,' ').replace(/\b\w/g,m=>m.toUpperCase());
 const countText=v=>{
   if(!v||typeof v!=='object'||Array.isArray(v))return '';
