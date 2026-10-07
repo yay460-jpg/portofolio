@@ -125,7 +125,7 @@ def test_report_renderers_present_management_readable_section_data():
 
 def test_weekly_monthly_no_data_status_does_not_fallback_to_latest():
     reports = read(REPORTS)
-    assert reports.count("report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD'") == 3
+    assert reports.count("report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD'") == 4
     assert "LATEST_AVAILABLE_DATA" not in reports
 
 def test_report_period_filters_require_dated_source_evidence():
