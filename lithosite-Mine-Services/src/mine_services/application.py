@@ -36,11 +36,39 @@ class ApplicationService:
             return {"status": "DUPLICATE_REQUEST"}
         return None
 
+
+    def _prepare_row(self, entity, row, context="CREATE", existing=None):
+        prepared = dict(row)
+        if entity != "Operations":
+            return prepared
+        if str(prepared.get("activity") or "").strip().lower() != "hauling":
+            return prepared
+        work_front = self.store.get("WorkFront", prepared.get("work_front_id")) or {}
+        profile_id = prepared.get("capacity_profile_id") or work_front.get("capacity_profile_id")
+        applied = prepared.get("applied_capacity")
+        if context == "UPDATE" and existing:
+            applied = existing.get("applied_capacity") if existing.get("applied_capacity") not in (None, "") else applied
+            profile_id = existing.get("capacity_profile_id") or profile_id
+        if applied in (None, "") and profile_id:
+            profile = self.store.get("GlobalCapacity", profile_id)
+            if profile:
+                applied = profile.get("capacity_value")
+                prepared["capacity_unit"] = profile.get("unit") or "ton"
+        if applied not in (None, ""):
+            prepared["applied_capacity"] = float(applied)
+            prepared["capacity_profile_id"] = profile_id
+            prepared["capacity_unit"] = prepared.get("capacity_unit") or "ton"
+            if prepared.get("retase") not in (None, ""):
+                prepared["quantity"] = float(prepared["retase"]) * float(applied)
+                prepared["unit"] = prepared.get("unit") or prepared["capacity_unit"]
+        return prepared
+
     def create(self, entity, row, request_id):
         guard = self._request_guard(request_id)
         if guard:
             return guard
 
+        row = self._prepare_row(entity, row, "CREATE")
         errors = self.validator.validate(entity, row, self.store, "CREATE")
         if errors:
             return {"status": "REJECTED", "errors": errors}
@@ -90,6 +118,7 @@ class ApplicationService:
             }
 
         row = {**old, **patch}
+        row = self._prepare_row(entity, row, "UPDATE", old)
         if "created_at" in old:
             row["created_at"] = old["created_at"]
 
