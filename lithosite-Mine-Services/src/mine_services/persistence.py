@@ -20,6 +20,7 @@ class PersistenceStore:
             "equipment_status": {"Active", "Inactive", "Retired"},
             "service_domain": {"Road & Hauling", "Drainage & Dewatering", "Land Clearing", "Disposal & Stockpile", "Mining", "Reclamation", "Other"},
             "work_front_status": {"Active", "Inactive", "Closed"},
+            "capacity_status": {"Active", "Inactive"},
             "transaction_status": {"DRAFT", "VALIDATED", "REJECTED", "VOIDED"},
             "unit": {"hour", "km", "m", "m2", "m3", "ton", "unit", "cycle"},
             "maintenance_event_type": {"Preventive", "Corrective", "Inspection", "Breakdown"},
@@ -127,6 +128,7 @@ class PersistenceStore:
             # older workbook predates them. Existing workbook values remain
             # unchanged and all other vocabulary stays workbook-defined.
             workbook_lists.setdefault("service_domain", set()).add("Mining")
+            workbook_lists.setdefault("capacity_status", set()).update({"Active", "Inactive"})
             workbook_lists.setdefault("unit", set()).add("cycle")
             self.controlled_lists = workbook_lists
 
