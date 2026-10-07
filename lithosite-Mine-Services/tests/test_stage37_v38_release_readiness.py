@@ -62,7 +62,7 @@ def test_artifact_stage_order():
         "report-engine.js?v=20261007",
         "report-validation.js?v=20261007",
         "report-snapshot.js?v=20261007",
-        "report-pdf.js?v=20261013",
+        "report-pdf.js?v=20261014",
         "report-history.js?v=20261007",
         "reports.js?v=20261019",
     ]
