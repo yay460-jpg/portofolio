@@ -163,8 +163,11 @@ async function load(){
     state.policy=loadStoredPolicy();
     state.baseline=state.policy.baseline;
     const h=await rc.health();if(h.status!=='READY')throw new Error('Runtime health is not READY');
-    const result=await Promise.all(entities.map(entity=>rc.request({operation:'READ',entity})));
-    entities.forEach((e,i)=>state.data[e]=Array.isArray(result[i].data)?result[i].data:[]);
+    state.data={};
+    for(const entity of entities){
+      const result=await rc.request({operation:'READ',entity});
+      state.data[entity]=Array.isArray(result.data)?result.data:[];
+    }
     if(!state.date)state.date=latestOperationalDate();
     state.scope=document.getElementById('reportsKpiScope')?.value||'ALL_DATES';
     setDateControl();renderCounts();await calculate();state.status='ready';
@@ -189,7 +192,7 @@ function reportRecordDate(row){
   const keys=['transaction_date','event_date','activity_date','work_date','plan_date','maintenance_date','inspection_date','record_date','date','created_at','updated_at'];
   for(const key of keys){
     const value=String(row?.[key]??'').slice(0,10);
-    if(/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return value;
+    if(/^\d{4}-\d{2}-\d{2}$/.test(value))return value;
   }
   return '';
 }
