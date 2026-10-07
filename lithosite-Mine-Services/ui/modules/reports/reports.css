@@ -259,3 +259,7 @@ footer.status{
 #reportsScreen .filters .report-filter-field input:focus,#reportsScreen .filters .report-filter-field select:focus{border-color:#4d8dff}
 @media(max-width:1200px){#reportsScreen .filters{grid-template-columns:minmax(220px,1fr) auto 135px 135px 135px}}
 @media(max-width:900px){#reportsScreen .filters{grid-template-columns:1fr 1fr}.reports-search-field{grid-column:1/-1}.reports-search-clear{justify-self:start}.report-filter-field{min-width:0}}
+
+#reportsScreen .reports-search-row{display:flex;align-items:center;gap:7px;margin-top:4px}
+#reportsScreen .reports-search-row input{flex:1;min-width:0}
+#reportsScreen .reports-search-row .reports-search-clear{height:32px;flex:0 0 auto}
