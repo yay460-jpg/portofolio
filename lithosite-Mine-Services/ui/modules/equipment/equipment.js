@@ -46,14 +46,24 @@ function fillLists(){
  fillSelect('f_eq_owner_type',LISTS.owner_type,'Select owner type');
  fillSelect('f_eq_status',LISTS.status,'Select status');
 }
+function matchesEquipmentGroup(type, group){
+ const normalizedType=String(type||'').trim().toLowerCase();
+ if(!group)return true;
+ if(group==='dump-truck')return normalizedType==='dump truck';
+ if(group==='excavator')return normalizedType==='excavator';
+ if(group==='support-unit')return normalizedType==='grader'||normalizedType==='dozer';
+ return true;
+}
 function filtered(){
  const id=document.getElementById('equipmentIdFilter').value.trim().toLowerCase();
+ const group=document.getElementById('equipmentMasterGroupFilter').value;
  const cat=document.getElementById('equipmentCategoryFilter').value;
  const type=document.getElementById('equipmentTypeFilter').value;
  const owner=document.getElementById('equipmentOwnerFilter').value;
  const status=document.getElementById('equipmentStatusFilter').value;
  return state.rows.filter(r=>
    (!id||String(r.equipment_id||'').toLowerCase().includes(id))&&
+   (!group||matchesEquipmentGroup(r.type,group))&&
    (!cat||r.category===cat)&&(!type||r.type===type)&&
    (!owner||r.owner_type===owner)&&(!status||r.status===status)
  );
@@ -183,8 +193,8 @@ function bind(){
  document.getElementById('equipmentSave').onclick=save;
  document.getElementById('equipmentClose').onclick=()=>document.getElementById('equipmentModal').classList.remove('show');
  document.getElementById('equipmentCancel').onclick=()=>document.getElementById('equipmentModal').classList.remove('show');
- document.getElementById('equipmentClear').onclick=()=>{['equipmentIdFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
- ['equipmentIdFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
+ document.getElementById('equipmentClear').onclick=()=>{['equipmentIdFilter','equipmentMasterGroupFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
+ ['equipmentIdFilter','equipmentMasterGroupFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
  document.getElementById('equipmentRows').addEventListener('click',e=>{
   const showMap=e.target.closest('.show-map-equipment');if(showMap){
    const api=global.MineServicesMarkerLocation;
