@@ -54,7 +54,7 @@ def test_stage36_report_history():
 def test_artifact_stage_order():
     html = read(ARTIFACT)
     order = [
-        "daily-report.js?v=20261007",
+        "daily-report.js?v=20261010",
         "weekly-report.js?v=20261007",
         "monthly-report.js?v=20261010",
         "report-engine.js?v=20261007",
@@ -78,7 +78,7 @@ def test_report_preview_uses_specialized_report_contract_fields():
     daily = read(BASE / "ui/modules/reports/daily-report.js")
     assert "equipment:Array.isArray(k.equipment)?k.equipment:[]" in monthly
     assert "equipment:Array.isArray(k.equipment)?k.equipment:[]" in daily
-    assert "model.total_records+' records</span>" in reports
+    assert "totalRecords+' records</span>" in reports
 
 def test_release_readiness_contract():
     for path in (ENGINE, VALIDATION, SNAPSHOT, PDF, HISTORY, REPORTS):
