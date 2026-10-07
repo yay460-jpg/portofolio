@@ -1,7 +1,8 @@
-"""A.3 runtime schema with V38 Global Capacity and hauling fields.
+"""A.3 runtime schema with V38 Global Capacity, Checker, and hauling fields.
 
 A.3 remains the active runtime schema. V38 extends the active contract with
-GlobalCapacity configuration plus WorkFront/Operations capacity references.
+GlobalCapacity configuration, Checker field observations, and WorkFront/Operations
+capacity references.
 """
 
 from .schema import (
@@ -18,12 +19,12 @@ SCHEMA_VERSION = "A.3"
 
 SHEETS = [
     "_Baseline", "_System", "_Lists", "Equipment", "WorkFront",
-    "GlobalCapacity", "Operations", "Maintenance", "Issues", "Plans",
-    "HSE", "MapMarker", "AuditLog",
+    "GlobalCapacity", "Checker", "Operations", "Maintenance", "Issues",
+    "Plans", "HSE", "MapMarker", "AuditLog",
 ]
 
 DOMAIN_ENTITIES = [
-    "Equipment", "WorkFront", "GlobalCapacity", "Operations",
+    "Equipment", "WorkFront", "GlobalCapacity", "Checker", "Operations",
     "Maintenance", "Issues", "Plans", "HSE", "MapMarker",
 ]
 
@@ -31,6 +32,11 @@ HEADERS = dict(_A2_HEADERS)
 HEADERS["GlobalCapacity"] = [
     "capacity_profile_id", "capacity_name", "capacity_value", "unit",
     "status", "effective_from", "effective_to",
+]
+HEADERS["Checker"] = [
+    "checker_id", "checker_name", "observation_date", "start_time",
+    "end_time", "shift", "equipment_id", "work_front_id", "activity",
+    "material", "retase", "source",
 ]
 HEADERS["WorkFront"] = HEADERS["WorkFront"] + ["capacity_profile_id"]
 HEADERS["Operations"] = HEADERS["Operations"] + [
@@ -43,11 +49,16 @@ HEADERS["MapMarker"] = [
 
 PKS = dict(_A2_PKS)
 PKS["GlobalCapacity"] = "capacity_profile_id"
+PKS["Checker"] = "checker_id"
 PKS["MapMarker"] = "marker_id"
 
 REQUIRED = dict(_A2_REQUIRED)
 REQUIRED["GlobalCapacity"] = {
     "capacity_profile_id", "capacity_name", "capacity_value", "unit", "status",
+}
+REQUIRED["Checker"] = {
+    "checker_id", "checker_name", "observation_date", "start_time",
+    "end_time", "shift", "equipment_id", "work_front_id", "activity", "source",
 }
 REQUIRED["MapMarker"] = {
     "marker_id", "marker_type", "easting", "northing", "elevation",
@@ -63,7 +74,11 @@ SYSTEM_FIELDS = set(_A2_SYSTEM_FIELDS)
 FK = dict(_A2_FK)
 FK["WorkFront.capacity_profile_id"] = ("GlobalCapacity", "capacity_profile_id", False)
 FK["Operations.capacity_profile_id"] = ("GlobalCapacity", "capacity_profile_id", False)
+FK["Checker.equipment_id"] = ("Equipment", "equipment_id", True)
+FK["Checker.work_front_id"] = ("WorkFront", "work_front_id", True)
 
 CONTROLLED = dict(_A2_CONTROLLED)
 CONTROLLED["GlobalCapacity.unit"] = "unit"
 CONTROLLED["GlobalCapacity.status"] = "capacity_status"
+CONTROLLED["Checker.shift"] = "checker_shift"
+CONTROLLED["Checker.material"] = "checker_material"
