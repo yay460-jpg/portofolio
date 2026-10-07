@@ -6,4 +6,4 @@ Includes data, import, validation, persistence, backup/restore, application serv
 
 ## V38
 
-- [V38 Dump Truck Retase & Quantity Contract](./V38-Dump-Truck-Retase-Quantity-Contract.md) — checker retase, equipment payload, and automatic hauling quantity calculation.
+- [V38 Dump Truck Retase & Quantity Contract](./V38-Dump-Truck-Retase-Quantity-Contract.md) — checker retase, Global Capacity, applied capacity snapshot, and automatic hauling quantity calculation.
