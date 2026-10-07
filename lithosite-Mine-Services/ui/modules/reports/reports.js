@@ -211,6 +211,53 @@ function reportRowsForEntity(entity,period){
     return !d || (d>=period.start&&d<=period.end);
   });
 }
+function reportValue(row,keys,fallback='—'){
+  for(const key of keys){
+    const value=row?.[key];
+    if(value!==undefined&&value!==null&&String(value).trim()!=='')return String(value).trim();
+  }
+  return fallback;
+}
+function reportDetailRows(entity,records){
+  const configs={
+    Operations:{
+      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Activity',r=>reportValue(r,['activity','activity_name','task','task_name','description','work_description'])],['Equipment',r=>reportValue(r,['equipment_id','equipmentId','unit_no','unitNo'])],['Work Front',r=>reportValue(r,['work_front','workfront','work_front_name','workfront_name'])],['Status',r=>reportRecordStatus(r)]]
+    },
+    Equipment:{
+      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Equipment',r=>reportValue(r,['equipment_id','equipmentId','id','record_id'])],['Unit',r=>reportValue(r,['unit_no','unitNo','unit','equipment_unit'])],['Status',r=>reportRecordStatus(r)],['Condition',r=>reportValue(r,['condition','equipment_condition','availability_status'])]]
+    },
+    WorkFront:{
+      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Work Front',r=>reportValue(r,['work_front','workfront','name','work_front_name','workfront_name'])],['Activity',r=>reportValue(r,['activity','activity_name','task','task_name','description'])],['Status',r=>reportRecordStatus(r)],['Progress',r=>reportValue(r,['progress','progress_pct','completion','completion_pct'])]
+    },
+    Maintenance:{
+      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Equipment',r=>reportValue(r,['equipment_id','equipmentId','unit_no','unitNo'])],['Maintenance',r=>reportValue(r,['maintenance_type','type','activity','description','work_description'])],['Duration',r=>reportValue(r,['duration','duration_hours','downtime_hours','hours'])],['Status',r=>reportRecordStatus(r)]]
+    },
+    Issues:{
+      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Issue',r=>reportValue(r,['issue','issue_type','title','description','problem'])],['Severity',r=>reportValue(r,['severity','priority'])],['Status',r=>reportRecordStatus(r)],['Owner',r=>reportValue(r,['owner','assigned_to','responsible','pic'])]
+    },
+    Plans:{
+      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Plan',r=>reportValue(r,['plan','plan_name','activity','activity_name','task','description'])],['Target',r=>reportValue(r,['target','target_value','planned_qty','quantity'])],['Status',r=>reportRecordStatus(r)],['Owner',r=>reportValue(r,['owner','assigned_to','responsible','pic'])]
+    },
+    HSE:{
+      columns:[['Date',r=>reportRecordDate(r)||'Undated'],['Event',r=>reportValue(r,['event','event_type','incident','incident_type','activity','description'])],['Severity',r=>reportValue(r,['severity','risk_level','priority'])],['Status',r=>reportRecordStatus(r)],['Action',r=>reportValue(r,['action','corrective_action','recommendation'])]
+    }
+  };
+  const config=configs[entity]||configs.Operations;
+  return {columns:config.columns.map(x=>x[0]),rows:records.slice(0,80).map(row=>config.columns.map(x=>x[1](row)))};
+}
+function reportDailyTrend(records){
+  const counts={};
+  records.forEach(row=>{const d=reportRecordDate(row)||'Undated';counts[d]=(counts[d]||0)+1;});
+  return Object.entries(counts).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,count])=>({date,count}));
+}
+function reportKpiTrend(model){
+  const dates=[...new Set((model.kpi?.equipment||[]).flatMap(r=>r.validatedDates||[]))].sort();
+  return dates.map(date=>{
+    const items=(model.kpi?.equipment||[]).filter(r=>(r.validatedDates||[]).includes(date));
+    const avg=(key)=>{const v=items.map(r=>Number(r.results?.[key]?.value)).filter(Number.isFinite);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;};
+    return {date,PA:avg('PA'),UA:avg('UA'),EU:avg('EU')};
+  });
+}
 function reportTableRows(records){
   return records.slice(0,80).map(row=>({
     date:reportRecordDate(row)||'Undated',
@@ -241,6 +288,11 @@ function buildReportModel(){
     equipment:Array.isArray(k?.equipment)?k.equipment:[]
   };
   const sourceTables=Object.fromEntries(entities.map(entity=>[entity,reportTableRows(scoped[entity])]));
+  const detailTables=Object.fromEntries(entities.map(entity=>[entity,reportDetailRows(entity,scoped[entity])]));
+  const activityTrend=reportDailyTrend(scoped.Operations);
+  const maintenanceTrend=reportDailyTrend(scoped.Maintenance);
+  const issueTrend=reportDailyTrend(scoped.Issues);
+  const kpiTrend=reportKpiTrend({kpi});
   const sections=type==='DAILY'
     ? ['Executive Summary','Work / Task Completed','Equipment Status','Work Front Status','HSE Events','Maintenance / Downtime','Material Movement','Issues and Abnormalities','Site Map / Spatial Activities','KPI Summary','Outstanding / Carry-over Tasks','Supporting Evidence']
     : type==='WEEKLY'
@@ -284,21 +336,13 @@ function buildReportModel(){
     'Appendix / Evidence':'Source tables below retain report-period evidence from the RuntimeAdapter.'
   };
   return {
-    report_period_requested:requestedPeriod,
-    report_period_effective:effectivePeriod,
+    report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,
     report_data_status:requestedRows>0?'REQUESTED_PERIOD':'LATEST_AVAILABLE_DATA',
     report_id:'DRAFT-'+type+'-'+requestedPeriod.start+'-'+requestedPeriod.end,
-    report_type:type,
-    period:requestedPeriod,
-    scope:'ALL',
-    status:'DRAFT',
-    generated_at:new Date().toISOString(),
+    report_type:type,period:requestedPeriod,scope:'ALL',status:'DRAFT',generated_at:new Date().toISOString(),
     source_counts:Object.fromEntries(entities.map(e=>[e,scoped[e].length])),
-    total_records:totalRecords,
-    kpi,
-    sections,
-    section_data:sectionData,
-    source_tables:sourceTables
+    total_records:totalRecords,kpi,sections,section_data:sectionData,source_tables:sourceTables,
+    detail_tables:detailTables,activity_trend:activityTrend,maintenance_trend:maintenanceTrend,issue_trend:issueTrend,kpi_trend:kpiTrend
   };
 }
 function renderReportCenterSummary(model){
