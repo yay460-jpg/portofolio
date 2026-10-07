@@ -362,7 +362,8 @@ function renderReportCenterSummary(model){
   const host=document.getElementById('reportCenterSummary'),status=document.getElementById('reportCenterStatus');
   if(!host||!model)return;
   const p=model.period;
-  host.innerHTML='<b>'+esc(model.report_type)+' REPORT</b> · '+esc(p.start)+(p.start!==p.end?' → '+esc(p.end):'')+' · '+model.total_records+' source records · KPI '+esc(model.kpi?.status||'UNAVAILABLE');
+  const totalRecords=Number.isFinite(Number(model.total_records))?Number(model.total_records):Number(model.total_source_records||0);
+  host.innerHTML='<b>'+esc(model.report_type)+' REPORT</b> · '+esc(p.start)+(p.start!==p.end?' → '+esc(p.end):'')+' · '+totalRecords+' source records · KPI '+esc(model.kpi?.status||'UNAVAILABLE');
   if(status)status.textContent='Draft prepared';
 }
 function reportBar(value,max){
