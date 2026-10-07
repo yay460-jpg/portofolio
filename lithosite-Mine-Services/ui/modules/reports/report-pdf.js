@@ -190,26 +190,27 @@ async function renderInline(model,iframe){
   if(previous&&global.URL?.revokeObjectURL)global.URL.revokeObjectURL(previous);
   delete iframe.dataset.reportPdfObjectUrl;
 
-  // Edge's native PDF viewer can render a direct HTTP PDF response in an
-  // iframe more reliably than a blob: URL. Submit the report model directly
-  // to the iframe so the browser receives application/pdf as its document.
-  const form=document.createElement('form');
-  form.method='POST';
-  form.action=endpoint;
-  form.target=iframe.name||'';
-  form.style.display='none';
-  const payload=document.createElement('input');
-  payload.type='hidden';
-  payload.name='payload';
-  payload.value=JSON.stringify(model);
-  form.appendChild(payload);
-  if(!iframe.name){
-    iframe.name='lithositeReportPdfFrame';
-    form.target=iframe.name;
+  // Use the same proven transport pattern as the User Guide reader:
+  // POST the model, receive a JSON PDF payload, decode it to a Blob, then
+  // hand the PDF to the browser's native PDF viewer through the iframe.
+  const response=await fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(model),
+    cache:'no-store'
+  });
+  if(!response.ok)throw new Error('HTTP '+response.status);
+  const payload=await response.json();
+  if(!payload||payload.status!=='READY'||payload.mime!=='application/pdf'||!payload.data){
+    const detail=payload?.errors?.[0]?.message;
+    throw new Error(detail||'Report PDF payload is not a PDF');
   }
-  document.body.appendChild(form);
-  form.submit();
-  form.remove();
+  const raw=atob(payload.data);
+  const bytes=new Uint8Array(raw.length);
+  for(let index=0;index<raw.length;index+=1)bytes[index]=raw.charCodeAt(index);
+  const objectUrl=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+  iframe.dataset.reportPdfObjectUrl=objectUrl;
+  iframe.src=objectUrl+'#zoom=page-width';
   return true;
 }
 
