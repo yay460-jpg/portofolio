@@ -118,7 +118,15 @@ function render(model){
     return '<section class="report-section"><h2>'+esc(name)+'</h2><div class="section-body">'+esc(body)+'</div></section>';
   };
   const plan=Array.isArray(model.sections)?model.sections:[];
-  const body=plan.map(name=>section(name,sections[name])).join('');
+  const executiveName=type==='MONTHLY'?'Management Executive Summary':'Executive Summary';
+  const executive=sections[executiveName]||sections['Executive Summary']||{};
+  const executiveText=text(executive)||'No executive summary is available in this report snapshot.';
+  const attentionText=executive&&executive.management_attention?String(executive.management_attention):'Review the evidence and KPI status before management sign-off.';
+  const body=plan.filter(name=>name!==executiveName).map(name=>section(name,sections[name])).join('');
+  const managementSnapshot='<section class="management-snapshot">'+
+    '<div class="snapshot-head"><div><span class="eyebrow">MANAGEMENT SNAPSHOT</span><h2>Executive Summary</h2></div><span class="snapshot-status '+statusClass+'">'+esc(executive.status||status)+'</span></div>'+
+    '<div class="snapshot-grid"><div class="snapshot-summary">'+esc(executiveText)+'</div><div class="snapshot-attention"><b>Management attention</b><span>'+esc(attentionText)+'</span></div></div>'+
+    '</section>';
   const status=String(model.status||'DRAFT');
   const statusClass=status==='ISSUED'?'issued':(status==='READY'?'ready':(status==='VALIDATION REQUIRED'?'warning':'draft'));
   const attention=status==='VALIDATION REQUIRED'
@@ -152,20 +160,22 @@ function render(model){
     '.attention{display:flex;gap:8px;align-items:flex-start;border:1px solid #c8d7e8;border-left:4px solid #315a86;background:#f3f7fb;padding:7px 9px;margin:0 0 14px}.attention b{color:#24456f;white-space:nowrap}.attention span{color:#475569}.attention.warning{border-color:#e7c77d;border-left-color:#d18a00;background:#fff8e8}.attention.warning b{color:#a15c00}'+
     '.summary-title{font-size:11px;font-weight:700;color:#24456f;text-transform:uppercase;letter-spacing:.5px;margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid #cbd5e1}'+
     '.summary-table{width:100%;border-collapse:collapse;margin:0 0 14px}.summary-table th{background:#24456f;color:#fff;padding:5px 7px;text-align:left;font-size:7.5px;text-transform:uppercase}.summary-table td{border:1px solid #d7dee8;padding:4px 7px}.summary-table td.num{text-align:right;font-variant-numeric:tabular-nums}'+
-    '.report-section{break-inside:avoid;margin:0 0 12px}.report-section h2{font-size:12px;color:#24456f;margin:0 0 6px;padding:5px 7px;background:#e8eef6;border-left:4px solid #315a86;border-bottom:1px solid #cbd5e1}.section-body{padding:3px 7px;color:#334155;white-space:pre-line;line-height:1.5}'+
+    '.management-snapshot{break-inside:avoid;border:1px solid #cbd5e1;margin:0 0 15px;background:#f8fafc}.snapshot-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#e8eef6;border-bottom:1px solid #cbd5e1}.eyebrow{display:block;font-size:6.5px;font-weight:700;letter-spacing:.8px;color:#64748b;margin-bottom:2px}.snapshot-head h2{font-size:13px;color:#173a63;margin:0}.snapshot-status{font-size:7.5px;font-weight:700;text-transform:uppercase}.snapshot-status.issued{color:#15803d}.snapshot-status.ready{color:#2563eb}.snapshot-status.warning{color:#b45309}.snapshot-status.draft{color:#64748b}.snapshot-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:0}.snapshot-summary{padding:9px 10px;white-space:pre-line;line-height:1.55;color:#334155;border-right:1px solid #d7dee8}.snapshot-attention{padding:9px 10px;display:flex;flex-direction:column;gap:4px;background:#fff}.snapshot-attention b{font-size:7.5px;text-transform:uppercase;letter-spacing:.4px;color:#24456f}.snapshot-attention span{color:#475569;line-height:1.5}.report-section{break-inside:avoid;margin:0 0 12px}.report-section h2{font-size:12px;color:#24456f;margin:0 0 6px;padding:5px 7px;background:#e8eef6;border-left:4px solid #315a86;border-bottom:1px solid #cbd5e1}.section-body{padding:3px 7px;color:#334155;white-space:pre-line;line-height:1.5}'+
     '.footer{margin-top:18px;padding-top:6px;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;color:#64748b;font-size:7.5px}.footer b{color:#24456f}'+
+    '.page-footer{display:none}'+
     '.page-break{break-before:page}'+
-    '@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.report-section{break-inside:avoid}.footer{position:fixed;left:0;right:0;bottom:-10mm;background:#fff}.no-print{display:none}}'+
+    '@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.report-section,.management-snapshot{break-inside:avoid}.footer{position:fixed;left:0;right:0;bottom:-10mm;background:#fff}.page-footer{display:block;position:fixed;left:0;right:0;bottom:-11mm;text-align:right;color:#64748b;font-size:7px}.page-footer:after{content:"Page " counter(page)}.no-print{display:none}}'+
     '</style></head><body><main class="page">'+
     '<header class="brand"><div class="brand-main"><div class="brand-name">Lithosite Mine Services</div><div class="brand-title">Reports &amp; KPI</div><div class="brand-sub">Operational Management Report · V38</div></div><div class="brand-mark"><b>'+esc(type)+' REPORT</b><br>'+esc(periodText)+'</div></header>'+
     '<h1 class="document-title">'+esc(title)+'</h1><div class="document-period">'+esc(periodText)+' · '+esc(status)+'</div>'+
     documentControl+
     '<div class="kpi-grid">'+kpiCards+'</div>'+
     attention+
+    managementSnapshot+
     '<h2 class="summary-title">Operational Source Summary</h2><table class="summary-table"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+rows+'</tbody></table>'+
     body+
     '<footer class="footer"><span><b>Lithosite Mine Services</b> · V38 · Report Snapshot</span><span>Generated '+esc((model.generated_at||new Date().toISOString()).slice(0,19).replace('T',' '))+'</span></footer>'+
-    '</main><script>window.onload=function(){setTimeout(function(){window.print()},180)}</script></body></html>');
+    '</main><div class="page-footer"></div><script>window.onload=function(){setTimeout(function(){window.print()},180)}</script></body></html>');
   win.document.close();
   return true;
 }
