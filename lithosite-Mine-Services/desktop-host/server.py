@@ -349,27 +349,54 @@ def build_report_pdf(model: dict) -> bytes:
     source_table(counts)
     y -= 3
 
-    # Remaining sections. Keep the detailed performance block together on page 2
-    # so it is never split into an orphan heading + tail fragment.
+    # Remaining sections. Render populated sections in detail and collapse
+    # empty sections into one compact register. This keeps sparse Daily reports
+    # genuinely one-page while preserving the complete section taxonomy.
+    empty_sections = []
+
+    def is_empty_section(value: object) -> bool:
+        if value is None:
+            return True
+        if isinstance(value, str):
+            return not value.strip() or value.strip().lower() == "no section-specific narrative is available."
+        if isinstance(value, (list, tuple, set)):
+            return len(value) == 0
+        if isinstance(value, dict):
+            if not value:
+                return True
+            return all(
+                str(v).strip().lower() in {"", "no section-specific narrative is available."}
+                for v in value.values()
+            )
+        return False
+
     for name in plan:
         if name == executive_name:
             continue
         value = sections.get(name)
+        name_upper = str(name).upper()
 
-        if str(name).upper() == "EQUIPMENT PERFORMANCE" and pages and current:
+        if is_empty_section(value):
+            empty_sections.append(str(name))
+            continue
+
+        # Start a detailed section on the next page only when there is not
+        # enough vertical room for a useful section body. This avoids orphan
+        # headings while still allowing short sections to remain on page 1.
+        if y < 145:
             start_page()
 
         heading(str(name))
 
-        if str(name).upper() == "PLANNED VS ACTUAL" and isinstance(value, dict):
+        if name_upper == "PLANNED VS ACTUAL" and isinstance(value, dict):
             pairs = []
             for label, key in (("Planned Records", "planned_records"), ("Actual Records", "actual_records")):
                 if key in value:
                     pairs.append((label, display_value(key, value[key])))
             if pairs:
-                a = pairs[0]
-                b = pairs[1] if len(pairs) > 1 else ("", "")
-                field_pair(a[0], a[1], b[0], b[1], 22)
+                a_pair = pairs[0]
+                b_pair = pairs[1] if len(pairs) > 1 else ("", "")
+                field_pair(a_pair[0], a_pair[1], b_pair[0], b_pair[1], 22)
             remaining = {k: v for k, v in value.items()
                          if k not in {"planned_records", "actual_records"}}
             if remaining:
@@ -377,7 +404,7 @@ def build_report_pdf(model: dict) -> bytes:
             y -= 2
             continue
 
-        if str(name).upper() == "KPI TREND" and isinstance(value, dict):
+        if name_upper == "KPI TREND" and isinstance(value, dict):
             if "comparison_available" in value:
                 v = value["comparison_available"]
                 compact_status_box("Comparison", "Available" if v else "Not available", 25)
@@ -388,30 +415,29 @@ def build_report_pdf(model: dict) -> bytes:
                     if key in current_kpi:
                         pairs.append((key, display_value(key, current_kpi[key])))
                 for i in range(0, len(pairs), 2):
-                    a = pairs[i]
-                    b = pairs[i + 1] if i + 1 < len(pairs) else ("", "")
-                    field_pair(a[0], a[1], b[0], b[1], 22)
+                    a_pair = pairs[i]
+                    b_pair = pairs[i + 1] if i + 1 < len(pairs) else ("", "")
+                    field_pair(a_pair[0], a_pair[1], b_pair[0], b_pair[1], 22)
             continue
 
-        if str(name).upper() in {"TOP MANAGEMENT CONCERNS", "RECOMMENDED ACTIONS"} and isinstance(value, dict):
-            label = "Status"
+        if name_upper in {"TOP MANAGEMENT CONCERNS", "RECOMMENDED ACTIONS"} and isinstance(value, dict):
             v = value.get("status")
             if v is not None:
-                compact_status_box(label, str(v).upper(), 25)
+                compact_status_box("Status", str(v).upper(), 25)
             else:
                 paragraph(value, 8.0, 10.2, 104)
             continue
 
-        if str(name).upper() == "KEY HIGHLIGHTS" and isinstance(value, dict):
+        if name_upper == "KEY HIGHLIGHTS" and isinstance(value, dict):
             items = []
             for key in ("operations", "completed", "equipment", "workfront", "hse", "maintenance"):
                 if key in value:
                     items.append((key.title(), display_value(key, value[key])))
             if items:
                 for i in range(0, len(items), 2):
-                    a = items[i]
-                    b = items[i + 1] if i + 1 < len(items) else ("", "")
-                    field_pair(a[0], a[1], b[0], b[1], 22)
+                    a_pair = items[i]
+                    b_pair = items[i + 1] if i + 1 < len(items) else ("", "")
+                    field_pair(a_pair[0], a_pair[1], b_pair[0], b_pair[1], 22)
             else:
                 paragraph(value, 8.0, 10.2, 104)
             continue
@@ -422,7 +448,28 @@ def build_report_pdf(model: dict) -> bytes:
             paragraph(value, 8.0, 10.2, 104)
         y -= 2
 
-    ensure(25)
+    if empty_sections:
+        if y < 105:
+            start_page()
+        heading("Additional Operational Sections")
+        col = usable / 2
+        row_h = 17
+        for idx in range(0, len(empty_sections), 2):
+            ensure(row_h + 3)
+            top = y + 4
+            for j in range(2):
+                if idx + j >= len(empty_sections):
+                    continue
+                x = M + j * col
+                rect(x, top, col, row_h, fill=(0.985, 0.988, 0.992), stroke=(0.86, 0.89, 0.92))
+                at(empty_sections[idx + j].upper(), x + 7, top - 7, 6.2, True, (0.39, 0.46, 0.55))
+                at("No activity / narrative reported", x + 7, top - 14, 7.2, False, (0.32, 0.39, 0.47))
+            y = top - row_h - 3
+
+    # Reserve enough room for the footer. If the current page is genuinely full,
+    # create a new page rather than pushing a footer onto an otherwise blank page.
+    if y < 72:
+        start_page()
     line(y + 4, (0.78, 0.82, 0.87), 0.7)
     at(f"Lithosite Mine Services · V38 · {report_type} Report", M, y - 8, 7, False, (0.42, 0.48, 0.55))
     at("Immutable report snapshot", W - M - 112, y - 8, 7, False, (0.42, 0.48, 0.55))
