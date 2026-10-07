@@ -136,8 +136,8 @@ def test_report_pdf_uses_user_guide_native_reader_without_custom_toolbar():
     assert "reportPdfReaderPrint" not in reports
     assert "contentWindow.print()" not in reports
     assert ".report-pdf-reader-toolgroup" not in css
-    assert "if self.path == "/report-pdf":" in server
-    assert "Content-Type", "application/pdf"" in server
+    assert 'if self.path == "/report-pdf":' in server
+    assert '"Content-Type", "application/pdf"' in server
     assert "def build_report_pdf(model: dict)" in server
     generate_start = reports.index("function generatePdf")
     bind_start = reports.index("function bind")
