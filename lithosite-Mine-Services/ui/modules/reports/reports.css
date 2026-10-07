@@ -250,3 +250,12 @@ footer.status{
 #reportsScreen .report-center-head-right .report-center-actions{display:flex;gap:5px;margin-left:0}
 #reportsScreen .report-center-head-right .report-center-actions .control{height:32px}
 @media(max-width:900px){#reportsScreen .report-center-head{height:auto;min-height:34px;padding:6px 9px}.report-center-head-right{flex-wrap:wrap;justify-content:flex-end}#reportsScreen .report-center-head-right .report-center-actions{width:auto}}
+
+#reportsScreen .filters{grid-template-columns:minmax(280px,1fr) auto 155px 155px 155px;gap:8px;align-items:end}
+#reportsScreen .filters .reports-search-field{min-width:0}
+#reportsScreen .filters .reports-search-clear{height:32px}
+#reportsScreen .filters .report-filter-field{display:flex;flex-direction:column;gap:5px;color:#8fa5bb;font-size:8.5px;font-weight:700;text-transform:uppercase;min-width:0}
+#reportsScreen .filters .report-filter-field input,#reportsScreen .filters .report-filter-field select{box-sizing:border-box;width:100%;height:32px;padding:0 9px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;font:inherit;font-size:10px;outline:none}
+#reportsScreen .filters .report-filter-field input:focus,#reportsScreen .filters .report-filter-field select:focus{border-color:#4d8dff}
+@media(max-width:1200px){#reportsScreen .filters{grid-template-columns:minmax(220px,1fr) auto 135px 135px 135px}}
+@media(max-width:900px){#reportsScreen .filters{grid-template-columns:1fr 1fr}.reports-search-field{grid-column:1/-1}.reports-search-clear{justify-self:start}.report-filter-field{min-width:0}}
