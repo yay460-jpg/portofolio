@@ -248,7 +248,7 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
     </div>
 
     <section class="panel filters">
-      <span id="reportCenterStatus" class="report-center-status">Ready</span>
+
       <div class="field reports-search-field">
         <label class="reports-search-label"><b>Report Center &amp; Search Data</b><span>Management report output</span></label>
         <div class="reports-search-row">
@@ -272,9 +272,12 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
         </select>
       </label>
       <div class="report-filter-actions">
-        <button class="control" id="reportCenterPrepare" type="button">Prepare Report</button>
-        <button class="control" id="reportCenterPreview" type="button" disabled>Preview</button>
-        <button class="control primary" id="reportCenterPdf" type="button" disabled>Generate PDF</button>
+        <div id="reportCenterStatus" class="report-center-status">Ready</div>
+        <div class="report-filter-buttons">
+          <button class="control" id="reportCenterPrepare" type="button">Prepare Report</button>
+          <button class="control" id="reportCenterPreview" type="button" disabled>Preview</button>
+          <button class="control primary" id="reportCenterPdf" type="button" disabled>Generate PDF</button>
+        </div>
       </div>
     </section>
 
