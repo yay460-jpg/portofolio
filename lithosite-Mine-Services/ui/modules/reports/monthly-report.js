@@ -9,7 +9,7 @@ const OPTIONAL=['MarkerLocation','Topography'];
 const CLOSED=['CLOSED','RESOLVED','VOIDED','COMPLETED','DONE'];
 function dateOf(row){if(!row||typeof row!=='object')return null;for(const k of ['transaction_date','event_date','maintenance_date','issue_date','plan_date','date','work_date','created_at','updated_at']){const v=String(row[k]??'').slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v}return null}
 function rows(s,n){return Array.isArray(s?.[n])?s[n]:[]}
-function scoped(s,n,a,b){return rows(s,n).filter(r=>{const d=dateOf(r);return !d||(d>=a&&d<=b)})}
+function scoped(s,n,a,b){return rows(s,n).filter(r=>{const d=dateOf(r);return !!d&&d>=a&&d<=b})}
 function text(row,keys){for(const k of keys){const v=String(row?.[k]??'').trim();if(v)return v}return 'Unspecified'}
 function count(a,keys){const o={};a.forEach(r=>{const k=text(r,keys);o[k]=(o[k]||0)+1});return o}
 function sum(a,keys){let total=0,found=0;a.forEach(r=>{for(const k of keys){const n=Number(r?.[k]);if(Number.isFinite(n)){total+=n;found++;break}}});return found?total:null}
