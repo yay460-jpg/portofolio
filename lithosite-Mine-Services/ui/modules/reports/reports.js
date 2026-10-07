@@ -221,6 +221,18 @@ function reportTableRows(records){
     status:reportRecordStatus(row)
   }));
 }
+function reportKpiForPeriod(period){
+  const equipment=Array.isArray(state.data?.Equipment)?state.data.Equipment:[];
+  const operations=reportRowsForEntity('Operations',period);
+  const maintenance=reportRowsForEntity('Maintenance',period);
+  const activeIds=new Set(operations.concat(maintenance).map(row=>String(row?.equipment_id??row?.equipmentId??'').trim()).filter(Boolean));
+  const scopedEquipment=equipment.filter(row=>activeIds.has(String(row?.equipment_id??row?.equipmentId??'').trim()));
+  if(!global.LithositeKPIFoundation||!scopedEquipment.length)return null;
+  const policy=state.policy||DEFAULT_POLICY;
+  const payload={equipment:scopedEquipment,operations,maintenance,baseline:policy.baseline,policy:{euDenominator:policy.euDenominator,effectiveTimeRule:policy.effectiveTimeRule}};
+  const calculation=period.start===period.end?global.LithositeKPIFoundation.calculateFleet({...payload,date:period.start}):global.LithositeKPIFoundation.calculateFleetAllDates(payload);
+  return {...calculation,report_scope:{start:period.start,end:period.end,active_equipment:scopedEquipment.length}};
+}
 function buildReportModel(){
   const type=document.getElementById('reportCenterType')?.value||'DAILY';
   const requestedEnd=document.getElementById('reportCenterDate')?.value||latestOperationalDate();
@@ -232,7 +244,7 @@ function buildReportModel(){
   const effectiveEnd=requestedRows>0?requestedPeriod.end:latestAvailable;
   const effectivePeriod=type==='DAILY'?{start:effectiveEnd,end:effectiveEnd}:reportPeriod(type,effectiveEnd);
   const scoped=Object.fromEntries(entities.map(entity=>[entity,reportRowsForEntity(entity,effectivePeriod)]));
-  const k=state.kpi;
+  const k=reportKpiForPeriod(effectivePeriod)||state.kpi;
   const kpi={
     status:k?.status||'UNAVAILABLE',
     PA:k?.results?.PA?.value??null,
