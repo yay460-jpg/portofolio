@@ -63,7 +63,7 @@ function kpiSummary(kpi){
     EU:k.EU??null,
     eligible:Number(k.eligible)||0,
     excluded:Number(k.excluded)||0,
-    validation_issues:Array.isArray(k.validation_issues)?k.validation_issues.slice():[]
+    validation_issues:Array.isArray(k.validation_issues)?k.validation_issues.slice():[],\n    equipment:Array.isArray(k.equipment)?k.equipment:[]
   };
 }
 function sourceAvailability(source){
