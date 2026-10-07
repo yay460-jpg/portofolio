@@ -285,3 +285,11 @@ footer.status{
 #reportsScreen .report-filter-actions{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;gap:3px;height:52px}
 #reportsScreen .report-filter-actions .report-center-status{font-size:7.5px;color:#4ade80;font-weight:700;line-height:1;text-align:right;padding-right:4px}
 #reportsScreen .report-filter-buttons{display:flex;align-items:center;gap:5px;height:32px}
+
+#reportsScreen .report-filter-buttons #reportCenterPrepare{background:#2563eb;color:#fff;border-color:#3d7eff}
+#reportsScreen .report-filter-buttons #reportCenterPreview{background:#7c3aed;color:#fff;border-color:#9b6cff}
+#reportsScreen .report-filter-buttons #reportCenterPdf{background:#16a34a;color:#fff;border-color:#34d058}
+#reportsScreen .report-filter-buttons #reportCenterPrepare:hover:not(:disabled){background:#3478f6}
+#reportsScreen .report-filter-buttons #reportCenterPreview:hover:not(:disabled){background:#8b4cf5}
+#reportsScreen .report-filter-buttons #reportCenterPdf:hover:not(:disabled){background:#20b34f}
+#reportsScreen .report-filter-buttons .control:disabled{opacity:.42;filter:saturate(.35)}
