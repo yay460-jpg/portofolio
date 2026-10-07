@@ -413,6 +413,12 @@ function reportKpiEquipment(model){
     };
   });
 }
+function reportSectionText(value){
+  if(value===null||value===undefined)return '';
+  if(typeof value==='string')return value;
+  if(typeof value==='number'||typeof value==='boolean')return String(value);
+  try{return JSON.stringify(value,null,2);}catch(error){return 'Structured report data is available in the issued snapshot.';}
+}
 function renderReportPreview(model){
   const host=document.getElementById('reportPreviewBody'),meta=document.getElementById('reportPreviewMeta');
   if(!host||!model)return;
@@ -436,10 +442,10 @@ function renderReportPreview(model){
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Equipment Performance</b><span>'+eq.length+' KPI rows</span></div>'+
       '<div class="report-table-wrap"><table class="report-preview-table"><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table></div></section>'+
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Operational Source Summary</b><span>'+totalRecords+' records</span></div><div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table></div></section>'+
-    narrative('Planned vs Actual',model.section_data['Planned vs Actual']||'Plan and actual source data are retained for the selected period.')+
-    narrative('Maintenance / Downtime',model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime']||'Maintenance source evidence is retained below.')+
-    narrative('HSE Summary',model.section_data['HSE Summary']||model.section_data['HSE Events']||'HSE source evidence is retained below.')+
-    narrative('Issues and Actions',model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities']||'Issue source evidence is retained below.')+
+    narrative('Planned vs Actual',reportSectionText(model.section_data['Planned vs Actual'])||'Plan and actual source data are retained for the selected period.')+
+    narrative('Maintenance / Downtime',reportSectionText(model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime'])||'Maintenance source evidence is retained below.')+
+    narrative('HSE Summary',reportSectionText(model.section_data['HSE Summary']||model.section_data['HSE Events'])||'HSE source evidence is retained below.')+
+    narrative('Issues and Actions',reportSectionText(model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities'])||'Issue source evidence is retained below.')+
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Source Evidence</b><span>Traceable RuntimeAdapter records</span></div><div class="report-preview-copy">Detailed source rows remain available in the report snapshot. No source data is invented when a domain does not provide the required field.</div></section>'+
     '<div class="report-preview-note">Preview is read-only. Generate PDF uses this same Report Snapshot.</div>';
 }
