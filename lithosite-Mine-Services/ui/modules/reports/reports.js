@@ -187,18 +187,55 @@ function reportPeriod(type,endDate){
 }
 function buildReportModel(){
   const type=document.getElementById('reportCenterType')?.value||'DAILY';
-  const period=reportPeriod(type,document.getElementById('reportCenterDate')?.value||latestOperationalDate());
+  const requestedEnd=document.getElementById('reportCenterDate')?.value||latestOperationalDate();
+  const period=reportPeriod(type,requestedEnd);
   if(!period)return null;
-  const inPeriod=(row,dateField)=>{const d=String(row?.[dateField]||'').slice(0,10);return d>=period.start&&d<=period.end;};
-  const scoped={};
-  ['Operations','Equipment','WorkFront','Maintenance','Issues','Plans','HSE'].forEach(entity=>{
-    const dateField=entity==='Maintenance'||entity==='HSE'||entity==='Issues'||entity==='Plans'?'event_date':entity==='Operations'?'transaction_date':'transaction_date';
+  // Report period is anchored to the selected report date, but source data is
+  // taken from the latest available operational snapshot when the selected
+  // period has no records. This prevents a valid report from becoming empty
+  // merely because the UI date is ahead of the loaded test dataset.
+  const dateFieldByEntity={
+    Operations:'transaction_date',
+    Equipment:'transaction_date',
+    WorkFront:'transaction_date',
+    Maintenance:'event_date',
+    Issues:'event_date',
+    Plans:'event_date',
+    HSE:'event_date'
+  };
+  const periodRecords=entity=>{
     const source=rows(entity);
-    scoped[entity]=type==='DAILY'&&entity==='Equipment' ? source.slice() : source.filter(row=>inPeriod(row,dateField));
+    const field=dateFieldByEntity[entity];
+    return source.filter(row=>{
+      const d=String(row?.[field]||'').slice(0,10);
+      return d>=period.start&&d<=period.end;
+    });
+  };
+  const availableDates=Object.values(dateFieldByEntity).flatMap((field,i)=>{
+    const entity=entities[i];
+    return rows(entity).map(row=>String(row?.[field]||'').slice(0,10)).filter(Boolean);
+  }).sort();
+  const latestAvailable=availableDates[availableDates.length-1]||requestedEnd;
+  const requestedRecords=entities.reduce((n,e)=>n+periodRecords(e).length,0);
+  const effectiveEnd=requestedRecords>0?period.end:latestAvailable;
+  const effectivePeriod=type==='DAILY'
+    ? {start:effectiveEnd,end:effectiveEnd}
+    : reportPeriod(type,effectiveEnd);
+  const scoped={};
+  entities.forEach(entity=>{
+    const field=dateFieldByEntity[entity];
+    scoped[entity]=rows(entity).filter(row=>{
+      const d=String(row?.[field]||'').slice(0,10);
+      return d>=effectivePeriod.start&&d<=effectivePeriod.end;
+    });
   });
   const totalRecords=Object.values(scoped).reduce((n,list)=>n+list.length,0);
   const k=state.kpi;
   return {
+    report_period_requested:period,
+    report_period_effective:effectivePeriod,
+    report_data_status:requestedRecords>0?'REQUESTED_PERIOD':'LATEST_AVAILABLE_DATA',
+
     report_id:'DRAFT-'+type+'-'+period.start+'-'+period.end,
     report_type:type,
     period,
