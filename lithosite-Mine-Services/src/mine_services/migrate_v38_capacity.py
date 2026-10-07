@@ -1,9 +1,9 @@
-"""One-time V38 workbook migration for Global Capacity and hauling snapshots.
+"""One-time V38 workbook migration for Global Capacity, Checker, and hauling snapshots.
 
 Run from the Mine Services repository:
     python -m src.mine_services.migrate_v38_capacity [path-to-xlsx]
 
-The migration is additive: existing rows are preserved and new fields start blank.
+The migration is additive: existing rows are preserved and new fields/sheets start blank.
 """
 from pathlib import Path
 import sys
@@ -20,6 +20,10 @@ def migrate(path: Path):
     if "GlobalCapacity" not in wb.sheetnames:
         ws = wb.create_sheet("GlobalCapacity")
         ws.append(schema_a3.HEADERS["GlobalCapacity"])
+
+    if "Checker" not in wb.sheetnames:
+        ws = wb.create_sheet("Checker")
+        ws.append(schema_a3.HEADERS["Checker"])
 
     for entity in ("WorkFront", "Operations"):
         ws = wb[entity]
