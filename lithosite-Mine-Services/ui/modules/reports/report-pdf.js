@@ -118,6 +118,8 @@ function render(model){
     return '<section class="report-section"><h2>'+esc(name)+'</h2><div class="section-body">'+esc(body)+'</div></section>';
   };
   const plan=Array.isArray(model.sections)?model.sections:[];
+  const status=String(model.status||'DRAFT');
+  const statusClass=status==='ISSUED'?'issued':(status==='READY'?'ready':(status==='VALIDATION REQUIRED'?'warning':'draft'));
   const executiveName=type==='MONTHLY'?'Management Executive Summary':'Executive Summary';
   const executive=sections[executiveName]||sections['Executive Summary']||{};
   const executiveText=text(executive)||'No executive summary is available in this report snapshot.';
@@ -127,8 +129,6 @@ function render(model){
     '<div class="snapshot-head"><div><span class="eyebrow">MANAGEMENT SNAPSHOT</span><h2>Executive Summary</h2></div><span class="snapshot-status '+statusClass+'">'+esc(executive.status||status)+'</span></div>'+
     '<div class="snapshot-grid"><div class="snapshot-summary">'+esc(executiveText)+'</div><div class="snapshot-attention"><b>Management attention</b><span>'+esc(attentionText)+'</span></div></div>'+
     '</section>';
-  const status=String(model.status||'DRAFT');
-  const statusClass=status==='ISSUED'?'issued':(status==='READY'?'ready':(status==='VALIDATION REQUIRED'?'warning':'draft'));
   const attention=status==='VALIDATION REQUIRED'
     ? '<div class="attention warning"><b>Validation Required</b><span>This report cannot be treated as final until the KPI/source validation gate is resolved.</span></div>'
     : '<div class="attention"><b>Report Status</b><span>'+esc(status)+' · Generated from the selected report period and immutable report snapshot.</span></div>';
