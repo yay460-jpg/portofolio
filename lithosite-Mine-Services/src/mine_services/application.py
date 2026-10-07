@@ -43,6 +43,9 @@ class ApplicationService:
             return prepared
         if str(prepared.get("activity") or "").strip().lower() != "hauling":
             return prepared
+        equipment = self.store.get("Equipment", prepared.get("equipment_id")) or {}
+        if str(equipment.get("type") or "").strip().lower() != "dump truck":
+            return prepared
         work_front = self.store.get("WorkFront", prepared.get("work_front_id")) or {}
         profile_id = prepared.get("capacity_profile_id") or work_front.get("capacity_profile_id")
         applied = prepared.get("applied_capacity")
