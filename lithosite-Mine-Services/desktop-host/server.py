@@ -166,7 +166,7 @@ def build_report_pdf(model: dict) -> bytes:
     period = model.get("period") or {}
     start = str(period.get("start") or "—")
     end = str(period.get("end") or start)
-    period_text = start if start == end else f"{start} → {end}"
+    period_text = start if start == end else f"{start} to {end}"
     status = str(model.get("status") or "DRAFT")
     kpi = model.get("kpi") or {}
     counts = model.get("source_counts") or {}
@@ -174,9 +174,10 @@ def build_report_pdf(model: dict) -> bytes:
     section_plan = model.get("sections") or []
 
     text_line("LITHOSITE MINE SERVICES", margin, 8, True, 10, (0.14, 0.27, 0.44))
-    y -= 2
+    y -= 7
     text_line("Reports & KPI", margin, 20, True, 23, (0.08, 0.18, 0.30))
-    text_line(f"{report_type} REPORT  ·  {period_text}", margin, 9, False, 13, (0.38, 0.45, 0.54))
+    y -= 1
+    text_line(f"{report_type} REPORT  |  {period_text}", margin, 9, False, 13, (0.38, 0.45, 0.54))
     rule(y + 2)
     y -= 9
 
