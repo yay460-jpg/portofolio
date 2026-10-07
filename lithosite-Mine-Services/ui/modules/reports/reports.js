@@ -224,8 +224,29 @@ function reportRowsForEntity(entity,period){
   if(!source.length)return [];
   return source.filter(row=>{
     const d=reportRecordDate(row);
-    return !d || (d>=period.start&&d<=period.end);
+    return !!d && d>=period.start && d<=period.end;
   });
+}
+function reportScopedSource(period){
+  const scoped=Object.fromEntries(entities.map(entity=>[entity,reportRowsForEntity(entity,period)]));
+  const idOf=(row,keys)=>{for(const key of keys){const value=String(row?.[key]??'').trim();if(value)return value;}return '';};
+  const activeEquipmentIds=new Set(
+    scoped.Operations.concat(scoped.Maintenance)
+      .map(row=>idOf(row,['equipment_id','equipmentId']))
+      .filter(Boolean)
+  );
+  if(activeEquipmentIds.size){
+    scoped.Equipment=rows('Equipment').filter(row=>activeEquipmentIds.has(idOf(row,['equipment_id','equipmentId'])));
+  }
+  const activeWorkFrontIds=new Set(
+    scoped.Operations
+      .map(row=>idOf(row,['work_front_id','workfront_id','work_front','workfront']))
+      .filter(Boolean)
+  );
+  if(activeWorkFrontIds.size){
+    scoped.WorkFront=rows('WorkFront').filter(row=>activeWorkFrontIds.has(idOf(row,['work_front_id','workfront_id','work_front','workfront','id'])));
+  }
+  return scoped;
 }
 function reportTableRows(records){
   return records.slice(0,80).map(row=>({
@@ -255,7 +276,7 @@ function buildReportModel(){
   const latestAvailable=datedValues[datedValues.length-1]||requestedEnd;
   const requestedRows=entities.reduce((n,e)=>n+reportRowsForEntity(e,requestedPeriod).length,0);
   const effectivePeriod=requestedPeriod;
-  const scoped=Object.fromEntries(entities.map(entity=>[entity,reportRowsForEntity(entity,effectivePeriod)]));
+  const scoped=reportScopedSource(effectivePeriod);
   const k=reportKpiForPeriod(effectivePeriod)||state.kpi;
   const kpi={
     status:k?.status||'UNAVAILABLE',
