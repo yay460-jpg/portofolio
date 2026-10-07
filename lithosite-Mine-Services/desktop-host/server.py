@@ -51,7 +51,7 @@ ALLOWED_ORIGINS = {
 def is_allowed_origin(origin: str | None) -> bool:
     if origin in ALLOWED_ORIGINS:
         return True
-    if not origin:
+    if not origin or origin == "null":
         return True
     try:
         from urllib.parse import urlparse
