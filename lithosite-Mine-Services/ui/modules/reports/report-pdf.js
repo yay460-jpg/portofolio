@@ -180,9 +180,32 @@ function render(model){
   setTimeout(function(){win.print();},180);
   return true;
 }
-function renderInline(model,iframe){
+async function renderInline(model,iframe){
   if(!iframe)throw new Error('Inline PDF reader target is required.');
-  iframe.srcdoc=buildDocumentHtml(model);
+  const host=String(global.location?.hostname||'');
+  const endpoint=(global.location?.protocol==='http:'&&(host==='127.0.0.1'||host==='localhost'))
+    ? global.location.origin+'/report-pdf'
+    : 'http://127.0.0.1:8765/report-pdf';
+  const previous=iframe.dataset?.reportPdfObjectUrl;
+  if(previous&&global.URL?.revokeObjectURL)global.URL.revokeObjectURL(previous);
+  const response=await global.fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(model)
+  });
+  if(!response.ok){
+    let message='Report PDF generation failed.';
+    try{
+      const payload=await response.json();
+      message=payload?.errors?.[0]?.message||message;
+    }catch(_error){}
+    throw new Error(message);
+  }
+  const blob=await response.blob();
+  if(!blob.size)throw new Error('Generated report PDF is empty.');
+  const objectUrl=global.URL.createObjectURL(blob);
+  iframe.dataset.reportPdfObjectUrl=objectUrl;
+  iframe.src=objectUrl;
   return true;
 }
 global.LithositePdfRenderer=Object.freeze({render,renderInline,buildDocumentHtml});
