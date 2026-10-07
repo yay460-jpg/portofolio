@@ -163,8 +163,13 @@ async function load(){
     state.policy=loadStoredPolicy();
     state.baseline=state.policy.baseline;
     const h=await rc.health();if(h.status!=='READY')throw new Error('Runtime health is not READY');
-    const result=await Promise.all(entities.map(entity=>rc.request({operation:'READ',entity})));
-    entities.forEach((e,i)=>state.data[e]=Array.isArray(result[i].data)?result[i].data:[]);
+    // Read entities sequentially. The desktop runtime owns a single XLSX-backed
+    // store; parallel READ requests can contend on the same in-process store
+    // during startup and leave the Report Center stuck in Loading.
+    for(const entity of entities){
+      const result=await rc.request({operation:'READ',entity});
+      state.data[entity]=Array.isArray(result.data)?result.data:[];
+    }
     if(!state.date)state.date=latestOperationalDate();
     state.scope=document.getElementById('reportsKpiScope')?.value||'ALL_DATES';
     setDateControl();renderCounts();await calculate();state.status='ready';
