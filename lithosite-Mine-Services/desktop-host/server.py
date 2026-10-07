@@ -99,7 +99,7 @@ def _report_lines(value: object, width: int = 92) -> list[str]:
 
 
 def build_report_pdf(model: dict) -> bytes:
-    """Build a compact management-grade A4 PDF using only the Python stdlib."""
+    """Build a clean, compact management-grade A4 PDF using only the Python stdlib."""
     if not isinstance(model, dict):
         raise ValueError("Report model must be an object.")
 
@@ -123,6 +123,28 @@ def build_report_pdf(model: dict) -> bytes:
         nonlocal y
         if y - h < 48:
             start_page()
+
+    def fmt_number(value: object, decimals: int = 2) -> str:
+        try:
+            n = float(value)
+            return f"{n:.{decimals}f}"
+        except (TypeError, ValueError):
+            return str(value)
+
+    def display_value(key: str, value: object) -> str:
+        if value is None:
+            return "—"
+        if isinstance(value, bool):
+            return "Yes" if value else "No"
+        if key in {"PA", "UA", "EU"}:
+            try:
+                return f"{float(value):.2f}%"
+            except (TypeError, ValueError):
+                return str(value)
+        if key in {"actual_records", "planned_records", "record_count", "completed_count",
+                   "open_count", "open_issue_count", "open_plan_count"}:
+            return fmt_number(value, 0)
+        return str(value)
 
     def txt(value: object, x: float, size: float = 8.5, bold: bool = False,
             leading: float = 11, color=(0.16, 0.24, 0.34)) -> None:
@@ -176,26 +198,23 @@ def build_report_pdf(model: dict) -> bytes:
 
     def heading(title: str) -> None:
         nonlocal y
-        ensure(22)
-        # Deliberately use a fixed baseline inside the band, then move the
-        # cursor below the entire band. This prevents the old overlap.
+        ensure(25)
         top = y + 5
         rect(M, top, usable, 19, fill=(0.92, 0.95, 0.98), stroke=(0.78, 0.83, 0.89))
         at(title.upper(), M + 8, top - 13, 9.3, True, (0.14, 0.29, 0.47))
         y = top - 25
 
-    def field_pair(label1, value1, label2, value2) -> None:
+    def field_pair(label1, value1, label2, value2, height: float = 24) -> None:
         nonlocal y
-        ensure(29)
+        ensure(height + 6)
         col = usable / 2
         top = y + 4
-        h = 24
         for i, (label, value) in enumerate(((label1, value1), (label2, value2))):
             x = M + i * col
-            rect(x, top, col, h, fill=(0.975, 0.98, 0.99))
-            at(str(label).upper(), x + 7, top - 8, 6.3, True, (0.39, 0.46, 0.55))
-            at(value, x + 7, top - 19, 7.8, False, (0.16, 0.24, 0.34))
-        y = top - h - 2
+            rect(x, top, col, height, fill=(0.975, 0.98, 0.99))
+            at(str(label).upper(), x + 7, top - 8, 6.2, True, (0.39, 0.46, 0.55))
+            at(str(value), x + 7, top - 18, 7.8, False, (0.16, 0.24, 0.34))
+        y = top - height - 2
 
     def paragraph(value: object, size=8.3, leading=11, width=96) -> None:
         nonlocal y
@@ -224,8 +243,44 @@ def build_report_pdf(model: dict) -> bytes:
                 x = M + j * col
                 rect(x, top, col, row_h, fill=(0.985, 0.988, 0.992), stroke=(0.84, 0.87, 0.91))
                 at(str(domain).upper(), x + 7, top - 8, 6.5, True, (0.39, 0.46, 0.55))
-                at(f"{count} records", x + 7, top - 15.5, 8.2, True, (0.16, 0.29, 0.45))
+                at(f"{fmt_number(count, 0)} records", x + 7, top - 15.5, 8.2, True, (0.16, 0.29, 0.45))
             y = top - row_h - 3
+
+    def compact_status_box(label: str, value: object, height: float = 28) -> None:
+        nonlocal y
+        ensure(height + 5)
+        top = y + 3
+        rect(M + 5, top, usable - 10, height, fill=(0.98, 0.985, 0.99), stroke=(0.82, 0.86, 0.91))
+        at(label.upper(), M + 12, top - 8, 6.3, True, (0.14, 0.29, 0.47))
+        lines = wrap(value, 92)
+        if lines:
+            at(lines[0], M + 12, top - 19, 7.8, False, (0.29, 0.36, 0.44))
+        y = top - height - 4
+
+    def kpi_summary(section: dict) -> None:
+        nonlocal y
+        rows = [
+            ("Comparison", "comparison_available"),
+            ("Current PA", "PA"),
+            ("Current UA", "UA"),
+            ("Current EU", "EU"),
+            ("Current Status", "status"),
+        ]
+        for label, key in rows:
+            if key not in section:
+                continue
+            value = section[key]
+            if key == "comparison_available" and isinstance(value, bool):
+                value = "Available" if value else "Not available"
+            elif key in {"PA", "UA", "EU"}:
+                value = display_value(key, value)
+            else:
+                value = str(value)
+            field_pair(label, value, "", "", 22)
+            # cover the empty right-hand cell with the same background, but keep
+            # it visually quiet so the section reads as a compact KPI register.
+            # The empty cell is intentional for alignment.
+            y += 0
 
     start_page()
     report_type = str(model.get("report_type") or "REPORT").upper()
@@ -239,7 +294,7 @@ def build_report_pdf(model: dict) -> bytes:
     sections = model.get("section_data") or {}
     plan = model.get("sections") or []
 
-    # --- Header ---
+    # Header
     txt("LITHOSITE MINE SERVICES", M, 8, True, 9, (0.14, 0.29, 0.47))
     y -= 3
     txt("Reports & KPI", M, 19, True, 22, (0.08, 0.18, 0.30))
@@ -248,21 +303,21 @@ def build_report_pdf(model: dict) -> bytes:
     line(y, (0.14, 0.29, 0.47), 1.5)
     y -= 9
 
-    # --- Document control ---
+    # Document control
     heading("Document Control")
     field_pair("Report Type", report_type, "Period", period_text)
     field_pair("Status", status, "Scope", str(model.get("scope") or "ALL"))
     field_pair("Report ID", str(model.get("report_id") or "—"), "Snapshot", str(model.get("snapshot_id") or "DRAFT"))
     field_pair("Records", str(model.get("total_records", model.get("total_source_records", 0))),
                "Data Status", str(model.get("report_data_status") or "REQUESTED_PERIOD"))
-    y -= 5
+    y -= 4
 
-    # --- KPI ---
+    # Fleet KPI
     heading("Fleet KPI")
     card_gap = 6
     card_w = (usable - 3 * card_gap) / 4
     top = y + 4
-    card_h = 43
+    card_h = 40
     cards = [
         ("PA", kpi.get("PA", "—")),
         ("UA", kpi.get("UA", "—")),
@@ -273,74 +328,105 @@ def build_report_pdf(model: dict) -> bytes:
         x = M + i * (card_w + card_gap)
         rect(x, top, card_w, card_h, fill=(0.975, 0.98, 0.99), stroke=(0.75, 0.81, 0.88))
         at(label, x + 7, top - 10, 6.5, True, (0.39, 0.46, 0.55))
-        display = f"{value:.2f}%" if isinstance(value, (int, float)) else str(value)
-        at(display, x + 7, top - 28, 12.5, True, (0.10, 0.25, 0.43))
-    y = top - card_h - 8
+        at(display_value(label, value), x + 7, top - 27, 12.2, True, (0.10, 0.25, 0.43))
+    y = top - card_h - 7
 
-    # --- Executive summary ---
+    # Executive summary
     executive_name = "Management Executive Summary" if report_type == "MONTHLY" else "Executive Summary"
     executive = sections.get(executive_name) or sections.get("Executive Summary") or {}
     heading(executive_name)
     if isinstance(executive, dict):
         statement = executive.get("statement") or executive.get("headline") or executive
-        paragraph(statement, 8.4, 11, 100)
+        paragraph(statement, 8.5, 10.5, 105)
         attention = executive.get("management_attention")
         if attention:
-            rect(M + 5, y + 3, usable - 10, 27, fill=(0.98, 0.985, 0.99), stroke=(0.82, 0.86, 0.91))
-            at("MANAGEMENT ATTENTION", M + 12, y - 5, 6.5, True, (0.14, 0.29, 0.47))
-            lines = wrap(attention, 88)
-            if lines:
-                at(lines[0], M + 12, y - 16, 7.8, False, (0.29, 0.36, 0.44))
-            y -= 31
+            compact_status_box("Management Attention", attention, 27)
     else:
-        paragraph(executive, 8.4, 11, 100)
+        paragraph(executive, 8.5, 10.5, 105)
 
-    # --- Operational source summary ---
+    # Operational source summary
     heading("Operational Source Summary")
     source_table(counts)
-    y -= 5
+    y -= 3
 
-    # --- Remaining sections ---
+    # Remaining sections. Keep the detailed performance block together on page 2
+    # so it is never split into an orphan heading + tail fragment.
     for name in plan:
         if name == executive_name:
             continue
         value = sections.get(name)
+
+        if str(name).upper() == "EQUIPMENT PERFORMANCE" and pages and current:
+            start_page()
+
         heading(str(name))
-        if isinstance(value, dict):
-            # Give common comparison sections a compact two-column treatment.
+
+        if str(name).upper() == "PLANNED VS ACTUAL" and isinstance(value, dict):
             pairs = []
-            preferred = (
-                ("Planned Records", "planned_records"),
-                ("Actual Records", "actual_records"),
-                ("Comparison Available", "comparison_available"),
-                ("Target Data Available", "target_data_available"),
-            )
-            for label, key in preferred:
+            for label, key in (("Planned Records", "planned_records"), ("Actual Records", "actual_records")):
                 if key in value:
-                    v = value[key]
-                    if isinstance(v, bool):
-                        v = "Yes" if v else "No"
-                    pairs.append((label, str(v)))
+                    pairs.append((label, display_value(key, value[key])))
             if pairs:
+                a = pairs[0]
+                b = pairs[1] if len(pairs) > 1 else ("", "")
+                field_pair(a[0], a[1], b[0], b[1], 22)
+            remaining = {k: v for k, v in value.items()
+                         if k not in {"planned_records", "actual_records"}}
+            if remaining:
+                paragraph(remaining, 7.9, 10.2, 104)
+            y -= 2
+            continue
+
+        if str(name).upper() == "KPI TREND" and isinstance(value, dict):
+            if "comparison_available" in value:
+                v = value["comparison_available"]
+                compact_status_box("Comparison", "Available" if v else "Not available", 25)
+            current_kpi = value.get("current") if isinstance(value.get("current"), dict) else value
+            if isinstance(current_kpi, dict):
+                pairs = []
+                for key in ("PA", "UA", "EU", "status"):
+                    if key in current_kpi:
+                        pairs.append((key, display_value(key, current_kpi[key])))
                 for i in range(0, len(pairs), 2):
                     a = pairs[i]
                     b = pairs[i + 1] if i + 1 < len(pairs) else ("", "")
-                    field_pair(a[0], a[1], b[0], b[1])
-                remaining = {k: v for k, v in value.items() if k not in {p[1] for p in preferred}}
-                if remaining:
-                    paragraph(remaining, 8.0, 10.5, 100)
+                    field_pair(a[0], a[1], b[0], b[1], 22)
+            continue
+
+        if str(name).upper() in {"TOP MANAGEMENT CONCERNS", "RECOMMENDED ACTIONS"} and isinstance(value, dict):
+            label = "Status"
+            v = value.get("status")
+            if v is not None:
+                compact_status_box(label, str(v).upper(), 25)
             else:
-                paragraph(value, 8.0, 10.5, 100)
+                paragraph(value, 8.0, 10.2, 104)
+            continue
+
+        if str(name).upper() == "KEY HIGHLIGHTS" and isinstance(value, dict):
+            items = []
+            for key in ("operations", "completed", "equipment", "workfront", "hse", "maintenance"):
+                if key in value:
+                    items.append((key.title(), display_value(key, value[key])))
+            if items:
+                for i in range(0, len(items), 2):
+                    a = items[i]
+                    b = items[i + 1] if i + 1 < len(items) else ("", "")
+                    field_pair(a[0], a[1], b[0], b[1], 22)
+            else:
+                paragraph(value, 8.0, 10.2, 104)
+            continue
+
+        if isinstance(value, dict):
+            paragraph(value, 8.0, 10.2, 104)
         else:
-            paragraph(value, 8.0, 10.5, 100)
-        y -= 3
+            paragraph(value, 8.0, 10.2, 104)
+        y -= 2
 
     ensure(25)
     line(y + 4, (0.78, 0.82, 0.87), 0.7)
     at(f"Lithosite Mine Services · V38 · {report_type} Report", M, y - 8, 7, False, (0.42, 0.48, 0.55))
     at("Immutable report snapshot", W - M - 112, y - 8, 7, False, (0.42, 0.48, 0.55))
 
-    # --- PDF object assembly ---
     objects: list[bytes] = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
         b"<< /Type /Pages /Kids [] /Count 0 >>",
