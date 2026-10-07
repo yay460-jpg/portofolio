@@ -177,7 +177,93 @@ function filteredCount(){
   let n=0;entities.forEach(e=>rows(e).forEach(r=>{if(JSON.stringify(r).toLowerCase().includes(text))n++;}));
   const m=document.getElementById('reportsCount');if(m)m.textContent=n+' matching records · Runtime Ready';
 }
+function reportPeriod(type,endDate){
+  const end=new Date(String(endDate||latestOperationalDate()).slice(0,10)+'T00:00:00');
+  if(Number.isNaN(end.getTime()))return null;
+  const start=new Date(end);
+  if(type==='WEEKLY'){const day=(end.getDay()+6)%7;start.setDate(end.getDate()-day);}
+  else if(type==='MONTHLY'){start.setDate(1);}
+  return {start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10)};
+}
+function buildReportModel(){
+  const type=document.getElementById('reportCenterType')?.value||'DAILY';
+  const period=reportPeriod(type,document.getElementById('reportCenterDate')?.value||latestOperationalDate());
+  if(!period)return null;
+  const inPeriod=(row,dateField)=>{const d=String(row?.[dateField]||'').slice(0,10);return d>=period.start&&d<=period.end;};
+  const scoped={};
+  ['Operations','Equipment','WorkFront','Maintenance','Issues','Plans','HSE'].forEach(entity=>{
+    const dateField=entity==='Maintenance'||entity==='HSE'||entity==='Issues'||entity==='Plans'?'event_date':entity==='Operations'?'transaction_date':'transaction_date';
+    const source=rows(entity);
+    scoped[entity]=type==='DAILY'&&entity==='Equipment' ? source.slice() : source.filter(row=>inPeriod(row,dateField));
+  });
+  const totalRecords=Object.values(scoped).reduce((n,list)=>n+list.length,0);
+  const k=state.kpi;
+  return {
+    report_id:'DRAFT-'+type+'-'+period.start+'-'+period.end,
+    report_type:type,
+    period,
+    scope:'ALL',
+    status:'DRAFT',
+    generated_at:new Date().toISOString(),
+    source_counts:Object.fromEntries(Object.entries(scoped).map(([k,v])=>[k,v.length])),
+    total_records:totalRecords,
+    kpi:k?{status:k.status,PA:k.results?.PA?.value??null,UA:k.results?.UA?.value??null,EU:k.results?.EU?.value??null,eligible:k.population?.eligible??0,excluded:k.population?.excluded??0}:null,
+    sections:type==='DAILY'
+      ? ['Executive Summary','Work / Task Completed','Equipment Status','Work Front Status','HSE Events','Maintenance / Downtime','Material Movement','Issues and Abnormalities','Site Map / Spatial Activities','KPI Summary','Outstanding / Carry-over Tasks','Supporting Evidence']
+      : type==='WEEKLY'
+      ? ['Executive Summary','Planned vs Actual','Equipment Performance','Work Front Progress','HSE Summary','Maintenance and Downtime Analysis','Material Movement Summary','Issues and Recurring Issues','Outstanding Actions','KPI Trend','Key Highlights','Top Management Concerns','Recommended Actions']
+      : ['Management Executive Summary','Monthly KPI','Target vs Actual','Equipment Performance','Work Front Progress','HSE Performance','Maintenance / Downtime','Material Movement','Major Issues / Events','Recurring Problems','Outstanding Actions','Trend vs Previous Month','Performance Highlights','Management Attention / Decision Required','Recommendations','Appendix / Evidence']
+  };
+}
+function renderReportCenterSummary(model){
+  const host=document.getElementById('reportCenterSummary'),status=document.getElementById('reportCenterStatus');
+  if(!host||!model)return;
+  const p=model.period;
+  host.innerHTML='<b>'+esc(model.report_type)+' REPORT</b> · '+esc(p.start)+(p.start!==p.end?' → '+esc(p.end):'')+' · '+model.total_records+' source records · KPI '+esc(model.kpi?.status||'UNAVAILABLE');
+  if(status)status.textContent='Draft prepared';
+}
+function renderReportPreview(model){
+  const host=document.getElementById('reportPreviewBody'),meta=document.getElementById('reportPreviewMeta');
+  if(!host||!model)return;
+  if(meta)meta.textContent=model.report_type+' · '+model.period.start+(model.period.start!==model.period.end?' → '+model.period.end:'')+' · DRAFT';
+  host.innerHTML='<div class="report-preview-kpis"><div><small>Records</small><b>'+model.total_records+'</b></div><div><small>PA</small><b>'+fmtPct(model.kpi?.PA,model.kpi?.status)+'</b></div><div><small>UA</small><b>'+fmtPct(model.kpi?.UA,model.kpi?.status)+'</b></div><div><small>EU</small><b>'+fmtPct(model.kpi?.EU,model.kpi?.status)+'</b></div></div><div class="report-preview-section"><b>Report Sections</b>'+model.sections.map(s=>'<span>'+esc(s)+'</span>').join('')+'</div><div class="report-preview-section"><b>Source Records</b>'+Object.entries(model.source_counts).map(([k,v])=>'<span>'+esc(k)+' · '+v+'</span>').join('')+'</div><div class="report-preview-note">Preview is read-only. PDF generation remains disabled until the PDF renderer is implemented.</div>';
+}
 function bind(){
+  const reportType=document.getElementById('reportCenterType');
+  const reportDate=document.getElementById('reportCenterDate');
+  const reportPrepare=document.getElementById('reportCenterPrepare');
+  const reportPreview=document.getElementById('reportCenterPreview');
+  const reportPdf=document.getElementById('reportCenterPdf');
+  const previewModal=document.getElementById('reportPreviewModal');
+  const previewClose=document.getElementById('reportPreviewClose');
+  let reportDraft=null;
+  const latest=latestOperationalDate();
+  if(reportDate)reportDate.value=latest;
+  const prepareReport=()=>{
+    reportDraft=buildReportModel();
+    renderReportCenterSummary(reportDraft);
+    if(reportPreview)reportPreview.disabled=!reportDraft;
+    if(reportPdf)reportPdf.disabled=true;
+  };
+  const showReportPreview=()=>{
+    if(!reportDraft||!previewModal)return;
+    renderReportPreview(reportDraft);
+    if(global.LithositeModalShowContract)global.LithositeModalShowContract.show('reportPreviewModal');
+    else{previewModal.classList.add('open');previewModal.setAttribute('aria-hidden','false');}
+  };
+  const hideReportPreview=()=>{
+    if(!previewModal)return;
+    if(global.LithositeModalShowContract)global.LithositeModalShowContract.close('reportPreviewModal');
+    else{previewModal.classList.remove('open');previewModal.setAttribute('aria-hidden','true');}
+  };
+  if(reportType)reportType.onchange=()=>{prepareReport();};
+  if(reportDate)reportDate.onchange=()=>{prepareReport();};
+  if(reportPrepare)reportPrepare.onclick=prepareReport;
+  if(reportPreview)reportPreview.onclick=showReportPreview;
+  if(previewClose)previewClose.onclick=hideReportPreview;
+  if(previewModal)previewModal.onclick=e=>{if(e.target===previewModal)hideReportPreview();};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&previewModal&&previewModal.classList.contains('open'))hideReportPreview();});
+
   const refresh=document.getElementById('reportsRefresh');if(refresh)refresh.onclick=load;
   const clear=document.getElementById('reportsClear');if(clear)clear.onclick=()=>{document.getElementById('reportsSearch').value='';renderCounts();};
   const search=document.getElementById('reportsSearch');if(search)search.addEventListener('input',filteredCount);
