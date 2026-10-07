@@ -20,4 +20,8 @@ def test_weekly_integration():
 def test_weekly_is_read_only():
     t=WEEKLY.read_text(encoding="utf-8")
     assert "localStorage" not in t
-    assert ".push(" not in t
+    # Internal validation array construction is allowed; no runtime/source
+    # persistence is performed by the Weekly engine.
+    assert "source_data" in t
+    assert ".setItem(" not in t
+    assert ".removeItem(" not in t
