@@ -312,23 +312,58 @@ def build_report_pdf(model: dict) -> bytes:
                "Data Status", str(model.get("report_data_status") or "REQUESTED_PERIOD"))
     y -= 4
 
-    # Fleet KPI
+    # Fleet KPI — compact donut gauges for the three percentage KPIs.
     heading("Fleet KPI")
     card_gap = 6
     card_w = (usable - 3 * card_gap) / 4
     top = y + 4
-    card_h = 40
+    card_h = 58
+
+    def donut(cx: float, cy: float, radius: float, percent: object) -> None:
+        """Draw a small donut gauge using PDF arc approximation."""
+        try:
+            pct = max(0.0, min(100.0, float(percent)))
+        except (TypeError, ValueError):
+            pct = 0.0
+        # Base ring.
+        emit(f"0.84 0.87 0.91 RG 5.0 w")
+        emit(f"{cx-radius:.2f} {cy-radius:.2f} {radius*2:.2f} {radius*2:.2f} re S")
+        # Progress arc is represented by a circle for stability in the stdlib
+        # PDF renderer; the center percentage provides the precise KPI value.
+        # A proportional filled ring is added as a set of short radial strokes.
+        import math
+        steps = max(1, int(36 * pct / 100))
+        emit(f"0.14 0.29 0.47 RG 5.0 w")
+        for i in range(steps):
+            a = math.radians(-90 + (360 * pct / 100) * (i / max(steps, 1)))
+            x1 = cx + (radius - 2.0) * math.cos(a)
+            y1 = cy + (radius - 2.0) * math.sin(a)
+            x2 = cx + (radius + 2.0) * math.cos(a)
+            y2 = cy + (radius + 2.0) * math.sin(a)
+            emit(f"{x1:.2f} {y1:.2f} m {x2:.2f} {y2:.2f} l S")
+        # White center.
+        emit(f"0.975 0.98 0.99 rg {cx-9:.2f} {cy-9:.2f} 18 18 re f")
+        at(f"{pct:.0f}%", cx - 8.5, cy - 3, 7.2, True, (0.10, 0.25, 0.43))
+
     cards = [
         ("PA", kpi.get("PA", "—")),
         ("UA", kpi.get("UA", "—")),
         ("EU", kpi.get("EU", "—")),
-        ("KPI STATUS", kpi.get("status", "UNAVAILABLE")),
     ]
     for i, (label, value) in enumerate(cards):
         x = M + i * (card_w + card_gap)
         rect(x, top, card_w, card_h, fill=(0.975, 0.98, 0.99), stroke=(0.75, 0.81, 0.88))
-        at(label, x + 7, top - 10, 6.5, True, (0.39, 0.46, 0.55))
-        at(display_value(label, value), x + 7, top - 27, 12.2, True, (0.10, 0.25, 0.43))
+        donut(x + 31, top - 29, 20, value)
+        at(label, x + 61, top - 16, 7.0, True, (0.39, 0.46, 0.55))
+        at(display_value(label, value), x + 61, top - 34, 12.5, True, (0.10, 0.25, 0.43))
+
+    # Status remains a dedicated management state card.
+    x = M + 3 * (card_w + card_gap)
+    rect(x, top, card_w, card_h, fill=(0.975, 0.98, 0.99), stroke=(0.75, 0.81, 0.88))
+    at("KPI STATUS", x + 9, top - 16, 7.0, True, (0.39, 0.46, 0.55))
+    status_value = str(kpi.get("status", "UNAVAILABLE")).upper()
+    at(status_value, x + 9, top - 36, 12.5, True, (0.10, 0.25, 0.43))
+
     y = top - card_h - 7
 
     # Executive summary
