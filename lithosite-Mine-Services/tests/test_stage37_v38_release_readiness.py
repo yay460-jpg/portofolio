@@ -60,7 +60,7 @@ def test_artifact_stage_order():
         "report-engine.js?v=20261007",
         "report-validation.js?v=20261007",
         "report-snapshot.js?v=20261007",
-        "report-pdf.js?v=20261007",
+        "report-pdf.js?v=20261008",
         "report-history.js?v=20261007",
         "reports.js?v=20261013",
     ]
@@ -119,6 +119,11 @@ def test_report_renderers_present_management_readable_section_data():
     assert "Structured report data is available in the issued snapshot." in reports
     assert "const pctText=v=>" in pdf
     assert "const countText=v=>" in pdf
+    assert "Lithosite Mine Services" in pdf
+    assert "Reports &amp; KPI" in pdf
+    assert "Operational Source Summary" in pdf
+    assert "@page{size:A4 portrait" in pdf
+    assert "white-space:pre-line" in pdf
     assert "Structured report data is available in the issued snapshot." in pdf
     assert "JSON.stringify(value,null,2)" not in reports
     assert "JSON.stringify(v,null,2)" not in pdf
