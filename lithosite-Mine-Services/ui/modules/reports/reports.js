@@ -226,7 +226,38 @@ function renderReportPreview(model){
   const host=document.getElementById('reportPreviewBody'),meta=document.getElementById('reportPreviewMeta');
   if(!host||!model)return;
   if(meta)meta.textContent=model.report_type+' · '+model.period.start+(model.period.start!==model.period.end?' → '+model.period.end:'')+' · DRAFT';
-  host.innerHTML='<div class="report-preview-kpis"><div><small>Records</small><b>'+model.total_records+'</b></div><div><small>PA</small><b>'+fmtPct(model.kpi?.PA,model.kpi?.status)+'</b></div><div><small>UA</small><b>'+fmtPct(model.kpi?.UA,model.kpi?.status)+'</b></div><div><small>EU</small><b>'+fmtPct(model.kpi?.EU,model.kpi?.status)+'</b></div></div><div class="report-preview-section"><b>Report Sections</b>'+model.sections.map(s=>'<span>'+esc(s)+'</span>').join('')+'</div><div class="report-preview-section"><b>Source Records</b>'+Object.entries(model.source_counts).map(([k,v])=>'<span>'+esc(k)+' · '+v+'</span>').join('')+'</div><div class="report-preview-note">Preview is read-only. PDF generation remains disabled until the PDF renderer is implemented.</div>';
+  host.innerHTML='<div class="report-preview-kpis"><div><small>Records</small><b>'+model.total_records+'</b></div><div><small>PA</small><b>'+fmtPct(model.kpi?.PA,model.kpi?.status)+'</b></div><div><small>UA</small><b>'+fmtPct(model.kpi?.UA,model.kpi?.status)+'</b></div><div><small>EU</small><b>'+fmtPct(model.kpi?.EU,model.kpi?.status)+'</b></div></div><div class="report-preview-section"><b>Report Sections</b>'+model.sections.map(s=>'<span>'+esc(s)+'</span>').join('')+'</div><div class="report-preview-section"><b>Source Records</b>'+Object.entries(model.source_counts).map(([k,v])=>'<span>'+esc(k)+' · '+v+'</span>').join('')+'</div><div class="report-preview-note">Preview is read-only. Generate PDF opens the print renderer so the report can be saved as PDF.</div>';
+}
+function generatePdf(model){
+  if(!model)return;
+  const win=window.open('','_blank');
+  if(!win){setReportRuntimeMessage('PDF window was blocked by the browser.',true);return;}
+  const title=model.report_type+' Report · '+model.period.start+(model.period.start!==model.period.end?' → '+model.period.end:'');
+  const k=model.kpi||{};
+  const pct=v=>fmtPct(v,k.status);
+  const sections=model.sections.map(s=>'<li>'+esc(s)+'</li>').join('');
+  const sources=Object.entries(model.source_counts).map(([name,count])=>'<tr><td>'+esc(name)+'</td><td>'+count+'</td></tr>').join('');
+  win.document.open();
+  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>'+
+    'body{font-family:Arial,sans-serif;color:#172333;margin:32px;font-size:11px}'+
+    'h1{font-size:22px;margin:0 0 4px}h2{font-size:13px;margin:24px 0 8px;border-bottom:1px solid #cbd5e1;padding-bottom:5px}'+
+    '.meta{color:#64748b;margin-bottom:20px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}'+
+    '.kpi{border:1px solid #cbd5e1;padding:10px;border-radius:6px}.kpi small{display:block;color:#64748b;text-transform:uppercase}.kpi b{font-size:17px}'+
+    'table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:7px;border-bottom:1px solid #e2e8f0}'+
+    'ul{line-height:1.8;margin-top:8px}.footer{margin-top:28px;color:#64748b;font-size:9px}'+
+    '@media print{body{margin:18mm}.kpis{break-inside:avoid}h2{break-after:avoid}}'+
+    '</style></head><body>'+
+    '<h1>Reports &amp; KPI</h1><div class="meta">'+esc(title)+' · DRAFT · Report ID '+esc(model.report_id||'DRAFT')+'</div>'+
+    '<div class="kpis"><div class="kpi"><small>Records</small><b>'+model.total_records+'</b></div>'+
+    '<div class="kpi"><small>PA</small><b>'+pct(k.PA)+'</b></div>'+
+    '<div class="kpi"><small>UA</small><b>'+pct(k.UA)+'</b></div>'+
+    '<div class="kpi"><small>EU</small><b>'+pct(k.EU)+'</b></div></div>'+
+    '<h2>Report Sections</h2><ul>'+sections+'</ul>'+
+    '<h2>Source Records</h2><table><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sources+'</tbody></table>'+
+    '<div class="footer">Generated from the Report Snapshot · Preview/print renderer</div>'+
+    '<script>window.onload=function(){setTimeout(function(){window.print()},150)}</script>'+
+    '</body></html>');
+  win.document.close();
 }
 function bind(){
   const reportType=document.getElementById('reportCenterType');
