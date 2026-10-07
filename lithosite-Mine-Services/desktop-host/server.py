@@ -99,67 +99,133 @@ def _report_lines(value: object, width: int = 92) -> list[str]:
 
 
 def build_report_pdf(model: dict) -> bytes:
-    """Create a small self-contained A4 PDF for the native browser PDF reader.
-
-    This intentionally uses only the Python standard library so the offline
-    desktop host does not acquire another runtime dependency.
-    """
+    """Build a compact management-grade A4 PDF using only the Python stdlib."""
     if not isinstance(model, dict):
         raise ValueError("Report model must be an object.")
 
     W, H = 595, 842
-    margin = 42
+    M = 42
+    usable = W - 2 * M
     pages: list[list[str]] = []
     current: list[str] = []
-    y = H - 48
+    y = H - 42
 
     def start_page() -> None:
         nonlocal current, y
         current = []
         pages.append(current)
-        y = H - 48
+        y = H - 42
 
-    def emit(command: str) -> None:
-        current.append(command)
+    def emit(s: str) -> None:
+        current.append(s)
 
-    def ensure(height: float = 18) -> None:
+    def ensure(h: float) -> None:
         nonlocal y
-        if y - height < 45:
+        if y - h < 48:
             start_page()
 
-    def text_line(value: object, x: float = margin, size: float = 9, bold: bool = False,
-                  leading: float = 13, color: tuple[float, float, float] = (0.15, 0.22, 0.30)) -> None:
+    def txt(value: object, x: float, size: float = 8.5, bold: bool = False,
+            leading: float = 11, color=(0.16, 0.24, 0.34)) -> None:
         nonlocal y
         ensure(leading)
         r, g, b = color
-        emit(f"{r:.3f} {g:.3f} {b:.3f} rg")
         font = "F2" if bold else "F1"
+        emit(f"{r:.3f} {g:.3f} {b:.3f} rg")
         emit(f"BT /{font} {size:.2f} Tf {x:.2f} {y:.2f} Td ({_pdf_escape(value)}) Tj ET")
         y -= leading
 
-    def wrapped(value: object, x: float = margin, size: float = 9, bold: bool = False,
-                leading: float = 12, width: int = 92) -> None:
-        lines = _report_lines(value, width)
-        for line in lines:
-            text_line(line, x, size, bold, leading)
-
-    def rule(ypos: float, color=(0.14, 0.27, 0.44), width=1.5) -> None:
+    def at(value: object, x: float, ypos: float, size: float = 8.5,
+           bold: bool = False, color=(0.16, 0.24, 0.34)) -> None:
         r, g, b = color
-        emit(f"{r:.3f} {g:.3f} {b:.3f} RG {width:.2f} w {margin:.2f} {ypos:.2f} m {W-margin:.2f} {ypos:.2f} l S")
+        font = "F2" if bold else "F1"
+        emit(f"{r:.3f} {g:.3f} {b:.3f} rg")
+        emit(f"BT /{font} {size:.2f} Tf {x:.2f} {ypos:.2f} Td ({_pdf_escape(value)}) Tj ET")
 
-    def box(x: float, top: float, w: float, h: float, fill=(0.97, 0.98, 0.99),
-            stroke=(0.78, 0.82, 0.87)) -> None:
+    def wrap(value: object, width: int = 96) -> list[str]:
+        import textwrap
+        if value is None:
+            return []
+        if isinstance(value, bool):
+            value = "Yes" if value else "No"
+        elif isinstance(value, (int, float)):
+            value = str(value)
+        elif isinstance(value, list):
+            value = " · ".join(str(v) for v in value)
+        elif isinstance(value, dict):
+            rows = []
+            for key, item in value.items():
+                if isinstance(item, dict):
+                    item = " · ".join(f"{k}: {v}" for k, v in item.items())
+                elif isinstance(item, list):
+                    item = " · ".join(str(v) for v in item)
+                rows.append(f"{str(key).replace('_', ' ').title()}: {item}")
+            value = "\n".join(rows)
+        return [line for raw in str(value).splitlines()
+                for line in (textwrap.wrap(raw, width=width) or [""])]
+
+    def rect(x: float, top: float, w: float, h: float,
+             fill=(0.97, 0.98, 0.99), stroke=(0.78, 0.82, 0.87), sw=0.6) -> None:
         fr, fg, fb = fill
         sr, sg, sb = stroke
-        emit(f"{fr:.3f} {fg:.3f} {fb:.3f} rg {sr:.3f} {sg:.3f} {sb:.3f} RG 0.6 w {x:.2f} {top-h:.2f} {w:.2f} {h:.2f} re B")
+        emit(f"{fr:.3f} {fg:.3f} {fb:.3f} rg {sr:.3f} {sg:.3f} {sb:.3f} RG {sw:.2f} w "
+             f"{x:.2f} {top-h:.2f} {w:.2f} {h:.2f} re B")
 
-    def section_heading(title: str) -> None:
+    def line(ypos: float, color=(0.14, 0.29, 0.47), sw=1.0) -> None:
+        r, g, b = color
+        emit(f"{r:.3f} {g:.3f} {b:.3f} RG {sw:.2f} w {M:.2f} {ypos:.2f} m {W-M:.2f} {ypos:.2f} l S")
+
+    def heading(title: str) -> None:
         nonlocal y
-        ensure(31)
+        ensure(22)
+        # Deliberately use a fixed baseline inside the band, then move the
+        # cursor below the entire band. This prevents the old overlap.
+        top = y + 5
+        rect(M, top, usable, 19, fill=(0.92, 0.95, 0.98), stroke=(0.78, 0.83, 0.89))
+        at(title.upper(), M + 8, top - 13, 9.3, True, (0.14, 0.29, 0.47))
+        y = top - 25
+
+    def field_pair(label1, value1, label2, value2) -> None:
+        nonlocal y
+        ensure(29)
+        col = usable / 2
         top = y + 4
-        box(margin, top, W - 2*margin, 23, fill=(0.91, 0.94, 0.97), stroke=(0.76, 0.81, 0.87))
-        text_line(title, margin + 8, 10.5, True, 14, (0.14, 0.27, 0.44))
+        h = 24
+        for i, (label, value) in enumerate(((label1, value1), (label2, value2))):
+            x = M + i * col
+            rect(x, top, col, h, fill=(0.975, 0.98, 0.99))
+            at(str(label).upper(), x + 7, top - 8, 6.3, True, (0.39, 0.46, 0.55))
+            at(value, x + 7, top - 19, 7.8, False, (0.16, 0.24, 0.34))
+        y = top - h - 2
+
+    def paragraph(value: object, size=8.3, leading=11, width=96) -> None:
+        nonlocal y
+        lines = wrap(value, width)
+        if not lines:
+            lines = ["No section-specific narrative is available."]
+        for s in lines:
+            txt(s, M + 5, size, False, leading)
         y -= 2
+
+    def source_table(counts: dict) -> None:
+        nonlocal y
+        rows = list(counts.items())
+        if not rows:
+            paragraph("No source records were reported for this snapshot.", 8.2, 10.5)
+            return
+        col = usable / 2
+        row_h = 19
+        for idx in range(0, len(rows), 2):
+            ensure(row_h + 3)
+            top = y + 4
+            for j in range(2):
+                if idx + j >= len(rows):
+                    continue
+                domain, count = rows[idx + j]
+                x = M + j * col
+                rect(x, top, col, row_h, fill=(0.985, 0.988, 0.992), stroke=(0.84, 0.87, 0.91))
+                at(str(domain).upper(), x + 7, top - 8, 6.5, True, (0.39, 0.46, 0.55))
+                at(f"{count} records", x + 7, top - 15.5, 8.2, True, (0.16, 0.29, 0.45))
+            y = top - row_h - 3
 
     start_page()
     report_type = str(model.get("report_type") or "REPORT").upper()
@@ -171,119 +237,135 @@ def build_report_pdf(model: dict) -> bytes:
     kpi = model.get("kpi") or {}
     counts = model.get("source_counts") or {}
     sections = model.get("section_data") or {}
-    section_plan = model.get("sections") or []
+    plan = model.get("sections") or []
 
-    text_line("LITHOSITE MINE SERVICES", margin, 8, True, 10, (0.14, 0.27, 0.44))
-    y -= 7
-    text_line("Reports & KPI", margin, 20, True, 23, (0.08, 0.18, 0.30))
-    y -= 1
-    text_line(f"{report_type} REPORT  |  {period_text}", margin, 9, False, 13, (0.38, 0.45, 0.54))
-    rule(y + 2)
+    # --- Header ---
+    txt("LITHOSITE MINE SERVICES", M, 8, True, 9, (0.14, 0.29, 0.47))
+    y -= 3
+    txt("Reports & KPI", M, 19, True, 22, (0.08, 0.18, 0.30))
+    txt(f"{report_type} REPORT  |  {period_text}", M, 8.8, False, 11, (0.39, 0.47, 0.56))
+    y -= 3
+    line(y, (0.14, 0.29, 0.47), 1.5)
     y -= 9
 
-    section_heading("DOCUMENT CONTROL")
-    control = [
-        ("Report Type", report_type), ("Period", period_text),
-        ("Status", status), ("Scope", model.get("scope") or "ALL"),
-        ("Report ID", model.get("report_id") or "—"), ("Snapshot", model.get("snapshot_id") or "DRAFT"),
-        ("Records", model.get("total_records", model.get("total_source_records", 0))),
-        ("Data Status", model.get("report_data_status") or "REQUESTED_PERIOD"),
-    ]
-    col_w = (W - 2*margin) / 2
-    for idx in range(0, len(control), 2):
-        ensure(24)
-        row_top = y + 4
-        row_height = 21
-        for col in range(2):
-            label, value = control[idx + col]
-            x = margin + col * col_w
-            box(x, row_top, col_w, row_height, fill=(0.97, 0.98, 0.99))
-            # Keep both columns on the same baseline. Do not let text_line()
-            # mutate the shared row cursor while rendering the second column.
-            saved_y = y
-            y = row_top - 7
-            text_line(label.upper(), x + 6, 6.5, True, 7.5, (0.38, 0.45, 0.54))
-            text_line(value, x + 6, 8, False, 9, (0.15, 0.22, 0.30))
-            y = saved_y
-        y = row_top - row_height - 3
-    y -= 4
+    # --- Document control ---
+    heading("Document Control")
+    field_pair("Report Type", report_type, "Period", period_text)
+    field_pair("Status", status, "Scope", str(model.get("scope") or "ALL"))
+    field_pair("Report ID", str(model.get("report_id") or "—"), "Snapshot", str(model.get("snapshot_id") or "DRAFT"))
+    field_pair("Records", str(model.get("total_records", model.get("total_source_records", 0))),
+               "Data Status", str(model.get("report_data_status") or "REQUESTED_PERIOD"))
+    y -= 5
 
-    section_heading("FLEET KPI")
+    # --- KPI ---
+    heading("Fleet KPI")
+    card_gap = 6
+    card_w = (usable - 3 * card_gap) / 4
+    top = y + 4
+    card_h = 43
     cards = [
-        ("PA", kpi.get("PA", "—")), ("UA", kpi.get("UA", "—")),
-        ("EU", kpi.get("EU", "—")), ("KPI STATUS", kpi.get("status", "UNAVAILABLE")),
+        ("PA", kpi.get("PA", "—")),
+        ("UA", kpi.get("UA", "—")),
+        ("EU", kpi.get("EU", "—")),
+        ("KPI STATUS", kpi.get("status", "UNAVAILABLE")),
     ]
-    card_w = (W - 2*margin - 18) / 4
-    card_top = y + 4
     for i, (label, value) in enumerate(cards):
-        x = margin + i * (card_w + 6)
-        box(x, card_top, card_w, 42, fill=(0.97, 0.98, 0.99), stroke=(0.74, 0.80, 0.87))
-        # Render each card from the same local cursor so all four cards
-        # share one horizontal baseline.
-        saved_y = y
-        y = card_top - 8
-        text_line(label, x + 7, 6.5, True, 8, (0.39, 0.45, 0.54))
-        display_value = value
-        if isinstance(value, (int, float)):
-            display_value = f"{value:.2f}%"
-        text_line(display_value, x + 7, 11.5, True, 14, (0.10, 0.23, 0.39))
-        y = saved_y
-    y = card_top - 42 - 8
+        x = M + i * (card_w + card_gap)
+        rect(x, top, card_w, card_h, fill=(0.975, 0.98, 0.99), stroke=(0.75, 0.81, 0.88))
+        at(label, x + 7, top - 10, 6.5, True, (0.39, 0.46, 0.55))
+        display = f"{value:.2f}%" if isinstance(value, (int, float)) else str(value)
+        at(display, x + 7, top - 28, 12.5, True, (0.10, 0.25, 0.43))
+    y = top - card_h - 8
 
+    # --- Executive summary ---
     executive_name = "Management Executive Summary" if report_type == "MONTHLY" else "Executive Summary"
     executive = sections.get(executive_name) or sections.get("Executive Summary") or {}
-    section_heading(executive_name.upper())
-    wrapped(executive, size=9, leading=12, width=92)
-    y -= 3
-
-    attention = executive.get("management_attention") if isinstance(executive, dict) else None
-    if attention:
-        section_heading("MANAGEMENT ATTENTION")
-        wrapped(attention, size=9, leading=12, width=92)
-        y -= 3
-
-    section_heading("OPERATIONAL SOURCE SUMMARY")
-    if counts:
-        for domain, count in counts.items():
-            ensure(16)
-            text_line(f"{domain}: {count} records", margin + 8, 8.5, False, 10.5)
+    heading(executive_name)
+    if isinstance(executive, dict):
+        statement = executive.get("statement") or executive.get("headline") or executive
+        paragraph(statement, 8.4, 11, 100)
+        attention = executive.get("management_attention")
+        if attention:
+            rect(M + 5, y + 3, usable - 10, 27, fill=(0.98, 0.985, 0.99), stroke=(0.82, 0.86, 0.91))
+            at("MANAGEMENT ATTENTION", M + 12, y - 5, 6.5, True, (0.14, 0.29, 0.47))
+            lines = wrap(attention, 88)
+            if lines:
+                at(lines[0], M + 12, y - 16, 7.8, False, (0.29, 0.36, 0.44))
+            y -= 31
     else:
-        text_line("No source records were reported for this snapshot.", margin + 8, 8.5, False, 10.5)
-    y -= 4
+        paragraph(executive, 8.4, 11, 100)
 
-    for name in section_plan:
+    # --- Operational source summary ---
+    heading("Operational Source Summary")
+    source_table(counts)
+    y -= 5
+
+    # --- Remaining sections ---
+    for name in plan:
         if name == executive_name:
             continue
         value = sections.get(name)
-        section_heading(str(name).upper())
-        wrapped(value if value is not None else "Source evidence retained in the immutable snapshot.",
-                size=8.8, leading=12, width=92)
+        heading(str(name))
+        if isinstance(value, dict):
+            # Give common comparison sections a compact two-column treatment.
+            pairs = []
+            preferred = (
+                ("Planned Records", "planned_records"),
+                ("Actual Records", "actual_records"),
+                ("Comparison Available", "comparison_available"),
+                ("Target Data Available", "target_data_available"),
+            )
+            for label, key in preferred:
+                if key in value:
+                    v = value[key]
+                    if isinstance(v, bool):
+                        v = "Yes" if v else "No"
+                    pairs.append((label, str(v)))
+            if pairs:
+                for i in range(0, len(pairs), 2):
+                    a = pairs[i]
+                    b = pairs[i + 1] if i + 1 < len(pairs) else ("", "")
+                    field_pair(a[0], a[1], b[0], b[1])
+                remaining = {k: v for k, v in value.items() if k not in {p[1] for p in preferred}}
+                if remaining:
+                    paragraph(remaining, 8.0, 10.5, 100)
+            else:
+                paragraph(value, 8.0, 10.5, 100)
+        else:
+            paragraph(value, 8.0, 10.5, 100)
         y -= 3
 
-    ensure(22)
-    rule(y + 4, color=(0.78, 0.82, 0.87), width=0.7)
-    text_line(f"Lithosite Mine Services · V38 · {report_type} Report", margin, 7, False, 9, (0.40, 0.46, 0.54))
-    text_line("Immutable report snapshot · Native browser PDF reader", W - 265, 7, False, 9, (0.40, 0.46, 0.54))
+    ensure(25)
+    line(y + 4, (0.78, 0.82, 0.87), 0.7)
+    at(f"Lithosite Mine Services · V38 · {report_type} Report", M, y - 8, 7, False, (0.42, 0.48, 0.55))
+    at("Immutable report snapshot", W - M - 112, y - 8, 7, False, (0.42, 0.48, 0.55))
 
-    # Build a valid PDF from page content streams.
-    objects: list[bytes] = []
-    objects.append(b"<< /Type /Catalog /Pages 2 0 R >>")
-    page_object_ids = []
-    content_object_ids = []
-    for index in range(len(pages)):
-        page_object_ids.append(5 + index * 2)
-        content_object_ids.append(6 + index * 2)
-    kids = " ".join(f"{obj} 0 R" for obj in page_object_ids)
-    objects.append(f"<< /Type /Pages /Kids [{kids}] /Count {len(pages)} >>".encode())
-    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
-    objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")
+    # --- PDF object assembly ---
+    objects: list[bytes] = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [] /Count 0 >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+    ]
+    page_ids = []
+    content_ids = []
+    next_id = 5
+    for _ in pages:
+        page_ids.append(next_id)
+        content_ids.append(next_id + 1)
+        next_id += 2
+    kids = " ".join(f"{n} 0 R" for n in page_ids)
+    objects[1] = f"<< /Type /Pages /Kids [{kids}] /Count {len(pages)} >>".encode()
 
-    for index, commands in enumerate(pages):
+    for idx, commands in enumerate(pages):
         stream = "\n".join(commands).encode("latin-1", "replace")
-        page_obj = f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {W} {H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents {content_object_ids[index]} 0 R >>".encode()
-        objects.append(page_obj)
+        objects.append(
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {W} {H}] "
+            f"/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> "
+            f"/Contents {content_ids[idx]} 0 R >>".encode()
+        )
         objects.append(f"<< /Length {len(stream)} >>\nstream\n".encode() + stream + b"\nendstream")
-    # Object numbers are intentionally contiguous: catalog=1, pages=2, fonts=3/4.
+
     pdf = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
     offsets = [0]
     for number, obj in enumerate(objects, 1):
@@ -296,7 +378,10 @@ def build_report_pdf(model: dict) -> bytes:
     pdf.extend(b"0000000000 65535 f \n")
     for offset in offsets[1:]:
         pdf.extend(f"{offset:010d} 00000 n \n".encode())
-    pdf.extend(f"trailer\n<< /Size {len(objects)+1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode())
+    pdf.extend(
+        f"trailer\n<< /Size {len(objects)+1} /Root 1 0 R >>\n"
+        f"startxref\n{xref}\n%%EOF\n".encode()
+    )
     return bytes(pdf)
 
 
