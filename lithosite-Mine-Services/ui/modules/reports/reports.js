@@ -554,16 +554,13 @@ async function generatePdf(model,reader){
     if(!global.LithositePdfRenderer?.renderInline)throw new Error('PDF renderer is unavailable.');
     reader.title.textContent=(model.report_type||'REPORT')+' Report';
     reader.meta.textContent='Inline PDF Reader · Fit Width';
-    if(reader.status)reader.status.textContent='Generating report PDF…';
     reader.modal.classList.add('show');
     reader.modal.setAttribute('aria-hidden','false');
     await global.LithositePdfRenderer.renderInline(model,reader.frame);
-    if(reader.status)reader.status.textContent='PDF Ready';
   }catch(error){
     if(reader?.modal){
       reader.modal.classList.add('show');
       reader.modal.setAttribute('aria-hidden','false');
-      if(reader.status)reader.status.textContent='PDF render error: '+String(error?.message||error);
     }
     console.error('[Lithosite PDF Reader]',error);
     msg(error.message||'PDF generation failed.',true);
@@ -584,7 +581,6 @@ function bind(){
   const reportPdfReaderTitle=document.getElementById('reportPdfReaderTitle');
   const reportPdfReaderMeta=document.getElementById('reportPdfReaderMeta');
   const reportPdfReaderClose=document.getElementById('reportPdfReaderClose');
-  const reportPdfReaderCloseBottom=document.getElementById('reportPdfReaderCloseBottom');
   const issuedHistoryModal=document.getElementById('reportIssuedHistoryModal');
   const issuedHistoryBody=document.getElementById('reportIssuedHistoryBody');
   const issuedHistoryClose=document.getElementById('reportIssuedHistoryClose');
@@ -693,10 +689,8 @@ function bind(){
     frame:reportPdfReaderFrame,
     title:reportPdfReaderTitle,
     meta:reportPdfReaderMeta,
-    status:reportPdfReaderStatus
   });
   if(reportPdfReaderClose)reportPdfReaderClose.onclick=closeReportPdfReader;
-  if(reportPdfReaderCloseBottom)reportPdfReaderCloseBottom.onclick=closeReportPdfReader;
   if(reportPdfReaderModal)reportPdfReaderModal.onclick=e=>{if(e.target===reportPdfReaderModal)closeReportPdfReader();};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&reportPdfReaderModal?.classList.contains('show'))closeReportPdfReader();});
   if(previewClose)previewClose.onclick=hideReportPreview;
