@@ -63,7 +63,7 @@ def test_artifact_stage_order():
         "report-snapshot.js?v=20261007",
         "report-pdf.js?v=20261010",
         "report-history.js?v=20261007",
-        "reports.js?v=20261015",
+        "reports.js?v=20261016",
     ]
     positions = [html.index(value) for value in order]
     assert positions == sorted(positions)
