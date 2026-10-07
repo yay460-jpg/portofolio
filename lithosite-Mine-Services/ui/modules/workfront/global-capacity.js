@@ -49,6 +49,7 @@ function bind(){
  document.getElementById('capacityAdd').onclick=openAdd;
  document.getElementById('capacityRefresh').onclick=load;
  document.getElementById('capacityClose').onclick=()=>document.getElementById('capacityModal').classList.remove('show');
+ document.getElementById('capacityEditClose').onclick=()=>document.getElementById('capacityEditModal').classList.remove('show');
  document.getElementById('capacityCancel').onclick=()=>document.getElementById('capacityEditModal').classList.remove('show');
  document.getElementById('capacitySave').onclick=save;
  document.getElementById('capacityRows').addEventListener('click',e=>{const edit=e.target.closest('.edit-capacity');if(edit)openEdit(edit.dataset.id);const del=e.target.closest('.delete-capacity');if(del)remove(del.dataset.id)});
