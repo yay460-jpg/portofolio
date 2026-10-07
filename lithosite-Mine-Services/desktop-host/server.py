@@ -312,38 +312,62 @@ def build_report_pdf(model: dict) -> bytes:
                "Data Status", str(model.get("report_data_status") or "REQUESTED_PERIOD"))
     y -= 4
 
-    # Fleet KPI — compact donut gauges for the three percentage KPIs.
+    # Fleet KPI — one self-contained donut per KPI.
+    # The label and percentage live inside the donut so the card has no redundant text.
     heading("Fleet KPI")
     card_gap = 6
     card_w = (usable - 3 * card_gap) / 4
     top = y + 4
     card_h = 58
 
-    def donut(cx: float, cy: float, radius: float, percent: object) -> None:
-        """Draw a small donut gauge using PDF arc approximation."""
+    def circle_path(cx: float, cy: float, radius: float) -> None:
+        """Append a four-segment cubic Bézier circle path."""
+        k = 0.5522847498
+        emit(
+            f"{cx+radius:.2f} {cy:.2f} m "
+            f"{cx+radius:.2f} {cy+k*radius:.2f} {cx+k*radius:.2f} {cy+radius:.2f} {cx:.2f} {cy+radius:.2f} c "
+            f"{cx-k*radius:.2f} {cy+radius:.2f} {cx-radius:.2f} {cy+k*radius:.2f} {cx-radius:.2f} {cy:.2f} c "
+            f"{cx-radius:.2f} {cy-k*radius:.2f} {cx-k*radius:.2f} {cy-radius:.2f} {cx:.2f} {cy-radius:.2f} c "
+            f"{cx+k*radius:.2f} {cy-radius:.2f} {cx+radius:.2f} {cy-k*radius:.2f} {cx+radius:.2f} {cy:.2f} c"
+        )
+
+    def donut(cx: float, cy: float, radius: float, percent: object, label: str) -> None:
+        import math
         try:
             pct = max(0.0, min(100.0, float(percent)))
         except (TypeError, ValueError):
             pct = 0.0
-        # Base ring.
-        emit(f"0.84 0.87 0.91 RG 5.0 w")
-        emit(f"{cx-radius:.2f} {cy-radius:.2f} {radius*2:.2f} {radius*2:.2f} re S")
-        # Progress arc is represented by a circle for stability in the stdlib
-        # PDF renderer; the center percentage provides the precise KPI value.
-        # A proportional filled ring is added as a set of short radial strokes.
-        import math
-        steps = max(1, int(36 * pct / 100))
-        emit(f"0.14 0.29 0.47 RG 5.0 w")
-        for i in range(steps):
-            a = math.radians(-90 + (360 * pct / 100) * (i / max(steps, 1)))
-            x1 = cx + (radius - 2.0) * math.cos(a)
-            y1 = cy + (radius - 2.0) * math.sin(a)
-            x2 = cx + (radius + 2.0) * math.cos(a)
-            y2 = cy + (radius + 2.0) * math.sin(a)
-            emit(f"{x1:.2f} {y1:.2f} m {x2:.2f} {y2:.2f} l S")
-        # White center.
-        emit(f"0.975 0.98 0.99 rg {cx-9:.2f} {cy-9:.2f} 18 18 re f")
-        at(f"{pct:.0f}%", cx - 8.5, cy - 3, 7.2, True, (0.10, 0.25, 0.43))
+
+        # Track ring.
+        emit("0.84 0.87 0.91 RG 5.2 w")
+        circle_path(cx, cy, radius)
+        emit("S")
+
+        # Progress ring. Use a dense polyline so the arc is smooth in the
+        # stdlib PDF renderer and remains visually stable at print scale.
+        if pct > 0:
+            emit("0.14 0.29 0.47 RG 5.2 w")
+            steps = max(12, int(180 * pct / 100))
+            start_angle = -math.pi / 2
+            end_angle = start_angle + (2 * math.pi * pct / 100)
+            x0 = cx + radius * math.cos(start_angle)
+            y0 = cy + radius * math.sin(start_angle)
+            emit(f"{x0:.2f} {y0:.2f} m")
+            for i in range(1, steps + 1):
+                a = start_angle + (end_angle - start_angle) * (i / steps)
+                x1 = cx + radius * math.cos(a)
+                y1 = cy + radius * math.sin(a)
+                emit(f"{x1:.2f} {y1:.2f} l")
+            emit("S")
+
+        # White center clears the track and creates the donut.
+        emit("0.975 0.98 0.99 rg")
+        circle_path(cx, cy, radius - 6.0)
+        emit("f")
+
+        # The only text inside the donut: KPI name + percentage.
+        at(label, cx - 8.5, cy + 2.0, 6.6, True, (0.39, 0.46, 0.55))
+        at(f"{pct:.2f}%", cx - 15.5, cy - 9.0, 7.8, True, (0.10, 0.25, 0.43))
 
     cards = [
         ("PA", kpi.get("PA", "—")),
@@ -353,11 +377,9 @@ def build_report_pdf(model: dict) -> bytes:
     for i, (label, value) in enumerate(cards):
         x = M + i * (card_w + card_gap)
         rect(x, top, card_w, card_h, fill=(0.975, 0.98, 0.99), stroke=(0.75, 0.81, 0.88))
-        donut(x + 31, top - 29, 20, value)
-        at(label, x + 61, top - 16, 7.0, True, (0.39, 0.46, 0.55))
-        at(display_value(label, value), x + 61, top - 34, 12.5, True, (0.10, 0.25, 0.43))
+        donut(x + card_w / 2, top - 29, 21, value, label)
 
-    # Status remains a dedicated management state card.
+    # Status remains a dedicated state card because it is not a percentage.
     x = M + 3 * (card_w + card_gap)
     rect(x, top, card_w, card_h, fill=(0.975, 0.98, 0.99), stroke=(0.75, 0.81, 0.88))
     at("KPI STATUS", x + 9, top - 16, 7.0, True, (0.39, 0.46, 0.55))
