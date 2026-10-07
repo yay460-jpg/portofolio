@@ -249,7 +249,7 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
 
     <section class="panel filters">
       <div class="field reports-search-field">
-        <label>Search Data</label>
+        <label>Report Center &amp; Search Data</label>
         <div class="reports-search-row">
           <button class="control reports-search-clear" id="reportsClear" type="button">Clear</button>
           <input id="reportsSearch" placeholder="Search across operational records">
@@ -270,20 +270,14 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
           <option value="ALL">All Site</option>
         </select>
       </label>
+      <div class="report-filter-actions">
+        <button class="control" id="reportCenterPrepare" type="button">Prepare Report</button>
+        <button class="control" id="reportCenterPreview" type="button" disabled>Preview</button>
+        <button class="control primary" id="reportCenterPdf" type="button" disabled>Generate PDF</button>
+      </div>
     </section>
 
     <section class="report-center" aria-label="Report Center">
-      <div class="report-center-head">
-        <div><b>Report Center</b><span>Management report output</span></div>
-        <div class="report-center-head-right">
-          <span id="reportCenterStatus" class="report-center-status">Ready</span>
-          <div class="report-center-actions">
-            <button class="control" id="reportCenterPrepare" type="button">Prepare Report</button>
-            <button class="control" id="reportCenterPreview" type="button" disabled>Preview</button>
-            <button class="control primary" id="reportCenterPdf" type="button" disabled>Generate PDF</button>
-          </div>
-        </div>
-      </div>
       <div id="reportCenterSummary" class="report-center-summary">Select a report type and period, then prepare the report.</div>
     </section>
 
