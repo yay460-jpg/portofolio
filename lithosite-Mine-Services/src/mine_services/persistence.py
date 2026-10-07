@@ -21,6 +21,8 @@ class PersistenceStore:
             "service_domain": {"Road & Hauling", "Drainage & Dewatering", "Land Clearing", "Disposal & Stockpile", "Mining", "Reclamation", "Other"},
             "work_front_status": {"Active", "Inactive", "Closed"},
             "capacity_status": {"Active", "Inactive"},
+            "checker_shift": {"Day", "Night"},
+            "checker_material": {"Ore", "OB", "Quarry"},
             "transaction_status": {"DRAFT", "VALIDATED", "REJECTED", "VOIDED"},
             "unit": {"hour", "km", "m", "m2", "m3", "ton", "unit", "cycle"},
             "maintenance_event_type": {"Preventive", "Corrective", "Inspection", "Breakdown"},
@@ -124,12 +126,11 @@ class PersistenceStore:
                 for i, header in enumerate(values[0])
                 if header not in (None, "")
             }
-            # Keep only newly locked reference values available when an
-            # older workbook predates them. Existing workbook values remain
-            # unchanged and all other vocabulary stays workbook-defined.
             workbook_lists.setdefault("service_domain", set()).add("Mining")
             workbook_lists.setdefault("capacity_status", set()).update({"Active", "Inactive"})
             workbook_lists.setdefault("unit", set()).add("cycle")
+            workbook_lists.setdefault("checker_shift", set()).update({"Day", "Night"})
+            workbook_lists.setdefault("checker_material", set()).update({"Ore", "OB", "Quarry"})
             self.controlled_lists = workbook_lists
 
         rows = list(wb["AuditLog"].values)
