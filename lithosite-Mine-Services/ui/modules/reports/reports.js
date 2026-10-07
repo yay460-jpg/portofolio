@@ -232,7 +232,6 @@ function buildReportModel(){
   const effectiveEnd=requestedRows>0?requestedPeriod.end:latestAvailable;
   const effectivePeriod=type==='DAILY'?{start:effectiveEnd,end:effectiveEnd}:reportPeriod(type,effectiveEnd);
   const scoped=Object.fromEntries(entities.map(entity=>[entity,reportRowsForEntity(entity,effectivePeriod)]));
-  const totalRecords=Object.values(scoped).reduce((n,list)=>n+list.length,0);
   const k=state.kpi;
   const kpi={
     status:k?.status||'UNAVAILABLE',
@@ -241,51 +240,57 @@ function buildReportModel(){
     EU:k?.results?.EU?.value??null,
     eligible:k?.population?.eligible??0,
     excluded:k?.population?.excluded??0,
-    equipment:Array.isArray(k?.equipment)?k.equipment:[]
+    validation_issues:Array.isArray(k?.validation?.issues)?k.validation.issues:[]
   };
+  if(type==='DAILY'&&global.LithositeDailyReport){
+    const daily=global.LithositeDailyReport.buildDailyReport({
+      period_start:effectivePeriod.start,
+      period_end:effectivePeriod.end,
+      scope:'ALL',
+      source_data:{...scoped,MarkerLocation:rows('MarkerLocation'),Topography:rows('Topography')},
+      kpi
+    });
+    return {
+      ...daily,
+      report_period_requested:requestedPeriod,
+      report_period_effective:effectivePeriod,
+      report_data_status:requestedRows>0?'REQUESTED_PERIOD':'LATEST_AVAILABLE_DATA',
+      report_id:'DRAFT-DAILY-'+requestedPeriod.start+'-'+requestedPeriod.end,
+      generated_at:new Date().toISOString()
+    };
+  }
   const sourceTables=Object.fromEntries(entities.map(entity=>[entity,reportTableRows(scoped[entity])]));
-  const sections=type==='DAILY'
-    ? ['Executive Summary','Work / Task Completed','Equipment Status','Work Front Status','HSE Events','Maintenance / Downtime','Material Movement','Issues and Abnormalities','Site Map / Spatial Activities','KPI Summary','Outstanding / Carry-over Tasks','Supporting Evidence']
-    : type==='WEEKLY'
-    ? ['Executive Summary','Planned vs Actual','Equipment Performance','Work Front Progress','HSE Summary','Maintenance and Downtime Analysis','Material Movement Summary','Issues and Recurring Issues','Outstanding Actions','KPI Trend','Key Highlights','Top Management Concerns','Recommended Actions']
-    : ['Management Executive Summary','Monthly KPI','Target vs Actual','Equipment Performance','Work Front Progress','HSE Performance','Maintenance / Downtime','Material Movement','Major Issues / Events','Recurring Problems','Outstanding Actions','Trend vs Previous Month','Performance Highlights','Management Attention / Decision Required','Recommendations','Appendix / Evidence'];
+  const sections=global.LithositeReportEngine
+    ? global.LithositeReportEngine.sectionPlan(type)
+    : (type==='WEEKLY'
+      ? ['Executive Summary','Planned vs Actual','Equipment Performance','Work Front Progress','HSE Summary','Maintenance and Downtime Analysis','Material Movement Summary','Issues and Recurring Issues','Outstanding Actions','KPI Trend','Key Highlights','Top Management Concerns','Recommended Actions']
+      : ['Management Executive Summary','Monthly KPI','Target vs Actual','Equipment Performance','Work Front Progress','HSE Performance','Maintenance / Downtime','Material Movement','Major Issues / Events','Recurring Problems','Outstanding Actions','Trend vs Previous Month','Performance Highlights','Management Attention / Decision Required','Recommendations','Appendix / Evidence']);
   const sectionData={
-    'Executive Summary':'Source records: '+totalRecords+'. KPI state: '+kpi.status+'. Effective data period: '+effectivePeriod.start+(effectivePeriod.start!==effectivePeriod.end?' → '+effectivePeriod.end:'')+'.',
-    'Management Executive Summary':'Source records: '+totalRecords+'. KPI state: '+kpi.status+'. Effective data period: '+effectivePeriod.start+(effectivePeriod.start!==effectivePeriod.end?' → '+effectivePeriod.end:'')+'.',
-    'Work / Task Completed':'Operations '+scoped.Operations.length+' records.',
+    'Executive Summary':'Source records: '+Object.values(scoped).reduce((n,list)=>n+list.length,0)+'. KPI state: '+kpi.status+'.',
+    'Management Executive Summary':'Source records: '+Object.values(scoped).reduce((n,list)=>n+list.length,0)+'. KPI state: '+kpi.status+'.',
     'Planned vs Actual':'Plans '+scoped.Plans.length+' records; Operations '+scoped.Operations.length+' actual records.',
-    'Equipment Status':'Equipment '+scoped.Equipment.length+' records; KPI eligible '+kpi.eligible+', excluded '+kpi.excluded+'.',
     'Equipment Performance':'Equipment '+scoped.Equipment.length+' source records. KPI fleet status: '+kpi.status+'.',
-    'Work Front Status':'WorkFront '+scoped.WorkFront.length+' records.',
     'Work Front Progress':'WorkFront '+scoped.WorkFront.length+' records.',
-    'HSE Events':'HSE '+scoped.HSE.length+' records.',
     'HSE Summary':'HSE '+scoped.HSE.length+' records.',
     'HSE Performance':'HSE '+scoped.HSE.length+' records.',
-    'Maintenance / Downtime':'Maintenance '+scoped.Maintenance.length+' records.',
     'Maintenance and Downtime Analysis':'Maintenance '+scoped.Maintenance.length+' records.',
-    'Material Movement':'Operations '+scoped.Operations.length+' source records used as material/operational movement evidence.',
-    'Material Movement Summary':'Operations '+scoped.Operations.length+' source records used as material/operational movement evidence.',
-    'Issues and Abnormalities':'Issues '+scoped.Issues.length+' records.',
+    'Material Movement Summary':'Operations '+scoped.Operations.length+' source records.',
     'Issues and Recurring Issues':'Issues '+scoped.Issues.length+' records.',
     'Major Issues / Events':'Issues '+scoped.Issues.length+' records.',
     'Outstanding Actions':'Issues '+scoped.Issues.length+' + Plans '+scoped.Plans.length+' source records.',
-    'Outstanding / Carry-over Tasks':'Issues '+scoped.Issues.length+' + Plans '+scoped.Plans.length+' source records.',
-    'KPI Summary':'PA '+fmtPct(kpi.PA)+' · UA '+fmtPct(kpi.UA)+' · EU '+fmtPct(kpi.EU)+' · validation '+kpi.status+'.',
-    'Monthly KPI':'PA '+fmtPct(kpi.PA)+' · UA '+fmtPct(kpi.UA)+' · EU '+fmtPct(kpi.EU)+' · validation '+kpi.status+'.',
     'KPI Trend':'Current KPI snapshot: PA '+fmtPct(kpi.PA)+' · UA '+fmtPct(kpi.UA)+' · EU '+fmtPct(kpi.EU)+'.',
-    'Key Highlights':'Operations '+scoped.Operations.length+' · Equipment '+scoped.Equipment.length+' · WorkFront '+scoped.WorkFront.length+' · Maintenance '+scoped.Maintenance.length+' · HSE '+scoped.HSE.length+'.',
-    'Performance Highlights':'Operations '+scoped.Operations.length+' · Equipment '+scoped.Equipment.length+' · WorkFront '+scoped.WorkFront.length+' · Maintenance '+scoped.Maintenance.length+' · HSE '+scoped.HSE.length+'.',
-    'Top Management Concerns':kpi.status==='READY'?'No KPI validation gate is blocking the report.':'KPI validation state is '+kpi.status+'; management should review validation evidence before issuing the report.',
+    'Key Highlights':'Operations '+scoped.Operations.length+' · Equipment '+scoped.Equipment.length+' · WorkFront '+scoped.WorkFront.length+'.',
+    'Performance Highlights':'Operations '+scoped.Operations.length+' · Equipment '+scoped.Equipment.length+' · WorkFront '+scoped.WorkFront.length+'.',
+    'Top Management Concerns':kpi.status==='READY'?'No KPI validation gate is blocking the report.':'KPI validation state is '+kpi.status+'.',
     'Management Attention / Decision Required':kpi.status==='READY'?'No KPI validation decision is currently required.':'Resolve KPI validation before issuing the management report.',
     'Recommended Actions':'Review source evidence, confirm KPI validation, then issue the report snapshot.',
     'Recommendations':'Review source evidence, confirm KPI validation, then issue the report snapshot.',
-    'Target vs Actual':'Target values are not yet configured in the current report source model; actual source records are included below.',
+    'Target vs Actual':'Target values are not yet configured in the current report source model; actual source records are included.',
     'Trend vs Previous Month':'Historical comparison is not yet populated in the current report snapshot.',
     'Recurring Problems':'Recurring classification is not yet populated; source issue records are retained as evidence.',
-    'Site Map / Spatial Activities':'Spatial evidence is referenced from the current operational source set; map embedding is pending.',
-    'Supporting Evidence':'Source tables below retain report-period evidence from the RuntimeAdapter.',
     'Appendix / Evidence':'Source tables below retain report-period evidence from the RuntimeAdapter.'
   };
+  const totalRecords=Object.values(scoped).reduce((n,list)=>n+list.length,0);
   return {
     report_period_requested:requestedPeriod,
     report_period_effective:effectivePeriod,
