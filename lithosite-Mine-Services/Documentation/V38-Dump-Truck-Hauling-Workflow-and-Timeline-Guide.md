@@ -714,4 +714,4 @@ This guide defines the intended V38 workflow from configuration through reportin
 - [V38 Dump Truck Retase & Quantity Contract](../Contracts/V38-Dump-Truck-Retase-Quantity-Contract.md)
 - the existing V38 Report System and Output contracts
 
-No UI implementation is implied by this guide until the implementation phase is explicitly started.
+The implementation phase follows this guide; UI/runtime changes must remain contract-compliant with the workflow defined above.
