@@ -180,13 +180,26 @@ function filteredCount(){
   let n=0;entities.forEach(e=>rows(e).forEach(r=>{if(JSON.stringify(r).toLowerCase().includes(text))n++;}));
   const m=document.getElementById('reportsCount');if(m)m.textContent=n+' matching records · Runtime Ready';
 }
-function reportPeriod(type,endDate){
-  const end=new Date(String(endDate||latestOperationalDate()).slice(0,10)+'T00:00:00');
-  if(Number.isNaN(end.getTime()))return null;
-  const start=new Date(end);
-  if(type==='WEEKLY'){const day=(end.getDay()+6)%7;start.setDate(end.getDate()-day);}
-  else if(type==='MONTHLY'){start.setDate(1);}
-  return {start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10)};
+function reportPeriod(type,startDate){
+  const start=new Date(String(startDate||latestOperationalDate()).slice(0,10)+'T00:00:00');
+  if(Number.isNaN(start.getTime()))return null;
+  const periodStart=new Date(start);
+  const periodEnd=new Date(start);
+  if(type==='WEEKLY')periodEnd.setDate(periodStart.getDate()+6);
+  else if(type==='MONTHLY'){
+    if(periodStart.getDate()!==1)return null;
+    periodEnd.setMonth(periodStart.getMonth()+1,0);
+  }
+  return {start:periodStart.toISOString().slice(0,10),end:periodEnd.toISOString().slice(0,10)};
+}
+function reportPeriodNotice(type,startDate){
+  if(type==='MONTHLY'){
+    const value=String(startDate||'').slice(0,10);
+    const date=value?new Date(value+'T00:00:00'):null;
+    if(!date||Number.isNaN(date.getTime())||date.getDate()!==1)
+      return 'Monthly Report requires the report date to be the 1st day of the month.';
+  }
+  return '';
 }
 function reportRecordDate(row){
   const keys=['transaction_date','event_date','activity_date','work_date','plan_date','maintenance_date','inspection_date','record_date','date','created_at','updated_at'];
@@ -241,8 +254,7 @@ function buildReportModel(){
   const datedValues=entities.flatMap(entity=>rows(entity).map(reportRecordDate).filter(Boolean)).sort();
   const latestAvailable=datedValues[datedValues.length-1]||requestedEnd;
   const requestedRows=entities.reduce((n,e)=>n+reportRowsForEntity(e,requestedPeriod).length,0);
-  const effectiveEnd=requestedRows>0?requestedPeriod.end:latestAvailable;
-  const effectivePeriod=type==='DAILY'?{start:effectiveEnd,end:effectiveEnd}:reportPeriod(type,effectiveEnd);
+  const effectivePeriod=requestedPeriod;
   const scoped=Object.fromEntries(entities.map(entity=>[entity,reportRowsForEntity(entity,effectivePeriod)]));
   const k=reportKpiForPeriod(effectivePeriod)||state.kpi;
   const kpi={
@@ -278,7 +290,7 @@ function buildReportModel(){
       ...daily,
       report_period_requested:requestedPeriod,
       report_period_effective:effectivePeriod,
-      report_data_status:requestedRows>0?'REQUESTED_PERIOD':'LATEST_AVAILABLE_DATA',
+      report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',
       report_id:'DRAFT-DAILY-'+requestedPeriod.start+'-'+requestedPeriod.end,
       generated_at:new Date().toISOString(),
       status:daily.status
@@ -355,7 +367,7 @@ function buildReportModel(){
   return {
     report_period_requested:requestedPeriod,
     report_period_effective:effectivePeriod,
-    report_data_status:requestedRows>0?'REQUESTED_PERIOD':'LATEST_AVAILABLE_DATA',
+    report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',
     report_id:'DRAFT-'+type+'-'+requestedPeriod.start+'-'+requestedPeriod.end,
     report_type:type,
     period:requestedPeriod,
@@ -460,7 +472,33 @@ function bind(){
   let reportDraft=null;
   const latest=latestOperationalDate();
   if(reportDate)reportDate.value=latest;
+  const notice=document.getElementById('reportCenterNotice');
+  const setReportNotice=(text,error)=>{
+    if(notice){
+      notice.textContent=text||'';
+      notice.classList.toggle('is-warning',!!text&&!!error);
+      notice.hidden=!text;
+    }
+    if(text)msg(text,!!error);
+  };
+  const resetReportActions=()=>{
+    if(reportDraft)reportDraft=null;
+    if(reportPreview)reportPreview.disabled=true;
+    if(reportValidate)reportValidate.disabled=true;
+    if(reportIssue)reportIssue.disabled=true;
+    if(reportPdf)reportPdf.disabled=true;
+  };
+  const syncReportPeriodNotice=()=>{
+    const type=reportType?.value||'DAILY';
+    const date=reportDate?.value||'';
+    const periodNotice=reportPeriodNotice(type,date);
+    setReportNotice(periodNotice,true);
+    if(reportPrepare)reportPrepare.disabled=!!periodNotice;
+    if(periodNotice)resetReportActions();
+    return !periodNotice;
+  };
   const prepareReport=()=>{
+    if(!syncReportPeriodNotice())return;
     const raw=buildReportModel();
     reportDraft=global.LithositeReportValidation
       ? global.LithositeReportValidation.apply(raw,{kpi:raw.kpi})
@@ -470,8 +508,14 @@ function bind(){
     if(reportValidate)reportValidate.disabled=!reportDraft;
     if(reportIssue)reportIssue.disabled=!reportDraft||reportDraft.status!=='READY';
     if(reportPdf)reportPdf.disabled=!reportDraft||!reportDraft.snapshot?.immutable;
-    if(reportDraft?.status==='VALIDATION REQUIRED')msg('Report prepared but validation is required before issue.',true);
-    else msg('Report prepared and ready for review.',false);
+    if(reportDraft?.status==='VALIDATION REQUIRED'){
+      setReportNotice('Report prepared — validation is required before issue.',true);
+    }else if(reportDraft?.report_data_status==='NO_DATA_FOR_PERIOD'){
+      setReportNotice('No data is available for the selected report period.',true);
+    }else{
+      setReportNotice('',false);
+      msg('Report prepared and ready for review.',false);
+    }
   };
   const showReportPreview=()=>{
     if(!reportDraft||!previewModal)return;
@@ -484,9 +528,10 @@ function bind(){
     if(global.LithositeModalShowContract)global.LithositeModalShowContract.close('reportPreviewModal');
     else{previewModal.classList.remove('open');previewModal.setAttribute('aria-hidden','true');}
   };
-  if(reportType)reportType.onchange=()=>{prepareReport();};
-  if(reportDate)reportDate.onchange=()=>{prepareReport();};
+  if(reportType)reportType.onchange=()=>{syncReportPeriodNotice();};
+  if(reportDate)reportDate.onchange=()=>{syncReportPeriodNotice();};
   if(reportPrepare)reportPrepare.onclick=prepareReport;
+  syncReportPeriodNotice();
   if(reportPreview)reportPreview.onclick=showReportPreview;
   if(reportValidate)reportValidate.onclick=()=>{
     if(!reportDraft)return;
