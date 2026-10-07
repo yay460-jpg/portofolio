@@ -98,10 +98,8 @@ const text=v=>{
   }
   return 'No section-specific narrative is available in this report snapshot.';
 };
-function render(model){
+function buildDocumentHtml(model){
   if(!model)throw new Error('Report model is required.');
-  const win=window.open('','_blank');
-  if(!win)throw new Error('PDF window was blocked by the browser.');
   const k=model.kpi||{}, counts=model.source_counts||{}, sections=model.section_data||{};
   const type=String(model.report_type||'REPORT').toUpperCase();
   const period=model.period||{start:'—',end:'—'};
@@ -140,8 +138,7 @@ function render(model){
     ['EU',pctText(k.EU)],
     ['KPI Status',String(k.status||'UNAVAILABLE')]
   ].map(item=>'<div class="kpi-card"><small>'+esc(item[0])+'</small><strong>'+esc(item[1])+'</strong></div>').join('');
-  win.document.open();
-  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+escAttr(title+' · '+periodText)+'</title><style>'+
+  return '<!doctype html><html><head><meta charset="utf-8"><title>'+escAttr(title+' · '+periodText)+'</title><style>'+
     '@page{size:A4 portrait;margin:16mm 15mm 17mm}'+
     '*{box-sizing:border-box}'+
     'html,body{margin:0;padding:0;background:#fff;color:#172333;font-family:Arial,Helvetica,sans-serif;font-size:9.5px}'+
@@ -171,9 +168,22 @@ function render(model){
     '<h2 class="summary-title">Operational Source Summary</h2><table class="summary-table"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+rows+'</tbody></table>'+
     body+
     '<footer class="footer"><span><b>Lithosite Mine Services</b> · V38 · Report Snapshot</span><span>Generated '+esc((model.generated_at||new Date().toISOString()).slice(0,19).replace('T',' '))+'</span></footer>'+
-    '</main><div class="page-footer"></div><script>window.onload=function(){setTimeout(function(){window.print()},180)}</script></body></html>');
+    '</main><div class="page-footer"></div></body></html>';
+}
+function render(model){
+  const win=window.open('','_blank');
+  if(!win)throw new Error('PDF window was blocked by the browser.');
+  win.document.open();
+  win.document.write(buildDocumentHtml(model));
   win.document.close();
+  win.focus();
+  setTimeout(function(){win.print();},180);
   return true;
 }
-global.LithositePdfRenderer=Object.freeze({render});
+function renderInline(model,iframe){
+  if(!iframe)throw new Error('Inline PDF reader target is required.');
+  iframe.srcdoc=buildDocumentHtml(model);
+  return true;
+}
+global.LithositePdfRenderer=Object.freeze({render,renderInline,buildDocumentHtml});
 })(window);
