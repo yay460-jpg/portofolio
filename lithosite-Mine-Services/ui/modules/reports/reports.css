@@ -245,3 +245,8 @@ footer.status{
 #reportsScreen .report-preview-section span{color:#9fb2c7;font-size:8px}
 #reportsScreen .report-preview-note{margin-top:8px;padding:7px;border-radius:6px;background:#101f31;color:#8fa5bb;font-size:8px}
 @media(max-width:900px){#reportsScreen .report-center-controls{flex-wrap:wrap}#reportsScreen .report-center-actions{width:100%;margin-left:0}#reportsScreen .report-preview-kpis{grid-template-columns:repeat(2,1fr)}}
+
+#reportsScreen .report-center-head-right{display:flex;align-items:center;gap:8px}
+#reportsScreen .report-center-head-right .report-center-actions{display:flex;gap:5px;margin-left:0}
+#reportsScreen .report-center-head-right .report-center-actions .control{height:32px}
+@media(max-width:900px){#reportsScreen .report-center-head{height:auto;min-height:34px;padding:6px 9px}.report-center-head-right{flex-wrap:wrap;justify-content:flex-end}#reportsScreen .report-center-head-right .report-center-actions{width:auto}}
