@@ -74,7 +74,8 @@ def test_report_preview_uses_specialized_report_contract_fields():
     assert "model.total_records" in reports
     assert "const totalRecords=" in reports
     assert "equipment:Array.isArray(k?.equipment)?k.equipment:[]" in reports
-    assert "equipment:Array.isArray(k.validation_issues)?k.validation_issues.slice():[],equipment:Array.isArray(k.equipment)?k.equipment:[]" in monthly
+    assert "validation_issues:Array.isArray(k.validation_issues)?k.validation_issues.slice():[]" in monthly
+    assert "equipment:Array.isArray(k.equipment)?k.equipment:[]" in monthly
 
 def test_release_readiness_contract():
     for path in (ENGINE, VALIDATION, SNAPSHOT, PDF, HISTORY, REPORTS):
