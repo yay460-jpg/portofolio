@@ -375,34 +375,70 @@ function reportKpiEquipment(model){
     };
   });
 }
+function reportPreviewTable(table,empty='No source records in this period.'){
+  if(!table||!table.rows?.length)return '<div class="report-preview-copy">'+esc(empty)+'</div>';
+  return '<div class="report-table-wrap"><table class="report-preview-table"><thead><tr>'+table.columns.map(col=>'<th>'+esc(col)+'</th>').join('')+'</tr></thead><tbody>'+table.rows.map(row=>'<tr>'+row.map(value=>'<td>'+esc(value)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+}
+function reportPreviewTrend(rows,fields){
+  if(!rows?.length)return '<div class="report-preview-copy">No dated trend records are available for this period.</div>';
+  return '<div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Date</th>'+fields.map(f=>'<th>'+esc(f.label)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr><td>'+esc(row.date)+'</td>'+fields.map(f=>'<td>'+esc(f.format?f.format(row[f.key]):row[f.key]??0)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+}
 function renderReportPreview(model){
   const host=document.getElementById('reportPreviewBody'),meta=document.getElementById('reportPreviewMeta');
   if(!host||!model)return;
   if(meta)meta.textContent=model.report_type+' · '+model.period.start+(model.period.start!==model.period.end?' → '+model.period.end:'')+' · DRAFT';
-  const k=model.kpi||{}, pa=Number(k.PA),ua=Number(k.UA),eu=Number(k.EU);
-  const maxPct=100;
-  const eq=reportKpiEquipment(model);
-  const eqRows=eq.map(r=>'<tr><td><b>'+esc(r.id)+'</b></td><td>'+esc(r.unit)+'</td><td>'+esc(r.date)+'</td><td>'+fmtHours(r.scheduled)+'</td><td>'+fmtHours(r.available)+'</td><td>'+fmtHours(r.used)+'</td><td><b>'+fmtPct(r.pa)+'</b></td><td>'+fmtPct(r.ua)+'</td><td>'+fmtPct(r.eu)+'</td><td>'+esc(r.status)+'</td></tr>').join('');
-  const sourceRows=entities.map(entity=>'<tr><td>'+esc(entity)+'</td><td>'+model.source_counts[entity]+'</td></tr>').join('');
-  const narrative=(title,text)=>'<section class="report-preview-block"><div class="report-preview-block-head"><b>'+esc(title)+'</b></div><div class="report-preview-copy">'+esc(text)+'</div></section>';
-  host.innerHTML=
-    '<div class="report-preview-kpis"><div><small>Records</small><b>'+model.total_records+'</b></div><div><small>PA</small><b>'+fmtPct(k.PA)+'</b></div><div><small>UA</small><b>'+fmtPct(k.UA)+'</b></div><div><small>EU</small><b>'+fmtPct(k.EU)+'</b></div></div>'+
-    '<div class="report-preview-period"><b>Effective data period</b> '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+esc(model.report_period_effective.end):'')+' · '+esc(model.report_data_status)+'</div>'+
-    narrative('Executive Summary','Operational source records: '+model.total_records+'. KPI validation state: '+(k.status||'UNAVAILABLE')+'. The report uses the same KPI snapshot and source evidence shown in Report Center.')+
-    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Fleet KPI</b><span>Current KPI snapshot</span></div><div class="report-kpi-bars">'+
-      '<div><label>PA <b>'+fmtPct(k.PA)+'</b></label>'+reportBar(pa,maxPct)+'</div>'+
-      '<div><label>UA <b>'+fmtPct(k.UA)+'</b></label>'+reportBar(ua,maxPct)+'</div>'+
-      '<div><label>EU <b>'+fmtPct(k.EU)+'</b></label>'+reportBar(eu,maxPct)+'</div>'+
-    '</div></section>'+
-    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Equipment Performance</b><span>'+eq.length+' KPI rows</span></div>'+
-      '<div class="report-table-wrap"><table class="report-preview-table"><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table></div></section>'+
-    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Operational Source Summary</b><span>'+model.total_records+' records</span></div><div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table></div></section>'+
-    narrative('Planned vs Actual',model.section_data['Planned vs Actual']||'Plan and actual source data are retained for the selected period.')+
-    narrative('Maintenance / Downtime',model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime']||'Maintenance source evidence is retained below.')+
-    narrative('HSE Summary',model.section_data['HSE Summary']||model.section_data['HSE Events']||'HSE source evidence is retained below.')+
-    narrative('Issues and Actions',model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities']||'Issue source evidence is retained below.')+
-    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Source Evidence</b><span>Traceable RuntimeAdapter records</span></div><div class="report-preview-copy">Detailed source rows remain available in the report snapshot. No source data is invented when a domain does not provide the required field.</div></section>'+
-    '<div class="report-preview-note">Preview is read-only. Generate PDF uses this same Report Snapshot.</div>';
+  const k=model.kpi||{},eq=reportKpiEquipment(model);
+  const narrative=(title,text)=>'<section class="report-preview-block"><div class="report-preview-block-head"><b>'+esc(title)+'</b></div><div class="report-preview-copy">'+esc(text||'No evidence summary available.')+'</div></section>';
+  const detail=(title,entity,subtitle)=>'<section class="report-preview-block"><div class="report-preview-block-head"><b>'+esc(title)+'</b><span>'+esc(subtitle||((model.source_counts?.[entity]||0)+' records'))+'</span></div>'+reportPreviewTable(model.detail_tables?.[entity])+'</section>';
+  const fleet='<section class="report-preview-block"><div class="report-preview-block-head"><b>Fleet KPI</b><span>'+esc(k.status||'UNAVAILABLE')+'</span></div><div class="report-kpi-bars">'+['PA','UA','EU'].map(name=>'<div><label>'+name+' <b>'+fmtPct(k[name])+'</b></label>'+reportBar(Number(k[name]),100)+'</div>').join('')+'</div></section>';
+  const planActual='<section class="report-preview-block"><div class="report-preview-block-head"><b>Planned vs Actual</b><span>Plans '+(model.source_counts.Plans||0)+' · Operations '+(model.source_counts.Operations||0)+'</span></div>'+reportPreviewTable(model.detail_tables?.Plans)+'<div class="report-preview-copy">Actual operational activity is represented by the Operations evidence below.</div>'+reportPreviewTrend(model.activity_trend,[{key:'count',label:'Operations'}])+'</section>';
+  const kpiTrend='<section class="report-preview-block"><div class="report-preview-block-head"><b>KPI Trend</b><span>Equipment evidence by validated date</span></div>'+reportPreviewTrend(model.kpi_trend,[{key:'PA',label:'PA',format:fmtPct},{key:'UA',label:'UA',format:fmtPct},{key:'EU',label:'EU',format:fmtPct}])+'</section>';
+  const management= k.status!=='READY'
+    ? narrative(model.report_type==='MONTHLY'?'Management Attention / Decision Required':'Top Management Concerns','KPI validation is '+(k.status||'UNAVAILABLE')+'. Resolve validation evidence before issuing this management report.')
+    : narrative(model.report_type==='MONTHLY'?'Management Attention / Decision Required':'Top Management Concerns','KPI validation is READY. Review operational evidence, recurring issues and actions before issue.');
+  const commonHead='<div class="report-preview-kpis"><div><small>Records</small><b>'+model.total_records+'</b></div><div><small>PA</small><b>'+fmtPct(k.PA)+'</b></div><div><small>UA</small><b>'+fmtPct(k.UA)+'</b></div><div><small>EU</small><b>'+fmtPct(k.EU)+'</b></div></div><div class="report-preview-period"><b>Effective data period</b> '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+esc(model.report_period_effective.end):'')+' · '+esc(model.report_data_status)+'</div>';
+  let body='';
+  if(model.report_type==='DAILY'){
+    body=commonHead+
+      narrative('Executive Summary','Operational source records: '+model.total_records+'. KPI state: '+(k.status||'UNAVAILABLE')+'. Daily report focuses on what happened and what remains outstanding.')+
+      fleet+detail('Work / Task Completed','Operations','Operational activity evidence')+
+      detail('Equipment Status','Equipment')+
+      detail('Work Front Status','WorkFront')+
+      detail('HSE Events','HSE')+
+      detail('Maintenance / Downtime','Maintenance')+
+      detail('Issues and Abnormalities','Issues')+
+      detail('Planned Work','Plans')+
+      management+
+      '<section class="report-preview-block"><div class="report-preview-block-head"><b>Source Evidence</b><span>Traceable RuntimeAdapter records</span></div>'+reportPreviewTable(model.detail_tables?.Operations)+'</section>';
+  }else if(model.report_type==='WEEKLY'){
+    body=commonHead+
+      narrative('Executive Summary','Weekly management view: performance, completed activity, equipment condition, recurring issues and actions for the selected period.')+
+      fleet+planActual+
+      detail('Equipment Performance','Equipment')+
+      detail('Work Front Progress','WorkFront')+
+      detail('HSE Summary','HSE')+
+      detail('Maintenance and Downtime Analysis','Maintenance')+
+      detail('Issues and Recurring Issues','Issues')+
+      kpiTrend+
+      narrative('Key Highlights','Operations '+(model.source_counts.Operations||0)+' · Equipment '+(model.source_counts.Equipment||0)+' · WorkFront '+(model.source_counts.WorkFront||0)+' · Maintenance '+(model.source_counts.Maintenance||0)+' · HSE '+(model.source_counts.HSE||0)+'.')+
+      management+
+      narrative('Recommended Actions','Review outstanding Plans and Issues, confirm KPI validation, then issue the report snapshot.');
+  }else{
+    body=commonHead+
+      narrative('Management Executive Summary','Monthly management view: performance against available evidence, equipment/work-front status, HSE, maintenance, recurring problems and decisions required.')+
+      fleet+
+      planActual+
+      detail('Equipment Performance','Equipment')+
+      detail('Work Front Progress','WorkFront')+
+      detail('HSE Performance','HSE')+
+      detail('Maintenance / Downtime','Maintenance')+
+      detail('Major Issues / Events','Issues')+
+      kpiTrend+
+      narrative('Trend vs Previous Month','The current snapshot contains period evidence. A previous-month comparison will only be shown when an equivalent historical KPI snapshot is available; no synthetic comparison is created.')+
+      management+
+      narrative('Recommendations','Resolve validation gates, review recurring Issues and Plans, and approve the report only after source evidence is confirmed.');
+  }
+  host.innerHTML=body+'<div class="report-preview-note">Preview is read-only. Generate PDF uses this same Report Snapshot. No value is invented when source fields are unavailable.</div>';
 }
 function generatePdf(model){
   if(!model)return;
