@@ -218,3 +218,30 @@ footer.status{
 
 /* Stage 26 — Reports operational header: keep title readable without heavy bold; runtime count stays secondary. */
 #reportsScreen #reportsCount{font-weight:500}
+
+/* Report Center — Daily / Weekly / Monthly output preparation */
+#reportsScreen .report-center{flex:0 0 auto;margin:0 0 8px;background:#101f31;border:1px solid #28425c;border-radius:9px;overflow:hidden}
+#reportsScreen .report-center-head{height:34px;padding:0 10px;border-bottom:1px solid #263e57;display:flex;align-items:center;justify-content:space-between}
+#reportsScreen .report-center-head b{font-size:10.5px;font-weight:700}
+#reportsScreen .report-center-head span{display:block;color:#8fa5bb;font-size:8px}
+#reportsScreen .report-center-head .report-center-status{color:#4ade80;font-weight:700}
+#reportsScreen .report-center-controls{display:flex;align-items:end;gap:7px;padding:7px 9px}
+#reportsScreen .report-center-controls label{display:flex;flex-direction:column;gap:3px;color:#8fa5bb;font-size:7.5px;font-weight:700;text-transform:uppercase;min-width:125px}
+#reportsScreen .report-center-controls input,#reportsScreen .report-center-controls select{width:100%;height:29px;padding:0 8px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;font:inherit;font-size:9px}
+#reportsScreen .report-center-controls select{height:32px}
+#reportsScreen .report-center-actions{display:flex;gap:5px;margin-left:auto}
+#reportsScreen .report-center-actions .control{height:32px}
+#reportsScreen .report-center-actions .primary{background:#2563eb;color:#fff;border-color:#3d7eff}
+#reportsScreen .report-center-summary{min-height:27px;padding:6px 9px;border-top:1px solid #20354d;color:#9fb2c7;font-size:8px;line-height:1.35}
+#reportsScreen .report-center-summary b{color:#dbeafe}
+#reportsScreen .report-preview-dialog{width:min(720px,calc(100vw - 48px));max-height:calc(100vh - 90px);overflow:hidden;background:#0e1d2e;border:1px solid #315477;border-radius:10px;box-shadow:0 18px 42px rgba(0,0,0,.5);color:#e8f0fa}
+#reportsScreen .report-preview-body{padding:10px;overflow:auto;max-height:calc(100vh - 150px)}
+#reportsScreen .report-preview-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+#reportsScreen .report-preview-kpis>div{padding:8px;border:1px solid #29415f;border-radius:7px;background:#0c1b2c}
+#reportsScreen .report-preview-kpis small{display:block;color:#8fa5bb;font-size:7.5px;text-transform:uppercase}
+#reportsScreen .report-preview-kpis b{display:block;margin-top:3px;font-size:14px}
+#reportsScreen .report-preview-section{display:flex;flex-direction:column;gap:4px;margin-top:8px;padding:8px;border:1px solid #29415f;border-radius:7px;background:#0c1b2c}
+#reportsScreen .report-preview-section>b{margin-bottom:2px;color:#dbeafe;font-size:9px}
+#reportsScreen .report-preview-section span{color:#9fb2c7;font-size:8px}
+#reportsScreen .report-preview-note{margin-top:8px;padding:7px;border-radius:6px;background:#101f31;color:#8fa5bb;font-size:8px}
+@media(max-width:900px){#reportsScreen .report-center-controls{flex-wrap:wrap}#reportsScreen .report-center-actions{width:100%;margin-left:0}#reportsScreen .report-preview-kpis{grid-template-columns:repeat(2,1fr)}}
