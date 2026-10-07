@@ -47,3 +47,7 @@
 
 /* V38 — Clear control width parity across module filter panels */
 #plansScreen .clear{width:56px;min-width:56px;height:32px;padding:0 10px;justify-content:center;box-sizing:border-box}
+
+
+/* V38 — unified Clear button geometry across all filter panels */
+#plansScreen #plansClear{width:56px;min-width:56px;max-width:56px;height:32px;padding:0 10px;justify-content:center;align-items:center;box-sizing:border-box;flex:0 0 56px}
