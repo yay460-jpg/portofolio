@@ -7,6 +7,7 @@ from .kpi_snapshot_store import KPIHistoryStore
 from .application import ApplicationService
 from .import_engine import ImportCoordinator
 from .topography_backup import TopographyBackupManager
+from .marker_location_backup import MarkerLocationBackupManager
 
 
 class RuntimeInterface:
@@ -29,6 +30,8 @@ class RuntimeInterface:
         self._datasets = DatasetManager(self._application.store, dataset_dir)
         topography_dir = Path(store_path).with_name("topography") if store_path else Path("topography")
         self._topography = TopographyBackupManager(topography_dir)
+        marker_location_dir = Path(store_path).with_name("marker-location") if store_path else Path("marker-location")
+        self._marker_location = MarkerLocationBackupManager(marker_location_dir)
 
     def create(self, entity, row, request_id):
         return self._application.create(entity, row, request_id)
@@ -80,6 +83,23 @@ class RuntimeInterface:
 
     def load_topography_backup(self, filename):
         result = self._topography.read(filename)
+        result["status"] = "READY"
+        return result
+
+    def save_marker_location_backup(self, package_base64, filename=None, source="runtime"):
+        return self._marker_location.save(package_base64, filename=filename, source=source)
+
+    def list_marker_location_backups(self):
+        backups = self._marker_location.list()
+        return {
+            "status": "READY",
+            "backups": backups,
+            "max_backups": self._marker_location.MAX_BACKUPS,
+            "storage_used": len(backups),
+        }
+
+    def load_marker_location_backup(self, filename):
+        result = self._marker_location.read(filename)
         result["status"] = "READY"
         return result
 
