@@ -47,3 +47,7 @@
 #equipmentModal .field input:focus,#equipmentModal .field select:focus{border-color:#4d8dff}
 @media(max-width:1400px){#equipmentScreen .boundary{padding:18px}#equipmentScreen .title h1{font-size:20px}#equipmentScreen .filters{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}}
 @media(prefers-reduced-motion:reduce){#equipmentScreen *{scroll-behavior:auto}}
+
+
+/* V38 — unified Clear button geometry across all filter panels */
+#equipmentScreen #equipmentClear{width:56px;min-width:56px;max-width:56px;height:32px;padding:0 10px;justify-content:center;align-items:center;box-sizing:border-box;flex:0 0 56px}
