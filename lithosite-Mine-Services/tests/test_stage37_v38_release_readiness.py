@@ -60,7 +60,7 @@ def test_artifact_stage_order():
         "report-engine.js?v=20261007",
         "report-validation.js?v=20261007",
         "report-snapshot.js?v=20261007",
-        "report-pdf.js?v=20261008",
+        "report-pdf.js?v=20261009",
         "report-history.js?v=20261007",
         "reports.js?v=20261013",
     ]
@@ -128,9 +128,10 @@ def test_report_renderers_present_management_readable_section_data():
     assert ".page-footer:after{content:\"Page \" counter(page)}" in pdf
     assert "white-space:pre-line" in pdf
     assert "const humanize=v=>" in pdf
-    assert "Structured report data is available in the issued snapshot." in pdf
+    assert "No section-specific narrative is available in this report snapshot." in pdf
     assert "JSON.stringify(value,null,2)" not in reports
     assert "JSON.stringify(v,null,2)" not in pdf
+    assert pdf.count("const pctText=v=>") == 1
 
 def test_weekly_monthly_no_data_status_does_not_fallback_to_latest():
     reports = read(REPORTS)
