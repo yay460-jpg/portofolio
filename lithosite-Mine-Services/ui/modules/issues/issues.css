@@ -59,7 +59,6 @@
 #issuesScreen .void{background:#4b2024;color:#f87171}
 #issuesScreen .row-actions{display:flex;gap:4px}
 #issuesScreen .mini{height:24px;padding:3px 7px;font-size:8px}
-#issuesScreen .danger{color:#fca5a5;border-color:#5a2b32;background:#12243a}
 #issuesScreen .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
 #issuesScreen .runtime-msg.error{color:#fca5a5;border-color:#5a2b32;background:#2a1519}
 #issuesScreen .empty{display:grid;place-items:center;height:140px;color:#8ea3ba;font-size:10px}
