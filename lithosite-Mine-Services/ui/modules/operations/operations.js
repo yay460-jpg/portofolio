@@ -88,7 +88,7 @@
     optionize(
       'f_measurement',
       Array.isArray(dataState.lists.measurement)
-        ? dataState.lists.measurement.map(function (unit) { return { measurement: measurement }; })
+        ? dataState.lists.measurement.map(function (measurement) { return { measurement: measurement }; })
         : [],
       'unit',
       function (x) { return x.unit; },
