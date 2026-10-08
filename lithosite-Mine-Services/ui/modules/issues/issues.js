@@ -133,7 +133,7 @@ function render(){
    '<div class="cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
    '<div class="cell">'+esc(r.assigned_to)+'</div>'+
    '<div class="cell">'+esc(r.closed_at)+'</div>'+
-   '<div class="cell row-actions"><button class="control mini edit-issue" data-id="'+esc(r.issue_id)+'">Edit</button><button class="control mini danger delete-issue" data-id="'+esc(r.issue_id)+'">Delete</button></div>'+
+   '<div class="cell row-actions"><button class="control mini edit edit-issue" data-id="'+esc(r.issue_id)+'">Edit</button><button class="control mini danger delete-issue" data-id="'+esc(r.issue_id)+'">Delete</button></div>'+
   '</div>').join(''):'<div class="empty">No Issues records match the current filters.</div>';
   document.getElementById('issuesCount').textContent=rows.length+' records · Runtime Ready';
  }
