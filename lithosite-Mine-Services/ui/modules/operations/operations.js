@@ -318,7 +318,7 @@
         '<div class="cell"><span class="statuspill ' + cls + '">' + esc(row.status) + '</span></div>' +
         '<div class="cell muted">' + esc(row.source) + '</div>' +
         '<div class="cell row-actions">' +
-          '<button class="control mini edit-timeline-row" data-id="' + id + '">Edit</button>' +
+          '<button class="control mini edit edit-timeline-row" data-id="' + id + '">Edit</button>' +
           '<button class="control mini danger delete-timeline-row" data-id="' + id + '">Delete</button>' +
         '</div>' +
       '</div>';
@@ -369,7 +369,7 @@
         '<div class="cell">' + esc(first.work_front_id) + '</div>' +
         '<div class="cell">' + esc(first.equipment_id) + '</div>' +
         '<div class="cell">' + esc(unitFleetNo) + '</div>' +
-        '<div class="cell"><button class="control mini timeline-row" data-key="' + key + '">' +
+        '<div class="cell"><button class="control mini event timeline-row" data-key="' + key + '">' +
           items.length + ' event' + (items.length === 1 ? '' : 's') +
         '</button></div>' +
         '<div class="cell">' + esc(totalRetase || '—') + '</div>' +
@@ -377,10 +377,10 @@
         '<div class="cell">' + esc(targetHours || '—') + '</div>' +
         '<div class="cell"><span class="statuspill ' + cls + '">' + esc(status) + '</span></div>' +
         (maintenanceLinksFor(items).length
-          ? '<div class="cell"><button class="control mini maintenance-link" data-date="' + esc(first.transaction_date) + '" data-equipment="' + esc(first.equipment_id) + '">' +
+          ? '<div class="cell"><button class="control mini linked maintenance-link" data-date="' + esc(first.transaction_date) + '" data-equipment="' + esc(first.equipment_id) + '">' +
               maintenanceLinksFor(items).length + ' linked</button></div>'
           : '<div class="cell muted">—</div>') +
-        '<div class="cell row-actions"><button class="control mini timeline-row" data-key="' + key + '">View</button></div>' +
+        '<div class="cell row-actions"><button class="control mini event timeline-row" data-key="' + key + '">View</button></div>' +
       '</div>';
     }).join('');
 
