@@ -75,6 +75,17 @@
     }
 
     const existing = await findByOperation(operation.transaction_id);
+
+    // A validated Operation is historical evidence. Never silently rewrite its
+    // existing Checker snapshot through the support layer.
+    if (existing && String(operation.status || '').toUpperCase() === 'VALIDATED') {
+      return {
+        status: 'SKIPPED',
+        reason: 'Validated Operation — existing Checker evidence is preserved.',
+        checker_id: existing.checker_id
+      };
+    }
+
     const result = existing
       ? await runtimeClient.request({
           operation: 'UPDATE',
