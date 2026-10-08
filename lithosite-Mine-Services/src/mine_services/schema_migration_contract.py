@@ -75,6 +75,8 @@ def target_schema_contract():
         "added_entity": MAP_MARKER_ENTITY,
         "domain_entities": list(A3_DOMAIN_ENTITIES),
         "sheets": list(A3_SHEETS),
-        "headers": {MAP_MARKER_ENTITY: list(MAP_MARKER_SCHEMA_HEADERS)},
-        "primary_keys": {MAP_MARKER_ENTITY: MAP_MARKER_PK},
+        "headers": {
+            key: list(value) for key, value in A3_HEADERS_ADDITIONS.items()
+        },
+        "primary_keys": dict(A3_PRIMARY_KEYS_ADDITIONS),
     }
