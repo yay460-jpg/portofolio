@@ -126,20 +126,39 @@
 #timelineModal .modalhead .ptitle{font-weight:700}
 #timelineModal .timeline-meta{padding:10px 16px 0;color:#8fa5bb;font-size:10px}
 #timelineModal .timeline-summary{
-  display:flex;
-  gap:18px;
-  flex-wrap:wrap;
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:8px;
   padding:10px 16px;
   color:#dce8f5;
   font-size:9.5px;
 }
 #timelineModal .timeline-summary span{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
   background:#0c1b2c;
   border:1px solid #29435d;
   border-radius:7px;
   padding:7px 9px;
 }
-#timelineModal .timeline-summary b{color:#8fa5bb;margin-right:5px;font-weight:600}
+#timelineModal .timeline-summary b{
+  color:#8fa5bb;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.25px;
+  font-weight:600;
+}
+#timelineModal .timeline-summary strong{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#dce8f5;
+  font-size:9.5px;
+  font-weight:600;
+}
 #timelineModal .timeline-grid{
   margin:0 16px 16px;
   border:1px solid #29435d;
@@ -149,8 +168,8 @@
 }
 #timelineModal .timeline-tr{
   display:grid;
-  grid-template-columns:105px 65px 125px 120px 90px 70px 120px 80px 80px 65px 85px 85px 90px 110px 140px;
-  min-width:1425px;
+  grid-template-columns:105px 125px 140px 90px 70px 80px 65px 85px 85px 90px 110px 140px;
+  min-width:1185px;
   align-items:center;
 }
 #timelineModal .timeline-tr .row-actions{
@@ -255,4 +274,11 @@
   flex:0 0 15px;
   width:15px;
   height:15px;
+}
+
+@media(max-width:900px){
+  #timelineModal .timeline-summary{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+@media(max-width:560px){
+  #timelineModal .timeline-summary{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
