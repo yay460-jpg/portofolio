@@ -72,6 +72,23 @@
 #operationsScreen .empty{display:grid;place-items:center;height:140px;color:#8ea3ba;font-size:10px}
 #operationsScreen .muted{color:#8fa5bb}
 
+/* V38 — Operation runtime status belongs to the shared modal footer.
+   It must not consume a body grid row. */
+#modal .modal-runtime-status{
+  margin-right:auto;
+  min-width:0;
+  max-width:60%;
+  color:#8fa5bb;
+  font-size:9px;
+  line-height:1.2;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#modal .modal-runtime-status.error{
+  color:#fca5a5;
+}
+
 /* V38 — Operation data-entry shell geometry is owned by the shared modal shell contract.
    Operations owns only its inner form grid; header/body/footer remain shell-guarded. */
 #modal .modalbody{
