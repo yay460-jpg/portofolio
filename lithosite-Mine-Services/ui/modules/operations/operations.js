@@ -86,9 +86,9 @@
     );
 
     optionize(
-      'f_unit',
-      Array.isArray(dataState.lists.unit)
-        ? dataState.lists.unit.map(function (unit) { return { unit: unit }; })
+      'f_measurement',
+      Array.isArray(dataState.lists.measurement)
+        ? dataState.lists.measurement.map(function (unit) { return { measurement: measurement }; })
         : [],
       'unit',
       function (x) { return x.unit; },
@@ -312,7 +312,7 @@
         '<div class="cell">' + esc(row.material || '—') + '</div>' +
         '<div class="cell">' + esc(row.retase ?? '—') + '</div>' +
         '<div class="cell">' + esc(row.quantity) + '</div>' +
-        '<div class="cell">' + esc(row.unit) + '</div>' +
+        '<div class="cell">' + esc(row.measurement) + '</div>' +
         '<div class="cell">' + esc(row.actual_hours) + '</div>' +
         '<div class="cell">' + esc(row.target_hours) + '</div>' +
         '<div class="cell"><span class="statuspill ' + cls + '">' + esc(row.status) + '</span></div>' +
@@ -469,7 +469,7 @@
     if (isHauling && Number.isFinite(capacity) && retaseEl.value !== '') {
       const retase=Number(retaseEl.value);
       qtyEl.value=Number.isFinite(retase) ? String(retase*capacity) : '';
-      document.getElementById('f_unit').value='ton';
+      document.getElementById('f_measurement').value='ton';
     } else if (!isHauling) {
       capacityEl.value='';
       qtyEl.readOnly=false;
@@ -498,7 +498,7 @@
     document.getElementById('f_retase').value = '';
     document.getElementById('f_capacity').value = '';
     document.getElementById('f_qty').value = '';
-    document.getElementById('f_unit').value = '';
+    document.getElementById('f_measurement').value = '';
     document.getElementById('f_actual').value = '';
     document.getElementById('f_target').value = '';
     document.getElementById('f_status').value = 'DRAFT';
@@ -542,7 +542,7 @@
       f_retase: row.retase,
       f_capacity: row.applied_capacity,
       f_qty: row.quantity,
-      f_unit: row.unit,
+      f_measurement: row.measurement,
       f_actual: row.actual_hours,
       f_target: row.target_hours,
       f_status: row.status,
@@ -701,9 +701,9 @@
       retase: numberOrNull('f_retase'),
       capacity_profile_id: (function(){ const wf=dataState.workFronts.find(function(x){return String(x.work_front_id)===String(document.getElementById('f_wf').value)}); return wf ? (wf.capacity_profile_id || null) : null; })(),
       applied_capacity: numberOrNull('f_capacity'),
-      capacity_unit: 'ton',
+      capacity_measurement: 'ton',
       quantity: numberOrNull('f_qty'),
-      unit: document.getElementById('f_unit').value,
+      measurement: document.getElementById('f_measurement').value,
       actual_hours: numberOrNull('f_actual'),
       target_hours: numberOrNull('f_target'),
       status: document.getElementById('f_status').value,
