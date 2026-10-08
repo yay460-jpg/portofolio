@@ -393,7 +393,8 @@
         runtimeClient.request({ operation: 'READ', entity: 'Checker' }),
         runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
         runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
-        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' })
+        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' }),
+        runtimeClient.request({ operation: 'READ', entity: 'GlobalCapacity' })
       ]);
       dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
       dataState.checkers = Array.isArray(results[1].data) ? results[1].data : [];
