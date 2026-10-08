@@ -74,7 +74,7 @@ function render(){
    const equipment=state.equipment.find(function(item){return String(item.equipment_id||'')===String(first.equipment_id||'');});
    const key=esc(String(first.event_date||'')+'|'+(String(first.equipment_id||'').trim()||'NO-EQUIPMENT|'+String(first.maintenance_id||'')));
    const statuses=Array.from(new Set(items.map(function(row){return String(row.status||'');})));
-   const status=statuses.length===1?statuses[0]:'MIXED';
+   const status=statuses.length===1?statuses[0]:'Mixed';
    const cls=status.toLowerCase().replace(/[^a-z]/g,'')||'open';
    const downtime=items.reduce(function(sum,row){return sum+(Number(row.downtime_hours)||0);},0);
    return '<div class="tr td maintenance-trace-row" data-trace-key="'+key+'"><div class="cell">'+esc(first.event_date)+'</div><div class="cell">'+esc(equipment?.unit_no||first.equipment_id||'—')+'</div><div class="cell">'+esc(equipment?.type||'—')+'</div><div class="cell"><button class="control mini event maintenance-timeline-row" data-key="'+key+'" data-trace-key="'+key+'">'+items.length+' event'+(items.length===1?'':'s')+'</button></div><div class="cell">'+esc(downtime||'—')+'</div><div class="cell"><span class="statuspill '+cls+'">'+esc(status)+'</span></div><div class="cell row-actions"><button class="control mini view maintenance-timeline-row" data-key="'+key+'">View</button></div></div>';
