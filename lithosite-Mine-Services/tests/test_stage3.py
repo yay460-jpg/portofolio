@@ -185,7 +185,7 @@ def test_snapshot_manifest_and_restore_audit():
     app = seed()
     manager = SnapshotManager(app.store)
     snap = manager.capture(source="Stage-3-Test")
-    assert snap["schema_version"] == "A.2"
+    assert snap["schema_version"] == "A.3"
     assert snap["source"] == "Stage-3-Test"
     assert snap["audit_included"] is True
     assert snap["entity_counts"]["Equipment"] == 1
