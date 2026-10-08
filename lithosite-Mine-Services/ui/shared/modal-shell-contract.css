@@ -22,7 +22,7 @@
 
 .modalback > .modal.modal-shell-valid{
   position:relative;
-  width:500px;
+  width:960px;
   max-width:calc(100vw - 48px);
   height:auto;
   max-height:calc(100vh - 48px);
