@@ -102,6 +102,16 @@ class PersistenceStore:
                 operations.cell(row=1, column=operations.max_column + 1, value=header)
             changed = True
 
+        global_capacity = workbook["GlobalCapacity"]
+        current_global_capacity = [cell.value for cell in global_capacity[1]]
+        legacy_global_capacity = list(self.schema.HEADERS["GlobalCapacity"])
+        legacy_global_capacity.remove("unit_brand")
+        if current_global_capacity == legacy_global_capacity:
+            insert_at = current_global_capacity.index("capacity_value") + 1
+            global_capacity.insert_cols(insert_at + 1, 1)
+            global_capacity.cell(row=1, column=insert_at + 1, value="unit_brand")
+            changed = True
+
         checker = workbook["Checker"]
         current_checker = [cell.value for cell in checker[1]]
         legacy_checker = [h for h in self.schema.HEADERS["Checker"] if h != "operation_id"]
