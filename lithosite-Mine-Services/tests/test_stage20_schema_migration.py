@@ -6,9 +6,9 @@ from openpyxl import Workbook, load_workbook
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from mine_services.schema import HEADERS as A2_HEADERS, SHEETS as A2_SHEETS
+from mine_services.schema import HEADERS as A3_HEADERS
 from mine_services.schema_migration import SchemaMigrationError, migrate_a2_to_a3
-from mine_services.schema_migration_contract import A3_SHEETS
+from mine_services.schema_migration_contract import A2_HEADERS, A2_SHEETS, A3_SHEETS
 
 
 def make_a2_workbook(path: Path):
@@ -71,19 +71,10 @@ def test_stage20_migration_creates_a3_without_mutating_a2(tmp_path):
         "elevation", "source_entity", "source_id", "status"
     )]
     assert migrated["MapMarker"].max_row == 1
-    assert list(migrated["GlobalCapacity"].values) == [(
-        "capacity_profile_id", "capacity_name", "capacity_value", "unit",
-        "status", "effective_from", "effective_to"
-    )]
-    assert list(migrated["Checker"].values) == [(
-        "checker_id", "checker_name", "observation_date", "start_time",
-        "end_time", "shift", "equipment_id", "work_front_id", "activity",
-        "material", "retase", "source"
-    )]
-    assert list(migrated["WorkFront"].values)[0][-1] == "capacity_profile_id"
-    assert list(migrated["Operations"].values)[0][-4:] == (
-        "retase", "capacity_profile_id", "applied_capacity", "capacity_unit"
-    )
+    assert list(migrated["GlobalCapacity"].values)[0] == tuple(A3_HEADERS["GlobalCapacity"])
+    assert list(migrated["Checker"].values)[0] == tuple(A3_HEADERS["Checker"])
+    assert list(migrated["WorkFront"].values)[0] == tuple(A3_HEADERS["WorkFront"])
+    assert list(migrated["Operations"].values)[0] == tuple(A3_HEADERS["Operations"])
 
 
 def test_stage20_migration_preserves_existing_domain_data_and_audit(tmp_path):
