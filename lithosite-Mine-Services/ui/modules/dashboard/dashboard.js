@@ -26,6 +26,14 @@
     if (el) el.style.width = String(value) + '%';
   }
 
+  function localDateKey(date) {
+    return [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0')
+    ].join('-');
+  }
+
     function updateKpis() {
     const equipment = state.equipment;
     const workFronts = state.workFronts;
