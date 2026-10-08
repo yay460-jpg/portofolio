@@ -41,6 +41,7 @@ HEADERS["Checker"] = [
 HEADERS["WorkFront"] = HEADERS["WorkFront"] + ["capacity_profile_id"]
 HEADERS["Operations"] = HEADERS["Operations"] + [
     "retase", "capacity_profile_id", "applied_capacity", "capacity_unit",
+    "end_time", "shift", "material", "checker_name",
 ]
 HEADERS["MapMarker"] = [
     "marker_id", "marker_type", "label", "easting", "northing", "elevation",
@@ -82,3 +83,5 @@ CONTROLLED["GlobalCapacity.unit"] = "unit"
 CONTROLLED["GlobalCapacity.status"] = "capacity_status"
 CONTROLLED["Checker.shift"] = "checker_shift"
 CONTROLLED["Checker.material"] = "checker_material"
+CONTROLLED["Operations.shift"] = "checker_shift"
+CONTROLLED["Operations.material"] = "checker_material"
