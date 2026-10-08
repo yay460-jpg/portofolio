@@ -47,7 +47,7 @@ def test_stage11_runtime_errors_are_visible():
 def test_stage11_shell_contract_includes_maintenance():
     assert "Maintenance: 'maintenanceScreen'" in SHELL_JS
     assert "'Maintenance'" in SHELL_JS
-    assert "const required = ['Dashboard', 'Operations', 'Checker', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports'];" in SHELL_JS
+    assert "const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports'];" in SHELL_JS
     assert "let currentScreen = 'Dashboard';" in SHELL_JS
     assert "const STORAGE_KEY = 'lithosite-active-screen';" in SHELL_JS
     assert "readInitialScreen" in SHELL_JS
