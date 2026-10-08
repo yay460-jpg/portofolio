@@ -102,13 +102,13 @@ def test_plans_period_and_numeric_validation():
 
 def test_v27_plans_shell_contract():
     root = Path(__file__).parents[1]
-    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html").read_text(encoding="utf-8")
     shell = (root / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "plans" / "plans.js").read_text(encoding="utf-8")
 
     assert 'id="plansScreen"' in html
     assert 'id="plansModal"' in html
-    assert "shell-navigation.js?v=20261008" in html
+    assert "shell-navigation.js?v=20261011" in html
     assert "../ui/modules/plans/plans.js?v=20261001" in html
     assert "Plans: 'plansScreen'" in shell
     assert "let initialized = false;" in shell
