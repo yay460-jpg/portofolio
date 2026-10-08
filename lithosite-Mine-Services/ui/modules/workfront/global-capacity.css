@@ -160,7 +160,3 @@
   #capacityEditModal .modalbody{grid-template-columns:1fr}
   #capacityEditModal .runtime-msg{grid-column:auto}
 }
-  #capacityEditModal .runtime-msg{
-    grid-column:auto;
-  }
-}
