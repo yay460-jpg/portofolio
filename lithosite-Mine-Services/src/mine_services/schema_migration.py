@@ -95,7 +95,10 @@ def _validate_a3_result(workbook):
 
     for entity in ("WorkFront", "Operations"):
         values = list(workbook[entity].values)
-        expected = A2_HEADERS[entity] + A3_HEADERS_ADDITIONS[entity]
+        expected = list(A2_HEADERS[entity])
+        if entity == "Operations" and "unit" in expected:
+            expected[expected.index("unit")] = "measurement"
+        expected += A3_HEADERS_ADDITIONS[entity]
         if not values or list(values[0]) != expected:
             raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
 
