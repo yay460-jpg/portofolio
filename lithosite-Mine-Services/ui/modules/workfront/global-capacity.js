@@ -34,7 +34,7 @@ function reset(){
  document.getElementById('f_cap_to').value='';
 }
 function openAdd(){editId=null;document.getElementById('capacityModalTitle').textContent='Add Global Capacity';document.getElementById('capacitySave').textContent='Save via RuntimeAdapter';reset();global.LithositeModalShowContract.show('capacityEditModal')}
-function openEdit(id){const r=state.rows.find(x=>String(x.capacity_profile_id)===String(id));if(!r)return;editId=id;document.getElementById('capacityModalTitle').textContent='Edit Global Capacity';document.getElementById('capacitySave').textContent='Update via RuntimeAdapter';const m={f_cap_id:r.capacity_profile_id,f_cap_name:r.capacity_name,f_cap_brand:r.unit_brand,f_cap_value:r.capacity_value,f_cap_unit:r.unit,f_cap_status:r.status,f_cap_from:r.effective_from,f_cap_to:r.effective_to};Object.entries(m).forEach(([id,v])=>document.getElementById(id).value=v??'');document.getElementById('capacityEditModal').classList.add('show')}
+function openEdit(id){const r=state.rows.find(x=>String(x.capacity_profile_id)===String(id));if(!r)return;editId=id;document.getElementById('capacityModalTitle').textContent='Edit Global Capacity';document.getElementById('capacitySave').textContent='Update via RuntimeAdapter';const m={f_cap_id:r.capacity_profile_id,f_cap_name:r.capacity_name,f_cap_brand:r.unit_brand,f_cap_value:r.capacity_value,f_cap_unit:r.unit,f_cap_status:r.status,f_cap_from:r.effective_from,f_cap_to:r.effective_to};Object.entries(m).forEach(([id,v])=>document.getElementById(id).value=v??'');global.LithositeModalShowContract.show('capacityEditModal')}
 function payload(){return {capacity_profile_id:document.getElementById('f_cap_id').value,capacity_name:document.getElementById('f_cap_name').value.trim(),unit_brand:document.getElementById('f_cap_brand').value.trim(),capacity_value:Number(document.getElementById('f_cap_value').value),unit:'ton',status:document.getElementById('f_cap_status').value,effective_from:document.getElementById('f_cap_from').value||null,effective_to:document.getElementById('f_cap_to').value||null}}
 async function save(){
  if(!runtimeReady){msg('RuntimeAdapter is not connected.',true);return}
@@ -51,7 +51,7 @@ function bind(){
  document.getElementById('capacityRefresh').onclick=load;
  document.getElementById('capacityClose').onclick=()=>global.LithositeModalShowContract.close('capacityModal');;
   document.getElementById('capacityFooterClose').onclick=()=>global.LithositeModalShowContract.close('capacityModal');
- document.getElementById('capacityEditClose').onclick=()=>document.getElementById('capacityEditModal').classList.remove('show');
+ document.getElementById('capacityEditClose').onclick=()=>global.LithositeModalShowContract.close('capacityEditModal');
  document.getElementById('capacityCancel').onclick=()=>document.getElementById('capacityEditModal').classList.remove('show');
  document.getElementById('capacitySave').onclick=save;
  document.getElementById('capacityRows').addEventListener('click',e=>{const edit=e.target.closest('.edit-capacity');if(edit)openEdit(edit.dataset.id);const del=e.target.closest('.delete-capacity');if(del)remove(del.dataset.id)});
