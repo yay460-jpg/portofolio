@@ -6,7 +6,7 @@ if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 13 Plan
 const state={rows:[],workfronts:[],status:'loading'};
 let editId=null;
 let runtimeReady=false;
-const LISTS={domain:[],unit:[],status:[]};
+const LISTS={domain:[],measurement:[],status:[]};
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function setMsg(text,error){const el=document.getElementById('plansRuntimeMsg');if(el){el.textContent=text;el.classList.toggle('error',!!error);}}
@@ -35,9 +35,9 @@ async function loadLists(){
  const result=await rc.request({operation:'READ',entity:'_Lists'});
  const lists=(result.data&&typeof result.data==='object')?result.data:result;
  LISTS.domain=Array.isArray(lists.service_domain)?lists.service_domain:[];
- LISTS.unit=Array.isArray(lists.unit)?lists.unit:[];
+ LISTS.measurement=Array.isArray(lists.measurement)?lists.measurement:[];
  LISTS.status=Array.isArray(lists.plan_status)?lists.plan_status:[];
- if(!LISTS.domain.length||!LISTS.unit.length||!LISTS.status.length)throw new Error('Controlled vocabulary _Lists is incomplete for Plans');
+ if(!LISTS.domain.length||!LISTS.measurement.length||!LISTS.status.length)throw new Error('Controlled vocabulary _Lists is incomplete for Plans');
  fillLists();
 }
 function fillLists(){
@@ -46,7 +46,7 @@ function fillLists(){
  fillWorkFrontSelect('plansWorkFrontFilter','All work fronts');
  fillSelect('f_plan_domain',LISTS.domain,'Select domain');
  fillWorkFrontSelect('f_plan_work_front','None');
- fillSelect('f_plan_unit',LISTS.unit,'Select unit');
+ fillSelect('f_plan_measurement',LISTS.measurement,'Select unit');
  fillSelect('f_plan_status',LISTS.status,'Select status');
 }
 function filtered(){
@@ -121,7 +121,7 @@ function resetForm(){
  document.getElementById('f_plan_work_front').value='';
  document.getElementById('f_plan_activity').value='';
  document.getElementById('f_plan_target_quantity').value='';
- document.getElementById('f_plan_unit').value=LISTS.unit[0]||'';
+ document.getElementById('f_plan_measurement').value=LISTS.measurement[0]||'';
  document.getElementById('f_plan_target_hours').value='';
  document.getElementById('f_plan_status').value=LISTS.status.includes('Draft')?'Draft':(LISTS.status[0]||'');
 }
@@ -137,7 +137,7 @@ function openEdit(id){
  document.getElementById('plansModalTitle').textContent='Edit Plan';
  document.getElementById('plansSave').textContent='Update via RuntimeAdapter';
  const map={f_plan_id:row.plan_id,f_plan_period:row.period,f_plan_domain:row.domain,f_plan_work_front:row.work_front_id,
-  f_plan_activity:row.activity,f_plan_target_quantity:row.target_quantity,f_plan_unit:row.unit,f_plan_target_hours:row.target_hours,f_plan_status:row.status};
+  f_plan_activity:row.activity,f_plan_target_quantity:row.target_quantity,f_plan_measurement:row.measurement,f_plan_target_hours:row.target_hours,f_plan_status:row.status};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
  global.LithositeModalShowContract.show('plansModal');
 }
@@ -149,7 +149,7 @@ function payload(){
   work_front_id:document.getElementById('f_plan_work_front').value||null,
   activity:document.getElementById('f_plan_activity').value.trim(),
   target_quantity:document.getElementById('f_plan_target_quantity').value===''?null:Number(document.getElementById('f_plan_target_quantity').value),
-  unit:document.getElementById('f_plan_unit').value,
+  measurement:document.getElementById('f_plan_measurement').value,
   target_hours:document.getElementById('f_plan_target_hours').value===''?null:Number(document.getElementById('f_plan_target_hours').value),
   status:document.getElementById('f_plan_status').value
  };
@@ -157,7 +157,7 @@ function payload(){
 async function save(){
  if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}
  const row=payload();
- if(!row.period||!row.domain||!row.activity||row.target_quantity===null||!row.unit||row.target_hours===null||!row.status){
+ if(!row.period||!row.domain||!row.activity||row.target_quantity===null||!row.measurement||row.target_hours===null||!row.status){
   setMsg('Period, Domain, Activity, Target Quantity, Unit, Target Hours and Status are required.',true);return;
  }
  if(Number.isNaN(row.target_quantity)||Number.isNaN(row.target_hours)||row.target_quantity<0||row.target_hours<0){
