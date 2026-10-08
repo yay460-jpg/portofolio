@@ -129,7 +129,7 @@ function openAdd(){
  editId=null;
  document.getElementById('plansModalTitle').textContent='Add Plan';
  document.getElementById('plansSave').textContent='Save via RuntimeAdapter';
- resetForm();if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('plansModal');}else{document.getElementById('plansModal').classList.add('show')};
+ resetForm();global.LithositeModalShowContract.show('plansModal');
 }
 function openEdit(id){
  const row=state.rows.find(x=>String(x.plan_id)===String(id));if(!row)return;
@@ -139,7 +139,7 @@ function openEdit(id){
  const map={f_plan_id:row.plan_id,f_plan_period:row.period,f_plan_domain:row.domain,f_plan_work_front:row.work_front_id,
   f_plan_activity:row.activity,f_plan_target_quantity:row.target_quantity,f_plan_unit:row.unit,f_plan_target_hours:row.target_hours,f_plan_status:row.status};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('plansModal');}else{document.getElementById('plansModal').classList.add('show')};
+ global.LithositeModalShowContract.show('plansModal');
 }
 function payload(){
  return {
@@ -166,7 +166,7 @@ async function save(){
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'Plans',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Plans',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the Plan record');
-  document.getElementById('plansModal').classList.remove('show');
+  global.LithositeModalShowContract.close('plansModal');
   await refreshData();
   setMsg(editId?'Plan updated and audited.':'Plan created and audited.');
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
@@ -184,8 +184,8 @@ function bind(){
  document.getElementById('plansAdd').onclick=openAdd;
  document.getElementById('plansRefresh').onclick=load;
  document.getElementById('plansSave').onclick=save;
- document.getElementById('plansClose').onclick=()=>document.getElementById('plansModal').classList.remove('show');
- document.getElementById('plansCancel').onclick=()=>document.getElementById('plansModal').classList.remove('show');
+ document.getElementById('plansClose').onclick=()=>global.LithositeModalShowContract.close('plansModal');
+ document.getElementById('plansCancel').onclick=()=>global.LithositeModalShowContract.close('plansModal');
  document.getElementById('plansClear').onclick=()=>{['plansIdFilter','plansPeriodFilter','plansDomainFilter','plansWorkFrontFilter','plansStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
  ['plansIdFilter','plansPeriodFilter','plansDomainFilter','plansWorkFrontFilter','plansStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
  document.getElementById('plansRows').addEventListener('click',e=>{const edit=e.target.closest('.edit-plan');if(edit)openEdit(edit.dataset.id);const del=e.target.closest('.delete-plan');if(del)remove(del.dataset.id);});
