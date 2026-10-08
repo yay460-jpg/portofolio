@@ -7,7 +7,7 @@
 #hseScreen .title p{margin:2px 0;color:#8ea3ba;font-size:11px}
 #hseScreen .controls{display:flex;gap:7px}
 #hseScreen .control{height:34px;padding:7px 10px;border:1px solid #29435d;border-radius:8px;background:#12243a;color:#dbe8f5;font-size:10.5px;display:flex;align-items:center;gap:6px;cursor:pointer}
-#hseScreen .control.primary{background:#2563eb;border-color:#3b82f6;color:#fff;font-weight:700}
+
 #hseScreen .filters{height:auto;flex:0 0 auto;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:end}
 #hseScreen .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}
 #hseScreen .field input,#hseScreen .field select,#hseScreen .field textarea{width:100%;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:7px 9px;font:inherit;font-size:10px;outline:none}
@@ -31,7 +31,7 @@
 #hseScreen .statuspill.low,.statuspill.minor{background:#18334d;color:#8fc2ff}
 #hseScreen .row-actions{display:flex;gap:5px;align-items:center}
 #hseScreen .control.mini{height:26px;padding:4px 8px;font-size:9px}
-#hseScreen .control.danger{border-color:#66313a;color:#ff8b96}
+
 #hseScreen .empty{padding:22px;text-align:center;color:#8ea3ba;font-size:10px}
 #hseScreen .modalback{position:fixed;inset:0;z-index:50;background:#020812aa;display:none;align-items:center;justify-content:center}
 #hseScreen .modalback.show{display:flex}
