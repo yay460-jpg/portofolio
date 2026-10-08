@@ -31,11 +31,6 @@
 #plansScreen .control.mini{height:26px;padding:4px 8px;font-size:9px}
 
 #plansScreen .empty{padding:22px;text-align:center;color:#8ea3ba;font-size:10px}
-#plansScreen .modalback{position:fixed;inset:0;z-index:50;background:#020812aa;display:none;align-items:center;justify-content:center}
-#plansScreen .modalback.show{display:flex}
-#plansScreen .modal{width:500px;max-height:calc(100vh - 80px);overflow:auto;background:#0e1d2e;border:1px solid #35506b;border-radius:12px;box-shadow:0 18px 50px #0009}
-#plansScreen .modalhead,#plansScreen .modalfoot{display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid #263e57}
-#plansScreen .modalfoot{border-bottom:0;border-top:1px solid #263e57;justify-content:flex-end;gap:7px}
 #plansScreen .modalbody{padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
 #plansScreen .runtime-msg{grid-column:1/-1;padding:8px 10px;border:1px solid #29435d;border-radius:7px;background:#10243a;color:#8ea3ba;font-size:9.5px}
 #plansScreen .runtime-msg.error{border-color:#71343d;color:#ff9aa4;background:#28171c}
