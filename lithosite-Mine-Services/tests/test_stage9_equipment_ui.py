@@ -1,6 +1,6 @@
 from pathlib import Path
 
-ARTIFACT = Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html"
+ARTIFACT = Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 EQUIPMENT_JS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.js").read_text(encoding="utf-8")
 SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
@@ -9,7 +9,7 @@ SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation.js")
 def test_stage9_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
-    assert "equipment.js?v=20261006" in TEXT
+    assert "equipment.js?v=20261027" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
