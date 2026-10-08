@@ -106,7 +106,11 @@ def _validate_a3_result(workbook):
     if marker.max_row != 1:
         raise SchemaMigrationError("MAPMARKER_NOT_EMPTY")
 
+    # WorkFront and Operations now carry the A.3 appended fields.
+    # The remaining A.2 domain sheets must retain their original headers.
     for entity in A2_DOMAIN_ENTITIES:
+        if entity in {"WorkFront", "Operations"}:
+            continue
         values = list(workbook[entity].values)
         if not values or list(values[0]) != A2_HEADERS[entity]:
             raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
