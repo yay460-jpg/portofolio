@@ -29,9 +29,9 @@
 #issuesScreen .title h1{margin:0;font-size:21px;line-height:24px;background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);background-clip:text;-webkit-background-clip:text;color:transparent}
 #issuesScreen .title p{margin:2px 0;color:#8ea3ba;font-size:11px}
 #issuesScreen .controls{display:flex;gap:7px}
-#issuesScreen .control{height:34px;padding:7px 10px;border:1px solid #29435d;border-radius:8px;background:#12243a;color:#dbe8f5;font-size:10.5px;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer}
-#issuesScreen .control.primary{background:#2563eb;border-color:#3b82f6;color:#fff;font-weight:700}
-#issuesScreen .control:hover{border-color:#4d8dff}
+
+
+
 #issuesScreen .icon{width:15px;height:15px;display:block;color:currentColor}
 #issuesScreen .panel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
 #issuesScreen .filters{height:auto;min-height:0;flex:0 0 auto;flex-shrink:0;padding:12px;display:grid;grid-template-columns:1.1fr repeat(5,minmax(0,1fr)) auto;gap:8px;align-items:end}
