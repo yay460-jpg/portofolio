@@ -27,7 +27,7 @@ def operation():
         "equipment_id": None,
         "activity": "Test Operation",
         "quantity": 100,
-        "unit": "ton",
+        "measurement": "ton",
         "actual_hours": 2,
         "target_hours": 3,
         "status": "DRAFT",
