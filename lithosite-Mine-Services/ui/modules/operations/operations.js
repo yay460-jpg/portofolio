@@ -353,10 +353,18 @@
       const targetHours = items.reduce(function (sum, row) {
         return sum + (Number(row.target_hours) || 0);
       }, 0);
+      const totalRetase = items.reduce(function (sum, row) {
+        return sum + (Number(row.retase) || 0);
+      }, 0);
+      const shiftValues = Array.from(new Set(items.map(function (row) {
+        return String(row.shift || '').trim();
+      }).filter(Boolean)));
+      const shiftSummary = shiftValues.length === 1 ? shiftValues[0] : (shiftValues.length ? 'Mixed' : '—');
 
       return '<div class="tr td">' +
         '<div class="cell">' + esc(first.transaction_date) + '</div>' +
         '<div class="cell">' + esc(first.transaction_time) + '</div>' +
+        '<div class="cell">' + esc(shiftSummary) + '</div>' +
         '<div class="cell">' + esc(first.domain) + '</div>' +
         '<div class="cell">' + esc(first.work_front_id) + '</div>' +
         '<div class="cell">' + esc(first.equipment_id) + '</div>' +
@@ -364,6 +372,7 @@
         '<div class="cell"><button class="control mini timeline-row" data-key="' + key + '">' +
           items.length + ' event' + (items.length === 1 ? '' : 's') +
         '</button></div>' +
+        '<div class="cell">' + esc(totalRetase || '—') + '</div>' +
         '<div class="cell">' + esc(actualHours || '—') + '</div>' +
         '<div class="cell">' + esc(targetHours || '—') + '</div>' +
         '<div class="cell"><span class="statuspill ' + cls + '">' + esc(status) + '</span></div>' +
