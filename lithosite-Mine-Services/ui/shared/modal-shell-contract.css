@@ -34,6 +34,12 @@
   overflow:hidden;
 }
 
+.modalback > .modal.modal-shell-valid > .modalhead .ptitle{
+  font-size:11.5px;
+  font-weight:700;
+  line-height:1.2;
+}
+
 .modalback > .modal.modal-shell-valid > .modalbody{
   flex:1 1 auto;
   min-width:0;
