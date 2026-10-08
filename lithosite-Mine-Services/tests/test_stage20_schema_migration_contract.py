@@ -8,6 +8,7 @@ from mine_services.schema_migration_contract import (
     CURRENT_SCHEMA_VERSION,
     TARGET_SCHEMA_VERSION,
     A2_DOMAIN_ENTITIES,
+    A2_HEADERS,
     A3_DOMAIN_ENTITIES,
     A3_SHEETS,
     A3_HEADERS_ADDITIONS,
@@ -46,12 +47,7 @@ def test_stage20_schema_migration_contract_uses_canonical_mapmarker_headers():
     assert A3_HEADERS_ADDITIONS["WorkFront"] == ["capacity_profile_id"]
     assert A3_HEADERS_ADDITIONS["Operations"] == [
         header for header in HEADERS["Operations"]
-        if header not in {
-            "transaction_id", "transaction_date", "transaction_time", "domain",
-            "work_front_id", "equipment_id", "activity", "quantity", "unit",
-            "actual_hours", "target_hours", "status", "source", "created_at",
-            "updated_at",
-        }
+        if header not in A2_HEADERS["Operations"] and header != "measurement"
     ]
 
 
