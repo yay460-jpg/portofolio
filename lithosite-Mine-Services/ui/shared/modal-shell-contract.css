@@ -2,7 +2,7 @@
    V38 — shared guard for data-entry modal geometry.
    Header / Body / Footer are the shell boundary; modules own only inner layout.
 */
-.modalback > .modal.modal-shell-valid{
+.modalback > .modal.data-modal-shell{
   display:flex;
   flex-direction:column;
   width:500px;
@@ -14,14 +14,14 @@
   box-sizing:border-box;
 }
 
-.modalback > .modal.modal-shell-valid > .modalhead{
+.modalback > .modal.data-modal-shell > .modalhead{
   flex:0 0 auto;
   min-height:48px;
   box-sizing:border-box;
   overflow:hidden;
 }
 
-.modalback > .modal.modal-shell-valid > .modalbody{
+.modalback > .modal.data-modal-shell > .modalbody{
   flex:1 1 auto;
   min-width:0;
   min-height:0;
@@ -30,7 +30,7 @@
   overflow:auto;
 }
 
-.modalback > .modal.modal-shell-valid > .modalfoot{
+.modalback > .modal.data-modal-shell > .modalfoot{
   flex:0 0 auto;
   min-height:56px;
   box-sizing:border-box;
@@ -38,19 +38,70 @@
 }
 
 @media(max-height:560px){
-  .modalback > .modal.modal-shell-valid{
+  .modalback > .modal.data-modal-shell{
     max-height:calc(100vh - 24px);
   }
-  .modalback > .modal.modal-shell-valid > .modalhead{
+  .modalback > .modal.data-modal-shell > .modalhead{
     min-height:44px;
   }
-  .modalback > .modal.modal-shell-valid > .modalfoot{
+  .modalback > .modal.data-modal-shell > .modalfoot{
     min-height:52px;
   }
 }
 
 @media(prefers-reduced-motion:reduce){
-  .modalback > .modal.modal-shell-valid{
+  .modalback > .modal.data-modal-shell{
     scroll-behavior:auto;
+  }
+}
+
+
+/* Shell guard: the data-entry modal owns a bounded viewport; only body content may scroll. */
+.modalback > .modal.data-modal-shell {
+  position:relative;
+  width:500px;
+  max-width:calc(100vw - 48px);
+  height:auto;
+  max-height:calc(100vh - 48px);
+  min-width:0;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.modalback > .modal.data-modal-shell > .modalhead {
+  flex:0 0 48px;
+  height:48px;
+  min-height:48px;
+  overflow:hidden;
+}
+
+.modalback > .modal.data-modal-shell > .modalbody {
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  overflow:auto;
+}
+
+.modalback > .modal.data-modal-shell > .modalfoot {
+  flex:0 0 56px;
+  min-height:56px;
+  overflow:hidden;
+  border-top:1px solid #29435d;
+}
+
+@media(max-height:560px){
+  .modalback > .modal.data-modal-shell {
+    max-height:calc(100vh - 24px);
+  }
+  .modalback > .modal.data-modal-shell > .modalhead {
+    flex-basis:44px;
+    height:44px;
+    min-height:44px;
+  }
+  .modalback > .modal.data-modal-shell > .modalfoot {
+    flex-basis:52px;
+    min-height:52px;
   }
 }
