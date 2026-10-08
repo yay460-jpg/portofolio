@@ -46,7 +46,7 @@ function fillLists(){
  fillWorkFrontSelect('plansWorkFrontFilter','All work fronts');
  fillSelect('f_plan_domain',LISTS.domain,'Select domain');
  fillWorkFrontSelect('f_plan_work_front','None');
- fillSelect('f_plan_measurement',LISTS.measurement,'Select unit');
+ fillSelect('f_plan_measurement',LISTS.measurement,'Select measurement');
  fillSelect('f_plan_status',LISTS.status,'Select status');
 }
 function filtered(){
@@ -76,7 +76,7 @@ function render(){
    '<div class="cell">'+esc(workFrontLabel(r.work_front_id))+'</div>'+
    '<div class="cell plan-activity" title="'+esc(r.activity)+'">'+esc(r.activity)+'</div>'+
    '<div class="cell num">'+esc(r.target_quantity)+'</div>'+
-   '<div class="cell">'+esc(r.unit)+'</div>'+
+   '<div class="cell">'+esc(r.measurement)+'</div>'+
    '<div class="cell num">'+esc(r.target_hours)+'</div>'+
    '<div class="cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
    '<div class="cell row-actions"><button class="control mini edit edit-plan" data-id="'+esc(r.plan_id)+'">Edit</button><button class="control mini danger delete-plan" data-id="'+esc(r.plan_id)+'">Delete</button></div>'+
