@@ -1,6 +1,388 @@
-#checkerScreen .boundary{height:100%;position:relative}
-#checkerScreen .checker-grid{min-width:1260px}
-#checkerScreen .checker-tr{display:grid;grid-template-columns:110px 135px 75px 110px 105px 135px minmax(130px,1fr) 90px 70px 120px 150px;min-width:1260px}
-#checkerScreen .checker-tr .cell{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#checkerScreen .checker-modal .modalbody{max-height:calc(100vh - 220px);overflow:auto}
-#checkerScreen .checker-required{color:#8ec5ff}
+/* Lithosite Mine Services — Checker module CSS
+   V38 Stage 27 — aligned to the Desktop Master / Operations screen geometry.
+   Checker-specific behavior remains in checker.js; this file owns presentation only.
+*/
+
+#checkerScreen{
+  position:relative;
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  width:100%;
+  height:auto;
+  min-width:0;
+  min-height:0;
+  margin:0;
+  box-sizing:border-box;
+}
+
+#checkerScreen *{box-sizing:border-box}
+
+#checkerScreen .boundary{
+  flex:1 1 auto;
+  height:auto;
+  min-width:0;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  border:1px dashed #2b4560;
+  border-radius:12px;
+  background:#0e1d2e;
+  padding:20px;
+  position:relative;
+  overflow:hidden;
+}
+
+#checkerScreen .head{
+  height:48px;
+  min-height:48px;
+  flex:0 0 48px;
+  display:flex;
+  justify-content:space-between;
+}
+
+#checkerScreen .title h1{
+  margin:0;
+  font-size:21px;
+  line-height:24px;
+  background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);
+  background-clip:text;
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+#checkerScreen .title p{
+  margin:2px 0;
+  color:#8ea3ba;
+  font-size:11px;
+}
+
+#checkerScreen .controls{
+  display:flex;
+  gap:7px;
+}
+
+#checkerScreen .control{
+  height:34px;
+  padding:7px 10px;
+  border:1px solid #29435d;
+  border-radius:8px;
+  background:#12243a;
+  color:#dbe8f5;
+  font-size:10.5px;
+  font-weight:500;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  cursor:pointer;
+}
+
+#checkerScreen .control.primary{
+  background:#2563eb;
+  border-color:#3b82f6;
+  color:#fff;
+  font-weight:700;
+}
+
+#checkerScreen .control:hover{
+  border-color:#4d8dff;
+  box-shadow:0 0 0 1px #4d8dff55,0 4px 12px #02081255;
+  transform:translateY(-1px);
+}
+
+#checkerScreen .control:focus-visible{
+  outline:none;
+  border-color:#60a5fa;
+  box-shadow:0 0 0 2px #60a5fa55;
+}
+
+#checkerScreen .panel{
+  background:#101f31;
+  border:1px solid #28425c;
+  border-radius:9px;
+  box-shadow:0 2px 9px #02081255;
+  overflow:hidden;
+}
+
+#checkerScreen .filters{
+  height:auto;
+  min-height:0;
+  flex:0 0 auto;
+  flex-shrink:0;
+  padding:12px;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr)) auto;
+  gap:8px;
+  align-items:end;
+}
+
+#checkerScreen .field label{
+  display:block;
+  font-size:8.5px;
+  color:#8fa5bb;
+  text-transform:uppercase;
+  font-weight:600;
+  letter-spacing:.4px;
+  margin-bottom:5px;
+}
+
+#checkerScreen .field input,
+#checkerScreen .field select{
+  width:100%;
+  height:32px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  background:#0c1b2c;
+  color:#dce8f5;
+  padding:0 9px;
+  font:inherit;
+  font-size:10px;
+  outline:none;
+}
+
+#checkerScreen .field input:hover,
+#checkerScreen .field select:hover,
+#checkerScreen .field input:focus,
+#checkerScreen .field select:focus{
+  border-color:#4d8dff;
+}
+
+#checkerScreen .field input:focus,
+#checkerScreen .field select:focus{
+  box-shadow:0 0 0 1px #4d8dff44;
+}
+
+#checkerScreen .clear{
+  width:56px;
+  min-width:56px;
+  max-width:56px;
+  height:32px;
+  padding:0 10px;
+  justify-content:center;
+  align-items:center;
+  box-sizing:border-box;
+  flex:0 0 56px;
+}
+
+#checkerScreen .tablepanel{
+  position:relative;
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  margin-top:12px;
+  overflow:hidden;
+}
+
+#checkerScreen .tablehead{
+  height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 12px;
+  border-bottom:1px solid #263e57;
+}
+
+#checkerScreen .ptitle{
+  font-size:11.5px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+#checkerScreen .tablemeta{
+  font-size:9px;
+  color:#8ea3ba;
+}
+
+#checkerScreen .grid{
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  height:auto;
+  overflow:auto;
+}
+
+#checkerScreen .checker-grid{
+  min-width:1260px;
+}
+
+#checkerScreen .checker-tr{
+  display:grid;
+  grid-template-columns:110px 135px 75px 110px 105px 135px minmax(130px,1fr) 90px 70px 120px 150px;
+  min-width:1260px;
+  width:100%;
+  align-items:center;
+}
+
+#checkerScreen .checker-tr.th{
+  height:34px;
+  background:#12243a;
+  color:#8fa5bb;
+  font-size:8px;
+  text-transform:uppercase;
+  font-weight:600;
+  letter-spacing:.3px;
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+
+#checkerScreen .checker-tr.td{
+  min-height:39px;
+  border-bottom:1px solid #223b55;
+  color:#dce8f5;
+  font-size:9.5px;
+}
+
+#checkerScreen .checker-tr .cell{
+  min-width:0;
+  padding:0 9px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+#checkerScreen .row-actions{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  overflow:visible;
+}
+
+#checkerScreen .mini{
+  height:24px;
+  padding:3px 7px;
+  font-size:8px;
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+
+#checkerScreen .danger{
+  color:#fca5a5;
+  border-color:#5a2b32;
+}
+
+#checkerScreen .empty{
+  display:grid;
+  place-items:center;
+  height:140px;
+  color:#8ea3ba;
+  font-size:10px;
+}
+
+#checkerScreen .runtime-msg{
+  font-size:9px;
+  color:#8fa5bb;
+  background:#0c1b2c;
+  border:1px solid #29435d;
+  padding:8px;
+  border-radius:7px;
+  grid-column:1/-1;
+}
+
+#checkerScreen .runtime-msg.error{
+  color:#fca5a5;
+  border-color:#5a2b32;
+  background:#2a1519;
+}
+
+#checkerModal.modalback{
+  position:fixed;
+  inset:0;
+  background:#02081299;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:20;
+}
+
+#checkerModal.modalback.show{display:flex}
+
+#checkerModal .modal{
+  width:620px;
+  max-width:calc(100vw - 48px);
+  max-height:calc(100vh - 48px);
+  overflow:hidden;
+  background:#101f31;
+  border:1px solid #31506d;
+  border-radius:12px;
+  box-shadow:0 20px 70px #0009;
+  display:flex;
+  flex-direction:column;
+}
+
+#checkerModal .modalhead{
+  height:48px;
+  min-height:48px;
+  padding:0 16px;
+  border-bottom:1px solid #29435d;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+#checkerModal .modalhead .ptitle{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  font-weight:700;
+}
+
+#checkerModal .modalbody{
+  padding:16px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  overflow:auto;
+}
+
+#checkerModal .field label{
+  display:block;
+  font-size:8.5px;
+  color:#8fa5bb;
+  text-transform:uppercase;
+  font-weight:600;
+  letter-spacing:.4px;
+  margin-bottom:5px;
+}
+
+#checkerModal .field input,
+#checkerModal .field select{
+  width:100%;
+  height:32px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  background:#0c1b2c;
+  color:#dce8f5;
+  padding:0 9px;
+  font:inherit;
+  font-size:10px;
+  outline:none;
+}
+
+#checkerModal .field input:focus,
+#checkerModal .field select:focus{
+  border-color:#4d8dff;
+  box-shadow:0 0 0 1px #4d8dff44;
+}
+
+#checkerModal .modalfoot{
+  padding:12px 16px;
+  border-top:1px solid #29435d;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+@media(max-width:1400px){
+  #checkerScreen .boundary{padding:18px}
+  #checkerScreen .title h1{font-size:20px}
+  #checkerScreen .filters{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    row-gap:10px;
+  }
+}
