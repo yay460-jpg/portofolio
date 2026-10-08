@@ -347,7 +347,7 @@
       area.appendChild(dumping);
 
       const label = document.createElement('span');
-      label.style.cssText = 'height:18px;line-height:18px;font-size:9px;color:#8ea3ba;white-space:nowrap';
+      label.style.cssText = 'height:18px;line-height:18px;font-size:9px;color:#b9c9d9;white-space:nowrap';
       label.textContent = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
       group.appendChild(area);
