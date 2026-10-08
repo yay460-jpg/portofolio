@@ -122,3 +122,78 @@ def test_checker_rejects_invalid_shift_and_material():
     fields = {error.field for error in result["errors"]}
     assert "shift" in fields
     assert "material" in fields
+
+
+def test_operations_can_carry_checker_context_and_checker_evidence_protects_operation():
+    svc = service()
+    base_rows(svc)
+
+    op = svc.create("Operations", {
+        "transaction_id": "OPS-CHK-001",
+        "transaction_date": "2026-10-08",
+        "transaction_time": "06:00",
+        "end_time": "09:00",
+        "shift": "Day",
+        "domain": "Road & Hauling",
+        "work_front_id": "WF-CHK-A",
+        "equipment_id": "DT-CHK-001",
+        "activity": "Hauling",
+        "material": "Ore",
+        "checker_name": "Field Checker",
+        "retase": 4,
+        "unit": "ton",
+        "quantity": 4,
+        "actual_hours": 3,
+        "target_hours": 3,
+        "status": "DRAFT",
+        "source": "Manual",
+    }, "checker-support-op")
+    assert op["status"] == "COMMITTED", op
+
+    row = svc.read("Operations", "OPS-CHK-001")
+    assert row["shift"] == "Day"
+    assert row["material"] == "Ore"
+    assert row["checker_name"] == "Field Checker"
+    assert row["end_time"] == "09:00"
+
+    evidence = svc.create("Checker", {
+        "checker_id": "CHK-OPS-CHK-001",
+        "operation_id": "OPS-CHK-001",
+        "checker_name": "Field Checker",
+        "observation_date": "2026-10-08",
+        "start_time": "06:00",
+        "end_time": "09:00",
+        "shift": "Day",
+        "equipment_id": "DT-CHK-001",
+        "work_front_id": "WF-CHK-A",
+        "activity": "Hauling",
+        "material": "Ore",
+        "retase": 4,
+        "source": "Operations",
+    }, "checker-support-evidence")
+    assert evidence["status"] == "COMMITTED", evidence
+
+    delete_result = svc.delete("Operations", "OPS-CHK-001", "checker-support-delete")
+    assert delete_result["status"] == "REJECTED"
+    assert any(error.code == "APP-004" for error in delete_result["errors"])
+
+
+def test_operations_rejects_checker_context_without_period():
+    svc = service()
+    base_rows(svc)
+    result = svc.create("Operations", {
+        "transaction_id": "OPS-CHK-002",
+        "transaction_date": "2026-10-08",
+        "transaction_time": "06:00",
+        "domain": "Road & Hauling",
+        "work_front_id": "WF-CHK-A",
+        "equipment_id": "DT-CHK-001",
+        "activity": "Standby / Waiting",
+        "checker_name": "Field Checker",
+        "status": "DRAFT",
+        "source": "Manual",
+    }, "checker-support-period-required")
+    assert result["status"] == "REJECTED"
+    fields = {error.field for error in result["errors"]}
+    assert "end_time" in fields
+    assert "shift" in fields
