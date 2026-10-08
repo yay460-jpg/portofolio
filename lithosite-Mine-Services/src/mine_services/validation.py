@@ -23,7 +23,7 @@ DATE_FIELDS = {
     "Checker": {"observation_date"},
 }
 TIME_FIELDS = {
-    "Operations": {"transaction_time"},
+    "Operations": {"transaction_time", "end_time"},
     "Maintenance": {"start_time", "end_time"},
     "Checker": {"start_time", "end_time"},
 }
@@ -36,7 +36,7 @@ TEXT_FIELDS = {
     "WorkFront": {"work_front_id", "domain", "location", "responsible", "status", "capacity_profile_id"},
     "GlobalCapacity": {"capacity_profile_id", "capacity_name", "unit", "status"},
     "Checker": {"checker_id", "checker_name", "shift", "equipment_id", "work_front_id", "activity", "material", "source"},
-    "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "unit", "status", "source", "capacity_profile_id", "capacity_unit"},
+    "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "unit", "status", "source", "capacity_profile_id", "capacity_unit", "shift", "material", "checker_name"},
     "Maintenance": {"maintenance_id", "equipment_id", "event_type", "failure_code", "action", "status", "source"},
     "Issues": {"issue_id", "domain", "work_front_id", "equipment_id", "description", "severity", "status", "assigned_to"},
     "Plans": {"plan_id", "period", "domain", "work_front_id", "activity", "unit", "status"},
@@ -150,6 +150,15 @@ class ValidationEngine:
             is_dump_truck = str((equipment or {}).get("type") or "").strip().lower() == "dump truck"
             if is_dump_truck and activity == "hauling" and row.get("retase") in (None, ""):
                 errors.append(ValidationError("VAL-E003", "retase", "Retase is required for Dump Truck Hauling"))
+
+        if entity == "Operations":
+            start = row.get("transaction_time")
+            end = row.get("end_time")
+            if start not in (None, "") and end not in (None, ""):
+                start_text = start.strftime("%H:%M:%S") if isinstance(start, time) else str(start)
+                end_text = end.strftime("%H:%M:%S") if isinstance(end, time) else str(end)
+                if end_text < start_text:
+                    errors.append(ValidationError("VAL-E008", "end_time", "end_time must be >= transaction_time"))
 
         if (
             entity == "Operations"
