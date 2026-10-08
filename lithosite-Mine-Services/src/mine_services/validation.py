@@ -151,6 +151,12 @@ class ValidationEngine:
             if is_dump_truck and activity == "hauling" and row.get("retase") in (None, ""):
                 errors.append(ValidationError("VAL-E003", "retase", "Retase is required for Dump Truck Hauling"))
 
+        if entity == "Operations" and str(row.get("checker_name") or "").strip():
+            if row.get("end_time") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "end_time", "end_time is required when Checker Name is provided"))
+            if row.get("shift") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "shift", "shift is required when Checker Name is provided"))
+
         if entity == "Operations":
             start = row.get("transaction_time")
             end = row.get("end_time")
