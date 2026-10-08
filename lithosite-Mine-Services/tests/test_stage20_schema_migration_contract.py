@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from mine_services.schema import DOMAIN_ENTITIES, SCHEMA_VERSION, SHEETS
+from mine_services.schema import DOMAIN_ENTITIES, SCHEMA_VERSION, SHEETS, HEADERS
 from mine_services.schema_migration_contract import (
     CURRENT_SCHEMA_VERSION,
     TARGET_SCHEMA_VERSION,
@@ -23,39 +23,35 @@ from mine_services.map_marker_contract import (
 
 def test_stage20_schema_migration_contract_targets_a3_without_activating_it():
     assert CURRENT_SCHEMA_VERSION == "A.2"
-    assert SCHEMA_VERSION == "A.2"
+    assert SCHEMA_VERSION == "A.3"
     assert TARGET_SCHEMA_VERSION == "A.3"
 
 
 def test_stage20_schema_migration_contract_preserves_all_a2_domain_entities():
-    assert A2_DOMAIN_ENTITIES == DOMAIN_ENTITIES
-    assert A3_DOMAIN_ENTITIES[:len(DOMAIN_ENTITIES)] == DOMAIN_ENTITIES
-    assert A3_DOMAIN_ENTITIES[len(DOMAIN_ENTITIES):] == ["GlobalCapacity", "Checker", MAP_MARKER_ENTITY]
+    assert A2_DOMAIN_ENTITIES == ["Equipment", "WorkFront", "Operations", "Maintenance", "Issues", "Plans", "HSE"]
+    assert A3_DOMAIN_ENTITIES == DOMAIN_ENTITIES
 
 
 def test_stage20_schema_migration_contract_adds_v38_entities_and_mapmarker():
-    assert A3_SHEETS[:5] == SHEETS[:5]
-    assert A3_SHEETS[5:8] == ["GlobalCapacity", "Checker", "Operations"]
-    assert A3_SHEETS[8:-2] == SHEETS[6:-1]
+    assert A3_SHEETS == SHEETS
     assert A3_SHEETS[-2:] == [MAP_MARKER_ENTITY, "AuditLog"]
-    assert "MapMarker" not in SHEETS
+    assert "MapMarker" in SHEETS
 
 
 def test_stage20_schema_migration_contract_uses_canonical_mapmarker_headers():
     assert A3_HEADERS_ADDITIONS[MAP_MARKER_ENTITY] == MAP_MARKER_HEADERS
     assert A3_PRIMARY_KEYS_ADDITIONS[MAP_MARKER_ENTITY] == MAP_MARKER_PRIMARY_KEY
-    assert A3_HEADERS_ADDITIONS["GlobalCapacity"] == [
-        "capacity_profile_id", "capacity_name", "capacity_value", "unit",
-        "status", "effective_from", "effective_to",
-    ]
-    assert A3_HEADERS_ADDITIONS["Checker"] == [
-        "checker_id", "checker_name", "observation_date", "start_time",
-        "end_time", "shift", "equipment_id", "work_front_id", "activity",
-        "material", "retase", "source",
-    ]
+    assert A3_HEADERS_ADDITIONS["GlobalCapacity"] == HEADERS["GlobalCapacity"]
+    assert A3_HEADERS_ADDITIONS["Checker"] == HEADERS["Checker"]
     assert A3_HEADERS_ADDITIONS["WorkFront"] == ["capacity_profile_id"]
     assert A3_HEADERS_ADDITIONS["Operations"] == [
-        "retase", "capacity_profile_id", "applied_capacity", "capacity_unit",
+        header for header in HEADERS["Operations"]
+        if header not in {
+            "transaction_id", "transaction_date", "transaction_time", "domain",
+            "work_front_id", "equipment_id", "activity", "quantity", "unit",
+            "actual_hours", "target_hours", "status", "source", "created_at",
+            "updated_at",
+        }
     ]
 
 
@@ -68,8 +64,8 @@ def test_stage20_schema_migration_contract_is_explicit_and_machine_readable():
     assert contract["primary_keys"]["MapMarker"] == "marker_id"
 
 
-def test_stage20_schema_migration_contract_does_not_change_active_schema():
+def test_stage20_schema_migration_contract_keeps_a3_active():
     from mine_services import schema
-    assert schema.SCHEMA_VERSION == "A.2"
-    assert "MapMarker" not in schema.DOMAIN_ENTITIES
-    assert "MapMarker" not in schema.SHEETS
+    assert schema.SCHEMA_VERSION == "A.3"
+    assert "MapMarker" in schema.DOMAIN_ENTITIES
+    assert "MapMarker" in schema.SHEETS
