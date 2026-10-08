@@ -50,8 +50,8 @@
   font-size:9px;
 }
 #capacityModal .capacity-grid{
-  grid-template-columns:145px minmax(180px,1fr) 100px 65px 90px 155px;
-  min-width:735px;
+  grid-template-columns:135px minmax(150px,1fr) 120px 90px 60px 80px 145px;
+  min-width:780px;
 }
 #capacityModal .capacity-grid.th{
   min-height:34px;
