@@ -108,8 +108,8 @@ class PersistenceStore:
         legacy_global_capacity.remove("unit_brand")
         if current_global_capacity == legacy_global_capacity:
             insert_at = current_global_capacity.index("capacity_value") + 1
-            global_capacity.insert_cols(insert_at + 1, 1)
-            global_capacity.cell(row=1, column=insert_at + 1, value="unit_brand")
+            global_capacity.insert_cols(insert_at, 1)
+            global_capacity.cell(row=1, column=insert_at, value="unit_brand")
             changed = True
 
         checker = workbook["Checker"]
