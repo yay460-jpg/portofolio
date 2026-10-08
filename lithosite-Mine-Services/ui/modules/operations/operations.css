@@ -60,8 +60,8 @@
 #operationsScreen .grid{flex:1 1 auto;min-width:0;min-height:0;height:auto;overflow:auto}
 #operationsScreen .tr{
   display:grid;
-  grid-template-columns:90px 55px 60px 105px 120px 125px 115px 100px 80px 75px 75px 90px 105px 75px;
-  min-width:1270px;
+  grid-template-columns:85px 55px 55px 110px 120px 120px 110px minmax(100px,1fr) 80px 75px 75px 90px 105px 80px;
+  min-width:0;
   width:100%;
   align-items:center;
 }
