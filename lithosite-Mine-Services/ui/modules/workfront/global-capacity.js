@@ -26,6 +26,7 @@ function reset(){
  const now=new Date(),d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
  document.getElementById('f_cap_id').value='GC-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
  document.getElementById('f_cap_name').value='';
+ document.getElementById('f_cap_brand').value='';
  document.getElementById('f_cap_value').value='';
  document.getElementById('f_cap_unit').value='ton';
  document.getElementById('f_cap_status').value='Active';
@@ -33,8 +34,8 @@ function reset(){
  document.getElementById('f_cap_to').value='';
 }
 function openAdd(){editId=null;document.getElementById('capacityModalTitle').textContent='Add Global Capacity';document.getElementById('capacitySave').textContent='Save via RuntimeAdapter';reset();document.getElementById('capacityEditModal').classList.add('show')}
-function openEdit(id){const r=state.rows.find(x=>String(x.capacity_profile_id)===String(id));if(!r)return;editId=id;document.getElementById('capacityModalTitle').textContent='Edit Global Capacity';document.getElementById('capacitySave').textContent='Update via RuntimeAdapter';const m={f_cap_id:r.capacity_profile_id,f_cap_name:r.capacity_name,f_cap_value:r.capacity_value,f_cap_unit:r.unit,f_cap_status:r.status,f_cap_from:r.effective_from,f_cap_to:r.effective_to};Object.entries(m).forEach(([id,v])=>document.getElementById(id).value=v??'');document.getElementById('capacityEditModal').classList.add('show')}
-function payload(){return {capacity_profile_id:document.getElementById('f_cap_id').value,capacity_name:document.getElementById('f_cap_name').value.trim(),capacity_value:Number(document.getElementById('f_cap_value').value),unit:'ton',status:document.getElementById('f_cap_status').value,effective_from:document.getElementById('f_cap_from').value||null,effective_to:document.getElementById('f_cap_to').value||null}}
+function openEdit(id){const r=state.rows.find(x=>String(x.capacity_profile_id)===String(id));if(!r)return;editId=id;document.getElementById('capacityModalTitle').textContent='Edit Global Capacity';document.getElementById('capacitySave').textContent='Update via RuntimeAdapter';const m={f_cap_id:r.capacity_profile_id,f_cap_name:r.capacity_name,f_cap_brand:r.unit_brand,f_cap_value:r.capacity_value,f_cap_unit:r.unit,f_cap_status:r.status,f_cap_from:r.effective_from,f_cap_to:r.effective_to};Object.entries(m).forEach(([id,v])=>document.getElementById(id).value=v??'');document.getElementById('capacityEditModal').classList.add('show')}
+function payload(){return {capacity_profile_id:document.getElementById('f_cap_id').value,capacity_name:document.getElementById('f_cap_name').value.trim(),unit_brand:document.getElementById('f_cap_brand').value.trim(),capacity_value:Number(document.getElementById('f_cap_value').value),unit:'ton',status:document.getElementById('f_cap_status').value,effective_from:document.getElementById('f_cap_from').value||null,effective_to:document.getElementById('f_cap_to').value||null}}
 async function save(){
  if(!runtimeReady){msg('RuntimeAdapter is not connected.',true);return}
  const row=payload();if(!row.capacity_name||!Number.isFinite(row.capacity_value)||row.capacity_value<=0){msg('Capacity Name and a positive numeric capacity are required.',true);return}
