@@ -49,7 +49,8 @@ function bind(){
  document.getElementById('globalCapacityButton').onclick=()=>{if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('capacityModal')}else{openAdd();return}load()};
  document.getElementById('capacityAdd').onclick=openAdd;
  document.getElementById('capacityRefresh').onclick=load;
- document.getElementById('capacityClose').onclick=()=>global.LithositeModalShowContract.close('capacityModal');
+ document.getElementById('capacityClose').onclick=()=>global.LithositeModalShowContract.close('capacityModal');;
+  document.getElementById('capacityFooterClose').onclick=()=>global.LithositeModalShowContract.close('capacityModal');
  document.getElementById('capacityEditClose').onclick=()=>document.getElementById('capacityEditModal').classList.remove('show');
  document.getElementById('capacityCancel').onclick=()=>document.getElementById('capacityEditModal').classList.remove('show');
  document.getElementById('capacitySave').onclick=save;
