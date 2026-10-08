@@ -1,7 +1,10 @@
 /* The shared shell also owns the backdrop for validated data-entry modals. */
 .modalback:has(> .modal.modal-shell-valid){
   position:fixed;
-  inset:0;
+  top:64px;
+  right:0;
+  bottom:34px;
+  left:0;
   z-index:20;
   padding:0;
   background:#02081299;
@@ -25,7 +28,7 @@
   width:960px;
   max-width:calc(100vw - 48px);
   height:auto;
-  max-height:calc(100vh - 48px);
+  max-height:calc(100vh - 64px - 34px - 24px);
   min-width:0;
   min-height:0;
   overflow:hidden;
@@ -81,7 +84,7 @@
 
 @media(max-height:560px){
   .modalback > .modal.modal-shell-valid{
-    max-height:calc(100vh - 24px);
+    max-height:calc(100vh - 64px - 34px - 16px);
   }
   .modalback > .modal.modal-shell-valid > .modalhead{
     flex-basis:44px;
