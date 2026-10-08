@@ -69,12 +69,10 @@
   margin-bottom:10px;
 }
 @media(max-width:700px){
-  #capacityModal.modalback,
-  #capacityEditModal.modalback{
+  #capacityModal.modalback{
     padding:8px;
   }
-  #capacityModal .capacity-modal,
-  #capacityEditModal .capacity-modal{
+  #capacityModal .capacity-modal{
     max-height:calc(100% - 8px);
   }
 }
