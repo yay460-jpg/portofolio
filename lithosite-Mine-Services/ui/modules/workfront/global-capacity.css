@@ -5,3 +5,85 @@
 .capacity-value{font-weight:700;color:#dbeafe}
 .capacity-modal{width:min(980px,calc(100vw - 80px))}
 .capacity-help{font-size:10.5px;color:#8ea3ba;margin:0 0 10px}
+
+/* V38 — Global Capacity compact layout */
+#capacityModal .capacity-modal{
+  width:min(920px,calc(100% - 24px));
+  max-height:calc(100% - 24px);
+}
+#capacityModal .modalbody{
+  padding:14px 16px 16px;
+}
+#capacityModal .runtime-msg{
+  margin-bottom:8px;
+  font-size:10px;
+  line-height:1.35;
+}
+#capacityModal .capacity-help{
+  font-size:9.5px;
+  line-height:1.4;
+  margin:0 0 9px;
+}
+#capacityModal .controls{
+  gap:6px;
+  margin-bottom:10px;
+}
+#capacityModal .controls .control{
+  height:32px;
+  padding:6px 10px;
+  font-size:10px;
+}
+#capacityModal .tablepanel{
+  margin-top:0;
+  border:1px solid #29435d;
+  border-radius:9px;
+  overflow:hidden;
+}
+#capacityModal .tablehead{
+  height:38px;
+  padding:0 11px;
+}
+#capacityModal .tablehead .ptitle{
+  font-size:11px;
+}
+#capacityModal .tablemeta{
+  font-size:9px;
+}
+#capacityModal .capacity-grid{
+  grid-template-columns:145px minmax(180px,1fr) 100px 65px 90px 155px;
+  min-width:735px;
+}
+#capacityModal .capacity-grid.th{
+  min-height:34px;
+  background:#12243a;
+  font-size:8.5px;
+  text-transform:uppercase;
+  letter-spacing:.2px;
+}
+#capacityModal .capacity-grid.td{
+  min-height:38px;
+  border-bottom:1px solid #223b55;
+  font-size:9.5px;
+}
+#capacityModal .capacity-cell{
+  padding:6px 9px;
+}
+#capacityModal .capacity-cell.row-actions{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  overflow:visible;
+}
+#capacityModal .capacity-cell.row-actions .control.mini{
+  height:24px;
+  padding:3px 7px;
+  font-size:8px;
+}
+#capacityModal .empty{
+  min-height:70px;
+  padding:14px;
+  display:flex;
+  align-items:center;
+  color:#8ea3ba;
+  font-size:9.5px;
+}
