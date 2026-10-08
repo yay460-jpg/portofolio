@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
-UI = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html"
+UI = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v38-STAGE27.html"
 OPS_JS = ROOT / "ui" / "modules" / "operations" / "operations.js"
 
 
@@ -70,7 +70,7 @@ def test_stage8_operations_uses_controlled_domain_and_unit_lists():
     ui_text = UI.read_text(encoding="utf-8")
     ops_text = OPS_JS.read_text(encoding="utf-8")
 
-    assert '<select id="f_unit">' in ui_text
+    assert '<select id="f_measurement">' in ui_text
     assert "dataState.lists.service_domain" in ops_text
     assert "dataState.lists.measurement" in ops_text
 
