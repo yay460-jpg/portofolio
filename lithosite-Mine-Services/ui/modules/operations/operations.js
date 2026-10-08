@@ -380,7 +380,7 @@
           ? '<div class="cell"><button class="control mini linked maintenance-link" data-date="' + esc(first.transaction_date) + '" data-equipment="' + esc(first.equipment_id) + '">' +
               maintenanceLinksFor(items).length + ' linked</button></div>'
           : '<div class="cell muted">—</div>') +
-        '<div class="cell row-actions"><button class="control mini event timeline-row" data-key="' + key + '">View</button></div>' +
+        '<div class="cell row-actions"><button class="control mini view timeline-row" data-key="' + key + '">View</button></div>' +
       '</div>';
     }).join('');
 
