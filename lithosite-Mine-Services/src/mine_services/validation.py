@@ -53,11 +53,11 @@ class ValidationEngine:
             return True
         if field in DATE_FIELDS.get(entity, set()):
             return (isinstance(value, date) and not isinstance(value, datetime)) or (
-                isinstance(value, str) and bool(re.fullmatch(r"d{4}-d{2}-d{2}", value))
+                isinstance(value, str) and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", value))
             )
         if field in TIME_FIELDS.get(entity, set()):
             return isinstance(value, time) or (
-                isinstance(value, str) and bool(re.fullmatch(r"d{2}:d{2}(:d{2})?", value))
+                isinstance(value, str) and bool(re.fullmatch(r"\d{2}:\d{2}(:\d{2})?", value))
             )
         if field in DATETIME_FIELDS.get(entity, set()):
             return isinstance(value, datetime) or (
@@ -161,7 +161,7 @@ class ValidationEngine:
         if entity == "Plans" and row.get("target_quantity") not in (None, "") and not row.get("unit"):
             errors.append(ValidationError("VAL-E008", "unit", "unit required with target_quantity"))
 
-        if entity == "Plans" and row.get("period") and not re.fullmatch(r"d{4}-(0[1-9]|1[0-2])", str(row["period"])):
+        if entity == "Plans" and row.get("period") and not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", str(row["period"])):
             errors.append(ValidationError("VAL-E009", "period", "period must be YYYY-MM"))
 
         if row.get("effective_from") and row.get("effective_to"):
