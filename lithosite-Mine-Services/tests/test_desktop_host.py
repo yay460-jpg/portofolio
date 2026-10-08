@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "desktop-host"))
 
 
 def _load_server(monkeypatch, tmp_path):
-    monkeypatch.setenv("MINE_SERVICES_DB", str(tmp_path / "desktop-host-a2.xlsx"))
+    monkeypatch.setenv("MINE_SERVICES_DB", str(tmp_path / "desktop-host-a3.xlsx"))
     import server
     return server
 
@@ -47,10 +47,10 @@ def _make_test_database(path):
 
 
 def test_health_endpoint_is_offline_ready(monkeypatch, tmp_path):
-    db_path = tmp_path / "desktop-host-a2.xlsx"
+    db_path = tmp_path / "desktop-host-a3.xlsx"
     _make_test_database(db_path)
     monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
-    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A2")
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
     import server
 
     httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
@@ -63,17 +63,17 @@ def test_health_endpoint_is_offline_ready(monkeypatch, tmp_path):
             payload = json.loads(response.read().decode())
         assert payload["status"] == "READY"
         assert payload["offline"] is True
-        assert payload["schema"] == "A.2"
+        assert payload["schema"] == "A.3"
     finally:
         httpd.shutdown()
         httpd.server_close()
 
 
 def test_runtime_endpoint_routes_to_adapter(monkeypatch, tmp_path):
-    db_path = tmp_path / "desktop-host-a2.xlsx"
+    db_path = tmp_path / "desktop-host-a3.xlsx"
     _make_test_database(db_path)
     monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
-    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A2")
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
     import server
 
     httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
@@ -102,10 +102,10 @@ def test_runtime_endpoint_routes_to_adapter(monkeypatch, tmp_path):
 
 
 def test_disallowed_origin_is_rejected(monkeypatch, tmp_path):
-    db_path = tmp_path / "desktop-host-a2.xlsx"
+    db_path = tmp_path / "desktop-host-a3.xlsx"
     _make_test_database(db_path)
     monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
-    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A2")
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
     import server
 
     httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
