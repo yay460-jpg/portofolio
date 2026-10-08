@@ -24,7 +24,11 @@ A2_DOMAIN_ENTITIES = [
     "HSE",
 ]
 
-A3_DOMAIN_ENTITIES = A2_DOMAIN_ENTITIES + [MAP_MARKER_ENTITY]
+A3_DOMAIN_ENTITIES = A2_DOMAIN_ENTITIES + [
+    "GlobalCapacity",
+    "Checker",
+    MAP_MARKER_ENTITY,
+]
 
 A3_SHEETS = [
     "_Baseline",
@@ -32,6 +36,8 @@ A3_SHEETS = [
     "_Lists",
     "Equipment",
     "WorkFront",
+    "GlobalCapacity",
+    "Checker",
     "Operations",
     "Maintenance",
     "Issues",
@@ -42,10 +48,23 @@ A3_SHEETS = [
 ]
 
 A3_HEADERS_ADDITIONS = {
+    "GlobalCapacity": [
+        "capacity_profile_id", "capacity_name", "capacity_value", "unit",
+        "status", "effective_from", "effective_to",
+    ],
+    "Checker": [
+        "checker_id", "checker_name", "observation_date", "start_time",
+        "end_time", "shift", "equipment_id", "work_front_id", "activity",
+        "material", "retase", "source",
+    ],
+    "WorkFront": ["capacity_profile_id"],
+    "Operations": ["retase", "capacity_profile_id", "applied_capacity", "capacity_unit"],
     MAP_MARKER_ENTITY: MAP_MARKER_SCHEMA_HEADERS,
 }
 
 A3_PRIMARY_KEYS_ADDITIONS = {
+    "GlobalCapacity": "capacity_profile_id",
+    "Checker": "checker_id",
     MAP_MARKER_ENTITY: MAP_MARKER_PK,
 }
 
