@@ -287,11 +287,13 @@
     const capacitySummary = uniqueContextValue(rows, function (row) {
       return row.applied_capacity ?? '';
     }, '');
-    const resolvedCapacity = capacitySummary !== 'Mixed' && capacitySummary !== '—' && capacitySummary !== ''
-      ? capacitySummary
-      : (capacityProfile && capacityProfile.capacity_value != null
-        ? String(capacityProfile.capacity_value)
-        : '—');
+    const resolvedCapacity = capacitySummary === 'Mixed'
+      ? 'Mixed'
+      : (capacitySummary !== '—' && capacitySummary !== ''
+        ? capacitySummary
+        : (capacityProfile && capacityProfile.capacity_value != null
+          ? String(capacityProfile.capacity_value)
+          : '—'));
 
     document.getElementById('timelineSummary').innerHTML =
       '<span><b>Domain</b><strong>' + esc(first.domain || '—') + '</strong></span>' +
