@@ -39,4 +39,4 @@ def test_stage36_persisted_lists_expose_new_reference_values():
     }
 
     assert "Mining" in values["service_domain"]
-    assert "cycle" in values["unit"]
+    assert "cycle" in values["measurement"]
