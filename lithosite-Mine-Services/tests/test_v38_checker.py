@@ -184,7 +184,7 @@ def test_operations_can_carry_checker_context_and_checker_evidence_protects_oper
 
     delete_result = svc.delete("Operations", "OPS-CHK-001", "checker-support-delete")
     assert delete_result["status"] == "REJECTED"
-    assert any(error.code == "APP-004" for error in delete_result["errors"])
+    assert any(error["code"] == "APP-004" for error in delete_result["errors"])
 
 
 def test_operations_rejects_checker_context_without_period():
