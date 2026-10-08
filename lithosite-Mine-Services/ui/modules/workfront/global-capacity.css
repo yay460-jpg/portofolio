@@ -3,17 +3,10 @@
 .capacity-grid.th{font-weight:700;color:#8ea3ba}
 .capacity-cell{padding:7px 9px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .capacity-value{font-weight:700;color:#dbeafe}
-.capacity-modal{width:min(980px,calc(100vw - 80px))}
 .capacity-help{font-size:10.5px;color:#8ea3ba;margin:0 0 10px}
 
 /* V38 — Global Capacity compact layout */
-#capacityModal .capacity-modal{
-  width:min(920px,calc(100% - 24px));
-  max-height:calc(100% - 24px);
-}
-#capacityModal .modalbody{
-  padding:14px 16px 16px;
-}
+#capacityModal .modalbody{padding:14px 16px 16px;}
 #capacityModal .runtime-msg{
   margin-bottom:8px;
   font-size:10px;
@@ -164,9 +157,9 @@
   font-size:9.5px;
 }
 @media(max-width:600px){
-  #capacityEditModal .modalbody{
-    grid-template-columns:1fr;
-  }
+  #capacityEditModal .modalbody{grid-template-columns:1fr}
+  #capacityEditModal .runtime-msg{grid-column:auto}
+}
   #capacityEditModal .runtime-msg{
     grid-column:auto;
   }
