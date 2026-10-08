@@ -24,7 +24,7 @@ def valid_plan(plan_id="PLN-01"):
         "work_front_id": "WF-PLAN-01",
         "activity": "Hauling target",
         "target_quantity": 1200,
-        "unit": "ton",
+        "measurement": "ton",
         "target_hours": 8,
         "status": "Draft",
     }
@@ -71,9 +71,9 @@ def test_plans_fk_and_controlled_values_are_rejected():
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E006" for error in result["errors"])
 
-    bad_unit = valid_plan("PLN-BAD-UNIT")
-    bad_unit["unit"] = "Not A Unit"
-    result = app.create("Plans", bad_unit, "stage13-bad-unit")
+    bad_measurement = valid_plan("PLN-BAD-UNIT")
+    bad_measurement["measurement"] = "Not A Unit"
+    result = app.create("Plans", bad_measurement, "stage13-bad-measurement")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E006" for error in result["errors"])
 
