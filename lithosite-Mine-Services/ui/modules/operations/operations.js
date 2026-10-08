@@ -507,7 +507,7 @@
 
   function openAdd() {
     editId = null;
-    setRuntimeState('');
+    setRuntimeState('RuntimeAdapter connected — offline local persistence active.');
     document.getElementById('modalTitle').textContent = 'Add Operation';
     document.getElementById('stage').textContent = 'Save via RuntimeAdapter';
     resetForm();
@@ -516,7 +516,7 @@
   }
 
   function openEdit(id) {
-    setRuntimeState('');
+    setRuntimeState('RuntimeAdapter connected — offline local persistence active.');
     const row = dataState.operations.find(function (item) {
       return String(item.transaction_id) === String(id);
     });
