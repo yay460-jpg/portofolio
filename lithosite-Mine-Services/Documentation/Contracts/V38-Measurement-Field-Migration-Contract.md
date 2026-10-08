@@ -1,7 +1,7 @@
 # V38 Measurement Field Migration Contract
 
 ## Status
-**PASS / LOCKED** after runtime and workbook migration verification.
+**IMPLEMENTED — workbook migration pending local execution.**
 
 ## Purpose
 V38 standardizes the semantic field name **Measurement** for fields that describe the measurement unit of a quantity or capacity.
