@@ -168,6 +168,13 @@ def migrate_a2_to_a3(source_path, target_path):
             row=1, column=list_headers.index("unit") + 1, value="measurement"
         )
 
+    plans = workbook["Plans"]
+    plans_headers = [cell.value for cell in plans[1]]
+    if "unit" in plans_headers and "measurement" not in plans_headers:
+        plans.cell(
+            row=1, column=plans_headers.index("unit") + 1, value="measurement"
+        )
+
     workbook.create_sheet(MAP_MARKER_ENTITY, index=len(workbook.sheetnames) - 1)
     marker = workbook[MAP_MARKER_ENTITY]
     marker.append(MAP_MARKER_SCHEMA_HEADERS)
