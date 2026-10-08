@@ -26,7 +26,7 @@ class PersistenceStore:
             "checker_shift": {"Day", "Night"},
             "checker_material": {"Ore", "OB", "Quarry"},
             "transaction_status": {"DRAFT", "VALIDATED", "REJECTED", "VOIDED"},
-            "unit": {"hour", "km", "m", "m2", "m3", "ton", "unit", "cycle"},
+            "measurement": {"hour", "km", "m", "m2", "m3", "ton", "unit", "cycle"},
             "maintenance_event_type": {"Preventive", "Corrective", "Inspection", "Breakdown"},
             "issue_severity": {"Low", "Medium", "High", "Critical"},
             "issue_status": {"Open", "In Progress", "Closed", "Void"},
