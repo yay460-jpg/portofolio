@@ -131,11 +131,11 @@ class PersistenceStore:
             raise ValueError("HEADER_MISMATCH:AuditLog")
 
     def load(self):
-        wb = load_workbook(self.path, data_only=True)
+        wb = load_workbook(self.path, data_only=False)
         migrated = self._migrate_a3_checker_support_headers(wb)
         if migrated:
             wb.save(self.path)
-            wb = load_workbook(self.path, data_only=True)
+        wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)
 
         for entity in self.schema.DOMAIN_ENTITIES:
