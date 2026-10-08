@@ -33,13 +33,13 @@ function reset(){
  document.getElementById('f_cap_from').value=d;
  document.getElementById('f_cap_to').value='';
 }
-function openAdd(){editId=null;document.getElementById('capacityModalTitle').textContent='Add Global Capacity';document.getElementById('capacitySave').textContent='Save via RuntimeAdapter';reset();document.getElementById('capacityEditModal').classList.add('show')}
+function openAdd(){editId=null;document.getElementById('capacityModalTitle').textContent='Add Global Capacity';document.getElementById('capacitySave').textContent='Save via RuntimeAdapter';reset();global.LithositeModalShowContract.show('capacityEditModal')}
 function openEdit(id){const r=state.rows.find(x=>String(x.capacity_profile_id)===String(id));if(!r)return;editId=id;document.getElementById('capacityModalTitle').textContent='Edit Global Capacity';document.getElementById('capacitySave').textContent='Update via RuntimeAdapter';const m={f_cap_id:r.capacity_profile_id,f_cap_name:r.capacity_name,f_cap_brand:r.unit_brand,f_cap_value:r.capacity_value,f_cap_unit:r.unit,f_cap_status:r.status,f_cap_from:r.effective_from,f_cap_to:r.effective_to};Object.entries(m).forEach(([id,v])=>document.getElementById(id).value=v??'');document.getElementById('capacityEditModal').classList.add('show')}
 function payload(){return {capacity_profile_id:document.getElementById('f_cap_id').value,capacity_name:document.getElementById('f_cap_name').value.trim(),unit_brand:document.getElementById('f_cap_brand').value.trim(),capacity_value:Number(document.getElementById('f_cap_value').value),unit:'ton',status:document.getElementById('f_cap_status').value,effective_from:document.getElementById('f_cap_from').value||null,effective_to:document.getElementById('f_cap_to').value||null}}
 async function save(){
  if(!runtimeReady){msg('RuntimeAdapter is not connected.',true);return}
  const row=payload();if(!row.capacity_name||!Number.isFinite(row.capacity_value)||row.capacity_value<=0){msg('Capacity Name and a positive numeric capacity are required.',true);return}
- try{const r=editId?await rc.request({operation:'UPDATE',entity:'GlobalCapacity',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'GlobalCapacity',row});if(r.status!=='COMMITTED')throw new Error((r.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected Global Capacity');document.getElementById('capacityEditModal').classList.remove('show');await load();msg(editId?'Global Capacity updated and audited.':'Global Capacity created and audited.')}catch(e){msg('Validation/runtime error: '+e.message,true)}
+ try{const r=editId?await rc.request({operation:'UPDATE',entity:'GlobalCapacity',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'GlobalCapacity',row});if(r.status!=='COMMITTED')throw new Error((r.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected Global Capacity');global.LithositeModalShowContract.close('capacityEditModal');await load();msg(editId?'Global Capacity updated and audited.':'Global Capacity created and audited.')}catch(e){msg('Validation/runtime error: '+e.message,true)}
 }
 async function remove(id){
  if(!confirm('Delete Global Capacity '+id+'? Runtime will reject deletion if it is referenced by a Work Front or Operation.'))return;
@@ -49,7 +49,7 @@ function bind(){
  document.getElementById('globalCapacityButton').onclick=()=>{if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('capacityModal')}else{openAdd();return}load()};
  document.getElementById('capacityAdd').onclick=openAdd;
  document.getElementById('capacityRefresh').onclick=load;
- document.getElementById('capacityClose').onclick=()=>document.getElementById('capacityModal').classList.remove('show');
+ document.getElementById('capacityClose').onclick=()=>global.LithositeModalShowContract.close('capacityModal');
  document.getElementById('capacityEditClose').onclick=()=>document.getElementById('capacityEditModal').classList.remove('show');
  document.getElementById('capacityCancel').onclick=()=>document.getElementById('capacityEditModal').classList.remove('show');
  document.getElementById('capacitySave').onclick=save;
