@@ -2,6 +2,7 @@
   'use strict';
 
   const runtimeClient = global.LithositeRuntimeClient;
+  const dashboardStatus = global.LithositeDashboardStatus;
 
   if (!runtimeClient) {
     throw new Error('LithositeRuntimeClient is required before dashboard.js');
@@ -25,23 +26,11 @@
     if (el) el.style.width = String(value) + '%';
   }
 
-  function localDateKey(date) {
-    return [
-      date.getFullYear(),
-      String(date.getMonth() + 1).padStart(2, '0'),
-      String(date.getDate()).padStart(2, '0')
-    ].join('-');
-  }
-
-  function todayKey() {
-    return localDateKey(new Date());
-  }
-
-  function updateKpis() {
+    function updateKpis() {
     const equipment = state.equipment;
     const workFronts = state.workFronts;
-    const operations = state.operations;
-    const issues = state.issues;
+    const operations = dashboardStatus.filteredOperations(state.operations);
+    const issues = dashboardStatus.filteredIssues(state.issues);
 
     const equipmentStatus = { active: 0, inactive: 0, retired: 0 };
     equipment.forEach(function (row) {
@@ -55,10 +44,7 @@
       return String(row.status || '').trim().toLowerCase() === 'active';
     });
 
-    const today = todayKey();
-    const todayOperations = operations.filter(function (row) {
-      return String(row.transaction_date || '') === today;
-    });
+    const contextOperations = operations;
 
     const openIssues = issues.filter(function (row) {
       return String(row.status || '').trim().toLowerCase() === 'open';
@@ -79,10 +65,16 @@
       Math.max(workFronts.length - activeWorkFronts.length, 0) + ' Inactive'
     );
 
-    setText('dashboardTodayOperations', todayOperations.length);
+    setText('dashboardTodayOperations', contextOperations.length);
+    setText(
+      'dashboardOperationsLabel',
+      dashboardStatus.getContext().scope === 'ALL_DAYS'
+        ? 'Operations'
+        : 'Today Operations'
+    );
 
     const operationStatuses = {};
-    todayOperations.forEach(function (row) {
+    contextOperations.forEach(function (row) {
       const status = String(row.status || '').trim();
       if (status) operationStatuses[status] = (operationStatuses[status] || 0) + 1;
     });
@@ -133,7 +125,7 @@
         baseline: policy.baseline,
         policy: policy,
         equipment: state.equipment,
-        operations: filteredOperations(),
+        operations: dashboardStatus.filteredOperations(state.operations),
         maintenance: state.maintenance
       });
       const results = calculation && calculation.results ? calculation.results : {};
@@ -192,10 +184,10 @@
     const body = document.getElementById('dashboardRecentOperationsBody');
     const count = document.getElementById('dashboardRecentOperationsCount');
     if (!body) return;
-    const operations = filteredOperations();
+    const operations = dashboardStatus.filteredOperations(state.operations);
     if (count) {
-      count.hidden = state.context.scope !== 'ALL_DAYS';
-      count.textContent = state.context.scope === 'ALL_DAYS' ? operations.length + ' records' : '';
+      count.hidden = dashboardStatus.getContext().scope !== 'ALL_DAYS';
+      count.textContent = dashboardStatus.getContext().scope === 'ALL_DAYS' ? operations.length + ' records' : '';
     }
     body.replaceChildren();
     operations.slice().sort(function (a, b) {
@@ -227,10 +219,10 @@
     const body = document.getElementById('dashboardIssuesAlertsBody');
     const count = document.getElementById('dashboardIssuesAlertsCount');
     if (!body) return;
-    const issues = filteredIssues();
+    const issues = dashboardStatus.filteredIssues(state.issues);
     if (count) {
-      count.hidden = state.context.scope !== 'ALL_DAYS';
-      count.textContent = state.context.scope === 'ALL_DAYS' ? issues.length + ' records' : '';
+      count.hidden = dashboardStatus.getContext().scope !== 'ALL_DAYS';
+      count.textContent = dashboardStatus.getContext().scope === 'ALL_DAYS' ? issues.length + ' records' : '';
     }
     body.replaceChildren();
     issues.slice().sort(function (a, b) {
@@ -265,7 +257,7 @@
     }
     const totals = {};
     dates.forEach(function (date) { totals[localDateKey(date)] = { Hauling: 0, Dumping: 0 }; });
-    filteredOperations().forEach(function (row) {
+    dashboardStatus.filteredOperations(state.operations).forEach(function (row) {
       const key = String(row.transaction_date || ''); if (!totals[key]) return;
       const activity = String(row.activity || '').trim().toLowerCase();
       const quantity = Number(row.quantity); if (!Number.isFinite(quantity)) return;
@@ -301,7 +293,7 @@
     const combined = dates.reduce(function (sum, date) {
       const t = totals[localDateKey(date)]; return sum + t.Hauling + t.Dumping;
     }, 0);
-    const unit = filteredOperations().find(function (row) { return row.measurement; });
+    const unit = dashboardStatus.filteredOperations(state.operations).find(function (row) { return row.measurement; });
     const totalStrong = note.querySelector('strong');
     if (totalStrong) totalStrong.textContent = String(combined) + (unit && unit.measurement ? ' ' + unit.measurement : '');
   }
@@ -338,20 +330,12 @@
   }
 
   function init() {
-    const scope = document.getElementById('dashboardScope');
-    const shift = document.getElementById('dashboardShift');
-    if (scope && !document.body.dataset.dashboardContextBound) {
-      document.body.dataset.dashboardContextBound = '1';
-      scope.addEventListener('change', function () {
-        setContext(scope.value, shift ? shift.value : 'DAY');
-      });
-      if (shift) {
-        shift.addEventListener('change', function () {
-          setContext(scope.value, shift.value);
-        });
-      }
-      updateContextControls();
+    if (!dashboardStatus || typeof dashboardStatus.init !== 'function') {
+      throw new Error('LithositeDashboardStatus is required before dashboard.js');
     }
+    dashboardStatus.init(function () {
+      render();
+    });
     if (!document.body.dataset.dashboardExpandBound) {
       document.body.dataset.dashboardExpandBound = '1';
       document.addEventListener('click', function (event) {
