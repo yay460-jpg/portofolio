@@ -16,3 +16,71 @@
 /* V38 — table header parity with Operations */
 #workfrontScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 #workfrontScreen .icon{width:15px;height:15px;display:block;color:currentColor}
+
+
+/* V38 — Global Capacity modal contract: keep configuration UI inside the application shell.
+   The modal nodes live under .workspace, so absolute positioning keeps the overlay
+   between the topbar and footer instead of using the browser viewport. */
+#capacityModal.modalback,
+#capacityEditModal.modalback{
+  position:absolute;
+  inset:0;
+  background:#02081299;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:30;
+  padding:18px;
+  box-sizing:border-box;
+}
+#capacityModal.modalback.show,
+#capacityEditModal.modalback.show{
+  display:flex;
+}
+#capacityModal .capacity-modal,
+#capacityEditModal .capacity-modal{
+  width:min(980px,100%);
+  max-height:calc(100% - 20px);
+  overflow:hidden;
+  background:#101f31;
+  border:1px solid #31506d;
+  border-radius:12px;
+  box-shadow:0 20px 70px #0009;
+  box-sizing:border-box;
+}
+#capacityModal .modalhead,
+#capacityEditModal .modalhead{
+  height:48px;
+  padding:0 16px;
+  border-bottom:1px solid #29435d;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+#capacityModal .modalbody,
+#capacityEditModal .modalbody{
+  padding:16px;
+  overflow:auto;
+}
+#capacityModal .modalfoot,
+#capacityEditModal .modalfoot{
+  padding:12px 16px;
+  border-top:1px solid #29435d;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+}
+#capacityModal .runtime-msg,
+#capacityEditModal .runtime-msg{
+  margin-bottom:10px;
+}
+@media(max-width:700px){
+  #capacityModal.modalback,
+  #capacityEditModal.modalback{
+    padding:8px;
+  }
+  #capacityModal .capacity-modal,
+  #capacityEditModal .capacity-modal{
+    max-height:calc(100% - 8px);
+  }
+}
