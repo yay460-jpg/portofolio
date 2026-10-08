@@ -21,7 +21,7 @@ def test_global_capacity_accepts_decimal_values():
         "capacity_profile_id": "GC-275",
         "capacity_name": "10 Wheel Heavy",
         "capacity_value": 27.5,
-        "unit": "ton",
+        "measurement": "ton",
         "status": "Active",
         "effective_from": "2026-10-08",
         "effective_to": None,
@@ -35,7 +35,7 @@ def test_dump_truck_hauling_calculates_quantity_from_checker_retase():
         "capacity_profile_id": "GC-275",
         "capacity_name": "10 Wheel Heavy",
         "capacity_value": 27.5,
-        "unit": "ton",
+        "measurement": "ton",
         "status": "Active",
     }, "test-gc")
     create(svc, "WorkFront", {
@@ -66,7 +66,7 @@ def test_dump_truck_hauling_calculates_quantity_from_checker_retase():
         "equipment_id": "DT-001",
         "activity": "Hauling",
         "retase": 4,
-        "unit": "",
+        "measurement": "",
         "actual_hours": 4,
         "target_hours": 4,
         "status": "DRAFT",
@@ -76,7 +76,7 @@ def test_dump_truck_hauling_calculates_quantity_from_checker_retase():
     row = svc.read("Operations", "OPS-001")
     assert row["capacity_profile_id"] == "GC-275"
     assert row["applied_capacity"] == 27.5
-    assert row["capacity_unit"] == "ton"
+    assert row["capacity_measurement"] == "ton"
     assert row["quantity"] == 110.0
     assert row["retase"] == 4
 
@@ -87,14 +87,14 @@ def test_historical_applied_capacity_is_preserved_on_update():
         "capacity_profile_id": "GC-275",
         "capacity_name": "Initial",
         "capacity_value": 27.5,
-        "unit": "ton",
+        "measurement": "ton",
         "status": "Active",
     }, "gc")
     create(svc, "GlobalCapacity", {
         "capacity_profile_id": "GC-300",
         "capacity_name": "Later",
         "capacity_value": 30,
-        "unit": "ton",
+        "measurement": "ton",
         "status": "Active",
     }, "gc2")
     create(svc, "WorkFront", {
@@ -125,7 +125,7 @@ def test_historical_applied_capacity_is_preserved_on_update():
         "equipment_id": "DT-001",
         "activity": "Hauling",
         "retase": 4,
-        "unit": "",
+        "measurement": "",
         "actual_hours": 4,
         "target_hours": 4,
         "status": "DRAFT",
