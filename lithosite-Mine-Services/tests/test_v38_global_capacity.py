@@ -2,11 +2,11 @@ import pytest
 
 from src.mine_services.application import ApplicationService
 from src.mine_services.persistence import PersistenceStore
-from src.mine_services import schema_a3
+from src.mine_services import schema
 
 
 def service():
-    return ApplicationService(store=PersistenceStore(schema_module=schema_a3))
+    return ApplicationService(store=PersistenceStore(schema_module=schema))
 
 
 def create(svc, entity, row, request_id):
