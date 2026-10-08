@@ -18,6 +18,7 @@ from .schema_migration_contract import (
     A3_SHEETS,
     MAP_MARKER_ENTITY,
     MAP_MARKER_SCHEMA_HEADERS,
+    A3_HEADERS_ADDITIONS,
 )
 
 
@@ -84,6 +85,18 @@ def _validate_a3_result(workbook):
     if _read_schema_version(workbook) != TARGET_SCHEMA_VERSION:
         raise SchemaMigrationError("SCHEMA_VERSION:A3_UPDATE_FAILED")
 
+    for entity, additions in A3_HEADERS_ADDITIONS.items():
+        if entity in {"GlobalCapacity", "Checker"}:
+            rows = list(workbook[entity].values)
+            if not rows or list(rows[0]) != list(additions):
+                raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
+
+    for entity in ("WorkFront", "Operations"):
+        values = list(workbook[entity].values)
+        expected = A2_HEADERS[entity] + A3_HEADERS_ADDITIONS[entity]
+        if not values or list(values[0]) != expected:
+            raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
+
     marker = workbook[MAP_MARKER_ENTITY]
     if list(marker.values)[0] != tuple(MAP_MARKER_SCHEMA_HEADERS):
         raise SchemaMigrationError("HEADER_MISMATCH:MapMarker")
@@ -114,6 +127,20 @@ def migrate_a2_to_a3(source_path, target_path):
 
     workbook = load_workbook(source)
     _validate_a2_source(workbook)
+
+    # Add V38 A.3 sheets and append the new headers to existing A2 sheets.
+    for entity in ("GlobalCapacity", "Checker"):
+        ws = workbook.create_sheet(entity, index=workbook.sheetnames.index("Operations"))
+        ws.append(A3_HEADERS_ADDITIONS[entity])
+
+    for entity in ("WorkFront", "Operations"):
+        ws = workbook[entity]
+        additions = A3_HEADERS_ADDITIONS[entity]
+        current = [cell.value for cell in ws[1]]
+        for header in additions:
+            if header not in current:
+                ws.cell(row=1, column=ws.max_column + 1, value=header)
+                current.append(header)
 
     workbook.create_sheet(MAP_MARKER_ENTITY, index=len(workbook.sheetnames) - 1)
     marker = workbook[MAP_MARKER_ENTITY]
