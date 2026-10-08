@@ -11,11 +11,11 @@ from tempfile import NamedTemporaryFile
 
 from openpyxl import load_workbook
 
-from .schema import HEADERS as A2_HEADERS
 from .schema_migration_contract import (
     CURRENT_SCHEMA_VERSION,
     TARGET_SCHEMA_VERSION,
     A2_DOMAIN_ENTITIES,
+    A2_HEADERS,
     A3_SHEETS,
     MAP_MARKER_ENTITY,
     MAP_MARKER_SCHEMA_HEADERS,
