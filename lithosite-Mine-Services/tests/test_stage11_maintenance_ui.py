@@ -1,7 +1,7 @@
 ﻿from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v38-STAGE27.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 MAINTENANCE_JS = (ROOT / "ui" / "modules" / "maintenance" / "maintenance.js").read_text(encoding="utf-8")
 SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
@@ -47,7 +47,7 @@ def test_stage11_runtime_errors_are_visible():
 def test_stage11_shell_contract_includes_maintenance():
     assert "Maintenance: 'maintenanceScreen'" in SHELL_JS
     assert "'Maintenance'" in SHELL_JS
-    assert "const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports'];" in SHELL_JS
+    assert "const required = ['Dashboard', 'Operations', 'Checker', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports'];" in SHELL_JS
     assert "let currentScreen = 'Dashboard';" in SHELL_JS
     assert "const STORAGE_KEY = 'lithosite-active-screen';" in SHELL_JS
     assert "readInitialScreen" in SHELL_JS
