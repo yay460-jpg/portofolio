@@ -97,7 +97,7 @@ function render(){
     '<div class="cell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div>'+
     '<div class="cell">'+esc(r.effective_from)+'</div>'+
     '<div class="cell">'+esc(r.effective_to)+'</div>'+
-    '<div class="cell row-actions"><button class="control mini show-map-equipment" data-id="'+esc(r.equipment_id)+'">Show on Map</button><button class="control mini edit-equipment" data-id="'+esc(r.equipment_id)+'">Edit</button><button class="control mini danger delete-equipment" data-id="'+esc(r.equipment_id)+'">Delete</button></div>'+
+    '<div class="cell row-actions"><button class="control mini view show-map-equipment" data-id="'+esc(r.equipment_id)+'">Show on Map</button><button class="control mini edit edit-equipment" data-id="'+esc(r.equipment_id)+'">Edit</button><button class="control mini danger delete-equipment" data-id="'+esc(r.equipment_id)+'">Delete</button></div>'+
    '</div>';
  }).join(''):'<div class="empty">No equipment matches the current filters.</div>';
    document.getElementById('equipmentCount').textContent=rows.length+' records · Runtime Ready';
