@@ -64,7 +64,7 @@
 #issuesScreen .empty{display:grid;place-items:center;height:140px;color:#8ea3ba;font-size:10px}
 #issuesModal.modalback{position:fixed;inset:0;background:#02081299;display:none;align-items:center;justify-content:center;z-index:20}
 #issuesModal.modalback.show{display:flex}
-#issuesModal .modal{width:700px;background:#101f31;border:1px solid #31506d;border-radius:12px;box-shadow:0 20px 70px #0009}
+#issuesModal .modal{width:500px;background:#101f31;border:1px solid #31506d;border-radius:12px;box-shadow:0 20px 70px #0009}
 #issuesModal .modalhead{height:48px;padding:0 16px;border-bottom:1px solid #29435d;display:flex;align-items:center;justify-content:space-between}
 #issuesModal .modalhead .ptitle{font-size:11.5px;font-weight:700;line-height:1.2}
 #issuesModal .modalbody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
