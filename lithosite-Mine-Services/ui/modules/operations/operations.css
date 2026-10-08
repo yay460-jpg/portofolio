@@ -1,3 +1,18 @@
+/* V38 — Runtime status is a footer accessory, not a form/body row.
+   All data-entry modals keep runtime state beside Cancel / Save. */
+.modal-runtime-status{
+  margin-right:auto;
+  min-width:0;
+  max-width:60%;
+  color:#8fa5bb;
+  font-size:9px;
+  line-height:1.2;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.modal-runtime-status.error{color:#fca5a5;}
+
 /* Lithosite Mine Services — Operations module CSS
    Stage 18 modular CSS migration — Operations only.
    Shell/global primitives remain in the V30 workspace stylesheet.
