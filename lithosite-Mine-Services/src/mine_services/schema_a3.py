@@ -30,7 +30,7 @@ DOMAIN_ENTITIES = [
 
 HEADERS = dict(_A2_HEADERS)
 HEADERS["GlobalCapacity"] = [
-    "capacity_profile_id", "capacity_name", "capacity_value", "unit",
+    "capacity_profile_id", "capacity_name", "unit_brand", "capacity_value", "unit",
     "status", "effective_from", "effective_to",
 ]
 HEADERS["Checker"] = [
