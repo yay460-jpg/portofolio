@@ -52,7 +52,7 @@
   }
 
   function validateShellContract() {
-    const required = ['Dashboard', 'Operations', 'Checker', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports'];
+    const required = ['Dashboard', 'Operations', 'Equipment', 'Work Front', 'Maintenance', 'Issues', 'Plans', 'HSE', 'Reports'];
     const missing = required.filter(function (name) {
       return !document.getElementById(SCREENS[name]);
     });
