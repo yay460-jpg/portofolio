@@ -29,7 +29,10 @@
   }
 
   function normalizeShift(value) {
-    return String(value || '').trim().toUpperCase() === 'NIGHT' ? 'NIGHT' : 'DAY';
+    const normalized = String(value || '').trim().toUpperCase();
+    if (normalized === 'NIGHT') return 'NIGHT';
+    if (normalized === 'ALL') return 'ALL';
+    return 'DAY';
   }
 
   function filteredOperations(records) {
@@ -42,6 +45,7 @@
     const today = todayKey();
     return rows.filter(function (row) {
       if (String(row.transaction_date || '') !== today) return false;
+      if (state.shift === 'ALL') return true;
       return String(row.shift || '').trim().toUpperCase() === state.shift;
     });
   }
@@ -66,7 +70,11 @@
     if (scope) scope.value = state.scope;
 
     if (shift) {
-      shift.value = state.shift === 'NIGHT' ? 'NIGHT' : 'DAY';
+      shift.value = state.shift === 'NIGHT'
+        ? 'NIGHT'
+        : state.shift === 'ALL'
+          ? 'ALL'
+          : 'DAY';
       shift.disabled = state.scope === 'ALL_DAYS';
       shift.setAttribute(
         'aria-disabled',
@@ -100,7 +108,7 @@
     bound = true;
 
     scope.addEventListener('change', function () {
-      setContext(scope.value, shift ? shift.value : 'DAY');
+      setContext(scope.value, shift ? shift.value : 'ALL');
     });
 
     if (shift) {
@@ -116,7 +124,7 @@
     bindControls();
 
     // V39 default is deliberately ALL DATES / Day + Night.
-    // The visible Day Shift value is disabled and is not active while ALL_DAYS.
+    // When Today is selected, the shift defaults to Day/Night Shift (ALL).
     state.scope = 'ALL_DAYS';
     state.shift = 'ALL';
 
