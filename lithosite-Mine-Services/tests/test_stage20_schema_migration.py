@@ -71,6 +71,19 @@ def test_stage20_migration_creates_a3_without_mutating_a2(tmp_path):
         "elevation", "source_entity", "source_id", "status"
     )]
     assert migrated["MapMarker"].max_row == 1
+    assert list(migrated["GlobalCapacity"].values) == [(
+        "capacity_profile_id", "capacity_name", "capacity_value", "unit",
+        "status", "effective_from", "effective_to"
+    )]
+    assert list(migrated["Checker"].values) == [(
+        "checker_id", "checker_name", "observation_date", "start_time",
+        "end_time", "shift", "equipment_id", "work_front_id", "activity",
+        "material", "retase", "source"
+    )]
+    assert list(migrated["WorkFront"].values)[0][-1] == "capacity_profile_id"
+    assert list(migrated["Operations"].values)[0][-4:] == (
+        "retase", "capacity_profile_id", "applied_capacity", "capacity_unit"
+    )
 
 
 def test_stage20_migration_preserves_existing_domain_data_and_audit(tmp_path):
