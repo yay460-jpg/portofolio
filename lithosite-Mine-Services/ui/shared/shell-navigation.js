@@ -4,7 +4,6 @@
   const SCREENS = Object.freeze({
     Dashboard: 'dashboardScreen',
     Operations: 'operationsScreen',
-    Checker: 'checkerScreen',
     Equipment: 'equipmentScreen',
     'Work Front': 'workfrontScreen',
     Maintenance: 'maintenanceScreen',
