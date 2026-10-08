@@ -170,7 +170,7 @@ tests/
 - Regression suite — **309 passed / 0 failed**
 - Desktop Host runtime bootstrap — **validated against A.3**
 
-Historical V37 artifacts and tests remain available where they are required to preserve historical regression coverage. They are not the V38 runtime source.
+The V37 master artifact has been retired. Historical V37 stage records and tests remain only where required to preserve historical regression coverage; they are not the active runtime source.
 
 ## Database Protection
 
