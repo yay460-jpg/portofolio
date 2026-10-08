@@ -79,7 +79,7 @@ function render(){
    '<div class="cell">'+esc(r.unit)+'</div>'+
    '<div class="cell num">'+esc(r.target_hours)+'</div>'+
    '<div class="cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
-   '<div class="cell row-actions"><button class="control mini edit-plan" data-id="'+esc(r.plan_id)+'">Edit</button><button class="control mini danger delete-plan" data-id="'+esc(r.plan_id)+'">Delete</button></div>'+
+   '<div class="cell row-actions"><button class="control mini edit edit-plan" data-id="'+esc(r.plan_id)+'">Edit</button><button class="control mini danger delete-plan" data-id="'+esc(r.plan_id)+'">Delete</button></div>'+
   '</div>').join(''):'<div class="empty">No Plans records match the current filters.</div>';
   document.getElementById('plansCount').textContent=rows.length+' records · Runtime Ready';
  }
