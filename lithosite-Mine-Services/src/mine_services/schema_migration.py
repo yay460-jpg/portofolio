@@ -1,7 +1,8 @@
-"""Safe A.2 -> A.3 workbook migration for the Stage 20 MapMarker schema.
+"""Safe A.2 -> A.3 workbook migration for the active V38 schema.
 
 The migration never mutates the source workbook. It creates a separate target
-workbook, validates the A.2 source contract, adds an empty MapMarker sheet,
+workbook, validates the A.2 source contract, adds the V38 GlobalCapacity and
+Checker sheets, appends V38 capacity fields, adds an empty MapMarker sheet,
 updates _System.schema_version to A.3, and validates the resulting structure.
 """
 
@@ -68,7 +69,12 @@ def _validate_a2_source(workbook):
 
     for entity in A2_DOMAIN_ENTITIES:
         values = list(workbook[entity].values)
-        if not values or list(values[0]) != A2_HEADERS[entity]:
+        expected = (
+            A2_HEADERS[entity] + A3_HEADERS_ADDITIONS[entity]
+            if entity in {"WorkFront", "Operations"}
+            else A2_HEADERS[entity]
+        )
+        if not values or list(values[0]) != expected:
             raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
 
     audit = list(workbook["AuditLog"].values)
