@@ -67,13 +67,10 @@
 #operationsScreen .row-actions{display:flex;gap:4px}
 #operationsScreen .mini{height:24px;padding:3px 7px;font-size:8px}
 
-#operationsScreen .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
-#operationsScreen .runtime-msg.error{color:#fca5a5;border-color:#5a2b32;background:#2a1519}
 #operationsScreen .empty{display:grid;place-items:center;height:140px;color:#8ea3ba;font-size:10px}
 #operationsScreen .muted{color:#8fa5bb}
 
-/* V38 — Operation data-entry shell geometry is owned by the shared modal shell contract.
-   Operations owns only its inner form grid; header/body/footer remain shell-guarded. */
+/* Operation data-entry form layout. Shared modal shell owns the modal frame. */
 #modal .modalbody{
   padding:16px;
   display:grid;
