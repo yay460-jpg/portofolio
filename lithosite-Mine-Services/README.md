@@ -161,8 +161,14 @@ tests/
 - Navigation Guard Contract — **active**
 - Shared Runtime Status — **active**
 - Controlled Vocabulary — **locked**
+- MapMarker — **A.3 active / Phase B complete**
+- Checker — **V38 active**
+- Global Capacity — **V38 active**
 - Operation form layout — **locked**
 - Application shell boundary — **locked**
+- Legacy active-runtime residue audit — **closed**
+- Regression suite — **309 passed / 0 failed**
+- Desktop Host runtime bootstrap — **validated against A.3**
 
 Historical V37 artifacts and tests remain available where they are required to preserve historical regression coverage. They are not the V38 runtime source.
 
@@ -205,3 +211,5 @@ When working on V38:
 5. Do not introduce parallel owners for behavior already governed by a shared contract.
 6. Keep historical V37 assets/tests separate conceptually from the V38 runtime.
 7. Update the relevant documentation and contracts when a canonical runtime boundary changes.
+8. Preserve historical A.1/A.2 stage records as historical evidence; do not rewrite them to current V38 state.
+9. Do not treat future Android Host work as part of V38 desktop runtime acceptance.
