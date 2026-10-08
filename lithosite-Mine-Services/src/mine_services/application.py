@@ -56,14 +56,14 @@ class ApplicationService:
             profile = self.store.get("GlobalCapacity", profile_id)
             if profile:
                 applied = profile.get("capacity_value")
-                prepared["capacity_unit"] = profile.get("unit") or "ton"
+                prepared["capacity_measurement"] = profile.get("measurement") or "ton"
         if applied not in (None, ""):
             prepared["applied_capacity"] = float(applied)
             prepared["capacity_profile_id"] = profile_id
-            prepared["capacity_unit"] = prepared.get("capacity_unit") or "ton"
+            prepared["capacity_measurement"] = prepared.get("capacity_measurement") or "ton"
             if prepared.get("retase") not in (None, ""):
                 prepared["quantity"] = float(prepared["retase"]) * float(applied)
-                prepared["unit"] = prepared.get("unit") or prepared["capacity_unit"]
+                prepared["measurement"] = prepared.get("measurement") or prepared["capacity_measurement"]
         return prepared
 
     def create(self, entity, row, request_id):
