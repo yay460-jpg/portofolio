@@ -307,7 +307,7 @@
       const cls = String(row.status || '').toLowerCase().replace(/[^a-z]/g, '') || 'draft';
       const id = esc(row.transaction_id);
       return '<div class="timeline-tr">' +
-        '<div class="cell">' + esc(row.transaction_time) + '–' + esc(row.end_time || '—') + '</div>' +
+        '<div class="cell">' + esc(row.transaction_time || '—') + '</div>' +
         '<div class="cell">' + esc(row.work_front_id) + '</div>' +
         '<div class="cell">' + esc(row.activity) + '</div>' +
         '<div class="cell">' + esc(row.material || '—') + '</div>' +
