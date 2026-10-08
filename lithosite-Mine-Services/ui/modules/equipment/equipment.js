@@ -145,7 +145,7 @@ function resetForm(){
 function openAdd(){
  editId=null;document.getElementById('equipmentModalTitle').textContent='Add Equipment';
  document.getElementById('equipmentSave').textContent='Save via RuntimeAdapter';resetForm();
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('equipmentModal');}else{document.getElementById('equipmentModal').classList.add('show')};
+ global.LithositeModalShowContract.show('equipmentModal');
 }
 function openEdit(id){
  const row=state.rows.find(x=>String(x.equipment_id)===String(id));if(!row)return;
@@ -153,7 +153,7 @@ function openEdit(id){
  document.getElementById('equipmentSave').textContent='Update via RuntimeAdapter';
  const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_owner_name:row.owner_name,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('equipmentModal');}else{document.getElementById('equipmentModal').classList.add('show')};
+ global.LithositeModalShowContract.show('equipmentModal');
 }
 function payload(){
  return {
@@ -175,7 +175,7 @@ async function save(){
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Equipment',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the equipment');
-  document.getElementById('equipmentModal').classList.remove('show');
+  global.LithositeModalShowContract.close('equipmentModal');
   await refreshData();setMsg(editId?'Equipment updated and audited.':'Equipment created and audited.');
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
@@ -191,8 +191,8 @@ function bind(){
  document.getElementById('equipmentAdd').onclick=openAdd;
  document.getElementById('equipmentRefresh').onclick=load;
  document.getElementById('equipmentSave').onclick=save;
- document.getElementById('equipmentClose').onclick=()=>document.getElementById('equipmentModal').classList.remove('show');
- document.getElementById('equipmentCancel').onclick=()=>document.getElementById('equipmentModal').classList.remove('show');
+ document.getElementById('equipmentClose').onclick=()=>global.LithositeModalShowContract.close('equipmentModal');
+ document.getElementById('equipmentCancel').onclick=()=>global.LithositeModalShowContract.close('equipmentModal');
  document.getElementById('equipmentClear').onclick=()=>{['equipmentIdFilter','equipmentMasterGroupFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
  ['equipmentIdFilter','equipmentMasterGroupFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
  document.getElementById('equipmentRows').addEventListener('click',e=>{
