@@ -115,6 +115,8 @@
 
     closeAll(id);
 
+    enforceShellContract();
+
     const openClass = OPEN_CLASS_BY_ID.has(id) ? 'open' : 'show';
     const closedClass = openClass === 'open' ? 'show' : 'open';
 
