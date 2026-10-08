@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from mine_services import ApplicationService, PersistenceStore
-from mine_services import schema_a3
+from mine_services import schema
 
 
 def marker(marker_id="MK-RUNTIME-001"):
@@ -22,7 +22,7 @@ def marker(marker_id="MK-RUNTIME-001"):
 
 
 def test_stage20_a3_application_can_create_read_update_delete_mapmarker():
-    store = PersistenceStore(schema_module=schema_a3)
+    store = PersistenceStore(schema_module=schema)
     app = ApplicationService(store=store)
 
     assert app.create("MapMarker", marker(), "mk-create")["status"] == "COMMITTED"
@@ -41,7 +41,7 @@ def test_stage20_a3_application_can_create_read_update_delete_mapmarker():
 
 
 def test_stage20_a3_application_audits_mapmarker_mutations():
-    store = PersistenceStore(schema_module=schema_a3)
+    store = PersistenceStore(schema_module=schema)
     app = ApplicationService(store=store)
 
     app.create("MapMarker", marker(), "audit-create")
@@ -53,7 +53,7 @@ def test_stage20_a3_application_audits_mapmarker_mutations():
 
 
 def test_stage20_a3_application_rejects_invalid_marker_without_persisting():
-    store = PersistenceStore(schema_module=schema_a3)
+    store = PersistenceStore(schema_module=schema)
     app = ApplicationService(store=store)
     bad = marker()
     bad["northing"] = None
@@ -64,7 +64,7 @@ def test_stage20_a3_application_rejects_invalid_marker_without_persisting():
 
 
 def test_stage20_a3_application_rejects_duplicate_request():
-    store = PersistenceStore(schema_module=schema_a3)
+    store = PersistenceStore(schema_module=schema)
     app = ApplicationService(store=store)
 
     assert app.create("MapMarker", marker(), "same-request")["status"] == "COMMITTED"
@@ -72,7 +72,7 @@ def test_stage20_a3_application_rejects_duplicate_request():
     assert duplicate["status"] == "DUPLICATE_REQUEST"
 
 
-def test_stage20_a2_application_behavior_remains_default():
+def test_stage20_a3_application_behavior_is_default():
     app = ApplicationService(PersistenceStore())
-    result = app.create("MapMarker", marker(), "a2-marker")
-    assert result["status"] == "REJECTED"
+    result = app.create("MapMarker", marker(), "a3-marker")
+    assert result["status"] == "COMMITTED"
