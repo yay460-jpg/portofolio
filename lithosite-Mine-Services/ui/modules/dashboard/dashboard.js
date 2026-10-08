@@ -264,12 +264,17 @@
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const sourceOperations = dashboardStatus.filteredOperations(state.operations);
     const totals = {};
+    const rawOperations = Array.isArray(state.operations) ? state.operations : [];
 
-    sourceOperations.forEach(function (row) {
+    rawOperations.forEach(function (row) {
       const key = String(row.transaction_date || '');
       if (!key) return;
+
+      if (context.scope === 'TODAY') {
+        const shift = String(row.shift || '').trim().toUpperCase();
+        if (shift !== context.shift) return;
+      }
 
       const activity = String(row.activity || '').trim().toLowerCase();
       if (activity !== 'hauling' && activity !== 'dumping') return;
@@ -281,33 +286,36 @@
       totals[key][activity === 'hauling' ? 'Hauling' : 'Dumping'] += quantity;
     });
 
+    let chartDates = [];
     let activeDates = [];
 
     if (context.scope === 'ALL_DAYS') {
-      // "Last 7 Days" means the seven most recent DATEs with recorded
-      // material-movement activity, not seven consecutive calendar dates.
+      // All Day: seven most recent recorded material-movement dates.
       activeDates = Object.keys(totals)
         .filter(function (key) {
           const total = totals[key];
           return total.Hauling > 0 || total.Dumping > 0;
         })
-        .sort(function (a, b) {
-          return b.localeCompare(a);
-        })
+        .sort(function (a, b) { return b.localeCompare(a); })
         .slice(0, 7)
-        .sort(function (a, b) {
-          return a.localeCompare(b);
-        })
+        .sort(function (a, b) { return a.localeCompare(b); })
         .map(function (key) {
           const parts = key.split('-').map(Number);
           return new Date(parts[0], parts[1] - 1, parts[2]);
         });
+      chartDates = activeDates.slice();
     } else {
-      const todayKey = localDateKey(today);
-      if (totals[todayKey] &&
-          (totals[todayKey].Hauling > 0 || totals[todayKey].Dumping > 0)) {
-        activeDates = [new Date(today)];
+      // Today: keep a normal seven-calendar-date running timeline ending today.
+      // Dates remain visible even when there is no movement on that date.
+      for (let i = 6; i >= 0; i -= 1) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        chartDates.push(date);
       }
+      activeDates = chartDates.filter(function (date) {
+        const total = totals[localDateKey(date)];
+        return total && (total.Hauling > 0 || total.Dumping > 0);
+      });
     }
 
     const max = activeDates.reduce(function (value, date) {
@@ -317,9 +325,9 @@
 
     bars.replaceChildren();
 
-    activeDates.forEach(function (date) {
+    chartDates.forEach(function (date) {
       const key = localDateKey(date);
-      const total = totals[key];
+      const total = totals[key] || { Hauling: 0, Dumping: 0 };
 
       const group = document.createElement('div');
       group.style.cssText = 'display:flex;flex-direction:column;align-items:center;height:100%;min-width:30px;justify-content:flex-end';
@@ -347,7 +355,7 @@
       bars.appendChild(group);
     });
 
-    if (!activeDates.length) {
+    if (!chartDates.length) {
       const empty = document.createElement('div');
       empty.style.cssText = 'height:100%;display:flex;align-items:center;justify-content:center;color:#7f95aa;font-size:9px;width:100%';
       empty.textContent = 'No material movement recorded';
@@ -370,7 +378,7 @@
       return sum + total.Hauling + total.Dumping;
     }, 0);
 
-    const unit = sourceOperations.find(function (row) { return row.measurement; });
+    const unit = rawOperations.find(function (row) { return row.measurement; });
     const totalStrong = note.querySelector('strong');
     if (totalStrong) {
       totalStrong.textContent = String(combined) + (unit && unit.measurement ? ' ' + unit.measurement : '');
