@@ -19,15 +19,15 @@ def migrate(path: Path):
 
     if "GlobalCapacity" not in wb.sheetnames:
         ws = wb.create_sheet("GlobalCapacity")
-        ws.append(schema_a3.HEADERS["GlobalCapacity"])
+        ws.append(schema.HEADERS["GlobalCapacity"])
 
     if "Checker" not in wb.sheetnames:
         ws = wb.create_sheet("Checker")
-        ws.append(schema_a3.HEADERS["Checker"])
+        ws.append(schema.HEADERS["Checker"])
 
     for entity in ("WorkFront", "Operations"):
         ws = wb[entity]
-        expected = schema_a3.HEADERS[entity]
+        expected = schema.HEADERS[entity]
         current = [c.value for c in ws[1]]
         missing = expected[len(current):]
         for header in missing:
@@ -45,13 +45,13 @@ def migrate(path: Path):
     for row in ws.iter_rows():
         for cell in row:
             if cell.value == "schema_version":
-                ws.cell(row=cell.row, column=cell.column + 1, value=schema_a3.SCHEMA_VERSION)
+                ws.cell(row=cell.row, column=cell.column + 1, value=schema.SCHEMA_VERSION)
                 found = True
                 break
         if found:
             break
     if not found:
-        ws.append(["schema_version", schema_a3.SCHEMA_VERSION])
+        ws.append(["schema_version", schema.SCHEMA_VERSION])
 
     wb.save(path)
     return path
