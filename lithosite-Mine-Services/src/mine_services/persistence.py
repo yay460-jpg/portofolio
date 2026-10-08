@@ -144,7 +144,10 @@ class PersistenceStore:
 
     def load(self):
         wb = load_workbook(self.path, data_only=False)
-        if getattr(self.schema, "SCHEMA_VERSION", None) == "A.3":
+        expected_schema = getattr(self.schema, "SCHEMA_VERSION", None)
+        if expected_schema and self._system_version(wb) != expected_schema:
+            raise ValueError(f"SCHEMA_VERSION:{self._system_version(wb)}")
+        if expected_schema == "A.3":
             required_migration_sheets = {"Operations", "GlobalCapacity", "Checker"}
             missing = required_migration_sheets - set(wb.sheetnames)
             if missing:
