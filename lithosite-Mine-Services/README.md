@@ -65,11 +65,7 @@ Canonical navigation owner:
 
 `ui/shared/shell-navigation.js`
 
-The historical:
-
-`ui/shared/shell-navigation-v31.js`
-
-is retained only for historical V37 regression tests and is **not loaded by the V38 runtime**.
+The former V31 navigation implementation has been retired. V38 uses this canonical owner exclusively; there is no parallel V31 navigation owner.
 
 ### Shared modal behavior
 
