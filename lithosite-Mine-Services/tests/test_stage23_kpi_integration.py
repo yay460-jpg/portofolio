@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v38-STAGE27.html"
 KPI_ENGINE = ROOT / "ui" / "modules" / "reports" / "kpi-engine.js"
 FOUNDATION = ROOT / "ui" / "modules" / "reports" / "kpi-foundation.js"
 ADAPTER = ROOT / "src" / "mine_services" / "adapter.py"
@@ -53,5 +53,5 @@ def test_stage23_runtime_dispatch():
 def test_stage23_default_entry():
     server = SERVER.read_text(encoding="utf-8")
     bat = BAT.read_text(encoding="utf-8")
-    assert "v37-STAGE26.html" in server
+    assert "v38-STAGE27.html" in server
     assert "v37-STAGE26.html" in bat
