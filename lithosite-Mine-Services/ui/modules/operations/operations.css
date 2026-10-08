@@ -21,20 +21,10 @@
 #operationsScreen .title h1{margin:0;font-size:21px;line-height:24px;background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);background-clip:text;-webkit-background-clip:text;color:transparent}
 #operationsScreen .title p{margin:2px 0;color:var(--ops-muted);font-size:11px}
 #operationsScreen .controls{display:flex;gap:7px}
-#operationsScreen .control{height:34px;padding:7px 10px;border:1px solid #29435d;border-radius:8px;background:#12243a;color:#dbe8f5;font-size:10.5px;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer}
-#operationsScreen .control.primary{background:#2563eb;border-color:#3b82f6;color:#fff;font-weight:700}
-#operationsScreen .control:hover,
-#timelineModal .control:hover{
-  border-color:#4d8dff;
-  box-shadow:0 0 0 1px #4d8dff55,0 4px 12px #02081255;
-  transform:translateY(-1px);
-}
-#operationsScreen .control:focus-visible,
-#timelineModal .control:focus-visible{
-  outline:none;
-  border-color:#60a5fa;
-  box-shadow:0 0 0 2px #60a5fa55;
-}
+
+
+
+
 #operationsScreen .field input:hover,
 #operationsScreen .field select:hover,
 #operationsScreen .field input:focus,
@@ -76,7 +66,7 @@
 #operationsScreen .voided{background:#27364a;color:#a9b8c9}
 #operationsScreen .row-actions{display:flex;gap:4px}
 #operationsScreen .mini{height:24px;padding:3px 7px;font-size:8px}
-#operationsScreen .danger{color:#fca5a5;border-color:#5a2b32}
+
 #operationsScreen .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
 #operationsScreen .runtime-msg.error{color:#fca5a5;border-color:#5a2b32;background:#2a1519}
 #operationsScreen .empty{display:grid;place-items:center;height:140px;color:#8ea3ba;font-size:10px}
@@ -213,32 +203,10 @@
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-#timelineModal .control{
-  height:34px;
-  padding:7px 10px;
-  border:1px solid #29435d;
-  border-radius:8px;
-  background:#12243a;
-  color:#dbe8f5;
-  font-size:10.5px;
-  font-weight:500;
-  display:flex;
-  align-items:center;
-  gap:6px;
-  cursor:pointer;
-}
+
 #timelineModal .control:hover{border-color:#4d8dff}
-#timelineModal .control.danger{
-  color:#fecaca;
-  border-color:#ef4444;
-  background:#4b2024;
-}
-#timelineModal .control.danger:hover{
-  color:#fff;
-  border-color:#f87171;
-  background:#7f1d1d;
-  box-shadow:0 0 0 1px #f8717155,0 4px 12px #02081255;
-}
+
+
 
 /* Stage 26 — Cross-module traceability: Operations → Maintenance. */
 #operationsScreen .maintenance-link{color:#93c5fd;border-color:#315a86;min-width:64px;justify-content:center}
