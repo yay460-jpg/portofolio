@@ -9,13 +9,13 @@ from pathlib import Path
 import sys
 from openpyxl import load_workbook
 
-from . import schema_a3
+from . import schema
 
 DEFAULT_DB = Path(__file__).resolve().parents[2] / "Database" / "Mine-Services-Database-A3.xlsx"
 
 def migrate(path: Path):
     wb = load_workbook(path)
-    required_sheets = list(schema_a3.SHEETS)
+    required_sheets = list(schema.SHEETS)
 
     if "GlobalCapacity" not in wb.sheetnames:
         ws = wb.create_sheet("GlobalCapacity")
