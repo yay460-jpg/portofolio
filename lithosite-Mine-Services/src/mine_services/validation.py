@@ -34,12 +34,12 @@ DATETIME_FIELDS = {
 TEXT_FIELDS = {
     "Equipment": {"equipment_id", "category", "type", "owner_type", "owner_name", "status"},
     "WorkFront": {"work_front_id", "domain", "location", "responsible", "status", "capacity_profile_id"},
-    "GlobalCapacity": {"capacity_profile_id", "capacity_name", "unit", "status"},
+    "GlobalCapacity": {"capacity_profile_id", "capacity_name", "measurement", "status"},
     "Checker": {"checker_id", "checker_name", "shift", "equipment_id", "work_front_id", "activity", "material", "source"},
-    "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "unit", "status", "source", "capacity_profile_id", "capacity_unit", "shift", "material", "checker_name"},
+    "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "measurement", "status", "source", "capacity_profile_id", "capacity_measurement", "shift", "material", "checker_name"},
     "Maintenance": {"maintenance_id", "equipment_id", "event_type", "failure_code", "action", "status", "source"},
     "Issues": {"issue_id", "domain", "work_front_id", "equipment_id", "description", "severity", "status", "assigned_to"},
-    "Plans": {"plan_id", "period", "domain", "work_front_id", "activity", "unit", "status"},
+    "Plans": {"plan_id", "period", "domain", "work_front_id", "activity", "measurement", "status"},
     "HSE": {"hse_id", "domain", "work_front_id", "event_type", "severity", "description", "action", "status"},
 }
 
@@ -133,8 +133,8 @@ class ValidationEngine:
         if entity == "GlobalCapacity":
             if row.get("capacity_value") in (None, "") or float(row.get("capacity_value")) <= 0:
                 errors.append(ValidationError("VAL-E007", "capacity_value", "Capacity must be greater than zero"))
-            if row.get("unit") != "ton":
-                errors.append(ValidationError("VAL-E006", "unit", "Global Capacity unit must be ton"))
+            if row.get("measurement") != "ton":
+                errors.append(ValidationError("VAL-E006", "measurement", "Global Capacity measurement must be ton"))
 
         if entity == "Checker":
             start = row.get("start_time")
@@ -177,18 +177,18 @@ class ValidationEngine:
                 errors.append(ValidationError("VAL-E003", "retase", "Retase is required for Dump Truck Hauling"))
             if is_dump_truck and row.get("applied_capacity") in (None, ""):
                 errors.append(ValidationError("VAL-E003", "applied_capacity", "Applied Capacity is required for Dump Truck Hauling"))
-            if is_dump_truck and row.get("unit") != "ton":
-                errors.append(ValidationError("VAL-E006", "unit", "Dump Truck Hauling quantity unit must be ton"))
+            if is_dump_truck and row.get("measurement") != "ton":
+                errors.append(ValidationError("VAL-E006", "measurement", "Dump Truck Hauling quantity measurement must be ton"))
             if is_dump_truck and row.get("quantity") not in (None, "") and row.get("retase") not in (None, "") and row.get("applied_capacity") not in (None, ""):
                 expected = float(row["retase"]) * float(row["applied_capacity"])
                 if abs(float(row["quantity"]) - expected) > 1e-9:
                     errors.append(ValidationError("VAL-E008", "quantity", "Quantity must equal Retase × Applied Capacity"))
 
-        if entity == "Operations" and row.get("quantity") not in (None, "") and not row.get("unit"):
-            errors.append(ValidationError("VAL-E008", "unit", "unit required with quantity"))
+        if entity == "Operations" and row.get("quantity") not in (None, "") and not row.get("measurement"):
+            errors.append(ValidationError("VAL-E008", "measurement", "measurement required with quantity"))
 
-        if entity == "Plans" and row.get("target_quantity") not in (None, "") and not row.get("unit"):
-            errors.append(ValidationError("VAL-E008", "unit", "unit required with target_quantity"))
+        if entity == "Plans" and row.get("target_quantity") not in (None, "") and not row.get("measurement"):
+            errors.append(ValidationError("VAL-E008", "measurement", "measurement required with target_quantity"))
 
         if entity == "Plans" and row.get("period") and not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", str(row["period"])):
             errors.append(ValidationError("VAL-E009", "period", "period must be YYYY-MM"))
