@@ -69,11 +69,7 @@ def _validate_a2_source(workbook):
 
     for entity in A2_DOMAIN_ENTITIES:
         values = list(workbook[entity].values)
-        expected = (
-            A2_HEADERS[entity] + A3_HEADERS_ADDITIONS[entity]
-            if entity in {"WorkFront", "Operations"}
-            else A2_HEADERS[entity]
-        )
+        expected = A2_HEADERS[entity]
         if not values or list(values[0]) != expected:
             raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
 
