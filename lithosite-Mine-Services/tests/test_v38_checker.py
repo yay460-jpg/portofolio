@@ -131,7 +131,7 @@ def test_operations_can_carry_checker_context_and_checker_evidence_protects_oper
         "capacity_profile_id": "GC-CHK-001",
         "capacity_name": "Checker Test Capacity",
         "capacity_value": 1,
-        "unit": "ton",
+        "measurement": "ton",
         "status": "Active",
     }, "checker-support-capacity")
     result = svc.update("WorkFront", "WF-CHK-A", {"capacity_profile_id": "GC-CHK-001"}, "checker-support-wf-update")
@@ -150,7 +150,7 @@ def test_operations_can_carry_checker_context_and_checker_evidence_protects_oper
         "material": "Ore",
         "checker_name": "Field Checker",
         "retase": 4,
-        "unit": "ton",
+        "measurement": "ton",
         "quantity": 4,
         "actual_hours": 3,
         "target_hours": 3,
