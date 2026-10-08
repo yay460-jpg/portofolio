@@ -243,6 +243,9 @@
     if (!rows.length) return;
 
     const first = rows[0];
+    const checkerByOperation = new Map(dataState.checkers.map(function (item) {
+      return [String(item.operation_id || ''), item];
+    }));
     const equipment = dataState.equipment.find(function (item) {
       return String(item.equipment_id || '') === String(first.equipment_id || '');
     });
@@ -254,7 +257,7 @@
     document.getElementById('timelineMeta').textContent =
       String(first.transaction_date || '—') + ' · Start ' +
       String(first.transaction_time || '—') + ' · End ' +
-      String(rows[rows.length - 1].transaction_time || '—') +
+      String(rows[rows.length - 1].end_time || rows[rows.length - 1].transaction_time || '—') +
       ' · ' + rows.length + ' events';
 
     document.getElementById('timelineSummary').innerHTML =
