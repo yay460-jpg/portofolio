@@ -7,7 +7,7 @@
   }
 
   const modal = document.getElementById('modal');
-  const dataState = { operations: [], workFronts: [], equipment: [], capacities: [], maintenance: [], lists: {} };
+  const dataState = { operations: [], checkers: [], workFronts: [], equipment: [], capacities: [], maintenance: [], lists: {} };
 
   let editId = null;
   let runtimeReady = false;
@@ -93,6 +93,24 @@
       'unit',
       function (x) { return x.unit; },
       'Select unit'
+    );
+
+    optionize(
+      'f_shift',
+      (Array.isArray(dataState.lists.checker_shift) ? dataState.lists.checker_shift : ['Day','Night'])
+        .map(function (shift) { return { value: shift }; }),
+      'value',
+      function (x) { return x.value; },
+      'Select shift'
+    );
+
+    optionize(
+      'f_material',
+      (Array.isArray(dataState.lists.checker_material) ? dataState.lists.checker_material : ['Ore','OB','Quarry'])
+        .map(function (material) { return { value: material }; }),
+      'value',
+      function (x) { return x.value; },
+      'Not specified'
     );
 
     optionize(
@@ -248,10 +266,13 @@
       const cls = String(row.status || '').toLowerCase().replace(/[^a-z]/g, '') || 'draft';
       const id = esc(row.transaction_id);
       return '<div class="timeline-tr">' +
-        '<div class="cell">' + esc(row.transaction_time) + '</div>' +
+        '<div class="cell">' + esc(row.transaction_time) + '–' + esc(row.end_time || '—') + '</div>' +
+        '<div class="cell">' + esc(row.shift || '—') + '</div>' +
         '<div class="cell">' + esc(row.work_front_id) + '</div>' +
         '<div class="cell">' + esc(row.activity) + '</div>' +
+        '<div class="cell">' + esc(row.material || '—') + '</div>' +
         '<div class="cell">' + esc(row.retase ?? '—') + '</div>' +
+        '<div class="cell">' + esc(row.checker_name || (checkerByOperation.get(String(row.transaction_id)) || {}).checker_name || '—') + '</div>' +
         '<div class="cell">' + esc(row.applied_capacity ?? '—') + '</div>' +
         '<div class="cell">' + esc(row.quantity) + '</div>' +
         '<div class="cell">' + esc(row.unit) + '</div>' +
@@ -332,6 +353,7 @@
 
       const results = await Promise.all([
         runtimeClient.request({ operation: 'READ', entity: 'Operations' }),
+        runtimeClient.request({ operation: 'READ', entity: 'Checker' }),
         runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
         runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
         runtimeClient.request({ operation: 'READ', entity: '_Lists' }),
@@ -341,11 +363,12 @@
       ]);
 
       dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
-      dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
-      dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
-      dataState.lists = (results[3].data && typeof results[3].data === 'object') ? results[3].data : results[3];
-      dataState.capacities = Array.isArray(results[4].data) ? results[4].data : [];
-      dataState.maintenance = Array.isArray(results[5].data) ? results[5].data : [];
+      dataState.checkers = Array.isArray(results[1].data) ? results[1].data : [];
+      dataState.workFronts = Array.isArray(results[2].data) ? results[2].data : [];
+      dataState.equipment = Array.isArray(results[3].data) ? results[3].data : [];
+      dataState.lists = (results[4].data && typeof results[4].data === 'object') ? results[4].data : results[4];
+      dataState.capacities = Array.isArray(results[5].data) ? results[5].data : [];
+      dataState.maintenance = Array.isArray(results[6].data) ? results[6].data : [];
 
       fillRefs();
       render();
@@ -364,15 +387,17 @@
     try {
       const results = await Promise.all([
         runtimeClient.request({ operation: 'READ', entity: 'Operations' }),
+        runtimeClient.request({ operation: 'READ', entity: 'Checker' }),
         runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
         runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
         runtimeClient.request({ operation: 'READ', entity: 'Maintenance' })
       ]);
       dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
-      dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
-      dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
-      dataState.maintenance = Array.isArray(results[3].data) ? results[3].data : [];
-      dataState.capacities = Array.isArray(results[4].data) ? results[4].data : [];
+      dataState.checkers = Array.isArray(results[1].data) ? results[1].data : [];
+      dataState.workFronts = Array.isArray(results[2].data) ? results[2].data : [];
+      dataState.equipment = Array.isArray(results[3].data) ? results[3].data : [];
+      dataState.maintenance = Array.isArray(results[4].data) ? results[4].data : [];
+      dataState.capacities = Array.isArray(results[5].data) ? results[5].data : [];
       fillRefs();
       render();
     } catch (error) {
@@ -421,6 +446,8 @@
     });
 
     document.getElementById('f_activity').value = '';
+    document.getElementById('f_material').value = '';
+    document.getElementById('f_checker_name').value = '';
     document.getElementById('f_retase').value = '';
     document.getElementById('f_capacity').value = '';
     document.getElementById('f_qty').value = '';
@@ -457,10 +484,14 @@
       f_id: row.transaction_id,
       f_date: row.transaction_date,
       f_time: row.transaction_time,
+      f_end_time: row.end_time,
+      f_shift: row.shift,
       f_domain: row.domain,
       f_wf: row.work_front_id,
       f_eq: row.equipment_id,
       f_activity: row.activity,
+      f_material: row.material,
+      f_checker_name: row.checker_name,
       f_retase: row.retase,
       f_capacity: row.applied_capacity,
       f_qty: row.quantity,
@@ -613,10 +644,14 @@
       transaction_id: document.getElementById('f_id').value,
       transaction_date: document.getElementById('f_date').value,
       transaction_time: document.getElementById('f_time').value,
+      end_time: document.getElementById('f_end_time').value || null,
+      shift: document.getElementById('f_shift').value,
       domain: document.getElementById('f_domain').value,
       work_front_id: document.getElementById('f_wf').value,
       equipment_id: document.getElementById('f_eq').value || null,
       activity: document.getElementById('f_activity').value,
+      material: document.getElementById('f_material').value || null,
+      checker_name: document.getElementById('f_checker_name').value.trim(),
       retase: numberOrNull('f_retase'),
       capacity_profile_id: (function(){ const wf=dataState.workFronts.find(function(x){return String(x.work_front_id)===String(document.getElementById('f_wf').value)}); return wf ? (wf.capacity_profile_id || null) : null; })(),
       applied_capacity: numberOrNull('f_capacity'),
@@ -674,6 +709,17 @@
         (String(row.equipment_id || '').trim() ||
           'NO-EQUIPMENT|' + String(row.transaction_id || ''));
 
+      let checkerMessage = '';
+      if (global.LithositeCheckerSupport) {
+        try {
+          const checkerResult = await global.LithositeCheckerSupport.syncFromOperation(row);
+          if (checkerResult.status === 'CREATED') checkerMessage = ' Checker evidence recorded.';
+          if (checkerResult.status === 'UPDATED') checkerMessage = ' Checker evidence updated.';
+        } catch (checkerError) {
+          checkerMessage = ' Warning: operation committed, but Checker evidence was not recorded: ' + checkerError.message;
+        }
+      }
+
       modal.classList.remove('show');
       await refreshData();
 
@@ -684,7 +730,7 @@
       }
 
       setRuntimeState(
-        wasEditing ? 'Operation updated and audited.' : 'Operation created and audited.'
+        wasEditing ? 'Operation updated and audited.' + checkerMessage : 'Operation created and audited.' + checkerMessage
       );
     } catch (error) {
       setRuntimeState('Validation/runtime error: ' + error.message, true);
