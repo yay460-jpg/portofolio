@@ -15,7 +15,7 @@ function render(){
   const cls=String(r.status||'').toLowerCase().replace(/[^a-z]/g,'')||'inactive-status';
   return '<div class="capacity-grid td"><div class="capacity-cell">'+esc(r.capacity_profile_id)+'</div><div class="capacity-cell">'+esc(r.capacity_name)+'</div><div class="capacity-cell capacity-value">'+esc(r.capacity_value)+'</div><div class="capacity-cell">'+esc(r.unit)+'</div><div class="capacity-cell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div><div class="capacity-cell row-actions"><button class="control mini edit-capacity" data-id="'+esc(r.capacity_profile_id)+'">Edit</button><button class="control mini danger delete-capacity" data-id="'+esc(r.capacity_profile_id)+'">Delete</button></div></div>'
  }).join(''):'<div class="empty">No Global Capacity profile configured.</div>';
- const count=document.getElementById('capacityCount');if(count)count.textContent=rows.length+' profiles · '+(runtimeReady?'Runtime Ready':'Runtime Not Connected');
+ const count=document.getElementById('capacityCount');if(count)count.textContent=rows.length+' profiles';
 }
 async function load(){
  try{const h=await rc.health();runtimeReady=h.status==='READY';if(!runtimeReady)throw new Error('Runtime health is not READY');
