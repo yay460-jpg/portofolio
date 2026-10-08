@@ -49,7 +49,7 @@ A3_SHEETS = [
 
 A3_HEADERS_ADDITIONS = {
     "GlobalCapacity": [
-        "capacity_profile_id", "capacity_name", "capacity_value", "measurement",
+        "capacity_profile_id", "capacity_name", "capacity_value", "unit",
         "status", "effective_from", "effective_to",
     ],
     "Checker": [
@@ -58,7 +58,7 @@ A3_HEADERS_ADDITIONS = {
         "material", "retase", "source",
     ],
     "WorkFront": ["capacity_profile_id"],
-    "Operations": ["retase", "capacity_profile_id", "applied_capacity", "capacity_measurement"],
+    "Operations": ["retase", "capacity_profile_id", "applied_capacity", "capacity_unit"],
     MAP_MARKER_ENTITY: MAP_MARKER_SCHEMA_HEADERS,
 }
 
