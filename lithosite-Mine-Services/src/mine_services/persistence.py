@@ -83,6 +83,35 @@ class PersistenceStore:
                     return str(vals[i + 1])
         raise ValueError("SCHEMA_VERSION:MISSING")
 
+    def _migrate_a3_checker_support_headers(self, workbook):
+        """Upgrade the existing A3 workbook headers for the V38 Operations/Checker support layer.
+
+        This is intentionally narrow: only the known pre-support A3 headers are migrated.
+        Existing row values are preserved; new support fields start blank.
+        """
+        if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
+            return False
+
+        changed = False
+
+        operations = workbook["Operations"]
+        current_operations = [cell.value for cell in operations[1]]
+        legacy_operations = list(self.schema.HEADERS["Operations"][:-4])
+        if current_operations == legacy_operations:
+            for header in self.schema.HEADERS["Operations"][-4:]:
+                operations.cell(row=1, column=operations.max_column + 1, value=header)
+            changed = True
+
+        checker = workbook["Checker"]
+        current_checker = [cell.value for cell in checker[1]]
+        legacy_checker = [h for h in self.schema.HEADERS["Checker"] if h != "operation_id"]
+        if current_checker == legacy_checker:
+            checker.insert_cols(2, 1)
+            checker.cell(row=1, column=2, value="operation_id")
+            changed = True
+
+        return changed
+
     def _validate_workbook_contract(self, workbook):
         required = set(self.schema.DOMAIN_ENTITIES) | {"_System", "_Lists", "AuditLog"}
         missing = required - set(workbook.sheetnames)
@@ -103,6 +132,10 @@ class PersistenceStore:
 
     def load(self):
         wb = load_workbook(self.path, data_only=True)
+        migrated = self._migrate_a3_checker_support_headers(wb)
+        if migrated:
+            wb.save(self.path)
+            wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)
 
         for entity in self.schema.DOMAIN_ENTITIES:
