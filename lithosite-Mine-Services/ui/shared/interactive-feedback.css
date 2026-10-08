@@ -22,6 +22,18 @@ button.control:hover{
   box-shadow:0 0 0 1px #7db0ff66,0 4px 14px #02081266;
 }
 
+.control.danger,
+button.danger{
+  color:#fecaca;
+  border-color:#ef4444;
+  background:#4b2024;
+}
+
+.control.danger,
+button.danger{
+  box-shadow:0 0 0 1px #ef444422;
+}
+
 .control.danger:hover,
 button.danger:hover{
   border-color:#f87171;
