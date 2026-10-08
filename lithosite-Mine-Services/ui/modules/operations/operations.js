@@ -610,8 +610,8 @@
     // Keep controls reliable after external JS extraction.
     document.getElementById('add').onclick = openAdd;
     document.getElementById('refresh').onclick = loadData;
-    document.getElementById('close').onclick = function () { modal.classList.remove('show'); };
-    document.getElementById('cancel').onclick = function () { modal.classList.remove('show'); };
+    document.getElementById('close').onclick = function () { global.LithositeModalShowContract.close('modal'); };
+    document.getElementById('cancel').onclick = function () { global.LithositeModalShowContract.close('modal'); };
     document.getElementById('stage').onclick = saveForm;
 
     const clear = document.getElementById('clear');
@@ -766,7 +766,7 @@
         }
       }
 
-      modal.classList.remove('show');
+      global.LithositeModalShowContract.close('modal');
       await refreshData();
 
       if (wasEditing && savedTimelineKey) {
