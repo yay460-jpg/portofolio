@@ -1,0 +1,56 @@
+/* Lithosite Mine Services — Modal Shell Contract
+   V38 — shared guard for data-entry modal geometry.
+   Header / Body / Footer are the shell boundary; modules own only inner layout.
+*/
+.modalback > .modal.modal-shell-valid{
+  display:flex;
+  flex-direction:column;
+  width:500px;
+  max-width:calc(100vw - 48px);
+  max-height:calc(100vh - 48px);
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+  box-sizing:border-box;
+}
+
+.modalback > .modal.modal-shell-valid > .modalhead{
+  flex:0 0 auto;
+  min-height:48px;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+
+.modalback > .modal.modal-shell-valid > .modalbody{
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  max-height:none;
+  box-sizing:border-box;
+  overflow:auto;
+}
+
+.modalback > .modal.modal-shell-valid > .modalfoot{
+  flex:0 0 auto;
+  min-height:56px;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+
+@media(max-height:560px){
+  .modalback > .modal.modal-shell-valid{
+    max-height:calc(100vh - 24px);
+  }
+  .modalback > .modal.modal-shell-valid > .modalhead{
+    min-height:44px;
+  }
+  .modalback > .modal.modal-shell-valid > .modalfoot{
+    min-height:52px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .modalback > .modal.modal-shell-valid{
+    scroll-behavior:auto;
+  }
+}
