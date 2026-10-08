@@ -11,6 +11,7 @@
     'modal',
     'equipmentModal',
     'workfrontModal',
+    'capacityModal',
     'capacityEditModal',
     'maintenanceModal',
     'plansModal',
