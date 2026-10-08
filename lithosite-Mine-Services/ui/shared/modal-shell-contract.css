@@ -1,3 +1,20 @@
+/* The shared shell also owns the backdrop for validated data-entry modals. */
+.modalback:has(> .modal.modal-shell-valid){
+  position:fixed;
+  inset:0;
+  z-index:20;
+  padding:0;
+  background:#02081299;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+}
+
+.modalback:has(> .modal.modal-shell-valid).show{
+  display:flex;
+}
+
 /* Lithosite Mine Services — Modal Shell Contract
    V38 — shared guard for data-entry modal geometry and presentation.
    Header / Body / Footer are the shell boundary; modules own only inner layout.
