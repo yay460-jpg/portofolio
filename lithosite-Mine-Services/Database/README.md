@@ -21,3 +21,15 @@ Rules:
 It is retained for historical reference and rollback evidence only.
 
 The locked baseline is protected from runtime mutation.
+
+## V38 Measurement field migration
+
+The active A3 workbook uses the canonical `measurement` field for measurement units. Operations also uses `capacity_measurement` for the applied capacity unit. `Equipment.unit_no` remains an identifier and is not renamed.
+
+For an existing A3 workbook created before this V38 migration, run once from the project root:
+
+```powershell
+python -m src.mine_services.migrate_v38_measurement
+```
+
+The migration renames only workbook headers and preserves the existing measurement values.
