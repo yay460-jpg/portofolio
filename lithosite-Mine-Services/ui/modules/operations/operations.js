@@ -512,7 +512,7 @@
     document.getElementById('stage').textContent = 'Save via RuntimeAdapter';
     resetForm();
     refreshHaulingFields();
-    if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('modal');}else{modal.classList.add('show');}
+    global.LithositeModalShowContract.show('modal');
   }
 
   function openEdit(id) {
@@ -554,8 +554,7 @@
     });
     refreshHaulingFields();
 
-    modal.classList.remove('modal-fade-out');
-    modal.classList.add('show', 'modal-fade-in');
+    global.LithositeModalShowContract.show('modal');
   }
 
   async function removeRow(id) {
@@ -602,8 +601,8 @@
     };
 
     bind('add', openAdd);
-    bind('close', function () { modal.classList.remove('show'); });
-    bind('cancel', function () { modal.classList.remove('show'); });
+    bind('close', function () { global.LithositeModalShowContract.close('modal'); });
+    bind('cancel', function () { global.LithositeModalShowContract.close('modal'); });
     bind('stage', saveForm);
     bind('refresh', loadData);
     ['f_wf','f_eq','f_activity','f_retase'].forEach(function(id){const el=document.getElementById(id);if(el){el.addEventListener('input',refreshHaulingFields);el.addEventListener('change',refreshHaulingFields);}});
