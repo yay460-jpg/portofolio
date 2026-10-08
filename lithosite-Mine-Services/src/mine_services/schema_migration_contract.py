@@ -56,7 +56,10 @@ A3_HEADERS_ADDITIONS = {
     "GlobalCapacity": list(A3_SCHEMA.HEADERS["GlobalCapacity"]),
     "Checker": list(A3_SCHEMA.HEADERS["Checker"]),
     "WorkFront": [h for h in A3_SCHEMA.HEADERS["WorkFront"] if h not in A2_HEADERS["WorkFront"]],
-    "Operations": [h for h in A3_SCHEMA.HEADERS["Operations"] if h not in A2_HEADERS["Operations"]],
+    "Operations": [
+        h for h in A3_SCHEMA.HEADERS["Operations"]
+        if h not in A2_HEADERS["Operations"] and h != "measurement"
+    ],
     MAP_MARKER_ENTITY: MAP_MARKER_SCHEMA_HEADERS,
 }
 
