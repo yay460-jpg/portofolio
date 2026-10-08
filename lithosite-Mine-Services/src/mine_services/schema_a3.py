@@ -34,7 +34,7 @@ HEADERS["GlobalCapacity"] = [
     "status", "effective_from", "effective_to",
 ]
 HEADERS["Checker"] = [
-    "checker_id", "checker_name", "observation_date", "start_time",
+    "checker_id", "operation_id", "checker_name", "observation_date", "start_time",
     "end_time", "shift", "equipment_id", "work_front_id", "activity",
     "material", "retase", "source",
 ]
@@ -75,6 +75,7 @@ SYSTEM_FIELDS = set(_A2_SYSTEM_FIELDS)
 FK = dict(_A2_FK)
 FK["WorkFront.capacity_profile_id"] = ("GlobalCapacity", "capacity_profile_id", False)
 FK["Operations.capacity_profile_id"] = ("GlobalCapacity", "capacity_profile_id", False)
+FK["Checker.operation_id"] = ("Operations", "transaction_id", False)
 FK["Checker.equipment_id"] = ("Equipment", "equipment_id", True)
 FK["Checker.work_front_id"] = ("WorkFront", "work_front_id", True)
 
