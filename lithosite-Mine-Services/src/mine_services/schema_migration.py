@@ -148,6 +148,20 @@ def migrate_a2_to_a3(source_path, target_path):
                 ws.cell(row=1, column=ws.max_column + 1, value=header)
                 current.append(header)
 
+    # Canonical V38 terminology replaces the historical A2 "unit" field.
+    operations_headers = [cell.value for cell in workbook["Operations"][1]]
+    if "unit" in operations_headers and "measurement" not in operations_headers:
+        workbook["Operations"].cell(
+            row=1, column=operations_headers.index("unit") + 1, value="measurement"
+        )
+
+    lists = workbook["_Lists"]
+    list_headers = [cell.value for cell in lists[1]]
+    if "unit" in list_headers and "measurement" not in list_headers:
+        lists.cell(
+            row=1, column=list_headers.index("unit") + 1, value="measurement"
+        )
+
     workbook.create_sheet(MAP_MARKER_ENTITY, index=len(workbook.sheetnames) - 1)
     marker = workbook[MAP_MARKER_ENTITY]
     marker.append(MAP_MARKER_SCHEMA_HEADERS)
