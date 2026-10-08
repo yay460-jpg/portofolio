@@ -6,7 +6,7 @@ from openpyxl import load_workbook, Workbook
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from mine_services.persistence import PersistenceStore
-from mine_services.schema import SCHEMA_VERSION, SHEETS, HEADERS
+from mine_services.schema import SCHEMA_VERSION, SHEETS, HEADERS, CONTROLLED
 
 
 def make_a3_workbook(path: Path):
@@ -20,8 +20,15 @@ def make_a3_workbook(path: Path):
         elif sheet == "_System":
             ws.append(["schema_version", "A.3"])
         elif sheet == "_Lists":
-            ws.append(["equipment_category"])
-            ws.append(["Heavy Equipment"])
+            list_names = list(dict.fromkeys(CONTROLLED.values()))
+            ws.append(list_names)
+            for row_index in range(max(len(PersistenceStore().controlled_lists[name]) for name in list_names)):
+                ws.append([
+                    sorted(PersistenceStore().controlled_lists[name])[row_index]
+                    if row_index < len(PersistenceStore().controlled_lists[name])
+                    else None
+                    for name in list_names
+                ])
         elif sheet == "_Baseline":
             ws.append(["baseline"])
             ws.append(["A.3 baseline"])
