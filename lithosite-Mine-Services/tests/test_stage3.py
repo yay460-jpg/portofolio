@@ -107,6 +107,10 @@ def test_import_allows_parent_child_cross_fk_in_same_dataset():
             "work_front_id": "WF-CROSS",
             "equipment_id": "EQ-CROSS",
             "activity": "Hauling",
+            "retase": 1,
+            "applied_capacity": 25.0,
+            "quantity": 25.0,
+            "measurement": "ton",
             "status": "DRAFT",
         }],
     })
