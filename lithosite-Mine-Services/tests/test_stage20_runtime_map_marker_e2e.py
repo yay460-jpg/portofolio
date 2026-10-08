@@ -130,8 +130,8 @@ def test_a3_import_pipeline_accepts_mapmarker():
     assert store.get("MapMarker", "MK-IMPORT-001")["source_entity"] == "HSE"
 
 
-def test_a2_runtime_interface_still_rejects_mapmarker():
-    runtime = RuntimeInterface(application=ApplicationService(PersistenceStore()))
+def test_a3_runtime_interface_accepts_mapmarker_by_default():
+    runtime = RuntimeInterface(application=ApplicationService(PersistenceStore(schema_module=schema)))
 
-    result = runtime.create("MapMarker", marker("MK-A2-001"), "a2-reject")
-    assert result["status"] == "REJECTED"
+    result = runtime.create("MapMarker", marker("MK-A3-001"), "a3-create")
+    assert result["status"] == "COMMITTED"
