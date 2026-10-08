@@ -259,51 +259,109 @@
     const note = document.getElementById('dashboardMaterialNote');
     const legend = document.getElementById('dashboardMaterialLegend');
     if (!bars || !note || !legend) return;
-    const dates = [];
-    for (let i = 6; i >= 0; i -= 1) {
-      const date = new Date(); date.setHours(0, 0, 0, 0); date.setDate(date.getDate() - i); dates.push(date);
+
+    const context = dashboardStatus.getContext();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const windowDates = [];
+    if (context.scope === 'ALL_DAYS') {
+      for (let i = 6; i >= 0; i -= 1) {
+        const date = new Date(today);
+        date.setDate(today.getDate() - i);
+        windowDates.push(date);
+      }
+    } else {
+      windowDates.push(new Date(today));
     }
+
+    const sourceOperations = dashboardStatus.filteredOperations(state.operations);
     const totals = {};
-    dates.forEach(function (date) { totals[localDateKey(date)] = { Hauling: 0, Dumping: 0 }; });
-    dashboardStatus.filteredOperations(state.operations).forEach(function (row) {
-      const key = String(row.transaction_date || ''); if (!totals[key]) return;
+
+    sourceOperations.forEach(function (row) {
+      const key = String(row.transaction_date || '');
+      if (!key) return;
+
       const activity = String(row.activity || '').trim().toLowerCase();
-      const quantity = Number(row.quantity); if (!Number.isFinite(quantity)) return;
-      if (activity === 'hauling') totals[key].Hauling += quantity;
-      if (activity === 'dumping') totals[key].Dumping += quantity;
+      if (activity !== 'hauling' && activity !== 'dumping') return;
+
+      const quantity = Number(row.quantity);
+      if (!Number.isFinite(quantity) || quantity <= 0) return;
+
+      if (!totals[key]) totals[key] = { Hauling: 0, Dumping: 0 };
+      totals[key][activity === 'hauling' ? 'Hauling' : 'Dumping'] += quantity;
     });
-    const max = Math.max.apply(null, dates.map(function (date) {
-      const t = totals[localDateKey(date)]; return Math.max(t.Hauling, t.Dumping);
-    }));
+
+    const activeDates = windowDates.filter(function (date) {
+      const total = totals[localDateKey(date)];
+      return total && (total.Hauling > 0 || total.Dumping > 0);
+    });
+
+    const max = activeDates.reduce(function (value, date) {
+      const total = totals[localDateKey(date)];
+      return Math.max(value, total.Hauling, total.Dumping);
+    }, 0);
+
     bars.replaceChildren();
-    dates.forEach(function (date) {
+
+    activeDates.forEach(function (date) {
       const key = localDateKey(date);
+      const total = totals[key];
+
       const group = document.createElement('div');
       group.style.cssText = 'display:flex;flex-direction:column;align-items:center;height:100%;min-width:30px;justify-content:flex-end';
+
       const area = document.createElement('div');
       area.style.cssText = 'flex:1;display:flex;align-items:flex-end;justify-content:center;gap:3px;width:100%';
-      const hauling = document.createElement('span'); hauling.className = 'v';
-      hauling.style.height = String(max ? totals[key].Hauling / max * 100 : 0) + '%';
-      const dumping = document.createElement('span'); dumping.className = 'v vo';
-      dumping.style.height = String(max ? totals[key].Dumping / max * 100 : 0) + '%';
-      area.appendChild(hauling); area.appendChild(dumping);
+
+      const hauling = document.createElement('span');
+      hauling.className = 'v';
+      hauling.style.height = String(max ? total.Hauling / max * 100 : 0) + '%';
+
+      const dumping = document.createElement('span');
+      dumping.className = 'v vo';
+      dumping.style.height = String(max ? total.Dumping / max * 100 : 0) + '%';
+
+      area.appendChild(hauling);
+      area.appendChild(dumping);
+
       const label = document.createElement('span');
       label.style.cssText = 'height:18px;line-height:18px;font-size:9px;color:#8ea3ba;white-space:nowrap';
       label.textContent = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      group.appendChild(area); group.appendChild(label); bars.appendChild(group);
+
+      group.appendChild(area);
+      group.appendChild(label);
+      bars.appendChild(group);
     });
+
+    if (!activeDates.length) {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'height:100%;display:flex;align-items:center;justify-content:center;color:#7f95aa;font-size:9px;width:100%';
+      empty.textContent = 'No material movement recorded';
+      bars.appendChild(empty);
+    }
+
     legend.replaceChildren();
     ['Hauling', 'Dumping'].forEach(function (name) {
-      const key = document.createElement('span'); key.className = 'chartkey';
-      const dot = document.createElement('i'); dot.className = name === 'Dumping' ? 'chartdot chartdot-orange' : 'chartdot chartdot-blue';
-      key.appendChild(dot); key.appendChild(document.createTextNode(name)); legend.appendChild(key);
+      const key = document.createElement('span');
+      key.className = 'chartkey';
+      const dot = document.createElement('i');
+      dot.className = name === 'Dumping' ? 'chartdot chartdot-orange' : 'chartdot chartdot-blue';
+      key.appendChild(dot);
+      key.appendChild(document.createTextNode(name));
+      legend.appendChild(key);
     });
-    const combined = dates.reduce(function (sum, date) {
-      const t = totals[localDateKey(date)]; return sum + t.Hauling + t.Dumping;
+
+    const combined = activeDates.reduce(function (sum, date) {
+      const total = totals[localDateKey(date)];
+      return sum + total.Hauling + total.Dumping;
     }, 0);
-    const unit = dashboardStatus.filteredOperations(state.operations).find(function (row) { return row.measurement; });
+
+    const unit = sourceOperations.find(function (row) { return row.measurement; });
     const totalStrong = note.querySelector('strong');
-    if (totalStrong) totalStrong.textContent = String(combined) + (unit && unit.measurement ? ' ' + unit.measurement : '');
+    if (totalStrong) {
+      totalStrong.textContent = String(combined) + (unit && unit.measurement ? ' ' + unit.measurement : '');
+    }
   }
 
   function render() {
