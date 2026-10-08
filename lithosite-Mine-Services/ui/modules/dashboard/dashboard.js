@@ -425,6 +425,18 @@
       });
     }
 
+    if (!document.body.dataset.dashboardEquipmentViewAllBound) {
+      document.body.dataset.dashboardEquipmentViewAllBound = '1';
+      document.addEventListener('click', function (event) {
+        const viewAll = event.target.closest('#dashboardEquipmentViewAll');
+        if (!viewAll) return;
+        if (global.LithositeShellNavigation &&
+            typeof global.LithositeShellNavigation.setScreen === 'function') {
+          global.LithositeShellNavigation.setScreen('Equipment');
+        }
+      });
+    }
+
     loadData();
   }
 
