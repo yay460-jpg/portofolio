@@ -166,7 +166,7 @@ function openAdd(){
  document.getElementById('issuesModalTitle').textContent='Add Issue';
  document.getElementById('issuesSave').textContent='Save via RuntimeAdapter';
  resetForm();
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('issuesModal');}else{document.getElementById('issuesModal').classList.add('show')};
+ global.LithositeModalShowContract.show('issuesModal');
 }
 function openEdit(id){
  const row=state.rows.find(x=>String(x.issue_id)===String(id));if(!row)return;
@@ -181,7 +181,7 @@ function openEdit(id){
   f_issue_closed_at:row.closed_at?String(row.closed_at).slice(0,16):''
  };
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('issuesModal');}else{document.getElementById('issuesModal').classList.add('show')};
+ global.LithositeModalShowContract.show('issuesModal');
 }
 function payload(){
  const status=document.getElementById('f_issue_status').value;
@@ -210,7 +210,7 @@ async function save(){
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'Issues',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Issues',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the Issue record');
-  document.getElementById('issuesModal').classList.remove('show');
+  global.LithositeModalShowContract.close('issuesModal');
   await refreshData();
   setMsg(editId?'Issue updated and audited.':'Issue created and audited.');
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
@@ -227,8 +227,8 @@ function bind(){
  document.getElementById('issuesAdd').onclick=openAdd;
  document.getElementById('issuesRefresh').onclick=load;
  document.getElementById('issuesSave').onclick=save;
- document.getElementById('issuesClose').onclick=()=>document.getElementById('issuesModal').classList.remove('show');
- document.getElementById('issuesCancel').onclick=()=>document.getElementById('issuesModal').classList.remove('show');
+ document.getElementById('issuesClose').onclick=()=>global.LithositeModalShowContract.close('issuesModal');
+ document.getElementById('issuesCancel').onclick=()=>global.LithositeModalShowContract.close('issuesModal');
  document.getElementById('issuesClear').onclick=()=>{
   ['issuesIdFilter','issuesDomainFilter','issuesWorkFrontFilter','issuesEquipmentFilter','issuesSeverityFilter','issuesStatusFilter'].forEach(id=>document.getElementById(id).value='');
   render();
