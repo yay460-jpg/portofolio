@@ -621,7 +621,7 @@ class Handler(BaseHTTPRequestHandler):
             self._json(200, {
                 "status": "READY",
                 "offline": True,
-                "schema": ("A.2" if SCHEMA_NAME == "A2" else "A.3"),
+                "schema": "A.3",
                 "runtime": "RuntimeAdapter",
                 "database": str(DB_PATH),
             }, origin)
