@@ -29,8 +29,8 @@
 #hseScreen .statuspill.high,.statuspill.major{background:#402b18;color:#fb923c}
 #hseScreen .statuspill.critical{background:#402026;color:#fb7185}
 #hseScreen .statuspill.low,.statuspill.minor{background:#18334d;color:#8fc2ff}
-#hseScreen .row-actions{display:flex;gap:5px;align-items:center}
-#hseScreen .row-actions .control.mini{height:24px;padding:3px 7px;font-size:8px;line-height:1}
+#hseScreen .row-actions{display:flex;gap:4px;align-items:center;overflow:visible;white-space:normal}
+#hseScreen .row-actions .control.mini{height:24px;padding:3px 7px;font-size:8px}
 
 #hseScreen .empty{padding:22px;text-align:center;color:#8ea3ba;font-size:10px}
 #hseScreen .modalback{position:fixed;inset:0;z-index:50;background:#020812aa;display:none;align-items:center;justify-content:center}
