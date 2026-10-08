@@ -260,23 +260,56 @@
       String(rows[rows.length - 1].end_time || rows[rows.length - 1].transaction_time || '—') +
       ' · ' + rows.length + ' events';
 
+    const uniqueContextValue = function (items, getter, emptyLabel) {
+      const values = Array.from(new Set(items.map(function (item) {
+        return String(getter(item) || '').trim();
+      }).filter(Boolean)));
+      if (!values.length) return emptyLabel || '—';
+      return values.length === 1 ? values[0] : 'Mixed';
+    };
+
+    const shiftSummary = uniqueContextValue(rows, function (row) {
+      return row.shift;
+    });
+    const checkerSummary = uniqueContextValue(rows, function (row) {
+      const linked = checkerByOperation.get(String(row.transaction_id)) || {};
+      return row.checker_name || linked.checker_name;
+    });
+
+    const workFront = dataState.workFronts.find(function (item) {
+      return String(item.work_front_id || '') === String(first.work_front_id || '');
+    });
+    const capacityProfile = workFront && workFront.capacity_profile_id
+      ? dataState.capacities.find(function (item) {
+          return String(item.capacity_profile_id || '') === String(workFront.capacity_profile_id || '');
+        })
+      : null;
+    const capacitySummary = uniqueContextValue(rows, function (row) {
+      return row.applied_capacity ?? '';
+    }, '');
+    const resolvedCapacity = capacitySummary !== 'Mixed' && capacitySummary !== '—' && capacitySummary !== ''
+      ? capacitySummary
+      : (capacityProfile && capacityProfile.capacity_value != null
+        ? String(capacityProfile.capacity_value)
+        : '—');
+
     document.getElementById('timelineSummary').innerHTML =
-      '<span><b>Domain</b> ' + esc(first.domain) + '</span>' +
-      '<span><b>Work Front</b> ' + esc(first.work_front_id) + '</span>' +
-      '<span><b>Unit / Fleet No.</b> ' + esc(unitFleetNo) + '</span>';
+      '<span><b>Domain</b><strong>' + esc(first.domain || '—') + '</strong></span>' +
+      '<span><b>Work Front</b><strong>' + esc(first.work_front_id || '—') + '</strong></span>' +
+      '<span><b>Unit / Fleet No.</b><strong>' + esc(unitFleetNo || '—') + '</strong></span>' +
+      '<span><b>Shift</b><strong>' + esc(shiftSummary) + '</strong></span>' +
+      '<span><b>Checker</b><strong>' + esc(checkerSummary) + '</strong></span>' +
+      '<span><b>Capacity</b><strong>' + esc(resolvedCapacity) + '</strong></span>';
 
     document.getElementById('timelineRows').innerHTML = rows.map(function (row) {
       const cls = String(row.status || '').toLowerCase().replace(/[^a-z]/g, '') || 'draft';
       const id = esc(row.transaction_id);
       return '<div class="timeline-tr">' +
         '<div class="cell">' + esc(row.transaction_time) + '–' + esc(row.end_time || '—') + '</div>' +
-        '<div class="cell">' + esc(row.shift || '—') + '</div>' +
         '<div class="cell">' + esc(row.work_front_id) + '</div>' +
         '<div class="cell">' + esc(row.activity) + '</div>' +
         '<div class="cell">' + esc(row.material || '—') + '</div>' +
         '<div class="cell">' + esc(row.retase ?? '—') + '</div>' +
-        '<div class="cell">' + esc(row.checker_name || (checkerByOperation.get(String(row.transaction_id)) || {}).checker_name || '—') + '</div>' +
-        '<div class="cell">' + esc(row.applied_capacity ?? '—') + '</div>' +
         '<div class="cell">' + esc(row.quantity) + '</div>' +
         '<div class="cell">' + esc(row.unit) + '</div>' +
         '<div class="cell">' + esc(row.actual_hours) + '</div>' +
