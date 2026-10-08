@@ -1,3 +1,18 @@
+
+/* Shared runtime status accessory — owned by the modal shell contract. */
+.modal-runtime-status{
+  margin-right:auto;
+  min-width:0;
+  max-width:60%;
+  color:#8fa5bb;
+  font-size:9px;
+  line-height:1.2;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.modal-runtime-status.error{color:#fca5a5;}
+
 /* The shared shell also owns the backdrop for validated data-entry modals. */
 .modalback:has(> .modal.modal-shell-valid){
   position:fixed;
