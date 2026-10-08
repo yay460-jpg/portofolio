@@ -22,7 +22,7 @@
 #hseScreen .td{min-height:42px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}
 #hseScreen .cell{padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #hseScreen .hse-description{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#hseScreen .statuspill{display:inline-flex;align-items:center;justify-content:center;min-width:54px;padding:3px 7px;border-radius:999px;font-size:8px;font-weight:850;text-transform:uppercase;background:#18334d;color:#8fc2ff}
+#hseScreen .statuspill{display:inline-flex;align-items:center;justify-content:center;min-width:54px;padding:3px 7px;border-radius:999px;font-size:8px;font-weight:600;line-height:1.1;text-transform:uppercase;background:#18334d;color:#8fc2ff}
 #hseScreen .statuspill.open{background:#173a2c;color:#4ade80}
 #hseScreen .statuspill.closed{background:#16334b;color:#60a5fa}
 #hseScreen .statuspill.medium{background:#3b2e12;color:#facc15}
@@ -30,7 +30,7 @@
 #hseScreen .statuspill.critical{background:#402026;color:#fb7185}
 #hseScreen .statuspill.low,.statuspill.minor{background:#18334d;color:#8fc2ff}
 #hseScreen .row-actions{display:flex;gap:5px;align-items:center}
-#hseScreen .control.mini{height:26px;padding:4px 8px;font-size:9px}
+#hseScreen .row-actions .control.mini{height:24px;padding:3px 7px;font-size:8px;line-height:1}
 
 #hseScreen .empty{padding:22px;text-align:center;color:#8ea3ba;font-size:10px}
 #hseScreen .modalback{position:fixed;inset:0;z-index:50;background:#020812aa;display:none;align-items:center;justify-content:center}
