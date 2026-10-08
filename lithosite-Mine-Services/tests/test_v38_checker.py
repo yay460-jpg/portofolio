@@ -127,6 +127,15 @@ def test_checker_rejects_invalid_shift_and_material():
 def test_operations_can_carry_checker_context_and_checker_evidence_protects_operation():
     svc = service()
     base_rows(svc)
+    create(svc, "GlobalCapacity", {
+        "capacity_profile_id": "GC-CHK-001",
+        "capacity_name": "Checker Test Capacity",
+        "capacity_value": 1,
+        "unit": "ton",
+        "status": "Active",
+    }, "checker-support-capacity")
+    result = svc.update("WorkFront", "WF-CHK-A", {"capacity_profile_id": "GC-CHK-001"}, "checker-support-wf-update")
+    assert result["status"] == "COMMITTED", result
 
     op = svc.create("Operations", {
         "transaction_id": "OPS-CHK-001",
