@@ -168,8 +168,8 @@
 }
 #timelineModal .timeline-tr{
   display:grid;
-  grid-template-columns:105px 125px 140px 90px 70px 80px 65px 85px 85px 90px 110px 140px;
-  min-width:1185px;
+  grid-template-columns:90px 110px 140px 90px 70px 80px 65px 85px 85px 90px 75px 90px;
+  min-width:1070px;
   align-items:center;
 }
 #timelineModal .timeline-tr .row-actions{
