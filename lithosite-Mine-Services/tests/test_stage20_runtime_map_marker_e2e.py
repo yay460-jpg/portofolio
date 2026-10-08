@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from mine_services import ApplicationService, PersistenceStore, RuntimeInterface, RuntimeAdapter
-from mine_services import schema_a3
+from mine_services import schema
 from mine_services.audit import AuditRepository
 
 
@@ -38,8 +38,8 @@ def hse(hse_id="HSE-E2E-001"):
 
 
 def a3_runtime():
-    store = PersistenceStore(schema_module=schema_a3)
-    app = ApplicationService(store=store, schema_module=schema_a3)
+    store = PersistenceStore(schema_module=schema)
+    app = ApplicationService(store=store, schema_module=schema)
     runtime = RuntimeInterface(application=app)
     return store, app, runtime
 
@@ -66,8 +66,8 @@ def test_runtime_interface_crud_and_audit_for_mapmarker():
 
 
 def test_runtime_adapter_handles_mapmarker_end_to_end():
-    store = PersistenceStore(schema_module=schema_a3)
-    app = ApplicationService(store=store, schema_module=schema_a3)
+    store = PersistenceStore(schema_module=schema)
+    app = ApplicationService(store=store, schema_module=schema)
     adapter = RuntimeAdapter(RuntimeInterface(application=app))
 
     created = adapter.handle({
