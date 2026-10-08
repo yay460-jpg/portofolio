@@ -264,17 +264,6 @@
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const windowDates = [];
-    if (context.scope === 'ALL_DAYS') {
-      for (let i = 6; i >= 0; i -= 1) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - i);
-        windowDates.push(date);
-      }
-    } else {
-      windowDates.push(new Date(today));
-    }
-
     const sourceOperations = dashboardStatus.filteredOperations(state.operations);
     const totals = {};
 
@@ -292,10 +281,34 @@
       totals[key][activity === 'hauling' ? 'Hauling' : 'Dumping'] += quantity;
     });
 
-    const activeDates = windowDates.filter(function (date) {
-      const total = totals[localDateKey(date)];
-      return total && (total.Hauling > 0 || total.Dumping > 0);
-    });
+    let activeDates = [];
+
+    if (context.scope === 'ALL_DAYS') {
+      // "Last 7 Days" means the seven most recent DATEs with recorded
+      // material-movement activity, not seven consecutive calendar dates.
+      activeDates = Object.keys(totals)
+        .filter(function (key) {
+          const total = totals[key];
+          return total.Hauling > 0 || total.Dumping > 0;
+        })
+        .sort(function (a, b) {
+          return b.localeCompare(a);
+        })
+        .slice(0, 7)
+        .sort(function (a, b) {
+          return a.localeCompare(b);
+        })
+        .map(function (key) {
+          const parts = key.split('-').map(Number);
+          return new Date(parts[0], parts[1] - 1, parts[2]);
+        });
+    } else {
+      const todayKey = localDateKey(today);
+      if (totals[todayKey] &&
+          (totals[todayKey].Hauling > 0 || totals[todayKey].Dumping > 0)) {
+        activeDates = [new Date(today)];
+      }
+    }
 
     const max = activeDates.reduce(function (value, date) {
       const total = totals[localDateKey(date)];
