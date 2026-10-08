@@ -7,6 +7,17 @@
     blockedToast: null
   };
 
+  const DATA_MODAL_IDS = new Set([
+    'modal',
+    'equipmentModal',
+    'workfrontModal',
+    'capacityEditModal',
+    'maintenanceModal',
+    'plansModal',
+    'hseModal',
+    'issuesModal'
+  ]);
+
   const OPEN_CLASS_BY_ID = new Set([
     'reportsConsoleModal',
     'reportsHistoryModal',
@@ -22,6 +33,10 @@
 
   function enforceShellContract() {
     document.querySelectorAll('.modalback > .modal').forEach(function (modal) {
+      if (!DATA_MODAL_IDS.has(modal.parentElement && modal.parentElement.id)) {
+        modal.classList.remove('modal-shell-valid');
+        return;
+      }
       const hasHeader = !!modal.querySelector(':scope > .modalhead');
       const hasBody = !!modal.querySelector(':scope > .modalbody');
       const hasFooter = !!modal.querySelector(':scope > .modalfoot');
