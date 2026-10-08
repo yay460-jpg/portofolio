@@ -38,3 +38,12 @@
 /* Stage 26 typography refinement — reduce dashboard visual weight without changing hierarchy. */
 #dashboardScreen .tablegrid.head{font-weight:650}
 #dashboardScreen .pill{font-weight:700}
+
+/* V39 — Dashboard context controls and All Day record counts */
+#dashboardScreen .dashboard-context-control{height:38px;display:inline-flex;align-items:center;gap:7px;padding:0 10px;border:1px solid #29435d;border-radius:8px;background:#102237;color:#dce8f5;font-size:10px;font-weight:650;cursor:pointer}
+#dashboardScreen .dashboard-context-control .icon{width:14px;height:14px;color:#b9c9d9;flex:0 0 auto}
+#dashboardScreen .dashboard-context-control select{appearance:none;border:0;outline:0;background:transparent;color:#dce8f5;font:inherit;cursor:pointer;padding:0 13px 0 0;background-image:linear-gradient(45deg,transparent 50%,#8fa5bb 50%),linear-gradient(135deg,#8fa5bb 50%,transparent 50%);background-position:calc(100% - 7px) 50%,calc(100% - 3px) 50%;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+#dashboardScreen .dashboard-context-control select option{background:#102237;color:#dce8f5}
+#dashboardScreen .dashboard-context-control:has(select:disabled){opacity:.55;cursor:not-allowed}
+#dashboardScreen .dashboard-context-control select:disabled{cursor:not-allowed}
+#dashboardScreen .dashboard-record-count{margin-left:6px;color:#7f95aa;font-size:8.5px;font-weight:400;white-space:nowrap}
