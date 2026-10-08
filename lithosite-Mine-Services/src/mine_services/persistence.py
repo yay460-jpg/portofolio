@@ -13,6 +13,8 @@ class PersistenceStore:
         self.path = Path(path) if path else None
         self._data = {e: {} for e in self.schema.DOMAIN_ENTITIES}
         self._audit = []
+        # Production vocabulary is loaded exclusively from the A3 workbook `_Lists`.
+        # This fallback exists only for explicit in-memory/test stores with no workbook path.
         self.controlled_lists = {
             "equipment_category": {"Heavy Equipment", "Light Vehicle", "Support Equipment"},
             "equipment_type": {"Dump Truck", "Excavator", "Dozer", "Grader", "Water Truck", "Loader", "Light Vehicle", "Other"},
@@ -33,7 +35,7 @@ class PersistenceStore:
             "plan_status": {"Draft", "Approved", "In Progress", "Completed", "Cancelled"},
             "hse_severity": {"Low", "Medium", "High", "Critical"},
             "hse_status": {"Open", "In Progress", "Closed", "Void"},
-        }
+        } if not self.path else {}
         if self.path and self.path.exists():
             self.load()
 
@@ -169,11 +171,10 @@ class PersistenceStore:
                 for i, header in enumerate(values[0])
                 if header not in (None, "")
             }
-            workbook_lists.setdefault("service_domain", set()).add("Mining")
-            workbook_lists.setdefault("capacity_status", set()).update({"Active", "Inactive"})
-            workbook_lists.setdefault("unit", set()).add("cycle")
-            workbook_lists.setdefault("checker_shift", set()).update({"Day", "Night"})
-            workbook_lists.setdefault("checker_material", set()).update({"Ore", "OB", "Quarry"})
+            required_lists = set(self.schema.CONTROLLED.values())
+            missing_lists = sorted(required_lists - set(workbook_lists))
+            if missing_lists:
+                raise ValueError(f"CONTROLLED_LIST_MISSING:{missing_lists}")
             self.controlled_lists = workbook_lists
 
         rows = list(wb["AuditLog"].values)
