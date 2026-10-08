@@ -6,7 +6,7 @@
 #hseScreen .title h1{margin:0;font-size:21px;line-height:24px;background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);background-clip:text;-webkit-background-clip:text;color:transparent}
 #hseScreen .title p{margin:2px 0;color:#8ea3ba;font-size:11px}
 #hseScreen .controls{display:flex;gap:7px}
-#hseScreen .control{height:34px;padding:7px 10px;border:1px solid #29435d;border-radius:8px;background:#12243a;color:#dbe8f5;font-size:10.5px;display:flex;align-items:center;gap:6px;cursor:pointer}
+
 
 #hseScreen .filters{height:auto;flex:0 0 auto;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:end}
 #hseScreen .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}
