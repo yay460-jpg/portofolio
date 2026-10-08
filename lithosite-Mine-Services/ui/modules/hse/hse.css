@@ -54,3 +54,7 @@
 /* V38 — register header parity with Operations */
 #hseScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 #hseScreen .icon{width:15px;height:15px;display:block;color:currentColor}
+
+
+/* V39 — table panel visual parity with Operations */
+#hseScreen .tablepanel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
