@@ -164,7 +164,7 @@ function openAdd(){
  document.getElementById('hseModalTitle').textContent='Add HSE Event';
  document.getElementById('hseSave').textContent='Save via RuntimeAdapter';
  resetForm();
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('hseModal');}else{document.getElementById('hseModal').classList.add('show')};
+ global.LithositeModalShowContract.show('hseModal');
 }
 function openEdit(id){
  const row=state.rows.find(x=>String(x.hse_id)===String(id));if(!row)return;
@@ -180,7 +180,7 @@ function openEdit(id){
  };
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
  syncClosedAtField();
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('hseModal');}else{document.getElementById('hseModal').classList.add('show')};
+ global.LithositeModalShowContract.show('hseModal');
 }
 function payload(){
  const status=document.getElementById('f_hse_status').value;
@@ -209,7 +209,7 @@ async function save(){
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'HSE',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'HSE',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the HSE record');
-  document.getElementById('hseModal').classList.remove('show');
+  global.LithositeModalShowContract.close('hseModal');
   await refreshData();
   setMsg(editId?'HSE event updated and audited.':'HSE event created and audited.');
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
@@ -226,8 +226,8 @@ function bind(){
  document.getElementById('hseAdd').onclick=openAdd;
  document.getElementById('hseRefresh').onclick=load;
  document.getElementById('hseSave').onclick=save;
- document.getElementById('hseClose').onclick=()=>document.getElementById('hseModal').classList.remove('show');
- document.getElementById('hseCancel').onclick=()=>document.getElementById('hseModal').classList.remove('show');
+ document.getElementById('hseClose').onclick=()=>global.LithositeModalShowContract.close('hseModal');
+ document.getElementById('hseCancel').onclick=()=>global.LithositeModalShowContract.close('hseModal');
  document.getElementById('hseClear').onclick=()=>{
   ['hseIdFilter','hseDomainFilter','hseWorkFrontFilter','hseEventTypeFilter','hseSeverityFilter','hseStatusFilter'].forEach(id=>document.getElementById(id).value='');
   render();
