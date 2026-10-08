@@ -175,6 +175,9 @@ class ApplicationService:
                 ("WorkFront", "capacity_profile_id"),
                 ("Operations", "capacity_profile_id"),
             ],
+            "Operations": [
+                ("Checker", "operation_id"),
+            ],
             "WorkFront": [
                 ("Operations", "work_front_id"),
                 ("Checker", "work_front_id"),
