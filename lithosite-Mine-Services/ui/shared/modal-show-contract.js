@@ -20,6 +20,15 @@
     );
   }
 
+  function enforceShellContract() {
+    document.querySelectorAll('.modalback > .modal').forEach(function (modal) {
+      const hasHeader = !!modal.querySelector(':scope > .modalhead');
+      const hasBody = !!modal.querySelector(':scope > .modalbody');
+      const hasFooter = !!modal.querySelector(':scope > .modalfoot');
+      modal.classList.toggle('modal-shell-valid', hasHeader && hasBody && hasFooter);
+    });
+  }
+
   function hide(el) {
     if (!el) return;
     el.classList.remove('show', 'open');
@@ -143,6 +152,7 @@
       attributeFilter: ['class']
     });
 
+    enforceShellContract();
     enforceSingleVisible();
   }
 
@@ -152,6 +162,7 @@
     close: close,
     closeAll: closeAll,
     closeTransient: closeTransient,
+    enforceShellContract: enforceShellContract,
     isVisible: isVisible,
     hasOtherVisible: hasOtherVisible,
     notifyBlocked: notifyBlocked,
