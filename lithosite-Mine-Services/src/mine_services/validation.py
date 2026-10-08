@@ -96,6 +96,16 @@ class ValidationEngine:
             if row.get(field) in (None, ""):
                 errors.append(ValidationError("VAL-E003", field, "Required field is blank"))
 
+        # Numeric runtime fields are non-negative by contract.
+        for field in getattr(self.schema, "NUMERIC", set()):
+            if field not in row or row.get(field) in (None, ""):
+                continue
+            value = row.get(field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                errors.append(ValidationError("VAL-E002", field, "Value type is invalid"))
+            elif value < 0:
+                errors.append(ValidationError("VAL-E007", field, "Value must be greater than or equal to zero"))
+
         if existing is not None and row.get(pk) != existing.get(pk):
             errors.append(ValidationError("VAL-E010", pk, "Primary key is immutable"))
 
@@ -141,7 +151,11 @@ class ValidationEngine:
             if is_dump_truck and activity == "hauling" and row.get("retase") in (None, ""):
                 errors.append(ValidationError("VAL-E003", "retase", "Retase is required for Dump Truck Hauling"))
 
-        if entity == "Operations" and str(row.get("activity") or "").strip().lower() == "hauling":
+        if (
+            entity == "Operations"
+            and "retase" in self.schema.HEADERS.get(entity, [])
+            and str(row.get("activity") or "").strip().lower() == "hauling"
+        ):
             equipment = store.get("Equipment", row.get("equipment_id")) if store and row.get("equipment_id") else None
             is_dump_truck = str((equipment or {}).get("type") or "").strip().lower() == "dump truck"
             if is_dump_truck and row.get("retase") in (None, ""):
@@ -163,6 +177,14 @@ class ValidationEngine:
 
         if entity == "Plans" and row.get("period") and not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", str(row["period"])):
             errors.append(ValidationError("VAL-E009", "period", "period must be YYYY-MM"))
+
+        if entity in {"Issues", "HSE"} and "closed_at" in self.schema.HEADERS.get(entity, {}):
+            status = str(row.get("status") or "").strip().lower()
+            closed_at = row.get("closed_at")
+            if status == "closed" and closed_at in (None, ""):
+                errors.append(ValidationError("VAL-E008", "closed_at", "closed_at is required when status is Closed"))
+            elif status in {"open", "in progress"} and closed_at not in (None, ""):
+                errors.append(ValidationError("VAL-E008", "closed_at", "closed_at must be blank unless Closed"))
 
         if row.get("effective_from") and row.get("effective_to"):
             start = row["effective_from"]
