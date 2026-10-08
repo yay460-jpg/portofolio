@@ -29,19 +29,34 @@ def test_stage20_schema_migration_contract_targets_a3_without_activating_it():
 
 def test_stage20_schema_migration_contract_preserves_all_a2_domain_entities():
     assert A2_DOMAIN_ENTITIES == DOMAIN_ENTITIES
-    assert A3_DOMAIN_ENTITIES[:-1] == DOMAIN_ENTITIES
-    assert A3_DOMAIN_ENTITIES[-1] == MAP_MARKER_ENTITY
+    assert A3_DOMAIN_ENTITIES[:len(DOMAIN_ENTITIES)] == DOMAIN_ENTITIES
+    assert A3_DOMAIN_ENTITIES[len(DOMAIN_ENTITIES):] == ["GlobalCapacity", "Checker", MAP_MARKER_ENTITY]
 
 
-def test_stage20_schema_migration_contract_adds_only_mapmarker_to_domain_sheets():
-    assert A3_SHEETS[:-2] == SHEETS[:-1]
+def test_stage20_schema_migration_contract_adds_v38_entities_and_mapmarker():
+    assert A3_SHEETS[:5] == SHEETS[:5]
+    assert A3_SHEETS[5:8] == ["GlobalCapacity", "Checker", "Operations"]
+    assert A3_SHEETS[8:-2] == SHEETS[5:-1]
     assert A3_SHEETS[-2:] == [MAP_MARKER_ENTITY, "AuditLog"]
     assert "MapMarker" not in SHEETS
 
 
 def test_stage20_schema_migration_contract_uses_canonical_mapmarker_headers():
-    assert A3_HEADERS_ADDITIONS == {MAP_MARKER_ENTITY: MAP_MARKER_HEADERS}
-    assert A3_PRIMARY_KEYS_ADDITIONS == {MAP_MARKER_ENTITY: MAP_MARKER_PRIMARY_KEY}
+    assert A3_HEADERS_ADDITIONS[MAP_MARKER_ENTITY] == MAP_MARKER_HEADERS
+    assert A3_PRIMARY_KEYS_ADDITIONS[MAP_MARKER_ENTITY] == MAP_MARKER_PRIMARY_KEY
+    assert A3_HEADERS_ADDITIONS["GlobalCapacity"] == [
+        "capacity_profile_id", "capacity_name", "capacity_value", "unit",
+        "status", "effective_from", "effective_to",
+    ]
+    assert A3_HEADERS_ADDITIONS["Checker"] == [
+        "checker_id", "checker_name", "observation_date", "start_time",
+        "end_time", "shift", "equipment_id", "work_front_id", "activity",
+        "material", "retase", "source",
+    ]
+    assert A3_HEADERS_ADDITIONS["WorkFront"] == ["capacity_profile_id"]
+    assert A3_HEADERS_ADDITIONS["Operations"] == [
+        "retase", "capacity_profile_id", "applied_capacity", "capacity_unit",
+    ]
 
 
 def test_stage20_schema_migration_contract_is_explicit_and_machine_readable():
