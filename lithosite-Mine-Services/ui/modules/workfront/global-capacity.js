@@ -14,7 +14,7 @@ function render(){
  host.innerHTML=rows.length?rows.map(r=>{
   const cls=String(r.status||'').toLowerCase().replace(/[^a-z]/g,'')||'inactive-status';
   return '<div class="capacity-grid td"><div class="capacity-cell">'+esc(r.capacity_profile_id)+'</div><div class="capacity-cell">'+esc(r.capacity_name)+'</div><div class="capacity-cell capacity-value">'+esc(r.capacity_value)+'</div><div class="capacity-cell">'+esc(r.unit)+'</div><div class="capacity-cell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div><div class="capacity-cell row-actions"><button class="control mini edit-capacity" data-id="'+esc(r.capacity_profile_id)+'">Edit</button><button class="control mini danger delete-capacity" data-id="'+esc(r.capacity_profile_id)+'">Delete</button></div></div>'
- }).join(''):'<div class="empty">No Global Capacity profile configured.</div>';
+ }).join(''):'<div class="empty">No Global Capacity profile configured - Set operational capacity independently from DT brand. Decimal values are allowed, for example 25.5, 27.5, 29, 32, or 35.5 ton.</div>';
  const count=document.getElementById('capacityCount');if(count)count.textContent=rows.length+' profiles';
 }
 async function load(){
