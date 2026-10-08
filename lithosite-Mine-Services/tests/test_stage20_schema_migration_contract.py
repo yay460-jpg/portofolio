@@ -36,7 +36,7 @@ def test_stage20_schema_migration_contract_preserves_all_a2_domain_entities():
 def test_stage20_schema_migration_contract_adds_v38_entities_and_mapmarker():
     assert A3_SHEETS[:5] == SHEETS[:5]
     assert A3_SHEETS[5:8] == ["GlobalCapacity", "Checker", "Operations"]
-    assert A3_SHEETS[8:-2] == SHEETS[5:-1]
+    assert A3_SHEETS[8:-2] == SHEETS[6:-1]
     assert A3_SHEETS[-2:] == [MAP_MARKER_ENTITY, "AuditLog"]
     assert "MapMarker" not in SHEETS
 
