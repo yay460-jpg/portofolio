@@ -77,3 +77,7 @@
   width:15px;
   height:15px;
 }
+
+
+/* V39 — table panel visual parity with Operations */
+#maintenanceScreen .tablepanel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
