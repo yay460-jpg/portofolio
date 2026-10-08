@@ -271,7 +271,7 @@
       const key = String(row.transaction_date || '');
       if (!key) return;
 
-      if (context.scope === 'TODAY') {
+      if (context.scope === 'TODAY' && context.shift !== 'ALL') {
         const shift = String(row.shift || '').trim().toUpperCase();
         if (shift !== context.shift) return;
       }
