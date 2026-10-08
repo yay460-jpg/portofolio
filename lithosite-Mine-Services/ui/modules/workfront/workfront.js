@@ -97,13 +97,13 @@ function resetForm(){
  document.getElementById('f_wf_responsible').value='';document.getElementById('f_wf_status').value=LISTS.status.includes('ACTIVE')?'ACTIVE':(LISTS.status[0]||'');document.getElementById('f_wf_capacity').value='';
  document.getElementById('f_wf_from').value=d;document.getElementById('f_wf_to').value='';
 }
-function openAdd(){editId=null;document.getElementById('workfrontModalTitle').textContent='Add Work Front';document.getElementById('workfrontSave').textContent='Save via RuntimeAdapter';resetForm();if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('workfrontModal');}else{document.getElementById('workfrontModal').classList.add('show')};}
+function openAdd(){editId=null;document.getElementById('workfrontModalTitle').textContent='Add Work Front';document.getElementById('workfrontSave').textContent='Save via RuntimeAdapter';resetForm();global.LithositeModalShowContract.show('workfrontModal');}
 function openEdit(id){
  const row=state.rows.find(x=>String(x.work_front_id)===String(id));if(!row)return;
  editId=id;document.getElementById('workfrontModalTitle').textContent='Edit Work Front';document.getElementById('workfrontSave').textContent='Update via RuntimeAdapter';
  const map={f_wf_id:row.work_front_id,f_wf_domain:row.domain,f_wf_location:row.location,f_wf_responsible:row.responsible,f_wf_status:row.status,f_wf_capacity:row.capacity_profile_id,f_wf_from:row.effective_from,f_wf_to:row.effective_to};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('workfrontModal');}else{document.getElementById('workfrontModal').classList.add('show')};
+ global.LithositeModalShowContract.show('workfrontModal');
 }
 function payload(){return {work_front_id:document.getElementById('f_wf_id').value,domain:document.getElementById('f_wf_domain').value,location:document.getElementById('f_wf_location').value,responsible:document.getElementById('f_wf_responsible').value,status:document.getElementById('f_wf_status').value,effective_from:document.getElementById('f_wf_from').value||null,effective_to:document.getElementById('f_wf_to').value||null,capacity_profile_id:document.getElementById('f_wf_capacity').value||null};}
 async function save(){
@@ -112,7 +112,7 @@ async function save(){
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'WorkFront',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'WorkFront',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the Work Front');
-  document.getElementById('workfrontModal').classList.remove('show');await refreshData();setMsg(editId?'Work Front updated and audited.':'Work Front created and audited.');
+  global.LithositeModalShowContract.close('workfrontModal');await refreshData();setMsg(editId?'Work Front updated and audited.':'Work Front created and audited.');
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
 async function remove(id){
@@ -125,8 +125,8 @@ async function remove(id){
 }
 function bind(){
  document.getElementById('workfrontAdd').onclick=openAdd;document.getElementById('workfrontRefresh').onclick=load;document.getElementById('workfrontSave').onclick=save;
- document.getElementById('workfrontClose').onclick=()=>document.getElementById('workfrontModal').classList.remove('show');
- document.getElementById('workfrontCancel').onclick=()=>document.getElementById('workfrontModal').classList.remove('show');
+ document.getElementById('workfrontClose').onclick=()=>global.LithositeModalShowContract.close('workfrontModal');
+ document.getElementById('workfrontCancel').onclick=()=>global.LithositeModalShowContract.close('workfrontModal');
  document.getElementById('workfrontClear').onclick=()=>{['workfrontIdFilter','workfrontDomainFilter','workfrontLocationFilter','workfrontResponsibleFilter','workfrontStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
  ['workfrontIdFilter','workfrontDomainFilter','workfrontLocationFilter','workfrontResponsibleFilter','workfrontStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
  document.getElementById('workfrontRows').addEventListener('click',e=>{const showMap=e.target.closest('.show-map-workfront');if(showMap){const api=global.MineServicesMarkerLocation;const result=api&&typeof api.showDomainRecordOnMap==='function'?api.showDomainRecordOnMap('WorkFront',showMap.dataset.id):{ok:false,status:'MAP_INTERACTION_UNAVAILABLE'};setMapMsg(result.ok?'Work Front '+showMap.dataset.id+' shown on Map.':'Spatial location not assigned for Work Front '+showMap.dataset.id+'.',!result.ok);return;}const edit=e.target.closest('.edit-workfront');if(edit)openEdit(edit.dataset.id);const del=e.target.closest('.delete-workfront');if(del)remove(del.dataset.id);});
