@@ -75,7 +75,7 @@ def _pdf_escape(value: object) -> str:
         .replace("–", "-").replace("—", "-").replace("−", "-")
         .replace("‘", "'").replace("’", "'")
         .replace("“", '"').replace("”", '"')
-        .replace("\\u00a0", " ").replace("…", "...")
+        .replace(chr(160), " ").replace("…", "...")
     )
     text = text.encode("latin-1", "replace").decode("latin-1")
     return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
