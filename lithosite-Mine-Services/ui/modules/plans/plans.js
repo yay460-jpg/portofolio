@@ -11,6 +11,8 @@ let activeEvidenceFiles=[];
 let activeEvidenceObjectUrl='';
 let evidencePreviewRequest=0;
 let evidenceUploadBusy=false;
+let deletePlanConfirmResolve=null;
+let deletePlanConfirmReturnFocus=null;
 const EVIDENCE_UPLOAD_EXTENSIONS=new Set(['.pdf','.jpg','.jpeg','.png','.doc','.docx']);
 const MAX_EVIDENCE_UPLOAD_BYTES=100000000;
 const LISTS={domain:[],measurement:[],status:[]};
@@ -500,9 +502,56 @@ async function save(){
   }
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
+function settleDeletePlanConfirmation(confirmed){
+ const resolve=deletePlanConfirmResolve;
+ if(!resolve)return;
+ const previousFocus=deletePlanConfirmReturnFocus;
+ deletePlanConfirmResolve=null;
+ deletePlanConfirmReturnFocus=null;
+ const modal=document.getElementById('plansDeleteConfirmModal');
+ if(global.LithositeModalShowContract){
+  global.LithositeModalShowContract.close('plansDeleteConfirmModal');
+ }else if(modal){
+  modal.classList.remove('show','open');
+  modal.setAttribute('aria-hidden','true');
+ }
+ if(previousFocus&&document.contains(previousFocus)&&typeof previousFocus.focus==='function')previousFocus.focus();
+ resolve(confirmed===true);
+}
+function requestDeletePlanConfirmation(id){
+ return new Promise(function(resolve){
+  if(deletePlanConfirmResolve)settleDeletePlanConfirmation(false);
+  const planId=String(id||'');
+  const idLabel=document.getElementById('plansDeleteConfirmId');
+  const folderId=document.getElementById('plansDeleteConfirmFolderId');
+  if(idLabel)idLabel.textContent=planId;
+  if(folderId)folderId.textContent=planId;
+  deletePlanConfirmReturnFocus=document.activeElement;
+  deletePlanConfirmResolve=resolve;
+  let opened=false;
+  if(global.LithositeModalShowContract){
+   opened=global.LithositeModalShowContract.show('plansDeleteConfirmModal');
+  }else{
+   const modal=document.getElementById('plansDeleteConfirmModal');
+   if(modal){
+    modal.hidden=false;
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden','false');
+    opened=true;
+   }
+  }
+  if(!opened){
+   deletePlanConfirmResolve=null;
+   deletePlanConfirmReturnFocus=null;
+   resolve(false);
+   return;
+  }
+  const cancel=document.getElementById('plansDeleteConfirmCancel');
+  if(cancel)cancel.focus();
+ });
+}
 async function remove(id){
- const message='Delete Plan '+id+'?\n\nThis permanently deletes all files in Database/Evidence/TargetPlan/'+id+'/ as well as the Target Plan record. The RuntimeAdapter audit log for the deletion is retained.\n\nThis action cannot be undone.';
- if(!confirm(message))return;
+ if(!await requestDeletePlanConfirmation(id))return;
  try{
   const result=await rc.request({operation:'DELETE',entity:'Plans',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
@@ -520,6 +569,11 @@ function bind(){
  document.getElementById('plansSave').onclick=save;
  document.getElementById('plansClose').onclick=()=>global.LithositeModalShowContract.close('plansModal');
  document.getElementById('plansCancel').onclick=()=>global.LithositeModalShowContract.close('plansModal');
+ document.getElementById('plansDeleteConfirmClose').addEventListener('click',()=>settleDeletePlanConfirmation(false));
+ document.getElementById('plansDeleteConfirmCancel').addEventListener('click',()=>settleDeletePlanConfirmation(false));
+ document.getElementById('plansDeleteConfirmAction').addEventListener('click',()=>settleDeletePlanConfirmation(true));
+ document.getElementById('plansDeleteConfirmModal').addEventListener('click',event=>{if(event.target.id==='plansDeleteConfirmModal')settleDeletePlanConfirmation(false);});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&deletePlanConfirmResolve){event.preventDefault();settleDeletePlanConfirmation(false);}});
  document.getElementById('plansClear').onclick=()=>{['plansIdFilter','plansPeriodFilter','plansDomainFilter','plansWorkFrontFilter','plansStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
  ['plansIdFilter','plansPeriodFilter','plansDomainFilter','plansWorkFrontFilter','plansStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
  document.getElementById('planEvidenceClose').addEventListener('click',closePlanEvidence);
