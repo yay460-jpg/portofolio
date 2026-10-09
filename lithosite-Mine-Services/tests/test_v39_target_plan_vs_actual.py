@@ -33,7 +33,7 @@ def test_combined_register_calculates_actual_variance_achievement_and_remaining(
     assert "plansColumns" not in PLANS_JS
     assert "plansViewToggle" not in HTML
     assert "plansTableTitle" not in PLANS_JS
-    assert "plans.js?v=20261019" in HTML
+    assert "plans.js?v=20261028" in HTML
     assert "plans.css?v=20261107" in HTML
 
 
@@ -45,4 +45,4 @@ def test_target_plan_register_uses_measurement_as_the_only_visible_unit_label():
     assert "numberLabel(actual)+' '+unit" not in PLANS_JS
     assert "numberLabel(variance)+' '+unit" not in PLANS_JS
     assert "numberLabel(remaining)+' '+unit" not in PLANS_JS
-    assert "plans.js?v=20261019" in HTML
+    assert "plans.js?v=20261028" in HTML
