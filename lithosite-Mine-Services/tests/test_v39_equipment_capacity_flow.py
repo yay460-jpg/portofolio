@@ -178,3 +178,45 @@ def test_a3_equipment_header_migration_appends_capacity_profile(tmp_path):
     assert check["Equipment"][1].value == "equipment_id"
     assert check["Equipment"][1].value is not None
     assert check["Equipment"].max_column == len(schema.HEADERS["Equipment"])
+
+
+def test_v39_conservative_migration_resolves_unique_operation_profile(tmp_path):
+    from src.mine_services.migrate_v39_equipment_capacity import migrate
+
+    path = tmp_path / "equipment-capacity-v39.xlsx"
+    wb = Workbook()
+    wb.remove(wb.active)
+
+    baseline = wb.create_sheet("_Baseline")
+    baseline.append(["baseline_status", "LOCKED"])
+    system = wb.create_sheet("_System")
+    system.append(["schema_version", schema.SCHEMA_VERSION])
+    lists = wb.create_sheet("_Lists")
+    defaults = PersistenceStore().controlled_lists
+    headers = list(defaults)
+    lists.append(headers)
+    for i in range(max(len(values) for values in defaults.values())):
+        lists.append([sorted(defaults[h])[i] if i < len(defaults[h]) else None for h in headers])
+
+    for entity in schema.DOMAIN_ENTITIES:
+        wb.create_sheet(entity).append(schema.HEADERS[entity])
+
+    wb["GlobalCapacity"].append(["GC-275", "10 Wheel Heavy", "Volvo", 27.5, "ton", "Active", None, None])
+    wb["WorkFront"].append(["WF-A", "Road & Hauling", "Pit A", "Ops", "Active", None, None, "GC-275"])
+    wb["Equipment"].append(["DT-001", "DT-001", "Heavy Equipment", "Dump Truck", "Owner", "", "Active", "2026-10-09", None, None])
+    wb["Operations"].append([
+        "OPS-001", "2026-10-09", "06:00", "Road & Hauling", "WF-A", "DT-001",
+        "Hauling", 110, "ton", 4, 4, "DRAFT", "Checker", None, None, 4,
+        None, 27.5, "ton", "10:00", "Day", "Ore", "Field Checker"
+    ])
+    wb["AuditLog"].append(schema.HEADERS["AuditLog"])
+    wb.save(path)
+
+    resolved, ambiguous, untouched = migrate(path)
+    assert resolved == [("DT-001", "GC-275")]
+    assert ambiguous == []
+    assert untouched == []
+
+    migrated = load_workbook(path, data_only=True)
+    equipment_row = list(migrated["Equipment"].iter_rows(min_row=2, values_only=True))[0]
+    assert equipment_row[-1] == "GC-275"
