@@ -129,6 +129,30 @@ class PersistenceStore:
             checker.cell(row=1, column=2, value="operation_id")
             changed = True
 
+        plans = workbook["Plans"]
+        current_plans = [cell.value for cell in plans[1]]
+        legacy_plans = ["plan_id", "period", "domain", "work_front_id", "activity", "target_quantity", "measurement", "target_hours", "status"]
+        if current_plans == legacy_plans:
+            plans.insert_cols(3, 2)
+            plans.cell(row=1, column=3, value="start_date")
+            plans.cell(row=1, column=4, value="end_date")
+            changed = True
+            # Preserve historical monthly plans by expanding them to calendar month bounds.
+            from calendar import monthrange
+            for row_index in range(2, plans.max_row + 1):
+                period = plans.cell(row=row_index, column=2).value
+                if not period:
+                    continue
+                period_text = str(period).strip()
+                if len(period_text) == 7 and period_text[4] == "-":
+                    try:
+                        year, month = int(period_text[:4]), int(period_text[5:7])
+                        last_day = monthrange(year, month)[1]
+                        plans.cell(row=row_index, column=3, value=f"{year:04d}-{month:02d}-01")
+                        plans.cell(row=row_index, column=4, value=f"{year:04d}-{month:02d}-{last_day:02d}")
+                    except (ValueError, TypeError):
+                        pass
+
         return changed
 
     def _validate_workbook_contract(self, workbook):
