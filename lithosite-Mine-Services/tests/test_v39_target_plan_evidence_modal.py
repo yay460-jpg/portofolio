@@ -38,6 +38,7 @@ def test_evidence_modal_is_read_only_and_does_not_offer_upload():
     modal_start = HTML.index('id="planEvidenceModal"')
     modal_end = HTML.index('</div></div></section><section id="hseScreen"', modal_start)
     modal_markup = HTML[modal_start:modal_end]
+    assert modal_markup.count(">Close</button>") == 1
     assert 'type="file"' not in modal_markup
     assert 'id="planEvidenceUpload"' not in modal_markup
     assert "Upload is not enabled here." in modal_markup
