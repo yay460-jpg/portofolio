@@ -6,14 +6,20 @@ PLANS_CSS = (ROOT / "ui" / "modules" / "plans" / "plans.css").read_text(encoding
 HTML = (ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html").read_text(encoding="utf-8")
 
 
-def test_target_plan_keeps_measurement_column_close_to_quantity():
-    assert "['Plan ID','Plan Range','Domain','Work Front','Activity','Target Qty','Measurement','Target Hrs','Status','Actions']" in PLANS_JS
-    assert "numberLabel(r.target_quantity)" in PLANS_JS
-    assert "esc(r.measurement)" in PLANS_JS
+def test_target_plan_register_combines_target_quantity_and_unit_in_one_cell():
+    assert "['Plan ID','Plan Range','Domain','Work Front','Activity','Target Qty','Target Hrs','Status','Actions']" in PLANS_JS
+    assert 'class="cell num target-quantity"' in PLANS_JS
+    assert "numberLabel(targetValue)+(r.measurement?' '+String(r.measurement):'')" in PLANS_JS
+    assert "Target Qty','Measurement'" not in PLANS_JS
 
 
-def test_target_plan_register_uses_compact_grid_and_tight_quantity_unit_padding():
-    assert "grid-template-columns:100px 150px 130px 220px 210px 75px 72px 80px 80px 100px minmax(80px,1fr)" in PLANS_CSS
-    assert "padding-left:2px" in PLANS_CSS
-    assert "padding-right:2px" in PLANS_CSS
-    assert "plans.css?v=20261028" in HTML
+def test_target_plan_register_has_nine_balanced_columns_and_fills_available_width():
+    assert "grid-template-columns:minmax(100px,.8fr) minmax(140px,1.05fr) minmax(110px,.8fr) minmax(170px,1.25fr) minmax(140px,1.2fr) minmax(105px,.9fr) minmax(75px,.6fr) minmax(80px,.7fr) minmax(100px,.8fr)" in PLANS_CSS
+    assert "width:100%" in PLANS_CSS
+    assert "min-width:0" in PLANS_CSS
+
+
+def test_plan_vs_actual_fits_table_width_without_forcing_horizontal_overflow():
+    assert "minmax(90px,.7fr) minmax(130px,.95fr) minmax(100px,.75fr) minmax(170px,1.25fr) minmax(120px,1.1fr) minmax(85px,.65fr) minmax(85px,.65fr) minmax(90px,.75fr) minmax(95px,.8fr) minmax(90px,.8fr) minmax(72px,.55fr)" in PLANS_CSS
+    assert "min-width:0" in PLANS_CSS
+    assert "plans.css?v=20261029" in HTML
