@@ -395,7 +395,6 @@ function bind(){
  document.getElementById('plansClear').onclick=()=>{['plansIdFilter','plansPeriodFilter','plansDomainFilter','plansWorkFrontFilter','plansStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
  ['plansIdFilter','plansPeriodFilter','plansDomainFilter','plansWorkFrontFilter','plansStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
  document.getElementById('planEvidenceClose').addEventListener('click',closePlanEvidence);
- document.getElementById('planEvidenceCloseFooter').addEventListener('click',closePlanEvidence);
  document.getElementById('planEvidenceRefresh').addEventListener('click',refreshPlanEvidenceList);
  document.getElementById('planEvidenceModal').addEventListener('click',e=>{if(e.target.id==='planEvidenceModal')closePlanEvidence();});
  document.getElementById('planEvidenceList').addEventListener('click',e=>{const fileButton=e.target.closest('.evidence-file-button');if(fileButton&&!fileButton.disabled)previewEvidenceFile(fileButton.dataset.evidenceName||'');});
