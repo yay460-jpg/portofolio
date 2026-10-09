@@ -41,7 +41,7 @@ function buildMonthlyReport(o){
  'Outstanding Actions':{open_issue_count:openI.length,open_plan_count:openP.length,issues_by_status:count(openI,['status','state']),plans_by_status:count(openP,['status','state'])},
  'Trend vs Previous Month':{comparison_available:false,current:{PA:k.PA,UA:k.UA,EU:k.EU,status:k.status},note:'Previous-month history is not yet available in the report snapshot.'},
  'Performance Highlights':{operations:ops.length,completed:done.length,equipment:eq.length,workfront:wf.length,hse:h.length,maintenance:ma.length},
- 'Management Attention / Decision Required':{status:validation.length?'VALIDATION REQUIRED':openI.length?'ATTENTION':'CLEAR',open_issues:openI.length,open_plans:openP.length,decision_required:validation.length>0},
+ 'Management Attention / Decision Required':{status:validation.length?'VALIDATION REQUIRED':(openI.length||openP.length)?'ATTENTION':'CLEAR',open_issues:openI.length,open_plans:openP.length,decision_required:validation.length>0||openI.length>0||openP.length>0},
  'Recommendations':{status:validation.length?'VALIDATION REQUIRED':'REVIEW',items:validation.length?['Resolve source/KPI validation before issuing the management report.']:['Review major issues, outstanding plans, and KPI performance before management issue.']},
  'Appendix / Evidence':{source_domains:[...REQUIRED,...OPTIONAL].filter(n=>Array.isArray(s[n])),evidence}
  };
