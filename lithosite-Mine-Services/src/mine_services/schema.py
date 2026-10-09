@@ -10,7 +10,7 @@ SHEETS = ["_Baseline","_System","_Lists","Equipment","WorkFront","GlobalCapacity
 DOMAIN_ENTITIES = ["Equipment","WorkFront","GlobalCapacity","Checker","Operations","Maintenance","Issues","Plans","HSE","MapMarker"]
 
 HEADERS = {
-"Equipment":["equipment_id","unit_no","category","type","owner_type","owner_name","status","effective_from","effective_to"],
+"Equipment":["equipment_id","unit_no","category","type","owner_type","owner_name","status","effective_from","effective_to","capacity_profile_id"],
 "WorkFront":["work_front_id","domain","location","responsible","status","effective_from","effective_to","capacity_profile_id"],
 "Operations":["transaction_id","transaction_date","transaction_time","domain","work_front_id","equipment_id","activity","quantity","measurement","actual_hours","target_hours","status","source","created_at","updated_at","retase","capacity_profile_id","applied_capacity","capacity_measurement","end_time","shift","material","checker_name"],
 "Maintenance":["maintenance_id","equipment_id","event_date","event_type","failure_code","start_time","end_time","downtime_hours","action","status","source"],
@@ -38,6 +38,7 @@ SYSTEM_FIELDS={"created_at","updated_at"}
 
 FK={
 "Operations.work_front_id":("WorkFront","work_front_id",True),"Operations.equipment_id":("Equipment","equipment_id",False),
+"Equipment.capacity_profile_id":("GlobalCapacity","capacity_profile_id",False),
 "Maintenance.equipment_id":("Equipment","equipment_id",True),"Issues.work_front_id":("WorkFront","work_front_id",False),
 "Issues.equipment_id":("Equipment","equipment_id",False),"Plans.work_front_id":("WorkFront","work_front_id",False),
 "HSE.work_front_id":("WorkFront","work_front_id",False),"WorkFront.capacity_profile_id":("GlobalCapacity","capacity_profile_id",False),
