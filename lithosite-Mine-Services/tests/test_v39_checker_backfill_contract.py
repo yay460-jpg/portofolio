@@ -38,5 +38,5 @@ def test_operations_load_and_refresh_run_the_safe_backfill():
 
 
 def test_backfill_assets_use_fresh_cache_keys():
-    assert "operations.js?v=20261108" in HTML
+    assert "operations.js?v=20261110" in HTML
     assert "checker.js?v=20261013" in HTML
