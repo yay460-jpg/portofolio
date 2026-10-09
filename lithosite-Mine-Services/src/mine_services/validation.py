@@ -175,6 +175,11 @@ class ValidationEngine:
             is_dump_truck = str((equipment or {}).get("type") or "").strip().lower() == "dump truck"
             if is_dump_truck and row.get("retase") in (None, ""):
                 errors.append(ValidationError("VAL-E003", "retase", "Retase is required for Dump Truck Hauling"))
+            equipment_profile_id = (equipment or {}).get("capacity_profile_id")
+            if is_dump_truck and equipment_profile_id in (None, ""):
+                errors.append(ValidationError("VAL-E003", "capacity_profile_id", "Equipment Global Capacity Profile is required for Dump Truck Hauling"))
+            if is_dump_truck and row.get("capacity_profile_id") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "capacity_profile_id", "Capacity profile is required for Dump Truck Hauling"))
             if is_dump_truck and row.get("applied_capacity") in (None, ""):
                 errors.append(ValidationError("VAL-E003", "applied_capacity", "Applied Capacity is required for Dump Truck Hauling"))
             if is_dump_truck and row.get("measurement") != "ton":
