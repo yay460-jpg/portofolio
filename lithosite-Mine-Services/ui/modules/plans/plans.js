@@ -93,7 +93,7 @@ function render(){
  const host=document.getElementById('plansRows');if(!host)return;
  const count=document.getElementById('plansCount'),columns=document.getElementById('plansColumns');
  const toggle=document.getElementById('plansViewToggle'),add=document.getElementById('plansAdd');
- const title=document.getElementById('plansTableTitle'),actualView=viewMode==='actual';
+ const title=document.getElementById('plansTableTitleText'),actualView=viewMode==='actual';
  if(toggle)toggle.textContent=actualView?'Target Plan Register':'Plan vs Actual';
  if(add)add.hidden=actualView;
  if(title)title.textContent=actualView?'Plan vs Actual':'Target Plan Register';
