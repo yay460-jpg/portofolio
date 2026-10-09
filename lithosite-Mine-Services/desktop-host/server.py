@@ -665,6 +665,29 @@ def build_report_pdf(model: dict) -> bytes:
                 paragraph(kpi_value, 7.8, 10.2, 104)
             continue
 
+        if name_upper == "TREND VS PREVIOUS MONTH" and isinstance(value, dict):
+            available = bool(value.get("comparison_available"))
+            compact_status_box(
+                "Previous-month comparison",
+                "Available" if available else "Not available - previous-month history is not in this snapshot.",
+                28
+            )
+            current_kpi = value.get("current") if isinstance(value.get("current"), dict) else {}
+            pairs = []
+            for key in ("PA", "UA", "EU"):
+                if key in current_kpi:
+                    pairs.append((key, display_value(key, current_kpi[key])))
+            if "status" in current_kpi:
+                pairs.append(("KPI Status", str(current_kpi["status"]).upper()))
+            for i in range(0, len(pairs), 2):
+                a_pair = pairs[i]
+                b_pair = pairs[i + 1] if i + 1 < len(pairs) else ("", "")
+                field_pair(a_pair[0], a_pair[1], b_pair[0], b_pair[1], 22)
+            note = value.get("note")
+            if note:
+                paragraph(note, 7.8, 10.0, 104)
+            continue
+
         if name_upper == "KPI TREND" and isinstance(value, dict):
             if "comparison_available" in value:
                 v = value["comparison_available"]
