@@ -392,6 +392,41 @@
       (runtimeReady ? 'Runtime Ready' : 'Runtime Not Connected');
   }
 
+  async function reconcileCheckerEvidence() {
+    if (!global.LithositeCheckerSupport ||
+        typeof global.LithositeCheckerSupport.syncMissingFromOperations !== 'function') {
+      return null;
+    }
+
+    const report = await global.LithositeCheckerSupport.syncMissingFromOperations(dataState.operations);
+    if (report.created > 0) {
+      const refreshed = await runtimeClient.request({ operation: 'READ', entity: 'Checker' });
+      dataState.checkers = Array.isArray(refreshed.data) ? refreshed.data : [];
+    }
+    return report;
+  }
+
+  function checkerSyncMessage(report) {
+    if (!report) return 'RuntimeAdapter connected — offline local persistence active.';
+    if (report.errors && report.errors.length) {
+      return 'Runtime connected. Checker backfill created ' + report.created +
+        ' row(s); ' + report.errors.length + ' operation(s) need attention: ' +
+        report.errors.slice(0, 2).map(function (item) {
+          return item.operation_id + ': ' + item.message;
+        }).join(' | ');
+    }
+    if (report.created > 0) {
+      return 'Runtime connected. Checker evidence backfilled for ' + report.created +
+        ' existing operation(s).';
+    }
+    if (report.retaseWithoutCheckerName > 0) {
+      return 'Runtime connected. ' + report.retaseWithoutCheckerName +
+        ' operation(s) have Retase but no Checker Name; Checker rows were not fabricated. ' +
+        'Edit those operations with Checker Name, End Time, Shift, and Equipment.';
+    }
+    return 'RuntimeAdapter connected — offline local persistence active.';
+  }
+
   async function loadData() {
     try {
       const health = await runtimeClient.health();
@@ -415,9 +450,10 @@
       dataState.capacities = Array.isArray(results[5].data) ? results[5].data : [];
       dataState.maintenance = Array.isArray(results[6].data) ? results[6].data : [];
 
+      const checkerBackfill = await reconcileCheckerEvidence();
       fillRefs();
       render();
-      setRuntimeState('RuntimeAdapter connected — offline local persistence active.');
+      setRuntimeState(checkerSyncMessage(checkerBackfill), Boolean(checkerBackfill && checkerBackfill.errors && checkerBackfill.errors.length));
     } catch (error) {
       runtimeReady = false;
       render();
@@ -444,8 +480,14 @@
       dataState.equipment = Array.isArray(results[3].data) ? results[3].data : [];
       dataState.maintenance = Array.isArray(results[4].data) ? results[4].data : [];
       dataState.capacities = Array.isArray(results[5].data) ? results[5].data : [];
+      const checkerBackfill = await reconcileCheckerEvidence();
       fillRefs();
       render();
+      if (checkerBackfill && (checkerBackfill.created > 0 ||
+          (checkerBackfill.errors && checkerBackfill.errors.length) ||
+          checkerBackfill.retaseWithoutCheckerName > 0)) {
+        setRuntimeState(checkerSyncMessage(checkerBackfill), Boolean(checkerBackfill.errors && checkerBackfill.errors.length));
+      }
     } catch (error) {
       setRuntimeState('Refresh failed: ' + error.message, true);
     }
