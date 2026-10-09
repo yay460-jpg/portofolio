@@ -28,11 +28,12 @@ def test_v39_plan_vs_actual_uses_only_validated_operations_in_plan_date_range():
 
 def test_v39_plan_vs_actual_displays_variance_achievement_and_remaining_target():
     assert "'Variance'" in PLANS_JS
+    assert "'Start Date','End Date'" in PLANS_JS
     assert "'Achievement'" in PLANS_JS
     assert "'Remaining'" in PLANS_JS
     assert "actual-target" in PLANS_JS
     assert "actual/target*100" in PLANS_JS
     assert "Math.max(target-actual,0)" in PLANS_JS
     assert "actual-th" in PLANS_CSS
-    assert "plans.js?v=20261012" in HTML
-    assert "plans.css?v=20261031" in HTML
+    assert "plans.js?v=20261013" in HTML
+    assert "plans.css?v=20261101" in HTML
