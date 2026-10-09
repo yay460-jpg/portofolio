@@ -24,7 +24,7 @@ def test_v39_dashboard_material_legend_shows_material_tonnage_and_haulage_retase
 def test_v39_dashboard_material_movement_uses_four_material_categories():
     for name in ("Ore", "OB", "Quarry", "Top Soil"):
         assert "{ name: '" + name + "'" in DASHBOARD_JS
-        assert name + ': ' in DASHBOARD_JS
+    assert "return { Ore: 0, OB: 0, Quarry: 0, 'Top Soil': 0 };" in DASHBOARD_JS
     assert "if (material === 'ob' || material === 'overburden') return 'OB';" in DASHBOARD_JS
     assert "if (material === 'topsoil' || material === 'top soil') return 'Top Soil';" in DASHBOARD_JS
     for color_class in (
