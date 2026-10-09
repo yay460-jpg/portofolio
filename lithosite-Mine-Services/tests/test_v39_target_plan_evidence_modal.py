@@ -75,7 +75,7 @@ def test_evidence_endpoint_is_scoped_to_allowed_modules_and_extensions():
         assert extension in HOST
     assert 'if path in {"/evidence/list", "/evidence/file"}:' in HOST
     assert 'if post_path == "/evidence/upload":' in HOST
-    assert 'if self.path == "/evidence/preview":' in HOST
+    assert 'if post_path == "/evidence/preview":' in HOST
     assert "_evidence_filename_error(filename, EVIDENCE_EXTENSIONS)" in HOST
     assert "_target_plan_exists(record_id)" in HOST
     assert "evidence_record_directory(module, record_id)" in HOST
