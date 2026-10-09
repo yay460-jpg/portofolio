@@ -72,7 +72,7 @@ function numberLabel(value){
  const n=Number(value);
  return Number.isFinite(n)?String(Number(n.toFixed(2))):'—';
 }
-function normalizeMatch(value){return String(value??'').trim().toLowerCase().replace(/\\s+/g,' ');}
+function normalizeMatch(value){return String(value??'').trim().toLowerCase().replace(/\s+/g,' ');}
 function actualQuantityFor(plan){
  if(state.operationsStatus!=='ready')return null;
  const range=planDateBounds(plan),domain=normalizeMatch(plan.domain);
