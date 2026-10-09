@@ -141,7 +141,7 @@
 #plansScreen .plantr.consolidated-th,
 #plansScreen .plantr.consolidated-tr {
   display:grid;
-  grid-template-columns:minmax(90px,.9fr) minmax(78px,.78fr) minmax(78px,.78fr) minmax(100px,1fr) minmax(220px,1.9fr) minmax(88px,.9fr) minmax(78px,.78fr) minmax(72px,.72fr) minmax(82px,.82fr) minmax(88px,.88fr) minmax(88px,.88fr) minmax(82px,.82fr) minmax(82px,.82fr) minmax(70px,.7fr) minmax(100px,1fr);
+  grid-template-columns:minmax(90px,.9fr) minmax(78px,.78fr) minmax(78px,.78fr) minmax(100px,1fr) minmax(190px,1.45fr) minmax(95px,1fr) minmax(78px,.78fr) minmax(72px,.72fr) minmax(82px,.82fr) minmax(88px,.88fr) minmax(88px,.88fr) minmax(82px,.82fr) minmax(82px,.82fr) minmax(70px,.7fr) minmax(100px,1fr);
   align-items:center;
   width:100%;
   min-width:0;
