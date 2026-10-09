@@ -900,13 +900,17 @@ class Handler(BaseHTTPRequestHandler):
             ):
                 self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid evidence filename"}]}, origin)
                 return
-            target = (record_dir / filename).resolve()
+            candidate = record_dir / filename
+            if candidate.is_symlink():
+                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
+                return
+            target = candidate.resolve()
             try:
                 target.relative_to(record_dir.resolve())
             except ValueError:
                 self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid evidence file path"}]}, origin)
                 return
-            if target.is_symlink() or not target.is_file() or target.suffix.lower() not in EVIDENCE_EXTENSIONS:
+            if not target.is_file() or target.suffix.lower() not in EVIDENCE_EXTENSIONS:
                 self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
                 return
             try:
