@@ -65,7 +65,7 @@ def test_plan_targets_are_not_prorated_and_ambiguous_operations_are_not_double_c
 
 
 def test_report_asset_cache_versions_are_current():
-    assert "plans.js?v=20261016" in HTML
+    assert "plans.js?v=20261017" in HTML
     assert "plans.css?v=20261103" in HTML
     assert "daily-report.js?v=20261012" in HTML
     assert "weekly-report.js?v=20261009" in HTML
