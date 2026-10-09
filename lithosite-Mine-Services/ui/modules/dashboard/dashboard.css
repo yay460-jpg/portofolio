@@ -56,3 +56,16 @@
 #dashboardScreen .chart .chart-material-topsoil,#dashboardScreen .chartdot-topsoil{background:#a78bfa}
 #dashboardScreen .chartdot-sr{background:#f87171}
 #dashboardScreen .chartkey-coming-soon{color:#93a6ba;font-style:italic}
+
+/* Keep the x-axis baseline above the date labels, not below them. */
+#dashboardScreen .bars{position:relative;border-bottom:0}
+#dashboardScreen #dashboardMaterialBars::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:18px;
+  border-bottom:1px solid #2b425a;
+  pointer-events:none;
+  z-index:1;
+}
