@@ -229,6 +229,7 @@ async function previewEvidenceFile(name){
 async function refreshPlanEvidenceList(){
  const planId=activeEvidencePlanId;
  if(!planId)return;
+ invalidateEvidencePreview();
  const list=document.getElementById('planEvidenceList');
  const preview=document.getElementById('planEvidencePreview');
  const status=document.getElementById('planEvidenceStatus');
@@ -266,6 +267,7 @@ async function refreshPlanEvidenceList(){
 function openPlanEvidence(planId){
  const row=state.rows.find(function(item){return String(item.plan_id)===String(planId);});
  if(!row)return;
+ invalidateEvidencePreview();
  activeEvidencePlanId=String(row.plan_id||'');
  activeEvidenceFiles=[];
  const range=planDateBounds(row);
@@ -284,6 +286,7 @@ function openPlanEvidence(planId){
  refreshPlanEvidenceList();
 }
 function closePlanEvidence(){
+ invalidateEvidencePreview();
  if(global.LithositeModalShowContract)global.LithositeModalShowContract.close('planEvidenceModal');
  const modal=document.getElementById('planEvidenceModal');
  if(modal){modal.classList.remove('show','open');modal.setAttribute('aria-hidden','true');}
