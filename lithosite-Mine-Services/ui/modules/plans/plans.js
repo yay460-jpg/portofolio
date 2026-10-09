@@ -122,6 +122,7 @@ function render(){
     '<div class="cell num achievement">'+(achievement===null?'—':esc(numberLabel(achievement)+'%'))+'</div>'+
     '<div class="cell num remaining">'+(remaining===null?'—':esc(numberLabel(remaining)))+'</div>'+
     '<div class="cell status-cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
+    '<div class="cell evidence-cell">—</div>'+
     '<div class="cell row-actions"><button class="control mini edit edit-plan" data-id="'+esc(r.plan_id)+'">Edit</button><button class="control mini danger delete-plan" data-id="'+esc(r.plan_id)+'">Delete</button></div>'+
    '</div>';
   }).join(''):'<div class="empty">No Target Plan records match the current filters.</div>';
