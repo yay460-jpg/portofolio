@@ -387,6 +387,66 @@ def build_report_pdf(model: dict) -> bytes:
         if ambiguity_note:
             paragraph("Ambiguity note: " + str(ambiguity_note), 7.5, 9.4, 104)
 
+    def render_evidence_table(value: dict) -> None:
+        nonlocal y
+        evidence = value.get("evidence") if isinstance(value.get("evidence"), dict) else {}
+        source_rows = []
+        domain_counts = []
+        for domain, items in evidence.items():
+            records = items if isinstance(items, list) else []
+            domain_counts.append(f"{domain}: {len(records)}")
+            for item in records:
+                if not isinstance(item, dict):
+                    item = {"label": item}
+                record_id = item.get("id") or item.get("transaction_id") or item.get("operation_id") or "—"
+                record_date = item.get("date") or item.get("transaction_date") or item.get("event_date") or "—"
+                label = item.get("label") or item.get("activity") or item.get("status") or item.get("description") or "—"
+                label = str(label).replace(chr(10), " ").strip()
+                if len(label) > 48:
+                    label = label[:45] + "..."
+                source_rows.append((str(domain), str(record_id), str(record_date), label))
+
+        if domain_counts:
+            paragraph("Evidence records by source: " + " | ".join(domain_counts), 7.4, 9.2, 104)
+        if not source_rows:
+            paragraph("No source evidence is available in this snapshot.", 7.8, 10.2, 104)
+            return
+
+        shown = source_rows[:40]
+        if len(source_rows) > len(shown):
+            paragraph(f"Showing {len(shown)} of {len(source_rows)} available evidence records.", 7.2, 8.8, 104)
+
+        headers = ("Domain", "Record ID", "Date", "Activity / Status")
+        widths = (73, 135, 77, 226)
+        header_h, row_h = 18, 15
+
+        def draw_header() -> None:
+            nonlocal y
+            ensure(header_h + row_h + 8)
+            top = y + 4
+            x = M
+            for label, width in zip(headers, widths):
+                rect(x, top, width, header_h, fill=(0.14, 0.29, 0.47), stroke=(0.14, 0.29, 0.47))
+                at(label, x + 4, top - 12, 6.2, True, (1.0, 1.0, 1.0))
+                x += width
+            y = top - header_h - 2
+
+        draw_header()
+        for domain, record_id, record_date, label in shown:
+            previous_page_count = len(pages)
+            ensure(row_h + 4)
+            if len(pages) > previous_page_count:
+                draw_header()
+            top = y + 3
+            cells = (domain, record_id, record_date, label)
+            x = M
+            for idx, (cell, width) in enumerate(zip(cells, widths)):
+                fill = (0.985, 0.988, 0.992) if idx % 2 == 0 else (0.97, 0.98, 0.99)
+                rect(x, top, width, row_h, fill=fill, stroke=(0.84, 0.87, 0.91))
+                at(str(cell), x + 4, top - 10, 6.2, idx == 1, (0.16, 0.24, 0.34))
+                x += width
+            y = top - row_h - 2
+
     start_page()
     report_type = str(model.get("report_type") or "REPORT").upper()
     period = model.get("period") or {}
@@ -557,6 +617,10 @@ def build_report_pdf(model: dict) -> bytes:
                        "UA", display_value("UA", value.get("UA")), 22)
             field_pair("EU", display_value("EU", value.get("EU")),
                        "Excluded", display_value("record_count", value.get("excluded", "—")), 22)
+            continue
+
+        if name_upper == "APPENDIX / EVIDENCE" and isinstance(value, dict):
+            render_evidence_table(value)
             continue
 
         if name_upper in {"TARGET VS ACTUAL", "PLAN VS ACTUAL", "PLANNED VS ACTUAL"} and isinstance(value, dict):
