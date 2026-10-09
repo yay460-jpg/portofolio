@@ -29,6 +29,7 @@ def test_evidence_modal_is_registered_with_the_shared_modal_shell():
     assert "planEvidenceCloseFooter" not in PLANS_JS
     assert 'id="planEvidenceRefresh"' in HTML
     assert 'id="planEvidencePreview"' in HTML
+    assert '<span>Preview</span><span class="evidence-preview-label" id="planEvidencePreviewLabel" aria-live="polite"></span>' in HTML
     assert "'planEvidenceModal'" in MODAL_CONTRACT
     assert "LithositeModalShowContract.show('planEvidenceModal')" in PLANS_JS
     assert "LithositeModalShowContract.close('planEvidenceModal')" in PLANS_JS
@@ -61,6 +62,11 @@ def test_evidence_preview_handles_pdf_images_and_word_documents():
     assert "Download document" in PLANS_JS
     assert "class=\"evidence-pdf\"" in PLANS_JS
     assert "class=\"evidence-image\"" in PLANS_JS
+    assert "function setEvidencePreviewLabel(label,filename)" in PLANS_JS
+    assert "setEvidencePreviewLabel('PDF preview',file.name)" in PLANS_JS
+    assert "setEvidencePreviewLabel('Image preview',file.name)" in PLANS_JS
+    assert "evidence-preview-toolbar" not in PLANS_JS
+    assert "#planEvidenceModal .evidence-preview-label" in PLANS_CSS
     assert "method:'POST'" in PLANS_JS
     assert "body:JSON.stringify({module:'TargetPlan',record_id:planId,filename:file.name})" in PLANS_JS
     assert "const binary=atob(payload.data)" in PLANS_JS
