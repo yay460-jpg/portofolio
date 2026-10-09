@@ -1,9 +1,10 @@
 (function(global){'use strict';
 const REQUIRED=['Operations','Equipment','WorkFront','Maintenance','Issues','Plans','HSE'];
 const CLOSED=['CLOSED','RESOLVED','VOIDED','COMPLETED','DONE'];
-function dateOf(r){for(const k of ['transaction_date','event_date','maintenance_date','issue_date','plan_date','date','work_date']){const v=String(r?.[k]||'').slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v}return null}
+function dateOf(r){for(const k of ['start_date','transaction_date','event_date','maintenance_date','issue_date','plan_date','date','work_date']){const v=String(r?.[k]||'').slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v}return null}
 function rows(s,n){return Array.isArray(s?.[n])?s[n]:[]}
-function scoped(s,n,a,b){return rows(s,n).filter(r=>{const d=dateOf(r);return !!d&&d>=a&&d<=b})}
+function planRange(r){const m=String(r?.period||'').match(/^(\\d{4})-(0[1-9]|1[0-2])$/),a=String(r?.start_date||(m?m[0]+'-01':'')).slice(0,10);let b=String(r?.end_date||'').slice(0,10);if(!b&&m)b=m[0]+'-'+String(new Date(Date.UTC(Number(m[1]),Number(m[2]),0)).getUTCDate()).padStart(2,'0');return /^\\d{4}-\\d{2}-\\d{2}$/.test(a)&&/^\\d{4}-\\d{2}-\\d{2}$/.test(b)&&b>=a?{start:a,end:b}:null}
+function scoped(s,n,a,b){if(n==='Plans')return rows(s,n).filter(r=>{const p=planRange(r);return !!p&&p.start<=b&&p.end>=a});return rows(s,n).filter(r=>{const d=dateOf(r);return !!d&&d>=a&&d<=b})}
 function count(a,ks){const o={};a.forEach(r=>{let k='Unspecified';for(const x of ks){if(String(r?.[x]||'').trim()){k=String(r[x]).trim();break}}o[k]=(o[k]||0)+1});return o}
 function sum(a,ks){let t=0,f=0;a.forEach(r=>{for(const k of ks){const n=Number(r?.[k]);if(Number.isFinite(n)){t+=n;f++;break}}});return f?t:null}
 function buildWeeklyReport(o){
