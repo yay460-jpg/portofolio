@@ -10,6 +10,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from openpyxl import load_workbook
+from openpyxl.utils.cell import get_column_letter, range_boundaries
 
 from .schema_migration_contract import (
     CURRENT_SCHEMA_VERSION,
@@ -179,7 +180,60 @@ def migrate_a2_to_a3(source_path, target_path):
         )
         plans_headers[plans_headers.index("unit")] = "measurement"
     if "target_hours" in plans_headers:
-        plans.delete_cols(plans_headers.index("target_hours") + 1, 1)
+        target_hours_column = plans_headers.index("target_hours") + 1
+        filter_ref = plans.auto_filter.ref
+        table_ranges = []
+        for table in plans.tables.values():
+            try:
+                min_col, min_row, max_col, max_row = range_boundaries(table.ref)
+            except (TypeError, ValueError):
+                continue
+            table_ranges.append((table, min_col, min_row, max_col, max_row))
+
+        plans.delete_cols(target_hours_column, 1)
+
+        if filter_ref:
+            try:
+                min_col, min_row, max_col, max_row = range_boundaries(filter_ref)
+                if min_col <= target_hours_column <= max_col:
+                    max_col -= 1
+                elif target_hours_column < min_col:
+                    min_col -= 1
+                    max_col -= 1
+                if max_col >= min_col:
+                    plans.auto_filter.ref = (
+                        f"{get_column_letter(min_col)}{min_row}:"
+                        f"{get_column_letter(max_col)}{max_row}"
+                    )
+            except (TypeError, ValueError):
+                pass
+
+        for table, min_col, min_row, max_col, max_row in table_ranges:
+            if min_col <= target_hours_column <= max_col:
+                table_column_index = target_hours_column - min_col
+                if (
+                    0 <= table_column_index < len(table.tableColumns)
+                    and table.tableColumns[table_column_index].name == "target_hours"
+                ):
+                    del table.tableColumns[table_column_index]
+                else:
+                    table.tableColumns = [
+                        table_column for table_column in table.tableColumns
+                        if table_column.name != "target_hours"
+                    ]
+                for column_id, table_column in enumerate(table.tableColumns, start=1):
+                    table_column.id = column_id
+                max_col -= 1
+            elif target_hours_column < min_col:
+                min_col -= 1
+                max_col -= 1
+            if max_col >= min_col:
+                table.ref = (
+                    f"{get_column_letter(min_col)}{min_row}:"
+                    f"{get_column_letter(max_col)}{max_row}"
+                )
+                if table.autoFilter is not None:
+                    table.autoFilter.ref = table.ref
 
     workbook.create_sheet(MAP_MARKER_ENTITY, index=len(workbook.sheetnames) - 1)
     marker = workbook[MAP_MARKER_ENTITY]
