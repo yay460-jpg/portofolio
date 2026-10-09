@@ -14,7 +14,10 @@ def test_v39_dashboard_material_legend_shows_material_tonnage_and_haulage_retase
     assert "const chartHaulingOperations = chartOperations.filter(function (row)" in DASHBOARD_JS
     assert "String(row.activity || '').trim().toLowerCase() === 'hauling'" in DASHBOARD_JS
     assert "const chartMaterialTotals = chartDates.reduce(function (sum, date)" in DASHBOARD_JS
-    assert "item.name + ': ' + formatTotal(chartMaterialTotals[item.name]) + ' ton'" in DASHBOARD_JS
+    assert "appendLegendRow(" in DASHBOARD_JS
+    assert "formatTotal(chartMaterialTotals[item.name]) + ' ton'" in DASHBOARD_JS
+    assert "label.className = 'chartkey-name';" in DASHBOARD_JS
+    assert "metric.className = 'chartkey-value';" in DASHBOARD_JS
     assert "totalStrong.textContent = formatTotal(classifiedTotal) + ' ton';" in DASHBOARD_JS
     assert "'Retase: ' + formatTotal(chartRetase) + ' rit'" in DASHBOARD_JS
     assert "chartdot-retase" in DASHBOARD_CSS
@@ -54,7 +57,7 @@ def test_v39_dashboard_material_view_detail_routes_to_operations():
 
 
 def test_v39_material_movement_legend_is_raised_from_panel_bottom():
-    assert "#dashboardScreen .chartnote{position:absolute;right:8px;top:40%;transform:translateY(-50%)" in DASHBOARD_CSS
+    assert "#dashboardScreen .chartnote{top:40%}" in DASHBOARD_CSS
     assert "dashboard.css?v=20261115" in HTML
 
 
