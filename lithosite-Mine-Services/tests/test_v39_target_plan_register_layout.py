@@ -28,7 +28,7 @@ def test_combined_register_keeps_target_actual_metrics_and_actions():
                    'class="cell num actual-quantity"',
                    'class="cell num variance"', 'class="cell num achievement"',
                    'class="cell num remaining"', 'class="cell status-cell"',
-                   'class="cell evidence-cell">—</div>', 'class="cell row-actions"'):
+                   'class="cell evidence-cell"><button type="button" class="control mini view-evidence"', 'class="cell row-actions"'):
         assert marker in PLANS_JS
     status_position = PLANS_JS.index('class="cell status-cell"')
     evidence_position = PLANS_JS.index('class="cell evidence-cell"')
