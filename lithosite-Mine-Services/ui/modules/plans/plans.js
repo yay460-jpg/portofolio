@@ -91,17 +91,6 @@ function actualQuantityFor(plan){
 function render(){
  const host=document.getElementById('plansRows');if(!host)return;
  const count=document.getElementById('plansCount');
- const columns=document.getElementById('plansColumns');
- const title=document.getElementById('plansTableTitleText');
- if(title)title.textContent='Target Plan Register';
- if(columns){
-  columns.className='plantr th consolidated-th';
-  columns.innerHTML=[
-   'Plan ID','Start Date','End Date','Domain','Work Front','Activity',
-   'Target Qty','Measurement','Target Hrs','Actual','Variance',
-   'Achievement','Remaining','Status','Actions'
-  ].map(function(label){return '<div class="cell">'+label+'</div>';}).join('');
- }
  if(state.status==='loading'){
   host.innerHTML='<div class="empty">Loading Target Plan and Operations from RuntimeAdapter…</div>';
  }else if(state.status==='error'){
@@ -188,7 +177,7 @@ async function refreshOperations(){
  }catch(e){
   state.operations=[];
   state.operationsStatus='error';
-  setMsg('Operations read failed; Plan vs Actual is unavailable: '+(e&&e.message?e.message:String(e)),true);
+  setMsg('Operations read failed; actual performance metrics are unavailable: '+(e&&e.message?e.message:String(e)),true);
  }
  render();
 }
