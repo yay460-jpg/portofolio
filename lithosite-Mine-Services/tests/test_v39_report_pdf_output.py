@@ -78,3 +78,8 @@ def test_pdf_branding_matches_v39():
     assert 'Lithosite Mine Services · V39 · {report_type} Report' in SERVER_TEXT
     assert "Operational Management Report · V39" in (ROOT / "ui" / "modules" / "reports" / "report-pdf.js").read_text(encoding="utf-8")
     assert "report-pdf.js?v=20261016" in ARTIFACT_TEXT
+def test_monthly_previous_month_trend_formats_current_kpis():
+    assert 'name_upper == "TREND VS PREVIOUS MONTH"' in SERVER_TEXT
+    assert 'display_value(key, current_kpi[key])' in SERVER_TEXT
+    assert "Previous-month comparison" in SERVER_TEXT
+    assert "previous-month history is not in this snapshot" in SERVER_TEXT
