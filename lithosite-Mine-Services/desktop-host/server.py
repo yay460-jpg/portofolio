@@ -10,6 +10,7 @@ import base64
 import json
 import os
 import re
+import shutil
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -63,18 +64,108 @@ def is_allowed_origin(origin: str | None) -> bool:
 
 
 def evidence_record_directory(module: str, record_id: str) -> Path:
-    """Resolve one allowlisted evidence record directory without permitting traversal."""
+    """Resolve one allowlisted record directory without accepting linked paths."""
     if module not in EVIDENCE_MODULES:
         raise ValueError("Unsupported evidence module")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", record_id or ""):
         raise ValueError("Invalid evidence record ID")
     root = EVIDENCE_ROOT.resolve()
-    target = (root / module / record_id).resolve()
+    module_dir = root / module
+    if module_dir.is_symlink():
+        raise ValueError("Invalid evidence module path")
+    candidate = module_dir / record_id
+    if candidate.is_symlink():
+        raise ValueError("Invalid evidence record path")
+    target = candidate.resolve()
     try:
         target.relative_to(root)
     except ValueError as exc:
         raise ValueError("Invalid evidence record path") from exc
     return target
+
+
+def ensure_evidence_record_directory(module: str, record_id: str) -> Path:
+    """Create a record folder under the fixed Evidence root."""
+    target = evidence_record_directory(module, record_id)
+    root = EVIDENCE_ROOT.resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    module_dir = root / module
+    if module_dir.is_symlink():
+        raise ValueError("Invalid evidence module path")
+    module_dir.mkdir(exist_ok=True)
+    if not module_dir.is_dir():
+        raise ValueError("Evidence module path is not a directory")
+    if target.is_symlink():
+        raise ValueError("Invalid evidence record path")
+    target.mkdir(exist_ok=True)
+    if not target.is_dir():
+        raise ValueError("Evidence record path is not a directory")
+    return target
+
+
+def _target_plan_exists(plan_id: str) -> bool:
+    """Use RuntimeAdapter as the source of truth for Target Plan identity."""
+    result = ADAPTER.handle({
+        "request_id": "host-evidence-plan-exists",
+        "operation": "READ",
+        "entity": "Plans",
+    })
+    if not isinstance(result, dict) or result.get("status") == "REJECTED":
+        raise RuntimeError("Target Plan records could not be verified")
+    records = result.get("data")
+    return isinstance(records, list) and any(
+        isinstance(row, dict) and str(row.get("plan_id", "")) == plan_id
+        for row in records
+    )
+
+
+def apply_plan_evidence_lifecycle(request: dict, result: dict) -> dict:
+    """Create/clean the associated Evidence folder only after a committed Plan mutation."""
+    if not isinstance(request, dict) or not isinstance(result, dict):
+        return result
+    if str(request.get("entity", "")).casefold() != "plans" or result.get("status") != "COMMITTED":
+        return result
+
+    operation = str(request.get("operation", "")).upper()
+    if operation == "CREATE":
+        row = request.get("row") if isinstance(request.get("row"), dict) else {}
+        plan_id = row.get("plan_id")
+        try:
+            ensure_evidence_record_directory("TargetPlan", plan_id)
+            result["evidence_folder_status"] = "READY"
+        except (OSError, ValueError, TypeError) as exc:
+            result["evidence_folder_status"] = "FAILED"
+            result["evidence_folder_message"] = str(exc)
+    elif operation == "DELETE":
+        plan_id = request.get("entity_id")
+        try:
+            target = evidence_record_directory("TargetPlan", plan_id)
+            if target.exists():
+                if not target.is_dir():
+                    raise ValueError("Evidence record path is not a directory")
+                shutil.rmtree(target)
+            result["evidence_cleanup_status"] = "CLEANED"
+        except (OSError, ValueError, TypeError) as exc:
+            result["evidence_cleanup_status"] = "FAILED"
+            result["evidence_cleanup_message"] = str(exc)
+    return result
+
+
+def _evidence_filename_error(filename: object, allowed_extensions: frozenset[str]) -> str | None:
+    if not isinstance(filename, str) or not filename or filename != filename.strip():
+        return "Invalid evidence filename"
+    if Path(filename).name != filename or "/" in filename or "\\\\" in filename:
+        return "Evidence filename must be a direct child filename"
+    if any(ord(char) < 32 or char in '<>:"/\\\\|?*' for char in filename):
+        return "Evidence filename contains unsupported characters"
+    if filename.endswith((".", " ")):
+        return "Evidence filename cannot end with a dot or space"
+    stem = filename.split(".", 1)[0].upper()
+    if stem in {"CON", "PRN", "AUX", "NUL"} or re.fullmatch(r"(COM|LPT)[1-9]", stem):
+        return "Evidence filename is reserved by the operating system"
+    if Path(filename).suffix.lower() not in allowed_extensions:
+        return "Unsupported evidence file extension"
+    return None
 
 
 def build_adapter() -> RuntimeAdapter:
