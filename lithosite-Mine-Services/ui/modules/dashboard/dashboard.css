@@ -56,6 +56,9 @@
 #dashboardScreen .chart .chart-material-topsoil,#dashboardScreen .chartdot-topsoil{background:#a78bfa}
 #dashboardScreen .chartdot-sr{background:#f87171}
 #dashboardScreen .chartkey-coming-soon{color:#93a6ba;font-style:italic}
+#dashboardScreen .chartkey-name{flex:1;min-width:0}
+#dashboardScreen .chartkey-value{margin-left:4px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+#dashboardScreen .chartkey-sr .chartkey-value{color:inherit}
 
 /* Keep the x-axis baseline above the date labels, not below them. */
 #dashboardScreen .bars{position:relative;border-bottom:0}
