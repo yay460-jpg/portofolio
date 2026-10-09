@@ -31,8 +31,12 @@ Rules:
 | `Datasets/` | Named Dataset Manager snapshots used to save/load a dataset | No; a snapshot becomes current only through the Dataset Manager workflow |
 | `marker-location/` | Marker-location backup packages and supporting files | No; auxiliary storage |
 | `topography/` | Topography backup packages | No; auxiliary storage |
+| `Evidence/` | Central file store for record-linked PDF, image, and Word evidence | No; auxiliary file storage referenced by application records |
 
 The directories are separate storage areas for different purposes, not duplicate live databases.
+
+
+The Evidence store uses record-specific folders under `Database/Evidence/`, such as `TargetPlan/<plan_id>/`, `HSE/<hse_id>/`, and `Maintenance/<maintenance_id>/`. The Target Plan Evidence modal is currently a read-only viewer; files are copied into their record folder manually until an upload workflow is explicitly implemented. See `Database/Evidence/README.md` for supported formats and handling rules.
 
 ## Historical and pre-migration workbook copies
 
