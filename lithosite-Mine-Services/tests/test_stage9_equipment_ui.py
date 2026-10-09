@@ -3,13 +3,14 @@ from pathlib import Path
 ARTIFACT = Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 EQUIPMENT_JS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.js").read_text(encoding="utf-8")
+EQUIPMENT_CSS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.css").read_text(encoding="utf-8")
 SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
 
 
 def test_stage9_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
-    assert "equipment.js?v=20261106" in TEXT
+    assert "equipment.js?v=20261109" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
@@ -84,3 +85,16 @@ def test_stage9_global_capacity_resolution_contract_present():
     assert "f_eq_capacity" in TEXT
     assert "GlobalCapacity" in EQUIPMENT_JS
     assert "capacity_profile_id" in EQUIPMENT_JS
+
+
+def test_stage9_equipment_master_brand_column_resolves_from_global_capacity():
+    header = (
+        '<div class="cell">Category</div><div class="cell">Brand / Merk</div>'
+        '<div class="cell">Type</div>'
+    )
+    assert header in TEXT
+    assert "function equipmentBrand(row)" in EQUIPMENT_JS
+    assert "item.unit_brand" in EQUIPMENT_JS
+    assert "esc(equipmentBrand(r))" in EQUIPMENT_JS
+    assert "grid-template-columns:150px 115px 125px 100px 115px" in EQUIPMENT_CSS
+    assert "min-width:1300px" in EQUIPMENT_CSS
