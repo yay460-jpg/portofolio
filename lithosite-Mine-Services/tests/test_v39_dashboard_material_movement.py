@@ -11,6 +11,8 @@ def test_v39_dashboard_material_legend_shows_material_tonnage_and_haulage_retase
     assert "const chartDateKeys = new Set(chartDates.map(localDateKey))" in DASHBOARD_JS
     assert "const chartOperations = rawOperations.filter(function (row)" in DASHBOARD_JS
     assert "String(row.status || '').trim().toUpperCase() !== 'VALIDATED'" in DASHBOARD_JS
+    assert "if (activity !== 'hauling') return;" in DASHBOARD_JS
+    assert "if (activity !== 'hauling' && activity !== 'dumping') return;" not in DASHBOARD_JS
     assert "const chartHaulingOperations = chartOperations.filter(function (row)" in DASHBOARD_JS
     assert "String(row.activity || '').trim().toLowerCase() === 'hauling'" in DASHBOARD_JS
     assert "const chartMaterialTotals = chartDates.reduce(function (sum, date)" in DASHBOARD_JS
@@ -53,7 +55,7 @@ def test_v39_dashboard_material_view_detail_routes_to_operations():
     assert 'id="dashboardMaterialViewDetail"' in HTML
     assert "event.target.closest('#dashboardMaterialViewDetail')" in DASHBOARD_JS
     assert "global.LithositeShellNavigation.setScreen('Operations')" in DASHBOARD_JS
-    assert "dashboard.js?v=20261114" in HTML
+    assert "dashboard.js?v=20261115" in HTML
     assert "dashboard.css?v=20261115" in HTML
 
 
@@ -84,5 +86,5 @@ def test_v39_material_movement_legend_aligns_names_and_values_in_separate_column
     assert "#dashboardScreen .chartkey-value{margin-left:4px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}" in DASHBOARD_CSS
     assert "appendLegendRow(\n      'Retase'," in DASHBOARD_JS
     assert "appendLegendRow(\n      'S/R'," in DASHBOARD_JS
-    assert "dashboard.js?v=20261114" in HTML
+    assert "dashboard.js?v=20261115" in HTML
     assert "dashboard.css?v=20261115" in HTML
