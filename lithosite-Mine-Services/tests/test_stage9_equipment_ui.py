@@ -94,7 +94,7 @@ def test_stage9_equipment_master_brand_column_resolves_from_global_capacity():
     )
     assert header in TEXT
     assert "function equipmentBrand(row)" in EQUIPMENT_JS
-    assert "item.unit_brand" in EQUIPMENT_JS
+    assert "profile.unit_brand" in EQUIPMENT_JS
     assert "esc(equipmentBrand(r))" in EQUIPMENT_JS
     assert "grid-template-columns:150px 115px 125px 100px 115px" in EQUIPMENT_CSS
     assert "min-width:1300px" in EQUIPMENT_CSS
