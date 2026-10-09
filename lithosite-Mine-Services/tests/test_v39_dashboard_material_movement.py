@@ -25,5 +25,5 @@ def test_v39_dashboard_material_view_detail_routes_to_operations():
     assert 'id="dashboardMaterialViewDetail"' in HTML
     assert "event.target.closest('#dashboardMaterialViewDetail')" in DASHBOARD_JS
     assert "global.LithositeShellNavigation.setScreen('Operations')" in DASHBOARD_JS
-    assert "dashboard.js?v=20261111" in HTML
+    assert "dashboard.js?v=20261112" in HTML
     assert "dashboard.css?v=20261110" in HTML
