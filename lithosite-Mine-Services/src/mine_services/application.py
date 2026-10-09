@@ -46,24 +46,31 @@ class ApplicationService:
         equipment = self.store.get("Equipment", prepared.get("equipment_id")) or {}
         if str(equipment.get("type") or "").strip().lower() != "dump truck":
             return prepared
-        work_front = self.store.get("WorkFront", prepared.get("work_front_id")) or {}
-        profile_id = prepared.get("capacity_profile_id") or work_front.get("capacity_profile_id")
-        applied = prepared.get("applied_capacity")
+        equipment_profile_id = equipment.get("capacity_profile_id")
+        profile_id = equipment_profile_id
+        applied = None
+
+        # Operations store a historical capacity snapshot. On update, preserve
+        # that snapshot when the equipment reference itself is unchanged.
         if context == "UPDATE" and existing:
-            applied = existing.get("applied_capacity") if existing.get("applied_capacity") not in (None, "") else applied
-            profile_id = existing.get("capacity_profile_id") or profile_id
+            equipment_changed = str(prepared.get("equipment_id") or "") != str(existing.get("equipment_id") or "")
+            if not equipment_changed and existing.get("capacity_profile_id") not in (None, ""):
+                profile_id = existing.get("capacity_profile_id")
+                applied = existing.get("applied_capacity")
+
         if applied in (None, "") and profile_id:
             profile = self.store.get("GlobalCapacity", profile_id)
             if profile:
                 applied = profile.get("capacity_value")
                 prepared["capacity_measurement"] = profile.get("measurement") or "ton"
+
         if applied not in (None, ""):
             prepared["applied_capacity"] = float(applied)
             prepared["capacity_profile_id"] = profile_id
             prepared["capacity_measurement"] = prepared.get("capacity_measurement") or "ton"
             if prepared.get("retase") not in (None, ""):
                 prepared["quantity"] = float(prepared["retase"]) * float(applied)
-                prepared["measurement"] = prepared.get("measurement") or prepared["capacity_measurement"]
+                prepared["measurement"] = "ton"
         return prepared
 
     def create(self, entity, row, request_id):
@@ -172,7 +179,7 @@ class ApplicationService:
                 ("Issues", "equipment_id"),
             ],
             "GlobalCapacity": [
-                ("WorkFront", "capacity_profile_id"),
+                ("Equipment", "capacity_profile_id"),
                 ("Operations", "capacity_profile_id"),
             ],
             "Operations": [
