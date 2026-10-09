@@ -276,12 +276,12 @@
       return row.checker_name || linked.checker_name;
     });
 
-    const workFront = dataState.workFronts.find(function (item) {
-      return String(item.work_front_id || '') === String(first.work_front_id || '');
+    const equipmentRecord = dataState.equipment.find(function (item) {
+      return String(item.equipment_id || '') === String(first.equipment_id || '');
     });
-    const capacityProfile = workFront && workFront.capacity_profile_id
+    const capacityProfile = equipmentRecord && equipmentRecord.capacity_profile_id
       ? dataState.capacities.find(function (item) {
-          return String(item.capacity_profile_id || '') === String(workFront.capacity_profile_id || '');
+          return String(item.capacity_profile_id || '') === String(equipmentRecord.capacity_profile_id || '');
         })
       : null;
     const capacitySummary = uniqueContextValue(rows, function (row) {
@@ -455,11 +455,10 @@
   function refreshHaulingFields() {
     const activity = String(document.getElementById('f_activity').value || '').trim().toLowerCase();
     const eq = dataState.equipment.find(function(x){ return String(x.equipment_id || '') === String(document.getElementById('f_eq').value || ''); });
-    const wf = dataState.workFronts.find(function(x){ return String(x.work_front_id || '') === String(document.getElementById('f_wf').value || ''); });
     const isHauling = activity === 'hauling' && String(eq && eq.type || '').trim().toLowerCase() === 'dump truck';
     let capacity = null;
-    if (wf && wf.capacity_profile_id) {
-      const profile = dataState.capacities.find(function(x){ return String(x.capacity_profile_id) === String(wf.capacity_profile_id); });
+    if (eq && eq.capacity_profile_id) {
+      const profile = dataState.capacities.find(function(x){ return String(x.capacity_profile_id) === String(eq.capacity_profile_id); });
       if (profile) capacity = Number(profile.capacity_value);
     }
     const capacityEl=document.getElementById('f_capacity'), qtyEl=document.getElementById('f_qty'), retaseEl=document.getElementById('f_retase');
@@ -699,7 +698,7 @@
       material: document.getElementById('f_material').value || null,
       checker_name: document.getElementById('f_checker_name').value.trim(),
       retase: numberOrNull('f_retase'),
-      capacity_profile_id: (function(){ const wf=dataState.workFronts.find(function(x){return String(x.work_front_id)===String(document.getElementById('f_wf').value)}); return wf ? (wf.capacity_profile_id || null) : null; })(),
+      capacity_profile_id: (function(){ const eq=dataState.equipment.find(function(x){return String(x.equipment_id)===String(document.getElementById('f_eq').value)}); return eq ? (eq.capacity_profile_id || null) : null; })(),
       applied_capacity: numberOrNull('f_capacity'),
       capacity_measurement: 'ton',
       quantity: numberOrNull('f_qty'),
