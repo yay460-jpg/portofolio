@@ -272,7 +272,7 @@
 
     function normalizeMaterial(value) {
       const material = String(value || '').trim().toLowerCase()
-        .replace(/[_-]+/g, ' ').replace(/\\s+/g, ' ');
+        .replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
       if (material === 'ore') return 'Ore';
       if (material === 'ob' || material === 'overburden') return 'OB';
       if (material === 'quarry') return 'Quarry';
