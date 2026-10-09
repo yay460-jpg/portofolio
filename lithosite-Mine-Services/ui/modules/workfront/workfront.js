@@ -75,6 +75,7 @@ async function load(){
   const capResult=await rc.request({operation:'READ',entity:'GlobalCapacity'});
   state.rows=Array.isArray(result.data)?result.data:[];
   state.capacities=Array.isArray(capResult.data)?capResult.data:[];
+  fillCapacityProfiles();
   state.status='ready';render();
   setMsg('RuntimeAdapter connected — offline local persistence active.');
  }catch(e){
@@ -87,9 +88,26 @@ async function refreshData(){
   const result=await rc.request({operation:'READ',entity:'WorkFront'});
   const capResult=await rc.request({operation:'READ',entity:'GlobalCapacity'});
   state.rows=Array.isArray(result.data)?result.data:[];
-  state.capacities=Array.isArray(capResult.data)?capResult.data:[];state.status='ready';render();
+  state.capacities=Array.isArray(capResult.data)?capResult.data:[];fillCapacityProfiles();state.status='ready';render();
  }catch(e){setMsg('Refresh failed: '+e.message,true);}
 }
+function fillCapacityProfiles(){
+ const select=document.getElementById('f_wf_capacity');
+ if(!select)return;
+ const current=String(select.value||'');
+ select.innerHTML='<option value="">No capacity profile</option>';
+ state.capacities
+  .filter(function(row){return String(row.status||'').toUpperCase()==='ACTIVE';})
+  .sort(function(a,b){return String(a.capacity_name||'').localeCompare(String(b.capacity_name||''));})
+  .forEach(function(row){
+   const option=document.createElement('option');
+   option.value=String(row.capacity_profile_id||'');
+   option.textContent=String(row.capacity_name||row.capacity_profile_id||'')+' — '+String(row.capacity_value??'')+' '+String(row.measurement||'ton');
+   select.appendChild(option);
+  });
+ if(current)select.value=current;
+}
+
 function resetForm(){
  const now=new Date();const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
  document.getElementById('f_wf_id').value='WF-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
