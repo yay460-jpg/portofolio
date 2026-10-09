@@ -39,5 +39,5 @@ def test_maintenance_grid_has_an_additional_brand_column_and_fresh_assets():
         "#maintenanceScreen .tr{grid-template-columns:100px 145px 110px 100px "
         "minmax(130px,1fr) 115px 90px 75px 90px;min-width:1080px;}"
     ) in MAINTENANCE_CSS
-    assert "maintenance.css?v=20261027" in HTML
-    assert "maintenance.js?v=20261010" in HTML
+    assert "maintenance.css?v=20261028" in HTML
+    assert "maintenance.js?v=20261011" in HTML
