@@ -9,8 +9,8 @@ HTML = (ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-S
 def test_target_plan_register_restores_separate_measurement_column():
     assert "['Plan ID','Plan Range','Domain','Work Front','Activity','Target Qty','Measurement','Target Hrs','Status','Actions']" in PLANS_JS
     assert 'class="cell num target-quantity"' in PLANS_JS
-    assert 'class="cell measurement-cell">'+esc(r.measurement)+'</div>' in PLANS_JS
-    assert 'class="cell num target-hours">'+esc(r.target_hours)+'</div>' in PLANS_JS
+    assert """class="cell measurement-cell">'+esc(r.measurement)+'</div>'""" in PLANS_JS
+    assert """class="cell num target-hours">'+esc(r.target_hours)+'</div>'""" in PLANS_JS
     assert "numberLabel(targetValue)+(r.measurement?" not in PLANS_JS
 
 
