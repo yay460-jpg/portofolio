@@ -40,15 +40,18 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 - Target Plan no longer stores `target_hours`; the field remains available for Operations where it is used for operational hours.
 - A3 persistence and A2-to-A3 migration remove the obsolete Plans column by header, preserving adjacent plan values.
 
-## Target Plan Evidence column scaffold
+## Target Plan Evidence viewer and central storage
 
-- Added an `Evidence` column to the Target Plan register between Status and Actions.
+- Added an `Evidence` column to the Target Plan register between Status and Actions. The cell is a `View` button only, not an upload control.
+- Added the shared local store under `Database/Evidence/`, organized by module and record ID: `TargetPlan/<plan_id>/`, `HSE/<hse_id>/`, and `Maintenance/<maintenance_id>/`.
+- The Target Plan button opens a modal that lists files in the selected plan's folder. PDF and JPG/JPEG/PNG files preview in the modal; DOC/DOCX files are listed and downloaded as originals.
 - The Work Front column was narrowed and the Activity column given a little more room to reduce excess visual gap while preserving wrapping for long Work Front identifiers.
-- The current cell intentionally displays `—` until its intended evidence workflow and behavior are defined.
-- This is a layout scaffold only; no evidence attachment, validation, or storage behavior has been assumed.
+- Dedicated read-only Desktop Host endpoints restrict file access to allowlisted modules, record IDs, and approved extensions. Other content in `Database/` remains protected from static web access.
+- There is no upload endpoint or upload control at this stage. Files are copied into the matching record folder manually, and **Refresh list** rescans that folder.
+- A `.gitignore` under `Database/Evidence/` excludes operational evidence from Git to reduce the risk of accidentally committing sensitive PDFs and photographs.
 
 ## Versioning and validation rule
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
 - Version-specific feature decisions and implementation history belong in this Version-History area.
-- The latest full test result before the sidebar workflow reorder was `379 passed`; rerun the local suite after pulling the sidebar/documentation commits to validate the current branch.
+- The last confirmed full test result before the Evidence viewer implementation was `379 passed`; rerun the local suite after pulling these changes.
