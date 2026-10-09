@@ -370,7 +370,10 @@
       }
       return true;
     });
-    const chartRetase = chartOperations.reduce(function (sum, row) {
+    const chartHaulingOperations = chartOperations.filter(function (row) {
+      return String(row.activity || '').trim().toLowerCase() === 'hauling';
+    });
+    const chartRetase = chartHaulingOperations.reduce(function (sum, row) {
       if (row.retase === null || row.retase === undefined || row.retase === '') return sum;
       const retase = Number(row.retase);
       return Number.isFinite(retase) && retase >= 0 ? sum + retase : sum;
@@ -382,12 +385,6 @@
       return sum;
     }, { Hauling: 0, Dumping: 0 });
     const combined = chartTonTotals.Hauling + chartTonTotals.Dumping;
-    const unit = rawOperations.find(function (row) {
-      const activity = String(row.activity || '').trim().toLowerCase();
-      return row.measurement && (activity === 'hauling' || activity === 'dumping');
-    });
-    const measurementLabel = unit && unit.measurement ? String(unit.measurement) : 'ton';
-
     function formatTotal(value) {
       return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
     }
@@ -403,7 +400,7 @@
       dot.className = 'chartdot ' + item.className;
       key.appendChild(dot);
       key.appendChild(document.createTextNode(
-        item.name + ': ' + formatTotal(item.value) + ' ' + measurementLabel
+        item.name + ': ' + formatTotal(item.value) + ' ton'
       ));
       legend.appendChild(key);
     });
@@ -419,7 +416,7 @@
 
     const totalStrong = note.querySelector('strong');
     if (totalStrong) {
-      totalStrong.textContent = String(combined) + (unit && unit.measurement ? ' ' + unit.measurement : '');
+      totalStrong.textContent = formatTotal(combined) + ' ton';
     }
   }
 
