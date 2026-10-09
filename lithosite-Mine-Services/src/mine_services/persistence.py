@@ -96,6 +96,13 @@ class PersistenceStore:
 
         changed = False
 
+        equipment = workbook["Equipment"]
+        current_equipment = [cell.value for cell in equipment[1]]
+        legacy_equipment = list(self.schema.HEADERS["Equipment"][:-1])
+        if current_equipment == legacy_equipment:
+            equipment.cell(row=1, column=equipment.max_column + 1, value="capacity_profile_id")
+            changed = True
+
         operations = workbook["Operations"]
         current_operations = [cell.value for cell in operations[1]]
         legacy_operations = list(self.schema.HEADERS["Operations"][:-4])
