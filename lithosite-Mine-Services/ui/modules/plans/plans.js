@@ -57,7 +57,7 @@ function filtered(){
  const status=document.getElementById('plansStatusFilter').value;
  return state.rows.filter(r=>
   (!id||String(r.plan_id||'').toLowerCase().includes(id))&&
-  (!period||String(r.period||'').toLowerCase().includes(period))&&
+  (!period||((r.start_date||((r.period||'')+'-01'))<=period+'-31'&&(r.end_date||((r.period||'')+'-31'))>=period+'-01'))&&
   (!domain||r.domain===domain)&&
   (!wf||r.work_front_id===wf)&&
   (!status||r.status===status)
@@ -71,7 +71,7 @@ function render(){
   const rows=filtered();
   host.innerHTML=rows.length?rows.map(r=>'<div class="plantr td">'+
    '<div class="cell">'+esc(r.plan_id)+'</div>'+
-   '<div class="cell">'+esc(r.period)+'</div>'+
+   '<div class="cell" title="'+esc((r.start_date||r.period||'')+' – '+(r.end_date||r.period||''))+'">'+esc((r.start_date||r.period||'').slice(0,10)+' – '+(r.end_date||r.period||'').slice(0,10))+'</div>'+
    '<div class="cell">'+esc(r.domain)+'</div>'+
    '<div class="cell">'+esc(workFrontLabel(r.work_front_id))+'</div>'+
    '<div class="cell plan-activity" title="'+esc(r.activity)+'">'+esc(r.activity)+'</div>'+
@@ -110,13 +110,22 @@ async function refreshData(){
  try{const result=await rc.request({operation:'READ',entity:'Plans'});state.rows=Array.isArray(result.data)?result.data:[];state.status='ready';render();}
  catch(e){setMsg('Refresh failed: '+e.message,true);}
 }
-function localPeriod(){
+function localDate(){
  const now=new Date();
- return new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,7);
+ return new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+}
+function monthStart(period){return period?period+'-01':'';}
+function monthEnd(period){
+ if(!period)return '';
+ const parts=period.split('-').map(Number);
+ const last=new Date(parts[0],parts[1],0).getDate();
+ return period+'-'+String(last).padStart(2,'0');
 }
 function resetForm(){
  document.getElementById('f_plan_id').value='PLN-'+Date.now().toString(36).toUpperCase();
- document.getElementById('f_plan_period').value=localPeriod();
+ const today=localDate();
+ document.getElementById('f_plan_start_date').value=today;
+ document.getElementById('f_plan_end_date').value=today;
  document.getElementById('f_plan_domain').value=LISTS.domain[0]||'';
  document.getElementById('f_plan_work_front').value='';
  document.getElementById('f_plan_activity').value='';
@@ -136,7 +145,9 @@ function openEdit(id){
  editId=id;
  document.getElementById('plansModalTitle').textContent='Edit Plan';
  document.getElementById('plansSave').textContent='Update via RuntimeAdapter';
- const map={f_plan_id:row.plan_id,f_plan_period:row.period,f_plan_domain:row.domain,f_plan_work_front:row.work_front_id,
+ const fallbackStart=monthStart(row.period||'');
+ const fallbackEnd=monthEnd(row.period||'');
+ const map={f_plan_id:row.plan_id,f_plan_start_date:row.start_date||fallbackStart,f_plan_end_date:row.end_date||fallbackEnd,f_plan_domain:row.domain,f_plan_work_front:row.work_front_id,
   f_plan_activity:row.activity,f_plan_target_quantity:row.target_quantity,f_plan_measurement:row.measurement,f_plan_target_hours:row.target_hours,f_plan_status:row.status};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
  global.LithositeModalShowContract.show('plansModal');
@@ -144,7 +155,9 @@ function openEdit(id){
 function payload(){
  return {
   plan_id:document.getElementById('f_plan_id').value,
-  period:document.getElementById('f_plan_period').value,
+  start_date:document.getElementById('f_plan_start_date').value,
+  end_date:document.getElementById('f_plan_end_date').value,
+  period:document.getElementById('f_plan_start_date').value.slice(0,7),
   domain:document.getElementById('f_plan_domain').value,
   work_front_id:document.getElementById('f_plan_work_front').value||null,
   activity:document.getElementById('f_plan_activity').value.trim(),
@@ -157,9 +170,10 @@ function payload(){
 async function save(){
  if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}
  const row=payload();
- if(!row.period||!row.domain||!row.activity||row.target_quantity===null||!row.measurement||row.target_hours===null||!row.status){
-  setMsg('Period, Domain, Activity, Target Quantity, Unit, Target Hours and Status are required.',true);return;
+ if(!row.start_date||!row.end_date||!row.period||!row.domain||!row.activity||row.target_quantity===null||!row.measurement||row.target_hours===null||!row.status){
+  setMsg('Start Date, End Date, Domain, Activity, Target Quantity, Unit, Target Hours and Status are required.',true);return;
  }
+ if(row.end_date<row.start_date){setMsg('End Date must be on or after Start Date.',true);return;}
  if(Number.isNaN(row.target_quantity)||Number.isNaN(row.target_hours)||row.target_quantity<0||row.target_hours<0){
   setMsg('Target Quantity and Target Hours must be non-negative numbers.',true);return;
  }
