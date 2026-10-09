@@ -107,4 +107,4 @@ def test_central_evidence_folder_is_documented_for_the_three_modules():
 def test_evidence_viewer_assets_use_current_cache_keys():
     assert "plans.js?v=20261028" in HTML
     assert "plans.css?v=20261110" in HTML
-    assert "modal-show-contract.js?v=20261028" in HTML
+    assert "modal-show-contract.js?v=20261026" in HTML
