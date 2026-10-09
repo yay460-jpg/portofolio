@@ -303,7 +303,7 @@
       }
 
       const activity = String(row.activity || '').trim().toLowerCase();
-      if (activity !== 'hauling' && activity !== 'dumping') return;
+      if (activity !== 'hauling') return;
 
       const material = normalizeMaterial(row.material);
       if (!material) return;
