@@ -182,7 +182,7 @@ function filteredCount(){
 }
 function reportPeriod(type,startDate){
   const value=String(startDate||latestOperationalDate()).slice(0,10);
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return null;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
   const parts=value.split('-').map(Number);
   const periodEnd=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
   if(Number.isNaN(periodEnd.getTime()))return null;
@@ -196,7 +196,7 @@ function reportPeriod(type,startDate){
 function reportPeriodNotice(type,startDate){
   if(type==='MONTHLY'){
     const value=String(startDate||'').slice(0,10);
-    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)||value.slice(8,10)!=='01')
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||value.slice(8,10)!=='01')
       return 'Monthly Report requires the report date to be the 1st day of the month.';
   }
   return '';
