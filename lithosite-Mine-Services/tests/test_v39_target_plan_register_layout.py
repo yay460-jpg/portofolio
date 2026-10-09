@@ -10,7 +10,7 @@ def test_target_plan_has_one_static_unified_register_header():
     expected_headers = (
         "Plan ID", "Start Date", "End Date", "Domain", "Work Front", "Activity",
         "Target Qty", "Measurement", "Actual", "Variance",
-        "Achievement", "Remaining", "Status", "Actions",
+        "Achievement", "Remaining", "Status", "Evidence", "Actions",
     )
     assert 'class="plantr th consolidated-th">' in HTML
     for label in expected_headers:
@@ -27,12 +27,19 @@ def test_combined_register_keeps_target_actual_metrics_and_actions():
     for marker in ('class="cell num target-quantity"', 'class="cell measurement-cell"',
                    'class="cell num actual-quantity"',
                    'class="cell num variance"', 'class="cell num achievement"',
-                   'class="cell num remaining"', 'class="cell row-actions"'):
+                   'class="cell num remaining"', 'class="cell status-cell"',
+                   'class="cell evidence-cell">—</div>', 'class="cell row-actions"'):
         assert marker in PLANS_JS
+    status_position = PLANS_JS.index('class="cell status-cell"')
+    evidence_position = PLANS_JS.index('class="cell evidence-cell"')
+    actions_position = PLANS_JS.index('class="cell row-actions"')
+    assert status_position < evidence_position < actions_position
 
 
-def test_combined_register_uses_one_responsive_grid_for_fourteen_columns():
-    assert "Unified Target Plan register: fourteen aligned columns" in PLANS_CSS
+def test_combined_register_uses_one_responsive_grid_for_fifteen_columns():
+    assert "Unified Target Plan register: fifteen aligned columns" in PLANS_CSS
+    grid_rule = PLANS_CSS.split("grid-template-columns:", 1)[1].split(";", 1)[0]
+    assert grid_rule.count("minmax(") == 15
     assert "grid-template-columns:minmax(90px,.9fr) minmax(78px,.78fr) minmax(78px,.78fr)" in PLANS_CSS
     assert ".plantr.consolidated-th," in PLANS_CSS
     assert ".plantr.consolidated-tr {" in PLANS_CSS
@@ -50,8 +57,8 @@ def test_target_plan_source_has_no_obsolete_toggle_or_dynamic_header_code():
 
 
 def test_combined_register_assets_use_current_cache_versions():
-    assert "plans.js?v=20261017" in HTML
-    assert "plans.css?v=20261104" in HTML
+    assert "plans.js?v=20261018" in HTML
+    assert "plans.css?v=20261105" in HTML
 
 
 def test_work_front_column_has_room_and_wraps_full_identifier():
@@ -60,4 +67,4 @@ def test_work_front_column_has_room_and_wraps_full_identifier():
     assert "white-space:normal" in workfront_rules
     assert "overflow-wrap:anywhere" in workfront_rules
     assert "text-overflow:clip" in workfront_rules
-    assert "plans.css?v=20261104" in HTML
+    assert "plans.css?v=20261105" in HTML
