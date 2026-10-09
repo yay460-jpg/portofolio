@@ -6,6 +6,8 @@ if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 13 Plan
 const state={rows:[],operations:[],workfronts:[],status:'loading',operationsStatus:'loading'};
 let editId=null;
 let runtimeReady=false;
+let activeEvidencePlanId='';
+let activeEvidenceFiles=[];
 const LISTS={domain:[],measurement:[],status:[]};
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
@@ -122,7 +124,7 @@ function render(){
     '<div class="cell num achievement">'+(achievement===null?'—':esc(numberLabel(achievement)+'%'))+'</div>'+
     '<div class="cell num remaining">'+(remaining===null?'—':esc(numberLabel(remaining)))+'</div>'+
     '<div class="cell status-cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
-    '<div class="cell evidence-cell">—</div>'+
+    '<div class="cell evidence-cell"><button type="button" class="control mini view-evidence" data-id="'+esc(r.plan_id)+'">View</button></div>'+
     '<div class="cell row-actions"><button class="control mini edit edit-plan" data-id="'+esc(r.plan_id)+'">Edit</button><button class="control mini danger delete-plan" data-id="'+esc(r.plan_id)+'">Delete</button></div>'+
    '</div>';
   }).join(''):'<div class="empty">No Target Plan records match the current filters.</div>';
@@ -137,6 +139,127 @@ function render(){
  }
  if(state.status==='loading'&&count)count.textContent='Loading · Runtime Connecting';
  if(state.status==='error'&&count)count.textContent='Unavailable · Runtime Error';
+}
+function evidenceSizeLabel(bytes){
+ const size=Number(bytes)||0;
+ if(size<1024)return size+' B';
+ if(size<1024*1024)return (size/1024).toFixed(1)+' KB';
+ if(size<1024*1024*1024)return (size/(1024*1024)).toFixed(1)+' MB';
+ return (size/(1024*1024*1024)).toFixed(1)+' GB';
+}
+function evidenceDateLabel(timestamp){
+ const date=new Date((Number(timestamp)||0)*1000);
+ return Number.isFinite(date.getTime())?date.toLocaleString():'';
+}
+function evidenceFileUrl(name){
+ return rc.HOST+'/evidence/file?module=TargetPlan&record_id='+encodeURIComponent(activeEvidencePlanId)+'&filename='+encodeURIComponent(name);
+}
+function renderEvidenceFiles(files){
+ const host=document.getElementById('planEvidenceList');
+ if(!host)return;
+ if(!files.length){
+  const planId=activeEvidencePlanId;
+  const folder='Database/Evidence/TargetPlan/'+planId;
+  host.innerHTML='<div class="evidence-empty">No evidence files are linked to this Target Plan yet.<br><br>Copy PDF, JPG, PNG, DOC or DOCX files into <code>'+esc(folder)+'</code>, then select <b>Refresh list</b>.</div>';
+  return;
+ }
+ host.innerHTML=files.map(function(file){
+  const extension=String(file.name||'').split('.').pop().toUpperCase();
+  const availability=file.available!==false;
+  return '<button type="button" class="evidence-file-button" data-evidence-name="'+esc(file.name)+'" '+(availability?'':'disabled title="File exceeds the 100 MB preview limit"')+'>'+
+   '<span class="evidence-file-icon">'+esc(extension.slice(0,5))+'</span>'+
+   '<span class="evidence-file-description"><span class="evidence-file-name">'+esc(file.name)+'</span><span class="evidence-file-meta">'+esc(evidenceSizeLabel(file.size))+' · '+esc(evidenceDateLabel(file.modified_at))+(availability?'':' · Too large to open')+'</span></span>'+
+  '</button>';
+ }).join('');
+}
+function previewEvidenceFile(name){
+ const host=document.getElementById('planEvidencePreview');
+ const status=document.getElementById('planEvidenceStatus');
+ const file=activeEvidenceFiles.find(function(item){return String(item.name)===String(name);});
+ if(!host||!file)return;
+ if(file.available===false){
+  host.innerHTML='<div class="evidence-empty">This file exceeds the 100 MB preview limit.</div>';
+  return;
+ }
+ const url=evidenceFileUrl(file.name);
+ const safeName=esc(file.name);
+ const openLink='<a class="control mini" href="'+esc(url)+'" target="_blank" rel="noopener">Open file</a>';
+ if(file.previewable&&String(file.mime_type||'').toLowerCase()==='application/pdf'){
+  host.innerHTML='<div class="evidence-preview-content"><div class="evidence-preview-toolbar"><span>'+safeName+'</span>'+openLink+'</div><iframe class="evidence-pdf" src="'+esc(url)+'" title="'+safeName+'"></iframe></div>';
+  if(status)status.textContent='PDF preview: '+file.name;
+ }else if(file.previewable&&String(file.mime_type||'').toLowerCase().indexOf('image/')===0){
+  host.innerHTML='<div class="evidence-preview-content"><div class="evidence-preview-toolbar"><span>'+safeName+'</span>'+openLink+'</div><img class="evidence-image" src="'+esc(url)+'" alt="'+safeName+'"></div>';
+  if(status)status.textContent='Image preview: '+file.name;
+ }else{
+  host.innerHTML='<div class="evidence-download-panel"><p><b>'+safeName+'</b><br>Word documents are listed here but cannot be previewed natively in this window. Use the button to download the original file.</p><a class="control primary" href="'+esc(url)+'" download="'+safeName+'">Download document</a></div>';
+  if(status)status.textContent='Document selected: '+file.name;
+ }
+}
+async function refreshPlanEvidenceList(){
+ const planId=activeEvidencePlanId;
+ if(!planId)return;
+ const list=document.getElementById('planEvidenceList');
+ const preview=document.getElementById('planEvidencePreview');
+ const status=document.getElementById('planEvidenceStatus');
+ const meta=document.getElementById('planEvidenceMeta');
+ if(list)list.innerHTML='<div class="evidence-empty">Loading evidence files…</div>';
+ if(preview)preview.innerHTML='<div class="evidence-empty">Select a PDF or image from the list.</div>';
+ if(status){status.classList.remove('error');status.textContent='Reading the central Evidence folder…';}
+ if(meta)meta.textContent='Database/Evidence/TargetPlan/'+planId+' · Read-only viewer';
+ try{
+  const url=rc.HOST+'/evidence/list?module=TargetPlan&record_id='+encodeURIComponent(planId);
+  const response=await fetch(url,{cache:'no-store'});
+  const payload=await response.json();
+  if(!response.ok||payload.status!=='READY'){
+   const error=payload.errors&&payload.errors[0]&&payload.errors[0].message;
+   throw new Error(error||'Evidence list could not be loaded');
+  }
+  if(activeEvidencePlanId!==planId)return;
+  activeEvidenceFiles=Array.isArray(payload.files)?payload.files:[];
+  renderEvidenceFiles(activeEvidenceFiles);
+  if(status){
+   status.classList.remove('error');
+   status.textContent=activeEvidenceFiles.length
+    ?activeEvidenceFiles.length+' evidence file(s) found. Select a file to preview it.'
+    :'No evidence files found for this Target Plan.';
+  }
+  if(meta)meta.textContent=payload.folder+' · Read-only viewer · Upload is not enabled';
+ }catch(error){
+  if(activeEvidencePlanId!==planId)return;
+  activeEvidenceFiles=[];
+  if(list)list.innerHTML='<div class="evidence-empty">Evidence folder could not be read. Confirm the Desktop Host has been restarted after updating the project.</div>';
+  if(status){status.classList.add('error');status.textContent='Evidence unavailable: '+(error&&error.message?error.message:String(error));}
+  if(meta)meta.textContent='Local Evidence service unavailable';
+ }
+}
+function openPlanEvidence(planId){
+ const row=state.rows.find(function(item){return String(item.plan_id)===String(planId);});
+ if(!row)return;
+ activeEvidencePlanId=String(row.plan_id||'');
+ activeEvidenceFiles=[];
+ const range=planDateBounds(row);
+ const record=document.getElementById('planEvidenceRecord');
+ if(record)record.textContent=activeEvidencePlanId+' · '+range.start+' to '+range.end+' · '+workFrontLabel(row.work_front_id);
+ const title=document.getElementById('planEvidenceTitle');
+ if(title)title.textContent='Target Plan Evidence';
+ const preview=document.getElementById('planEvidencePreview');
+ if(preview)preview.innerHTML='<div class="evidence-empty">Select a PDF or image from the list.</div>';
+ if(global.LithositeModalShowContract){
+  global.LithositeModalShowContract.show('planEvidenceModal');
+ }else{
+  const modal=document.getElementById('planEvidenceModal');
+  if(modal){modal.hidden=false;modal.classList.add('show');modal.setAttribute('aria-hidden','false');}
+ }
+ refreshPlanEvidenceList();
+}
+function closePlanEvidence(){
+ if(global.LithositeModalShowContract)global.LithositeModalShowContract.close('planEvidenceModal');
+ const modal=document.getElementById('planEvidenceModal');
+ if(modal){modal.classList.remove('show','open');modal.setAttribute('aria-hidden','true');}
+ const preview=document.getElementById('planEvidencePreview');
+ if(preview)preview.innerHTML='<div class="evidence-empty">Select a PDF or image from the list.</div>';
+ activeEvidencePlanId='';
+ activeEvidenceFiles=[];
 }
 function statusClass(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,'-')||'status';}
 async function load(){
