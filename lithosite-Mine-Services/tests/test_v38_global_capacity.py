@@ -56,6 +56,7 @@ def test_dump_truck_hauling_calculates_quantity_from_checker_retase():
         "status": "Active",
         "effective_from": "2026-10-08",
         "effective_to": None,
+        "capacity_profile_id": "GC-275",
     }, "test-eq")
     result = svc.create("Operations", {
         "transaction_id": "OPS-001",
@@ -115,6 +116,7 @@ def test_historical_applied_capacity_is_preserved_on_update():
         "status": "Active",
         "effective_from": "2026-10-08",
         "effective_to": None,
+        "capacity_profile_id": "GC-275",
     }, "eq")
     create(svc, "Operations", {
         "transaction_id": "OPS-001",
