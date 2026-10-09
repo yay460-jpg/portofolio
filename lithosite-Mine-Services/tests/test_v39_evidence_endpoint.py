@@ -105,6 +105,175 @@ def _post_json(base_url, endpoint, payload):
         return error.code, error.headers, error.read()
 
 
+def _post_raw(base_url, endpoint, params, body, content_type="application/octet-stream"):
+    url = f"{base_url}{endpoint}?{urlencode(params)}"
+    request = Request(
+        url,
+        data=body,
+        headers={"Content-Type": content_type},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=10) as response:
+            return response.status, response.headers, response.read()
+    except HTTPError as error:
+        return error.code, error.headers, error.read()
+
+
+def test_evidence_upload_saves_to_the_plan_folder_and_never_overwrites(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_target_plan_exists", lambda plan_id: plan_id == "PLN-UPLOAD-01")
+    params = {
+        "module": "TargetPlan",
+        "record_id": "PLN-UPLOAD-01",
+        "filename": "Mine-out agreement.pdf",
+    }
+    original = b"%PDF-1.7 accepted evidence"
+    status, headers, body = _post_raw(base_url, "/evidence/upload", params, original)
+
+    assert status == 201
+    assert headers.get_content_type() == "application/json"
+    payload = _payload(body)
+    assert payload["status"] == "READY"
+    assert payload["folder"] == "Database/Evidence/TargetPlan/PLN-UPLOAD-01"
+    assert payload["filename"] == params["filename"]
+    saved = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-UPLOAD-01" / params["filename"]
+    assert saved.read_bytes() == original
+
+    duplicate_status, _duplicate_headers, duplicate_body = _post_raw(
+        base_url, "/evidence/upload", params, b"%PDF-1.7 replacement"
+    )
+    assert duplicate_status == 409
+    assert _payload(duplicate_body)["status"] == "REJECTED"
+    assert saved.read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    ("params", "existing_plan", "expected_status"),
+    [
+        ({"module": "HSE", "record_id": "HSE-01", "filename": "evidence.jpg"}, True, 400),
+        ({"module": "TargetPlan", "record_id": "../outside", "filename": "evidence.pdf"}, True, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-UPLOAD-02", "filename": "../outside.pdf"}, True, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-UPLOAD-02", "filename": "payload.exe"}, True, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-UPLOAD-02", "filename": "evidence.pdf"}, False, 404),
+        ({"module": "TargetPlan", "record_id": "PLN-UPLOAD-02", "filename": "empty.pdf"}, True, 400),
+    ],
+)
+def test_evidence_upload_rejects_invalid_target_filename_or_empty_body(
+    evidence_host, monkeypatch, params, existing_plan, expected_status
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_target_plan_exists", lambda _plan_id: existing_plan)
+    body = b"" if params["filename"] == "empty.pdf" else b"sample bytes"
+
+    status, _headers, response_body = _post_raw(base_url, "/evidence/upload", params, body)
+
+    assert status == expected_status
+    result = _payload(response_body)
+    assert result["status"] == "REJECTED"
+    assert result["errors"]
+
+
+def test_listing_a_missing_evidence_folder_does_not_create_it(evidence_host):
+    base_url, server = evidence_host
+    missing = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-NO-FOLDER-01"
+    assert not missing.exists()
+
+    status, _headers, body = _get(
+        base_url,
+        "/evidence/list",
+        {"module": "TargetPlan", "record_id": "PLN-NO-FOLDER-01"},
+    )
+
+    assert status == 200
+    assert _payload(body)["files"] == []
+    assert not missing.exists()
+
+
+def test_runtime_plan_create_and_delete_manage_only_its_evidence_folder(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    evidence_root = server.EVIDENCE_ROOT
+    plan_id = "PLN-LIFECYCLE-01"
+    plan_folder = evidence_root / "TargetPlan" / plan_id
+    sibling_folder = evidence_root / "TargetPlan" / "PLN-KEEP-01"
+
+    class CommittingAdapter:
+        def handle(self, request):
+            if request.get("operation") == "DELETE":
+                assert plan_folder.is_dir(), "Evidence must remain until RuntimeAdapter commits deletion"
+            return {"request_id": request.get("request_id"), "status": "COMMITTED"}
+
+    monkeypatch.setattr(server, "ADAPTER", CommittingAdapter())
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": "test-plan-create",
+            "operation": "CREATE",
+            "entity": "Plans",
+            "row": {"plan_id": plan_id},
+        },
+    )
+    assert status == 200
+    created = _payload(body)
+    assert created["status"] == "COMMITTED"
+    assert created["evidence_folder_status"] == "READY"
+    assert plan_folder.is_dir()
+
+    (plan_folder / "approval.pdf").write_bytes(b"evidence")
+    sibling_folder.mkdir(parents=True)
+    (sibling_folder / "keep.pdf").write_bytes(b"keep")
+
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": "test-plan-delete",
+            "operation": "DELETE",
+            "entity": "Plans",
+            "entity_id": plan_id,
+        },
+    )
+    assert status == 200
+    deleted = _payload(body)
+    assert deleted["status"] == "COMMITTED"
+    assert deleted["evidence_cleanup_status"] == "CLEANED"
+    assert not plan_folder.exists()
+    assert (sibling_folder / "keep.pdf").read_bytes() == b"keep"
+
+
+def test_runtime_rejected_plan_delete_keeps_evidence_folder(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    plan_id = "PLN-DELETE-REJECTED"
+    plan_folder = server.EVIDENCE_ROOT / "TargetPlan" / plan_id
+    plan_folder.mkdir(parents=True)
+    (plan_folder / "approval.pdf").write_bytes(b"keep evidence")
+
+    class RejectingAdapter:
+        def handle(self, request):
+            return {
+                "request_id": request.get("request_id"),
+                "status": "REJECTED",
+                "errors": [{"code": "VAL-E005", "message": "Plan is still referenced"}],
+            }
+
+    monkeypatch.setattr(server, "ADAPTER", RejectingAdapter())
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": "test-plan-delete-rejected",
+            "operation": "DELETE",
+            "entity": "Plans",
+            "entity_id": plan_id,
+        },
+    )
+
+    assert status == 200
+    assert _payload(body)["status"] == "REJECTED"
+    assert (plan_folder / "approval.pdf").read_bytes() == b"keep evidence"
+
+
 def test_evidence_preview_post_returns_pdf_and_image_bytes_as_json(evidence_host):
     base_url, server = evidence_host
     record_dir = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-PREVIEW-01"
