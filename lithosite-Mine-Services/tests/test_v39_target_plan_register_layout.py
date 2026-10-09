@@ -8,7 +8,7 @@ HTML = (ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-S
 
 def test_target_plan_keeps_measurement_column_close_to_quantity():
     assert "['Plan ID','Plan Range','Domain','Work Front','Activity','Target Qty','Measurement','Target Hrs','Status','Actions']" in PLANS_JS
-    assert "esc(r.target_quantity)" in PLANS_JS
+    assert "numberLabel(r.target_quantity)" in PLANS_JS
     assert "esc(r.measurement)" in PLANS_JS
 
 
