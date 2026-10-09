@@ -1,4 +1,4 @@
-/* V38 Stage 35 — Report PDF print renderer. */
+/* V39 Stage 35 — Report PDF print renderer. */
 (function(global){
 'use strict';
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -159,7 +159,7 @@ function buildDocumentHtml(model){
     '.page-break{break-before:page}'+
     '@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.report-section,.management-snapshot{break-inside:avoid}.footer{position:fixed;left:0;right:0;bottom:-10mm;background:#fff}.page-footer{display:block;position:fixed;left:0;right:0;bottom:-11mm;text-align:right;color:#64748b;font-size:7px}.page-footer:after{content:"Page " counter(page)}.no-print{display:none}}'+
     '</style></head><body><main class="page">'+
-    '<header class="brand"><div class="brand-main"><div class="brand-name">Lithosite Mine Services</div><div class="brand-title">Reports &amp; KPI</div><div class="brand-sub">Operational Management Report · V38</div></div><div class="brand-mark"><b>'+esc(type)+' REPORT</b><br>'+esc(periodText)+'</div></header>'+
+    '<header class="brand"><div class="brand-main"><div class="brand-name">Lithosite Mine Services</div><div class="brand-title">Reports &amp; KPI</div><div class="brand-sub">Operational Management Report · V39</div></div><div class="brand-mark"><b>'+esc(type)+' REPORT</b><br>'+esc(periodText)+'</div></header>'+
     '<h1 class="document-title">'+esc(title)+'</h1><div class="document-period">'+esc(periodText)+' · '+esc(status)+'</div>'+
     documentControl+
     '<div class="kpi-grid">'+kpiCards+'</div>'+
@@ -167,7 +167,7 @@ function buildDocumentHtml(model){
     managementSnapshot+
     '<h2 class="summary-title">Operational Source Summary</h2><table class="summary-table"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+rows+'</tbody></table>'+
     body+
-    '<footer class="footer"><span><b>Lithosite Mine Services</b> · V38 · Report Snapshot</span><span>Generated '+esc((model.generated_at||new Date().toISOString()).slice(0,19).replace('T',' '))+'</span></footer>'+
+    '<footer class="footer"><span><b>Lithosite Mine Services</b> · V39 · Report Snapshot</span><span>Generated '+esc((model.generated_at||new Date().toISOString()).slice(0,19).replace('T',' '))+'</span></footer>'+
     '</main><div class="page-footer"></div></body></html>';
 }
 function render(model){
