@@ -98,13 +98,14 @@ def migrate(path: Path):
     operation_rows = list(operations_ws.iter_rows(min_row=2, values_only=True))
     resolved = []
     ambiguous = []
-    untouched = []
+    unresolved = []
+    preserved = []
 
     for row_number, row in enumerate(equipment_ws.iter_rows(min_row=2), start=2):
         equipment_id = row[equipment_index["equipment_id"]].value
         current_profile = row[equipment_index["capacity_profile_id"]].value
         if current_profile not in (None, ""):
-            untouched.append(equipment_id)
+            preserved.append((equipment_id, current_profile))
             continue
 
         candidates = set()
@@ -128,20 +129,25 @@ def migrate(path: Path):
         elif len(candidates) > 1:
             ambiguous.append((equipment_id, sorted(candidates)))
         else:
-            untouched.append(equipment_id)
+            unresolved.append(equipment_id)
 
     wb.save(path)
-    return resolved, ambiguous, untouched
+    return resolved, ambiguous, unresolved, preserved
 
 
 if __name__ == "__main__":
     target = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else DEFAULT_DB
-    resolved, ambiguous, untouched = migrate(target)
+    resolved, ambiguous, unresolved, preserved = migrate(target)
     print(f"Resolved: {len(resolved)}")
     for equipment_id, profile in resolved:
         print(f"  {equipment_id} -> {profile}")
     print(f"Ambiguous: {len(ambiguous)}")
     for equipment_id, profiles in ambiguous:
         print(f"  {equipment_id} -> {', '.join(profiles)}")
-    print(f"Unresolved/unchanged: {len(untouched)}")
+    print(f"Already assigned/preserved: {len(preserved)}")
+    for equipment_id, profile in preserved:
+        print(f"  {equipment_id} -> {profile}")
+    print(f"Unresolved: {len(unresolved)}")
+    for equipment_id in unresolved:
+        print(f"  {equipment_id} -> no unique valid capacity profile; manual review required")
     print(target)
