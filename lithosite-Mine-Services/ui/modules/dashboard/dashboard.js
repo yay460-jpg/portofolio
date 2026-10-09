@@ -263,13 +263,39 @@
     const context = dashboardStatus.getContext();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const materialDefinitions = [
+      { name: 'Ore', color: 'chartdot-ore', barClass: 'chart-material-ore' },
+      { name: 'OB', color: 'chartdot-ob', barClass: 'chart-material-ob' },
+      { name: 'Quarry', color: 'chartdot-quarry', barClass: 'chart-material-quarry' },
+      { name: 'Top Soil', color: 'chartdot-topsoil', barClass: 'chart-material-topsoil' }
+    ];
+
+    function normalizeMaterial(value) {
+      const material = String(value || '').trim().toLowerCase()
+        .replace(/[_-]+/g, ' ').replace(/\\s+/g, ' ');
+      if (material === 'ore') return 'Ore';
+      if (material === 'ob' || material === 'overburden') return 'OB';
+      if (material === 'quarry') return 'Quarry';
+      if (material === 'topsoil' || material === 'top soil') return 'Top Soil';
+      return '';
+    }
+
+    function emptyMaterialTotals() {
+      return { Ore: 0, OB: 0, Quarry: 0, 'Top Soil': 0 };
+    }
+
+    function materialTotal(total) {
+      return materialDefinitions.reduce(function (sum, item) {
+        return sum + Number((total || emptyMaterialTotals())[item.name] || 0);
+      }, 0);
+    }
 
     const totals = {};
     const rawOperations = Array.isArray(state.operations) ? state.operations : [];
 
     rawOperations.forEach(function (row) {
-      const key = String(row.transaction_date || '');
-      if (!key) return;
+      const key = String(row.transaction_date || '').slice(0, 10);
+      if (!key || String(row.status || '').trim().toUpperCase() !== 'VALIDATED') return;
 
       if (context.scope === 'TODAY' && context.shift !== 'ALL') {
         const shift = String(row.shift || '').trim().toUpperCase();
@@ -279,11 +305,13 @@
       const activity = String(row.activity || '').trim().toLowerCase();
       if (activity !== 'hauling' && activity !== 'dumping') return;
 
+      const material = normalizeMaterial(row.material);
+      if (!material) return;
       const quantity = Number(row.quantity);
       if (!Number.isFinite(quantity) || quantity <= 0) return;
 
-      if (!totals[key]) totals[key] = { Hauling: 0, Dumping: 0 };
-      totals[key][activity === 'hauling' ? 'Hauling' : 'Dumping'] += quantity;
+      if (!totals[key]) totals[key] = emptyMaterialTotals();
+      totals[key][material] += quantity;
     });
 
     let chartDates = [];
@@ -292,10 +320,7 @@
     if (context.scope === 'ALL_DAYS') {
       // All Day: seven most recent recorded material-movement dates.
       activeDates = Object.keys(totals)
-        .filter(function (key) {
-          const total = totals[key];
-          return total.Hauling > 0 || total.Dumping > 0;
-        })
+        .filter(function (key) { return materialTotal(totals[key]) > 0; })
         .sort(function (a, b) { return b.localeCompare(a); })
         .slice(0, 7)
         .sort(function (a, b) { return a.localeCompare(b); })
@@ -305,46 +330,40 @@
         });
       chartDates = activeDates.slice();
     } else {
-      // Today: keep a normal seven-calendar-date running timeline ending today.
-      // Dates remain visible even when there is no movement on that date.
+      // Today: keep a seven-calendar-date timeline ending today.
       for (let i = 6; i >= 0; i -= 1) {
         const date = new Date(today);
         date.setDate(today.getDate() - i);
         chartDates.push(date);
       }
       activeDates = chartDates.filter(function (date) {
-        const total = totals[localDateKey(date)];
-        return total && (total.Hauling > 0 || total.Dumping > 0);
+        return materialTotal(totals[localDateKey(date)]) > 0;
       });
     }
 
-    const max = activeDates.reduce(function (value, date) {
-      const total = totals[localDateKey(date)];
-      return Math.max(value, total.Hauling, total.Dumping);
+    const max = activeDates.reduce(function (largest, date) {
+      const total = totals[localDateKey(date)] || emptyMaterialTotals();
+      return materialDefinitions.reduce(function (currentMax, item) {
+        return Math.max(currentMax, total[item.name] || 0);
+      }, largest);
     }, 0);
 
     bars.replaceChildren();
-
     chartDates.forEach(function (date) {
-      const key = localDateKey(date);
-      const total = totals[key] || { Hauling: 0, Dumping: 0 };
-
+      const total = totals[localDateKey(date)] || emptyMaterialTotals();
       const group = document.createElement('div');
-      group.style.cssText = 'display:flex;flex-direction:column;align-items:center;height:100%;min-width:30px;justify-content:flex-end';
+      group.style.cssText = 'display:flex;flex-direction:column;align-items:center;height:100%;min-width:38px;justify-content:flex-end';
 
       const area = document.createElement('div');
-      area.style.cssText = 'flex:1;display:flex;align-items:flex-end;justify-content:center;gap:3px;width:100%';
+      area.style.cssText = 'flex:1;display:flex;align-items:flex-end;justify-content:center;gap:2px;width:100%';
 
-      const hauling = document.createElement('span');
-      hauling.className = 'v';
-      hauling.style.height = String(max ? total.Hauling / max * 100 : 0) + '%';
-
-      const dumping = document.createElement('span');
-      dumping.className = 'v vo';
-      dumping.style.height = String(max ? total.Dumping / max * 100 : 0) + '%';
-
-      area.appendChild(hauling);
-      area.appendChild(dumping);
+      materialDefinitions.forEach(function (item) {
+        const bar = document.createElement('span');
+        bar.className = 'v chart-material-bar ' + item.barClass;
+        bar.style.height = String(max ? (total[item.name] || 0) / max * 100 : 0) + '%';
+        bar.title = item.name + ': ' + String(total[item.name] || 0) + ' ton';
+        area.appendChild(bar);
+      });
 
       const label = document.createElement('span');
       label.style.cssText = 'height:18px;line-height:18px;font-size:9px;color:#b9c9d9;white-space:nowrap';
@@ -364,12 +383,14 @@
 
     const chartDateKeys = new Set(chartDates.map(localDateKey));
     const chartOperations = rawOperations.filter(function (row) {
-      if (!chartDateKeys.has(String(row.transaction_date || ''))) return false;
+      if (String(row.status || '').trim().toUpperCase() !== 'VALIDATED') return false;
+      if (!chartDateKeys.has(String(row.transaction_date || '').slice(0, 10))) return false;
       if (context.scope === 'TODAY' && context.shift !== 'ALL') {
         return String(row.shift || '').trim().toUpperCase() === context.shift;
       }
       return true;
     });
+
     const chartHaulingOperations = chartOperations.filter(function (row) {
       return String(row.activity || '').trim().toLowerCase() === 'hauling';
     });
@@ -378,30 +399,26 @@
       const retase = Number(row.retase);
       return Number.isFinite(retase) && retase >= 0 ? sum + retase : sum;
     }, 0);
-    const chartTonTotals = chartDates.reduce(function (sum, date) {
-      const total = totals[localDateKey(date)] || { Hauling: 0, Dumping: 0 };
-      sum.Hauling += total.Hauling;
-      sum.Dumping += total.Dumping;
+
+    const chartMaterialTotals = chartDates.reduce(function (sum, date) {
+      const total = totals[localDateKey(date)] || emptyMaterialTotals();
+      materialDefinitions.forEach(function (item) { sum[item.name] += total[item.name] || 0; });
       return sum;
-    }, { Hauling: 0, Dumping: 0 });
-    const combined = chartTonTotals.Hauling + chartTonTotals.Dumping;
+    }, emptyMaterialTotals());
+    const classifiedTotal = materialTotal(chartMaterialTotals);
+
     function formatTotal(value) {
       return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
     }
 
     legend.replaceChildren();
-    [
-      { name: 'Hauling', value: chartTonTotals.Hauling, className: 'chartdot-blue' },
-      { name: 'Dumping', value: chartTonTotals.Dumping, className: 'chartdot-orange' }
-    ].forEach(function (item) {
+    materialDefinitions.forEach(function (item) {
       const key = document.createElement('span');
       key.className = 'chartkey';
       const dot = document.createElement('i');
-      dot.className = 'chartdot ' + item.className;
+      dot.className = 'chartdot ' + item.color;
       key.appendChild(dot);
-      key.appendChild(document.createTextNode(
-        item.name + ': ' + formatTotal(item.value) + ' ton'
-      ));
+      key.appendChild(document.createTextNode(item.name + ': ' + formatTotal(chartMaterialTotals[item.name]) + ' ton'));
       legend.appendChild(key);
     });
 
@@ -410,14 +427,19 @@
     const retaseDot = document.createElement('i');
     retaseDot.className = 'chartdot chartdot-retase';
     retaseKey.appendChild(retaseDot);
-    const displayedRetase = formatTotal(chartRetase);
-    retaseKey.appendChild(document.createTextNode('Retase: ' + displayedRetase + ' rit'));
+    retaseKey.appendChild(document.createTextNode('Retase: ' + formatTotal(chartRetase) + ' rit'));
     legend.appendChild(retaseKey);
 
+    const strippingRatioKey = document.createElement('span');
+    strippingRatioKey.className = 'chartkey chartkey-sr chartkey-coming-soon';
+    const strippingRatioDot = document.createElement('i');
+    strippingRatioDot.className = 'chartdot chartdot-sr';
+    strippingRatioKey.appendChild(strippingRatioDot);
+    strippingRatioKey.appendChild(document.createTextNode('S/R: Coming Soon'));
+    legend.appendChild(strippingRatioKey);
+
     const totalStrong = note.querySelector('strong');
-    if (totalStrong) {
-      totalStrong.textContent = formatTotal(combined) + ' ton';
-    }
+    if (totalStrong) totalStrong.textContent = formatTotal(classifiedTotal) + ' ton';
   }
 
   function render() {
