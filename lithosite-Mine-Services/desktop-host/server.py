@@ -70,9 +70,11 @@ def _pdf_escape(value: object) -> str:
     text = str(value if value is not None else "")
     # The lightweight PDF writer uses built-in WinAnsi fonts. Normalize Unicode
     # punctuation that those fonts cannot represent instead of emitting '?'.
+    import re
+    text = re.sub(r"\\s*→\\s*", " to ", text)
+    text = re.sub(r"\\s*←\\s*", " from ", text)
     text = (
-        text.replace("→", " to ").replace("←", " from ")
-        .replace("–", "-").replace("—", "-").replace("−", "-")
+        text.replace("–", "-").replace("—", "-").replace("−", "-")
         .replace("‘", "'").replace("’", "'")
         .replace("“", '"').replace("”", '"')
         .replace(chr(160), " ").replace("…", "...")
