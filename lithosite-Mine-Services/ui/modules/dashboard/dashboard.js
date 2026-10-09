@@ -412,31 +412,45 @@
     }
 
     legend.replaceChildren();
-    materialDefinitions.forEach(function (item) {
+
+    function appendLegendRow(name, value, colorClass, extraClass) {
       const key = document.createElement('span');
-      key.className = 'chartkey';
+      key.className = 'chartkey' + (extraClass ? ' ' + extraClass : '');
       const dot = document.createElement('i');
-      dot.className = 'chartdot ' + item.color;
+      dot.className = 'chartdot ' + colorClass;
+      const label = document.createElement('span');
+      label.className = 'chartkey-name';
+      label.textContent = name;
+      const metric = document.createElement('span');
+      metric.className = 'chartkey-value';
+      metric.textContent = value;
       key.appendChild(dot);
-      key.appendChild(document.createTextNode(item.name + ': ' + formatTotal(chartMaterialTotals[item.name]) + ' ton'));
+      key.appendChild(label);
+      key.appendChild(metric);
       legend.appendChild(key);
+    }
+
+    materialDefinitions.forEach(function (item) {
+      appendLegendRow(
+        item.name,
+        formatTotal(chartMaterialTotals[item.name]) + ' ton',
+        item.color
+      );
     });
 
-    const retaseKey = document.createElement('span');
-    retaseKey.className = 'chartkey chartkey-retase';
-    const retaseDot = document.createElement('i');
-    retaseDot.className = 'chartdot chartdot-retase';
-    retaseKey.appendChild(retaseDot);
-    retaseKey.appendChild(document.createTextNode('Retase: ' + formatTotal(chartRetase) + ' rit'));
-    legend.appendChild(retaseKey);
+    appendLegendRow(
+      'Retase',
+      formatTotal(chartRetase) + ' rit',
+      'chartdot-retase',
+      'chartkey-retase'
+    );
 
-    const strippingRatioKey = document.createElement('span');
-    strippingRatioKey.className = 'chartkey chartkey-sr chartkey-coming-soon';
-    const strippingRatioDot = document.createElement('i');
-    strippingRatioDot.className = 'chartdot chartdot-sr';
-    strippingRatioKey.appendChild(strippingRatioDot);
-    strippingRatioKey.appendChild(document.createTextNode('S/R: Coming Soon'));
-    legend.appendChild(strippingRatioKey);
+    appendLegendRow(
+      'S/R',
+      'Coming Soon',
+      'chartdot-sr',
+      'chartkey-sr chartkey-coming-soon'
+    );
 
     const totalStrong = note.querySelector('strong');
     if (totalStrong) totalStrong.textContent = formatTotal(classifiedTotal) + ' ton';
