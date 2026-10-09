@@ -404,8 +404,7 @@
         runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
         runtimeClient.request({ operation: 'READ', entity: '_Lists' }),
         runtimeClient.request({ operation: 'READ', entity: 'GlobalCapacity' }),
-        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' }),
-        runtimeClient.request({ operation: 'READ', entity: 'GlobalCapacity' })
+        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' })
       ]);
 
       dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
