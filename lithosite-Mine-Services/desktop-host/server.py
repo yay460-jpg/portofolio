@@ -63,6 +63,12 @@ def is_allowed_origin(origin: str | None) -> bool:
         return False
 
 
+def _is_evidence_link(path: Path) -> bool:
+    """Treat symbolic links and Windows junctions as unsafe Evidence paths."""
+    junction_check = getattr(path, "is_junction", None)
+    return path.is_symlink() or (callable(junction_check) and junction_check())
+
+
 def evidence_record_directory(module: str, record_id: str) -> Path:
     """Resolve one allowlisted record directory without accepting linked paths."""
     if module not in EVIDENCE_MODULES:
@@ -71,10 +77,10 @@ def evidence_record_directory(module: str, record_id: str) -> Path:
         raise ValueError("Invalid evidence record ID")
     root = EVIDENCE_ROOT.resolve()
     module_dir = root / module
-    if module_dir.is_symlink():
+    if _is_evidence_link(module_dir):
         raise ValueError("Invalid evidence module path")
     candidate = module_dir / record_id
-    if candidate.is_symlink():
+    if _is_evidence_link(candidate):
         raise ValueError("Invalid evidence record path")
     target = candidate.resolve()
     try:
@@ -95,7 +101,7 @@ def ensure_evidence_record_directory(module: str, record_id: str) -> Path:
     module_dir.mkdir(exist_ok=True)
     if not module_dir.is_dir():
         raise ValueError("Evidence module path is not a directory")
-    if target.is_symlink():
+    if _is_evidence_link(target):
         raise ValueError("Invalid evidence record path")
     target.mkdir(exist_ok=True)
     if not target.is_dir():
