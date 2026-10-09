@@ -1,35 +1,64 @@
-﻿# Database
+# Database
 
 Authoritative Mine Services database and schema artifacts.
 
-## Current database - Single Source of Truth
+## V39 source of truth
 
-`Mine-Services-Database-A3.xlsx` is the single active database used by the offline runtime.
+**The one and only active runtime workbook is:**
+
+`Database/Mine-Services-Database-A3.xlsx`
+
+The Desktop Host resolves its default database path to this workbook:
+
+`desktop-host/server.py` → `DB_PATH` → `Database/Mine-Services-Database-A3.xlsx`
+
+The canonical schema definition is `src/mine_services/schema.py`, with schema version `A.3`. The workbook's `_System` sheet records the active schema version.
 
 Rules:
-- Runtime reads and writes only `Mine-Services-Database-A3.xlsx`.
-- The current schema version is `A.3`.
-- Schema evolution is tracked by the schema version in `_System`.
-- A new database version is created only when an actual schema migration is required.
-- Historical database baselines are stored under `Database/Archive/` and are not runtime sources.
-- `Mine-Services-Database.xlsx` (A2) is retired and is no longer a runtime source.
 
-## Historical archive
+- Runtime reads and writes the canonical A3 workbook above only, unless an explicit `MINE_SERVICES_DB` override is deliberately configured for a separate test environment.
+- Never treat a backup workbook, a Dataset snapshot, an A1/A2 workbook, or a migration input copy as the live database.
+- Do not create parallel active workbooks such as `Mine-Services-Database-A3-copy.xlsx`, `...-latest.xlsx`, or `...-final.xlsx`.
+- Do not overwrite, reset, or replace the active workbook with a Git version during normal development; local runtime writes are expected.
+- Run a schema migration only when a defined migration contract requires it. A migration should preserve existing records and be safe to rerun where designed to be idempotent.
 
-`Archive/Mine-Services-Database-A1.xlsx` is the preserved A1 baseline.
+## Folder responsibilities
 
-It is retained for historical reference and rollback evidence only.
+| Path | Purpose | Runtime source of truth? |
+|---|---|---|
+| `Mine-Services-Database-A3.xlsx` | Active A3 operational database | **YES — only live workbook** |
+| `Archive/` | Frozen historical or pre-migration workbook copies kept for rollback/audit evidence | No |
+| `Datasets/` | Named Dataset Manager snapshots used to save/load a dataset | No; a snapshot becomes current only through the Dataset Manager workflow |
+| `marker-location/` | Marker-location backup packages and supporting files | No; auxiliary storage |
+| `topography/` | Topography backup packages | No; auxiliary storage |
 
-The locked baseline is protected from runtime mutation.
+The directories are separate storage areas for different purposes, not duplicate live databases.
 
-## V38 Measurement field migration
+## Historical and pre-migration workbook copies
 
-The active A3 workbook uses the canonical `measurement` field for measurement units. Operations also uses `capacity_measurement` for the applied capacity unit. `Equipment.unit_no` remains an identifier and is not renamed.
+Historical database baselines belong under `Database/Archive/`. Keep one clearly named archival copy for each meaningful baseline or migration checkpoint; include the baseline/migration and date in the filename. Examples:
 
-For an existing A3 workbook created before this V38 migration, run once from the project root:
+- `Archive/Mine-Services-Database-A1.xlsx` — preserved A1 baseline.
+- `Archive/Mine-Services-Database-A3.pre-v38-lists-YYYYMMDD.xlsx` — preserved pre-migration A3 copy, if present locally.
+
+A pre-migration copy is rollback evidence, not a second active database. If such a file is found in the `Database/` root, stop the Desktop Host before moving it into `Database/Archive/`; verify the filename and that it is not the configured `DB_PATH`. Do not delete it merely to reduce clutter. The active workbook remains `Mine-Services-Database-A3.xlsx`.
+
+## Retired schema generations
+
+- A.1 — historical predecessor.
+- A.2 — retired; not a runtime source.
+- A.3 — current V39 schema and the only active runtime schema.
+
+`Mine-Services-Database.xlsx` (A2) is retired and must not be used as the runtime source. Historical A1/A2 documentation and migration utilities may remain for audit/history but do not change the active runtime contract.
+
+## V38 measurement-field migration (historical migration)
+
+The canonical A3 workbook uses `measurement` for measurement units and `capacity_measurement` for an applied capacity unit. `Equipment.unit_no` remains an equipment identifier and is not renamed.
+
+For an existing A3 workbook created before this V38 migration, the migration utility is retained for controlled legacy upgrades only:
 
 ```powershell
 python -m src.mine_services.migrate_v38_measurement
 ```
 
-The migration renames only workbook headers and preserves the existing measurement values.
+Do not run historical migrations against the active workbook unless the workbook has the exact pre-migration contract expected by that utility and a backup has been verified.
