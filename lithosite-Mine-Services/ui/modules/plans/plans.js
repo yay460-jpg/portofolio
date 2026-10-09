@@ -8,6 +8,8 @@ let editId=null;
 let runtimeReady=false;
 let activeEvidencePlanId='';
 let activeEvidenceFiles=[];
+let activeEvidenceObjectUrl='';
+let evidencePreviewRequest=0;
 const LISTS={domain:[],measurement:[],status:[]};
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
@@ -172,28 +174,57 @@ function renderEvidenceFiles(files){
   '</button>';
  }).join('');
 }
-function previewEvidenceFile(name){
+function releaseEvidencePreviewUrl(){
+ if(activeEvidenceObjectUrl){URL.revokeObjectURL(activeEvidenceObjectUrl);activeEvidenceObjectUrl='';}
+}
+function invalidateEvidencePreview(){
+ evidencePreviewRequest+=1;
+ releaseEvidencePreviewUrl();
+}
+async function previewEvidenceFile(name){
  const host=document.getElementById('planEvidencePreview');
  const status=document.getElementById('planEvidenceStatus');
  const file=activeEvidenceFiles.find(function(item){return String(item.name)===String(name);});
  if(!host||!file)return;
+ const requestId=++evidencePreviewRequest;
+ const planId=activeEvidencePlanId;
+ releaseEvidencePreviewUrl();
  if(file.available===false){
   host.innerHTML='<div class="evidence-empty">This file exceeds the 100 MB preview limit.</div>';
   return;
  }
  const url=evidenceFileUrl(file.name);
  const safeName=esc(file.name);
- const openLink='<a class="control mini" href="'+esc(url)+'" target="_blank" rel="noopener">Open file</a>';
- if(file.previewable&&String(file.mime_type||'').toLowerCase()==='application/pdf'){
-  host.innerHTML='<div class="evidence-preview-content"><div class="evidence-preview-toolbar"><span>'+safeName+'</span>'+openLink+'</div><iframe class="evidence-pdf" src="'+esc(url)+'" title="'+safeName+'"></iframe></div>';
-  if(status)status.textContent='PDF preview: '+file.name;
- }else if(file.previewable&&String(file.mime_type||'').toLowerCase().indexOf('image/')===0){
-  host.innerHTML='<div class="evidence-preview-content"><div class="evidence-preview-toolbar"><span>'+safeName+'</span>'+openLink+'</div><img class="evidence-image" src="'+esc(url)+'" alt="'+safeName+'"></div>';
-  if(status)status.textContent='Image preview: '+file.name;
- }else{
-  host.innerHTML='<div class="evidence-download-panel"><p><b>'+safeName+'</b><br>Word documents are listed here but cannot be previewed natively in this window. Use the button to download the original file.</p><a class="control primary" href="'+esc(url)+'" download="'+safeName+'">Download document</a></div>';
-  if(status)status.textContent='Document selected: '+file.name;
+ const mime=String(file.mime_type||'').toLowerCase();
+ const isPdf=file.previewable&&mime==='application/pdf';
+ const isImage=file.previewable&&mime.indexOf('image/')===0;
+ if(isPdf||isImage){
+  host.innerHTML='<div class="evidence-preview-content"><div class="evidence-preview-toolbar"><span>'+safeName+'</span></div><div class="evidence-empty">Loading file preview…</div></div>';
+  if(status){status.classList.remove('error');status.textContent=(isPdf?'Loading PDF preview: ':'Loading image preview: ')+file.name;}
+  try{
+   const response=await fetch(url,{cache:'no-store'});
+   if(!response.ok)throw new Error('File request failed (HTTP '+response.status+')');
+   const blob=await response.blob();
+   if(requestId!==evidencePreviewRequest||activeEvidencePlanId!==planId)return;
+   const previewBlob=blob.type?blob:new Blob([blob],{type:String(file.mime_type||'application/octet-stream')});
+   const objectUrl=URL.createObjectURL(previewBlob);
+   activeEvidenceObjectUrl=objectUrl;
+   if(isPdf){
+    host.innerHTML='<div class="evidence-preview-content"><div class="evidence-preview-toolbar"><span>'+safeName+'</span></div><iframe class="evidence-pdf" src="'+esc(objectUrl)+'" title="'+safeName+'"></iframe></div>';
+    if(status)status.textContent='PDF preview: '+file.name;
+   }else{
+    host.innerHTML='<div class="evidence-preview-content"><div class="evidence-preview-toolbar"><span>'+safeName+'</span></div><img class="evidence-image" src="'+esc(objectUrl)+'" alt="'+safeName+'"></div>';
+    if(status)status.textContent='Image preview: '+file.name;
+   }
+  }catch(error){
+   if(requestId!==evidencePreviewRequest||activeEvidencePlanId!==planId)return;
+   host.innerHTML='<div class="evidence-empty">Preview unavailable. '+esc(error&&error.message?error.message:String(error))+'</div>';
+   if(status){status.classList.add('error');status.textContent='Could not preview '+file.name;}
+  }
+  return;
  }
+ host.innerHTML='<div class="evidence-download-panel"><p><b>'+safeName+'</b><br>Word documents are listed here but cannot be previewed natively in this window. Use the button to download the original file.</p><a class="control primary" href="'+esc(url)+'" download="'+safeName+'">Download document</a></div>';
+ if(status){status.classList.remove('error');status.textContent='Document selected: '+file.name;}
 }
 async function refreshPlanEvidenceList(){
  const planId=activeEvidencePlanId;
