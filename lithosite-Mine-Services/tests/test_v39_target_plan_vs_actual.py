@@ -27,6 +27,7 @@ def test_combined_register_calculates_actual_variance_achievement_and_remaining(
     assert "Actual unavailable" in PLANS_JS
     assert "Operations unavailable · Actuals not calculated" in PLANS_JS
     assert "consolidated-tr" in PLANS_JS
+    assert "plansColumns" not in PLANS_JS
     assert 'id="plansViewToggle"' not in HTML
-    assert "plans.js?v=20261014" in HTML
+    assert "plans.js?v=20261015" in HTML
     assert "plans.css?v=20261102" in HTML
