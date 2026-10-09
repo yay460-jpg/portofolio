@@ -828,7 +828,7 @@ class Handler(BaseHTTPRequestHandler):
     def _headers(self, status=200, origin=None):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        if is_allowed_origin(origin):
+        if origin and is_allowed_origin(origin):
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
