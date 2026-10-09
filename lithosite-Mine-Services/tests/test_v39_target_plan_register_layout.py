@@ -9,13 +9,15 @@ HTML = (ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-S
 def test_target_plan_has_one_static_unified_register_header():
     expected_headers = (
         "Plan ID", "Start Date", "End Date", "Domain", "Work Front", "Activity",
-        "Target Qty", "Measurement", "Target Hrs", "Actual", "Variance",
+        "Target Qty", "Measurement", "Actual", "Variance",
         "Achievement", "Remaining", "Status", "Actions",
     )
     assert 'class="plantr th consolidated-th">' in HTML
     for label in expected_headers:
         assert f'<div class="cell">{label}</div>' in HTML
     assert 'id="plansViewToggle"' not in HTML
+    assert 'f_plan_target_hours' not in HTML
+    assert 'Target Hrs' not in HTML[HTML.index('<section id="plansScreen"'):HTML.index('<section id="hseScreen"')]
     assert 'id="plansColumns"' not in HTML
     assert 'id="plansTableTitleText"' not in HTML
     assert 'id="plansTableTitle"' not in HTML
@@ -23,14 +25,14 @@ def test_target_plan_has_one_static_unified_register_header():
 
 def test_combined_register_keeps_target_actual_metrics_and_actions():
     for marker in ('class="cell num target-quantity"', 'class="cell measurement-cell"',
-                   'class="cell num target-hours"', 'class="cell num actual-quantity"',
+                   'class="cell num actual-quantity"',
                    'class="cell num variance"', 'class="cell num achievement"',
                    'class="cell num remaining"', 'class="cell row-actions"'):
         assert marker in PLANS_JS
 
 
-def test_combined_register_uses_one_responsive_grid_for_fifteen_columns():
-    assert "Unified Target Plan register" in PLANS_CSS
+def test_combined_register_uses_one_responsive_grid_for_fourteen_columns():
+    assert "Unified Target Plan register: fourteen aligned columns" in PLANS_CSS
     assert "grid-template-columns:minmax(82px,.85fr) minmax(75px,.78fr) minmax(75px,.78fr)" in PLANS_CSS
     assert ".plantr.consolidated-th," in PLANS_CSS
     assert ".plantr.consolidated-tr {" in PLANS_CSS
