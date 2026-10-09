@@ -1,95 +1,241 @@
-/* Stage 18 — Plans module stylesheet */
-#plansScreen{position:relative;flex:1 1 auto;display:flex;flex-direction:column;width:100%;height:auto;min-width:0;min-height:0;margin:0}
-#plansScreen[hidden]{display:none!important}
-#plansScreen .boundary{flex:1 1 auto;height:auto;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;position:relative;overflow:hidden}
-#plansScreen .head{height:48px;min-height:48px;flex:0 0 48px;display:flex;justify-content:space-between}
-#plansScreen .title h1{margin:0;font-size:21px;line-height:24px;background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);background-clip:text;-webkit-background-clip:text;color:transparent}
-#plansScreen .title p{margin:2px 0;color:#8ea3ba;font-size:11px}
-#plansScreen .controls{display:flex;gap:7px}
-
-
-#plansScreen .filters{height:auto;flex:0 0 auto;padding:12px;display:grid;grid-template-columns:1fr 1fr 1.1fr 1.1fr 1fr auto;gap:8px;align-items:end}
-#plansScreen .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}
-#plansScreen .field input,#plansScreen .field select{width:100%;height:32px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px;outline:none}
-#plansScreen .tablepanel{position:relative;flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;margin-top:12px;overflow:hidden}
-#plansScreen .tablehead{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #263e57}
-#plansScreen .ptitle{font-size:11.5px;font-weight:700}#plansModal .modalhead .ptitle{font-size:11.5px;font-weight:700;line-height:1.2}
-#plansScreen .tablemeta{font-size:9px;color:#8ea3ba}
-#plansScreen .grid{flex:1 1 auto;min-width:0;min-height:0;height:auto;overflow:auto}
-#plansScreen .plantr{display:grid;grid-template-columns:100px 78px 118px 220px minmax(180px,1fr) 90px 70px 82px 88px 132px;min-width:1255px;align-items:center}
-#plansScreen .th{height:34px;background:#12243a;color:#8fa5bb;font-size:8px;text-transform:uppercase;font-weight:600;position:sticky;top:0;z-index:2}
-#plansScreen .td{min-height:42px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}
-#plansScreen .cell{padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#plansScreen .num{text-align:right}
-#plansScreen .statuspill{display:inline-flex;align-items:center;justify-content:center;min-width:54px;padding:3px 7px;border-radius:999px;font-size:8px;font-weight:850;text-transform:uppercase;background:#18334d;color:#8fc2ff}
-#plansScreen .statuspill.draft{background:#3b2e12;color:#facc15}
-#plansScreen .statuspill.planned{background:#173a2c;color:#4ade80}
-#plansScreen .statuspill.approved{background:#17334f;color:#60a5fa}
-#plansScreen .statuspill.completed{background:#163c31;color:#34d399}
-#plansScreen .statuspill.cancelled{background:#402026;color:#fb7185}
-#plansScreen .row-actions{display:flex;gap:5px;align-items:center}
-#plansScreen .control.mini{height:26px;padding:4px 8px;font-size:9px}
-
-#plansScreen .empty{padding:22px;text-align:center;color:#8ea3ba;font-size:10px}
-#plansScreen .modalbody{padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
-#plansScreen .runtime-msg{grid-column:1/-1;padding:8px 10px;border:1px solid #29435d;border-radius:7px;background:#10243a;color:#8ea3ba;font-size:9.5px}
-#plansScreen .runtime-msg.error{border-color:#71343d;color:#ff9aa4;background:#28171c}
-
-
-/* V38 — filter panel visual parity with Operations */
-#plansScreen .filters{border:1px solid #28425c;border-radius:9px;background:#101f31;box-shadow:0 2px 9px #02081255}
-
-
-/* V38 — Clear control width parity across module filter panels */
-#plansScreen .clear{width:56px;min-width:56px;height:32px;padding:0 10px;justify-content:center;box-sizing:border-box}
-
-
-/* V38 — unified Clear button geometry across all filter panels */
-#plansScreen #plansClear{width:56px;min-width:56px;max-width:56px;height:32px;padding:0 10px;justify-content:center;align-items:center;box-sizing:border-box;flex:0 0 56px}
-
-
-/* V38 — register header parity with Operations */
-#plansScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
-#plansScreen .icon{width:15px;height:15px;display:block;color:currentColor}
-
-
-/* V39 — table panel visual parity with Operations */
-#plansScreen .tablepanel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
-
-
-/* V39 — Plan vs Actual reuses the register panel, without a parallel navigation owner. */
-#plansScreen .plantr.actual-th,
-#plansScreen .plantr.actual-tr{
+/* Target Plan — canonical screen, register, and comparison styles */
+#plansScreen {
+  position:relative;
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
   width:100%;
+  height:auto;
   min-width:0;
-  grid-template-columns:minmax(90px,.7fr) minmax(130px,.95fr) minmax(100px,.75fr) minmax(170px,1.25fr) minmax(120px,1.1fr) minmax(85px,.65fr) minmax(85px,.65fr) minmax(90px,.75fr) minmax(95px,.8fr) minmax(90px,.8fr) minmax(72px,.55fr);
+  min-height:0;
+  margin:0;
 }
-#plansScreen .actual-tr .cell{font-variant-numeric:tabular-nums}
-#plansScreen #plansViewToggle{white-space:nowrap}
-#plansScreen #plansAdd[hidden]{display:none!important}
+#plansScreen[hidden] { display:none!important; }
+#plansScreen .boundary {
+  position:relative;
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  width:100%;
+  height:auto;
+  min-width:0;
+  min-height:0;
+  padding:20px;
+  overflow:hidden;
+  border:1px dashed #2b4560;
+  border-radius:12px;
+  background:#0e1d2e;
+}
+#plansScreen .head {
+  display:flex;
+  justify-content:space-between;
+  flex:0 0 48px;
+  height:48px;
+  min-height:48px;
+}
+#plansScreen .title h1 {
+  margin:0;
+  font-size:21px;
+  line-height:24px;
+  background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);
+  background-clip:text;
+  -webkit-background-clip:text;
+  color:transparent;
+}
+#plansScreen .title p { margin:2px 0; color:#8ea3ba; font-size:11px; }
+#plansScreen .controls { display:flex; gap:7px; }
+#plansScreen #plansViewToggle { white-space:nowrap; }
+#plansScreen #plansAdd[hidden] { display:none!important; }
 
+#plansScreen .filters {
+  display:grid;
+  grid-template-columns:1fr 1fr 1.1fr 1.1fr 1fr auto;
+  align-items:end;
+  flex:0 0 auto;
+  height:auto;
+  gap:8px;
+  padding:12px;
+  border:1px solid #28425c;
+  border-radius:9px;
+  background:#101f31;
+  box-shadow:0 2px 9px #02081255;
+}
+#plansScreen .field label {
+  display:block;
+  margin-bottom:5px;
+  color:#8fa5bb;
+  font-size:8.5px;
+  font-weight:600;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+}
+#plansScreen .field input,
+#plansScreen .field select {
+  width:100%;
+  height:32px;
+  padding:0 9px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  outline:none;
+  background:#0c1b2c;
+  color:#dce8f5;
+  font:inherit;
+  font-size:10px;
+}
+#plansScreen .clear,
+#plansScreen #plansClear {
+  display:flex;
+  flex:0 0 56px;
+  align-items:center;
+  justify-content:center;
+  width:56px;
+  min-width:56px;
+  max-width:56px;
+  height:32px;
+  padding:0 10px;
+  box-sizing:border-box;
+}
 
-/* V39 — ten aligned columns: Quantity and Measurement remain distinct fields. */
-#plansScreen .plantr:not(.actual-th):not(.actual-tr){
+#plansScreen .tablepanel {
+  position:relative;
+  display:flex;
+  flex:1 1 auto;
+  flex-direction:column;
+  min-width:0;
+  min-height:0;
+  margin-top:12px;
+  overflow:hidden;
+  border:1px solid #28425c;
+  border-radius:9px;
+  background:#101f31;
+  box-shadow:0 2px 9px #02081255;
+}
+#plansScreen .tablehead {
+  display:flex;
+  flex:0 0 40px;
+  align-items:center;
+  justify-content:space-between;
+  height:40px;
+  padding:0 12px;
+  border-bottom:1px solid #263e57;
+}
+#plansScreen .ptitle {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:11.5px;
+  font-weight:700;
+}
+#plansModal .modalhead .ptitle { font-size:11.5px; font-weight:700; line-height:1.2; }
+#plansScreen .icon { display:block; width:15px; height:15px; color:currentColor; }
+#plansScreen .tablemeta { color:#8ea3ba; font-size:9px; }
+#plansScreen .grid {
+  flex:1 1 auto;
   width:100%;
   min-width:0;
+  min-height:0;
+  height:auto;
+  overflow:auto;
+}
+
+/* Register: ten grid tracks correspond exactly to ten header/data cells. */
+#plansScreen .plantr:not(.actual-th):not(.actual-tr) {
+  display:grid;
   grid-template-columns:minmax(100px,.8fr) minmax(145px,1.05fr) minmax(110px,.8fr) minmax(180px,1.25fr) minmax(125px,1fr) minmax(95px,.75fr) minmax(90px,.6fr) minmax(90px,.65fr) minmax(78px,.55fr) minmax(110px,.8fr);
+  align-items:center;
+  width:100%;
+  min-width:0;
 }
+
+/* Plan vs Actual: eleven grid tracks, sized proportionally to the available panel. */
+#plansScreen .plantr.actual-th,
+#plansScreen .plantr.actual-tr {
+  display:grid;
+  grid-template-columns:minmax(90px,.7fr) minmax(130px,.95fr) minmax(100px,.75fr) minmax(170px,1.25fr) minmax(120px,1.1fr) minmax(85px,.65fr) minmax(85px,.65fr) minmax(90px,.75fr) minmax(95px,.8fr) minmax(90px,.8fr) minmax(72px,.55fr);
+  align-items:center;
+  width:100%;
+  min-width:0;
+}
+#plansScreen .th {
+  position:sticky;
+  top:0;
+  z-index:2;
+  height:34px;
+  background:#12243a;
+  color:#8fa5bb;
+  font-size:8px;
+  font-weight:600;
+  letter-spacing:.3px;
+  text-transform:uppercase;
+}
+#plansScreen .td {
+  min-height:42px;
+  border-bottom:1px solid #223b55;
+  color:#dce8f5;
+  font-size:9.5px;
+}
+#plansScreen .cell {
+  padding:0 8px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#plansScreen .num { text-align:right; }
+
+/* Keep activity and target values visually aligned across both modes. */
 #plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(5),
 #plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(6),
 #plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(7),
-#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(8){
-  text-align:center;
-}
-#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(6),
-#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(7){
-  padding-left:3px;
-  padding-right:3px;
-  white-space:nowrap;
-}
+#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(8),
 #plansScreen .plantr.actual-th > .cell:nth-child(5),
 #plansScreen .plantr.actual-tr > .cell:nth-child(5),
 #plansScreen .plantr.actual-th > .cell:nth-child(n+6):nth-child(-n+11),
-#plansScreen .plantr.actual-tr > .cell:nth-child(n+6):nth-child(-n+11){
+#plansScreen .plantr.actual-tr > .cell:nth-child(n+6):nth-child(-n+11) {
   text-align:center;
 }
+#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(6),
+#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(7) {
+  padding-right:3px;
+  padding-left:3px;
+  white-space:nowrap;
+}
+#plansScreen .actual-tr .cell { font-variant-numeric:tabular-nums; }
+
+#plansScreen .statuspill {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:54px;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#18334d;
+  color:#8fc2ff;
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+#plansScreen .statuspill.draft { background:#3b2e12; color:#facc15; }
+#plansScreen .statuspill.planned { background:#173a2c; color:#4ade80; }
+#plansScreen .statuspill.approved { background:#17334f; color:#60a5fa; }
+#plansScreen .statuspill.completed { background:#163c31; color:#34d399; }
+#plansScreen .statuspill.cancelled { background:#402026; color:#fb7185; }
+#plansScreen .row-actions { display:flex; align-items:center; gap:5px; }
+#plansScreen .control.mini { height:26px; padding:4px 8px; font-size:9px; }
+#plansScreen .empty { padding:22px; color:#8ea3ba; font-size:10px; text-align:center; }
+
+#plansScreen .modalbody {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  padding:12px;
+}
+#plansScreen .runtime-msg {
+  grid-column:1/-1;
+  padding:8px 10px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  background:#10243a;
+  color:#8ea3ba;
+  font-size:9.5px;
+}
+#plansScreen .runtime-msg.error { border-color:#71343d; background:#28171c; color:#ff9aa4; }
