@@ -68,6 +68,12 @@ function filtered(){
    (!owner||r.owner_type===owner)&&(!status||r.status===status)
  );
 }
+function equipmentBrand(row){
+ const profile=state.capacities.find(function(item){
+  return String(item.capacity_profile_id||'')===String(row.capacity_profile_id||'');
+ });
+ return profile?String(profile.unit_brand||'—'):'—';
+}
 function render(){
  const host=document.getElementById('equipmentRows');
  if(!host)return;
@@ -91,6 +97,7 @@ function render(){
     '<div class="cell">'+esc(r.equipment_id)+'</div>'+
     '<div class="cell">'+esc(r.unit_no)+'</div>'+
     '<div class="cell">'+esc(r.category)+'</div>'+
+    '<div class="cell">'+esc(equipmentBrand(r))+'</div>'+
     '<div class="cell">'+esc(r.type)+'</div>'+
     '<div class="cell">'+esc(r.owner_type)+'</div>'+
     '<div class="cell">'+esc(r.owner_name)+'</div>'+
