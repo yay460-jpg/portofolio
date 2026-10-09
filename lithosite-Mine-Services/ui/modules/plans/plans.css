@@ -55,3 +55,14 @@
 
 /* V39 — table panel visual parity with Operations */
 #plansScreen .tablepanel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
+
+
+/* V39 — Plan vs Actual reuses the register panel, without a parallel navigation owner. */
+#plansScreen .plantr.actual-th,
+#plansScreen .plantr.actual-tr{
+  grid-template-columns:105px 180px 130px 190px minmax(150px,1fr) 100px 100px 100px 105px 105px 86px;
+  min-width:1451px;
+}
+#plansScreen .actual-tr .cell{font-variant-numeric:tabular-nums}
+#plansScreen #plansViewToggle{white-space:nowrap}
+#plansScreen #plansAdd[hidden]{display:none!important}
