@@ -9,11 +9,12 @@ from __future__ import annotations
 import base64
 import json
 import os
+import re
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from mimetypes import guess_type
-from urllib.parse import unquote
+from urllib.parse import parse_qs, quote, unquote
 
 HERE = Path(__file__).resolve().parent
 MODULE_ROOT = HERE.parent
@@ -30,6 +31,10 @@ PORT = int(os.environ.get("MINE_SERVICES_PORT", "8765"))
 STATIC_ROOT = REPO_ROOT.resolve()
 STATIC_ENTRY = os.environ.get("MINE_SERVICES_ENTRY", "/lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html")
 DB_PATH = Path(os.environ.get("MINE_SERVICES_DB", str(MODULE_ROOT / "Database" / "Mine-Services-Database-A3.xlsx"))).resolve()
+EVIDENCE_ROOT = (DB_PATH.parent / "Evidence").resolve()
+EVIDENCE_MODULES = frozenset({"TargetPlan", "HSE", "Maintenance"})
+EVIDENCE_EXTENSIONS = frozenset({".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx"})
+MAX_EVIDENCE_FILE_BYTES = 100_000_000
 
 SCHEMA_NAME = os.environ.get("MINE_SERVICES_SCHEMA", "A3").upper()
 if SCHEMA_NAME != "A3":
@@ -55,6 +60,21 @@ def is_allowed_origin(origin: str | None) -> bool:
         return parsed.scheme == "http" and parsed.hostname in {"127.0.0.1", "localhost"}
     except Exception:
         return False
+
+
+def evidence_record_directory(module: str, record_id: str) -> Path:
+    """Resolve one allowlisted evidence record directory without permitting traversal."""
+    if module not in EVIDENCE_MODULES:
+        raise ValueError("Unsupported evidence module")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", record_id or ""):
+        raise ValueError("Invalid evidence record ID")
+    root = EVIDENCE_ROOT.resolve()
+    target = (root / module / record_id).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("Invalid evidence record path") from exc
+    return target
 
 
 def build_adapter() -> RuntimeAdapter:
@@ -827,6 +847,92 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         origin = self.headers.get("Origin")
         path = unquote(self.path.split("?", 1)[0])
+
+        if path in {"/evidence/list", "/evidence/file"}:
+            if origin and not is_allowed_origin(origin):
+                self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
+                return
+
+            query = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            module = query.get("module", [""])[0]
+            record_id = query.get("record_id", [""])[0]
+            try:
+                record_dir = evidence_record_directory(module, record_id)
+            except ValueError as exc:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": str(exc)}]}, origin)
+                return
+
+            if path == "/evidence/list":
+                try:
+                    record_dir.mkdir(parents=True, exist_ok=True)
+                    files = []
+                    for item in sorted(record_dir.iterdir(), key=lambda entry: entry.name.casefold()):
+                        if item.is_symlink() or not item.is_file() or item.suffix.lower() not in EVIDENCE_EXTENSIONS:
+                            continue
+                        stat = item.stat()
+                        mime_type = guess_type(item.name)[0] or "application/octet-stream"
+                        files.append({
+                            "name": item.name,
+                            "size": stat.st_size,
+                            "modified_at": stat.st_mtime,
+                            "mime_type": mime_type,
+                            "previewable": item.suffix.lower() in {".pdf", ".jpg", ".jpeg", ".png"},
+                            "available": stat.st_size <= MAX_EVIDENCE_FILE_BYTES,
+                        })
+                    self._json(200, {
+                        "status": "READY",
+                        "module": module,
+                        "record_id": record_id,
+                        "folder": f"Database/Evidence/{module}/{record_id}",
+                        "files": files,
+                    }, origin)
+                except OSError:
+                    self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence directory could not be read"}]}, origin)
+                return
+
+            filename = query.get("filename", [""])[0]
+            if (
+                not filename
+                or Path(filename).name != filename
+                or "/" in filename
+                or "\\" in filename
+                or Path(filename).suffix.lower() not in EVIDENCE_EXTENSIONS
+            ):
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid evidence filename"}]}, origin)
+                return
+            target = (record_dir / filename).resolve()
+            try:
+                target.relative_to(record_dir.resolve())
+            except ValueError:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid evidence file path"}]}, origin)
+                return
+            if target.is_symlink() or not target.is_file() or target.suffix.lower() not in EVIDENCE_EXTENSIONS:
+                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
+                return
+            try:
+                size = target.stat().st_size
+                if size > MAX_EVIDENCE_FILE_BYTES:
+                    self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB preview limit"}]}, origin)
+                    return
+                body = target.read_bytes()
+            except OSError:
+                self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be read"}]}, origin)
+                return
+
+            mime_type = guess_type(target.name)[0] or "application/octet-stream"
+            disposition = "inline" if target.suffix.lower() in {".pdf", ".jpg", ".jpeg", ".png"} else "attachment"
+            self.send_response(200)
+            self.send_header("Content-Type", mime_type)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Content-Disposition", f"{disposition}; filename*=UTF-8''{quote(target.name, safe='')}")
+            if is_allowed_origin(origin):
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Vary", "Origin")
+            self.end_headers()
+            self.wfile.write(body)
+            return
 
         if path == "/health":
             self._json(200, {
