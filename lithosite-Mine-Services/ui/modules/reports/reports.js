@@ -605,7 +605,7 @@ function reportSectionText(value){
     if(value.remaining_by_measurement)add('Remaining by measurement',reportCountText(value.remaining_by_measurement));
     if(value.actual_period_output_by_measurement)add('All validated actual output in period',reportCountText(value.actual_period_output_by_measurement));
     if(value.unallocated_plan_ids&&value.unallocated_plan_ids.length)add('Unallocated plan IDs',value.unallocated_plan_ids.join(', '));
-    if(value.plan_details&&value.plan_details.length)add('Plan details',value.plan_details.join('\\n'));
+    if(value.plan_details&&value.plan_details.length)add('Plan details',value.plan_details.join('\n'));
     if(value.allocation_note)add('Target allocation rule',value.allocation_note);
     if(value.ambiguity_note)add('Ambiguous matching',value.ambiguity_note);
     if(value.evidence&&typeof value.evidence==='object'){
