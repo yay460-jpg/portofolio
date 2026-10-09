@@ -184,6 +184,24 @@ class PersistenceStore:
         lists.cell(row=last_value_row + 1, column=column, value="Top Soil")
         return True
 
+    def _migrate_a3_remove_plans_target_hours(self, workbook):
+        """Remove the retired target_hours column from the A.3 Plans worksheet."""
+        if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
+            return False
+        if "Plans" not in workbook.sheetnames:
+            return False
+
+        plans = workbook["Plans"]
+        headers = [cell.value for cell in plans[1]]
+        try:
+            column_index = headers.index("target_hours") + 1
+        except ValueError:
+            return False
+
+        # Delete by header name rather than a fixed position to preserve all other fields.
+        plans.delete_cols(column_index, 1)
+        return True
+
     def _validate_workbook_contract(self, workbook):
         required = set(self.schema.DOMAIN_ENTITIES) | {"_System", "_Lists", "AuditLog"}
         missing = required - set(workbook.sheetnames)
@@ -214,7 +232,8 @@ class PersistenceStore:
                 raise ValueError(f"SHEET_MISSING:{sorted(missing)}")
         migrated = self._migrate_a3_checker_support_headers(wb)
         top_soil_migrated = self._migrate_a3_top_soil_material(wb)
-        if migrated or top_soil_migrated:
+        plan_hours_migrated = self._migrate_a3_remove_plans_target_hours(wb)
+        if migrated or top_soil_migrated or plan_hours_migrated:
             wb.save(self.path)
         wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)
