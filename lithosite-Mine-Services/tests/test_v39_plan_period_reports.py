@@ -17,6 +17,9 @@ def test_target_plan_does_not_show_or_require_hours_but_keeps_a3_legacy_column()
     assert "f_plan_target_hours" not in PLANS_SCREEN
     assert "Target Hours" not in PLANS_SCREEN
     assert "Target Hrs" not in PLANS_SCREEN
+    assert 'id="f_target"' in HTML
+    assert 'id="f_actual"' in HTML
+    assert '"Operations":["transaction_id","transaction_date","transaction_time","domain","work_front_id","equipment_id","activity","quantity","measurement","actual_hours","target_hours","status"' in SCHEMA
     assert '"Plans":["plan_id","period","start_date","end_date","domain","work_front_id","activity","target_quantity","measurement","target_hours","status"]' in SCHEMA
 
 
