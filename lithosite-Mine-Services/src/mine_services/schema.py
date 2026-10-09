@@ -15,7 +15,7 @@ HEADERS = {
 "Operations":["transaction_id","transaction_date","transaction_time","domain","work_front_id","equipment_id","activity","quantity","measurement","actual_hours","target_hours","status","source","created_at","updated_at","retase","capacity_profile_id","applied_capacity","capacity_measurement","end_time","shift","material","checker_name"],
 "Maintenance":["maintenance_id","equipment_id","event_date","event_type","failure_code","start_time","end_time","downtime_hours","action","status","source"],
 "Issues":["issue_id","issue_date","domain","work_front_id","equipment_id","description","severity","status","assigned_to","closed_at"],
-"Plans":["plan_id","period","domain","work_front_id","activity","target_quantity","measurement","target_hours","status"],
+"Plans":["plan_id","period","start_date","end_date","domain","work_front_id","activity","target_quantity","measurement","target_hours","status"],
 "HSE":["hse_id","event_date","domain","work_front_id","event_type","severity","description","action","status","closed_at"],
 "AuditLog":["audit_id","timestamp","entity","entity_id","action","old_value","new_value","source"],
 "GlobalCapacity":["capacity_profile_id","capacity_name","unit_brand","capacity_value","measurement","status","effective_from","effective_to"],
@@ -27,7 +27,7 @@ PKS={"Equipment":"equipment_id","WorkFront":"work_front_id","Operations":"transa
 
 REQUIRED={
 "Equipment":{"equipment_id","unit_no"},"WorkFront":{"work_front_id"},"Operations":{"transaction_id","work_front_id"},
-"Maintenance":{"maintenance_id","equipment_id"},"Issues":{"issue_id"},"Plans":{"plan_id"},"HSE":{"hse_id"},
+"Maintenance":{"maintenance_id","equipment_id"},"Issues":{"issue_id"},"Plans":{"plan_id","start_date","end_date"},"HSE":{"hse_id"},
 "GlobalCapacity":{"capacity_profile_id","capacity_name","capacity_value","measurement","status"},
 "Checker":{"checker_id","checker_name","observation_date","start_time","end_time","shift","equipment_id","work_front_id","activity","source"},
 "MapMarker":{"marker_id","marker_type","easting","northing","elevation"},
