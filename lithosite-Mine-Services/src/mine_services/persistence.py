@@ -24,7 +24,7 @@ class PersistenceStore:
             "work_front_status": {"Active", "Inactive", "Closed"},
             "capacity_status": {"Active", "Inactive"},
             "checker_shift": {"Day", "Night"},
-            "checker_material": {"Ore", "OB", "Quarry"},
+            "checker_material": {"Ore", "OB", "Quarry", "Top Soil"},
             "transaction_status": {"DRAFT", "VALIDATED", "REJECTED", "VOIDED"},
             "measurement": {"hour", "km", "m", "m2", "m3", "ton", "unit", "cycle"},
             "maintenance_event_type": {"Preventive", "Corrective", "Inspection", "Breakdown"},
@@ -155,6 +155,35 @@ class PersistenceStore:
 
         return changed
 
+    def _migrate_a3_top_soil_material(self, workbook):
+        """Add Top Soil to the A.3 controlled material list without changing existing entries."""
+        if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
+            return False
+        lists = workbook["_Lists"] if "_Lists" in workbook.sheetnames else None
+        if lists is None:
+            return False
+
+        headers = [cell.value for cell in lists[1]]
+        try:
+            column = headers.index("checker_material") + 1
+        except ValueError:
+            return False
+
+        values = [
+            lists.cell(row=row_index, column=column).value
+            for row_index in range(2, lists.max_row + 1)
+        ]
+        if any(value == "Top Soil" for value in values):
+            return False
+
+        last_value_row = max(
+            (row_index for row_index in range(2, lists.max_row + 1)
+             if lists.cell(row=row_index, column=column).value not in (None, "")),
+            default=1,
+        )
+        lists.cell(row=last_value_row + 1, column=column, value="Top Soil")
+        return True
+
     def _validate_workbook_contract(self, workbook):
         required = set(self.schema.DOMAIN_ENTITIES) | {"_System", "_Lists", "AuditLog"}
         missing = required - set(workbook.sheetnames)
@@ -184,7 +213,8 @@ class PersistenceStore:
             if missing:
                 raise ValueError(f"SHEET_MISSING:{sorted(missing)}")
         migrated = self._migrate_a3_checker_support_headers(wb)
-        if migrated:
+        top_soil_migrated = self._migrate_a3_top_soil_material(wb)
+        if migrated or top_soil_migrated:
             wb.save(self.path)
         wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)
