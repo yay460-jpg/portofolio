@@ -35,6 +35,16 @@ def test_report_center_uses_plan_start_end_dates_instead_of_created_date():
     assert "function planRange(r)" in MONTHLY_JS and "if(n==='Plans')" in MONTHLY_JS
 
 
+def test_report_period_dates_do_not_shift_with_local_timezone():
+    period_block = REPORTS_JS[REPORTS_JS.index("function reportPeriod(type,startDate)"):REPORTS_JS.index("function reportRecordDate")]
+    assert "const value=String(startDate||latestOperationalDate()).slice(0,10);" in period_block
+    assert "new Date(Date.UTC(parts[0],parts[1]-1,parts[2]))" in period_block
+    assert "periodStart.toISOString()" not in period_block
+    assert "periodEnd.setUTCDate(periodEnd.getUTCDate()+6)" in period_block
+    assert "periodEnd.setUTCMonth(periodEnd.getUTCMonth()+1,0)" in period_block
+    assert "value.slice(8,10)!=='01'" in period_block
+
+
 def test_daily_weekly_monthly_models_include_plan_vs_actual_section():
     assert REPORTS_JS.count("return attachPlanActual(") == 3
     assert "model.report_type==='DAILY'?'Plan vs Actual':model.report_type==='WEEKLY'?'Planned vs Actual':'Target vs Actual'" in REPORTS_JS
