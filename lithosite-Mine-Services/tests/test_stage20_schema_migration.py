@@ -75,6 +75,8 @@ def test_stage20_migration_creates_a3_without_mutating_a2(tmp_path):
     assert list(migrated["Checker"].values)[0] == tuple(A3_HEADERS["Checker"])
     assert list(migrated["WorkFront"].values)[0] == tuple(A3_HEADERS["WorkFront"])
     assert list(migrated["Operations"].values)[0] == tuple(A3_HEADERS["Operations"])
+    assert list(migrated["Plans"].values)[0] == tuple(A3_HEADERS["Plans"])
+    assert "target_hours" not in list(migrated["Plans"].values)[0]
 
 
 def test_stage20_migration_preserves_existing_domain_data_and_audit(tmp_path):
