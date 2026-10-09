@@ -202,11 +202,22 @@ async function previewEvidenceFile(name){
   host.innerHTML='<div class="evidence-preview-content"><div class="evidence-preview-toolbar"><span>'+safeName+'</span></div><div class="evidence-empty">Loading file preview…</div></div>';
   if(status){status.classList.remove('error');status.textContent=(isPdf?'Loading PDF preview: ':'Loading image preview: ')+file.name;}
   try{
-   const response=await fetch(url,{cache:'no-store'});
-   if(!response.ok)throw new Error('File request failed (HTTP '+response.status+')');
-   const blob=await response.blob();
+   const response=await fetch(rc.HOST+'/evidence/preview',{
+    method:'POST',
+    cache:'no-store',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({module:'TargetPlan',record_id:planId,filename:file.name})
+   });
+   const payload=await response.json();
+   if(!response.ok||payload.status!=='READY'||typeof payload.data!=='string') {
+    const detail=payload.errors&&payload.errors[0]&&payload.errors[0].message;
+    throw new Error(detail||'Evidence preview request failed (HTTP '+response.status+')');
+   }
    if(requestId!==evidencePreviewRequest||activeEvidencePlanId!==planId)return;
-   const previewBlob=blob.type?blob:new Blob([blob],{type:String(file.mime_type||'application/octet-stream')});
+   const binary=atob(payload.data);
+   const bytes=new Uint8Array(binary.length);
+   for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+   const previewBlob=new Blob([bytes],{type:String(payload.mime_type||file.mime_type||'application/octet-stream')});
    const objectUrl=URL.createObjectURL(previewBlob);
    activeEvidenceObjectUrl=objectUrl;
    if(isPdf){
