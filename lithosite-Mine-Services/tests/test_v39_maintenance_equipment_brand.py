@@ -11,14 +11,14 @@ def test_maintenance_brand_column_is_between_equipment_and_type():
         '<div class="cell">Equipment</div><div class="cell">Brand / Merk</div>'
         '<div class="cell">Type</div><div class="cell">Maintenance Timeline</div>'
     ) in HTML
-    assert "esc(equipmentBrand(equipment))" in MAINTENANCE_JS
-    row_start = MAINTENANCE_JS.index("return '<div class=\\"tr td maintenance-trace-row")
-    row_end = MAINTENANCE_JS.index(";</div>", row_start) if ";</div>" in MAINTENANCE_JS[row_start:] else row_start + 1800
-    rendered_row = MAINTENANCE_JS[row_start:row_end]
-    brand_position = rendered_row.index("esc(equipmentBrand(equipment))")
+
+    row_start = MAINTENANCE_JS.index("esc(equipment?.unit_no||first.equipment_id||'—')")
+    rendered_row = MAINTENANCE_JS[row_start:row_start + 500]
     equipment_position = rendered_row.index("esc(equipment?.unit_no")
+    brand_position = rendered_row.index("esc(equipmentBrand(equipment))")
     type_position = rendered_row.index("esc(equipment?.type")
     assert equipment_position < brand_position < type_position
+
 
 def test_maintenance_brand_comes_from_equipment_capacity_profile():
     assert "capacities:[]" in MAINTENANCE_JS
