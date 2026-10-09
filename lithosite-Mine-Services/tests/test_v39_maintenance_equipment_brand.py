@@ -36,8 +36,8 @@ def test_maintenance_refresh_reloads_equipment_and_global_capacity():
 
 def test_maintenance_grid_has_an_additional_brand_column_and_fresh_assets():
     assert (
-        "#maintenanceScreen .tr{grid-template-columns:110px 155px 120px 120px "
-        "minmax(150px,1fr) 110px 110px 100px;min-width:1050px;}"
+        "#maintenanceScreen .tr{grid-template-columns:100px 145px 110px 100px "
+        "minmax(130px,1fr) 115px 90px 75px 90px;min-width:1080px;}"
     ) in MAINTENANCE_CSS
     assert "maintenance.css?v=20261027" in HTML
     assert "maintenance.js?v=20261010" in HTML
