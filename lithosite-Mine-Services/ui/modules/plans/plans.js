@@ -184,6 +184,12 @@ function invalidateEvidencePreview(){
  evidencePreviewRequest+=1;
  releaseEvidencePreviewUrl();
 }
+function setEvidencePreviewLabel(label,filename){
+ const el=document.getElementById('planEvidencePreviewLabel');
+ if(!el)return;
+ el.textContent=label&&filename?label+': '+filename:(label||'');
+ el.title=el.textContent;
+}
 async function previewEvidenceFile(name){
  const host=document.getElementById('planEvidencePreview');
  const status=document.getElementById('planEvidenceStatus');
@@ -192,18 +198,21 @@ async function previewEvidenceFile(name){
  const requestId=++evidencePreviewRequest;
  const planId=activeEvidencePlanId;
  releaseEvidencePreviewUrl();
+ const safeName=esc(file.name);
  if(file.available===false){
+  setEvidencePreviewLabel('Preview unavailable',file.name);
   host.innerHTML='<div class="evidence-empty">This file exceeds the 100 MB preview limit.</div>';
+  if(status){status.classList.add('error');status.textContent='This file exceeds the 100 MB preview limit.';}
   return;
  }
  const url=evidenceFileUrl(file.name);
- const safeName=esc(file.name);
  const mime=String(file.mime_type||'').toLowerCase();
  const isPdf=file.previewable&&mime==='application/pdf';
  const isImage=file.previewable&&mime.indexOf('image/')===0;
  if(isPdf||isImage){
-  host.innerHTML='<div class="evidence-preview-content"><div class="evidence-preview-toolbar"><span>'+safeName+'</span></div><div class="evidence-empty">Loading file preview…</div></div>';
-  if(status){status.classList.remove('error');status.textContent=(isPdf?'Loading PDF preview: ':'Loading image preview: ')+file.name;}
+  setEvidencePreviewLabel(isPdf?'Loading PDF preview':'Loading image preview',file.name);
+  host.innerHTML='<div class="evidence-preview-content"><div class="evidence-empty">Loading file preview…</div></div>';
+  if(status){status.classList.remove('error');status.textContent='';}
   try{
    const response=await fetch(rc.HOST+'/evidence/preview',{
     method:'POST',
@@ -224,21 +233,24 @@ async function previewEvidenceFile(name){
    const objectUrl=URL.createObjectURL(previewBlob);
    activeEvidenceObjectUrl=objectUrl;
    if(isPdf){
-    host.innerHTML='<div class="evidence-preview-content"><div class="evidence-preview-toolbar"><span>'+safeName+'</span></div><iframe class="evidence-pdf" src="'+esc(objectUrl)+'" title="'+safeName+'"></iframe></div>';
-    if(status)status.textContent='PDF preview: '+file.name;
+    host.innerHTML='<div class="evidence-preview-content"><iframe class="evidence-pdf" src="'+esc(objectUrl)+'" title="'+safeName+'"></iframe></div>';
+    setEvidencePreviewLabel('PDF preview',file.name);
    }else{
-    host.innerHTML='<div class="evidence-preview-content"><div class="evidence-preview-toolbar"><span>'+safeName+'</span></div><img class="evidence-image" src="'+esc(objectUrl)+'" alt="'+safeName+'"></div>';
-    if(status)status.textContent='Image preview: '+file.name;
+    host.innerHTML='<div class="evidence-preview-content"><img class="evidence-image" src="'+esc(objectUrl)+'" alt="'+safeName+'"></div>';
+    setEvidencePreviewLabel('Image preview',file.name);
    }
+   if(status){status.classList.remove('error');status.textContent='';}
   }catch(error){
    if(requestId!==evidencePreviewRequest||activeEvidencePlanId!==planId)return;
    host.innerHTML='<div class="evidence-empty">Preview unavailable. '+esc(error&&error.message?error.message:String(error))+'</div>';
+   setEvidencePreviewLabel('', '');
    if(status){status.classList.add('error');status.textContent='Could not preview '+file.name;}
   }
   return;
  }
+ setEvidencePreviewLabel('Document selected',file.name);
  host.innerHTML='<div class="evidence-download-panel"><p><b>'+safeName+'</b><br>Word documents are listed here but cannot be previewed natively in this window. Use the button to download the original file.</p><a class="control primary" href="'+esc(url)+'" download="'+safeName+'">Download document</a></div>';
- if(status){status.classList.remove('error');status.textContent='Document selected: '+file.name;}
+ if(status){status.classList.remove('error');status.textContent='';}
 }
 function setEvidenceUploadStatus(message,error){
  const status=document.getElementById('planEvidenceUploadStatus');
