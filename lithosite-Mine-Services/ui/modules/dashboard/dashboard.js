@@ -368,14 +368,42 @@
       bars.appendChild(empty);
     }
 
+    const chartDateKeys = new Set(activeDates.map(localDateKey));
+    const chartOperations = contextOperations.filter(function (row) {
+      return chartDateKeys.has(String(row.transaction_date || ''));
+    });
+    const chartRetase = chartOperations.reduce(function (sum, row) {
+      if (row.retase === null || row.retase === undefined || row.retase === '') return sum;
+      const retase = Number(row.retase);
+      return Number.isFinite(retase) && retase >= 0 ? sum + retase : sum;
+    }, 0);
+    const chartTonTotals = activeDates.reduce(function (sum, date) {
+      const total = totals[localDateKey(date)] || { Hauling: 0, Dumping: 0 };
+      sum.Hauling += total.Hauling;
+      sum.Dumping += total.Dumping;
+      return sum;
+    }, { Hauling: 0, Dumping: 0 });
+    const combined = chartTonTotals.Hauling + chartTonTotals.Dumping;
+    const unit = rawOperations.find(function (row) { return row.measurement; });
+    const measurementLabel = unit && unit.measurement ? String(unit.measurement) : 'ton';
+
+    function formatTotal(value) {
+      return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+    }
+
     legend.replaceChildren();
-    ['Hauling', 'Dumping'].forEach(function (name) {
+    [
+      { name: 'Hauling', value: chartTonTotals.Hauling, className: 'chartdot-blue' },
+      { name: 'Dumping', value: chartTonTotals.Dumping, className: 'chartdot-orange' }
+    ].forEach(function (item) {
       const key = document.createElement('span');
       key.className = 'chartkey';
       const dot = document.createElement('i');
-      dot.className = name === 'Dumping' ? 'chartdot chartdot-orange' : 'chartdot chartdot-blue';
+      dot.className = 'chartdot ' + item.className;
       key.appendChild(dot);
-      key.appendChild(document.createTextNode(name));
+      key.appendChild(document.createTextNode(
+        item.name + ': ' + formatTotal(item.value) + ' ' + measurementLabel
+      ));
       legend.appendChild(key);
     });
 
@@ -384,18 +412,10 @@
     const retaseDot = document.createElement('i');
     retaseDot.className = 'chartdot chartdot-retase';
     retaseKey.appendChild(retaseDot);
-    const displayedRetase = Number.isInteger(totalRetase)
-      ? String(totalRetase)
-      : String(Number(totalRetase.toFixed(2)));
+    const displayedRetase = formatTotal(chartRetase);
     retaseKey.appendChild(document.createTextNode('Retase: ' + displayedRetase + ' rit'));
     legend.appendChild(retaseKey);
 
-    const combined = activeDates.reduce(function (sum, date) {
-      const total = totals[localDateKey(date)];
-      return sum + total.Hauling + total.Dumping;
-    }, 0);
-
-    const unit = rawOperations.find(function (row) { return row.measurement; });
     const totalStrong = note.querySelector('strong');
     if (totalStrong) {
       totalStrong.textContent = String(combined) + (unit && unit.measurement ? ' ' + unit.measurement : '');
