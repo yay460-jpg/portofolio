@@ -1155,17 +1155,9 @@ class Handler(BaseHTTPRequestHandler):
                 with target_file.open("xb") as stream:
                     created_file = True
                     stream.write(body)
-                self._json(201, {
-                    "status": "READY",
-                    "module": module,
-                    "record_id": record_id,
-                    "folder": f"Database/Evidence/{module}/{record_id}",
-                    "filename": filename,
-                    "size": len(body),
-                    "mime_type": guess_type(filename)[0] or "application/octet-stream",
-                }, origin)
             except FileExistsError:
                 self._json(409, {"status": "REJECTED", "errors": [{"code": "HOST-012", "message": "An Evidence item with this filename already exists"}]}, origin)
+                return
             except (OSError, ValueError):
                 if created_file and target_file is not None:
                     try:
@@ -1173,6 +1165,16 @@ class Handler(BaseHTTPRequestHandler):
                     except OSError:
                         pass
                 self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be saved"}]}, origin)
+                return
+            self._json(201, {
+                "status": "READY",
+                "module": module,
+                "record_id": record_id,
+                "folder": f"Database/Evidence/{module}/{record_id}",
+                "filename": filename,
+                "size": len(body),
+                "mime_type": guess_type(filename)[0] or "application/octet-stream",
+            }, origin)
             return
 
         if post_path == "/evidence/preview":
