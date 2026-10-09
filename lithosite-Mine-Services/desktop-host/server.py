@@ -68,6 +68,15 @@ ADAPTER = build_adapter()
 
 def _pdf_escape(value: object) -> str:
     text = str(value if value is not None else "")
+    # The lightweight PDF writer uses built-in WinAnsi fonts. Normalize Unicode
+    # punctuation that those fonts cannot represent instead of emitting '?'.
+    text = (
+        text.replace("→", " to ").replace("←", " from ")
+        .replace("–", "-").replace("—", "-").replace("−", "-")
+        .replace("‘", "'").replace("’", "'")
+        .replace("“", '"').replace("”", '"')
+        .replace("\\u00a0", " ").replace("…", "...")
+    )
     text = text.encode("latin-1", "replace").decode("latin-1")
     return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
@@ -278,6 +287,106 @@ def build_report_pdf(model: dict) -> bytes:
             # The empty cell is intentional for alignment.
             y += 0
 
+    def compact_metric(value: object) -> str:
+        if value is None:
+            return "Not comparable"
+        try:
+            number = float(value)
+            if not __import__("math").isfinite(number):
+                return str(value)
+            rendered = f"{number:,.2f}".rstrip("0").rstrip(".")
+            return rendered or "0"
+        except (TypeError, ValueError):
+            return str(value)
+
+    def metric_cell(metric_map: object, unit: str, percent: bool = False) -> str:
+        if not isinstance(metric_map, dict) or unit not in metric_map:
+            return "—"
+        value = metric_map[unit]
+        if value is None:
+            return "Not comparable"
+        if percent:
+            try:
+                return f"{float(value):.1f}%"
+            except (TypeError, ValueError):
+                return str(value)
+        return compact_metric(value)
+
+    def render_plan_actual(value: dict) -> None:
+        nonlocal y
+        start_date = str(value.get("period_start") or "—")
+        end_date = str(value.get("period_end") or start_date)
+        field_pair("Comparison Status", value.get("comparison_status", "—"),
+                   "Report Period", f"{start_date} to {end_date}", 24)
+        field_pair("Comparable Plans", display_value("record_count", value.get("comparable_plan_count", 0)),
+                   "Unallocated Plans", display_value("record_count", value.get("unallocated_plan_count", 0)), 22)
+        field_pair("Validated Operations", display_value("record_count", value.get("validated_operations_count", 0)),
+                   "Matched Operations", display_value("record_count", value.get("matched_operation_count", 0)), 22)
+        field_pair("Ambiguous Matches", display_value("record_count", value.get("ambiguous_operation_count", 0)),
+                   "Unallocated Plan IDs", ", ".join(str(x) for x in (value.get("unallocated_plan_ids") or [])) or "None", 22)
+
+        targets = value.get("target_by_measurement") if isinstance(value.get("target_by_measurement"), dict) else {}
+        actuals = value.get("actual_by_measurement") if isinstance(value.get("actual_by_measurement"), dict) else {}
+        variances = value.get("variance_by_measurement") if isinstance(value.get("variance_by_measurement"), dict) else {}
+        achievements = value.get("achievement_by_measurement") if isinstance(value.get("achievement_by_measurement"), dict) else {}
+        remaining = value.get("remaining_by_measurement") if isinstance(value.get("remaining_by_measurement"), dict) else {}
+        units = []
+        for metric in (targets, actuals, variances, achievements, remaining):
+            for unit in metric:
+                if unit not in units:
+                    units.append(unit)
+
+        if units:
+            headers = ("Measurement", "Target", "Actual", "Variance", "Achievement", "Remaining")
+            widths = (70, 74, 74, 76, 100, 117)
+            header_h, row_h = 18, 18
+            ensure(header_h + row_h + 8)
+            top = y + 4
+            x = M
+            for label, width in zip(headers, widths):
+                rect(x, top, width, header_h, fill=(0.14, 0.29, 0.47), stroke=(0.14, 0.29, 0.47))
+                at(label, x + 4, top - 12, 6.2, True, (1.0, 1.0, 1.0))
+                x += width
+            y = top - header_h - 2
+            for unit in units:
+                ensure(row_h + 4)
+                top = y + 3
+                values = (
+                    unit,
+                    metric_cell(targets, unit),
+                    metric_cell(actuals, unit),
+                    metric_cell(variances, unit),
+                    metric_cell(achievements, unit, True),
+                    metric_cell(remaining, unit),
+                )
+                x = M
+                for idx, (cell, width) in enumerate(zip(values, widths)):
+                    fill = (0.985, 0.988, 0.992) if idx % 2 == 0 else (0.97, 0.98, 0.99)
+                    rect(x, top, width, row_h, fill=fill, stroke=(0.84, 0.87, 0.91))
+                    at(str(cell), x + 4, top - 12, 6.4, idx == 0, (0.16, 0.24, 0.34))
+                    x += width
+                y = top - row_h - 2
+        else:
+            paragraph("No comparable plan targets were available for this period.", 7.9, 10.2, 104)
+
+        details = value.get("plan_details")
+        if isinstance(details, list) and details:
+            txt("Plan Details", M + 5, 7.3, True, 9, (0.14, 0.29, 0.47))
+            for detail in details:
+                paragraph(str(detail), 7.5, 9.4, 104)
+
+        actual_period = value.get("actual_period_output_by_measurement")
+        if isinstance(actual_period, dict) and actual_period:
+            summary = " | ".join(f"{unit}: {compact_metric(amount)}" for unit, amount in actual_period.items())
+            paragraph("Validated output across all Operations (period reference only): " + summary, 7.5, 9.4, 104)
+
+        allocation_note = value.get("allocation_note")
+        if allocation_note:
+            paragraph("Allocation rule: " + str(allocation_note), 7.5, 9.4, 104)
+        ambiguity_note = value.get("ambiguity_note")
+        if ambiguity_note:
+            paragraph("Ambiguity note: " + str(ambiguity_note), 7.5, 9.4, 104)
+
     start_page()
     report_type = str(model.get("report_type") or "REPORT").upper()
     period = model.get("period") or {}
@@ -440,6 +549,19 @@ def build_report_pdf(model: dict) -> bytes:
             start_page()
 
         heading(str(name))
+
+        if name_upper in {"MONTHLY KPI", "DAILY KPI", "WEEKLY KPI"} and isinstance(value, dict):
+            field_pair("Status", str(value.get("status") or "UNAVAILABLE").upper(),
+                       "Eligible", display_value("record_count", value.get("eligible", "—")), 22)
+            field_pair("PA", display_value("PA", value.get("PA")),
+                       "UA", display_value("UA", value.get("UA")), 22)
+            field_pair("EU", display_value("EU", value.get("EU")),
+                       "Excluded", display_value("record_count", value.get("excluded", "—")), 22)
+            continue
+
+        if name_upper in {"TARGET VS ACTUAL", "PLAN VS ACTUAL", "PLANNED VS ACTUAL"} and isinstance(value, dict):
+            render_plan_actual(value)
+            continue
 
         if name_upper == "PLANNED VS ACTUAL" and isinstance(value, dict):
             pairs = []
