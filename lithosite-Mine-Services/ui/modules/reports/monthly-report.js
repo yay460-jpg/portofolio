@@ -9,7 +9,7 @@ const OPTIONAL=['MarkerLocation','Topography'];
 const CLOSED=['CLOSED','RESOLVED','VOIDED','COMPLETED','DONE'];
 function dateOf(row){if(!row||typeof row!=='object')return null;for(const k of ['start_date','transaction_date','event_date','maintenance_date','issue_date','plan_date','date','work_date','created_at','updated_at']){const v=String(row[k]??'').slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v}return null}
 function rows(s,n){return Array.isArray(s?.[n])?s[n]:[]}
-function planRange(r){const m=String(r?.period||'').match(/^(\\d{4})-(0[1-9]|1[0-2])$/),a=String(r?.start_date||(m?m[0]+'-01':'')).slice(0,10);let b=String(r?.end_date||'').slice(0,10);if(!b&&m)b=m[0]+'-'+String(new Date(Date.UTC(Number(m[1]),Number(m[2]),0)).getUTCDate()).padStart(2,'0');return /^\\d{4}-\\d{2}-\\d{2}$/.test(a)&&/^\\d{4}-\\d{2}-\\d{2}$/.test(b)&&b>=a?{start:a,end:b}:null}
+function planRange(r){const m=String(r?.period||'').match(/^(\d{4})-(0[1-9]|1[0-2])$/),a=String(r?.start_date||(m?m[0]+'-01':'')).slice(0,10);let b=String(r?.end_date||'').slice(0,10);if(!b&&m)b=m[0]+'-'+String(new Date(Date.UTC(Number(m[1]),Number(m[2]),0)).getUTCDate()).padStart(2,'0');return /^\d{4}-\d{2}-\d{2}$/.test(a)&&/^\d{4}-\d{2}-\d{2}$/.test(b)&&b>=a?{start:a,end:b}:null}
 function scoped(s,n,a,b){if(n==='Plans')return rows(s,n).filter(r=>{const p=planRange(r);return !!p&&p.start<=b&&p.end>=a});return rows(s,n).filter(r=>{const d=dateOf(r);return !!d&&d>=a&&d<=b})}
 function text(row,keys){for(const k of keys){const v=String(row?.[k]??'').trim();if(v)return v}return 'Unspecified'}
 function count(a,keys){const o={};a.forEach(r=>{const k=text(r,keys);o[k]=(o[k]||0)+1});return o}
