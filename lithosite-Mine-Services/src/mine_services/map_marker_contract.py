@@ -1,8 +1,7 @@
-"""Stage 20 MapMarker persistence contract.
+"""A.3 MapMarker persistence contract.
 
-This module defines the future persistence shape without activating MapMarker
-as a runtime domain entity yet. Activation requires an explicit schema
-migration and XLSX contract update in a later Stage 20.8K step.
+These canonical field names and validation constants support MapMarker as an
+active runtime domain entity and worksheet in the A.3 workbook schema.
 """
 
 MAP_MARKER_ENTITY = "MapMarker"
