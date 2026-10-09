@@ -112,6 +112,70 @@
     };
   }
 
+  async function syncMissingFromOperations(operations) {
+    const rows = Array.isArray(operations) ? operations : [];
+    const result = await runtimeClient.request({
+      operation: 'READ',
+      entity: 'Checker'
+    });
+    const existingRows = Array.isArray(result.data) ? result.data : [];
+    const existingOperationIds = new Set(existingRows.map(function (row) {
+      return normalize(row.operation_id);
+    }).filter(Boolean));
+    const report = {
+      created: 0,
+      alreadyRecorded: 0,
+      withoutCheckerName: 0,
+      retaseWithoutCheckerName: 0,
+      errors: []
+    };
+
+    for (const operation of rows) {
+      const operationId = normalize(operation.transaction_id);
+      if (!operationId) continue;
+      const checkerName = normalize(operation.checker_name);
+      if (!checkerName) {
+        report.withoutCheckerName += 1;
+        if (operation.retase !== null && operation.retase !== undefined &&
+            String(operation.retase).trim() !== '') {
+          report.retaseWithoutCheckerName += 1;
+        }
+        continue;
+      }
+      if (existingOperationIds.has(operationId)) {
+        report.alreadyRecorded += 1;
+        continue;
+      }
+
+      try {
+        const record = buildRecord(operation);
+        if (!record) {
+          report.withoutCheckerName += 1;
+          continue;
+        }
+        const created = await runtimeClient.request({
+          operation: 'CREATE',
+          entity: 'Checker',
+          row: record
+        });
+        if (created.status !== 'COMMITTED') {
+          const message = created.errors && created.errors.length
+            ? created.errors.map(function (item) { return item.message; }).join('; ')
+            : 'Checker evidence was rejected by RuntimeAdapter.';
+          throw new Error(message);
+        }
+        existingOperationIds.add(operationId);
+        report.created += 1;
+      } catch (error) {
+        report.errors.push({
+          operation_id: operationId,
+          message: error.message || 'Checker evidence could not be backfilled.'
+        });
+      }
+    }
+    return report;
+  }
+
   async function getForOperation(operationId) {
     return findByOperation(operationId);
   }
@@ -119,6 +183,7 @@
   global.LithositeCheckerSupport = {
     buildRecord: buildRecord,
     syncFromOperation: syncFromOperation,
+    syncMissingFromOperations: syncMissingFromOperations,
     getForOperation: getForOperation
   };
 })(window);
