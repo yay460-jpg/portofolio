@@ -408,23 +408,22 @@
 
   function checkerSyncMessage(report) {
     if (!report) return 'RuntimeAdapter connected — offline local persistence active.';
-    if (report.errors && report.errors.length) {
-      return 'Runtime connected. Checker backfill created ' + report.created +
-        ' row(s); ' + report.errors.length + ' operation(s) need attention: ' +
-        report.errors.slice(0, 2).map(function (item) {
-          return item.operation_id + ': ' + item.message;
-        }).join(' | ');
-    }
+    const messages = ['RuntimeAdapter connected — offline local persistence active.'];
     if (report.created > 0) {
-      return 'Runtime connected. Checker evidence backfilled for ' + report.created +
-        ' existing operation(s).';
+      messages.push('Checker evidence backfilled for ' + report.created + ' existing operation(s).');
     }
     if (report.retaseWithoutCheckerName > 0) {
-      return 'Runtime connected. ' + report.retaseWithoutCheckerName +
+      messages.push(report.retaseWithoutCheckerName +
         ' operation(s) have Retase but no Checker Name; Checker rows were not fabricated. ' +
-        'Edit those operations with Checker Name, End Time, Shift, and Equipment.';
+        'Edit those operations with Checker Name, End Time, Shift, and Equipment.');
     }
-    return 'RuntimeAdapter connected — offline local persistence active.';
+    if (report.errors && report.errors.length) {
+      messages.push(report.errors.length + ' operation(s) need Checker attention: ' +
+        report.errors.slice(0, 2).map(function (item) {
+          return item.operation_id + ': ' + item.message;
+        }).join(' | '));
+    }
+    return messages.join(' ');
   }
 
   async function loadData() {
