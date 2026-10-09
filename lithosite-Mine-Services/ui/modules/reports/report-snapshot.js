@@ -32,7 +32,7 @@ async function create(model,issuedAt){
   const revisions=previous.map(item=>{
     const revision=Number(item.snapshot?.revision);
     if(Number.isFinite(revision)&&revision>0)return revision;
-    const match=String(item.snapshot_id||'').match(/@r(\\d+)$/);
+    const match=String(item.snapshot_id||'').match(/@r(\d+)$/);
     return match?Number(match[1]):0;
   });
   const baseRevision=Math.max(0,Number(copy.snapshot?.revision)||0,...revisions);
