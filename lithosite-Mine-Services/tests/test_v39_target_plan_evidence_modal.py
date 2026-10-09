@@ -81,7 +81,9 @@ def test_evidence_endpoint_is_scoped_to_allowed_modules_and_extensions():
     assert "evidence_record_directory(module, record_id)" in HOST
     assert 'or "/" in filename' in HOST
     assert "Path(filename).name != filename" in HOST
-    assert "evidence/upload" not in HOST
+    assert 'if post_path == "/evidence/upload":' in HOST
+    assert "_target_plan_exists(record_id)" in HOST
+    assert "target_file.open(\"xb\")" in HOST
 
 
 def test_central_evidence_folder_is_documented_for_the_three_modules():
