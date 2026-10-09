@@ -1,3 +1,4 @@
+import base64
 import importlib.util
 import json
 import sys
@@ -6,7 +7,7 @@ import uuid
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import pytest
 
@@ -88,6 +89,73 @@ def _get(base_url, endpoint, params):
 
 def _payload(body):
     return json.loads(body.decode("utf-8"))
+
+
+def _post_json(base_url, endpoint, payload):
+    request = Request(
+        f"{base_url}{endpoint}",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=5) as response:
+            return response.status, response.headers, response.read()
+    except HTTPError as error:
+        return error.code, error.headers, error.read()
+
+
+def test_evidence_preview_post_returns_pdf_and_image_bytes_as_json(evidence_host):
+    base_url, server = evidence_host
+    record_dir = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-PREVIEW-01"
+    record_dir.mkdir(parents=True)
+    cases = [
+        ("agreement.pdf", b"%PDF-1.7 preview payload", "application/pdf"),
+        ("site-photo.jpg", b"jpeg preview payload", "image/jpeg"),
+    ]
+
+    for filename, original_bytes, mime_type in cases:
+        (record_dir / filename).write_bytes(original_bytes)
+        status, headers, body = _post_json(
+            base_url,
+            "/evidence/preview",
+            {
+                "module": "TargetPlan",
+                "record_id": "PLN-PREVIEW-01",
+                "filename": filename,
+            },
+        )
+
+        assert status == 200
+        assert headers.get_content_type() == "application/json"
+        assert "Content-Disposition" not in headers
+        payload = _payload(body)
+        assert payload["status"] == "READY"
+        assert payload["mime_type"] == mime_type
+        assert payload["filename"] == filename
+        assert base64.b64decode(payload["data"], validate=True) == original_bytes
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_status"),
+    [
+        ({"module": "Plans", "record_id": "PLN-01", "filename": "file.pdf"}, 400),
+        ({"module": "TargetPlan", "record_id": "../outside", "filename": "file.pdf"}, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-01", "filename": "../outside.pdf"}, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-01", "filename": "file.docx"}, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-01", "filename": "missing.pdf"}, 404),
+    ],
+)
+def test_evidence_preview_post_rejects_invalid_or_missing_files(evidence_host, payload, expected_status):
+    base_url, _server = evidence_host
+
+    status, headers, body = _post_json(base_url, "/evidence/preview", payload)
+
+    assert status == expected_status
+    assert headers.get_content_type() == "application/json"
+    result = _payload(body)
+    assert result["status"] == "REJECTED"
+    assert result["errors"]
 
 
 def test_evidence_listing_returns_only_supported_direct_child_files(evidence_host):
