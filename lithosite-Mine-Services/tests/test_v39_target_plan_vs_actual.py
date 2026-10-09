@@ -35,3 +35,14 @@ def test_combined_register_calculates_actual_variance_achievement_and_remaining(
     assert "plansTableTitle" not in PLANS_JS
     assert "plans.js?v=20261016" in HTML
     assert "plans.css?v=20261103" in HTML
+
+
+def test_target_plan_register_uses_measurement_as_the_only_visible_unit_label():
+    assert "validActual?esc(numberLabel(actual)):'—'" in PLANS_JS
+    assert "validActual?numberLabel(actual):'Actual unavailable'" in PLANS_JS
+    assert "esc((variance>0?'+':'')+numberLabel(variance))" in PLANS_JS
+    assert "esc(numberLabel(remaining))" in PLANS_JS
+    assert "numberLabel(actual)+' '+unit" not in PLANS_JS
+    assert "numberLabel(variance)+' '+unit" not in PLANS_JS
+    assert "numberLabel(remaining)+' '+unit" not in PLANS_JS
+    assert "plans.js?v=20261017" in HTML
