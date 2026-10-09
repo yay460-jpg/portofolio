@@ -141,7 +141,7 @@
 #plansScreen .plantr.consolidated-th,
 #plansScreen .plantr.consolidated-tr {
   display:grid;
-  grid-template-columns:minmax(90px,.9fr) minmax(78px,.78fr) minmax(78px,.78fr) minmax(100px,1fr) minmax(140px,1.4fr) minmax(88px,.9fr) minmax(78px,.78fr) minmax(72px,.72fr) minmax(82px,.82fr) minmax(88px,.88fr) minmax(88px,.88fr) minmax(82px,.82fr) minmax(82px,.82fr) minmax(100px,1fr);
+  grid-template-columns:minmax(90px,.9fr) minmax(78px,.78fr) minmax(78px,.78fr) minmax(100px,1fr) minmax(220px,1.9fr) minmax(88px,.9fr) minmax(78px,.78fr) minmax(72px,.72fr) minmax(82px,.82fr) minmax(88px,.88fr) minmax(88px,.88fr) minmax(82px,.82fr) minmax(82px,.82fr) minmax(100px,1fr);
   align-items:center;
   width:100%;
   min-width:0;
@@ -171,6 +171,22 @@
   white-space:nowrap;
 }
 #plansScreen .num { text-align:right; }
+
+/* Work Front identifiers combine an ID and location; give them room and wrap instead of hiding the tail. */
+#plansScreen .plantr.consolidated-th > .cell:nth-child(5) {
+  min-width:0;
+  padding-left:7px;
+  padding-right:7px;
+}
+#plansScreen .plantr.consolidated-tr > .cell:nth-child(5) {
+  min-width:0;
+  padding:5px 7px;
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  overflow-wrap:anywhere;
+  line-height:1.3;
+}
 
 /* Keep identifiers and dates left-aligned; center the activity, target and actual metrics. */
 #plansScreen .plantr.consolidated-th > .cell:nth-child(n+6):nth-child(-n+13),
