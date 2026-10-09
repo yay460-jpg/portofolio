@@ -175,8 +175,8 @@ def test_a3_equipment_header_migration_appends_capacity_profile(tmp_path):
     assert store.schema.HEADERS["Equipment"][-1] == "capacity_profile_id"
 
     check = load_workbook(path, data_only=True)
-    assert check["Equipment"][1].value == "equipment_id"
-    assert check["Equipment"][1].value is not None
+    assert check["Equipment"].cell(row=1, column=1).value == "equipment_id"
+    assert check["Equipment"].cell(row=1, column=10).value == "capacity_profile_id"
     assert check["Equipment"].max_column == len(schema.HEADERS["Equipment"])
 
 
@@ -199,17 +199,21 @@ def test_v39_conservative_migration_resolves_unique_operation_profile(tmp_path):
         lists.append([sorted(defaults[h])[i] if i < len(defaults[h]) else None for h in headers])
 
     for entity in schema.DOMAIN_ENTITIES:
-        wb.create_sheet(entity).append(schema.HEADERS[entity])
+        headers = schema.HEADERS[entity]
+        if entity == "Equipment":
+            headers = headers[:-1]  # legacy A3 header before V39 profile ownership
+        wb.create_sheet(entity).append(headers)
 
     wb["GlobalCapacity"].append(["GC-275", "10 Wheel Heavy", "Volvo", 27.5, "ton", "Active", None, None])
     wb["WorkFront"].append(["WF-A", "Road & Hauling", "Pit A", "Ops", "Active", None, None, "GC-275"])
-    wb["Equipment"].append(["DT-001", "DT-001", "Heavy Equipment", "Dump Truck", "Owner", "", "Active", "2026-10-09", None, None])
+    wb["Equipment"].append(["DT-001", "DT-001", "Heavy Equipment", "Dump Truck", "Owner", "", "Active", "2026-10-09", None])
     wb["Operations"].append([
         "OPS-001", "2026-10-09", "06:00", "Road & Hauling", "WF-A", "DT-001",
         "Hauling", 110, "ton", 4, 4, "DRAFT", "Checker", None, None, 4,
         None, 27.5, "ton", "10:00", "Day", "Ore", "Field Checker"
     ])
-    wb["AuditLog"].append(schema.HEADERS["AuditLog"])
+    audit = wb.create_sheet("AuditLog")
+    audit.append(schema.HEADERS["AuditLog"])
     wb.save(path)
 
     resolved, ambiguous, untouched = migrate(path)
