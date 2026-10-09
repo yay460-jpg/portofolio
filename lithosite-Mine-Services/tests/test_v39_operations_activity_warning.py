@@ -27,6 +27,8 @@ def test_material_movement_activity_rule_excludes_dumping_tonnage():
     assert "if (activity !== 'hauling') return;" in dashboard
     assert "if (activity !== 'hauling' && activity !== 'dumping') return;" not in dashboard
     assert "dashboard.js?v=20261115" in HTML
+    assert '<span class="chartkey"><i class="chartdot chartdot-ore"></i><span class="chartkey-name">Ore</span>' in HTML
+    assert '<span class="chartkey"><i class="chartdot chartdot-blue"></i>Hauling</span>' not in HTML
 
 
 def test_operations_warning_assets_use_fresh_cache_keys():
