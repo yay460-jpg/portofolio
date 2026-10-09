@@ -33,7 +33,7 @@ def test_combined_register_keeps_target_actual_metrics_and_actions():
 
 def test_combined_register_uses_one_responsive_grid_for_fourteen_columns():
     assert "Unified Target Plan register: fourteen aligned columns" in PLANS_CSS
-    assert "grid-template-columns:minmax(82px,.85fr) minmax(75px,.78fr) minmax(75px,.78fr)" in PLANS_CSS
+    assert "grid-template-columns:minmax(90px,.9fr) minmax(78px,.78fr) minmax(78px,.78fr)" in PLANS_CSS
     assert ".plantr.consolidated-th," in PLANS_CSS
     assert ".plantr.consolidated-tr {" in PLANS_CSS
     assert "width:100%" in PLANS_CSS and "min-width:0" in PLANS_CSS
@@ -50,5 +50,5 @@ def test_target_plan_source_has_no_obsolete_toggle_or_dynamic_header_code():
 
 
 def test_combined_register_assets_use_current_cache_versions():
-    assert "plans.js?v=20261015" in HTML
-    assert "plans.css?v=20261102" in HTML
+    assert "plans.js?v=20261016" in HTML
+    assert "plans.css?v=20261103" in HTML
