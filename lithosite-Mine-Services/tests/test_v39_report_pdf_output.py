@@ -83,3 +83,13 @@ def test_monthly_previous_month_trend_formats_current_kpis():
     assert 'display_value(key, current_kpi[key])' in SERVER_TEXT
     assert "Previous-month comparison" in SERVER_TEXT
     assert "previous-month history is not in this snapshot" in SERVER_TEXT
+
+MONTHLY_ENGINE = (ROOT / "ui" / "modules" / "reports" / "monthly-report.js").read_text(encoding="utf-8")
+WEEKLY_ENGINE = (ROOT / "ui" / "modules" / "reports" / "weekly-report.js").read_text(encoding="utf-8")
+
+
+def test_open_plans_trigger_management_attention_in_monthly_and_weekly_reports():
+    assert "validation.length?'VALIDATION REQUIRED':(openI.length||openP.length)?'ATTENTION':'CLEAR'" in MONTHLY_ENGINE
+    assert "decision_required:validation.length>0||openI.length>0||openP.length>0" in MONTHLY_ENGINE
+    assert "v.length?'VALIDATION REQUIRED':(openI.length||openP.length)?'ATTENTION':'CLEAR'" in WEEKLY_ENGINE
+    assert "open_issues:openI.length,open_plans:openP.length" in WEEKLY_ENGINE
