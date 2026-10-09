@@ -52,3 +52,12 @@ def test_target_plan_source_has_no_obsolete_toggle_or_dynamic_header_code():
 def test_combined_register_assets_use_current_cache_versions():
     assert "plans.js?v=20261017" in HTML
     assert "plans.css?v=20261104" in HTML
+
+
+def test_work_front_column_has_room_and_wraps_full_identifier():
+    assert "minmax(220px,1.9fr)" in PLANS_CSS
+    workfront_rules = PLANS_CSS[PLANS_CSS.index("#plansScreen .plantr.consolidated-tr > .cell:nth-child(5)"):PLANS_CSS.index("#plansScreen .consolidated-tr .cell")]
+    assert "white-space:normal" in workfront_rules
+    assert "overflow-wrap:anywhere" in workfront_rules
+    assert "text-overflow:clip" in workfront_rules
+    assert "plans.css?v=20261104" in HTML
