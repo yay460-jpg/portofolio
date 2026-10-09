@@ -66,3 +66,15 @@
 #plansScreen .actual-tr .cell{font-variant-numeric:tabular-nums}
 #plansScreen #plansViewToggle{white-space:nowrap}
 #plansScreen #plansAdd[hidden]{display:none!important}
+
+
+/* V39 — compact Target Plan register columns and keep quantity with its unit. */
+#plansScreen .plantr:not(.actual-th):not(.actual-tr){
+  grid-template-columns:100px 150px 130px 220px 210px 130px 80px 80px 100px minmax(80px,1fr);
+  min-width:1280px;
+}
+#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(6){
+  padding-left:4px;
+  padding-right:4px;
+  white-space:nowrap;
+}
