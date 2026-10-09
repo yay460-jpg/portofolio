@@ -10,8 +10,12 @@ HTML = ARTIFACT.read_text(encoding="utf-8")
 def test_v39_dashboard_material_legend_shows_tons_and_retase_for_plotted_dates():
     assert "const chartDateKeys = new Set(activeDates.map(localDateKey))" in DASHBOARD_JS
     assert "const chartOperations = rawOperations.filter(function (row)" in DASHBOARD_JS
+    assert "const chartDateKeys = new Set(activeDates.map(localDateKey))" in DASHBOARD_JS
+    assert "const chartHaulingOperations = chartOperations.filter(function (row)" in DASHBOARD_JS
+    assert "String(row.activity || '').trim().toLowerCase() === 'hauling'" in DASHBOARD_JS
     assert "const chartTonTotals = activeDates.reduce(function (sum, date)" in DASHBOARD_JS
-    assert "item.name + ': ' + formatTotal(item.value) + ' ' + measurementLabel" in DASHBOARD_JS
+    assert "item.name + ': ' + formatTotal(item.value) + ' ton'" in DASHBOARD_JS
+    assert "totalStrong.textContent = formatTotal(combined) + ' ton';" in DASHBOARD_JS
     assert "'Retase: ' + displayedRetase + ' rit'" in DASHBOARD_JS
     assert "chartdot-retase" in DASHBOARD_CSS
     assert 'id="dashboardMaterialLegend"' in HTML
