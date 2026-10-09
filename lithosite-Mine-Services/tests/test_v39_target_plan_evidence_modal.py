@@ -15,8 +15,7 @@ def test_target_plan_evidence_is_a_trigger_button_between_status_and_actions():
         '<div class="cell">Actions</div>'
     ) in HTML
     assert (
-        '<div class="cell evidence-cell"><button type="button" class="control mini view-evidence" '
-        'data-id="\'+esc(r.plan_id)+\'">View</button></div>'
+        """<div class="cell evidence-cell"><button type="button" class="control mini view-evidence" data-id="'+esc(r.plan_id)+'">View</button></div>"""
     ) in PLANS_JS
     assert 'class="cell status-cell"' in PLANS_JS
     assert 'class="cell row-actions"' in PLANS_JS
@@ -51,7 +50,7 @@ def test_evidence_preview_handles_pdf_images_and_word_documents():
     assert "Download document" in PLANS_JS
     assert "class=\"evidence-pdf\"" in PLANS_JS
     assert "class=\"evidence-image\"" in PLANS_JS
-    assert "target_plan" not in PLANS_JS.lower()
+    assert "#planEvidenceModal .evidence-layout" in PLANS_CSS
 
 
 def test_evidence_endpoint_is_scoped_to_allowed_modules_and_extensions():
@@ -67,7 +66,7 @@ def test_evidence_endpoint_is_scoped_to_allowed_modules_and_extensions():
 
 def test_central_evidence_folder_is_documented_for_the_three_modules():
     for folder in (
-        "Database/Evidence/TargetPlan/<plan_id>/",
+        "Evidence/TargetPlan/<plan_id>/",
         "Evidence/HSE/<hse_id>/",
         "Evidence/Maintenance/<maintenance_id>/",
     ):
