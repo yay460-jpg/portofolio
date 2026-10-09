@@ -93,7 +93,17 @@ def test_snapshot_tamper_rejected():
 def test_import_allows_parent_child_cross_fk_in_same_dataset():
     store = PersistenceStore()
     result = ImportCoordinator(store).import_dataset({
-        "Equipment": [valid_equipment("EQ-CROSS")],
+        "GlobalCapacity": [{
+            "capacity_profile_id": "GC-CROSS",
+            "capacity_name": "Cross-FK Test Capacity",
+            "capacity_value": 25.0,
+            "measurement": "ton",
+            "status": "Active",
+        }],
+        "Equipment": [{
+            **valid_equipment("EQ-CROSS"),
+            "capacity_profile_id": "GC-CROSS",
+        }],
         "WorkFront": [valid_work_front("WF-CROSS")],
         "Maintenance": [{
             "maintenance_id": "M-CROSS",
@@ -108,7 +118,9 @@ def test_import_allows_parent_child_cross_fk_in_same_dataset():
             "equipment_id": "EQ-CROSS",
             "activity": "Hauling",
             "retase": 1,
+            "capacity_profile_id": "GC-CROSS",
             "applied_capacity": 25.0,
+            "capacity_measurement": "ton",
             "quantity": 25.0,
             "measurement": "ton",
             "status": "DRAFT",
