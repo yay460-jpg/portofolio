@@ -44,7 +44,6 @@
 }
 #plansScreen .title p { margin:2px 0; color:#8ea3ba; font-size:11px; }
 #plansScreen .controls { display:flex; gap:7px; }
-#plansScreen #plansViewToggle { white-space:nowrap; }
 #plansScreen #plansAdd[hidden] { display:none!important; }
 
 #plansScreen .filters {
@@ -138,20 +137,11 @@
   overflow:auto;
 }
 
-/* Target Plan Register: eleven tracks for ID, dates, work context, target and actions. */
-#plansScreen .plantr:not(.actual-th):not(.actual-tr) {
+/* Unified Target Plan register: one aligned row for target and actual data. */
+#plansScreen .plantr.consolidated-th,
+#plansScreen .plantr.consolidated-tr {
   display:grid;
-  grid-template-columns:minmax(100px,.8fr) minmax(105px,.75fr) minmax(105px,.75fr) minmax(110px,.8fr) minmax(170px,1.25fr) minmax(120px,1fr) minmax(90px,.7fr) minmax(85px,.65fr) minmax(80px,.6fr) minmax(78px,.55fr) minmax(110px,.8fr);
-  align-items:center;
-  width:100%;
-  min-width:0;
-}
-
-/* Plan vs Actual: twelve tracks, with Start Date and End Date independently readable. */
-#plansScreen .plantr.actual-th,
-#plansScreen .plantr.actual-tr {
-  display:grid;
-  grid-template-columns:minmax(90px,.7fr) minmax(100px,.75fr) minmax(100px,.75fr) minmax(100px,.75fr) minmax(165px,1.2fr) minmax(115px,1fr) minmax(80px,.62fr) minmax(80px,.62fr) minmax(90px,.7fr) minmax(92px,.72fr) minmax(90px,.7fr) minmax(72px,.55fr);
+  grid-template-columns:minmax(82px,.85fr) minmax(75px,.78fr) minmax(75px,.78fr) minmax(90px,.95fr) minmax(130px,1.4fr) minmax(85px,.9fr) minmax(75px,.8fr) minmax(70px,.7fr) minmax(62px,.65fr) minmax(78px,.82fr) minmax(82px,.85fr) minmax(78px,.82fr) minmax(82px,.85fr) minmax(60px,.65fr) minmax(90px,.9fr);
   align-items:center;
   width:100%;
   min-width:0;
@@ -182,24 +172,17 @@
 }
 #plansScreen .num { text-align:right; }
 
-/* Center activity and production metrics while keeping date columns left-aligned. */
-#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(6),
-#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(7),
-#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(8),
-#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(9),
-#plansScreen .plantr.actual-th > .cell:nth-child(6),
-#plansScreen .plantr.actual-tr > .cell:nth-child(6),
-#plansScreen .plantr.actual-th > .cell:nth-child(n+7):nth-child(-n+11),
-#plansScreen .plantr.actual-tr > .cell:nth-child(n+7):nth-child(-n+11) {
+/* Keep identifiers and dates left-aligned; center the activity, target and actual metrics. */
+#plansScreen .plantr.consolidated-th > .cell:nth-child(n+6):nth-child(-n+14),
+#plansScreen .plantr.consolidated-tr > .cell:nth-child(n+6):nth-child(-n+14) {
   text-align:center;
 }
-#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(7),
-#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(8) {
+#plansScreen .plantr.consolidated-tr > .cell:nth-child(7),
+#plansScreen .plantr.consolidated-tr > .cell:nth-child(8) {
   padding-right:3px;
   padding-left:3px;
-  white-space:nowrap;
 }
-#plansScreen .actual-tr .cell { font-variant-numeric:tabular-nums; }
+#plansScreen .consolidated-tr .cell { font-variant-numeric:tabular-nums; }
 
 #plansScreen .statuspill {
   display:inline-flex;
