@@ -19,7 +19,8 @@ def test_v39_dashboard_material_legend_shows_material_tonnage_and_haulage_retase
     assert "label.className = 'chartkey-name';" in DASHBOARD_JS
     assert "metric.className = 'chartkey-value';" in DASHBOARD_JS
     assert "totalStrong.textContent = formatTotal(classifiedTotal) + ' ton';" in DASHBOARD_JS
-    assert "'Retase: ' + formatTotal(chartRetase) + ' rit'" in DASHBOARD_JS
+    assert "formatTotal(chartRetase) + ' rit'" in DASHBOARD_JS
+    assert "appendLegendRow(\n      'Retase'," in DASHBOARD_JS
     assert "chartdot-retase" in DASHBOARD_CSS
     assert 'id="dashboardMaterialLegend"' in HTML
 
