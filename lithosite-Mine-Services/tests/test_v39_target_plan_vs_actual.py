@@ -35,4 +35,4 @@ def test_v39_plan_vs_actual_displays_variance_achievement_and_remaining_target()
     assert "Math.max(target-actual,0)" in PLANS_JS
     assert "actual-th" in PLANS_CSS
     assert "plans.js?v=20261011" in HTML
-    assert "plans.css?v=20261028" in HTML
+    assert "plans.css?v=20261029" in HTML
