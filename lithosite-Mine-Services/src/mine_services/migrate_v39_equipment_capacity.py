@@ -32,13 +32,51 @@ def migrate(path: Path):
     workfront_ws = wb["WorkFront"]
     capacity_ws = wb["GlobalCapacity"]
 
-    equipment_headers = [cell.value for cell in equipment_ws[1]]
-    if equipment_headers != schema.HEADERS["Equipment"]:
-        raise ValueError("HEADER_MISMATCH:Equipment")
+    def read_headers(worksheet):
+        headers = [cell.value for cell in worksheet[1]]
+        while headers and headers[-1] in (None, ""):
+            headers.pop()
+        return headers
 
-    operation_headers = [cell.value for cell in operations_ws[1]]
-    workfront_headers = [cell.value for cell in workfront_ws[1]]
-    capacity_headers = [cell.value for cell in capacity_ws[1]]
+    equipment_headers = read_headers(equipment_ws)
+    current_equipment_headers = list(schema.HEADERS["Equipment"])
+    legacy_equipment_headers = current_equipment_headers[:-1]
+
+    # V38/A3 workbooks may not yet contain the V39 Equipment profile field.
+    # Accept only the exact known legacy header, and reject any populated
+    # unnamed columns rather than risking overwriting user data.
+    if equipment_headers == legacy_equipment_headers:
+        legacy_width = len(legacy_equipment_headers)
+        if equipment_ws.max_column > legacy_width:
+            for row_number in range(2, equipment_ws.max_row + 1):
+                if any(
+                    equipment_ws.cell(row=row_number, column=column).value not in (None, "")
+                    for column in range(legacy_width + 1, equipment_ws.max_column + 1)
+                ):
+                    raise ValueError(
+                        "HEADER_MISMATCH:Equipment has data beyond the recognized legacy header"
+                    )
+        equipment_ws.cell(row=1, column=legacy_width + 1, value="capacity_profile_id")
+        equipment_headers = read_headers(equipment_ws)
+    elif equipment_headers != current_equipment_headers:
+        raise ValueError(
+            "HEADER_MISMATCH:Equipment; expected current V39 header or exact pre-V39 A3 header; "
+            f"found {equipment_headers!r}"
+        )
+
+    operation_headers = read_headers(operations_ws)
+    workfront_headers = read_headers(workfront_ws)
+    capacity_headers = read_headers(capacity_ws)
+
+    required = {
+        "Operations": (operation_headers, {"equipment_id", "capacity_profile_id", "work_front_id"}),
+        "WorkFront": (workfront_headers, {"work_front_id", "capacity_profile_id"}),
+        "GlobalCapacity": (capacity_headers, {"capacity_profile_id"}),
+    }
+    for sheet, (headers, fields) in required.items():
+        missing = sorted(fields - set(headers))
+        if missing:
+            raise ValueError(f"HEADER_MISMATCH:{sheet}; missing required fields: {', '.join(missing)}")
 
     equipment_index = {name: index for index, name in enumerate(equipment_headers)}
     operation_index = {name: index for index, name in enumerate(operation_headers)}
