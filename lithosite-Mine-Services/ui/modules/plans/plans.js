@@ -304,7 +304,7 @@ async function refreshPlanEvidenceList(){
  if(list)list.innerHTML='<div class="evidence-empty">Loading evidence files…</div>';
  if(preview)preview.innerHTML='<div class="evidence-empty">Select a PDF or image from the list.</div>';
  if(status){status.classList.remove('error');status.textContent='Reading the central Evidence folder…';}
- if(meta)meta.textContent='Database/Evidence/TargetPlan/'+planId+' · Read-only viewer';
+ if(meta)meta.textContent='Database/Evidence/TargetPlan/'+planId+' · Evidence viewer · Upload destination managed by Desktop Host';
  try{
   const url=rc.HOST+'/evidence/list?module=TargetPlan&record_id='+encodeURIComponent(planId);
   const response=await fetch(url,{cache:'no-store'});
@@ -322,7 +322,7 @@ async function refreshPlanEvidenceList(){
     ?activeEvidenceFiles.length+' evidence file(s) found. Select a file to preview it.'
     :'No evidence files found for this Target Plan.';
   }
-  if(meta)meta.textContent=payload.folder+' · Read-only viewer · Upload is not enabled';
+  if(meta)meta.textContent=payload.folder+' · Evidence viewer · Upload destination managed by Desktop Host';
  }catch(error){
   if(activeEvidencePlanId!==planId)return;
   activeEvidenceFiles=[];
