@@ -180,6 +180,7 @@ class ApplicationService:
             ],
             "GlobalCapacity": [
                 ("Equipment", "capacity_profile_id"),
+                ("WorkFront", "capacity_profile_id"),
                 ("Operations", "capacity_profile_id"),
             ],
             "Operations": [
