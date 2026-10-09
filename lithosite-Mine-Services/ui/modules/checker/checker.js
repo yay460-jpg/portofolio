@@ -133,6 +133,10 @@
     for (const operation of rows) {
       const operationId = normalize(operation.transaction_id);
       if (!operationId) continue;
+      if (existingOperationIds.has(operationId)) {
+        report.alreadyRecorded += 1;
+        continue;
+      }
       const checkerName = normalize(operation.checker_name);
       if (!checkerName) {
         report.withoutCheckerName += 1;
@@ -140,10 +144,6 @@
             String(operation.retase).trim() !== '') {
           report.retaseWithoutCheckerName += 1;
         }
-        continue;
-      }
-      if (existingOperationIds.has(operationId)) {
-        report.alreadyRecorded += 1;
         continue;
       }
 
