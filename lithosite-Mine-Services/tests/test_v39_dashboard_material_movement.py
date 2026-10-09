@@ -25,6 +25,10 @@ def test_v39_dashboard_material_legend_shows_material_tonnage_and_haulage_retase
     assert "appendLegendRow(\n      'Retase'," in DASHBOARD_JS
     assert "chartdot-retase" in DASHBOARD_CSS
     assert 'id="dashboardMaterialLegend"' in HTML
+    assert '<span class="chartdot chartdot-ore"></span>' not in HTML
+    assert '<span class="chartkey"><i class="chartdot chartdot-ore"></i><span class="chartkey-name">Ore</span>' in HTML
+    assert '<span class="chartkey"><i class="chartdot chartdot-blue"></i>Hauling</span>' not in HTML
+    assert '<span class="chartkey"><i class="chartdot chartdot-orange"></i>Dumping</span>' not in HTML
 
 
 def test_v39_dashboard_material_movement_uses_four_material_categories():
