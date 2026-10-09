@@ -25,7 +25,6 @@ def valid_plan(plan_id="PLN-01"):
         "activity": "Hauling target",
         "target_quantity": 1200,
         "measurement": "ton",
-        "target_hours": 8,
         "status": "Draft",
     }
 
@@ -39,15 +38,16 @@ def seed():
 def test_plans_crud_and_audit():
     app = seed()
     assert app.create("Plans", valid_plan(), "stage13-create")["status"] == "COMMITTED"
-    legacy_plan = app.read("Plans", "PLN-01")
-    assert legacy_plan["target_quantity"] == 1200
-    assert legacy_plan["start_date"] == "2026-10-01"
-    assert legacy_plan["end_date"] == "2026-10-31"
+    created_plan = app.read("Plans", "PLN-01")
+    assert created_plan["target_quantity"] == 1200
+    assert created_plan["start_date"] == "2026-10-01"
+    assert created_plan["end_date"] == "2026-10-31"
+    assert "target_hours" not in created_plan
 
     updated = app.update(
         "Plans",
         "PLN-01",
-        {"target_quantity": 1500, "target_hours": 9},
+        {"target_quantity": 1500},
         "stage13-update",
     )
     assert updated["status"] == "COMMITTED"
