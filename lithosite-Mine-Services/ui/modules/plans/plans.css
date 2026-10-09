@@ -320,6 +320,16 @@
 #planEvidenceModal .evidence-panel-actions .control {
   padding:6px 10px;
 }
+#planEvidenceModal .evidence-preview-label {
+  flex:1 1 auto;
+  min-width:0;
+  color:#9eb2c8;
+  font-size:9px;
+  font-weight:500;
+  line-height:1.4;
+  text-align:right;
+  overflow-wrap:anywhere;
+}
 #planEvidenceModal .evidence-upload-status {
   flex:0 0 auto;
   padding:6px 10px;
