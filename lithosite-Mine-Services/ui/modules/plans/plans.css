@@ -69,14 +69,27 @@
 #plansScreen #plansAdd[hidden]{display:none!important}
 
 
-/* V39 — balanced register grid: nine cells, matching the rendered row exactly. */
+/* V39 — ten aligned columns: Quantity and Measurement remain distinct fields. */
 #plansScreen .plantr:not(.actual-th):not(.actual-tr){
   width:100%;
   min-width:0;
-  grid-template-columns:minmax(100px,.8fr) minmax(140px,1.05fr) minmax(110px,.8fr) minmax(170px,1.25fr) minmax(140px,1.2fr) minmax(105px,.9fr) minmax(75px,.6fr) minmax(80px,.7fr) minmax(100px,.8fr);
+  grid-template-columns:minmax(100px,.8fr) minmax(145px,1.05fr) minmax(110px,.8fr) minmax(180px,1.25fr) minmax(125px,1fr) minmax(95px,.75fr) minmax(90px,.6fr) minmax(90px,.65fr) minmax(78px,.55fr) minmax(110px,.8fr);
 }
-#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(6){
-  padding-left:4px;
-  padding-right:4px;
+#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(5),
+#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(6),
+#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(7),
+#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(8){
+  text-align:center;
+}
+#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(6),
+#plansScreen .plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(7){
+  padding-left:3px;
+  padding-right:3px;
   white-space:nowrap;
+}
+#plansScreen .plantr.actual-th > .cell:nth-child(5),
+#plansScreen .plantr.actual-tr > .cell:nth-child(5),
+#plansScreen .plantr.actual-th > .cell:nth-child(n+6):nth-child(-n+11),
+#plansScreen .plantr.actual-tr > .cell:nth-child(n+6):nth-child(-n+11){
+  text-align:center;
 }
