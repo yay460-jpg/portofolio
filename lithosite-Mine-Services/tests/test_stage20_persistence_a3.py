@@ -105,3 +105,29 @@ def test_stage20_a3_persistence_store_rejects_non_a3_workbook(tmp_path):
         assert "SCHEMA_VERSION" in str(exc)
     else:
         raise AssertionError("A.3 default store must reject a non-A3 workbook")
+
+
+def test_stage20_a3_persistence_migrates_top_soil_into_checker_material_list(tmp_path):
+    target = tmp_path / "a3-top-soil.xlsx"
+    make_a3_workbook(target)
+
+    workbook = load_workbook(target)
+    lists = workbook["_Lists"]
+    headers = [cell.value for cell in lists[1]]
+    material_column = headers.index("checker_material") + 1
+    for row_index in range(2, lists.max_row + 1):
+        if lists.cell(row=row_index, column=material_column).value == "Top Soil":
+            lists.cell(row=row_index, column=material_column).value = None
+    workbook.save(target)
+
+    first_store = PersistenceStore(target)
+    assert "Top Soil" in first_store.controlled_lists["checker_material"]
+
+    # Reopening should be idempotent: do not add duplicate vocabulary entries.
+    PersistenceStore(target)
+    saved = load_workbook(target, data_only=True)
+    stored_materials = [
+        saved["_Lists"].cell(row=row_index, column=material_column).value
+        for row_index in range(2, saved["_Lists"].max_row + 1)
+    ]
+    assert stored_materials.count("Top Soil") == 1
