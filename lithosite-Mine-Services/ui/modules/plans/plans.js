@@ -484,7 +484,7 @@ async function save(){
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
 async function remove(id){
- const message='Delete Plan '+id+'?\\n\\nThis permanently deletes all files in Database/Evidence/TargetPlan/'+id+'/ as well as the Target Plan record. The RuntimeAdapter audit log for the deletion is retained.\\n\\nThis action cannot be undone.';
+ const message='Delete Plan '+id+'?\n\nThis permanently deletes all files in Database/Evidence/TargetPlan/'+id+'/ as well as the Target Plan record. The RuntimeAdapter audit log for the deletion is retained.\n\nThis action cannot be undone.';
  if(!confirm(message))return;
  try{
   const result=await rc.request({operation:'DELETE',entity:'Plans',entity_id:id});
