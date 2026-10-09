@@ -102,9 +102,13 @@ def test_release_readiness_contract():
 
 def test_report_period_contract_and_notice():
     reports = read(REPORTS)
-    assert "if(type==='WEEKLY')periodEnd.setDate(periodStart.getDate()+6);" in reports
-    assert "if(periodStart.getDate()!==1)return null;" in reports
-    assert "periodEnd.setMonth(periodStart.getMonth()+1,0);" in reports
+    # Calendar dates are held as ISO date-only strings and built in UTC so
+    # browser timezone offsets cannot shift the selected report day.
+    assert "const value=String(startDate||latestOperationalDate()).slice(0,10);" in reports
+    assert "new Date(Date.UTC(parts[0],parts[1]-1,parts[2]))" in reports
+    assert "if(type==='WEEKLY')periodEnd.setUTCDate(periodEnd.getUTCDate()+6);" in reports
+    assert "periodEnd.setUTCMonth(periodEnd.getUTCMonth()+1,0);" in reports
+    assert "if(parts[2]!==1)return null;" in reports
     assert "Monthly Report requires the report date to be the 1st day of the month." in reports
     assert "No data is available for the selected report period." in reports
     assert "report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD'" in reports
