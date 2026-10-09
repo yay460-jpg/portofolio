@@ -361,7 +361,7 @@
       }).filter(Boolean)));
       const shiftSummary = shiftValues.length === 1 ? shiftValues[0] : (shiftValues.length ? 'Mixed' : '—');
 
-      return '<div class="tr td">' +
+      return '<div class="tr td" data-trace-key="' + key + '">' +
         '<div class="cell">' + esc(first.transaction_date) + '</div>' +
         '<div class="cell">' + esc(first.transaction_time) + '</div>' +
         '<div class="cell">' + esc(shiftSummary) + '</div>' +
@@ -390,6 +390,35 @@
     document.getElementById('count').textContent =
       groups.length + ' work timelines · ' + rows.length + ' events · ' +
       (runtimeReady ? 'Runtime Ready' : 'Runtime Not Connected');
+  }
+
+  function focusTrace(target) {
+    const date = String(target && target.date || '');
+    const equipmentId = String(target && target.equipmentId || '').trim();
+    if (!date || !equipmentId) return;
+
+    document.getElementById('date').value = date;
+    document.getElementById('eq').value = dataState.equipment.some(function (item) {
+      return String(item.equipment_id || '').trim() === equipmentId;
+    }) ? equipmentId : '';
+    ['domain', 'wf', 'equipmentGroupFilter', 'activityFilter', 'statusFilter', 'sourceFilter']
+      .forEach(function (id) {
+        document.getElementById(id).value = '';
+      });
+    render();
+
+    const traceKey = date + '|' + equipmentId;
+    const row = Array.from(document.querySelectorAll('#rows .tr[data-trace-key]')).find(function (item) {
+      return String(item.dataset.traceKey || '') === traceKey;
+    });
+    if (!row) return;
+    row.classList.remove('operation-trace-highlight');
+    void row.offsetWidth;
+    row.classList.add('operation-trace-highlight');
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.setTimeout(function () {
+      row.classList.remove('operation-trace-highlight');
+    }, 2400);
   }
 
   async function reconcileCheckerEvidence() {
@@ -841,4 +870,5 @@
 
   bindControls();
   loadData();
+  global.LithositeOperations = Object.freeze({ focusTrace: focusTrace });
 })(window);
