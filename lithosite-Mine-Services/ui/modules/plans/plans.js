@@ -117,10 +117,10 @@ function render(){
     '<div class="cell plan-activity" title="'+esc(r.activity)+'">'+esc(r.activity)+'</div>'+
     '<div class="cell num target-quantity" title="'+esc(validTarget?numberLabel(target):'—')+'">'+esc(validTarget?numberLabel(target):'—')+'</div>'+
     '<div class="cell measurement-cell">'+esc(unit)+'</div>'+
-    '<div class="cell num actual-quantity" title="'+esc(validActual?numberLabel(actual)+' '+unit:'Actual unavailable')+'">'+(validActual?esc(numberLabel(actual)+' '+unit):'—')+'</div>'+
-    '<div class="cell num variance" title="'+esc(variance===null?'Variance unavailable':numberLabel(variance)+' '+unit)+'">'+(variance===null?'—':esc((variance>0?'+':'')+numberLabel(variance)+' '+unit))+'</div>'+
+    '<div class="cell num actual-quantity" title="'+esc(validActual?numberLabel(actual):'Actual unavailable')+'">'+(validActual?esc(numberLabel(actual)):'—')+'</div>'+
+    '<div class="cell num variance" title="'+esc(variance===null?'Variance unavailable':numberLabel(variance))+'">'+(variance===null?'—':esc((variance>0?'+':'')+numberLabel(variance)))+'</div>'+
     '<div class="cell num achievement">'+(achievement===null?'—':esc(numberLabel(achievement)+'%'))+'</div>'+
-    '<div class="cell num remaining">'+(remaining===null?'—':esc(numberLabel(remaining)+' '+unit))+'</div>'+
+    '<div class="cell num remaining">'+(remaining===null?'—':esc(numberLabel(remaining)))+'</div>'+
     '<div class="cell status-cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
     '<div class="cell row-actions"><button class="control mini edit edit-plan" data-id="'+esc(r.plan_id)+'">Edit</button><button class="control mini danger delete-plan" data-id="'+esc(r.plan_id)+'">Delete</button></div>'+
    '</div>';
