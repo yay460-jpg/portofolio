@@ -492,7 +492,22 @@
     }
   }
 
+  function updateActivityWarning() {
+    const activityEl = document.getElementById('f_activity');
+    const warning = document.getElementById('activityWarning');
+    if (!activityEl || !warning) return;
+
+    const isDumping = String(activityEl.value || '').trim().toLowerCase() === 'dumping';
+    warning.hidden = !isDumping;
+    if (isDumping) {
+      activityEl.setAttribute('aria-describedby', 'activityWarning');
+    } else if (activityEl.getAttribute('aria-describedby') === 'activityWarning') {
+      activityEl.removeAttribute('aria-describedby');
+    }
+  }
+
   function refreshHaulingFields() {
+    updateActivityWarning();
     const activity = String(document.getElementById('f_activity').value || '').trim().toLowerCase();
     const eq = dataState.equipment.find(function(x){ return String(x.equipment_id || '') === String(document.getElementById('f_eq').value || ''); });
     const isHauling = activity === 'hauling' && String(eq && eq.type || '').trim().toLowerCase() === 'dump truck';
