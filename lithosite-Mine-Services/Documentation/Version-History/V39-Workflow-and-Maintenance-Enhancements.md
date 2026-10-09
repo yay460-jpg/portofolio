@@ -51,6 +51,7 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 - A `.gitignore` under `Database/Evidence/` excludes operational evidence from Git to reduce the risk of accidentally committing sensitive PDFs and photographs.
 - Endpoint regression tests exposed a query-parser name-shadowing bug in the Desktop Host's user-guide route: a local import made `parse_qs` local to `do_GET`, breaking Evidence requests before they could return a response. The local import was removed so the module-level parser is used consistently.
 - The Target Plan register regression assertion now expects the read-only `View` button in the Evidence column instead of the obsolete placeholder cell.
+- Removed the redundant footer `Close` button from the Target Plan Evidence modal, retaining the header Close control and the footer's read-only folder/status information. Bumped the Plans script cache key and added a regression assertion that the modal contains exactly one Close button.
 
 ## Versioning and validation rule
 
