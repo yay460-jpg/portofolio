@@ -116,8 +116,11 @@ def _validate_a3_result(workbook):
             continue
         values = list(workbook[entity].values)
         expected = list(A2_HEADERS[entity])
-        if entity == "Plans" and "unit" in expected:
-            expected[expected.index("unit")] = "measurement"
+        if entity == "Plans":
+            if "unit" in expected:
+                expected[expected.index("unit")] = "measurement"
+            # A.3 Plans no longer stores target_hours.
+            expected = [header for header in expected if header != "target_hours"]
         if not values or list(values[0]) != expected:
             raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
 
@@ -174,6 +177,9 @@ def migrate_a2_to_a3(source_path, target_path):
         plans.cell(
             row=1, column=plans_headers.index("unit") + 1, value="measurement"
         )
+        plans_headers[plans_headers.index("unit")] = "measurement"
+    if "target_hours" in plans_headers:
+        plans.delete_cols(plans_headers.index("target_hours") + 1, 1)
 
     workbook.create_sheet(MAP_MARKER_ENTITY, index=len(workbook.sheetnames) - 1)
     marker = workbook[MAP_MARKER_ENTITY]
