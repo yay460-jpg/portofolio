@@ -131,3 +131,45 @@ def test_stage20_a3_persistence_migrates_top_soil_into_checker_material_list(tmp
         for row_index in range(2, saved["_Lists"].max_row + 1)
     ]
     assert stored_materials.count("Top Soil") == 1
+
+
+def test_stage20_a3_persistence_removes_legacy_plans_target_hours_without_shifting_values(tmp_path):
+    target = tmp_path / "a3-plan-hours.xlsx"
+    make_a3_workbook(target)
+
+    workbook = load_workbook(target)
+    plans = workbook["Plans"]
+    # Simulate a previously valid A.3 workbook which still has the retired column.
+    plans.insert_cols(10, 1)
+    plans.cell(row=1, column=10, value="target_hours")
+    old_row = {
+        "plan_id": "PLN-MIG-001",
+        "period": "2026-10",
+        "start_date": "2026-10-01",
+        "end_date": "2026-10-31",
+        "domain": "Road & Hauling",
+        "work_front_id": "WF-MIG-001",
+        "activity": "Hauling",
+        "target_quantity": 500,
+        "measurement": "ton",
+        "target_hours": 8,
+        "status": "Draft",
+    }
+    headers = [cell.value for cell in plans[1]]
+    for column, header in enumerate(headers, start=1):
+        plans.cell(row=2, column=column, value=old_row.get(header))
+    workbook.save(target)
+
+    store = PersistenceStore(target)
+    migrated = load_workbook(target, data_only=True)
+    migrated_headers = [cell.value for cell in migrated["Plans"][1]]
+
+    assert migrated_headers == HEADERS["Plans"]
+    assert "target_hours" not in migrated_headers
+    row = store.get("Plans", "PLN-MIG-001")
+    assert row["target_quantity"] == 500
+    assert row["measurement"] == "ton"
+    assert row["status"] == "Draft"
+    assert row["start_date"] == "2026-10-01"
+    assert row["end_date"] == "2026-10-31"
+    assert "target_hours" not in row
