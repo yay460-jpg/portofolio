@@ -931,7 +931,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Disposition", f"{disposition}; filename*=UTF-8''{quote(target.name, safe='')}")
-            if is_allowed_origin(origin):
+            if origin and is_allowed_origin(origin):
                 self.send_header("Access-Control-Allow-Origin", origin)
                 self.send_header("Vary", "Origin")
             self.end_headers()
