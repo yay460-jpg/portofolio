@@ -72,3 +72,8 @@
   pointer-events:none;
   z-index:1;
 }
+
+/* V39 layout refinement: extend the bar/date plot toward the panel's lower boundary. */
+#dashboardScreen #dashboardMaterialBars{height:calc(100% - 16px)}
+/* Raise the legend so its last rows do not sit on the lower panel edge. */
+#dashboardScreen .chartnote{top:40%}
