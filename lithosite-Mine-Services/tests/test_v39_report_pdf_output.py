@@ -67,3 +67,14 @@ def test_issued_snapshot_has_non_draft_id_and_incremented_revision():
 
 def test_report_snapshot_script_uses_fresh_browser_cache_key():
     assert "report-snapshot.js?v=20261009" in ARTIFACT_TEXT
+def test_appendix_evidence_is_rendered_as_compact_traceability_table():
+    assert "def render_evidence_table(value: dict)" in SERVER_TEXT
+    assert 'if name_upper == "APPENDIX / EVIDENCE" and isinstance(value, dict):' in SERVER_TEXT
+    assert 'headers = ("Domain", "Record ID", "Date", "Activity / Status")' in SERVER_TEXT
+    assert "Showing {len(shown)} of {len(source_rows)} available evidence records." in SERVER_TEXT
+
+
+def test_pdf_branding_matches_v39():
+    assert 'Lithosite Mine Services · V39 · {report_type} Report' in SERVER_TEXT
+    assert "Operational Management Report · V39" in (ROOT / "ui" / "modules" / "reports" / "report-pdf.js").read_text(encoding="utf-8")
+    assert "report-pdf.js?v=20261016" in ARTIFACT_TEXT
