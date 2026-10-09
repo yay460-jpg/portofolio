@@ -201,12 +201,17 @@ function reportPeriodNotice(type,startDate){
   }
   return '';
 }
+function reportPlanBounds(row){
+  const month=String(row?.period||'').match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  const start=String(row?.start_date||(month?month[0]+'-01':'')).slice(0,10);
+  let end=String(row?.end_date||'').slice(0,10);
+  if(!end&&month){const last=new Date(Date.UTC(Number(month[1]),Number(month[2]),0)).getUTCDate();end=month[0]+'-'+String(last).padStart(2,'0');}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end)||end<start)return null;
+  return {start,end};
+}
 function reportRecordDate(row){
-  const keys=['transaction_date','event_date','activity_date','work_date','plan_date','maintenance_date','inspection_date','record_date','date','created_at','updated_at'];
-  for(const key of keys){
-    const value=String(row?.[key]??'').slice(0,10);
-    if(/^\d{4}-\d{2}-\d{2}$/.test(value))return value;
-  }
+  const keys=['start_date','transaction_date','event_date','activity_date','work_date','plan_date','maintenance_date','inspection_date','record_date','date','created_at','updated_at'];
+  for(const key of keys){const value=String(row?.[key]??'').slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(value))return value;}
   return '';
 }
 function reportRecordLabel(row){
@@ -222,10 +227,95 @@ function reportRecordStatus(row){
 function reportRowsForEntity(entity,period){
   const source=rows(entity);
   if(!source.length)return [];
-  return source.filter(row=>{
-    const d=reportRecordDate(row);
-    return !!d && d>=period.start && d<=period.end;
+  if(entity==='Plans')return source.filter(row=>{const range=reportPlanBounds(row);return !!range&&range.start<=period.end&&range.end>=period.start;});
+  return source.filter(row=>{const d=reportRecordDate(row);return !!d&&d>=period.start&&d<=period.end;});
+}
+function normalizePlanMatch(value){return String(value??'').trim().toLowerCase().replace(/\s+/g,' ');}
+function reportPlanActual(period){
+  const plans=rows('Plans').map((row,index)=>{
+    const range=reportPlanBounds(row);
+    if(!range||range.start>period.end||range.end<period.start)return null;
+    return {row,range,key:String(row.plan_id||('PLAN-'+index)),contained:range.start>=period.start&&range.end<=period.end};
+  }).filter(Boolean);
+  const comparable=plans.filter(item=>item.contained);
+  const comparableKeys=new Set(comparable.map(item=>item.key));
+  const validatedOperations=rows('Operations').filter(row=>{
+    const date=String(row?.transaction_date||'').slice(0,10);
+    return String(row?.status||'').trim().toUpperCase()==='VALIDATED'&&date>=period.start&&date<=period.end;
   });
+  const planActual=new Map(comparable.map(item=>[item.key,0]));
+  const ambiguousPlanIds=new Set();
+  let ambiguousOperationCount=0,matchedOperationCount=0;
+  function operationMatchesPlan(operation,item){
+    const date=String(operation?.transaction_date||'').slice(0,10),plan=item.row;
+    if(!date||date<item.range.start||date>item.range.end)return false;
+    if(normalizePlanMatch(operation.domain)!==normalizePlanMatch(plan.domain))return false;
+    if(normalizePlanMatch(operation.activity)!==normalizePlanMatch(plan.activity))return false;
+    if(normalizePlanMatch(operation.measurement)!==normalizePlanMatch(plan.measurement))return false;
+    const workFront=String(plan.work_front_id||'').trim();
+    return !workFront||String(operation.work_front_id||'').trim()===workFront;
+  }
+  validatedOperations.forEach(operation=>{
+    const candidates=plans.filter(item=>operationMatchesPlan(operation,item));
+    if(candidates.length>1){ambiguousOperationCount++;candidates.forEach(item=>ambiguousPlanIds.add(item.key));return;}
+    if(candidates.length!==1||!comparableKeys.has(candidates[0].key))return;
+    const quantity=Number(operation.quantity);
+    if(!Number.isFinite(quantity)||quantity<0)return;
+    planActual.set(candidates[0].key,(planActual.get(candidates[0].key)||0)+quantity);
+    matchedOperationCount++;
+  });
+  const targetByUnit={},actualByUnit={},varianceByUnit={},achievementByUnit={},remainingByUnit={},ambiguousUnits=new Set(),planDetails=[];
+  comparable.forEach(item=>{
+    const row=item.row,unit=String(row.measurement||'Unspecified').trim()||'Unspecified';
+    const target=Number(row.target_quantity);
+    const validTarget=row.target_quantity!==null&&row.target_quantity!==undefined&&row.target_quantity!==''&&Number.isFinite(target)&&target>=0;
+    const actual=ambiguousPlanIds.has(item.key)?null:(planActual.get(item.key)||0);
+    if(validTarget)targetByUnit[unit]=(targetByUnit[unit]||0)+target;
+    if(ambiguousPlanIds.has(item.key))ambiguousUnits.add(unit);
+    const variance=validTarget&&actual!==null?actual-target:null;
+    const achievement=validTarget&&actual!==null&&target>0?actual/target*100:null;
+    const remaining=validTarget&&actual!==null?Math.max(target-actual,0):null;
+    planDetails.push(String(row.plan_id||item.key)+' ['+item.range.start+' to '+item.range.end+']: target '+(validTarget?target+' '+unit:'unavailable')+'; actual '+(actual===null?'not comparable':actual+' '+unit)+'; variance '+(variance===null?'not comparable':variance+' '+unit)+'; achievement '+(achievement===null?'not comparable':achievement.toFixed(1)+'%')+'; remaining '+(remaining===null?'not comparable':remaining+' '+unit));
+  });
+  Object.keys(targetByUnit).forEach(unit=>{
+    const unitPlans=comparable.filter(item=>(String(item.row.measurement||'Unspecified').trim()||'Unspecified')===unit);
+    if(ambiguousUnits.has(unit)){actualByUnit[unit]=null;varianceByUnit[unit]=null;achievementByUnit[unit]=null;remainingByUnit[unit]=null;return;}
+    const actualTotal=unitPlans.reduce((sum,item)=>sum+(planActual.get(item.key)||0),0),targetTotal=targetByUnit[unit];
+    actualByUnit[unit]=actualTotal;varianceByUnit[unit]=actualTotal-targetTotal;
+    achievementByUnit[unit]=targetTotal>0?actualTotal/targetTotal*100:null;
+    remainingByUnit[unit]=Math.max(targetTotal-actualTotal,0);
+  });
+  const partialPlans=plans.filter(item=>!item.contained),actualPeriodByUnit={};
+  validatedOperations.forEach(operation=>{
+    const quantity=Number(operation.quantity);if(!Number.isFinite(quantity)||quantity<0)return;
+    const unit=String(operation.measurement||'Unspecified').trim()||'Unspecified';
+    actualPeriodByUnit[unit]=(actualPeriodByUnit[unit]||0)+quantity;
+  });
+  const status=!comparable.length?'NO_COMPARABLE_PLAN':ambiguousOperationCount?'AMBIGUOUS_PLAN_MATCH':partialPlans.length?'PARTIAL_TARGET_COVERAGE':'READY';
+  return {
+    comparison_status:status,period_start:period.start,period_end:period.end,
+    comparable_plan_count:comparable.length,unallocated_plan_count:partialPlans.length,
+    unallocated_plan_ids:partialPlans.map(item=>String(item.row.plan_id||item.key)),
+    validated_operations_count:validatedOperations.length,matched_operation_count:matchedOperationCount,
+    ambiguous_operation_count:ambiguousOperationCount,target_by_measurement:targetByUnit,
+    actual_by_measurement:actualByUnit,variance_by_measurement:varianceByUnit,
+    achievement_by_measurement:achievementByUnit,remaining_by_measurement:remainingByUnit,
+    actual_period_output_by_measurement:actualPeriodByUnit,plan_details:planDetails,
+    allocation_note:'Targets are not prorated. Only plans whose full Start Date–End Date range is inside this report period are compared. Plans overlapping only part of the report period are listed as unallocated.',
+    ambiguity_note:ambiguousOperationCount?'Some validated Operations matched more than one overlapping plan. Their quantities were excluded from comparable actuals to prevent double counting.':''
+  };
+}
+function attachPlanActual(model,period){
+  if(!model)return model;
+  const comparison=reportPlanActual(period);
+  const title=model.report_type==='DAILY'?'Plan vs Actual':model.report_type==='WEEKLY'?'Planned vs Actual':'Target vs Actual';
+  const sectionData={...(model.section_data||{}),[title]:comparison,'Planned vs Actual':comparison,'Plan vs Actual':comparison};
+  const sections=Array.isArray(model.sections)?model.sections.slice():[];
+  if(!sections.includes(title)){
+    const index=sections.findIndex(name=>name==='Executive Summary'||name==='Management Executive Summary');
+    sections.splice(index>=0?index+1:0,0,title);
+  }
+  return {...model,sections,section_data:sectionData,plan_vs_actual:comparison};
 }
 function reportScopedSource(period){
   const scoped=Object.fromEntries(entities.map(entity=>[entity,reportRowsForEntity(entity,period)]));
@@ -306,7 +396,7 @@ function buildReportModel(){
           kpi
         })
       : null;
-    return {
+    return attachPlanActual({
       ...(formal||{}),
       ...daily,
       report_period_requested:requestedPeriod,
@@ -315,7 +405,7 @@ function buildReportModel(){
       report_id:'DRAFT-DAILY-'+requestedPeriod.start+'-'+requestedPeriod.end,
       generated_at:new Date().toISOString(),
       status:daily.status
-    };
+    },effectivePeriod);
   }
   if(type==='WEEKLY'&&global.LithositeWeeklyReport){
     const weekly=global.LithositeWeeklyReport.buildWeeklyReport({
@@ -333,7 +423,7 @@ function buildReportModel(){
       source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
       kpi
     });
-    return {...(formal||{}),...weekly,report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',report_id:'DRAFT-WEEKLY-'+requestedPeriod.start+'-'+requestedPeriod.end,generated_at:new Date().toISOString()};
+    return attachPlanActual({...((formal||{})),...weekly,report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',report_id:'DRAFT-WEEKLY-'+requestedPeriod.start+'-'+requestedPeriod.end,generated_at:new Date().toISOString()},effectivePeriod);
   }
   if(type==='MONTHLY'&&global.LithositeMonthlyReport){
     const monthly=global.LithositeMonthlyReport.buildMonthlyReport({
@@ -351,7 +441,7 @@ function buildReportModel(){
       source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
       kpi
     });
-    return {...(formal||{}),...monthly,report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',report_id:'DRAFT-MONTHLY-'+requestedPeriod.start+'-'+requestedPeriod.end,generated_at:new Date().toISOString(),status:monthly.status};
+    return attachPlanActual({...((formal||{})),...monthly,report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',report_id:'DRAFT-MONTHLY-'+requestedPeriod.start+'-'+requestedPeriod.end,generated_at:new Date().toISOString(),status:monthly.status},effectivePeriod);
   }
   const sourceTables=Object.fromEntries(entities.map(entity=>[entity,reportTableRows(scoped[entity])]));
   const sections=global.LithositeReportEngine
@@ -502,6 +592,22 @@ function reportSectionText(value){
     }
     if(value.items&&Array.isArray(value.items)&&value.items.length)add('Actions',value.items.join(' · '));
     if(value.note)add('Note',value.note);
+    if(value.comparison_status)add('Comparison status',value.comparison_status);
+    if(value.comparable_plan_count!==undefined)add('Comparable plans',value.comparable_plan_count);
+    if(value.unallocated_plan_count!==undefined)add('Plans with targets not allocated to this period',value.unallocated_plan_count);
+    if(value.validated_operations_count!==undefined)add('Validated Operations in period',value.validated_operations_count);
+    if(value.matched_operation_count!==undefined)add('Operations assigned to one comparable plan',value.matched_operation_count);
+    if(value.ambiguous_operation_count!==undefined)add('Ambiguous Operation-to-plan matches',value.ambiguous_operation_count);
+    if(value.target_by_measurement)add('Target by measurement',reportCountText(value.target_by_measurement));
+    if(value.actual_by_measurement)add('Matched actual by measurement',reportCountText(value.actual_by_measurement));
+    if(value.variance_by_measurement)add('Variance by measurement',reportCountText(value.variance_by_measurement));
+    if(value.achievement_by_measurement)add('Achievement by measurement',reportCountText(value.achievement_by_measurement));
+    if(value.remaining_by_measurement)add('Remaining by measurement',reportCountText(value.remaining_by_measurement));
+    if(value.actual_period_output_by_measurement)add('All validated actual output in period',reportCountText(value.actual_period_output_by_measurement));
+    if(value.unallocated_plan_ids&&value.unallocated_plan_ids.length)add('Unallocated plan IDs',value.unallocated_plan_ids.join(', '));
+    if(value.plan_details&&value.plan_details.length)add('Plan details',value.plan_details.join('\\n'));
+    if(value.allocation_note)add('Target allocation rule',value.allocation_note);
+    if(value.ambiguity_note)add('Ambiguous matching',value.ambiguity_note);
     if(value.evidence&&typeof value.evidence==='object'){
       const evidenceSummary=Object.entries(value.evidence).map(([domain,items])=>domain+': '+(Array.isArray(items)?items.length:0)).join(' · ');
       if(evidenceSummary)add('Evidence records',evidenceSummary);
@@ -533,7 +639,7 @@ function renderReportPreview(model){
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Equipment Performance</b><span>'+eq.length+' KPI rows</span></div>'+
       '<div class="report-table-wrap"><table class="report-preview-table"><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table></div></section>'+
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Operational Source Summary</b><span>'+totalRecords+' records</span></div><div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table></div></section>'+
-    narrative('Planned vs Actual',reportSectionText(model.section_data['Planned vs Actual'])||'Plan and actual source data are retained for the selected period.')+
+    narrative('Plan vs Actual',reportSectionText(model.section_data['Planned vs Actual']||model.section_data['Plan vs Actual']||model.section_data['Target vs Actual'])||'Plan and actual source data are retained for the selected period.')+
     narrative('Maintenance / Downtime',reportSectionText(model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime'])||'Maintenance source evidence is retained below.')+
     narrative('HSE Summary',reportSectionText(model.section_data['HSE Summary']||model.section_data['HSE Events'])||'HSE source evidence is retained below.')+
     narrative('Issues and Actions',reportSectionText(model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities'])||'Issue source evidence is retained below.')+
