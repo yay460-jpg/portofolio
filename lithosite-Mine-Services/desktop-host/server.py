@@ -730,7 +730,7 @@ def build_report_pdf(model: dict) -> bytes:
     if y < 72:
         start_page()
     line(y + 4, (0.78, 0.82, 0.87), 0.7)
-    at(f"Lithosite Mine Services · V38 · {report_type} Report", M, y - 8, 7, False, (0.42, 0.48, 0.55))
+    at(f"Lithosite Mine Services · V39 · {report_type} Report", M, y - 8, 7, False, (0.42, 0.48, 0.55))
     at("Immutable report snapshot", W - M - 112, y - 8, 7, False, (0.42, 0.48, 0.55))
 
     objects: list[bytes] = [
