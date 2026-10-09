@@ -260,7 +260,7 @@ def test_stage20_marker_location_is_integrated_into_v32_overlay_layer():
 
     assert "marker-location.js" in html
     assert "marker-location.css" in html
-    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261015") < html.index("../ui/modules/map-engine/map-engine.js?v=20261005")
+    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261016") < html.index("../ui/modules/map-engine/map-engine.js?v=20261005")
 
 
 def test_stage20_marker_location_css_is_namespaced_and_ready_for_v32_overlay():
