@@ -3,7 +3,8 @@
 const rc=global.LithositeRuntimeClient;
 if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 13 Plans');
 
-const state={rows:[],workfronts:[],status:'loading'};
+const state={rows:[],operations:[],workfronts:[],status:'loading',operationsStatus:'loading'};
+let viewMode='register';
 let editId=null;
 let runtimeReady=false;
 const LISTS={domain:[],measurement:[],status:[]};
@@ -63,28 +64,96 @@ function filtered(){
   (!status||r.status===status)
  );
 }
+function planDateBounds(row){
+ const period=String(row.period||'');
+ return {start:String(row.start_date||monthStart(period)||'').slice(0,10),end:String(row.end_date||monthEnd(period)||'').slice(0,10)};
+}
+function numberLabel(value){
+ const n=Number(value);
+ return Number.isFinite(n)?String(Number(n.toFixed(2))):'—';
+}
+function normalizeMatch(value){return String(value??'').trim().toLowerCase().replace(/\\s+/g,' ');}
+function actualQuantityFor(plan){
+ if(state.operationsStatus!=='ready')return null;
+ const range=planDateBounds(plan),domain=normalizeMatch(plan.domain);
+ const workFront=String(plan.work_front_id||'').trim(),activity=normalizeMatch(plan.activity),measurement=normalizeMatch(plan.measurement);
+ return state.operations.reduce(function(sum,row){
+  if(String(row.status||'').trim().toUpperCase()!=='VALIDATED')return sum;
+  const date=String(row.transaction_date||'').slice(0,10);
+  if(!date||!range.start||!range.end||date<range.start||date>range.end)return sum;
+  if(normalizeMatch(row.domain)!==domain)return sum;
+  if(workFront&&String(row.work_front_id||'').trim()!==workFront)return sum;
+  if(normalizeMatch(row.activity)!==activity)return sum;
+  if(normalizeMatch(row.measurement)!==measurement)return sum;
+  const quantity=Number(row.quantity);
+  return Number.isFinite(quantity)&&quantity>=0?sum+quantity:sum;
+ },0);
+}
 function render(){
  const host=document.getElementById('plansRows');if(!host)return;
- if(state.status==='loading')host.innerHTML='<div class="empty">Loading Plans from RuntimeAdapter…</div>';
- else if(state.status==='error')host.innerHTML='<div class="empty">Plans data unavailable. Check RuntimeAdapter connection and use Refresh.</div>';
+ const count=document.getElementById('plansCount'),columns=document.getElementById('plansColumns');
+ const toggle=document.getElementById('plansViewToggle'),add=document.getElementById('plansAdd');
+ const title=document.getElementById('plansTableTitle'),actualView=viewMode==='actual';
+ if(toggle)toggle.textContent=actualView?'Target Plan Register':'Plan vs Actual';
+ if(add)add.hidden=actualView;
+ if(title)title.textContent=actualView?'Plan vs Actual':'Target Plan Register';
+ if(columns){
+  columns.className='plantr th'+(actualView?' actual-th':'');
+  columns.innerHTML=(actualView
+   ?['Plan ID','Plan Range','Domain','Work Front','Activity','Target','Actual','Variance','Achievement','Remaining','Status']
+   :['Plan ID','Plan Range','Domain','Work Front','Activity','Target Qty','Measurement','Target Hrs','Status','Actions'])
+   .map(function(label){return '<div class="cell">'+label+'</div>';}).join('');
+ }
+ if(state.status==='loading')host.innerHTML='<div class="empty">Loading Target Plan from RuntimeAdapter…</div>';
+ else if(state.status==='error')host.innerHTML='<div class="empty">Target Plan data unavailable. Check RuntimeAdapter connection and use Refresh.</div>';
  else{
   const rows=filtered();
-  host.innerHTML=rows.length?rows.map(r=>'<div class="plantr td">'+
-   '<div class="cell">'+esc(r.plan_id)+'</div>'+
-   '<div class="cell" title="'+esc((r.start_date||r.period||'')+' – '+(r.end_date||r.period||''))+'">'+esc((r.start_date||r.period||'').slice(0,10)+' – '+(r.end_date||r.period||'').slice(0,10))+'</div>'+
-   '<div class="cell">'+esc(r.domain)+'</div>'+
-   '<div class="cell">'+esc(workFrontLabel(r.work_front_id))+'</div>'+
-   '<div class="cell plan-activity" title="'+esc(r.activity)+'">'+esc(r.activity)+'</div>'+
-   '<div class="cell num">'+esc(r.target_quantity)+'</div>'+
-   '<div class="cell">'+esc(r.measurement)+'</div>'+
-   '<div class="cell num">'+esc(r.target_hours)+'</div>'+
-   '<div class="cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
-   '<div class="cell row-actions"><button class="control mini edit edit-plan" data-id="'+esc(r.plan_id)+'">Edit</button><button class="control mini danger delete-plan" data-id="'+esc(r.plan_id)+'">Delete</button></div>'+
-  '</div>').join(''):'<div class="empty">No Plans records match the current filters.</div>';
-  document.getElementById('plansCount').textContent=rows.length+' records · Runtime Ready';
+  if(actualView&&state.operationsStatus!=='ready'){
+   host.innerHTML='<div class="empty">Operations data is unavailable. Actual quantities are not calculated; use Refresh to retry.</div>';
+   if(count)count.textContent=rows.length+' plans · Operations unavailable';
+  }else if(actualView){
+   host.innerHTML=rows.length?rows.map(function(r){
+    const range=planDateBounds(r),actual=actualQuantityFor(r);
+    const target=r.target_quantity===null||r.target_quantity===undefined||r.target_quantity===''?null:Number(r.target_quantity);
+    const validTarget=target!==null&&Number.isFinite(target)&&target>=0;
+    const variance=validTarget?actual-target:null,achievement=validTarget&&target>0?actual/target*100:null;
+    const remaining=validTarget?Math.max(target-actual,0):null,unit=String(r.measurement||'');
+    return '<div class="plantr td actual-tr">'+
+     '<div class="cell">'+esc(r.plan_id)+'</div>'+
+     '<div class="cell" title="'+esc(range.start+' – '+range.end)+'">'+esc(range.start+' – '+range.end)+'</div>'+
+     '<div class="cell">'+esc(r.domain)+'</div>'+
+     '<div class="cell">'+esc(workFrontLabel(r.work_front_id)||'All work fronts')+'</div>'+
+     '<div class="cell plan-activity" title="'+esc(r.activity)+'">'+esc(r.activity)+'</div>'+
+     '<div class="cell num">'+(validTarget?esc(numberLabel(target)+' '+unit):'—')+'</div>'+
+     '<div class="cell num">'+esc(numberLabel(actual)+' '+unit)+'</div>'+
+     '<div class="cell num">'+(variance===null?'—':esc((variance>0?'+':'')+numberLabel(variance)+' '+unit))+'</div>'+
+     '<div class="cell num">'+(achievement===null?'—':esc(numberLabel(achievement)+'%'))+'</div>'+
+     '<div class="cell num">'+(remaining===null?'—':esc(numberLabel(remaining)+' '+unit))+'</div>'+
+     '<div class="cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
+    '</div>';
+   }).join(''):'<div class="empty">No Target Plan records match the current filters.</div>';
+   if(count)count.textContent=rows.length+' plans · Actual from VALIDATED Operations';
+  }else{
+   host.innerHTML=rows.length?rows.map(function(r){
+    const range=planDateBounds(r);
+    return '<div class="plantr td">'+
+     '<div class="cell">'+esc(r.plan_id)+'</div>'+
+     '<div class="cell" title="'+esc(range.start+' – '+range.end)+'">'+esc(range.start+' – '+range.end)+'</div>'+
+     '<div class="cell">'+esc(r.domain)+'</div>'+
+     '<div class="cell">'+esc(workFrontLabel(r.work_front_id))+'</div>'+
+     '<div class="cell plan-activity" title="'+esc(r.activity)+'">'+esc(r.activity)+'</div>'+
+     '<div class="cell num">'+esc(r.target_quantity)+'</div>'+
+     '<div class="cell">'+esc(r.measurement)+'</div>'+
+     '<div class="cell num">'+esc(r.target_hours)+'</div>'+
+     '<div class="cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
+     '<div class="cell row-actions"><button class="control mini edit edit-plan" data-id="'+esc(r.plan_id)+'">Edit</button><button class="control mini danger delete-plan" data-id="'+esc(r.plan_id)+'">Delete</button></div>'+
+    '</div>';
+   }).join(''):'<div class="empty">No Target Plan records match the current filters.</div>';
+   if(count)count.textContent=rows.length+' records · Runtime Ready';
+  }
  }
- if(state.status==='loading')document.getElementById('plansCount').textContent='Loading · Runtime Connecting';
- if(state.status==='error')document.getElementById('plansCount').textContent='Unavailable · Runtime Error';
+ if(state.status==='loading'&&count)count.textContent='Loading · Runtime Connecting';
+ if(state.status==='error'&&count)count.textContent='Unavailable · Runtime Error';
 }
 function statusClass(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,'-')||'status';}
 async function load(){
@@ -98,8 +167,10 @@ async function load(){
   fillLists();
   const result=await rc.request({operation:'READ',entity:'Plans'});
   state.rows=Array.isArray(result.data)?result.data:[];
-  state.status='ready';render();
-  setMsg('RuntimeAdapter connected — Plans persistence is offline-first and audit-backed.');
+  state.status='ready';
+  await refreshOperations();
+  render();
+  setMsg('RuntimeAdapter connected — Target Plan and Operations are available. Actuals use VALIDATED Operations only.');
  }catch(e){
   runtimeReady=false;state.status='error';render();
   const detail=e&&e.message?e.message:String(e);
@@ -107,8 +178,25 @@ async function load(){
  }
 }
 async function refreshData(){
- try{const result=await rc.request({operation:'READ',entity:'Plans'});state.rows=Array.isArray(result.data)?result.data:[];state.status='ready';render();}
- catch(e){setMsg('Refresh failed: '+e.message,true);}
+ try{
+  const result=await rc.request({operation:'READ',entity:'Plans'});
+  state.rows=Array.isArray(result.data)?result.data:[];
+  state.status='ready';
+  await refreshOperations();
+  render();
+ }catch(e){setMsg('Refresh failed: '+e.message,true);}
+}
+async function refreshOperations(){
+ try{
+  const result=await rc.request({operation:'READ',entity:'Operations'});
+  state.operations=Array.isArray(result.data)?result.data:[];
+  state.operationsStatus='ready';
+ }catch(e){
+  state.operations=[];
+  state.operationsStatus='error';
+  setMsg('Operations read failed; Plan vs Actual is unavailable: '+(e&&e.message?e.message:String(e)),true);
+ }
+ if(viewMode==='actual')render();
 }
 function localDate(){
  const now=new Date();
@@ -195,6 +283,7 @@ async function remove(id){
  }catch(e){setMsg('Delete failed: '+e.message,true);}
 }
 function bind(){
+ document.getElementById('plansViewToggle').onclick=()=>{viewMode=viewMode==='register'?'actual':'register';render();};
  document.getElementById('plansAdd').onclick=openAdd;
  document.getElementById('plansRefresh').onclick=load;
  document.getElementById('plansSave').onclick=save;
@@ -205,7 +294,7 @@ function bind(){
  document.getElementById('plansRows').addEventListener('click',e=>{const edit=e.target.closest('.edit-plan');if(edit)openEdit(edit.dataset.id);const del=e.target.closest('.delete-plan');if(del)remove(del.dataset.id);});
 }
 function init(){if(!document.getElementById('plansScreen'))return;if(document.getElementById('plansAdd'))bind();load();}
-if(global.LithositeDataSync)global.LithositeDataSync.register('Plans',refreshData);
+if(global.LithositeDataSync){global.LithositeDataSync.register('Plans',refreshData);global.LithositeDataSync.register('Operations',refreshOperations);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 
 global.LithositePlans=Object.freeze({
