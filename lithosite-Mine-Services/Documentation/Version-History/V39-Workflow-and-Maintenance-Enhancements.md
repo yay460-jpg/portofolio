@@ -40,6 +40,12 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 - Target Plan no longer stores `target_hours`; the field remains available for Operations where it is used for operational hours.
 - A3 persistence and A2-to-A3 migration remove the obsolete Plans column by header, preserving adjacent plan values.
 
+## Target Plan Evidence column scaffold
+
+- Added an `Evidence` column to the Target Plan register between Status and Actions.
+- The current cell intentionally displays `—` until its intended evidence workflow and behavior are defined.
+- This is a layout scaffold only; no evidence attachment, validation, or storage behavior has been assumed.
+
 ## Versioning and validation rule
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
