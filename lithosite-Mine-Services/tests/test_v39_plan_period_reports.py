@@ -25,6 +25,9 @@ def test_report_center_uses_plan_start_end_dates_instead_of_created_date():
     assert "if(entity==='Plans')return source.filter(row=>{const range=reportPlanBounds(row);return !!range&&range.start<=period.end&&range.end>=period.start;});" in REPORTS_JS
     assert "function planRange(row)" in DAILY_JS
     assert "if(name==='Plans')" in DAILY_JS
+    assert r"match(/^(\d{4})-(0[1-9]|1[0-2])$/)" in DAILY_JS
+    assert r"match(/^(\d{4})-(0[1-9]|1[0-2])$/)" in WEEKLY_JS
+    assert r"match(/^(\d{4})-(0[1-9]|1[0-2])$/)" in MONTHLY_JS
     assert "function planRange(r)" in WEEKLY_JS and "if(n==='Plans')" in WEEKLY_JS
     assert "function planRange(r)" in MONTHLY_JS and "if(n==='Plans')" in MONTHLY_JS
 
