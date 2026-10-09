@@ -105,6 +105,30 @@ def test_central_evidence_folder_is_documented_for_the_three_modules():
 
 
 def test_evidence_viewer_assets_use_current_cache_keys():
-    assert "plans.js?v=20261028" in HTML
-    assert "plans.css?v=20261110" in HTML
-    assert "modal-show-contract.js?v=20261026" in HTML
+    assert "plans.js?v=20261029" in HTML
+    assert "plans.css?v=20261111" in HTML
+    assert "modal-show-contract.js?v=20261027" in HTML
+
+def test_plan_delete_uses_a_lithosite_confirmation_modal_not_a_browser_prompt():
+    modal_start = HTML.index('id="plansDeleteConfirmModal"')
+    modal_end = HTML.index('id="planEvidenceModal"', modal_start)
+    modal_markup = HTML[modal_start:modal_end]
+
+    assert 'role="dialog" aria-modal="true"' in modal_markup
+    assert 'id="plansDeleteConfirmTitle">Delete Target Plan' in modal_markup
+    assert 'id="plansDeleteConfirmId"' in modal_markup
+    assert 'id="plansDeleteConfirmFolderId"' in modal_markup
+    assert 'id="plansDeleteConfirmCancel"' in modal_markup
+    assert 'id="plansDeleteConfirmAction"' in modal_markup
+    assert 'class="control danger" id="plansDeleteConfirmAction"' in modal_markup
+    assert "The RuntimeAdapter audit log for the deletion is retained." in modal_markup
+
+    assert "'plansDeleteConfirmModal'" in MODAL_CONTRACT
+    assert "requestDeletePlanConfirmation(id)" in PLANS_JS
+    assert "if(!await requestDeletePlanConfirmation(id))return;" in PLANS_JS
+    assert "settleDeletePlanConfirmation(false)" in PLANS_JS
+    assert "settleDeletePlanConfirmation(true)" in PLANS_JS
+    assert "if(!confirm(message))return;" not in PLANS_JS
+    assert "window.confirm" not in PLANS_JS
+    assert "#plansDeleteConfirmModal > .modal.modal-shell-valid" in PLANS_CSS
+    assert "#plansDeleteConfirmModal .plans-delete-confirm-warning" in PLANS_CSS
