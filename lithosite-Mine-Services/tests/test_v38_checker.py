@@ -14,6 +14,13 @@ def create(svc, entity, row, request_id):
 
 
 def base_rows(svc):
+    create(svc, "GlobalCapacity", {
+        "capacity_profile_id": "GC-CHK-001",
+        "capacity_name": "Checker Test Capacity",
+        "capacity_value": 1,
+        "measurement": "ton",
+        "status": "Active",
+    }, "checker-capacity")
     create(svc, "Equipment", {
         "equipment_id": "DT-CHK-001",
         "unit_no": "DT-CHK-001",
@@ -24,6 +31,7 @@ def base_rows(svc):
         "status": "Active",
         "effective_from": "2026-10-08",
         "effective_to": None,
+        "capacity_profile_id": "GC-CHK-001",
     }, "checker-eq")
     create(svc, "WorkFront", {
         "work_front_id": "WF-CHK-A",
@@ -127,13 +135,6 @@ def test_checker_rejects_invalid_shift_and_material():
 def test_operations_can_carry_checker_context_and_checker_evidence_protects_operation():
     svc = service()
     base_rows(svc)
-    create(svc, "GlobalCapacity", {
-        "capacity_profile_id": "GC-CHK-001",
-        "capacity_name": "Checker Test Capacity",
-        "capacity_value": 1,
-        "measurement": "ton",
-        "status": "Active",
-    }, "checker-support-capacity")
     result = svc.update("WorkFront", "WF-CHK-A", {"capacity_profile_id": "GC-CHK-001"}, "checker-support-wf-update")
     assert result["status"] == "COMMITTED", result
 
