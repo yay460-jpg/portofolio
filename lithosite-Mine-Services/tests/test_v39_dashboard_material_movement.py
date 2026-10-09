@@ -36,7 +36,9 @@ def test_v39_dashboard_material_movement_uses_four_material_categories():
 
 
 def test_v39_dashboard_shows_sr_as_coming_soon_without_calculation():
-    assert "S/R: Coming Soon" in DASHBOARD_JS
+    assert "appendLegendRow(" in DASHBOARD_JS
+    assert "'S/R'," in DASHBOARD_JS
+    assert "'Coming Soon'," in DASHBOARD_JS
     assert "chartkey-coming-soon" in DASHBOARD_JS
     assert "chartdot-sr" in DASHBOARD_CSS
     assert "const strippingRatio =" not in DASHBOARD_JS
@@ -47,17 +49,29 @@ def test_v39_dashboard_material_view_detail_routes_to_operations():
     assert 'id="dashboardMaterialViewDetail"' in HTML
     assert "event.target.closest('#dashboardMaterialViewDetail')" in DASHBOARD_JS
     assert "global.LithositeShellNavigation.setScreen('Operations')" in DASHBOARD_JS
-    assert "dashboard.js?v=20261113" in HTML
-    assert "dashboard.css?v=20261113" in HTML
+    assert "dashboard.js?v=20261114" in HTML
+    assert "dashboard.css?v=20261114" in HTML
 
 
 def test_v39_material_movement_legend_is_raised_from_panel_bottom():
     assert "#dashboardScreen .chartnote{position:absolute;right:8px;top:48%;transform:translateY(-50%)" in DASHBOARD_CSS
-    assert "dashboard.css?v=20261112" in HTML
+    assert "dashboard.css?v=20261114" in HTML
 
 
 def test_v39_material_movement_date_labels_sit_below_the_x_axis():
     assert "#dashboardScreen .bars{position:relative;border-bottom:0}" in DASHBOARD_CSS
     assert "bottom:18px;" in DASHBOARD_CSS
     assert "border-bottom:1px solid #2b425a;" in DASHBOARD_CSS
-    assert "dashboard.css?v=20261113" in HTML
+    assert "dashboard.css?v=20261114" in HTML
+
+
+def test_v39_material_movement_legend_aligns_names_and_values_in_separate_columns():
+    assert "function appendLegendRow(name, value, colorClass, extraClass)" in DASHBOARD_JS
+    assert "label.className = 'chartkey-name';" in DASHBOARD_JS
+    assert "metric.className = 'chartkey-value';" in DASHBOARD_JS
+    assert "#dashboardScreen .chartkey-name{flex:1;min-width:0}" in DASHBOARD_CSS
+    assert "#dashboardScreen .chartkey-value{margin-left:4px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}" in DASHBOARD_CSS
+    assert "appendLegendRow(\n      'Retase'," in DASHBOARD_JS
+    assert "appendLegendRow(\n      'S/R'," in DASHBOARD_JS
+    assert "dashboard.js?v=20261114" in HTML
+    assert "dashboard.css?v=20261114" in HTML
