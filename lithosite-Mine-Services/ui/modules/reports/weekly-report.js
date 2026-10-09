@@ -27,7 +27,7 @@ function buildWeeklyReport(o){
  'Outstanding Actions':{open_issue_count:openI.length,open_plan_count:openP.length},
  'KPI Trend':{current:{PA:k.PA??null,UA:k.UA??null,EU:k.EU??null,status:k.status},comparison_available:false},
  'Key Highlights':{operations:ops.length,completed:done.length,equipment:eq.length,workfront:wf.length,hse:h.length,maintenance:ma.length},
- 'Top Management Concerns':{status:v.length?'VALIDATION REQUIRED':openI.length?'ATTENTION':'CLEAR'},
+ 'Top Management Concerns':{status:v.length?'VALIDATION REQUIRED':(openI.length||openP.length)?'ATTENTION':'CLEAR',open_issues:openI.length,open_plans:openP.length},
  'Recommended Actions':{status:v.length?'VALIDATION REQUIRED':'REVIEW'}
  };
  return Object.freeze({schema_version:'1.0',report_type:'WEEKLY',period:Object.freeze({start:a,end:b}),scope:o.scope||'ALL',status:v.length?'VALIDATION REQUIRED':'DRAFT',source_counts:Object.freeze(Object.fromEntries(REQUIRED.map(n=>[n,d[n].length]))),total_source_records:Object.values(d).reduce((n,x)=>n+x.length,0),metrics:Object.freeze({operations_completed:done.length,open_issues:openI.length,open_plans:openP.length}),kpi:Object.freeze({...k}),validation:Object.freeze({status:v.length?'VALIDATION REQUIRED':'READY',issue_count:v.length,issues:Object.freeze(v)}),sections:Object.freeze(['Executive Summary','Planned vs Actual','Equipment Performance','Work Front Progress','HSE Summary','Maintenance and Downtime Analysis','Material Movement Summary','Issues and Recurring Issues','Outstanding Actions','KPI Trend','Key Highlights','Top Management Concerns','Recommended Actions']),section_data:Object.freeze(section_data)})
