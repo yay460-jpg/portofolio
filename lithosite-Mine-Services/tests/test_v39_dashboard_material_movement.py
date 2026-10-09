@@ -48,4 +48,9 @@ def test_v39_dashboard_material_view_detail_routes_to_operations():
     assert "event.target.closest('#dashboardMaterialViewDetail')" in DASHBOARD_JS
     assert "global.LithositeShellNavigation.setScreen('Operations')" in DASHBOARD_JS
     assert "dashboard.js?v=20261113" in HTML
-    assert "dashboard.css?v=20261111" in HTML
+    assert "dashboard.css?v=20261112" in HTML
+
+
+def test_v39_material_movement_legend_is_raised_from_panel_bottom():
+    assert "#dashboardScreen .chartnote{position:absolute;right:8px;top:48%;transform:translateY(-50%)" in DASHBOARD_CSS
+    assert "dashboard.css?v=20261112" in HTML
