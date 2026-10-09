@@ -52,6 +52,7 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 - Endpoint regression tests exposed a query-parser name-shadowing bug in the Desktop Host's user-guide route: a local import made `parse_qs` local to `do_GET`, breaking Evidence requests before they could return a response. The local import was removed so the module-level parser is used consistently.
 - The Target Plan register regression assertion now expects the read-only `View` button in the Evidence column instead of the obsolete placeholder cell.
 - Removed the redundant footer `Close` button from the Target Plan Evidence modal, retaining the header Close control and the footer's read-only folder/status information. Bumped the Plans script cache key and added a regression assertion that the modal contains exactly one Close button.
+- PDF and image previews now fetch the file into a Blob and render from a temporary object URL inside the prepared preview panel. This avoids navigating the browser directly to the file endpoint for previews, prevents the browser/download-manager interception seen during manual validation, and removes the separate `Open file` link from the PDF/image toolbar. Object URLs are revoked when another file is selected, the list is refreshed, or the modal closes.
 
 ## Versioning and validation rule
 
