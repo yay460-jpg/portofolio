@@ -18,6 +18,7 @@ def test_target_plan_has_one_static_unified_register_header():
     assert 'id="plansViewToggle"' not in HTML
     assert 'id="plansColumns"' not in HTML
     assert 'id="plansTableTitleText"' not in HTML
+    assert 'id="plansTableTitle"' not in HTML
 
 
 def test_combined_register_keeps_target_actual_metrics_and_actions():
