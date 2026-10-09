@@ -67,6 +67,7 @@ def test_evidence_endpoint_is_scoped_to_allowed_modules_and_extensions():
     for extension in ('".pdf"', '".jpg"', '".jpeg"', '".png"', '".doc"', '".docx"'):
         assert extension in HOST
     assert 'if path in {"/evidence/list", "/evidence/file"}:' in HOST
+    assert 'if self.path == "/evidence/preview":' in HOST
     assert "evidence_record_directory(module, record_id)" in HOST
     assert 'or "/" in filename' in HOST
     assert "Path(filename).name != filename" in HOST
