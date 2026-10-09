@@ -362,7 +362,7 @@
       bars.appendChild(empty);
     }
 
-    const chartDateKeys = new Set(activeDates.map(localDateKey));
+    const chartDateKeys = new Set(chartDates.map(localDateKey));
     const chartOperations = rawOperations.filter(function (row) {
       if (!chartDateKeys.has(String(row.transaction_date || ''))) return false;
       if (context.scope === 'TODAY' && context.shift !== 'ALL') {
@@ -378,7 +378,7 @@
       const retase = Number(row.retase);
       return Number.isFinite(retase) && retase >= 0 ? sum + retase : sum;
     }, 0);
-    const chartTonTotals = activeDates.reduce(function (sum, date) {
+    const chartTonTotals = chartDates.reduce(function (sum, date) {
       const total = totals[localDateKey(date)] || { Hauling: 0, Dumping: 0 };
       sum.Hauling += total.Hauling;
       sum.Dumping += total.Dumping;
