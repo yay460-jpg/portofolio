@@ -132,7 +132,8 @@ class PersistenceStore:
         plans = workbook["Plans"]
         current_plans = [cell.value for cell in plans[1]]
         legacy_plans = ["plan_id", "period", "domain", "work_front_id", "activity", "target_quantity", "measurement", "target_hours", "status"]
-        if current_plans == legacy_plans:
+        legacy_plans_without_hours = [header for header in legacy_plans if header != "target_hours"]
+        if current_plans in (legacy_plans, legacy_plans_without_hours):
             plans.insert_cols(3, 2)
             plans.cell(row=1, column=3, value="start_date")
             plans.cell(row=1, column=4, value="end_date")
