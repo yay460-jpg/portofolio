@@ -7,7 +7,7 @@ def test_stage13_desktop_host_serves_offline_ui_contract():
     launcher = (root / "desktop-host" / "start-mine-services.bat").read_text(encoding="utf-8")
 
     assert 'PORT = int(os.environ.get("MINE_SERVICES_PORT", "8765"))' in server
-    assert "v38-STAGE27.html" in server
+    assert "v39-STAGE28.html" in server
     assert 'if path == "/":' in server
     assert 'if path == "/health":' in server
     assert '"/runtime"' in server
