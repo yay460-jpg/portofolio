@@ -478,8 +478,8 @@ async function save(){
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the Plan record');
   global.LithositeModalShowContract.close('plansModal');
   await refreshData();
-  if(!editId&&result.evidence_folder_status==='FAILED'){
-   setMsg('Plan created and audited, but its Evidence folder could not be created: '+(result.evidence_folder_message||'check Desktop Host access.'),true);
+  if(!editId&&result.evidence_folder_status!=='READY'){
+   setMsg('Plan created and audited, but its Evidence folder was not confirmed ready: '+(result.evidence_folder_message||'check Desktop Host access and inspect the Evidence folder.'),true);
   }else{
    setMsg(editId?'Plan updated and audited.':'Plan created and Evidence folder prepared.');
   }
@@ -492,8 +492,8 @@ async function remove(id){
   const result=await rc.request({operation:'DELETE',entity:'Plans',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
   await refreshData();
-  if(result.evidence_cleanup_status==='FAILED'){
-   setMsg('Plan deleted and audited, but its Evidence folder could not be removed: '+(result.evidence_cleanup_message||'manual cleanup is required.'),true);
+  if(result.evidence_cleanup_status!=='CLEANED'){
+   setMsg('Plan deleted and audited, but Evidence folder cleanup was not confirmed: '+(result.evidence_cleanup_message||'manual cleanup may be required.'),true);
   }else{
    setMsg('Plan and its Evidence folder deleted. RuntimeAdapter audit entry retained.');
   }
