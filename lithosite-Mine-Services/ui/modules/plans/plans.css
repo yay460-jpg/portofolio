@@ -188,9 +188,9 @@
   line-height:1.3;
 }
 
-/* Keep identifiers and dates left-aligned; center the activity, target and actual metrics. */
-#plansScreen .plantr.consolidated-th > .cell:nth-child(n+6):nth-child(-n+13),
-#plansScreen .plantr.consolidated-tr > .cell:nth-child(n+6):nth-child(-n+13) {
+/* Keep identifiers and dates left-aligned; center register metrics and the pending Evidence slot. */
+#plansScreen .plantr.consolidated-th > .cell:nth-child(n+6):nth-child(-n+14),
+#plansScreen .plantr.consolidated-tr > .cell:nth-child(n+6):nth-child(-n+14) {
   text-align:center;
 }
 #plansScreen .plantr.consolidated-tr > .cell:nth-child(7),
@@ -199,6 +199,7 @@
   padding-left:3px;
 }
 #plansScreen .consolidated-tr .cell { font-variant-numeric:tabular-nums; }
+#plansScreen .evidence-cell { color:#8ea3ba; text-align:center; }
 
 #plansScreen .statuspill {
   display:inline-flex;
