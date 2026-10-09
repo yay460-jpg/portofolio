@@ -142,6 +142,7 @@ def test_stage20_a3_persistence_removes_legacy_plans_target_hours_without_shifti
     # Simulate a previously valid A.3 workbook which still has the retired column.
     plans.insert_cols(10, 1)
     plans.cell(row=1, column=10, value="target_hours")
+    plans.auto_filter.ref = "A1:K2"
     old_row = {
         "plan_id": "PLN-MIG-001",
         "period": "2026-10",
@@ -166,6 +167,7 @@ def test_stage20_a3_persistence_removes_legacy_plans_target_hours_without_shifti
 
     assert migrated_headers == HEADERS["Plans"]
     assert "target_hours" not in migrated_headers
+    assert migrated["Plans"].auto_filter.ref == "A1:J2"
     row = store.get("Plans", "PLN-MIG-001")
     assert row["target_quantity"] == 500
     assert row["measurement"] == "ton"
