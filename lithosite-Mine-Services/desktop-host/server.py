@@ -955,7 +955,6 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if path in {"/user-guide", "/lithosite-Mine-Services/user-guide"}:
-            from urllib.parse import parse_qs
             requested = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "").get("file", [""])[0]
             guide_root = (REPO_ROOT / "docs" / "lithosite" / "02_Mine-Services" / "10_User-Guides").resolve()
             target = (guide_root / requested).resolve() if requested else guide_root
