@@ -19,8 +19,11 @@ def test_combined_register_reads_operations_and_uses_validated_records_only():
 
 
 def test_combined_register_calculates_actual_variance_achievement_and_remaining():
-    assert "'Actual'" in PLANS_JS and "'Variance'" in PLANS_JS
-    assert "'Achievement'" in PLANS_JS and "'Remaining'" in PLANS_JS
+    for label in ("Actual", "Variance", "Achievement", "Remaining"):
+        assert f'<div class="cell">{label}</div>' in HTML
+    for marker in ('class="cell num actual-quantity"', 'class="cell num variance"',
+                   'class="cell num achievement"', 'class="cell num remaining"'):
+        assert marker in PLANS_JS
     assert "const variance=validTarget&&validActual?actual-target:null;" in PLANS_JS
     assert "actual/target*100" in PLANS_JS
     assert "Math.max(target-actual,0)" in PLANS_JS
@@ -28,6 +31,7 @@ def test_combined_register_calculates_actual_variance_achievement_and_remaining(
     assert "Operations unavailable · Actuals not calculated" in PLANS_JS
     assert "consolidated-tr" in PLANS_JS
     assert "plansColumns" not in PLANS_JS
-    assert 'id="plansViewToggle"' not in HTML
+    assert "plansViewToggle" not in HTML
+    assert "plansTableTitle" not in PLANS_JS
     assert "plans.js?v=20261015" in HTML
     assert "plans.css?v=20261102" in HTML
