@@ -249,3 +249,13 @@
 @media(max-width:560px){
   #timelineModal .timeline-summary{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
+
+/* Warn users that Dumping should be recorded as the Hauling activity. */
+#modal .field-warning{
+  display:block;
+  margin-top:5px;
+  color:#fbbf24;
+  font-size:9.5px;
+  line-height:1.35;
+}
+#modal .field-warning[hidden]{display:none!important}
