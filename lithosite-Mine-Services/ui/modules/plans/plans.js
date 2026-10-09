@@ -101,7 +101,7 @@ function render(){
   columns.className='plantr th'+(actualView?' actual-th':'');
   columns.innerHTML=(actualView
    ?['Plan ID','Plan Range','Domain','Work Front','Activity','Target','Actual','Variance','Achievement','Remaining','Status']
-   :['Plan ID','Plan Range','Domain','Work Front','Activity','Target Qty','Target Hrs','Status','Actions'])
+   :['Plan ID','Plan Range','Domain','Work Front','Activity','Target Qty','Measurement','Target Hrs','Status','Actions'])
    .map(function(label){return '<div class="cell">'+label+'</div>';}).join('');
  }
  if(state.status==='loading')host.innerHTML='<div class="empty">Loading Target Plan from RuntimeAdapter…</div>';
@@ -137,7 +137,7 @@ function render(){
    host.innerHTML=rows.length?rows.map(function(r){
     const range=planDateBounds(r);
     const targetValue=r.target_quantity===null||r.target_quantity===undefined||r.target_quantity===''?null:Number(r.target_quantity);
-    const targetLabel=targetValue===null||!Number.isFinite(targetValue)?'—':numberLabel(targetValue)+(r.measurement?' '+String(r.measurement):'');
+    const targetLabel=targetValue===null||!Number.isFinite(targetValue)?'—':numberLabel(targetValue);
     return '<div class="plantr td">'+
      '<div class="cell">'+esc(r.plan_id)+'</div>'+
      '<div class="cell" title="'+esc(range.start+' – '+range.end)+'">'+esc(range.start+' – '+range.end)+'</div>'+
@@ -145,7 +145,8 @@ function render(){
      '<div class="cell">'+esc(workFrontLabel(r.work_front_id))+'</div>'+
      '<div class="cell plan-activity" title="'+esc(r.activity)+'">'+esc(r.activity)+'</div>'+
      '<div class="cell num target-quantity" title="'+esc(targetLabel)+'">'+esc(targetLabel)+'</div>'+
-     '<div class="cell num">'+esc(r.target_hours)+'</div>'+
+     '<div class="cell measurement-cell">'+esc(r.measurement)+'</div>'+
+     '<div class="cell num target-hours">'+esc(r.target_hours)+'</div>'+
      '<div class="cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
      '<div class="cell row-actions"><button class="control mini edit edit-plan" data-id="'+esc(r.plan_id)+'">Edit</button><button class="control mini danger delete-plan" data-id="'+esc(r.plan_id)+'">Delete</button></div>'+
     '</div>';
