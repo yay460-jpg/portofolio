@@ -47,3 +47,12 @@
 #dashboardScreen .dashboard-context-control:has(select:disabled){opacity:.55;cursor:not-allowed}
 #dashboardScreen .dashboard-context-control select:disabled{cursor:not-allowed}
 #dashboardScreen .dashboard-record-count{margin-left:6px;color:#b9c9d9;font-size:8.5px;font-weight:400;white-space:nowrap}#dashboardScreen .title p{color:#b9c9d9}#dashboardScreen .kpi .sub{color:#b9c9d9}
+
+/* V39 Material Movement: bars and legend are grouped by material type. */
+#dashboardScreen .chart .chart-material-bar{width:7px;min-height:0}
+#dashboardScreen .chart .chart-material-ore,#dashboardScreen .chartdot-ore{background:#3b82f6}
+#dashboardScreen .chart .chart-material-ob,#dashboardScreen .chartdot-ob{background:#f59e0b}
+#dashboardScreen .chart .chart-material-quarry,#dashboardScreen .chartdot-quarry{background:#22c55e}
+#dashboardScreen .chart .chart-material-topsoil,#dashboardScreen .chartdot-topsoil{background:#a78bfa}
+#dashboardScreen .chartdot-sr{background:#f87171}
+#dashboardScreen .chartkey-coming-soon{color:#93a6ba;font-style:italic}
