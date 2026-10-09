@@ -9,7 +9,7 @@ SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation.js")
 def test_stage9_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
-    assert "equipment.js?v=20261006" in TEXT
+    assert "equipment.js?v=20261106" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
@@ -24,6 +24,7 @@ def test_stage9_equipment_fields_present():
         "effective_from",
         "effective_to",
         "unit_no",
+        "capacity_profile_id",
     ):
         assert field in EQUIPMENT_JS
 
@@ -74,3 +75,12 @@ def test_stage9_runtime_error_is_not_rendered_as_empty_dataset():
     assert "state.rows=[]" not in EQUIPMENT_JS
 
 
+
+
+def test_stage9_global_capacity_resolution_contract_present():
+    assert "Global Capacity Profile" in TEXT
+    assert "f_eq_capacity_profile" in TEXT
+    assert "f_eq_brand" in TEXT
+    assert "f_eq_capacity" in TEXT
+    assert "GlobalCapacity" in EQUIPMENT_JS
+    assert "capacity_profile_id" in EQUIPMENT_JS
