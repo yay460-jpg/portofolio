@@ -1006,6 +1006,70 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         origin = self.headers.get("Origin")
+        if self.path == "/evidence/preview":
+            if origin and not is_allowed_origin(origin):
+                self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 8192:
+                    raise ValueError("Invalid Evidence preview request size")
+                request = json.loads(self.rfile.read(length).decode("utf-8"))
+                if not isinstance(request, dict):
+                    raise ValueError("Evidence preview request must be an object")
+                module = request.get("module")
+                record_id = request.get("record_id")
+                filename = request.get("filename")
+                if not isinstance(module, str) or not isinstance(record_id, str):
+                    raise ValueError("Invalid Evidence module or record ID")
+                record_dir = evidence_record_directory(module, record_id)
+                if (
+                    not isinstance(filename, str)
+                    or not filename
+                    or Path(filename).name != filename
+                    or "/" in filename
+                    or "\\" in filename
+                    or Path(filename).suffix.lower() not in {".pdf", ".jpg", ".jpeg", ".png"}
+                ):
+                    raise ValueError("Invalid Evidence preview filename")
+            except (ValueError, TypeError, json.JSONDecodeError) as exc:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": str(exc)}]}, origin)
+                return
+
+            candidate = record_dir / filename
+            if candidate.is_symlink():
+                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
+                return
+            target = candidate.resolve()
+            try:
+                target.relative_to(record_dir.resolve())
+            except ValueError:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid Evidence file path"}]}, origin)
+                return
+            if not target.is_file() or target.suffix.lower() not in {".pdf", ".jpg", ".jpeg", ".png"}:
+                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
+                return
+            try:
+                size = target.stat().st_size
+                if size > MAX_EVIDENCE_FILE_BYTES:
+                    self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB preview limit"}]}, origin)
+                    return
+                body = target.read_bytes()
+            except OSError:
+                self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be read"}]}, origin)
+                return
+
+            mime_type = guess_type(target.name)[0] or "application/octet-stream"
+            self._json(200, {
+                "status": "READY",
+                "module": module,
+                "record_id": record_id,
+                "filename": target.name,
+                "mime_type": mime_type,
+                "data": base64.b64encode(body).decode("ascii"),
+            }, origin)
+            return
+
         if self.path == "/report-pdf":
             if origin and not is_allowed_origin(origin):
                 self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
