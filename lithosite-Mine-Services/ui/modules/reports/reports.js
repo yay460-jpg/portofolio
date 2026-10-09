@@ -181,22 +181,22 @@ function filteredCount(){
   const m=document.getElementById('reportsCount');if(m)m.textContent=n+' matching records · Runtime Ready';
 }
 function reportPeriod(type,startDate){
-  const start=new Date(String(startDate||latestOperationalDate()).slice(0,10)+'T00:00:00');
-  if(Number.isNaN(start.getTime()))return null;
-  const periodStart=new Date(start);
-  const periodEnd=new Date(start);
-  if(type==='WEEKLY')periodEnd.setDate(periodStart.getDate()+6);
+  const value=String(startDate||latestOperationalDate()).slice(0,10);
+  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(value))return null;
+  const parts=value.split('-').map(Number);
+  const periodEnd=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
+  if(Number.isNaN(periodEnd.getTime()))return null;
+  if(type==='WEEKLY')periodEnd.setUTCDate(periodEnd.getUTCDate()+6);
   else if(type==='MONTHLY'){
-    if(periodStart.getDate()!==1)return null;
-    periodEnd.setMonth(periodStart.getMonth()+1,0);
+    if(parts[2]!==1)return null;
+    periodEnd.setUTCMonth(periodEnd.getUTCMonth()+1,0);
   }
-  return {start:periodStart.toISOString().slice(0,10),end:periodEnd.toISOString().slice(0,10)};
+  return {start:value,end:periodEnd.toISOString().slice(0,10)};
 }
 function reportPeriodNotice(type,startDate){
   if(type==='MONTHLY'){
     const value=String(startDate||'').slice(0,10);
-    const date=value?new Date(value+'T00:00:00'):null;
-    if(!date||Number.isNaN(date.getTime())||date.getDate()!==1)
+    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(value)||value.slice(8,10)!=='01')
       return 'Monthly Report requires the report date to be the 1st day of the month.';
   }
   return '';
