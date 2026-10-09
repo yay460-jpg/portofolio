@@ -26,6 +26,8 @@ The Target Plan table's **Evidence → View** button opens a read-only Evidence 
 
 There is no upload control in the table or modal at this stage. Until an upload workflow is implemented, place files into the corresponding record folder manually and keep the record ID in the folder name unchanged.
 
+The local `.gitignore` preserves the directory placeholders while excluding operational files in record-specific folders from Git, so incident photos, mine-out evidence, and contractor documents are not accidentally committed.
+
 ## Safety and handling
 
 - The local Desktop Host exposes only files with the approved extensions through dedicated read-only Evidence endpoints. It does not make the whole `Database/` tree web-accessible.
