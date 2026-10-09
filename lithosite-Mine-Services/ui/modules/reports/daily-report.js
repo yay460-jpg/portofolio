@@ -33,11 +33,11 @@ function inPeriod(row,start,end){
   return !!d&&d>=start&&d<=end;
 }
 function planRange(row){
-  const month=String(row?.period||'').match(/^(\\d{4})-(0[1-9]|1[0-2])$/);
+  const month=String(row?.period||'').match(/^(\d{4})-(0[1-9]|1[0-2])$/);
   const start=String(row?.start_date||(month?month[0]+'-01':'')).slice(0,10);
   let end=String(row?.end_date||'').slice(0,10);
   if(!end&&month){const last=new Date(Date.UTC(Number(month[1]),Number(month[2]),0)).getUTCDate();end=month[0]+'-'+String(last).padStart(2,'0');}
-  return /^\\d{4}-\\d{2}-\\d{2}$/.test(start)&&/^\\d{4}-\\d{2}-\\d{2}$/.test(end)&&end>=start?{start,end}:null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(start)&&/^\d{4}-\d{2}-\d{2}$/.test(end)&&end>=start?{start,end}:null;
 }
 function scoped(source,name,start,end){
   if(name==='Plans')return rows(source,name).filter(row=>{const range=planRange(row);return !!range&&range.start<=end&&range.end>=start;});
