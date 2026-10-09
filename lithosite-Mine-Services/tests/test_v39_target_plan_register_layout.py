@@ -38,7 +38,8 @@ def test_combined_register_keeps_target_actual_metrics_and_actions():
 
 def test_combined_register_uses_one_responsive_grid_for_fifteen_columns():
     assert "Unified Target Plan register: fifteen aligned columns" in PLANS_CSS
-    grid_rule = PLANS_CSS.split("grid-template-columns:", 1)[1].split(";", 1)[0]
+    register_css = PLANS_CSS[PLANS_CSS.index("/* Unified Target Plan register"):]
+    grid_rule = register_css.split("grid-template-columns:", 1)[1].split(";", 1)[0]
     assert grid_rule.count("minmax(") == 15
     assert "grid-template-columns:minmax(90px,.9fr) minmax(78px,.78fr) minmax(78px,.78fr)" in PLANS_CSS
     assert ".plantr.consolidated-th," in PLANS_CSS
