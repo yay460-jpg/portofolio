@@ -1144,6 +1144,8 @@ class Handler(BaseHTTPRequestHandler):
             if len(body) != length:
                 self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Evidence upload was incomplete"}]}, origin)
                 return
+            target_file = None
+            created_file = False
             try:
                 target_dir = ensure_evidence_record_directory(module, record_id)
                 target_file = target_dir / filename
@@ -1151,6 +1153,7 @@ class Handler(BaseHTTPRequestHandler):
                     self._json(409, {"status": "REJECTED", "errors": [{"code": "HOST-012", "message": "An Evidence item with this filename already exists"}]}, origin)
                     return
                 with target_file.open("xb") as stream:
+                    created_file = True
                     stream.write(body)
                 self._json(201, {
                     "status": "READY",
@@ -1163,13 +1166,12 @@ class Handler(BaseHTTPRequestHandler):
                 }, origin)
             except FileExistsError:
                 self._json(409, {"status": "REJECTED", "errors": [{"code": "HOST-012", "message": "An Evidence item with this filename already exists"}]}, origin)
-            except (OSError, ValueError) as exc:
-                try:
-                    candidate = record_dir / filename
-                    if candidate.is_file() and candidate.stat().st_size != len(body):
-                        candidate.unlink()
-                except OSError:
-                    pass
+            except (OSError, ValueError):
+                if created_file and target_file is not None:
+                    try:
+                        target_file.unlink(missing_ok=True)
+                    except OSError:
+                        pass
                 self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be saved"}]}, origin)
             return
 
