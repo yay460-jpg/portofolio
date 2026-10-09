@@ -10,7 +10,7 @@ const OPTIONAL=['MarkerLocation','Topography'];
 
 function dateOf(row){
   if(!row||typeof row!=='object')return null;
-  const keys=['transaction_date','event_date','maintenance_date','issue_date','plan_date','date','work_date','created_at','updated_at'];
+  const keys=['start_date','transaction_date','event_date','maintenance_date','issue_date','plan_date','date','work_date','created_at','updated_at'];
   for(const key of keys){
     const value=String(row[key]??'').slice(0,10);
     if(/^\d{4}-\d{2}-\d{2}$/.test(value))return value;
@@ -32,7 +32,15 @@ function inPeriod(row,start,end){
   const d=dateOf(row);
   return !!d&&d>=start&&d<=end;
 }
+function planRange(row){
+  const month=String(row?.period||'').match(/^(\\d{4})-(0[1-9]|1[0-2])$/);
+  const start=String(row?.start_date||(month?month[0]+'-01':'')).slice(0,10);
+  let end=String(row?.end_date||'').slice(0,10);
+  if(!end&&month){const last=new Date(Date.UTC(Number(month[1]),Number(month[2]),0)).getUTCDate();end=month[0]+'-'+String(last).padStart(2,'0');}
+  return /^\\d{4}-\\d{2}-\\d{2}$/.test(start)&&/^\\d{4}-\\d{2}-\\d{2}$/.test(end)&&end>=start?{start,end}:null;
+}
 function scoped(source,name,start,end){
+  if(name==='Plans')return rows(source,name).filter(row=>{const range=planRange(row);return !!range&&range.start<=end&&range.end>=start;});
   return rows(source,name).filter(r=>inPeriod(r,start,end));
 }
 function countBy(rowsList,keyCandidates){
