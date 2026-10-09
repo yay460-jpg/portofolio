@@ -266,6 +266,12 @@
 
     const totals = {};
     const rawOperations = Array.isArray(state.operations) ? state.operations : [];
+    const contextOperations = dashboardStatus.filteredOperations(rawOperations);
+    const totalRetase = contextOperations.reduce(function (sum, row) {
+      if (row.retase === null || row.retase === undefined || row.retase === '') return sum;
+      const retase = Number(row.retase);
+      return Number.isFinite(retase) && retase >= 0 ? sum + retase : sum;
+    }, 0);
 
     rawOperations.forEach(function (row) {
       const key = String(row.transaction_date || '');
@@ -373,6 +379,17 @@
       legend.appendChild(key);
     });
 
+    const retaseKey = document.createElement('span');
+    retaseKey.className = 'chartkey chartkey-retase';
+    const retaseDot = document.createElement('i');
+    retaseDot.className = 'chartdot chartdot-retase';
+    retaseKey.appendChild(retaseDot);
+    const displayedRetase = Number.isInteger(totalRetase)
+      ? String(totalRetase)
+      : String(Number(totalRetase.toFixed(2)));
+    retaseKey.appendChild(document.createTextNode('Retase: ' + displayedRetase + ' rit'));
+    legend.appendChild(retaseKey);
+
     const combined = activeDates.reduce(function (sum, date) {
       const total = totals[localDateKey(date)];
       return sum + total.Hauling + total.Dumping;
@@ -445,6 +462,18 @@
         if (global.LithositeShellNavigation &&
             typeof global.LithositeShellNavigation.setScreen === 'function') {
           global.LithositeShellNavigation.setScreen('Equipment');
+        }
+      });
+    }
+
+    if (!document.body.dataset.dashboardMaterialViewDetailBound) {
+      document.body.dataset.dashboardMaterialViewDetailBound = '1';
+      document.addEventListener('click', function (event) {
+        const viewDetail = event.target.closest('#dashboardMaterialViewDetail');
+        if (!viewDetail) return;
+        if (global.LithositeShellNavigation &&
+            typeof global.LithositeShellNavigation.setScreen === 'function') {
+          global.LithositeShellNavigation.setScreen('Operations');
         }
       });
     }
