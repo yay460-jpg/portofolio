@@ -34,18 +34,25 @@ def test_evidence_modal_is_registered_with_the_shared_modal_shell():
     assert "LithositeModalShowContract.close('planEvidenceModal')" in PLANS_JS
 
 
-def test_evidence_modal_is_read_only_and_does_not_offer_upload():
+def test_evidence_modal_offers_managed_upload_without_a_folder_picker():
     modal_start = HTML.index('id="planEvidenceModal"')
     modal_end = HTML.index('</div></div></section><section id="hseScreen"', modal_start)
     modal_markup = HTML[modal_start:modal_end]
     assert modal_markup.count(">Close</button>") == 1
-    assert 'type="file"' not in modal_markup
-    assert 'id="planEvidenceUpload"' not in modal_markup
-    assert "Upload is not enabled here." in modal_markup
+    assert 'id="planEvidenceUploadButton"' in modal_markup
+    assert 'id="planEvidenceUploadInput"' in modal_markup
+    assert 'type="file"' in modal_markup
+    assert 'multiple hidden' in modal_markup
+    assert 'accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"' in modal_markup
+    assert "Upload destination managed by Desktop Host" in modal_markup
+    assert "planEvidenceUploadButton" in PLANS_JS
+    assert "uploadSelectedEvidenceFiles(event.target.files)" in PLANS_JS
+    assert "evidence/upload?'+query" in PLANS_JS
     assert "evidence/list?module=TargetPlan&record_id=" in PLANS_JS
-    assert "evidence/file?module=TargetPlan&record_id=" in PLANS_JS
-    assert "evidence/preview" in PLANS_JS
     assert "renderEvidenceFiles(activeEvidenceFiles)" in PLANS_JS
+    rows_start = PLANS_JS.index("function render(){")
+    rows_end = PLANS_JS.index("function evidenceSizeLabel", rows_start)
+    assert "planEvidenceUploadButton" not in PLANS_JS[rows_start:rows_end]
 
 
 def test_evidence_preview_handles_pdf_images_and_word_documents():
@@ -67,7 +74,10 @@ def test_evidence_endpoint_is_scoped_to_allowed_modules_and_extensions():
     for extension in ('".pdf"', '".jpg"', '".jpeg"', '".png"', '".doc"', '".docx"'):
         assert extension in HOST
     assert 'if path in {"/evidence/list", "/evidence/file"}:' in HOST
+    assert 'if post_path == "/evidence/upload":' in HOST
     assert 'if self.path == "/evidence/preview":' in HOST
+    assert "_evidence_filename_error(filename, EVIDENCE_EXTENSIONS)" in HOST
+    assert "_target_plan_exists(record_id)" in HOST
     assert "evidence_record_directory(module, record_id)" in HOST
     assert 'or "/" in filename' in HOST
     assert "Path(filename).name != filename" in HOST
@@ -89,6 +99,6 @@ def test_central_evidence_folder_is_documented_for_the_three_modules():
 
 
 def test_evidence_viewer_assets_use_current_cache_keys():
-    assert "plans.js?v=20261022" in HTML
-    assert "plans.css?v=20261107" in HTML
+    assert "plans.js?v=20261023" in HTML
+    assert "plans.css?v=20261108" in HTML
     assert "modal-show-contract.js?v=20261026" in HTML
