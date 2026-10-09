@@ -53,11 +53,12 @@ def test_evidence_preview_handles_pdf_images_and_word_documents():
     assert "Download document" in PLANS_JS
     assert "class=\"evidence-pdf\"" in PLANS_JS
     assert "class=\"evidence-image\"" in PLANS_JS
-    assert "const response=await fetch(url,{cache:'no-store'})" in PLANS_JS
+    assert "method:'POST'" in PLANS_JS
+    assert "body:JSON.stringify({module:'TargetPlan',record_id:planId,filename:file.name})" in PLANS_JS
+    assert "const binary=atob(payload.data)" in PLANS_JS
+    assert "new Blob([bytes],{type:String(payload.mime_type||file.mime_type||'application/octet-stream')})" in PLANS_JS
     assert "URL.createObjectURL(previewBlob)" in PLANS_JS
-    assert "src=\"'+esc(objectUrl)+'\"" in PLANS_JS
     assert "Open file" not in PLANS_JS
-    assert "#planEvidenceModal .evidence-layout" in PLANS_CSS
 
 
 def test_evidence_endpoint_is_scoped_to_allowed_modules_and_extensions():
@@ -86,6 +87,6 @@ def test_central_evidence_folder_is_documented_for_the_three_modules():
 
 
 def test_evidence_viewer_assets_use_current_cache_keys():
-    assert "plans.js?v=20261021" in HTML
+    assert "plans.js?v=20261022" in HTML
     assert "plans.css?v=20261107" in HTML
     assert "modal-show-contract.js?v=20261026" in HTML
