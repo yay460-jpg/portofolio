@@ -25,6 +25,8 @@ def test_target_plan_evidence_is_a_trigger_button_between_status_and_actions():
 def test_evidence_modal_is_registered_with_the_shared_modal_shell():
     assert 'id="planEvidenceModal"' in HTML
     assert 'id="planEvidenceClose"' in HTML
+    assert 'id="planEvidenceCloseFooter"' not in HTML
+    assert "planEvidenceCloseFooter" not in PLANS_JS
     assert 'id="planEvidenceRefresh"' in HTML
     assert 'id="planEvidencePreview"' in HTML
     assert "'planEvidenceModal'" in MODAL_CONTRACT
@@ -79,6 +81,6 @@ def test_central_evidence_folder_is_documented_for_the_three_modules():
 
 
 def test_evidence_viewer_assets_use_current_cache_keys():
-    assert "plans.js?v=20261019" in HTML
+    assert "plans.js?v=20261020" in HTML
     assert "plans.css?v=20261107" in HTML
     assert "modal-show-contract.js?v=20261026" in HTML
