@@ -100,8 +100,8 @@ function render(){
  if(columns){
   columns.className='plantr th'+(actualView?' actual-th':'');
   columns.innerHTML=(actualView
-   ?['Plan ID','Plan Range','Domain','Work Front','Activity','Target','Actual','Variance','Achievement','Remaining','Status']
-   :['Plan ID','Plan Range','Domain','Work Front','Activity','Target Qty','Measurement','Target Hrs','Status','Actions'])
+   ?['Plan ID','Start Date','End Date','Domain','Work Front','Activity','Target','Actual','Variance','Achievement','Remaining','Status']
+   :['Plan ID','Start Date','End Date','Domain','Work Front','Activity','Target Qty','Measurement','Target Hrs','Status','Actions'])
    .map(function(label){return '<div class="cell">'+label+'</div>';}).join('');
  }
  if(state.status==='loading')host.innerHTML='<div class="empty">Loading Target Plan from RuntimeAdapter…</div>';
@@ -120,7 +120,8 @@ function render(){
     const remaining=validTarget?Math.max(target-actual,0):null,unit=String(r.measurement||'');
     return '<div class="plantr td actual-tr">'+
      '<div class="cell">'+esc(r.plan_id)+'</div>'+
-     '<div class="cell" title="'+esc(range.start+' – '+range.end)+'">'+esc(range.start+' – '+range.end)+'</div>'+
+     '<div class="cell" title="'+esc(range.start)+'">'+esc(range.start)+'</div>'+
+     '<div class="cell" title="'+esc(range.end)+'">'+esc(range.end)+'</div>'+
      '<div class="cell">'+esc(r.domain)+'</div>'+
      '<div class="cell">'+esc(workFrontLabel(r.work_front_id)||'All work fronts')+'</div>'+
      '<div class="cell plan-activity" title="'+esc(r.activity)+'">'+esc(r.activity)+'</div>'+
@@ -140,7 +141,8 @@ function render(){
     const targetLabel=targetValue===null||!Number.isFinite(targetValue)?'—':numberLabel(targetValue);
     return '<div class="plantr td">'+
      '<div class="cell">'+esc(r.plan_id)+'</div>'+
-     '<div class="cell" title="'+esc(range.start+' – '+range.end)+'">'+esc(range.start+' – '+range.end)+'</div>'+
+     '<div class="cell" title="'+esc(range.start)+'">'+esc(range.start)+'</div>'+
+     '<div class="cell" title="'+esc(range.end)+'">'+esc(range.end)+'</div>'+
      '<div class="cell">'+esc(r.domain)+'</div>'+
      '<div class="cell">'+esc(workFrontLabel(r.work_front_id))+'</div>'+
      '<div class="cell plan-activity" title="'+esc(r.activity)+'">'+esc(r.activity)+'</div>'+
