@@ -32,5 +32,5 @@ def test_material_movement_activity_rule_excludes_dumping_tonnage():
 
 
 def test_operations_warning_assets_use_fresh_cache_keys():
-    assert "operations.js?v=20261109" in HTML
-    assert "operations.css?v=20261026" in HTML
+    assert "operations.js?v=20261110" in HTML
+    assert "operations.css?v=20261027" in HTML
