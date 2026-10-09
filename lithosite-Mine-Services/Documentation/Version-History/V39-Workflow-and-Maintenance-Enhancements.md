@@ -49,6 +49,8 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 - Dedicated read-only Desktop Host endpoints restrict file access to allowlisted modules, record IDs, and approved extensions. Other content in `Database/` remains protected from static web access.
 - There is no upload endpoint or upload control at this stage. Files are copied into the matching record folder manually, and **Refresh list** rescans that folder.
 - A `.gitignore` under `Database/Evidence/` excludes operational evidence from Git to reduce the risk of accidentally committing sensitive PDFs and photographs.
+- Endpoint regression tests exposed a query-parser name-shadowing bug in the Desktop Host's user-guide route: a local import made `parse_qs` local to `do_GET`, breaking Evidence requests before they could return a response. The local import was removed so the module-level parser is used consistently.
+- The Target Plan register regression assertion now expects the read-only `View` button in the Evidence column instead of the obsolete placeholder cell.
 
 ## Versioning and validation rule
 
