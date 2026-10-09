@@ -30,7 +30,7 @@ def test_maintenance_brand_comes_from_equipment_capacity_profile():
 
 
 def test_maintenance_refresh_reloads_equipment_and_global_capacity():
-    assert "const [eq,capacity,result]=await Promise.all([" in MAINTENANCE_JS
+    assert "const [eq,capacity,operations,result]=await Promise.all([" in MAINTENANCE_JS
     assert "state.capacities=Array.isArray(capacity.data)?capacity.data:[]" in MAINTENANCE_JS
 
 
