@@ -52,7 +52,7 @@ function bind(){
  document.getElementById('capacityClose').onclick=()=>global.LithositeModalShowContract.close('capacityModal');;
   document.getElementById('capacityFooterClose').onclick=()=>global.LithositeModalShowContract.close('capacityModal');
  document.getElementById('capacityEditClose').onclick=()=>global.LithositeModalShowContract.close('capacityEditModal');
- document.getElementById('capacityCancel').onclick=()=>global.LithositeModalShowContract.close('capacityEditModal');
+ document.getElementById('capacityEditCancel').onclick=()=>global.LithositeModalShowContract.close('capacityEditModal');
  document.getElementById('capacitySave').onclick=save;
  document.getElementById('capacityRows').addEventListener('click',e=>{const edit=e.target.closest('.edit-capacity');if(edit)openEdit(edit.dataset.id);const del=e.target.closest('.delete-capacity');if(del)remove(del.dataset.id)});
 }
