@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from calendar import monthrange
 import json
 
 from .audit import AuditRepository
@@ -39,6 +40,22 @@ class ApplicationService:
 
     def _prepare_row(self, entity, row, context="CREATE", existing=None):
         prepared = dict(row)
+        if entity == "Plans":
+            # Backward compatibility: older clients submit only the monthly
+            # period. Convert that month to explicit date bounds before the
+            # canonical schema validator checks required start/end dates.
+            period = str(prepared.get("period") or "").strip()
+            if len(period) == 7 and period[4] == "-":
+                try:
+                    year, month = int(period[:4]), int(period[5:7])
+                    last_day = monthrange(year, month)[1]
+                    if not prepared.get("start_date"):
+                        prepared["start_date"] = f"{year:04d}-{month:02d}-01"
+                    if not prepared.get("end_date"):
+                        prepared["end_date"] = f"{year:04d}-{month:02d}-{last_day:02d}"
+                except (ValueError, TypeError):
+                    pass
+            return prepared
         if entity != "Operations":
             return prepared
         if str(prepared.get("activity") or "").strip().lower() != "hauling":
@@ -128,6 +145,16 @@ class ApplicationService:
             }
 
         row = {**old, **patch}
+        if (
+            entity == "Plans"
+            and "period" in patch
+            and not ({"start_date", "end_date"} & set(patch))
+            and patch.get("period") != old.get("period")
+        ):
+            # A legacy month-only update should replace the old implicit
+            # month bounds instead of failing against the new range contract.
+            row["start_date"] = None
+            row["end_date"] = None
         row = self._prepare_row(entity, row, "UPDATE", old)
         if "created_at" in old:
             row["created_at"] = old["created_at"]
