@@ -955,21 +955,23 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/evidence/list":
                 try:
-                    record_dir.mkdir(parents=True, exist_ok=True)
                     files = []
-                    for item in sorted(record_dir.iterdir(), key=lambda entry: entry.name.casefold()):
-                        if item.is_symlink() or not item.is_file() or item.suffix.lower() not in EVIDENCE_EXTENSIONS:
-                            continue
-                        stat = item.stat()
-                        mime_type = guess_type(item.name)[0] or "application/octet-stream"
-                        files.append({
-                            "name": item.name,
-                            "size": stat.st_size,
-                            "modified_at": stat.st_mtime,
-                            "mime_type": mime_type,
-                            "previewable": item.suffix.lower() in {".pdf", ".jpg", ".jpeg", ".png"},
-                            "available": stat.st_size <= MAX_EVIDENCE_FILE_BYTES,
-                        })
+                    if record_dir.exists():
+                        if not record_dir.is_dir():
+                            raise OSError("Evidence record path is not a directory")
+                        for item in sorted(record_dir.iterdir(), key=lambda entry: entry.name.casefold()):
+                            if item.is_symlink() or not item.is_file() or item.suffix.lower() not in EVIDENCE_EXTENSIONS:
+                                continue
+                            stat = item.stat()
+                            mime_type = guess_type(item.name)[0] or "application/octet-stream"
+                            files.append({
+                                "name": item.name,
+                                "size": stat.st_size,
+                                "modified_at": stat.st_mtime,
+                                "mime_type": mime_type,
+                                "previewable": item.suffix.lower() in {".pdf", ".jpg", ".jpeg", ".png"},
+                                "available": stat.st_size <= MAX_EVIDENCE_FILE_BYTES,
+                            })
                     self._json(200, {
                         "status": "READY",
                         "module": module,
@@ -1097,7 +1099,81 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         origin = self.headers.get("Origin")
-        if self.path == "/evidence/preview":
+        post_path = unquote(self.path.split("?", 1)[0])
+
+        if post_path == "/evidence/upload":
+            if origin and not is_allowed_origin(origin):
+                self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
+                return
+            query = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            module = query.get("module", [""])[0]
+            record_id = query.get("record_id", [""])[0]
+            filename = query.get("filename", [""])[0]
+            if module != "TargetPlan":
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Evidence upload is enabled only for Target Plan"}]}, origin)
+                return
+            try:
+                record_dir = evidence_record_directory(module, record_id)
+            except ValueError as exc:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": str(exc)}]}, origin)
+                return
+            filename_error = _evidence_filename_error(filename, EVIDENCE_EXTENSIONS)
+            if filename_error:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": filename_error}]}, origin)
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                length = 0
+            if length <= 0:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Evidence file is empty or has an invalid size"}]}, origin)
+                return
+            if length > MAX_EVIDENCE_FILE_BYTES:
+                self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB per-file limit"}]}, origin)
+                return
+            try:
+                plan_exists = _target_plan_exists(record_id)
+            except Exception:
+                self._json(503, {"status": "REJECTED", "errors": [{"code": "HOST-013", "message": "Target Plan could not be verified through RuntimeAdapter"}]}, origin)
+                return
+            if not plan_exists:
+                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Target Plan not found"}]}, origin)
+                return
+
+            body = self.rfile.read(length)
+            if len(body) != length:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Evidence upload was incomplete"}]}, origin)
+                return
+            try:
+                target_dir = ensure_evidence_record_directory(module, record_id)
+                target_file = target_dir / filename
+                if target_file.is_symlink():
+                    self._json(409, {"status": "REJECTED", "errors": [{"code": "HOST-012", "message": "An Evidence item with this filename already exists"}]}, origin)
+                    return
+                with target_file.open("xb") as stream:
+                    stream.write(body)
+                self._json(201, {
+                    "status": "READY",
+                    "module": module,
+                    "record_id": record_id,
+                    "folder": f"Database/Evidence/{module}/{record_id}",
+                    "filename": filename,
+                    "size": len(body),
+                    "mime_type": guess_type(filename)[0] or "application/octet-stream",
+                }, origin)
+            except FileExistsError:
+                self._json(409, {"status": "REJECTED", "errors": [{"code": "HOST-012", "message": "An Evidence item with this filename already exists"}]}, origin)
+            except (OSError, ValueError) as exc:
+                try:
+                    candidate = record_dir / filename
+                    if candidate.is_file() and candidate.stat().st_size != len(body):
+                        candidate.unlink()
+                except OSError:
+                    pass
+                self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be saved"}]}, origin)
+            return
+
+        if post_path == "/evidence/preview":
             if origin and not is_allowed_origin(origin):
                 self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
                 return
@@ -1198,6 +1274,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             result = ADAPTER.handle(request)
+            result = apply_plan_evidence_lifecycle(request, result)
             self._json(200, result, origin)
         except Exception:
             self._json(500, {
