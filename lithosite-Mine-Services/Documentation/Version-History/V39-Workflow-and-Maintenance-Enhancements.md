@@ -43,6 +43,7 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 ## Target Plan Evidence column scaffold
 
 - Added an `Evidence` column to the Target Plan register between Status and Actions.
+- The Work Front column was narrowed and the Activity column given a little more room to reduce excess visual gap while preserving wrapping for long Work Front identifiers.
 - The current cell intentionally displays `—` until its intended evidence workflow and behavior are defined.
 - This is a layout scaffold only; no evidence attachment, validation, or storage behavior has been assumed.
 
