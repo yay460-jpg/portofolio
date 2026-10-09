@@ -44,6 +44,7 @@ def test_evidence_modal_is_read_only_and_does_not_offer_upload():
     assert "Upload is not enabled here." in modal_markup
     assert "evidence/list?module=TargetPlan&record_id=" in PLANS_JS
     assert "evidence/file?module=TargetPlan&record_id=" in PLANS_JS
+    assert "evidence/preview" in PLANS_JS
     assert "renderEvidenceFiles(activeEvidenceFiles)" in PLANS_JS
 
 
