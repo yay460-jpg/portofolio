@@ -21,6 +21,7 @@ DATE_FIELDS = {
     "Issues": {"issue_date"},
     "HSE": {"event_date"},
     "Checker": {"observation_date"},
+    "Plans": {"start_date", "end_date"},
 }
 TIME_FIELDS = {
     "Operations": {"transaction_time", "end_time"},
@@ -39,7 +40,7 @@ TEXT_FIELDS = {
     "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "measurement", "status", "source", "capacity_profile_id", "capacity_measurement", "shift", "material", "checker_name"},
     "Maintenance": {"maintenance_id", "equipment_id", "event_type", "failure_code", "action", "status", "source"},
     "Issues": {"issue_id", "domain", "work_front_id", "equipment_id", "description", "severity", "status", "assigned_to"},
-    "Plans": {"plan_id", "period", "domain", "work_front_id", "activity", "measurement", "status"},
+    "Plans": {"plan_id", "period", "start_date", "end_date", "domain", "work_front_id", "activity", "measurement", "status"},
     "HSE": {"hse_id", "domain", "work_front_id", "event_type", "severity", "description", "action", "status"},
 }
 
@@ -197,6 +198,16 @@ class ValidationEngine:
 
         if entity == "Plans" and row.get("period") and not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", str(row["period"])):
             errors.append(ValidationError("VAL-E009", "period", "period must be YYYY-MM"))
+
+        if entity == "Plans":
+            start_date = row.get("start_date")
+            end_date = row.get("end_date")
+            if start_date and end_date and str(end_date) < str(start_date):
+                errors.append(ValidationError("VAL-E008", "end_date", "end_date must be on or after start_date"))
+            if start_date and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(start_date)):
+                expected_period = str(start_date)[:7]
+                if row.get("period") and str(row["period"]) != expected_period:
+                    errors.append(ValidationError("VAL-E008", "period", "period must match the month of start_date"))
 
         if entity in {"Issues", "HSE"} and "closed_at" in self.schema.HEADERS.get(entity, {}):
             status = str(row.get("status") or "").strip().lower()
