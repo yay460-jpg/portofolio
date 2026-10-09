@@ -394,7 +394,16 @@ function bind(){
  document.getElementById('plansCancel').onclick=()=>global.LithositeModalShowContract.close('plansModal');
  document.getElementById('plansClear').onclick=()=>{['plansIdFilter','plansPeriodFilter','plansDomainFilter','plansWorkFrontFilter','plansStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
  ['plansIdFilter','plansPeriodFilter','plansDomainFilter','plansWorkFrontFilter','plansStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
- document.getElementById('plansRows').addEventListener('click',e=>{const edit=e.target.closest('.edit-plan');if(edit)openEdit(edit.dataset.id);const del=e.target.closest('.delete-plan');if(del)remove(del.dataset.id);});
+ document.getElementById('planEvidenceClose').addEventListener('click',closePlanEvidence);
+ document.getElementById('planEvidenceCloseFooter').addEventListener('click',closePlanEvidence);
+ document.getElementById('planEvidenceRefresh').addEventListener('click',refreshPlanEvidenceList);
+ document.getElementById('planEvidenceModal').addEventListener('click',e=>{if(e.target.id==='planEvidenceModal')closePlanEvidence();});
+ document.getElementById('planEvidenceList').addEventListener('click',e=>{const fileButton=e.target.closest('.evidence-file-button');if(fileButton&&!fileButton.disabled)previewEvidenceFile(fileButton.dataset.evidenceName||'');});
+ document.getElementById('plansRows').addEventListener('click',e=>{
+  const evidence=e.target.closest('.view-evidence');if(evidence){openPlanEvidence(evidence.dataset.id);return;}
+  const edit=e.target.closest('.edit-plan');if(edit){openEdit(edit.dataset.id);return;}
+  const del=e.target.closest('.delete-plan');if(del)remove(del.dataset.id);
+ });
 }
 function init(){if(!document.getElementById('plansScreen'))return;if(document.getElementById('plansAdd'))bind();load();}
 if(global.LithositeDataSync){global.LithositeDataSync.register('Plans',refreshData);global.LithositeDataSync.register('Operations',refreshOperations);}
