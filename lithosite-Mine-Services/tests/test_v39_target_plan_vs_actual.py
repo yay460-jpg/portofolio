@@ -33,7 +33,7 @@ def test_combined_register_calculates_actual_variance_achievement_and_remaining(
     assert "plansColumns" not in PLANS_JS
     assert "plansViewToggle" not in HTML
     assert "plansTableTitle" not in PLANS_JS
-    assert "plans.js?v=20261016" in HTML
+    assert "plans.js?v=20261017" in HTML
     assert "plans.css?v=20261103" in HTML
 
 
