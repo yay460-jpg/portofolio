@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 from openpyxl import load_workbook, Workbook
+from openpyxl.worksheet.table import Table
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
@@ -175,3 +176,40 @@ def test_stage20_a3_persistence_removes_legacy_plans_target_hours_without_shifti
     assert row["start_date"] == "2026-10-01"
     assert row["end_date"] == "2026-10-31"
     assert "target_hours" not in row
+
+
+
+def test_stage20_a3_persistence_updates_plans_excel_table_after_removing_target_hours(tmp_path):
+    target = tmp_path / "a3-plan-table.xlsx"
+    make_a3_workbook(target)
+
+    workbook = load_workbook(target)
+    plans = workbook["Plans"]
+    plans.insert_cols(10, 1)
+    plans.cell(row=1, column=10, value="target_hours")
+    old_row = {
+        "plan_id": "PLN-TABLE-001",
+        "period": "2026-10",
+        "start_date": "2026-10-01",
+        "end_date": "2026-10-31",
+        "domain": "Road & Hauling",
+        "work_front_id": "WF-MIG-001",
+        "activity": "Hauling",
+        "target_quantity": 500,
+        "measurement": "ton",
+        "target_hours": 8,
+        "status": "Draft",
+    }
+    headers = [cell.value for cell in plans[1]]
+    for column, header in enumerate(headers, start=1):
+        plans.cell(row=2, column=column, value=old_row.get(header))
+    plans.add_table(Table(displayName="PlansTable", ref="A1:K2"))
+    workbook.save(target)
+
+    PersistenceStore(target)
+    migrated = load_workbook(target, data_only=True)
+    table = migrated["Plans"].tables["PlansTable"]
+
+    assert table.ref == "A1:J2"
+    assert len(table.tableColumns) == len(HEADERS["Plans"])
+    assert all(column.name != "target_hours" for column in table.tableColumns)
