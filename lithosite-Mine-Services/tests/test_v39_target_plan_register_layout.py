@@ -6,30 +6,37 @@ PLANS_CSS = (ROOT / "ui" / "modules" / "plans" / "plans.css").read_text(encoding
 HTML = (ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html").read_text(encoding="utf-8")
 
 
-def test_target_plan_register_exposes_start_and_end_date_separately():
-    assert "['Plan ID','Start Date','End Date','Domain','Work Front','Activity','Target Qty','Measurement','Target Hrs','Status','Actions']" in PLANS_JS
-    assert """title="'+esc(range.start)+'">'+esc(range.start)""" in PLANS_JS
-    assert """title="'+esc(range.end)+'">'+esc(range.end)""" in PLANS_JS
-    assert 'class="cell measurement-cell"' in PLANS_JS
+def test_target_plan_has_one_register_with_plan_and_actual_columns():
+    expected = "Plan ID','Start Date','End Date','Domain','Work Front','Activity','Target Qty','Measurement','Target Hrs','Actual','Variance','Achievement','Remaining','Status','Actions"
+    assert expected in PLANS_JS
+    assert 'id="plansViewToggle"' not in HTML
+    assert 'class="plantr th consolidated-th" id="plansColumns"' in HTML
 
 
-def test_plan_vs_actual_exposes_start_and_end_date_separately():
-    assert "['Plan ID','Start Date','End Date','Domain','Work Front','Activity','Target','Actual','Variance','Achievement','Remaining','Status']" in PLANS_JS
-    assert "Actual from VALIDATED Operations" in PLANS_JS
+def test_combined_register_keeps_target_quantity_measurement_hours_and_actions():
+    for marker in ('class="cell num target-quantity"', 'class="cell measurement-cell"',
+                   'class="cell num target-hours"', 'class="cell num actual-quantity"',
+                   'class="cell num variance"', 'class="cell num achievement"',
+                   'class="cell num remaining"', 'class="cell row-actions"'):
+        assert marker in PLANS_JS
 
 
-def test_target_plan_grids_match_column_counts_and_remain_responsive():
-    assert "grid-template-columns:minmax(100px,.8fr) minmax(105px,.75fr) minmax(105px,.75fr)" in PLANS_CSS
-    assert "grid-template-columns:minmax(90px,.7fr) minmax(100px,.75fr) minmax(100px,.75fr)" in PLANS_CSS
+def test_combined_register_uses_one_responsive_grid_for_fifteen_columns():
+    assert "Unified Target Plan register" in PLANS_CSS
+    assert "grid-template-columns:minmax(82px,.85fr) minmax(75px,.78fr) minmax(75px,.78fr)" in PLANS_CSS
+    assert ".plantr.consolidated-th," in PLANS_CSS
+    assert ".plantr.consolidated-tr {" in PLANS_CSS
     assert "width:100%" in PLANS_CSS and "min-width:0" in PLANS_CSS
 
 
-def test_target_qty_and_hours_remain_centered():
-    assert ".plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(7)" in PLANS_CSS
-    assert ".plantr:not(.actual-th):not(.actual-tr) > .cell:nth-child(9)" in PLANS_CSS
-    assert "text-align:center" in PLANS_CSS
+def test_combined_register_removes_duplicate_view_mode_and_override_rules():
+    assert "viewMode" not in PLANS_JS
+    assert "plansViewToggle" not in PLANS_JS
+    assert PLANS_CSS.count("#plansScreen .filters {") == 1
+    assert PLANS_CSS.count("#plansScreen .tablepanel {") == 1
+    assert "actual-th" not in PLANS_CSS and "actual-tr" not in PLANS_CSS
 
 
-def test_stylesheet_and_script_cache_versions_are_current():
-    assert "plans.js?v=20261013" in HTML
-    assert "plans.css?v=20261101" in HTML
+def test_combined_register_assets_use_current_cache_versions():
+    assert "plans.js?v=20261014" in HTML
+    assert "plans.css?v=20261102" in HTML
