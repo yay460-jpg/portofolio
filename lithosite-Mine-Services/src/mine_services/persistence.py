@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from openpyxl import load_workbook
+from openpyxl.utils.cell import get_column_letter, range_boundaries
 
 from . import schema as DEFAULT_SCHEMA
 
@@ -199,8 +200,61 @@ class PersistenceStore:
         except ValueError:
             return False
 
+        # Track worksheet filter/table ranges before deleting the field.
+        worksheet_filter_ref = plans.auto_filter.ref
+        table_ranges = []
+        for table in plans.tables.values():
+            try:
+                min_col, min_row, max_col, max_row = range_boundaries(table.ref)
+            except (TypeError, ValueError):
+                continue
+            table_ranges.append((table, min_col, min_row, max_col, max_row))
+
         # Delete by header name rather than a fixed position to preserve all other fields.
         plans.delete_cols(column_index, 1)
+
+        # openpyxl does not automatically update worksheet AutoFilter/table metadata
+        # when deleting columns, so update those ranges explicitly to keep the XLSX valid.
+        if worksheet_filter_ref:
+            try:
+                min_col, min_row, max_col, max_row = range_boundaries(worksheet_filter_ref)
+                if min_col <= column_index <= max_col:
+                    max_col -= 1
+                elif column_index < min_col:
+                    min_col -= 1
+                    max_col -= 1
+                if max_col >= min_col:
+                    plans.auto_filter.ref = (
+                        f"{get_column_letter(min_col)}{min_row}:"
+                        f"{get_column_letter(max_col)}{max_row}"
+                    )
+            except (TypeError, ValueError):
+                pass
+
+        for table, min_col, min_row, max_col, max_row in table_ranges:
+            if min_col <= column_index <= max_col:
+                table_column_index = column_index - min_col
+                if 0 <= table_column_index < len(table.tableColumns) and table.tableColumns[table_column_index].name == "target_hours":
+                    del table.tableColumns[table_column_index]
+                else:
+                    table.tableColumns = [
+                        table_column for table_column in table.tableColumns
+                        if table_column.name != "target_hours"
+                    ]
+                for column_id, table_column in enumerate(table.tableColumns, start=1):
+                    table_column.id = column_id
+                max_col -= 1
+            elif column_index < min_col:
+                min_col -= 1
+                max_col -= 1
+            if max_col >= min_col:
+                table.ref = (
+                    f"{get_column_letter(min_col)}{min_row}:"
+                    f"{get_column_letter(max_col)}{max_row}"
+                )
+                if table.autoFilter is not None:
+                    table.autoFilter.ref = table.ref
+
         return True
 
     def _validate_workbook_contract(self, workbook):
