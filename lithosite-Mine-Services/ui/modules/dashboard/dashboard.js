@@ -266,12 +266,6 @@
 
     const totals = {};
     const rawOperations = Array.isArray(state.operations) ? state.operations : [];
-    const contextOperations = dashboardStatus.filteredOperations(rawOperations);
-    const totalRetase = contextOperations.reduce(function (sum, row) {
-      if (row.retase === null || row.retase === undefined || row.retase === '') return sum;
-      const retase = Number(row.retase);
-      return Number.isFinite(retase) && retase >= 0 ? sum + retase : sum;
-    }, 0);
 
     rawOperations.forEach(function (row) {
       const key = String(row.transaction_date || '');
@@ -369,8 +363,12 @@
     }
 
     const chartDateKeys = new Set(activeDates.map(localDateKey));
-    const chartOperations = contextOperations.filter(function (row) {
-      return chartDateKeys.has(String(row.transaction_date || ''));
+    const chartOperations = rawOperations.filter(function (row) {
+      if (!chartDateKeys.has(String(row.transaction_date || ''))) return false;
+      if (context.scope === 'TODAY' && context.shift !== 'ALL') {
+        return String(row.shift || '').trim().toUpperCase() === context.shift;
+      }
+      return true;
     });
     const chartRetase = chartOperations.reduce(function (sum, row) {
       if (row.retase === null || row.retase === undefined || row.retase === '') return sum;
@@ -384,7 +382,10 @@
       return sum;
     }, { Hauling: 0, Dumping: 0 });
     const combined = chartTonTotals.Hauling + chartTonTotals.Dumping;
-    const unit = rawOperations.find(function (row) { return row.measurement; });
+    const unit = rawOperations.find(function (row) {
+      const activity = String(row.activity || '').trim().toLowerCase();
+      return row.measurement && (activity === 'hauling' || activity === 'dumping');
+    });
     const measurementLabel = unit && unit.measurement ? String(unit.measurement) : 'ton';
 
     function formatTotal(value) {
