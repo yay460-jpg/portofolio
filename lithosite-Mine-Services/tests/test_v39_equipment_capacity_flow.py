@@ -216,10 +216,11 @@ def test_v39_conservative_migration_resolves_unique_operation_profile(tmp_path):
     audit.append(schema.HEADERS["AuditLog"])
     wb.save(path)
 
-    resolved, ambiguous, untouched = migrate(path)
+    resolved, ambiguous, unresolved, preserved = migrate(path)
     assert resolved == [("DT-001", "GC-275")]
     assert ambiguous == []
-    assert untouched == []
+    assert unresolved == []
+    assert preserved == []
 
     migrated = load_workbook(path, data_only=True)
     equipment_row = list(migrated["Equipment"].iter_rows(min_row=2, values_only=True))[0]
