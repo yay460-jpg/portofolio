@@ -137,11 +137,11 @@
   overflow:auto;
 }
 
-/* Unified Target Plan register: one aligned row for target and actual data. */
+/* Unified Target Plan register: fourteen aligned columns; hour controls belong to Operations. */
 #plansScreen .plantr.consolidated-th,
 #plansScreen .plantr.consolidated-tr {
   display:grid;
-  grid-template-columns:minmax(82px,.85fr) minmax(75px,.78fr) minmax(75px,.78fr) minmax(90px,.95fr) minmax(130px,1.4fr) minmax(85px,.9fr) minmax(75px,.8fr) minmax(70px,.7fr) minmax(62px,.65fr) minmax(78px,.82fr) minmax(82px,.85fr) minmax(78px,.82fr) minmax(82px,.85fr) minmax(60px,.65fr) minmax(90px,.9fr);
+  grid-template-columns:minmax(90px,.9fr) minmax(78px,.78fr) minmax(78px,.78fr) minmax(100px,1fr) minmax(140px,1.4fr) minmax(88px,.9fr) minmax(78px,.78fr) minmax(72px,.72fr) minmax(82px,.82fr) minmax(88px,.88fr) minmax(88px,.88fr) minmax(82px,.82fr) minmax(82px,.82fr) minmax(100px,1fr);
   align-items:center;
   width:100%;
   min-width:0;
@@ -173,8 +173,8 @@
 #plansScreen .num { text-align:right; }
 
 /* Keep identifiers and dates left-aligned; center the activity, target and actual metrics. */
-#plansScreen .plantr.consolidated-th > .cell:nth-child(n+6):nth-child(-n+14),
-#plansScreen .plantr.consolidated-tr > .cell:nth-child(n+6):nth-child(-n+14) {
+#plansScreen .plantr.consolidated-th > .cell:nth-child(n+6):nth-child(-n+13),
+#plansScreen .plantr.consolidated-tr > .cell:nth-child(n+6):nth-child(-n+13) {
   text-align:center;
 }
 #plansScreen .plantr.consolidated-tr > .cell:nth-child(7),
