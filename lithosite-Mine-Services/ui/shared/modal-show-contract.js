@@ -15,6 +15,7 @@
     'capacityEditModal',
     'maintenanceModal',
     'plansModal',
+    'plansDeleteConfirmModal',
     'planEvidenceModal',
     'hseModal',
     'issuesModal'
