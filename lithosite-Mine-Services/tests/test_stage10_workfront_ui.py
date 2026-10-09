@@ -10,7 +10,7 @@ SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation.js").read_text(encoding="
 def test_stage10_workfront_screen_exists():
     assert 'id="workfrontScreen"' in TEXT
     assert ">Work Front<" in TEXT
-    assert "workfront.js?v=20261105" in TEXT
+    assert "workfront.js?v=20261106" in TEXT
     assert "entity:'WorkFront'" in WORKFRONT_JS
 
 
@@ -73,3 +73,8 @@ def test_stage10_runtime_error_is_not_rendered_as_empty_dataset():
 
 
 
+
+
+def test_stage10_workfront_no_longer_owns_capacity_ui():
+    assert "Global Capacity" not in WORKFRONT_JS
+    assert "f_wf_capacity" not in WORKFRONT_JS
