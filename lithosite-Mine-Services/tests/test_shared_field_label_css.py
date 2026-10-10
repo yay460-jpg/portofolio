@@ -71,9 +71,10 @@ def test_reports_filter_label_keeps_its_special_weight():
 def test_shared_field_label_stylesheet_loads_after_module_styles():
     html = read(ARTIFACT)
     shared = html.index("field-label.css?v=20261011-shared-field-label")
+    # Checker CSS is checked for duplicate rules above; it is not a direct stylesheet link in this active shell.
     for module in (
         "operations.css", "equipment.css", "workfront.css", "maintenance.css",
-        "issues.css", "plans.css", "hse.css", "checker.css",
+        "issues.css", "plans.css", "hse.css",
     ):
         assert html.index(module) < shared
     assert html.index("screen-header.css") < shared
