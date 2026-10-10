@@ -76,6 +76,8 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 
 - Added a Work Front **Show on Map** availability indicator. The button is green only when the shared Marker Location model finds an active `WorkFront` marker linked to the exact `work_front_id` and backed by finite Easting, Northing, and Elevation values; rows without a valid active marker keep the default style. Marker create/update/restore/remove/clear changes notify the Work Front register so the indicator updates without requiring a full page reload. Card-based Plan vs Actual remains on the Work Control backlog for a separate change.
 
+- Added a short green blink highlight to the exact Marker Location label after **Show on Map** focuses a linked Work Front. The map locates the label by stable `marker_id`, highlights it for approximately 2.1 seconds, then restores its default appearance. The highlight retries briefly while the focused marker overlay renders and honors the user's reduced-motion preference. Marker overlay CSS and map-engine cache keys were refreshed.
+
 ## Versioning and validation rule
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
