@@ -17,7 +17,6 @@
 #equipmentScreen .active-status{background:#123d2b;color:#4ade80}
 #equipmentScreen .inactive-status{background:#493715;color:#fbbf24}
 #equipmentScreen .retired-status{background:#27364a;color:#a9b8c9}
-#equipmentScreen .row-actions{display:flex;gap:4px}
 #equipmentScreen .mini{height:24px;padding:3px 7px;font-size:8px}
 #equipmentScreen .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
 #equipmentModal .modalbody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
