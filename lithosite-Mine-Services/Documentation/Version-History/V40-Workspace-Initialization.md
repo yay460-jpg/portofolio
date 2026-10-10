@@ -10,6 +10,8 @@
 
 V40 was created by branching from the V39 baseline-lock record. Its initial UI artifact is a copy of the V39 Stage 28 artifact renamed to V40 Stage 29. The original `Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html` remains in the repository as the locked V39 reference and must not be edited as part of V40 work.
 
+As part of V40 workspace initialization, the PDF report masthead and footer use version-neutral labels rather than printing a workspace version. The V40 artifact's Report PDF cache key was refreshed; the locked V39 branch remains unchanged.
+
 The V39 baseline was locally validated with:
 
 ```text
