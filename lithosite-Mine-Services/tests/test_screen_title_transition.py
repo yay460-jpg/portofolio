@@ -29,3 +29,4 @@ def test_navigation_restarts_title_animation_on_real_screen_changes_only():
 def test_active_artifact_loads_shared_screen_transition_stylesheet():
     html = ARTIFACT.read_text(encoding="utf-8")
     assert "ui/shared/screen-transition.css?v=20261011" in html
+    assert "shell-navigation.js?v=20261011-title-motion" in html
