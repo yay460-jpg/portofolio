@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - v40-workspace
+    paths-ignore:
+      - "lithosite-Mine-Services/Documentation/**"
+      - "lithosite-Mine-Services/README.md"
   pull_request:
     branches:
       - main

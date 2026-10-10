@@ -19,7 +19,16 @@ python -m pytest -q
 434 passed in 27.15s
 ```
 
-That result applies to the V39 validated snapshot. The V40 artifact/launcher handoff and test-path updates have been made in this workspace; **the complete pytest suite must be run on V40 before V40 is treated as validated or locked**.
+That result applies to the V39 validated snapshot. V40 full pytest has since passed in GitHub Actions:
+```text
+Run: 38060847406
+Commit: 9a06d98e5f94b85dff085fb03900d2e241d9f161
+Python: 3.13.16
+python -m pytest -q
+437 passed in 22.65s
+```
+
+The two regression tests that read the A3 workbook use the explicit `MINE_SERVICES_TEST_DB` override in CI. The workflow creates a deterministic temporary XLSX fixture in the runner's temporary directory because the repository-stored operational A3 workbook blob is not a valid ZIP/XLSX archive in the remote checkout. The CI fixture validates the workbook-backed regression contracts without overwriting or replacing the operational workbook. Local runtime acceptance against the developer's actual A3 database remains a separate check.
 
 ## Workspace runtime
 

@@ -174,7 +174,8 @@ tests/
 - Operation form layout — **locked**
 - Application shell boundary — **locked**
 - Legacy active-runtime residue audit — **closed**
-- Locked V39 baseline regression suite — **434 passed / 0 failed in 27.15s**; rerun the full suite against the V40 artifact before treating V40 as validated.
+- Locked V39 baseline regression suite — **434 passed / 0 failed in 27.15s**.
+- V40 full pytest on GitHub Actions — **437 passed / 0 failed in 22.65s** (`9a06d98e5f94b85dff085fb03900d2e241d9f161`); see [run 38060847406](https://github.com/yay460-jpg/portofolio/actions/runs/38060847406). CI uses an isolated temporary A3 fixture for two database-backed regression tests; it does not replace or modify the operational workbook.
 - Desktop Host runtime bootstrap — **validated against A.3**
 
 V39 is the current locked baseline and V40 is the active workspace derived from it. V38 and V37 remain historical/rollback references and are not active entry points.
