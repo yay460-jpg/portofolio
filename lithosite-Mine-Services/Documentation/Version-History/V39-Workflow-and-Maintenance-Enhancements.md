@@ -78,6 +78,8 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 
 - Added a short green blink highlight to the exact Marker Location label after **Show on Map** focuses a linked Work Front. The map locates the label by stable `marker_id`, highlights it for approximately 2.1 seconds, then restores its default appearance. The highlight retries briefly while the focused marker overlay renders and honors the user's reduced-motion preference. Marker overlay CSS and map-engine cache keys were refreshed.
 
+- Normalized the Target Plan `DRAFT` badge font weight to `400` to match normal row text while preserving its yellow text, dark amber background, and pill geometry. The Plans stylesheet cache key was refreshed and a regression test added.
+
 ## Versioning and validation rule
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
