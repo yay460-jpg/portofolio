@@ -5,7 +5,7 @@
 `evidence.js` and `evidence.css` are the shared Evidence viewer component used by Lithosite Mine Services. They are loaded once from the application shell and are not owned by Target Plan, HSE, or Maintenance individually.
 
 The shared component owns:
-- listing Evidence files for an allowlisted module and record context; the Desktop Host validates paths, and the current upload route additionally verifies Target Plan existence through RuntimeAdapter;
+- listing Evidence files for an allowlisted module and record context; the Desktop Host validates paths, and the upload route verifies the matching TargetPlan, HSE, or Maintenance record through RuntimeAdapter;
 - uploading permitted files into the Desktop Host-managed folder;
 - inline PDF and image previews using a POST JSON response and temporary Blob URLs;
 - original DOC/DOCX download links;
@@ -35,16 +35,16 @@ Required fields:
 Optional fields:
 - `title`: modal heading. Defaults to `<module> Evidence`.
 - `recordLabel`: human-readable record context. Defaults to the record ID.
-- `allowUpload`: requests an Upload control. In the current implementation it is only honored for `TargetPlan`; the Desktop Host separately enforces that upload restriction.
+- `allowUpload`: requests an Upload control. It is honored for the allowlisted modules `TargetPlan`, `HSE`, and `Maintenance`; the Desktop Host independently validates that the matching record exists through RuntimeAdapter before accepting any upload.
 
 The API also exposes `close()`, `refresh()`, and `isOpen()`. `open()` returns whether the modal could be opened. The calling module remains responsible for choosing the correct record and deciding when Evidence should open.
 
 ## Adding a module in the future
 
 1. Call `LithositeEvidence.open({ module, recordId, ... })` from the module using the entity's actual stable ID.
-2. Add a validated module-to-record check to the Desktop Host before enabling upload for that module. Do not enable upload merely by setting `allowUpload: true`.
+2. For any future module beyond `TargetPlan`, `HSE`, and `Maintenance`, add a validated module-to-record check to the Desktop Host before enabling upload. Do not enable upload merely by setting `allowUpload: true`.
 3. Keep the storage path derived by Desktop Host from the allowlisted module and validated record ID. The user must never supply a destination directory.
-4. Add tests for record existence, invalid IDs, upload authorization, path isolation, duplicate filenames, and the record deletion lifecycle.
+4. Keep tests for record existence, invalid IDs, upload authorization, path isolation, duplicate filenames, and the record deletion lifecycle for each supported module.
 5. Keep the shared API and styles generic; module-specific delete/approval rules remain in the owning module.
 
 ## Shell contract
