@@ -84,4 +84,4 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
 - Version-specific feature decisions and implementation history belong in this Version-History area.
-- The last confirmed full test result before HSE/Maintenance Evidence integration was `419 passed` after the shared Evidence extraction. Run the focused Evidence regression tests and the full local suite after pulling the new integration before treating this integration as fully validated.
+- **V39 close-out and baseline lock:** After completing shared Evidence across Target Plan, HSE, and Maintenance; per-record green Evidence indicators; Work Front Show on Map availability indicators; marker-label blink navigation feedback; and Target Plan UI consistency fixes, the full test suite passed with `434 passed in 27.15s` on the validated code snapshot `5da238623454bc6df3f97feb57b07b7e89c26c4e` (local run reported on 2026-10-10). V39 is now closed to feature changes and designated the active locked baseline. New development continues from a copy in `v40-workspace`.
