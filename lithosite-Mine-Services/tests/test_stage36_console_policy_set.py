@@ -6,7 +6,7 @@ def read(path):
     return (ROOT / path).read_text(encoding="utf-8")
 
 def test_stage36_console_policy_set_surface():
-    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html")
+    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html")
     reports = read("ui/modules/reports/reports.js")
     foundation = read("ui/modules/reports/kpi-foundation.js")
 
@@ -32,7 +32,7 @@ def test_stage36_console_policy_set_surface():
     assert "PURE_EFFECTIVE" in foundation
 
 def test_stage36_console_contains_policy_only():
-    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html")
+    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html")
     start = html.index('<div id="reportsConsoleModal"')
     end = html.index('<div id="reportsHistoryModal"', start)
     modal = html[start:end]
@@ -59,7 +59,7 @@ def test_stage36_equipment_list_owns_scroll_without_visible_scrollbar():
     assert "#reportsScreen .equipment-kpi-list::-webkit-scrollbar{width:0;height:0;display:none}" in css
 
 def test_stage36_dedicated_equipment_scroll_viewport():
-    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html")
+    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html")
     css = read("ui/modules/reports/reports.css")
     reports = read("ui/modules/reports/reports.js")
 
@@ -70,7 +70,7 @@ def test_stage36_dedicated_equipment_scroll_viewport():
     assert "e.preventDefault()" in reports
 
 def test_stage36_equipment_unit_column():
-    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html")
+    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html")
     reports = read("ui/modules/reports/reports.js")
     foundation = read("ui/modules/reports/kpi-foundation.js")
     css = read("ui/modules/reports/reports.css")
