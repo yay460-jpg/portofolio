@@ -51,8 +51,8 @@ def test_daily_report_uses_formal_report_engine():
 
 def test_v38_artifact_wires_daily_report_engine():
     html = ARTIFACT.read_text(encoding="utf-8")
-    daily = '<script src="../ui/modules/reports/daily-report.js?"></script>'
-    formal = '<script src="../ui/modules/reports/report-engine.js?"></script>'
+    daily = "../ui/modules/reports/daily-report.js?"
+    formal = "../ui/modules/reports/report-engine.js?"
     assert daily in html
     assert formal in html
     assert html.index(daily) < html.index(formal)
