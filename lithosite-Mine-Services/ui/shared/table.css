@@ -43,7 +43,7 @@
   overflow:hidden;
 }
 
-#workfrontScreen .tablepanel,#maintenanceScreen .tablepanel,#plansScreen .tablepanel,#hseScreen .tablepanel{
+#workfrontScreen .tablepanel,#maintenanceScreen .tablepanel,#plansScreen .tablepanel,#hseScreen .tablepanel,#workfrontScreen .filters,#maintenanceScreen .filters,#plansScreen .filters,#hseScreen .filters{
   background:#101f31;
   border:1px solid #28425c;
   border-radius:9px;
@@ -55,4 +55,13 @@
   min-width:0;
   min-height:0;
   overflow:auto;
+}
+
+/* Shared filter bar geometry; each workspace retains its own column template. */
+#operationsScreen .filters,#equipmentScreen .filters,#workfrontScreen .filters,#maintenanceScreen .filters,#issuesScreen .filters,#plansScreen .filters,#hseScreen .filters,#checkerScreen .filters{
+  display:grid;
+  gap:8px;
+  align-items:end;
+  padding:12px;
+  flex:0 0 auto;
 }

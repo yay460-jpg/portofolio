@@ -47,11 +47,13 @@ def test_shared_tablepanel_geometry_has_one_owner():
         assert compact(declaration) in body
 
 
-def test_repeated_tablepanel_visual_skin_is_shared_without_changing_members():
+def test_repeated_surface_visual_skin_is_shared_without_changing_members():
     css = read(TABLE_CSS)
     group = (
         "#workfrontScreen .tablepanel,#maintenanceScreen .tablepanel,"
-        "#plansScreen .tablepanel,#hseScreen .tablepanel"
+        "#plansScreen .tablepanel,#hseScreen .tablepanel,"
+        "#workfrontScreen .filters,#maintenanceScreen .filters,"
+        "#plansScreen .filters,#hseScreen .filters"
     )
     body = compact(rule_body(css, group))
     for declaration in (
@@ -103,9 +105,67 @@ def test_scroll_grid_baseline_is_shared_and_module_exceptions_remain():
 def test_shared_table_layout_asset_is_linked_after_module_stylesheets():
     html = read(ARTIFACT)
     assert html.count('rel="stylesheet"') == len(re.findall(r'<link rel="stylesheet" href="[^"]+">', html))
-    link = html.index("table.css?v=20261011-table-layout")
+    link = html.index("table.css?v=20261011-filter-layout")
     for module in (
         "operations.css", "equipment.css", "workfront.css", "maintenance.css",
         "issues.css", "plans.css", "hse.css",
     ):
         assert html.index(module) < link
+
+
+def test_shared_filter_bar_geometry_has_one_owner():
+    css = read(TABLE_CSS)
+    group = ",".join(f"#{screen} .filters" for screen in SCREENS)
+    body = compact(rule_body(css, group))
+    for declaration in ("display:grid", "gap:8px", "align-items:end", "padding:12px", "flex:0 0 auto"):
+        assert compact(declaration) in body
+
+
+def test_filter_columns_and_module_exceptions_remain_local():
+    templates = (
+        ("operations/operations.css", "grid-template-columns:repeat(8,minmax(0,1fr)) auto"),
+        ("equipment/equipment.css", "grid-template-columns:1.15fr 1.15fr 1.15fr 1fr 1fr 1fr auto"),
+        ("workfront/workfront.css", "grid-template-columns:1.2fr 1.2fr 1fr 1fr 1fr auto"),
+        ("maintenance/maintenance.css", "grid-template-columns:repeat(5,minmax(0,1fr)) auto"),
+        ("issues/issues.css", "grid-template-columns:1.1fr repeat(5,minmax(0,1fr)) auto"),
+        ("plans/plans.css", "grid-template-columns:1fr 1fr 1.1fr 1.1fr 1fr auto"),
+        ("hse/hse.css", "grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto"),
+        ("checker/checker.css", "grid-template-columns:repeat(4,minmax(0,1fr)) auto"),
+    )
+    for relative, template in templates:
+        module_css = compact(read(ROOT / "ui" / "modules" / relative))
+        assert compact(template) in module_css, f"Unique filter columns changed in {relative}"
+
+    for relative in ("operations/operations.css", "issues/issues.css", "checker/checker.css"):
+        module_css = compact(read(ROOT / "ui" / "modules" / relative))
+        assert "min-height:0" in module_css
+
+
+def test_module_filter_rules_do_not_duplicate_shared_geometry_or_surface_skin():
+    module_screens = {
+        "operations/operations.css":"#operationsScreen .filters",
+        "equipment/equipment.css":"#equipmentScreen .filters",
+        "workfront/workfront.css":"#workfrontScreen .filters",
+        "maintenance/maintenance.css":"#maintenanceScreen .filters",
+        "issues/issues.css":"#issuesScreen .filters",
+        "plans/plans.css":"#plansScreen .filters",
+        "hse/hse.css":"#hseScreen .filters",
+        "checker/checker.css":"#checkerScreen .filters",
+    }
+    shared_declarations = (
+        "display:grid", "gap:8px", "align-items:end", "padding:12px", "flex:0 0 auto",
+        "border:1px solid#28425c", "border-radius:9px", "background:#101f31",
+        "box-shadow:02px9px#02081255",
+    )
+    for relative, selector in module_screens.items():
+        module_css = read(ROOT / "ui" / "modules" / relative)
+        rules = [
+            match.group(2) for match in re.finditer(r"([^{}]+)\{([^{}]*)\}", module_css)
+            if compact(match.group(1).strip()) == compact(selector)
+        ]
+        for body in rules:
+            normalized = compact(body)
+            for declaration in shared_declarations:
+                assert compact(declaration) not in normalized, (
+                    f"Shared filter declaration remains module-owned in {relative}: {declaration}"
+                )

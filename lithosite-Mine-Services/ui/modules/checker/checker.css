@@ -78,19 +78,7 @@
   border-radius:9px;
   box-shadow:0 2px 9px #02081255;
   overflow:hidden;
-}
-
-#checkerScreen .filters{
-  height:auto;
-  min-height:0;
-  flex:0 0 auto;
-  flex-shrink:0;
-  padding:12px;
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr)) auto;
-  gap:8px;
-  align-items:end;
-}
+}#checkerScreen .filters{height:auto;min-height:0;flex-shrink:0;grid-template-columns:repeat(4,minmax(0,1fr)) auto}
 
 #checkerScreen .field input:hover,
 #checkerScreen .field select:hover,

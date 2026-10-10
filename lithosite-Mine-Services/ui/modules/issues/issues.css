@@ -26,8 +26,7 @@
   overflow:hidden;
 }
 #issuesScreen .head{height:48px;min-height:48px;flex:0 0 48px;display:flex;justify-content:space-between}
-#issuesScreen .panel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
-#issuesScreen .filters{height:auto;min-height:0;flex:0 0 auto;flex-shrink:0;padding:12px;display:grid;grid-template-columns:1.1fr repeat(5,minmax(0,1fr)) auto;gap:8px;align-items:end}
+#issuesScreen .panel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}#issuesScreen .filters{height:auto;min-height:0;flex-shrink:0;grid-template-columns:1.1fr repeat(5,minmax(0,1fr)) auto}
 #issuesScreen .field input:focus,#issuesScreen .field select:focus{border-color:#4d8dff}
 #issuesScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 #issuesScreen .tablemeta{font-size:9px;color:#8ea3ba}#issuesScreen .grid{height:auto}

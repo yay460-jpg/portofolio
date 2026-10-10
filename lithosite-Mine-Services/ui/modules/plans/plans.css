@@ -33,21 +33,7 @@
   height:48px;
   min-height:48px;
 }
-#plansScreen #plansAdd[hidden] { display:none!important; }
-
-#plansScreen .filters {
-  display:grid;
-  grid-template-columns:1fr 1fr 1.1fr 1.1fr 1fr auto;
-  align-items:end;
-  flex:0 0 auto;
-  height:auto;
-  gap:8px;
-  padding:12px;
-  border:1px solid #28425c;
-  border-radius:9px;
-  background:#101f31;
-  box-shadow:0 2px 9px #02081255;
-}
+#plansScreen #plansAdd[hidden] { display:none!important; }#plansScreen .filters{grid-template-columns:1fr 1fr 1.1fr 1.1fr 1fr auto;height:auto}
 #plansScreen .clear,
 #plansScreen #plansClear {
   display:flex;
