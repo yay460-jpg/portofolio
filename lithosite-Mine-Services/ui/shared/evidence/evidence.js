@@ -10,6 +10,7 @@
   const ELEMENT_IDS = Object.freeze({
     modal: 'evidenceModal',
     title: 'evidenceTitle',
+    moduleLabel: 'evidenceModuleLabel',
     close: 'evidenceClose',
     refresh: 'evidenceRefresh',
     record: 'evidenceRecord',
@@ -372,10 +373,12 @@
 
     const title = element('title');
     const record = element('record');
+    const moduleLabel = element('moduleLabel');
     const button = element('uploadButton');
     const fileInput = element('uploadInput');
     const list = element('list');
     if (title) title.textContent = current.title;
+    if (moduleLabel) moduleLabel.textContent = moduleName === 'TargetPlan' ? 'TARGET PLAN' : moduleName.toUpperCase();
     if (record) record.textContent = current.recordLabel;
     if (button) {
       button.hidden = !current.allowUpload;
