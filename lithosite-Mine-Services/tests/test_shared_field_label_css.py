@@ -55,7 +55,9 @@ def test_module_field_label_duplicates_are_removed():
         css = read(ROOT / "ui" / "modules" / relative)
         for selector in selectors:
             escaped = re.escape(selector)
-            assert not re.search(rf"(?m)^\s*{escaped}\s*\{{", css), (
+            compact_css = re.sub(r"\s+", "", css)
+            compact_selector = re.sub(r"\s+", "", selector)
+            assert f"{compact_selector}{{" not in compact_css, (
                 f"Field-label typography remains module-owned in {relative}: {selector}"
             )
 
