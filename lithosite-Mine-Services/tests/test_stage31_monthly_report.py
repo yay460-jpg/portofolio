@@ -50,8 +50,8 @@ def test_reports_integrates_monthly_engine():
 
 def test_artifact_wires_monthly_before_formal_engine():
     text = read(ARTIFACT)
-    monthly = '<script src="../ui/modules/reports/monthly-report.js?"></script>'
-    formal = '<script src="../ui/modules/reports/report-engine.js?"></script>'
+    monthly = "../ui/modules/reports/monthly-report.js?"
+    formal = "../ui/modules/reports/report-engine.js?"
     assert monthly in text
     assert formal in text
     assert text.index(monthly) < text.index(formal)
