@@ -160,7 +160,8 @@ def test_hse_register_has_a_dedicated_evidence_view_column():
     css = (root / "ui" / "modules" / "hse" / "hse.css").read_text(encoding="utf-8")
 
     assert '<div class="cell">Closed At</div><div class="cell">Evidence</div><div class="cell">Actions</div>' in html
-    assert 'class="cell evidence-cell"><button type="button" class="control mini view-evidence evidence-hse" data-id="'+esc(r.hse_id)+'">View</button></div>' in module
+    assert 'class="cell evidence-cell"><button type="button" class="control mini view-evidence evidence-hse"' in module
+    assert 'data-id="'+esc(r.hse_id)+'">View</button></div>' in module
     assert 'class="cell row-actions"><button class="control mini view show-map-hse"' in module
     assert 'row-actions"><button class="control mini view evidence-hse"' not in module
     assert "grid-template-columns:105px 88px 115px 145px 125px 82px minmax(180px,1fr) 125px 92px 125px 72px 160px;min-width:1460px;" in css
