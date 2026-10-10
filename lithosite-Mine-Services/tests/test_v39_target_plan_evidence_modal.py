@@ -20,9 +20,11 @@ def test_target_plan_evidence_is_a_trigger_button_between_status_and_actions():
         '<div class="cell">Status</div><div class="cell">Evidence</div>'
         '<div class="cell">Actions</div>'
     ) in HTML
-    assert (
-        """<div class="cell evidence-cell"><button type="button" class="control mini view-evidence" data-id="'+esc(r.plan_id)+'">View</button></div>"""
-    ) in PLANS_JS
+    assert 'class="cell evidence-cell"><button type="button" class="control mini view-evidence evidence-indicator"' in PLANS_JS
+    assert 'data-evidence-module="TargetPlan"' in PLANS_JS
+    assert 'data-evidence-id="' in PLANS_JS
+    assert "esc(r.plan_id)" in PLANS_JS
+    assert '>View</button></div>' in PLANS_JS
     assert 'class="cell status-cell"' in PLANS_JS
     assert 'class="cell row-actions"' in PLANS_JS
     assert PLANS_JS.index('class="cell status-cell"') < PLANS_JS.index('class="cell evidence-cell"') < PLANS_JS.index('class="cell row-actions"')
