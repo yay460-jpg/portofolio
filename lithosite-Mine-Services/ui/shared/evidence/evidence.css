@@ -1,0 +1,242 @@
+/* Shared Evidence viewer. Each module supplies its record context through LithositeEvidence. */
+#evidenceModal > .modal.modal-shell-valid {
+  width:1120px;
+  max-width:calc(100vw - 48px);
+}
+#evidenceModal .evidence-modal-body {
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-height:0;
+  padding:14px;
+}
+#evidenceModal .evidence-context {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  border:1px solid #29435d;
+  border-radius:8px;
+  background:#0c1b2c;
+}
+#evidenceModal .evidence-record-label {
+  color:#8ea3ba;
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:.7px;
+}
+#evidenceModal .evidence-record-value {
+  margin-top:3px;
+  color:#dce8f5;
+  font-size:11px;
+  font-weight:700;
+  overflow-wrap:anywhere;
+}
+#evidenceModal .evidence-status {
+  color:#9eb2c8;
+  font-size:10px;
+  line-height:1.45;
+}
+#evidenceModal .evidence-status.error { color:#fca5a5; }
+#evidenceModal .evidence-layout {
+  display:grid;
+  grid-template-columns:minmax(240px,.82fr) minmax(0,1.5fr);
+  gap:12px;
+  min-height:330px;
+  min-width:0;
+}
+#evidenceModal .evidence-list-panel,
+#evidenceModal .evidence-preview-panel {
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+  border:1px solid #29435d;
+  border-radius:8px;
+  background:#0c1b2c;
+}
+#evidenceModal .evidence-panel-title {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex:0 0 auto;
+  padding:7px 8px 7px 12px;
+  border-bottom:1px solid #29435d;
+  color:#dce8f5;
+  font-size:10px;
+  font-weight:700;
+}
+#evidenceModal .evidence-panel-actions {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+}
+#evidenceModal .evidence-panel-actions .control {
+  padding:6px 10px;
+}
+#evidenceModal .evidence-preview-label {
+  flex:1 1 auto;
+  min-width:0;
+  color:#9eb2c8;
+  font-size:9px;
+  font-weight:500;
+  line-height:1.4;
+  text-align:right;
+  overflow-wrap:anywhere;
+}
+#evidenceModal .evidence-upload-status {
+  flex:0 0 auto;
+  padding:6px 10px;
+  border-bottom:1px solid #223b53;
+  color:#9eb2c8;
+  font-size:9px;
+  line-height:1.4;
+  overflow-wrap:anywhere;
+}
+#evidenceModal .evidence-upload-status:empty {
+  display:none;
+}
+#evidenceModal .evidence-upload-status.error {
+  color:#fca5a5;
+}
+#evidenceModal .evidence-file-list {
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  padding:7px;
+}
+#evidenceModal .evidence-file-button {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:100%;
+  min-width:0;
+  margin:0 0 6px;
+  padding:10px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  background:#10243a;
+  color:#dce8f5;
+  text-align:left;
+  cursor:pointer;
+}
+#evidenceModal .evidence-file-button:hover,
+#evidenceModal .evidence-file-button.active {
+  border-color:#3b82f6;
+  background:#153251;
+}
+#evidenceModal .evidence-file-button:disabled {
+  cursor:not-allowed;
+  opacity:.45;
+}
+#evidenceModal .evidence-file-icon {
+  flex:0 0 28px;
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:32px;
+  border:1px solid #35536f;
+  border-radius:5px;
+  color:#93c5fd;
+  font-size:8px;
+  font-weight:800;
+}
+#evidenceModal .evidence-file-description {
+  display:block;
+  flex:1 1 auto;
+  min-width:0;
+}
+#evidenceModal .evidence-file-name {
+  display:block;
+  overflow-wrap:anywhere;
+  font-size:10px;
+  line-height:1.35;
+}
+#evidenceModal .evidence-file-meta {
+  display:block;
+  margin-top:3px;
+  color:#8ea3ba;
+  font-size:8px;
+}
+#evidenceModal .evidence-preview {
+  display:flex;
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  align-items:center;
+  justify-content:center;
+  overflow:auto;
+  padding:10px;
+  color:#8ea3ba;
+  font-size:10px;
+  text-align:center;
+}
+#evidenceModal .evidence-preview-content {
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:8px;
+  width:100%;
+  height:100%;
+  min-height:0;
+}
+#evidenceModal .evidence-preview-toolbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  min-width:0;
+  color:#dce8f5;
+  font-size:9px;
+  text-align:left;
+}
+#evidenceModal .evidence-preview-toolbar span {
+  overflow-wrap:anywhere;
+}
+#evidenceModal .evidence-image {
+  display:block;
+  width:100%;
+  height:100%;
+  min-height:260px;
+  object-fit:contain;
+  background:#081522;
+  border-radius:5px;
+}
+#evidenceModal .evidence-pdf {
+  display:block;
+  flex:1 1 auto;
+  width:100%;
+  min-height:300px;
+  height:52vh;
+  border:1px solid #29435d;
+  border-radius:5px;
+  background:#fff;
+}
+#evidenceModal .evidence-empty {
+  padding:22px 14px;
+  color:#8ea3ba;
+  font-size:10px;
+  line-height:1.5;
+  text-align:center;
+}
+#evidenceModal .evidence-file-button .control { flex:0 0 auto; }
+#evidenceModal .evidence-download-panel {
+  max-width:420px;
+  padding:24px;
+  color:#cbd8e7;
+  line-height:1.6;
+}
+#evidenceModal .evidence-download-panel p { margin:0 0 14px; }
+@media(max-width:900px) {
+  #evidenceModal .evidence-layout {
+    grid-template-columns:minmax(0,1fr);
+    min-height:0;
+  }
+  #evidenceModal .evidence-list-panel { max-height:200px; }
+  #evidenceModal .evidence-preview-panel { min-height:300px; }
+  #evidenceModal .evidence-pdf { height:42vh; }
+}
