@@ -287,6 +287,7 @@
           (error && error.message ? error.message : String(error)));
       }
     }
+    if (current !== context) return;
     if (failures.length) {
       const details = failures.slice(0, 4).join(' · ') +
         (failures.length > 4 ? ' · +' + (failures.length - 4) + ' more' : '');
