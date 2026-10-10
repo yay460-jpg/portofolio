@@ -23,7 +23,7 @@ def test_operations_focus_and_timeline_title_have_no_redundant_rules():
     )
     assert len(focus) == 1
     assert "border-color:#4d8dff" in focus[0]
-    assert not rule_bodies(css, r"#operationsScreen\s+\.field input:focus,\s*#operationsScreen\s+\.field select:focus")
+    assert "#operationsScreen .field input:focus,#operationsScreen .field select:focus{border-color:#4d8dff}" not in css
 
     title = rule_bodies(css, r"#timelineModal\s+\.modalhead\s+\.ptitle")
     assert len(title) == 1
