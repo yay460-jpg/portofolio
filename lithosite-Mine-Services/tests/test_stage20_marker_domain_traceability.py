@@ -60,7 +60,7 @@ def test_stage20_10_v32_loads_current_assets():
     html = ARTIFACT.read_text(encoding="utf-8")
     for marker in (
         "../ui/modules/map-engine/marker-location.js?v=20261017",
-        "../ui/modules/map-engine/marker-location.css?v=20261011",
+        "../ui/modules/map-engine/marker-location.css?v=20261013",
         "../ui/modules/equipment/equipment.js?v=20261109",
         "../ui/modules/workfront/workfront.js?v=20261107",
         "../ui/modules/hse/hse.js?v=20261006",
