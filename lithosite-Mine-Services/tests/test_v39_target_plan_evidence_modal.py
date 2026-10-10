@@ -64,6 +64,8 @@ def test_shared_evidence_upload_uses_managed_storage_without_a_folder_picker():
     assert "runtime.HOST + '/evidence/upload?'" in EVIDENCE_JS
     assert "runtime.HOST + '/evidence/list?module='" in EVIDENCE_JS
     assert "allowUpload: input.allowUpload === true && moduleName === 'TargetPlan'" in EVIDENCE_JS
+    assert "fileInput.hidden = true;" in EVIDENCE_JS
+    assert "fileInput.hidden = !current.allowUpload;" not in EVIDENCE_JS
     assert "id=\"evidenceUploadButton\"" not in PLANS_JS
 
 
@@ -131,12 +133,12 @@ def test_central_evidence_folder_is_documented_for_the_three_modules():
 def test_shared_evidence_assets_use_current_cache_keys_and_load_before_plans():
     assert "plans.js?v=20261030" in HTML
     assert "plans.css?v=20261112" in HTML
-    assert "evidence.js?v=20261015" in HTML
+    assert "evidence.js?v=20261016" in HTML
     assert "evidence.css?v=20261010" in HTML
     assert "modal-show-contract.js?v=20261028" in HTML
-    assert HTML.index("runtime-client.js") < HTML.index("evidence.js?v=20261015")
-    assert HTML.index("modal-show-contract.js?v=20261028") < HTML.index("evidence.js?v=20261015")
-    assert HTML.index("evidence.js?v=20261015") < HTML.index("plans.js?v=20261030")
+    assert HTML.index("runtime-client.js") < HTML.index("evidence.js?v=20261016")
+    assert HTML.index("modal-show-contract.js?v=20261028") < HTML.index("evidence.js?v=20261016")
+    assert HTML.index("evidence.js?v=20261016") < HTML.index("plans.js?v=20261030")
     assert HTML.index("evidence.css?v=20261010") < HTML.index("</head>")
     assert "#evidenceModal .evidence-layout" in EVIDENCE_CSS
     assert "#evidenceModal .evidence-layout" not in PLANS_CSS
