@@ -7,7 +7,6 @@
 
 
 #hseScreen .filters{height:auto;flex:0 0 auto;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:end}
-#hseScreen .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}
 #hseScreen .field input,#hseScreen .field select,#hseScreen .field textarea{width:100%;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:7px 9px;font:inherit;font-size:10px;outline:none}
 #hseScreen .field input,#hseScreen .field select{height:32px;padding:0 9px}
 #hseScreen .tablepanel{position:relative;flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;margin-top:12px;overflow:hidden}

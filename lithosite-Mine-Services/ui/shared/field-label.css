@@ -1,0 +1,23 @@
+/* Shared typography for data-entry labels across screens and modal forms. */
+#operationsScreen .field label,
+#modal .field label,
+#equipmentScreen .field label,
+#equipmentModal .field label,
+#workfrontScreen .field label,
+#workfrontModal .field label,
+#maintenanceScreen .field label,
+#maintenanceModal .field label,
+#issuesScreen .field label,
+#issuesModal .field label,
+#plansScreen .field label,
+#hseScreen .field label,
+#checkerScreen .field label,
+#checkerModal .field label{
+  display:block;
+  font-size:8.5px;
+  color:#8fa5bb;
+  text-transform:uppercase;
+  font-weight:600;
+  letter-spacing:.4px;
+  margin-bottom:5px;
+}

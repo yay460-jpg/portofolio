@@ -97,16 +97,6 @@
   align-items:end;
 }
 
-#checkerScreen .field label{
-  display:block;
-  font-size:8.5px;
-  color:#8fa5bb;
-  text-transform:uppercase;
-  font-weight:600;
-  letter-spacing:.4px;
-  margin-bottom:5px;
-}
-
 #checkerScreen .field input,
 #checkerScreen .field select{
   width:100%;
@@ -319,16 +309,6 @@
   grid-template-columns:1fr 1fr;
   gap:12px;
   overflow:auto;
-}
-
-#checkerModal .field label{
-  display:block;
-  font-size:8.5px;
-  color:#8fa5bb;
-  text-transform:uppercase;
-  font-weight:600;
-  letter-spacing:.4px;
-  margin-bottom:5px;
 }
 
 #checkerModal .field input,

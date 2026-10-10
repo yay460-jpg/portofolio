@@ -49,15 +49,6 @@
   background:#101f31;
   box-shadow:0 2px 9px #02081255;
 }
-#plansScreen .field label {
-  display:block;
-  margin-bottom:5px;
-  color:#8fa5bb;
-  font-size:8.5px;
-  font-weight:600;
-  letter-spacing:.4px;
-  text-transform:uppercase;
-}
 #plansScreen .field input,
 #plansScreen .field select {
   width:100%;
