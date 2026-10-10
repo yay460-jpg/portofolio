@@ -9,6 +9,10 @@ EVIDENCE_CSS = (ROOT / "ui" / "shared" / "evidence" / "evidence.css").read_text(
 HOST = (ROOT / "desktop-host" / "server.py").read_text(encoding="utf-8")
 MODAL_CONTRACT = (ROOT / "ui" / "shared" / "modal-show-contract.js").read_text(encoding="utf-8")
 EVIDENCE_README = (ROOT / "Database" / "Evidence" / "README.md").read_text(encoding="utf-8")
+HSE_JS = (ROOT / "ui" / "modules" / "hse" / "hse.js").read_text(encoding="utf-8")
+HSE_CSS = (ROOT / "ui" / "modules" / "hse" / "hse.css").read_text(encoding="utf-8")
+MAINTENANCE_JS = (ROOT / "ui" / "modules" / "maintenance" / "maintenance.js").read_text(encoding="utf-8")
+MAINTENANCE_CSS = (ROOT / "ui" / "modules" / "maintenance" / "maintenance.css").read_text(encoding="utf-8")
 
 
 def test_target_plan_evidence_is_a_trigger_button_between_status_and_actions():
@@ -63,7 +67,7 @@ def test_shared_evidence_upload_uses_managed_storage_without_a_folder_picker():
     assert "uploadFiles(event.target.files)" in EVIDENCE_JS
     assert "runtime.HOST + '/evidence/upload?'" in EVIDENCE_JS
     assert "runtime.HOST + '/evidence/list?module='" in EVIDENCE_JS
-    assert "allowUpload: input.allowUpload === true && moduleName === 'TargetPlan'" in EVIDENCE_JS
+    assert "allowUpload: input.allowUpload === true && ALLOWED_MODULES.has(moduleName)" in EVIDENCE_JS
     assert "fileInput.hidden = true;" in EVIDENCE_JS
     assert "fileInput.hidden = !current.allowUpload;" not in EVIDENCE_JS
     assert "id=\"evidenceUploadButton\"" not in PLANS_JS
@@ -109,7 +113,7 @@ def test_evidence_endpoint_is_scoped_to_allowed_modules_and_extensions():
     assert 'if post_path == "/evidence/upload":' in HOST
     assert 'if post_path == "/evidence/preview":' in HOST
     assert "_evidence_filename_error(filename, EVIDENCE_EXTENSIONS)" in HOST
-    assert "_target_plan_exists(record_id)" in HOST
+    assert "_evidence_record_exists(module, record_id)" in HOST
     assert "evidence_record_directory(module, record_id)" in HOST
     assert 'or "/" in filename' in HOST
     assert "Path(filename).name != filename" in HOST
@@ -133,12 +137,18 @@ def test_central_evidence_folder_is_documented_for_the_three_modules():
 def test_shared_evidence_assets_use_current_cache_keys_and_load_before_plans():
     assert "plans.js?v=20261030" in HTML
     assert "plans.css?v=20261112" in HTML
-    assert "evidence.js?v=20261016" in HTML
+    assert "evidence.js?v=20261017" in HTML
+    assert "maintenance.js?v=20261012" in HTML
+    assert "hse.js?v=20261006" in HTML
+    assert "maintenance.css?v=20261029" in HTML
+    assert "hse.css?v=20261026" in HTML
+    assert HTML.index("evidence.js?v=20261017") < HTML.index("maintenance.js?v=20261012")
+    assert HTML.index("evidence.js?v=20261017") < HTML.index("hse.js?v=20261006")
     assert "evidence.css?v=20261010" in HTML
     assert "modal-show-contract.js?v=20261028" in HTML
-    assert HTML.index("runtime-client.js") < HTML.index("evidence.js?v=20261016")
-    assert HTML.index("modal-show-contract.js?v=20261028") < HTML.index("evidence.js?v=20261016")
-    assert HTML.index("evidence.js?v=20261016") < HTML.index("plans.js?v=20261030")
+    assert HTML.index("runtime-client.js") < HTML.index("evidence.js?v=20261017")
+    assert HTML.index("modal-show-contract.js?v=20261028") < HTML.index("evidence.js?v=20261017")
+    assert HTML.index("evidence.js?v=20261017") < HTML.index("plans.js?v=20261030")
     assert HTML.index("evidence.css?v=20261010") < HTML.index("</head>")
     assert "#evidenceModal .evidence-layout" in EVIDENCE_CSS
     assert "#evidenceModal .evidence-layout" not in PLANS_CSS
@@ -168,3 +178,36 @@ def test_plan_delete_uses_a_lithosite_confirmation_modal_not_a_browser_prompt():
     assert "window.confirm" not in PLANS_JS
     assert "#plansDeleteConfirmModal > .modal.modal-shell-valid" in PLANS_CSS
     assert "#plansDeleteConfirmModal .plans-delete-confirm-warning" in PLANS_CSS
+
+
+def test_hse_evidence_action_uses_the_hse_record_and_shared_viewer():
+    assert "evidence-hse" in HSE_JS
+    assert "function openHseEvidence(id)" in HSE_JS
+    assert "module:'HSE'" in HSE_JS
+    assert "recordId:String(row.hse_id)" in HSE_JS
+    assert "allowUpload:true" in HSE_JS
+    assert "closest('.evidence-hse')" in HSE_JS
+    assert "grid-template-columns:105px 88px 115px 145px 125px 82px minmax(180px,1fr) 125px 92px 125px 208px;min-width:1400px;" in HSE_CSS
+
+
+def test_maintenance_evidence_action_is_scoped_to_each_timeline_event():
+    assert "evidence-maintenance-timeline" in MAINTENANCE_JS
+    assert "function openMaintenanceEvidence(id)" in MAINTENANCE_JS
+    assert "module:'Maintenance'" in MAINTENANCE_JS
+    assert "recordId:String(row.maintenance_id)" in MAINTENANCE_JS
+    assert "allowUpload:true" in MAINTENANCE_JS
+    assert "closest('.evidence-maintenance-timeline')" in MAINTENANCE_JS
+    assert "grid-template-columns:65px 65px 120px 115px 90px 1fr 90px 90px 215px;min-width:1000px;" in MAINTENANCE_CSS
+
+
+def test_evidence_upload_authorization_and_lifecycle_cover_all_supported_records():
+    assert '"TargetPlan": ("Plans", "plan_id")' in HOST
+    assert '"HSE": ("HSE", "hse_id")' in HOST
+    assert '"Maintenance": ("Maintenance", "maintenance_id")' in HOST
+    assert '"hse": ("HSE", "hse_id")' in HOST
+    assert '"maintenance": ("Maintenance", "maintenance_id")' in HOST
+    assert 'if module not in EVIDENCE_MODULES:' in HOST
+    assert '_evidence_record_exists(module, record_id)' in HOST
+    assert 'if result.get("status") != "COMMITTED":' in HOST
+    assert "Upload is enabled for verified Target Plan, HSE, and Maintenance records." in EVIDENCE_README
+    assert "Maintenance Timeline" in EVIDENCE_README
