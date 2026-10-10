@@ -130,3 +130,26 @@
 .app-info-row:nth-child(3) .app-info-label-icon{color:#f59e0b}
 .app-info-row:nth-child(4) .app-info-label-icon{color:#22c55e}
 .app-info-row:nth-child(5) .app-info-label-icon{color:#38bdf8}
+
+/* Selective About modal motion: fade only; unrelated modal contracts are untouched. */
+.app-info-modal.show:not(.is-closing){
+  display:flex;
+  animation:appInfoFadeIn 180ms ease-out both;
+}
+.app-info-modal.show.is-closing{
+  display:flex;
+  animation:appInfoFadeOut 160ms ease-in both;
+  pointer-events:none;
+}
+@keyframes appInfoFadeIn{
+  from{opacity:0}
+  to{opacity:1}
+}
+@keyframes appInfoFadeOut{
+  from{opacity:1}
+  to{opacity:0}
+}
+@media(prefers-reduced-motion:reduce){
+  .app-info-modal.show:not(.is-closing),
+  .app-info-modal.show.is-closing{animation:none}
+}
