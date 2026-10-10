@@ -49,7 +49,7 @@ def test_nonuniform_empty_states_remain_module_specific():
     hse = compact(read(ROOT / "ui" / "modules" / "hse" / "hse.css"))
     workfront = compact(read(ROOT / "ui" / "modules" / "workfront" / "workfront.css"))
     maintenance = compact(read(ROOT / "ui" / "modules" / "maintenance" / "maintenance.css"))
-    assert compact("#plansScreen .empty{padding:22px;color:#8ea3ba;font-size:10px;text-align:center}") in plans
+    assert compact("#plansScreen .empty{padding:22px;color:#8ea3ba;font-size:10px;text-align:center;}") in plans
     assert compact("#hseScreen .empty{padding:22px;text-align:center;color:#8ea3ba;font-size:10px}") in hse
     assert compact("#workfrontScreen .empty{display:grid;place-items:center;height:140px;width:100%;color:#8ea3ba;font-size:10px;text-align:center}") in workfront
     assert compact("#maintenanceScreen .grid #maintenanceRows .empty{display:grid;place-items:center;width:100%;height:100%;min-height:140px;padding:20px;color:#8ea3ba;font-size:10px}") in maintenance
