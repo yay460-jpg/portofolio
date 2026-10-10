@@ -132,8 +132,13 @@ def test_shared_evidence_assets_use_current_cache_keys_and_load_before_plans():
     assert "evidence.js?v=20261012" in HTML
     assert "evidence.css?v=20261010" in HTML
     assert "modal-show-contract.js?v=20261028" in HTML
+    assert HTML.index("runtime-client.js") < HTML.index("evidence.js?v=20261012")
+    assert HTML.index("modal-show-contract.js?v=20261028") < HTML.index("evidence.js?v=20261012")
     assert HTML.index("evidence.js?v=20261012") < HTML.index("plans.js?v=20261030")
     assert HTML.index("evidence.css?v=20261010") < HTML.index("</head>")
+    assert "#evidenceModal .evidence-layout" in EVIDENCE_CSS
+    assert "#evidenceModal .evidence-layout" not in PLANS_CSS
+    assert "#planEvidenceModal" not in EVIDENCE_CSS
 
 
 def test_plan_delete_uses_a_lithosite_confirmation_modal_not_a_browser_prompt():
