@@ -399,3 +399,20 @@ def test_stage20_marker_location_global_spatial_links_are_not_reported_as_orphan
 
     assert "status:'NOT_LINKED'" in js
     assert "!entity && !sourceId && isGlobalSpatialType(marker.marker_type)" in js
+
+def test_stage20_marker_location_mutations_notify_workfront_map_indicators():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "function notifyMarkerLocationsChanged()" in js
+    assert "mine-services:marker-locations-changed" in js
+    persist_start = js.index("function persistActiveMarkers()")
+    persist_end = js.index("function runtimeMarkerRows", persist_start)
+    assert "notifyMarkerLocationsChanged();" in js[persist_start:persist_end]
+
+    restore_start = js.index("function restoreActiveMarkers()")
+    restore_end = js.index("function replaceMarkers", restore_start)
+    assert "notifyMarkerLocationsChanged();" in js[restore_start:restore_end]
+
+    clear_start = js.index("function clearMarkers()")
+    clear_end = js.index("function ensureRenderLayer", clear_start)
+    assert "notifyMarkerLocationsChanged();" in js[clear_start:clear_end]
