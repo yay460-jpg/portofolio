@@ -4,13 +4,15 @@ ROOT = Path(__file__).parents[1]
 ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 WORKFRONT_JS = (ROOT / "ui" / "modules" / "workfront" / "workfront.js").read_text(encoding="utf-8")
+WORKFRONT_CSS = (ROOT / "ui" / "modules" / "workfront" / "workfront.css").read_text(encoding="utf-8")
+MARKER_JS = (ROOT / "ui" / "modules" / "map-engine" / "marker-location.js").read_text(encoding="utf-8")
 SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
 
 
 def test_stage10_workfront_screen_exists():
     assert 'id="workfrontScreen"' in TEXT
     assert ">Work Front<" in TEXT
-    assert "workfront.js?v=20261106" in TEXT
+    assert "workfront.js?v=20261107" in TEXT
     assert "entity:'WorkFront'" in WORKFRONT_JS
 
 
@@ -78,3 +80,17 @@ def test_stage10_runtime_error_is_not_rendered_as_empty_dataset():
 def test_stage10_workfront_no_longer_owns_capacity_ui():
     assert "Global Capacity" not in WORKFRONT_JS
     assert "f_wf_capacity" not in WORKFRONT_JS
+ 
+ 
+def test_stage10_show_on_map_button_uses_active_workfront_marker_location():
+    assert "function hasWorkFrontMapLocation(workFrontId)" in WORKFRONT_JS
+    assert "findActiveMarkerBySource('WorkFront',String(workFrontId||''))" in WORKFRONT_JS
+    assert "typeof value==='number'&&isFinite(value)" in WORKFRONT_JS
+    assert "has-map-location" in WORKFRONT_JS
+    assert "data-map-location" in WORKFRONT_JS
+    assert "'Marker Location available':'No Marker Location assigned'" in WORKFRONT_JS
+    assert ".show-map-workfront.has-map-location" in WORKFRONT_CSS
+    assert "background:#173a2c;" in WORKFRONT_CSS
+    assert "mine-services:marker-locations-changed" in WORKFRONT_JS
+    assert "function notifyMarkerLocationsChanged()" in MARKER_JS
+    assert "notifyMarkerLocationsChanged();" in MARKER_JS
