@@ -63,4 +63,4 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
 - Version-specific feature decisions and implementation history belong in this Version-History area.
-- The last confirmed full test result before the Lithosite-native Delete confirmation modal was `416 passed`. Rerun the local suite after pulling the confirmation-modal changes before treating this final UI refinement as validated.
+- The last confirmed full test result before the Lithosite-native Delete confirmation and shared Evidence module extraction was `416 passed`. Rerun the local suite after pulling these refactoring changes before treating the shared component as validated.
