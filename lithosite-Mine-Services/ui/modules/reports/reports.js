@@ -646,6 +646,16 @@ function renderReportPreview(model){
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Source Evidence</b><span>Traceable RuntimeAdapter records</span></div><div class="report-preview-copy">Detailed source rows remain available in the report snapshot. No source data is invented when a domain does not provide the required field.</div></section>'+
     '<div class="report-preview-note">Preview is read-only. Generate PDF uses this same Report Snapshot.</div>';
 }
+function resetReportPdfReaderClose(modal){
+  if(!modal)return;
+  modal._reportPdfCloseToken=(Number(modal._reportPdfCloseToken)||0)+1;
+  if(modal._reportPdfCloseTimer!==null&&modal._reportPdfCloseTimer!==undefined){
+    global.clearTimeout(modal._reportPdfCloseTimer);
+  }
+  modal._reportPdfCloseTimer=null;
+  modal._reportPdfCloseFinish=null;
+  modal.classList.remove('is-closing');
+}
 async function generatePdf(model,reader){
   if(!model)return;
   if(!model.snapshot?.immutable){
@@ -660,11 +670,13 @@ async function generatePdf(model,reader){
     if(!global.LithositePdfRenderer?.renderInline)throw new Error('PDF renderer is unavailable.');
     reader.title.textContent=(model.report_type||'REPORT')+' Report';
     reader.meta.textContent='Inline PDF Reader · Fit Width';
+    resetReportPdfReaderClose(reader.modal);
     reader.modal.classList.add('show');
     reader.modal.setAttribute('aria-hidden','false');
     await global.LithositePdfRenderer.renderInline(model,reader.frame);
   }catch(error){
     if(reader?.modal){
+      resetReportPdfReaderClose(reader.modal);
       reader.modal.classList.add('show');
       reader.modal.setAttribute('aria-hidden','false');
     }
@@ -779,16 +791,44 @@ function bind(){
     }catch(error){msg(error.message||'Report issue failed.',true);}
   };
   const closeReportPdfReader=()=>{
-    if(!reportPdfReaderModal)return;
-    reportPdfReaderModal.classList.remove('show');
-    reportPdfReaderModal.setAttribute('aria-hidden','true');
-    if(reportPdfReaderFrame){
-      const objectUrl=reportPdfReaderFrame.dataset?.reportPdfObjectUrl;
-      if(objectUrl&&global.URL?.revokeObjectURL)global.URL.revokeObjectURL(objectUrl);
-      delete reportPdfReaderFrame.dataset.reportPdfObjectUrl;
-      reportPdfReaderFrame.src='about:blank';
+    const modal=reportPdfReaderModal;
+    if(!modal||!modal.classList.contains('show')||modal.classList.contains('is-closing'))return;
+    const token=(Number(modal._reportPdfCloseToken)||0)+1;
+    modal._reportPdfCloseToken=token;
+    modal.setAttribute('aria-hidden','true');
+    modal.classList.add('is-closing');
+    const finish=()=>{
+      if(modal._reportPdfCloseToken!==token||!modal.classList.contains('is-closing'))return;
+      if(modal._reportPdfCloseTimer!==null&&modal._reportPdfCloseTimer!==undefined){
+        global.clearTimeout(modal._reportPdfCloseTimer);
+      }
+      modal._reportPdfCloseTimer=null;
+      modal._reportPdfCloseFinish=null;
+      modal.classList.remove('show','is-closing');
+      if(reportPdfReaderFrame){
+        const objectUrl=reportPdfReaderFrame.dataset?.reportPdfObjectUrl;
+        if(objectUrl&&global.URL?.revokeObjectURL)global.URL.revokeObjectURL(objectUrl);
+        delete reportPdfReaderFrame.dataset.reportPdfObjectUrl;
+        reportPdfReaderFrame.src='about:blank';
+      }
+    };
+    modal._reportPdfCloseFinish=finish;
+    if(global.matchMedia&&global.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      finish();
+      return;
     }
+    if(modal._reportPdfCloseTimer!==null&&modal._reportPdfCloseTimer!==undefined){
+      global.clearTimeout(modal._reportPdfCloseTimer);
+    }
+    modal._reportPdfCloseTimer=global.setTimeout(finish,240);
   };
+  const reportPdfReaderDialog=reportPdfReaderModal?.querySelector('.user-guide-reader-dialog');
+  if(reportPdfReaderDialog)reportPdfReaderDialog.addEventListener('animationend',event=>{
+    if(event.animationName!=='reportPdfReaderSlideOut')return;
+    if(typeof reportPdfReaderModal._reportPdfCloseFinish==='function'){
+      reportPdfReaderModal._reportPdfCloseFinish();
+    }
+  });
 
   if(reportPdf)reportPdf.onclick=()=>generatePdf(reportDraft,{
     modal:reportPdfReaderModal,
