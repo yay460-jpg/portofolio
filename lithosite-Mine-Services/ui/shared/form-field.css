@@ -1,0 +1,48 @@
+/* Shared typography for data-entry labels across screens and modal forms. */
+#operationsScreen .field label,
+#modal .field label,
+#equipmentScreen .field label,
+#equipmentModal .field label,
+#workfrontScreen .field label,
+#workfrontModal .field label,
+#maintenanceScreen .field label,
+#maintenanceModal .field label,
+#issuesScreen .field label,
+#issuesModal .field label,
+#plansScreen .field label,
+#hseScreen .field label,
+#checkerScreen .field label,
+#checkerModal .field label{
+  display:block;
+  font-size:8.5px;
+  color:#8fa5bb;
+  text-transform:uppercase;
+  font-weight:600;
+  letter-spacing:.4px;
+  margin-bottom:5px;
+}
+
+
+/* Shared geometry for single-line form controls with identical dimensions. */
+#operationsScreen .field input,#operationsScreen .field select,
+#modal .field input,#modal .field select,
+#equipmentScreen .field input,#equipmentScreen .field select,
+#equipmentModal .field input,#equipmentModal .field select,
+#workfrontScreen .field input,#workfrontScreen .field select,
+#maintenanceScreen .field input,#maintenanceScreen .field select,
+#maintenanceModal .field input,#maintenanceModal .field select,
+#issuesScreen .field input,#issuesScreen .field select,
+#plansScreen .field input, #plansScreen .field select,
+#checkerScreen .field input, #checkerScreen .field select,
+#checkerModal .field input, #checkerModal .field select{
+  width:100%;
+  height:32px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  background:#0c1b2c;
+  color:#dce8f5;
+  padding:0 9px;
+  font:inherit;
+  font-size:10px;
+  outline:none;
+}

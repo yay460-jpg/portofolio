@@ -92,20 +92,6 @@
   align-items:end;
 }
 
-#checkerScreen .field input,
-#checkerScreen .field select{
-  width:100%;
-  height:32px;
-  border:1px solid #29435d;
-  border-radius:7px;
-  background:#0c1b2c;
-  color:#dce8f5;
-  padding:0 9px;
-  font:inherit;
-  font-size:10px;
-  outline:none;
-}
-
 #checkerScreen .field input:hover,
 #checkerScreen .field select:hover,
 #checkerScreen .field input:focus,
@@ -290,20 +276,6 @@
   grid-template-columns:1fr 1fr;
   gap:12px;
   overflow:auto;
-}
-
-#checkerModal .field input,
-#checkerModal .field select{
-  width:100%;
-  height:32px;
-  border:1px solid #29435d;
-  border-radius:7px;
-  background:#0c1b2c;
-  color:#dce8f5;
-  padding:0 9px;
-  font:inherit;
-  font-size:10px;
-  outline:none;
 }
 
 #checkerModal .field input:focus,

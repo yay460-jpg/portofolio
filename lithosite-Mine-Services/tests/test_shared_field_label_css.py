@@ -3,7 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
-FIELD_LABEL_CSS = ROOT / "ui" / "shared" / "field-label.css"
+FIELD_LABEL_CSS = ROOT / "ui" / "shared" / "form-field.css"
 MODULE_CSS = {
     "operations/operations.css": ("#operationsScreen .field label", "#modal .field label"),
     "equipment/equipment.css": ("#equipmentScreen .field label", "#equipmentModal .field label"),
@@ -70,7 +70,7 @@ def test_reports_filter_label_keeps_its_special_weight():
 
 def test_shared_field_label_stylesheet_loads_after_module_styles():
     html = read(ARTIFACT)
-    shared = html.index("field-label.css?v=20261011-shared-field-label")
+    shared = html.index("form-field.css?v=20261011-form-field")
     # Checker CSS is checked for duplicate rules above; it is not a direct stylesheet link in this active shell.
     for module in (
         "operations.css", "equipment.css", "workfront.css", "maintenance.css",
