@@ -60,21 +60,6 @@
   height:32px;
   padding:0 10px;
   box-sizing:border-box;
-}
-
-#plansScreen .tablepanel {
-  position:relative;
-  display:flex;
-  flex:1 1 auto;
-  flex-direction:column;
-  min-width:0;
-  min-height:0;
-  margin-top:12px;
-  overflow:hidden;
-  border:1px solid #28425c;
-  border-radius:9px;
-  background:#101f31;
-  box-shadow:0 2px 9px #02081255;
 }#plansScreen .tablehead{flex:0 0 40px}
 #plansScreen .ptitle {
   display:flex;
@@ -84,15 +69,7 @@
   font-weight:700;
 }
 #plansModal .modalhead .ptitle { font-size:11.5px; font-weight:700; line-height:1.2; }
-#plansScreen .tablemeta { color:#8ea3ba; font-size:9px; }
-#plansScreen .grid {
-  flex:1 1 auto;
-  width:100%;
-  min-width:0;
-  min-height:0;
-  height:auto;
-  overflow:auto;
-}
+#plansScreen .tablemeta { color:#8ea3ba; font-size:9px; }#plansScreen .grid{width:100%;height:auto}
 
 /* Unified Target Plan register: fifteen aligned columns; hour controls belong to Operations. */
 #plansScreen .plantr.consolidated-th,

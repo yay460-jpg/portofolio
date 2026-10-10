@@ -116,17 +116,6 @@
   flex:0 0 56px;
 }
 
-#checkerScreen .tablepanel{
-  position:relative;
-  flex:1 1 auto;
-  min-width:0;
-  min-height:0;
-  display:flex;
-  flex-direction:column;
-  margin-top:12px;
-  overflow:hidden;
-}
-
 #checkerScreen .ptitle{
   font-size:11.5px;
   font-weight:700;
@@ -138,15 +127,7 @@
 #checkerScreen .tablemeta{
   font-size:9px;
   color:#8ea3ba;
-}
-
-#checkerScreen .grid{
-  flex:1 1 auto;
-  min-width:0;
-  min-height:0;
-  height:auto;
-  overflow:auto;
-}
+}#checkerScreen .grid{height:auto}
 
 #checkerScreen .checker-grid{
   min-width:1260px;

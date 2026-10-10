@@ -116,7 +116,7 @@ def test_shared_tablehead_geometry_preserves_only_required_local_flex_overrides(
 def test_table_stylesheet_link_is_well_formed_and_loaded_after_modules():
     html = read(ARTIFACT)
     assert html.count('rel="stylesheet"') == len(re.findall(r'<link rel="stylesheet" href="[^"]+">', html))
-    link = html.index("table.css?v=20261011-tablehead")
+    link = html.index("table.css?v=20261011-table-layout")
     for module in (
         "operations.css", "equipment.css", "workfront.css", "maintenance.css",
         "issues.css", "plans.css", "hse.css",

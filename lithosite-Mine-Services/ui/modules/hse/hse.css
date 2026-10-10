@@ -8,10 +8,8 @@
 #hseScreen .filters{height:auto;flex:0 0 auto;padding:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;gap:8px;align-items:end}
 #hseScreen .field input,#hseScreen .field select,#hseScreen .field textarea{width:100%;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:7px 9px;font:inherit;font-size:10px;outline:none}
 #hseScreen .field input,#hseScreen .field select{height:32px;padding:0 9px}
-#hseScreen .tablepanel{position:relative;flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;margin-top:12px;overflow:hidden}
 #hseScreen .ptitle{font-size:11.5px;font-weight:700}
-#hseScreen .tablemeta{font-size:9px;color:#8ea3ba}#hseScreen .hse-map-meta{display:flex;align-items:center;gap:12px;min-width:0}#hseScreen #hseMapMsg{color:#8fa5bb}#hseScreen #hseMapMsg.error{color:#fca5a5}
-#hseScreen .grid{flex:1 1 auto;min-width:0;min-height:0;height:auto;overflow:auto}
+#hseScreen .tablemeta{font-size:9px;color:#8ea3ba}#hseScreen .hse-map-meta{display:flex;align-items:center;gap:12px;min-width:0}#hseScreen #hseMapMsg{color:#8fa5bb}#hseScreen #hseMapMsg.error{color:#fca5a5}#hseScreen .grid{height:auto}
 #hseScreen .hsetr{display:grid;grid-template-columns:105px 85px 100px 150px 85px 78px minmax(160px,1fr) 110px 80px 110px 64px 190px;min-width:1360px;align-items:center}
 #hseScreen .td{min-height:42px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}#hseScreen .cell{padding:0 6px}
 #hseScreen .hse-description{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -44,7 +42,3 @@
 
 /* HSE register header styling. */
 #hseScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
-
-
-/* HSE table panel styling. */
-#hseScreen .tablepanel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
