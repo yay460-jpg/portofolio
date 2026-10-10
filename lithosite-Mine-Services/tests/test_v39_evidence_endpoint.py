@@ -271,6 +271,66 @@ def test_runtime_plan_create_and_delete_manage_only_its_evidence_folder(evidence
     assert (sibling_folder / "keep.pdf").read_bytes() == b"keep"
 
 
+
+@pytest.mark.parametrize(
+    ("entity", "module", "record_id", "id_field"),
+    [
+        ("HSE", "HSE", "HSE-LIFECYCLE-01", "hse_id"),
+        ("Maintenance", "Maintenance", "MAINT-LIFECYCLE-01", "maintenance_id"),
+    ],
+)
+def test_runtime_hse_and_maintenance_mutations_manage_only_their_evidence_folder(
+    evidence_host, monkeypatch, entity, module, record_id, id_field
+):
+    base_url, server = evidence_host
+    record_folder = server.EVIDENCE_ROOT / module / record_id
+    sibling_folder = server.EVIDENCE_ROOT / module / (record_id + "-KEEP")
+
+    class CommittingAdapter:
+        def handle(self, request):
+            if request.get("operation") == "DELETE":
+                assert record_folder.is_dir(), "Evidence must remain until deletion is committed"
+            return {"request_id": request.get("request_id"), "status": "COMMITTED"}
+
+    monkeypatch.setattr(server, "ADAPTER", CommittingAdapter())
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": f"test-{module.casefold()}-create",
+            "operation": "CREATE",
+            "entity": entity,
+            "row": {id_field: record_id},
+        },
+    )
+    assert status == 200
+    created = _payload(body)
+    assert created["status"] == "COMMITTED"
+    assert created["evidence_folder_status"] == "READY"
+    assert record_folder.is_dir()
+
+    (record_folder / "evidence.pdf").write_bytes(b"record evidence")
+    sibling_folder.mkdir(parents=True)
+    (sibling_folder / "keep.pdf").write_bytes(b"keep")
+
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": f"test-{module.casefold()}-delete",
+            "operation": "DELETE",
+            "entity": entity,
+            "entity_id": record_id,
+        },
+    )
+    assert status == 200
+    deleted = _payload(body)
+    assert deleted["status"] == "COMMITTED"
+    assert deleted["evidence_cleanup_status"] == "CLEANED"
+    assert not record_folder.exists()
+    assert (sibling_folder / "keep.pdf").read_bytes() == b"keep"
+
+
 def test_runtime_rejected_plan_delete_keeps_evidence_folder(evidence_host, monkeypatch):
     base_url, server = evidence_host
     plan_id = "PLN-DELETE-REJECTED"
