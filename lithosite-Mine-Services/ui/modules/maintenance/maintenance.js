@@ -45,6 +45,20 @@ function maintenanceGroups(rows){
  });
  return grouped;
 }
+function openMaintenanceEvidence(id){
+ const row=state.rows.find(function(item){return String(item.maintenance_id)===String(id);});
+ if(!row)return;
+ const evidence=global.LithositeEvidence;
+ if(!evidence||typeof evidence.open!=='function'){setMsg('Shared Evidence viewer is unavailable. Reload the application shell.',true);return;}
+ const opened=evidence.open({
+  module:'Maintenance',
+  recordId:String(row.maintenance_id),
+  title:'Maintenance Evidence',
+  recordLabel:[row.maintenance_id,row.event_date,equipmentLabel(row.equipment_id),row.event_type].filter(Boolean).join(' · '),
+  allowUpload:true
+ });
+ if(!opened)setMsg('Could not open Evidence for Maintenance '+row.maintenance_id+'.',true);
+}
 function openMaintenanceTimeline(key){
  activeTimelineKey=key;
  const rows=state.rows.filter(function(row){
@@ -59,7 +73,7 @@ function openMaintenanceTimeline(key){
  document.getElementById('maintenanceTimelineSummary').innerHTML='<span><b>Equipment</b> '+esc(equipment?.unit_no||first.equipment_id||'—')+'</span><span><b>Brand / Merk</b> '+esc(equipmentBrand(equipment))+'</span><span><b>Type</b> '+esc(equipment?.type||'—')+'</span><span><b>Status</b> '+esc(equipment?.status||'—')+'</span>';
  document.getElementById('maintenanceTimelineRows').innerHTML=rows.map(function(row){
   const cls=String(row.status||'').toLowerCase().replace(/[^a-z]/g,'')||'open';
-  return '<div class="maintenance-timeline-tr"><div class="cell">'+esc(row.start_time||'—')+'</div><div class="cell">'+esc(row.end_time||'—')+'</div><div class="cell">'+esc(row.event_type)+'</div><div class="cell">'+esc(row.failure_code||'—')+'</div><div class="cell">'+esc(row.downtime_hours??'—')+'</div><div class="cell">'+esc(row.action)+'</div><div class="cell"><span class="statuspill '+cls+'">'+esc(row.status)+'</span></div><div class="cell">'+esc(row.source)+'</div><div class="cell row-actions"><button class="control mini edit edit-maintenance-timeline" data-id="'+esc(row.maintenance_id)+'">Edit</button><button class="control mini danger delete-maintenance-timeline" data-id="'+esc(row.maintenance_id)+'">Delete</button></div></div>';
+  return '<div class="maintenance-timeline-tr"><div class="cell">'+esc(row.start_time||'—')+'</div><div class="cell">'+esc(row.end_time||'—')+'</div><div class="cell">'+esc(row.event_type)+'</div><div class="cell">'+esc(row.failure_code||'—')+'</div><div class="cell">'+esc(row.downtime_hours??'—')+'</div><div class="cell">'+esc(row.action)+'</div><div class="cell"><span class="statuspill '+cls+'">'+esc(row.status)+'</span></div><div class="cell">'+esc(row.source)+'</div><div class="cell row-actions"><button class="control mini view evidence-maintenance-timeline" data-id="'+esc(row.maintenance_id)+'">Evidence</button><button class="control mini edit edit-maintenance-timeline" data-id="'+esc(row.maintenance_id)+'">Edit</button><button class="control mini danger delete-maintenance-timeline" data-id="'+esc(row.maintenance_id)+'">Delete</button></div></div>';
  }).join('');
  if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('maintenanceTimelineModal');}else{document.getElementById('maintenanceTimelineModal').classList.add('show')};
 }
@@ -135,6 +149,8 @@ function bind(){
  });
  document.getElementById('maintenanceTimelineClose').onclick=function(){document.getElementById('maintenanceTimelineModal').classList.remove('show');activeTimelineKey=null;};
  document.getElementById('maintenanceTimelineRows').addEventListener('click',function(e){
+  const evidence=e.target.closest('.evidence-maintenance-timeline');
+  if(evidence){document.getElementById('maintenanceTimelineModal').classList.remove('show');activeTimelineKey=null;openMaintenanceEvidence(evidence.dataset.id);return;}
   const edit=e.target.closest('.edit-maintenance-timeline');
   if(edit){document.getElementById('maintenanceTimelineModal').classList.remove('show');openEdit(edit.dataset.id);return;}
   const del=e.target.closest('.delete-maintenance-timeline');
