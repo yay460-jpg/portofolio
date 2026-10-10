@@ -75,10 +75,10 @@ def test_hse_panel_title_has_one_complete_rule():
 def test_reports_preview_reuses_single_shared_kpi_card_and_note_rules():
     css = REPORTS.read_text(encoding="utf-8")
     for selector in (
-        r"#reportsScreen\\s+\\.report-preview-kpis>div",
-        r"#reportsScreen\\s+\\.report-preview-kpis\\s+small",
-        r"#reportsScreen\\s+\\.report-preview-kpis\\s+b",
-        r"#reportsScreen\\s+\\.report-preview-note",
+        r"#reportsScreen\s+\.report-preview-kpis>div",
+        r"#reportsScreen\s+\.report-preview-kpis\s+small",
+        r"#reportsScreen\s+\.report-preview-kpis\s+b",
+        r"#reportsScreen\s+\.report-preview-note",
     ):
         assert len(rule_bodies(css, selector)) == 1
 
