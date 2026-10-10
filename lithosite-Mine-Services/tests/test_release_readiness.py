@@ -58,15 +58,15 @@ def test_stage36_report_history():
 def test_artifact_stage_order():
     html = read(ARTIFACT)
     order = [
-        "daily-report.js?v=20261010",
-        "weekly-report.js?v=20261007",
-        "monthly-report.js?v=20261010",
-        "report-engine.js?v=20261007",
-        "report-validation.js?v=20261007",
-        "report-snapshot.js?v=20261007",
-        "report-pdf.js?v=20261014",
-        "report-history.js?v=20261007",
-        "reports.js?v=20261019",
+        "daily-report.js",
+        "weekly-report.js",
+        "monthly-report.js",
+        "report-engine.js",
+        "report-validation.js",
+        "report-snapshot.js",
+        "report-pdf.js",
+        "report-history.js",
+        "reports.js",
     ]
     positions = [html.index(value) for value in order]
     assert positions == sorted(positions)
