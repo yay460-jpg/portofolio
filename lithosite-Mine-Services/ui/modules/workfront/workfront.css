@@ -22,3 +22,15 @@
 
 /* V39 — table panel visual parity with Operations */
 #workfrontScreen .tablepanel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
+
+/* Work Front map availability indicator: only active linked Site Map coordinates turn green. */
+#workfrontScreen .wfcell.row-actions .show-map-workfront.has-map-location {
+  background:#173a2c;
+  border-color:#286b4d;
+  color:#86efac;
+}
+#workfrontScreen .wfcell.row-actions .show-map-workfront.has-map-location:hover {
+  background:#1a4935;
+  border-color:#3f916b;
+  color:#bbf7d0;
+}
