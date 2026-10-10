@@ -234,6 +234,18 @@
   line-height:1.6;
 }
 #evidenceModal .evidence-download-panel p { margin:0 0 14px; }
+/* Shared file-presence indicator for record-level Evidence triggers. */
+.control.evidence-indicator.has-evidence {
+  border-color:#286b4d;
+  background:#173a2c;
+  color:#86efac;
+}
+.control.evidence-indicator.has-evidence:hover {
+  border-color:#3f916b;
+  background:#1a4935;
+  color:#bbf7d0;
+}
+
 @media(max-width:900px) {
   #evidenceModal .evidence-layout {
     grid-template-columns:minmax(0,1fr);
