@@ -132,7 +132,7 @@ function render(){
    '<div class="cell">'+esc(r.action)+'</div>'+
    '<div class="cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
    '<div class="cell">'+esc(r.closed_at)+'</div>'+
-   '<div class="cell row-actions"><button class="control mini view evidence-hse" data-id="'+esc(r.hse_id)+'">Evidence</button><button class="control mini view show-map-hse" data-id="'+esc(r.hse_id)+'">Show on Map</button><button class="control mini edit edit-hse" data-id="'+esc(r.hse_id)+'">Edit</button><button class="control mini danger delete-hse" data-id="'+esc(r.hse_id)+'">Delete</button></div>'+
+   '<div class="cell evidence-cell"><button type="button" class="control mini view-evidence evidence-hse" data-id="'+esc(r.hse_id)+'">View</button></div><div class="cell row-actions"><button class="control mini view show-map-hse" data-id="'+esc(r.hse_id)+'">Show on Map</button><button class="control mini edit edit-hse" data-id="'+esc(r.hse_id)+'">Edit</button><button class="control mini danger delete-hse" data-id="'+esc(r.hse_id)+'">Delete</button></div>'+
   '</div>').join(''):'<div class="empty">No HSE records match the current filters.</div>';
   document.getElementById('hseCount').textContent=rows.length+' records · Runtime Ready';
  }
