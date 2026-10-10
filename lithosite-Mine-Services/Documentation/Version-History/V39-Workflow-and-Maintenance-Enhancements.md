@@ -68,6 +68,8 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 
 - Tightened HSE Register column widths and cell padding after adding the Evidence column. The Actions column now has sufficient width and non-wrapping controls, while the overall minimum grid width is reduced to avoid unnecessary horizontal scrolling at the standard desktop viewport.
 
+- Rebalanced the HSE Register columns: Work Front now has 150px, Event Type is reduced to 85px, and Domain is tightened to 100px. The dedicated Evidence **View** button uses the same 24px mini-button dimensions as Actions so it no longer appears oversized.
+
 ## Versioning and validation rule
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
