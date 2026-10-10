@@ -50,7 +50,9 @@ def test_stage35_pdf_renderer():
 def test_stage36_report_history():
     text = read(HISTORY)
     assert "LithositeReportHistory" in text
+    assert "lithosite.mine-services.report-history" in text
     assert "lithosite.mine-services.v38.report-history" in text
+    assert "LEGACY_KEYS" in text
     assert "Only immutable issued snapshots" in text
 
 def test_artifact_stage_order():
