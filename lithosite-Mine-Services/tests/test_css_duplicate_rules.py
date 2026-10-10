@@ -43,9 +43,9 @@ def test_equipment_row_actions_keep_layout_with_one_rule():
 
 def test_maintenance_boundary_has_one_min_height_declaration():
     css = MAINTENANCE.read_text(encoding="utf-8")
-    boundary = rule_bodies(css, r"#maintenanceScreen\\s+\\.boundary")
+    boundary = rule_bodies(css, r"#maintenanceScreen\s+\.boundary")
     assert len(boundary) == 1
-    assert len(re.findall(r"(?<![-\\w])min-height\\s*:", boundary[0])) == 1
+    assert len(re.findall(r"(?<![-\w])min-height\s*:", boundary[0])) == 1
     assert "min-height:0!important" in boundary[0]
 
 def test_maintenance_timeline_title_keeps_complete_shared_header_style():
@@ -72,8 +72,9 @@ def test_hse_panel_title_has_one_complete_rule():
 
 def test_active_artifact_refreshes_only_affected_css_cache_keys():
     html = ARTIFACT.read_text(encoding="utf-8")
-    for name in ("operations", "equipment", "maintenance"):
+    for name in ("operations", "equipment"):
         assert f"../ui/modules/{name}/{name}.css?v=20261011-css-dedupe" in html
+    assert "../ui/modules/maintenance/maintenance.css?v=20261011-boundary-dedupe" in html
     assert "../ui/modules/hse/hse.css?v=20261011-ptitle-dedupe" in html
 
     operations = OPERATIONS.read_text(encoding="utf-8")
