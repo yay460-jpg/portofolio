@@ -1,0 +1,24 @@
+/* Lithosite Mine Services — shared screen heading and header baseline.
+   Module styles may override geometry or color only when the layout requires it. */
+.head{
+  height:42px;
+  display:flex;
+  justify-content:space-between;
+}
+.title h1{
+  margin:0;
+  font-size:21px;
+  line-height:24px;
+  background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);
+  background-clip:text;
+  -webkit-background-clip:text;
+  color:transparent;
+}
+.title p{
+  margin:2px 0;
+  color:var(--muted);
+  font-size:11px;
+}
+@media(max-width:1400px){
+  .title h1{font-size:20px}
+}
