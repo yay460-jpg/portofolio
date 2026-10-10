@@ -50,6 +50,14 @@ function filtered(){
   (!status||r.status===status)
  );
 }
+function hasWorkFrontMapLocation(workFrontId){
+ const api=global.MineServicesMarkerLocation;
+ if(!api||typeof api.findActiveMarkerBySource!=='function')return false;
+ const marker=api.findActiveMarkerBySource('WorkFront',String(workFrontId||''));
+ return !!marker&&[marker.easting,marker.northing,marker.elevation].every(function(value){
+  return typeof value==='number'&&isFinite(value);
+ });
+}
 function render(){
  const host=document.getElementById('workfrontRows'); if(!host)return;
  if(state.status==='loading') host.innerHTML='<div class="empty">Loading Work Front from RuntimeAdapter…</div>';
@@ -58,7 +66,10 @@ function render(){
   const rows=filtered();
   host.innerHTML=rows.length?rows.map(r=>{
    const cls=String(r.status||'').toLowerCase().replace(/[^a-z]/g,'')||'closed-status';
-   return '<div class="wfgrid td"><div class="wfcell">'+esc(r.work_front_id)+'</div><div class="wfcell">'+esc(r.domain)+'</div><div class="wfcell">'+esc(r.location)+'</div><div class="wfcell">'+esc(r.responsible)+'</div><div class="wfcell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div><div class="wfcell">'+esc(r.effective_from)+'</div><div class="wfcell">'+esc(r.effective_to)+'</div><div class="wfcell row-actions"><button class="control mini view show-map-workfront" data-id="'+esc(r.work_front_id)+'">Show on Map</button><button class="control mini edit edit-workfront" data-id="'+esc(r.work_front_id)+'">Edit</button><button class="control mini danger delete-workfront" data-id="'+esc(r.work_front_id)+'">Delete</button></div></div>';
+   const hasMapLocation=hasWorkFrontMapLocation(r.work_front_id);
+   const mapButtonClass='control mini view show-map-workfront'+(hasMapLocation?' has-map-location':'');
+   const mapButtonTitle=hasMapLocation?'Marker Location available':'No Marker Location assigned';
+   return '<div class="wfgrid td"><div class="wfcell">'+esc(r.work_front_id)+'</div><div class="wfcell">'+esc(r.domain)+'</div><div class="wfcell">'+esc(r.location)+'</div><div class="wfcell">'+esc(r.responsible)+'</div><div class="wfcell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div><div class="wfcell">'+esc(r.effective_from)+'</div><div class="wfcell">'+esc(r.effective_to)+'</div><div class="wfcell row-actions"><button class="'+mapButtonClass+'" data-map-location="'+(hasMapLocation?'available':'missing')+'" title="'+mapButtonTitle+'" data-id="'+esc(r.work_front_id)+'">Show on Map</button><button class="control mini edit edit-workfront" data-id="'+esc(r.work_front_id)+'">Edit</button><button class="control mini danger delete-workfront" data-id="'+esc(r.work_front_id)+'">Delete</button></div></div>';
   }).join(''):'<div class="empty">No Work Front matches the current filters.</div>';
   document.getElementById('workfrontCount').textContent=rows.length+' records · Runtime Ready';
  }
@@ -135,5 +146,8 @@ document.addEventListener('mine-services:open-domain-record',function(event){
  setTimeout(function(){openEdit(detail.source_id);},0);
 });
 if(global.LithositeDataSync)global.LithositeDataSync.register('WorkFront',refreshData);
+document.addEventListener('mine-services:marker-locations-changed',function(){
+ if(state.status==='ready')render();
+});
 bind();load();
 })(window);
