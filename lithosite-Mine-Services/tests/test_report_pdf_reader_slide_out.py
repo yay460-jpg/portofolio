@@ -23,7 +23,7 @@ def test_report_pdf_reader_opens_instantly_and_closes_after_motion():
     close = js[js.index("const closeReportPdfReader="):js.index("if(reportPdf)reportPdf.onclick", js.index("const closeReportPdfReader="))]
     assert "resetReportPdfReaderClose(reader.modal)" in generate
     assert "reader.modal.classList.add('show')" in generate
-    assert "reader.modal.classList.add('is-closing')" in close
+    assert "modal.classList.add('is-closing')" in close
     assert "reportPdfReaderSlideOut" in close
     assert "classList.remove('show','is-closing')" in close
     assert "reportPdfReaderFrame.src='about:blank'" in close
