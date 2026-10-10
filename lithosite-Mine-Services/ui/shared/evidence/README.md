@@ -5,7 +5,7 @@
 `evidence.js` and `evidence.css` are the shared Evidence viewer component used by Lithosite Mine Services. They are loaded once from the application shell and are not owned by Target Plan, HSE, or Maintenance individually.
 
 The shared component owns:
-- listing Evidence files for one verified module/record context;
+- listing Evidence files for an allowlisted module and record context; the Desktop Host validates paths, and the current upload route additionally verifies Target Plan existence through RuntimeAdapter;
 - uploading permitted files into the Desktop Host-managed folder;
 - inline PDF and image previews using a POST JSON response and temporary Blob URLs;
 - original DOC/DOCX download links;
