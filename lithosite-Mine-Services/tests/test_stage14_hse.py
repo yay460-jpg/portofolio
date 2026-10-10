@@ -151,3 +151,16 @@ def test_current_hse_shell_contract():
     assert "'HSE'" in shell
     assert "entity:'HSE'" in module
     assert "RuntimeAdapter" in module
+
+
+def test_hse_register_has_a_dedicated_evidence_view_column():
+    root = Path(__file__).parents[1]
+    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html").read_text(encoding="utf-8")
+    module = (root / "ui" / "modules" / "hse" / "hse.js").read_text(encoding="utf-8")
+    css = (root / "ui" / "modules" / "hse" / "hse.css").read_text(encoding="utf-8")
+
+    assert '<div class="cell">Closed At</div><div class="cell">Evidence</div><div class="cell">Actions</div>' in html
+    assert 'class="cell evidence-cell"><button type="button" class="control mini view-evidence evidence-hse" data-id="'+esc(r.hse_id)+'">View</button></div>' in module
+    assert 'class="cell row-actions"><button class="control mini view show-map-hse"' in module
+    assert 'row-actions"><button class="control mini view evidence-hse"' not in module
+    assert "grid-template-columns:105px 88px 115px 145px 125px 82px minmax(180px,1fr) 125px 92px 125px 72px 160px;min-width:1460px;" in css
