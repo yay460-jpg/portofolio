@@ -385,6 +385,7 @@
       recordLabel: String(input.recordLabel || recordId),
       allowUpload: input.allowUpload === true && moduleName === 'TargetPlan'
     };
+    const openedContext = current;
     files = [];
 
     const title = element('title');
@@ -426,7 +427,7 @@
       return false;
     }
     refresh().catch(function (error) {
-      if (!current || current.module !== moduleName || current.recordId !== recordId) return;
+      if (current !== openedContext) return;
       files = [];
       if (element('list')) {
         element('list').innerHTML = '<div class="evidence-empty">Evidence folder could not be read. Confirm the Desktop Host has been restarted after updating the project.</div>';
