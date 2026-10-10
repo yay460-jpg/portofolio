@@ -97,7 +97,7 @@ def test_shared_evidence_api_validates_record_context_and_scopes_upload_capabili
     assert "close: close" in EVIDENCE_JS
     assert "refresh: refresh" in EVIDENCE_JS
     assert "if (!ALLOWED_MODULES.has(moduleName)" in EVIDENCE_JS
-    assert "input.allowUpload === true && moduleName === 'TargetPlan'" in EVIDENCE_JS
+    assert "input.allowUpload === true && ALLOWED_MODULES.has(moduleName)" in EVIDENCE_JS
     assert "record_id: context.recordId" in EVIDENCE_JS
     assert "MODULE_ICON_HREFS" in EVIDENCE_JS
     assert "function clearSessionAfterExternalClose()" in EVIDENCE_JS
