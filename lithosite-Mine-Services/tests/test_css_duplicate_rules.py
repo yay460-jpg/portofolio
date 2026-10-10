@@ -56,7 +56,7 @@ def test_maintenance_timeline_title_keeps_complete_shared_header_style():
 
 def test_hse_panel_title_has_one_complete_rule():
     css = HSE.read_text(encoding="utf-8")
-    title = rule_bodies(css, r"#hseScreen\\s+\\.ptitle")
+    title = rule_bodies(css, r"#hseScreen\s+\.ptitle")
     assert len(title) == 1
     for token in ("font-size:11.5px", "font-weight:700", "display:flex", "align-items:center", "gap:6px"):
         assert token in title[0]
