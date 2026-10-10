@@ -17,10 +17,10 @@
 #hseScreen .ptitle{font-size:11.5px;font-weight:700}
 #hseScreen .tablemeta{font-size:9px;color:#8ea3ba}#hseScreen .hse-map-meta{display:flex;align-items:center;gap:12px;min-width:0}#hseScreen #hseMapMsg{color:#8fa5bb}#hseScreen #hseMapMsg.error{color:#fca5a5}
 #hseScreen .grid{flex:1 1 auto;min-width:0;min-height:0;height:auto;overflow:auto}
-#hseScreen .hsetr{display:grid;grid-template-columns:105px 88px 115px 145px 125px 82px minmax(180px,1fr) 125px 92px 125px 72px 160px;min-width:1460px;align-items:center}
+#hseScreen .hsetr{display:grid;grid-template-columns:105px 85px 105px 125px 108px 78px minmax(160px,1fr) 110px 80px 110px 64px 190px;min-width:1360px;align-items:center}
 #hseScreen .th{height:34px;background:#12243a;color:#8fa5bb;font-size:8px;text-transform:uppercase;font-weight:600;position:sticky;top:0;z-index:2}
 #hseScreen .td{min-height:42px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}
-#hseScreen .cell{padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#hseScreen .cell{padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #hseScreen .hse-description{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #hseScreen .statuspill{display:inline-flex;align-items:center;justify-content:center;min-width:54px;padding:3px 7px;border-radius:999px;font-size:8px;font-weight:600;line-height:1.1;text-transform:uppercase;background:#18334d;color:#8fc2ff}
 #hseScreen .statuspill.open{background:#173a2c;color:#4ade80}
@@ -30,7 +30,7 @@
 #hseScreen .statuspill.critical{background:#402026;color:#fb7185}
 #hseScreen .statuspill.low,.statuspill.minor{background:#18334d;color:#8fc2ff}
 #hseScreen .row-actions{display:flex;gap:4px;align-items:center;overflow:visible;white-space:normal}
-#hseScreen .row-actions .control.mini{height:24px;padding:3px 8px;font-size:8px}
+#hseScreen .row-actions .control.mini{height:24px;padding:3px 6px;font-size:8px;white-space:nowrap;flex:0 0 auto}
 
 #hseScreen .empty{padding:22px;text-align:center;color:#8ea3ba;font-size:10px}
 #hseScreen .modalbody{padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:9px}
