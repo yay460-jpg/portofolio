@@ -216,7 +216,7 @@ async function save(){
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
 async function remove(id){
- if(!confirm('Delete Issue '+id+'?\nRuntime will validate references and audit the mutation.'))return;
+ if(!await global.LithositeDeleteConfirmContract.confirm({entity:'Issue',id:id}))return;
  try{
   const result=await rc.request({operation:'DELETE',entity:'Issues',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
