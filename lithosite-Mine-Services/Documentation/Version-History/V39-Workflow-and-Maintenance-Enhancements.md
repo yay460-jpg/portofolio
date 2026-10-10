@@ -72,6 +72,8 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 
 - Reduced the shared Evidence **Upload** button slightly to 30px high with tighter horizontal padding and 9px text. The rule is scoped to the Evidence panel action area, so it does not change other application buttons or the Refresh list control.
 
+- Added record-level Evidence presence indicators across Target Plan, HSE, and each Maintenance timeline event. Shared Evidence status returns per-record counts for the selected module; triggers use green styling only when at least one supported file is confirmed. Empty records and status-service errors retain the default button style. Upload refresh updates the related trigger state without creating module-specific status logic.
+
 ## Versioning and validation rule
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
