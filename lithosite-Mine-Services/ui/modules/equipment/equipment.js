@@ -229,7 +229,7 @@ async function save(){
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
 async function remove(id){
- if(!confirm('Delete equipment '+id+'?\nRuntime will reject deletion if the equipment is referenced.'))return;
+ if(!await global.LithositeDeleteConfirmContract.confirm({entity:'Equipment',id:id}))return;
  try{
   const result=await rc.request({operation:'DELETE',entity:'Equipment',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
