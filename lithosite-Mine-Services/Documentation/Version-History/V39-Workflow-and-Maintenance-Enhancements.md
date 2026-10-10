@@ -66,6 +66,8 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 
 - Updated the HSE Register to show a dedicated **Evidence** column with a **View** button between `Closed At` and `Actions`. The Evidence trigger is no longer mixed into row Actions; the HSE grid width and stylesheet cache key were updated to retain the existing Show on Map, Edit, and Delete controls.
 
+- Tightened HSE Register column widths and cell padding after adding the Evidence column. The Actions column now has sufficient width and non-wrapping controls, while the overall minimum grid width is reduced to avoid unnecessary horizontal scrolling at the standard desktop viewport.
+
 ## Versioning and validation rule
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
