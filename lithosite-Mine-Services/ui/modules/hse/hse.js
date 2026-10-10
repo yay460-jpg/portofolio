@@ -230,7 +230,7 @@ async function save(){
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
 async function remove(id){
- if(!confirm('Delete HSE event '+id+'?\nRuntime will validate references and audit the mutation.'))return;
+ if(!await global.LithositeDeleteConfirmContract.confirm({entity:'HSE Event',id:id}))return;
  try{
   const result=await rc.request({operation:'DELETE',entity:'HSE',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
