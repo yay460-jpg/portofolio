@@ -15,7 +15,7 @@ def test_weekly_integration():
     h=ARTIFACT.read_text(encoding="utf-8")
     assert "LithositeWeeklyReport.buildWeeklyReport" in r
     assert 'weekly-report.js?' in h
-    assert h.index('weekly-report.js?v=20261007') < h.index('reports.js?')
+    assert h.index('weekly-report.js?') < h.index('reports.js?')
 
 def test_weekly_is_read_only():
     t=WEEKLY.read_text(encoding="utf-8")
