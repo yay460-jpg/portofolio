@@ -11,8 +11,8 @@ REPORTS_JS = ROOT / "ui" / "modules" / "reports" / "reports.js"
 
 def test_user_guide_reader_has_one_generic_geometry_owner():
     css = USER_GUIDE_CSS.read_text(encoding="utf-8")
-    assert len(re.findall(r"(?m)^\\.user-guide-reader-modal\\s*\\{", css)) == 1
-    assert len(re.findall(r"(?m)^\\.user-guide-reader-dialog\\s*\\{", css)) == 1
+    assert len(re.findall(r"(?m)^\.user-guide-reader-modal\s*\{", css)) == 1
+    assert len(re.findall(r"(?m)^\.user-guide-reader-dialog\s*\{", css)) == 1
     assert "top:64px;" not in css
     assert "bottom:34px;" not in css
     assert "dynamically appended to document.body" not in css
@@ -53,4 +53,4 @@ def test_shared_modal_shell_keeps_intentional_short_viewport_overrides():
     assert "flex-basis:52px" in css
     assert "V38" not in css
     assert "@keyframes" not in css
-    assert not re.search(r"(?m)^\\s*animation\\s*:", css)
+    assert not re.search(r"(?m)^\s*animation\s*:", css)
