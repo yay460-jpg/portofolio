@@ -282,8 +282,11 @@ footer.status{
 #reportsScreen .reports-search-label b{font-size:8.5px;font-weight:700;text-transform:uppercase;color:#8fa5bb}
 #reportsScreen .reports-search-label span{font-size:8px;font-weight:400;color:#8fa5bb}
 
-#reportsScreen .report-filter-actions{display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-end;gap:3px;height:52px}
-#reportsScreen .report-filter-actions .report-center-status{font-size:7.5px;color:#4ade80;font-weight:700;line-height:1;text-align:right;padding-right:4px}
+#reportsScreen .report-filter-actions{position:relative;display:flex;align-items:flex-end;justify-content:flex-end;height:47px;gap:0}
+#reportsScreen .report-filter-actions .report-center-status{position:absolute;right:4px;bottom:35px;font-size:7.5px;color:#4ade80;font-weight:700;line-height:1;text-align:right}
+#reportsScreen .report-filter-actions .report-center-notice{position:absolute;left:0;right:52px;bottom:35px;width:auto;box-sizing:border-box;min-height:12px;color:#8fa5bb;font-size:7.5px;font-weight:400;line-height:1.2;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#reportsScreen .report-filter-actions .report-center-notice.is-warning{color:#f59e0b}
+#reportsScreen .report-filter-actions .report-center-notice[hidden]{display:none}
 #reportsScreen .report-filter-buttons{display:flex;align-items:center;gap:5px;height:32px}
 
 #reportsScreen .report-filter-buttons #reportCenterPrepare{background:#2563eb;color:#fff;border-color:#3d7eff}
@@ -312,7 +315,7 @@ footer.status{
 #reportsScreen .report-preview-block-head{min-height:30px;padding:0 9px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #203b58}
 #reportsScreen .report-preview-block-head b{color:#dbeafe;font-size:9px}
 #reportsScreen .report-preview-block-head span{color:#7f95ab;font-size:7px}
-#reportsScreen .report-preview-copy{padding:8px 9px;color:#a9bbcf;font-size:8.5px;line-height:1.45}
+#reportsScreen .report-preview-copy{padding:8px 9px;color:#a9bbcf;font-size:8.5px;line-height:1.45;white-space:pre-line}
 #reportsScreen .report-kpi-bars{padding:9px}
 #reportsScreen .report-kpi-bars>div{margin-bottom:8px}
 #reportsScreen .report-kpi-bars>div:last-child{margin-bottom:0}
@@ -330,3 +333,6 @@ footer.status{
 #reportsScreen .report-preview-table.compact th,#reportsScreen .report-preview-table.compact td{padding:5px 7px}
 #reportsScreen .report-preview-note{margin-top:8px;padding:7px;border-radius:6px;background:#101f31;color:#8fa5bb;font-size:8px}
 @media(max-width:900px){#reportsScreen .report-preview-kpis{grid-template-columns:repeat(2,1fr)}}
+
+
+/* V38 inline Report PDF reader — stays inside the Lithosite application tab. */

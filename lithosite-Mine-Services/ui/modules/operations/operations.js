@@ -7,7 +7,7 @@
   }
 
   const modal = document.getElementById('modal');
-  const dataState = { operations: [], workFronts: [], equipment: [], maintenance: [], lists: {} };
+  const dataState = { operations: [], checkers: [], workFronts: [], equipment: [], capacities: [], maintenance: [], lists: {} };
 
   let editId = null;
   let runtimeReady = false;
@@ -37,6 +37,15 @@
     })) {
       el.value = current;
     }
+  }
+
+  function matchesEquipmentGroup(type, group) {
+    const normalizedType = String(type || '').trim().toLowerCase();
+    if (!group) return true;
+    if (group === 'dump-truck') return normalizedType === 'dump truck';
+    if (group === 'excavator') return normalizedType === 'excavator';
+    if (group === 'support-unit') return normalizedType === 'grader' || normalizedType === 'dozer';
+    return true;
   }
 
   function fillRefs() {
@@ -77,13 +86,31 @@
     );
 
     optionize(
-      'f_unit',
-      Array.isArray(dataState.lists.unit)
-        ? dataState.lists.unit.map(function (unit) { return { unit: unit }; })
+      'f_measurement',
+      Array.isArray(dataState.lists.measurement)
+        ? dataState.lists.measurement.map(function (measurement) { return { measurement: measurement }; })
         : [],
-      'unit',
-      function (x) { return x.unit; },
-      'Select unit'
+      'measurement',
+      function (x) { return x.measurement; },
+      'Select measurement'
+    );
+
+    optionize(
+      'f_shift',
+      (Array.isArray(dataState.lists.checker_shift) ? dataState.lists.checker_shift : ['Day','Night'])
+        .map(function (shift) { return { value: shift }; }),
+      'value',
+      function (x) { return x.value; },
+      'Select shift'
+    );
+
+    optionize(
+      'f_material',
+      (Array.isArray(dataState.lists.checker_material) ? dataState.lists.checker_material : ['Ore','OB','Quarry'])
+        .map(function (material) { return { value: material }; }),
+      'value',
+      function (x) { return x.value; },
+      'Not specified'
     );
 
     optionize(
@@ -107,7 +134,13 @@
     const date = document.getElementById('date').value;
     const domain = document.getElementById('domain').value;
     const wf = document.getElementById('wf').value;
+    const equipmentGroup = document.getElementById('equipmentGroupFilter').value;
     const eq = document.getElementById('eq').value;
+    const equipmentById = new Map(
+      dataState.equipment.map(function (item) {
+        return [String(item.equipment_id || ''), item];
+      })
+    );
     const activity = document.getElementById('activityFilter').value.trim().toLowerCase();
     const status = document.getElementById('statusFilter').value;
     const source = document.getElementById('sourceFilter').value.trim().toLowerCase();
@@ -116,6 +149,10 @@
       return (!date || String(row.transaction_date || '') === date) &&
         (!domain || row.domain === domain) &&
         (!wf || row.work_front_id === wf) &&
+        (!equipmentGroup || matchesEquipmentGroup(
+          equipmentById.get(String(row.equipment_id || ''))?.type,
+          equipmentGroup
+        )) &&
         (!eq || row.equipment_id === eq) &&
         (!activity || String(row.activity || '').toLowerCase().includes(activity)) &&
         (!status || row.status === status) &&
@@ -206,6 +243,9 @@
     if (!rows.length) return;
 
     const first = rows[0];
+    const checkerByOperation = new Map(dataState.checkers.map(function (item) {
+      return [String(item.operation_id || ''), item];
+    }));
     const equipment = dataState.equipment.find(function (item) {
       return String(item.equipment_id || '') === String(first.equipment_id || '');
     });
@@ -217,29 +257,68 @@
     document.getElementById('timelineMeta').textContent =
       String(first.transaction_date || '—') + ' · Start ' +
       String(first.transaction_time || '—') + ' · End ' +
-      String(rows[rows.length - 1].transaction_time || '—') +
+      String(rows[rows.length - 1].end_time || rows[rows.length - 1].transaction_time || '—') +
       ' · ' + rows.length + ' events';
 
+    const uniqueContextValue = function (items, getter, emptyLabel) {
+      const values = Array.from(new Set(items.map(function (item) {
+        return String(getter(item) || '').trim();
+      }).filter(Boolean)));
+      if (!values.length) return emptyLabel || '—';
+      return values.length === 1 ? values[0] : 'Mixed';
+    };
+
+    const shiftSummary = uniqueContextValue(rows, function (row) {
+      return row.shift;
+    });
+    const checkerSummary = uniqueContextValue(rows, function (row) {
+      const linked = checkerByOperation.get(String(row.transaction_id)) || {};
+      return row.checker_name || linked.checker_name;
+    });
+
+    const equipmentRecord = dataState.equipment.find(function (item) {
+      return String(item.equipment_id || '') === String(first.equipment_id || '');
+    });
+    const capacityProfile = equipmentRecord && equipmentRecord.capacity_profile_id
+      ? dataState.capacities.find(function (item) {
+          return String(item.capacity_profile_id || '') === String(equipmentRecord.capacity_profile_id || '');
+        })
+      : null;
+    const capacitySummary = uniqueContextValue(rows, function (row) {
+      return row.applied_capacity ?? '';
+    }, '');
+    const resolvedCapacity = capacitySummary === 'Mixed'
+      ? 'Mixed'
+      : (capacitySummary !== '—' && capacitySummary !== ''
+        ? capacitySummary
+        : (capacityProfile && capacityProfile.capacity_value != null
+          ? String(capacityProfile.capacity_value)
+          : '—'));
+
     document.getElementById('timelineSummary').innerHTML =
-      '<span><b>Domain</b> ' + esc(first.domain) + '</span>' +
-      '<span><b>Work Front</b> ' + esc(first.work_front_id) + '</span>' +
-      '<span><b>Unit / Fleet No.</b> ' + esc(unitFleetNo) + '</span>';
+      '<span><b>Domain</b><strong>' + esc(first.domain || '—') + '</strong></span>' +
+      '<span><b>Work Front</b><strong>' + esc(first.work_front_id || '—') + '</strong></span>' +
+      '<span><b>Unit / Fleet No.</b><strong>' + esc(unitFleetNo || '—') + '</strong></span>' +
+      '<span><b>Shift</b><strong>' + esc(shiftSummary) + '</strong></span>' +
+      '<span><b>Checker</b><strong>' + esc(checkerSummary) + '</strong></span>' +
+      '<span><b>Capacity</b><strong>' + esc(resolvedCapacity) + '</strong></span>';
 
     document.getElementById('timelineRows').innerHTML = rows.map(function (row) {
       const cls = String(row.status || '').toLowerCase().replace(/[^a-z]/g, '') || 'draft';
       const id = esc(row.transaction_id);
       return '<div class="timeline-tr">' +
-        '<div class="cell">' + esc(row.transaction_time) + '</div>' +
-        '<div class="cell">' + esc(row.work_front_id) + '</div>' +
+        '<div class="cell">' + esc(row.transaction_time || '—') + '</div>' +
         '<div class="cell">' + esc(row.activity) + '</div>' +
+        '<div class="cell">' + esc(row.material || '—') + '</div>' +
+        '<div class="cell">' + esc(row.retase ?? '—') + '</div>' +
         '<div class="cell">' + esc(row.quantity) + '</div>' +
-        '<div class="cell">' + esc(row.unit) + '</div>' +
+        '<div class="cell">' + esc(row.measurement) + '</div>' +
         '<div class="cell">' + esc(row.actual_hours) + '</div>' +
         '<div class="cell">' + esc(row.target_hours) + '</div>' +
         '<div class="cell"><span class="statuspill ' + cls + '">' + esc(row.status) + '</span></div>' +
         '<div class="cell muted">' + esc(row.source) + '</div>' +
         '<div class="cell row-actions">' +
-          '<button class="control mini edit-timeline-row" data-id="' + id + '">Edit</button>' +
+          '<button class="control mini edit edit-timeline-row" data-id="' + id + '">Edit</button>' +
           '<button class="control mini danger delete-timeline-row" data-id="' + id + '">Delete</button>' +
         '</div>' +
       '</div>';
@@ -274,25 +353,34 @@
       const targetHours = items.reduce(function (sum, row) {
         return sum + (Number(row.target_hours) || 0);
       }, 0);
+      const totalRetase = items.reduce(function (sum, row) {
+        return sum + (Number(row.retase) || 0);
+      }, 0);
+      const shiftValues = Array.from(new Set(items.map(function (row) {
+        return String(row.shift || '').trim();
+      }).filter(Boolean)));
+      const shiftSummary = shiftValues.length === 1 ? shiftValues[0] : (shiftValues.length ? 'Mixed' : '—');
 
-      return '<div class="tr td">' +
+      return '<div class="tr td" data-trace-key="' + key + '">' +
         '<div class="cell">' + esc(first.transaction_date) + '</div>' +
         '<div class="cell">' + esc(first.transaction_time) + '</div>' +
+        '<div class="cell">' + esc(shiftSummary) + '</div>' +
         '<div class="cell">' + esc(first.domain) + '</div>' +
         '<div class="cell">' + esc(first.work_front_id) + '</div>' +
         '<div class="cell">' + esc(first.equipment_id) + '</div>' +
         '<div class="cell">' + esc(unitFleetNo) + '</div>' +
-        '<div class="cell"><button class="control mini timeline-row" data-key="' + key + '">' +
+        '<div class="cell"><button class="control mini event timeline-row" data-key="' + key + '">' +
           items.length + ' event' + (items.length === 1 ? '' : 's') +
         '</button></div>' +
+        '<div class="cell">' + esc(totalRetase || '—') + '</div>' +
         '<div class="cell">' + esc(actualHours || '—') + '</div>' +
         '<div class="cell">' + esc(targetHours || '—') + '</div>' +
         '<div class="cell"><span class="statuspill ' + cls + '">' + esc(status) + '</span></div>' +
         (maintenanceLinksFor(items).length
-          ? '<div class="cell"><button class="control mini maintenance-link" data-date="' + esc(first.transaction_date) + '" data-equipment="' + esc(first.equipment_id) + '">' +
+          ? '<div class="cell"><button class="control mini linked maintenance-link" data-date="' + esc(first.transaction_date) + '" data-equipment="' + esc(first.equipment_id) + '">' +
               maintenanceLinksFor(items).length + ' linked</button></div>'
           : '<div class="cell muted">—</div>') +
-        '<div class="cell row-actions"><button class="control mini timeline-row" data-key="' + key + '">View</button></div>' +
+        '<div class="cell row-actions"><button class="control mini view timeline-row" data-key="' + key + '">View</button></div>' +
       '</div>';
     }).join('');
 
@@ -304,6 +392,69 @@
       (runtimeReady ? 'Runtime Ready' : 'Runtime Not Connected');
   }
 
+  function focusTrace(target) {
+    const date = String(target && target.date || '');
+    const equipmentId = String(target && target.equipmentId || '').trim();
+    if (!date || !equipmentId) return;
+
+    document.getElementById('date').value = date;
+    document.getElementById('eq').value = dataState.equipment.some(function (item) {
+      return String(item.equipment_id || '').trim() === equipmentId;
+    }) ? equipmentId : '';
+    ['domain', 'wf', 'equipmentGroupFilter', 'activityFilter', 'statusFilter', 'sourceFilter']
+      .forEach(function (id) {
+        document.getElementById(id).value = '';
+      });
+    render();
+
+    const traceKey = date + '|' + equipmentId;
+    const row = Array.from(document.querySelectorAll('#rows .tr[data-trace-key]')).find(function (item) {
+      return String(item.dataset.traceKey || '') === traceKey;
+    });
+    if (!row) return;
+    row.classList.remove('operation-trace-highlight');
+    void row.offsetWidth;
+    row.classList.add('operation-trace-highlight');
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    window.setTimeout(function () {
+      row.classList.remove('operation-trace-highlight');
+    }, 2400);
+  }
+
+  async function reconcileCheckerEvidence() {
+    if (!global.LithositeCheckerSupport ||
+        typeof global.LithositeCheckerSupport.syncMissingFromOperations !== 'function') {
+      return null;
+    }
+
+    const report = await global.LithositeCheckerSupport.syncMissingFromOperations(dataState.operations);
+    if (report.created > 0) {
+      const refreshed = await runtimeClient.request({ operation: 'READ', entity: 'Checker' });
+      dataState.checkers = Array.isArray(refreshed.data) ? refreshed.data : [];
+    }
+    return report;
+  }
+
+  function checkerSyncMessage(report) {
+    if (!report) return 'RuntimeAdapter connected — offline local persistence active.';
+    const messages = ['RuntimeAdapter connected — offline local persistence active.'];
+    if (report.created > 0) {
+      messages.push('Checker evidence backfilled for ' + report.created + ' existing operation(s).');
+    }
+    if (report.retaseWithoutCheckerName > 0) {
+      messages.push(report.retaseWithoutCheckerName +
+        ' operation(s) have Retase but no Checker Name; Checker rows were not fabricated. ' +
+        'Edit those operations with Checker Name, End Time, Shift, and Equipment.');
+    }
+    if (report.errors && report.errors.length) {
+      messages.push(report.errors.length + ' operation(s) need Checker attention: ' +
+        report.errors.slice(0, 2).map(function (item) {
+          return item.operation_id + ': ' + item.message;
+        }).join(' | '));
+    }
+    return messages.join(' ');
+  }
+
   async function loadData() {
     try {
       const health = await runtimeClient.health();
@@ -311,21 +462,26 @@
 
       const results = await Promise.all([
         runtimeClient.request({ operation: 'READ', entity: 'Operations' }),
+        runtimeClient.request({ operation: 'READ', entity: 'Checker' }),
         runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
         runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
         runtimeClient.request({ operation: 'READ', entity: '_Lists' }),
+        runtimeClient.request({ operation: 'READ', entity: 'GlobalCapacity' }),
         runtimeClient.request({ operation: 'READ', entity: 'Maintenance' })
       ]);
 
       dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
-      dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
-      dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
-      dataState.lists = (results[3].data && typeof results[3].data === 'object') ? results[3].data : results[3];
-      dataState.maintenance = Array.isArray(results[4].data) ? results[4].data : [];
+      dataState.checkers = Array.isArray(results[1].data) ? results[1].data : [];
+      dataState.workFronts = Array.isArray(results[2].data) ? results[2].data : [];
+      dataState.equipment = Array.isArray(results[3].data) ? results[3].data : [];
+      dataState.lists = (results[4].data && typeof results[4].data === 'object') ? results[4].data : results[4];
+      dataState.capacities = Array.isArray(results[5].data) ? results[5].data : [];
+      dataState.maintenance = Array.isArray(results[6].data) ? results[6].data : [];
 
+      const checkerBackfill = await reconcileCheckerEvidence();
       fillRefs();
       render();
-      setRuntimeState('RuntimeAdapter connected — offline local persistence active.');
+      setRuntimeState(checkerSyncMessage(checkerBackfill), Boolean(checkerBackfill && checkerBackfill.errors && checkerBackfill.errors.length));
     } catch (error) {
       runtimeReady = false;
       render();
@@ -340,18 +496,66 @@
     try {
       const results = await Promise.all([
         runtimeClient.request({ operation: 'READ', entity: 'Operations' }),
+        runtimeClient.request({ operation: 'READ', entity: 'Checker' }),
         runtimeClient.request({ operation: 'READ', entity: 'WorkFront' }),
         runtimeClient.request({ operation: 'READ', entity: 'Equipment' }),
-        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' })
+        runtimeClient.request({ operation: 'READ', entity: 'Maintenance' }),
+        runtimeClient.request({ operation: 'READ', entity: 'GlobalCapacity' })
       ]);
       dataState.operations = Array.isArray(results[0].data) ? results[0].data : [];
-      dataState.workFronts = Array.isArray(results[1].data) ? results[1].data : [];
-      dataState.equipment = Array.isArray(results[2].data) ? results[2].data : [];
-      dataState.maintenance = Array.isArray(results[3].data) ? results[3].data : [];
+      dataState.checkers = Array.isArray(results[1].data) ? results[1].data : [];
+      dataState.workFronts = Array.isArray(results[2].data) ? results[2].data : [];
+      dataState.equipment = Array.isArray(results[3].data) ? results[3].data : [];
+      dataState.maintenance = Array.isArray(results[4].data) ? results[4].data : [];
+      dataState.capacities = Array.isArray(results[5].data) ? results[5].data : [];
+      const checkerBackfill = await reconcileCheckerEvidence();
       fillRefs();
       render();
+      if (checkerBackfill && (checkerBackfill.created > 0 ||
+          (checkerBackfill.errors && checkerBackfill.errors.length) ||
+          checkerBackfill.retaseWithoutCheckerName > 0)) {
+        setRuntimeState(checkerSyncMessage(checkerBackfill), Boolean(checkerBackfill.errors && checkerBackfill.errors.length));
+      }
     } catch (error) {
       setRuntimeState('Refresh failed: ' + error.message, true);
+    }
+  }
+
+  function updateActivityWarning() {
+    const activityEl = document.getElementById('f_activity');
+    const warning = document.getElementById('activityWarning');
+    if (!activityEl || !warning) return;
+
+    const isDumping = String(activityEl.value || '').trim().toLowerCase() === 'dumping';
+    warning.hidden = !isDumping;
+    if (isDumping) {
+      activityEl.setAttribute('aria-describedby', 'activityWarning');
+    } else if (activityEl.getAttribute('aria-describedby') === 'activityWarning') {
+      activityEl.removeAttribute('aria-describedby');
+    }
+  }
+
+  function refreshHaulingFields() {
+    updateActivityWarning();
+    const activity = String(document.getElementById('f_activity').value || '').trim().toLowerCase();
+    const eq = dataState.equipment.find(function(x){ return String(x.equipment_id || '') === String(document.getElementById('f_eq').value || ''); });
+    const isHauling = activity === 'hauling' && String(eq && eq.type || '').trim().toLowerCase() === 'dump truck';
+    let capacity = null;
+    if (eq && eq.capacity_profile_id) {
+      const profile = dataState.capacities.find(function(x){ return String(x.capacity_profile_id) === String(eq.capacity_profile_id); });
+      if (profile) capacity = Number(profile.capacity_value);
+    }
+    const capacityEl=document.getElementById('f_capacity'), qtyEl=document.getElementById('f_qty'), retaseEl=document.getElementById('f_retase');
+    capacityEl.value = isHauling && Number.isFinite(capacity) ? String(capacity) : '';
+    capacityEl.disabled = true;
+    qtyEl.readOnly = isHauling;
+    if (isHauling && Number.isFinite(capacity) && retaseEl.value !== '') {
+      const retase=Number(retaseEl.value);
+      qtyEl.value=Number.isFinite(retase) ? String(retase*capacity) : '';
+      document.getElementById('f_measurement').value='ton';
+    } else if (!isHauling) {
+      capacityEl.value='';
+      qtyEl.readOnly=false;
     }
   }
 
@@ -372,8 +576,12 @@
     });
 
     document.getElementById('f_activity').value = '';
+    document.getElementById('f_material').value = '';
+    document.getElementById('f_checker_name').value = '';
+    document.getElementById('f_retase').value = '';
+    document.getElementById('f_capacity').value = '';
     document.getElementById('f_qty').value = '';
-    document.getElementById('f_unit').value = '';
+    document.getElementById('f_measurement').value = '';
     document.getElementById('f_actual').value = '';
     document.getElementById('f_target').value = '';
     document.getElementById('f_status').value = 'DRAFT';
@@ -382,15 +590,16 @@
 
   function openAdd() {
     editId = null;
-    setRuntimeState('');
+    setRuntimeState('RuntimeAdapter connected — offline local persistence active.');
     document.getElementById('modalTitle').textContent = 'Add Operation';
     document.getElementById('stage').textContent = 'Save via RuntimeAdapter';
     resetForm();
-    if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('modal');}else{modal.classList.add('show');}
+    refreshHaulingFields();
+    global.LithositeModalShowContract.show('modal');
   }
 
   function openEdit(id) {
-    setRuntimeState('');
+    setRuntimeState('RuntimeAdapter connected — offline local persistence active.');
     const row = dataState.operations.find(function (item) {
       return String(item.transaction_id) === String(id);
     });
@@ -405,12 +614,18 @@
       f_id: row.transaction_id,
       f_date: row.transaction_date,
       f_time: row.transaction_time,
+      f_end_time: row.end_time,
+      f_shift: row.shift,
       f_domain: row.domain,
       f_wf: row.work_front_id,
       f_eq: row.equipment_id,
       f_activity: row.activity,
+      f_material: row.material,
+      f_checker_name: row.checker_name,
+      f_retase: row.retase,
+      f_capacity: row.applied_capacity,
       f_qty: row.quantity,
-      f_unit: row.unit,
+      f_measurement: row.measurement,
       f_actual: row.actual_hours,
       f_target: row.target_hours,
       f_status: row.status,
@@ -420,9 +635,9 @@
     Object.entries(fields).forEach(function (entry) {
       document.getElementById(entry[0]).value = entry[1] ?? '';
     });
+    refreshHaulingFields();
 
-    modal.classList.remove('modal-fade-out');
-    modal.classList.add('show', 'modal-fade-in');
+    global.LithositeModalShowContract.show('modal');
   }
 
   async function removeRow(id) {
@@ -469,22 +684,23 @@
     };
 
     bind('add', openAdd);
-    bind('close', function () { modal.classList.remove('show'); });
-    bind('cancel', function () { modal.classList.remove('show'); });
+    bind('close', function () { global.LithositeModalShowContract.close('modal'); });
+    bind('cancel', function () { global.LithositeModalShowContract.close('modal'); });
     bind('stage', saveForm);
     bind('refresh', loadData);
+    ['f_wf','f_eq','f_activity','f_retase'].forEach(function(id){const el=document.getElementById(id);if(el){el.addEventListener('input',refreshHaulingFields);el.addEventListener('change',refreshHaulingFields);}});
 
     // Keep controls reliable after external JS extraction.
     document.getElementById('add').onclick = openAdd;
     document.getElementById('refresh').onclick = loadData;
-    document.getElementById('close').onclick = function () { modal.classList.remove('show'); };
-    document.getElementById('cancel').onclick = function () { modal.classList.remove('show'); };
+    document.getElementById('close').onclick = function () { global.LithositeModalShowContract.close('modal'); };
+    document.getElementById('cancel').onclick = function () { global.LithositeModalShowContract.close('modal'); };
     document.getElementById('stage').onclick = saveForm;
 
     const clear = document.getElementById('clear');
     if (!clear) throw new Error('Operations UI element #clear not found');
     clear.addEventListener('click', function () {
-      ['date', 'domain', 'wf', 'eq', 'activityFilter', 'statusFilter', 'sourceFilter']
+      ['date', 'domain', 'wf', 'equipmentGroupFilter', 'eq', 'activityFilter', 'statusFilter', 'sourceFilter']
         .forEach(function (id) {
           document.getElementById(id).value = '';
         });
@@ -492,7 +708,7 @@
     });
 
     document
-      .querySelectorAll('#date,#domain,#wf,#eq,#activityFilter,#statusFilter,#sourceFilter')
+      .querySelectorAll('#date,#domain,#wf,#equipmentGroupFilter,#eq,#activityFilter,#statusFilter,#sourceFilter')
       .forEach(function (element) {
         element.addEventListener('input', render);
         element.addEventListener('change', render);
@@ -557,12 +773,20 @@
       transaction_id: document.getElementById('f_id').value,
       transaction_date: document.getElementById('f_date').value,
       transaction_time: document.getElementById('f_time').value,
+      end_time: document.getElementById('f_end_time').value || null,
+      shift: document.getElementById('f_shift').value,
       domain: document.getElementById('f_domain').value,
       work_front_id: document.getElementById('f_wf').value,
       equipment_id: document.getElementById('f_eq').value || null,
       activity: document.getElementById('f_activity').value,
+      material: document.getElementById('f_material').value || null,
+      checker_name: document.getElementById('f_checker_name').value.trim(),
+      retase: numberOrNull('f_retase'),
+      capacity_profile_id: (function(){ const eq=dataState.equipment.find(function(x){return String(x.equipment_id)===String(document.getElementById('f_eq').value)}); return eq ? (eq.capacity_profile_id || null) : null; })(),
+      applied_capacity: numberOrNull('f_capacity'),
+      capacity_measurement: 'ton',
       quantity: numberOrNull('f_qty'),
-      unit: document.getElementById('f_unit').value,
+      measurement: document.getElementById('f_measurement').value,
       actual_hours: numberOrNull('f_actual'),
       target_hours: numberOrNull('f_target'),
       status: document.getElementById('f_status').value,
@@ -614,7 +838,18 @@
         (String(row.equipment_id || '').trim() ||
           'NO-EQUIPMENT|' + String(row.transaction_id || ''));
 
-      modal.classList.remove('show');
+      let checkerMessage = '';
+      if (global.LithositeCheckerSupport) {
+        try {
+          const checkerResult = await global.LithositeCheckerSupport.syncFromOperation(row);
+          if (checkerResult.status === 'CREATED') checkerMessage = ' Checker evidence recorded.';
+          if (checkerResult.status === 'UPDATED') checkerMessage = ' Checker evidence updated.';
+        } catch (checkerError) {
+          checkerMessage = ' Warning: operation committed, but Checker evidence was not recorded: ' + checkerError.message;
+        }
+      }
+
+      global.LithositeModalShowContract.close('modal');
       await refreshData();
 
       if (wasEditing && savedTimelineKey) {
@@ -624,7 +859,7 @@
       }
 
       setRuntimeState(
-        wasEditing ? 'Operation updated and audited.' : 'Operation created and audited.'
+        wasEditing ? 'Operation updated and audited.' + checkerMessage : 'Operation created and audited.' + checkerMessage
       );
     } catch (error) {
       setRuntimeState('Validation/runtime error: ' + error.message, true);
@@ -635,4 +870,5 @@
 
   bindControls();
   loadData();
+  global.LithositeOperations = Object.freeze({ focusTrace: focusTrace });
 })(window);

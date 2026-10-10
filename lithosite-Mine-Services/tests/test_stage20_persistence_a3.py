@@ -2,16 +2,15 @@ import sys
 from pathlib import Path
 
 from openpyxl import load_workbook, Workbook
+from openpyxl.worksheet.table import Table
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from mine_services.persistence import PersistenceStore
-from mine_services.schema import SCHEMA_VERSION, SHEETS, HEADERS
-from mine_services import schema_a3
-from mine_services.schema_migration import migrate_a2_to_a3
+from mine_services.schema import SCHEMA_VERSION, SHEETS, HEADERS, CONTROLLED
 
 
-def make_a2_workbook(path: Path):
+def make_a3_workbook(path: Path):
     wb = Workbook()
     wb.remove(wb.active)
 
@@ -20,39 +19,33 @@ def make_a2_workbook(path: Path):
         if sheet in HEADERS:
             ws.append(HEADERS[sheet])
         elif sheet == "_System":
-            ws.append(["schema_version", "A.2"])
+            ws.append(["schema_version", "A.3"])
         elif sheet == "_Lists":
-            ws.append(["equipment_category"])
-            ws.append(["Heavy Equipment"])
+            list_names = list(dict.fromkeys(CONTROLLED.values()))
+            ws.append(list_names)
+            for row_index in range(max(len(PersistenceStore().controlled_lists[name]) for name in list_names)):
+                ws.append([
+                    sorted(PersistenceStore().controlled_lists[name])[row_index]
+                    if row_index < len(PersistenceStore().controlled_lists[name])
+                    else None
+                    for name in list_names
+                ])
         elif sheet == "_Baseline":
             ws.append(["baseline"])
-            ws.append(["A.2 baseline"])
+            ws.append(["A.3 baseline"])
 
-    wb["Equipment"].append([
-        "EQ-MIG-001", "DT-MIG-001", "Heavy Equipment", "Dump Truck",
-        "Owner", None, "Active", None, None
-    ])
-    wb["HSE"].append([
-        "HSE-MIG-001", None, "Road & Hauling", None, "Incident",
-        "High", "migration test", None, "Open", None
-    ])
-    wb["AuditLog"].append([
-        "AUD-MIG-001", None, "HSE", "HSE-MIG-001", "CREATE",
-        None, "preserve", "test"
-    ])
     wb.save(path)
 
 
-def test_stage20_a3_persistence_store_is_opt_in():
-    store = PersistenceStore(schema_module=schema_a3)
+def test_stage20_a3_persistence_store_is_default():
+    store = PersistenceStore()
     assert store.schema.SCHEMA_VERSION == "A.3"
     assert "MapMarker" in store.schema.DOMAIN_ENTITIES
-    assert "MapMarker" not in PersistenceStore().schema.DOMAIN_ENTITIES
-    assert SCHEMA_VERSION == "A.2"
+    assert SCHEMA_VERSION == "A.3"
 
 
 def test_stage20_a3_persistence_store_holds_mapmarker_in_memory():
-    store = PersistenceStore(schema_module=schema_a3)
+    store = PersistenceStore()
     row = {
         "marker_id": "MK-A3-001",
         "marker_type": "HSE",
@@ -70,17 +63,12 @@ def test_stage20_a3_persistence_store_holds_mapmarker_in_memory():
     assert store.all("MapMarker") == [row]
 
 
-def test_stage20_a3_persistence_store_roundtrips_migrated_workbook(tmp_path):
-    source = tmp_path / "source-a2.xlsx"
-    target = tmp_path / "target-a3.xlsx"
-    make_a2_workbook(source)
+def test_stage20_a3_persistence_store_roundtrips_canonical_workbook(tmp_path):
+    target = tmp_path / "a3.xlsx"
+    make_a3_workbook(target)
 
-    migrate_a2_to_a3(source, target)
-
-    store = PersistenceStore(target, schema_module=schema_a3)
+    store = PersistenceStore(target)
     assert store.schema.SCHEMA_VERSION == "A.3"
-    assert store.get("Equipment", "EQ-MIG-001")["equipment_id"] == "EQ-MIG-001"
-    assert store.get("HSE", "HSE-MIG-001")["hse_id"] == "HSE-MIG-001"
     assert store.get("MapMarker", "missing") is None
 
     row = {
@@ -100,10 +88,128 @@ def test_stage20_a3_persistence_store_roundtrips_migrated_workbook(tmp_path):
     saved = load_workbook(target, data_only=True)
     marker_rows = list(saved["MapMarker"].values)
     assert marker_rows[1] == tuple(
-        row[field] for field in schema_a3.HEADERS["MapMarker"]
+        row[field] for field in store.schema.HEADERS["MapMarker"]
     )
 
 
-def test_stage20_a3_persistence_store_rejects_a2_workbook():
-    store = PersistenceStore(schema_module=schema_a3)
-    assert store.schema.SCHEMA_VERSION == "A.3"
+def test_stage20_a3_persistence_store_rejects_non_a3_workbook(tmp_path):
+    target = tmp_path / "legacy.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "_System"
+    ws.append(["schema_version", "A.2"])
+    wb.save(target)
+
+    try:
+        PersistenceStore(target)
+    except ValueError as exc:
+        assert "SCHEMA_VERSION" in str(exc)
+    else:
+        raise AssertionError("A.3 default store must reject a non-A3 workbook")
+
+
+def test_stage20_a3_persistence_migrates_top_soil_into_checker_material_list(tmp_path):
+    target = tmp_path / "a3-top-soil.xlsx"
+    make_a3_workbook(target)
+
+    workbook = load_workbook(target)
+    lists = workbook["_Lists"]
+    headers = [cell.value for cell in lists[1]]
+    material_column = headers.index("checker_material") + 1
+    for row_index in range(2, lists.max_row + 1):
+        if lists.cell(row=row_index, column=material_column).value == "Top Soil":
+            lists.cell(row=row_index, column=material_column).value = None
+    workbook.save(target)
+
+    first_store = PersistenceStore(target)
+    assert "Top Soil" in first_store.controlled_lists["checker_material"]
+
+    # Reopening should be idempotent: do not add duplicate vocabulary entries.
+    PersistenceStore(target)
+    saved = load_workbook(target, data_only=True)
+    stored_materials = [
+        saved["_Lists"].cell(row=row_index, column=material_column).value
+        for row_index in range(2, saved["_Lists"].max_row + 1)
+    ]
+    assert stored_materials.count("Top Soil") == 1
+
+
+def test_stage20_a3_persistence_removes_legacy_plans_target_hours_without_shifting_values(tmp_path):
+    target = tmp_path / "a3-plan-hours.xlsx"
+    make_a3_workbook(target)
+
+    workbook = load_workbook(target)
+    plans = workbook["Plans"]
+    # Simulate a previously valid A.3 workbook which still has the retired column.
+    plans.insert_cols(10, 1)
+    plans.cell(row=1, column=10, value="target_hours")
+    plans.auto_filter.ref = "A1:K2"
+    old_row = {
+        "plan_id": "PLN-MIG-001",
+        "period": "2026-10",
+        "start_date": "2026-10-01",
+        "end_date": "2026-10-31",
+        "domain": "Road & Hauling",
+        "work_front_id": "WF-MIG-001",
+        "activity": "Hauling",
+        "target_quantity": 500,
+        "measurement": "ton",
+        "target_hours": 8,
+        "status": "Draft",
+    }
+    headers = [cell.value for cell in plans[1]]
+    for column, header in enumerate(headers, start=1):
+        plans.cell(row=2, column=column, value=old_row.get(header))
+    workbook.save(target)
+
+    store = PersistenceStore(target)
+    migrated = load_workbook(target, data_only=True)
+    migrated_headers = [cell.value for cell in migrated["Plans"][1]]
+
+    assert migrated_headers == HEADERS["Plans"]
+    assert "target_hours" not in migrated_headers
+    assert migrated["Plans"].auto_filter.ref == "A1:J2"
+    row = store.get("Plans", "PLN-MIG-001")
+    assert row["target_quantity"] == 500
+    assert row["measurement"] == "ton"
+    assert row["status"] == "Draft"
+    assert row["start_date"] == "2026-10-01"
+    assert row["end_date"] == "2026-10-31"
+    assert "target_hours" not in row
+
+
+
+def test_stage20_a3_persistence_updates_plans_excel_table_after_removing_target_hours(tmp_path):
+    target = tmp_path / "a3-plan-table.xlsx"
+    make_a3_workbook(target)
+
+    workbook = load_workbook(target)
+    plans = workbook["Plans"]
+    plans.insert_cols(10, 1)
+    plans.cell(row=1, column=10, value="target_hours")
+    old_row = {
+        "plan_id": "PLN-TABLE-001",
+        "period": "2026-10",
+        "start_date": "2026-10-01",
+        "end_date": "2026-10-31",
+        "domain": "Road & Hauling",
+        "work_front_id": "WF-MIG-001",
+        "activity": "Hauling",
+        "target_quantity": 500,
+        "measurement": "ton",
+        "target_hours": 8,
+        "status": "Draft",
+    }
+    headers = [cell.value for cell in plans[1]]
+    for column, header in enumerate(headers, start=1):
+        plans.cell(row=2, column=column, value=old_row.get(header))
+    plans.add_table(Table(displayName="PlansTable", ref="A1:K2"))
+    workbook.save(target)
+
+    PersistenceStore(target)
+    migrated = load_workbook(target, data_only=True)
+    table = migrated["Plans"].tables["PlansTable"]
+
+    assert table.ref == "A1:J2"
+    assert len(table.tableColumns) == len(HEADERS["Plans"])
+    assert all(column.name != "target_hours" for column in table.tableColumns)

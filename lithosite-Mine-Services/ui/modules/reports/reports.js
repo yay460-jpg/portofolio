@@ -180,20 +180,38 @@ function filteredCount(){
   let n=0;entities.forEach(e=>rows(e).forEach(r=>{if(JSON.stringify(r).toLowerCase().includes(text))n++;}));
   const m=document.getElementById('reportsCount');if(m)m.textContent=n+' matching records · Runtime Ready';
 }
-function reportPeriod(type,endDate){
-  const end=new Date(String(endDate||latestOperationalDate()).slice(0,10)+'T00:00:00');
-  if(Number.isNaN(end.getTime()))return null;
-  const start=new Date(end);
-  if(type==='WEEKLY'){const day=(end.getDay()+6)%7;start.setDate(end.getDate()-day);}
-  else if(type==='MONTHLY'){start.setDate(1);}
-  return {start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10)};
+function reportPeriod(type,startDate){
+  const value=String(startDate||latestOperationalDate()).slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
+  const parts=value.split('-').map(Number);
+  const periodEnd=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
+  if(Number.isNaN(periodEnd.getTime()))return null;
+  if(type==='WEEKLY')periodEnd.setUTCDate(periodEnd.getUTCDate()+6);
+  else if(type==='MONTHLY'){
+    if(parts[2]!==1)return null;
+    periodEnd.setUTCMonth(periodEnd.getUTCMonth()+1,0);
+  }
+  return {start:value,end:periodEnd.toISOString().slice(0,10)};
+}
+function reportPeriodNotice(type,startDate){
+  if(type==='MONTHLY'){
+    const value=String(startDate||'').slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||value.slice(8,10)!=='01')
+      return 'Monthly Report requires the report date to be the 1st day of the month.';
+  }
+  return '';
+}
+function reportPlanBounds(row){
+  const month=String(row?.period||'').match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  const start=String(row?.start_date||(month?month[0]+'-01':'')).slice(0,10);
+  let end=String(row?.end_date||'').slice(0,10);
+  if(!end&&month){const last=new Date(Date.UTC(Number(month[1]),Number(month[2]),0)).getUTCDate();end=month[0]+'-'+String(last).padStart(2,'0');}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end)||end<start)return null;
+  return {start,end};
 }
 function reportRecordDate(row){
-  const keys=['transaction_date','event_date','activity_date','work_date','plan_date','maintenance_date','inspection_date','record_date','date','created_at','updated_at'];
-  for(const key of keys){
-    const value=String(row?.[key]??'').slice(0,10);
-    if(/^\d{4}-\d{2}-\d{2}$/.test(value))return value;
-  }
+  const keys=['start_date','transaction_date','event_date','activity_date','work_date','plan_date','maintenance_date','inspection_date','record_date','date','created_at','updated_at'];
+  for(const key of keys){const value=String(row?.[key]??'').slice(0,10);if(/^\d{4}-\d{2}-\d{2}$/.test(value))return value;}
   return '';
 }
 function reportRecordLabel(row){
@@ -209,10 +227,116 @@ function reportRecordStatus(row){
 function reportRowsForEntity(entity,period){
   const source=rows(entity);
   if(!source.length)return [];
-  return source.filter(row=>{
-    const d=reportRecordDate(row);
-    return !d || (d>=period.start&&d<=period.end);
+  if(entity==='Plans')return source.filter(row=>{const range=reportPlanBounds(row);return !!range&&range.start<=period.end&&range.end>=period.start;});
+  return source.filter(row=>{const d=reportRecordDate(row);return !!d&&d>=period.start&&d<=period.end;});
+}
+function normalizePlanMatch(value){return String(value??'').trim().toLowerCase().replace(/\s+/g,' ');}
+function reportPlanActual(period){
+  const plans=rows('Plans').map((row,index)=>{
+    const range=reportPlanBounds(row);
+    if(!range||range.start>period.end||range.end<period.start)return null;
+    return {row,range,key:String(row.plan_id||('PLAN-'+index)),contained:range.start>=period.start&&range.end<=period.end};
+  }).filter(Boolean);
+  const comparable=plans.filter(item=>item.contained);
+  const comparableKeys=new Set(comparable.map(item=>item.key));
+  const validatedOperations=rows('Operations').filter(row=>{
+    const date=String(row?.transaction_date||'').slice(0,10);
+    return String(row?.status||'').trim().toUpperCase()==='VALIDATED'&&date>=period.start&&date<=period.end;
   });
+  const planActual=new Map(comparable.map(item=>[item.key,0]));
+  const ambiguousPlanIds=new Set();
+  let ambiguousOperationCount=0,matchedOperationCount=0;
+  function operationMatchesPlan(operation,item){
+    const date=String(operation?.transaction_date||'').slice(0,10),plan=item.row;
+    if(!date||date<item.range.start||date>item.range.end)return false;
+    if(normalizePlanMatch(operation.domain)!==normalizePlanMatch(plan.domain))return false;
+    if(normalizePlanMatch(operation.activity)!==normalizePlanMatch(plan.activity))return false;
+    if(normalizePlanMatch(operation.measurement)!==normalizePlanMatch(plan.measurement))return false;
+    const workFront=String(plan.work_front_id||'').trim();
+    return !workFront||String(operation.work_front_id||'').trim()===workFront;
+  }
+  validatedOperations.forEach(operation=>{
+    const candidates=plans.filter(item=>operationMatchesPlan(operation,item));
+    if(candidates.length>1){ambiguousOperationCount++;candidates.forEach(item=>ambiguousPlanIds.add(item.key));return;}
+    if(candidates.length!==1||!comparableKeys.has(candidates[0].key))return;
+    const quantity=Number(operation.quantity);
+    if(!Number.isFinite(quantity)||quantity<0)return;
+    planActual.set(candidates[0].key,(planActual.get(candidates[0].key)||0)+quantity);
+    matchedOperationCount++;
+  });
+  const targetByUnit={},actualByUnit={},varianceByUnit={},achievementByUnit={},remainingByUnit={},ambiguousUnits=new Set(),planDetails=[];
+  comparable.forEach(item=>{
+    const row=item.row,unit=String(row.measurement||'Unspecified').trim()||'Unspecified';
+    const target=Number(row.target_quantity);
+    const validTarget=row.target_quantity!==null&&row.target_quantity!==undefined&&row.target_quantity!==''&&Number.isFinite(target)&&target>=0;
+    const actual=ambiguousPlanIds.has(item.key)?null:(planActual.get(item.key)||0);
+    if(validTarget)targetByUnit[unit]=(targetByUnit[unit]||0)+target;
+    if(ambiguousPlanIds.has(item.key))ambiguousUnits.add(unit);
+    const variance=validTarget&&actual!==null?actual-target:null;
+    const achievement=validTarget&&actual!==null&&target>0?actual/target*100:null;
+    const remaining=validTarget&&actual!==null?Math.max(target-actual,0):null;
+    planDetails.push(String(row.plan_id||item.key)+' ['+item.range.start+' to '+item.range.end+']: target '+(validTarget?target+' '+unit:'unavailable')+'; actual '+(actual===null?'not comparable':actual+' '+unit)+'; variance '+(variance===null?'not comparable':variance+' '+unit)+'; achievement '+(achievement===null?'not comparable':achievement.toFixed(1)+'%')+'; remaining '+(remaining===null?'not comparable':remaining+' '+unit));
+  });
+  Object.keys(targetByUnit).forEach(unit=>{
+    const unitPlans=comparable.filter(item=>(String(item.row.measurement||'Unspecified').trim()||'Unspecified')===unit);
+    if(ambiguousUnits.has(unit)){actualByUnit[unit]=null;varianceByUnit[unit]=null;achievementByUnit[unit]=null;remainingByUnit[unit]=null;return;}
+    const actualTotal=unitPlans.reduce((sum,item)=>sum+(planActual.get(item.key)||0),0),targetTotal=targetByUnit[unit];
+    actualByUnit[unit]=actualTotal;varianceByUnit[unit]=actualTotal-targetTotal;
+    achievementByUnit[unit]=targetTotal>0?actualTotal/targetTotal*100:null;
+    remainingByUnit[unit]=Math.max(targetTotal-actualTotal,0);
+  });
+  const partialPlans=plans.filter(item=>!item.contained),actualPeriodByUnit={};
+  validatedOperations.forEach(operation=>{
+    const quantity=Number(operation.quantity);if(!Number.isFinite(quantity)||quantity<0)return;
+    const unit=String(operation.measurement||'Unspecified').trim()||'Unspecified';
+    actualPeriodByUnit[unit]=(actualPeriodByUnit[unit]||0)+quantity;
+  });
+  const status=!comparable.length?'NO_COMPARABLE_PLAN':ambiguousOperationCount?'AMBIGUOUS_PLAN_MATCH':partialPlans.length?'PARTIAL_TARGET_COVERAGE':'READY';
+  return {
+    comparison_status:status,period_start:period.start,period_end:period.end,
+    comparable_plan_count:comparable.length,unallocated_plan_count:partialPlans.length,
+    unallocated_plan_ids:partialPlans.map(item=>String(item.row.plan_id||item.key)),
+    validated_operations_count:validatedOperations.length,matched_operation_count:matchedOperationCount,
+    ambiguous_operation_count:ambiguousOperationCount,target_by_measurement:targetByUnit,
+    actual_by_measurement:actualByUnit,variance_by_measurement:varianceByUnit,
+    achievement_by_measurement:achievementByUnit,remaining_by_measurement:remainingByUnit,
+    actual_period_output_by_measurement:actualPeriodByUnit,plan_details:planDetails,
+    allocation_note:'Targets are not prorated. Only plans whose full Start Date–End Date range is inside this report period are compared. Plans overlapping only part of the report period are listed as unallocated.',
+    ambiguity_note:ambiguousOperationCount?'Some validated Operations matched more than one overlapping plan. Their quantities were excluded from comparable actuals to prevent double counting.':''
+  };
+}
+function attachPlanActual(model,period){
+  if(!model)return model;
+  const comparison=reportPlanActual(period);
+  const title=model.report_type==='DAILY'?'Plan vs Actual':model.report_type==='WEEKLY'?'Planned vs Actual':'Target vs Actual';
+  const sectionData={...(model.section_data||{}),[title]:comparison,'Planned vs Actual':comparison,'Plan vs Actual':comparison};
+  const sections=Array.isArray(model.sections)?model.sections.slice():[];
+  if(!sections.includes(title)){
+    const index=sections.findIndex(name=>name==='Executive Summary'||name==='Management Executive Summary');
+    sections.splice(index>=0?index+1:0,0,title);
+  }
+  return {...model,sections,section_data:sectionData,plan_vs_actual:comparison};
+}
+function reportScopedSource(period){
+  const scoped=Object.fromEntries(entities.map(entity=>[entity,reportRowsForEntity(entity,period)]));
+  const idOf=(row,keys)=>{for(const key of keys){const value=String(row?.[key]??'').trim();if(value)return value;}return '';};
+  const activeEquipmentIds=new Set(
+    scoped.Operations.concat(scoped.Maintenance)
+      .map(row=>idOf(row,['equipment_id','equipmentId']))
+      .filter(Boolean)
+  );
+  if(activeEquipmentIds.size){
+    scoped.Equipment=rows('Equipment').filter(row=>activeEquipmentIds.has(idOf(row,['equipment_id','equipmentId'])));
+  }
+  const activeWorkFrontIds=new Set(
+    scoped.Operations
+      .map(row=>idOf(row,['work_front_id','workfront_id','work_front','workfront']))
+      .filter(Boolean)
+  );
+  if(activeWorkFrontIds.size){
+    scoped.WorkFront=rows('WorkFront').filter(row=>activeWorkFrontIds.has(idOf(row,['work_front_id','workfront_id','work_front','workfront','id'])));
+  }
+  return scoped;
 }
 function reportTableRows(records){
   return records.slice(0,80).map(row=>({
@@ -220,6 +344,18 @@ function reportTableRows(records){
     label:reportRecordLabel(row),
     status:reportRecordStatus(row)
   }));
+}
+function reportKpiForPeriod(period){
+  const equipment=Array.isArray(state.data?.Equipment)?state.data.Equipment:[];
+  const operations=reportRowsForEntity('Operations',period);
+  const maintenance=reportRowsForEntity('Maintenance',period);
+  const activeIds=new Set(operations.concat(maintenance).map(row=>String(row?.equipment_id??row?.equipmentId??'').trim()).filter(Boolean));
+  const scopedEquipment=equipment.filter(row=>activeIds.has(String(row?.equipment_id??row?.equipmentId??'').trim()));
+  if(!global.LithositeKPIFoundation||!scopedEquipment.length)return null;
+  const policy=state.policy||DEFAULT_POLICY;
+  const payload={equipment:scopedEquipment,operations,maintenance,baseline:policy.baseline,policy:{euDenominator:policy.euDenominator,effectiveTimeRule:policy.effectiveTimeRule}};
+  const calculation=period.start===period.end?global.LithositeKPIFoundation.calculateFleet({...payload,date:period.start}):global.LithositeKPIFoundation.calculateFleetAllDates(payload);
+  return {...calculation,report_scope:{start:period.start,end:period.end,active_equipment:scopedEquipment.length}};
 }
 function buildReportModel(){
   const type=document.getElementById('reportCenterType')?.value||'DAILY';
@@ -229,11 +365,9 @@ function buildReportModel(){
   const datedValues=entities.flatMap(entity=>rows(entity).map(reportRecordDate).filter(Boolean)).sort();
   const latestAvailable=datedValues[datedValues.length-1]||requestedEnd;
   const requestedRows=entities.reduce((n,e)=>n+reportRowsForEntity(e,requestedPeriod).length,0);
-  const effectiveEnd=requestedRows>0?requestedPeriod.end:latestAvailable;
-  const effectivePeriod=type==='DAILY'?{start:effectiveEnd,end:effectiveEnd}:reportPeriod(type,effectiveEnd);
-  const scoped=Object.fromEntries(entities.map(entity=>[entity,reportRowsForEntity(entity,effectivePeriod)]));
-  const totalRecords=Object.values(scoped).reduce((n,list)=>n+list.length,0);
-  const k=state.kpi;
+  const effectivePeriod=requestedPeriod;
+  const scoped=reportScopedSource(effectivePeriod);
+  const k=reportKpiForPeriod(effectivePeriod)||state.kpi;
   const kpi={
     status:k?.status||'UNAVAILABLE',
     PA:k?.results?.PA?.value??null,
@@ -241,55 +375,110 @@ function buildReportModel(){
     EU:k?.results?.EU?.value??null,
     eligible:k?.population?.eligible??0,
     excluded:k?.population?.excluded??0,
+    validation_issues:Array.isArray(k?.validation?.issues)?k.validation.issues:[],
     equipment:Array.isArray(k?.equipment)?k.equipment:[]
   };
+  if(type==='DAILY'&&global.LithositeDailyReport){
+    const daily=global.LithositeDailyReport.buildDailyReport({
+      period_start:effectivePeriod.start,
+      period_end:effectivePeriod.end,
+      scope:'ALL',
+      source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
+      kpi
+    });
+    const formal=global.LithositeReportEngine
+      ? global.LithositeReportEngine.buildReportModel({
+          report_type:'DAILY',
+          period_start:effectivePeriod.start,
+          period_end:effectivePeriod.end,
+          scope:'ALL',
+          source_data:{...scoped,MarkerLocation:daily.section_data['Site Map / Spatial Activities'] ? reportRowsForEntity('MarkerLocation',effectivePeriod) : [],Topography:reportRowsForEntity('Topography',effectivePeriod)},
+          kpi
+        })
+      : null;
+    return attachPlanActual({
+      ...(formal||{}),
+      ...daily,
+      report_period_requested:requestedPeriod,
+      report_period_effective:effectivePeriod,
+      report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',
+      report_id:'DRAFT-DAILY-'+requestedPeriod.start+'-'+requestedPeriod.end,
+      generated_at:new Date().toISOString(),
+      status:daily.status
+    },effectivePeriod);
+  }
+  if(type==='WEEKLY'&&global.LithositeWeeklyReport){
+    const weekly=global.LithositeWeeklyReport.buildWeeklyReport({
+      period_start:effectivePeriod.start,
+      period_end:effectivePeriod.end,
+      scope:'ALL',
+      source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
+      kpi
+    });
+    const formal=global.LithositeReportEngine?.buildReportModel({
+      report_type:'WEEKLY',
+      period_start:effectivePeriod.start,
+      period_end:effectivePeriod.end,
+      scope:'ALL',
+      source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
+      kpi
+    });
+    return attachPlanActual({...((formal||{})),...weekly,report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',report_id:'DRAFT-WEEKLY-'+requestedPeriod.start+'-'+requestedPeriod.end,generated_at:new Date().toISOString()},effectivePeriod);
+  }
+  if(type==='MONTHLY'&&global.LithositeMonthlyReport){
+    const monthly=global.LithositeMonthlyReport.buildMonthlyReport({
+      period_start:effectivePeriod.start,
+      period_end:effectivePeriod.end,
+      scope:'ALL',
+      source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
+      kpi
+    });
+    const formal=global.LithositeReportEngine?.buildReportModel({
+      report_type:'MONTHLY',
+      period_start:effectivePeriod.start,
+      period_end:effectivePeriod.end,
+      scope:'ALL',
+      source_data:{...scoped,MarkerLocation:reportRowsForEntity('MarkerLocation',effectivePeriod),Topography:reportRowsForEntity('Topography',effectivePeriod)},
+      kpi
+    });
+    return attachPlanActual({...((formal||{})),...monthly,report_period_requested:requestedPeriod,report_period_effective:effectivePeriod,report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',report_id:'DRAFT-MONTHLY-'+requestedPeriod.start+'-'+requestedPeriod.end,generated_at:new Date().toISOString(),status:monthly.status},effectivePeriod);
+  }
   const sourceTables=Object.fromEntries(entities.map(entity=>[entity,reportTableRows(scoped[entity])]));
-  const sections=type==='DAILY'
-    ? ['Executive Summary','Work / Task Completed','Equipment Status','Work Front Status','HSE Events','Maintenance / Downtime','Material Movement','Issues and Abnormalities','Site Map / Spatial Activities','KPI Summary','Outstanding / Carry-over Tasks','Supporting Evidence']
-    : type==='WEEKLY'
-    ? ['Executive Summary','Planned vs Actual','Equipment Performance','Work Front Progress','HSE Summary','Maintenance and Downtime Analysis','Material Movement Summary','Issues and Recurring Issues','Outstanding Actions','KPI Trend','Key Highlights','Top Management Concerns','Recommended Actions']
-    : ['Management Executive Summary','Monthly KPI','Target vs Actual','Equipment Performance','Work Front Progress','HSE Performance','Maintenance / Downtime','Material Movement','Major Issues / Events','Recurring Problems','Outstanding Actions','Trend vs Previous Month','Performance Highlights','Management Attention / Decision Required','Recommendations','Appendix / Evidence'];
+  const sections=global.LithositeReportEngine
+    ? global.LithositeReportEngine.sectionPlan(type)
+    : (type==='WEEKLY'
+      ? ['Executive Summary','Planned vs Actual','Equipment Performance','Work Front Progress','HSE Summary','Maintenance and Downtime Analysis','Material Movement Summary','Issues and Recurring Issues','Outstanding Actions','KPI Trend','Key Highlights','Top Management Concerns','Recommended Actions']
+      : ['Management Executive Summary','Monthly KPI','Target vs Actual','Equipment Performance','Work Front Progress','HSE Performance','Maintenance / Downtime','Material Movement','Major Issues / Events','Recurring Problems','Outstanding Actions','Trend vs Previous Month','Performance Highlights','Management Attention / Decision Required','Recommendations','Appendix / Evidence']);
   const sectionData={
-    'Executive Summary':'Source records: '+totalRecords+'. KPI state: '+kpi.status+'. Effective data period: '+effectivePeriod.start+(effectivePeriod.start!==effectivePeriod.end?' → '+effectivePeriod.end:'')+'.',
-    'Management Executive Summary':'Source records: '+totalRecords+'. KPI state: '+kpi.status+'. Effective data period: '+effectivePeriod.start+(effectivePeriod.start!==effectivePeriod.end?' → '+effectivePeriod.end:'')+'.',
-    'Work / Task Completed':'Operations '+scoped.Operations.length+' records.',
+    'Executive Summary':'Source records: '+Object.values(scoped).reduce((n,list)=>n+list.length,0)+'. KPI state: '+kpi.status+'.',
+    'Management Executive Summary':'Source records: '+Object.values(scoped).reduce((n,list)=>n+list.length,0)+'. KPI state: '+kpi.status+'.',
     'Planned vs Actual':'Plans '+scoped.Plans.length+' records; Operations '+scoped.Operations.length+' actual records.',
-    'Equipment Status':'Equipment '+scoped.Equipment.length+' records; KPI eligible '+kpi.eligible+', excluded '+kpi.excluded+'.',
     'Equipment Performance':'Equipment '+scoped.Equipment.length+' source records. KPI fleet status: '+kpi.status+'.',
-    'Work Front Status':'WorkFront '+scoped.WorkFront.length+' records.',
     'Work Front Progress':'WorkFront '+scoped.WorkFront.length+' records.',
-    'HSE Events':'HSE '+scoped.HSE.length+' records.',
     'HSE Summary':'HSE '+scoped.HSE.length+' records.',
     'HSE Performance':'HSE '+scoped.HSE.length+' records.',
-    'Maintenance / Downtime':'Maintenance '+scoped.Maintenance.length+' records.',
     'Maintenance and Downtime Analysis':'Maintenance '+scoped.Maintenance.length+' records.',
-    'Material Movement':'Operations '+scoped.Operations.length+' source records used as material/operational movement evidence.',
-    'Material Movement Summary':'Operations '+scoped.Operations.length+' source records used as material/operational movement evidence.',
-    'Issues and Abnormalities':'Issues '+scoped.Issues.length+' records.',
+    'Material Movement Summary':'Operations '+scoped.Operations.length+' source records.',
     'Issues and Recurring Issues':'Issues '+scoped.Issues.length+' records.',
     'Major Issues / Events':'Issues '+scoped.Issues.length+' records.',
     'Outstanding Actions':'Issues '+scoped.Issues.length+' + Plans '+scoped.Plans.length+' source records.',
-    'Outstanding / Carry-over Tasks':'Issues '+scoped.Issues.length+' + Plans '+scoped.Plans.length+' source records.',
-    'KPI Summary':'PA '+fmtPct(kpi.PA)+' · UA '+fmtPct(kpi.UA)+' · EU '+fmtPct(kpi.EU)+' · validation '+kpi.status+'.',
-    'Monthly KPI':'PA '+fmtPct(kpi.PA)+' · UA '+fmtPct(kpi.UA)+' · EU '+fmtPct(kpi.EU)+' · validation '+kpi.status+'.',
     'KPI Trend':'Current KPI snapshot: PA '+fmtPct(kpi.PA)+' · UA '+fmtPct(kpi.UA)+' · EU '+fmtPct(kpi.EU)+'.',
-    'Key Highlights':'Operations '+scoped.Operations.length+' · Equipment '+scoped.Equipment.length+' · WorkFront '+scoped.WorkFront.length+' · Maintenance '+scoped.Maintenance.length+' · HSE '+scoped.HSE.length+'.',
-    'Performance Highlights':'Operations '+scoped.Operations.length+' · Equipment '+scoped.Equipment.length+' · WorkFront '+scoped.WorkFront.length+' · Maintenance '+scoped.Maintenance.length+' · HSE '+scoped.HSE.length+'.',
-    'Top Management Concerns':kpi.status==='READY'?'No KPI validation gate is blocking the report.':'KPI validation state is '+kpi.status+'; management should review validation evidence before issuing the report.',
+    'Key Highlights':'Operations '+scoped.Operations.length+' · Equipment '+scoped.Equipment.length+' · WorkFront '+scoped.WorkFront.length+'.',
+    'Performance Highlights':'Operations '+scoped.Operations.length+' · Equipment '+scoped.Equipment.length+' · WorkFront '+scoped.WorkFront.length+'.',
+    'Top Management Concerns':kpi.status==='READY'?'No KPI validation gate is blocking the report.':'KPI validation state is '+kpi.status+'.',
     'Management Attention / Decision Required':kpi.status==='READY'?'No KPI validation decision is currently required.':'Resolve KPI validation before issuing the management report.',
     'Recommended Actions':'Review source evidence, confirm KPI validation, then issue the report snapshot.',
     'Recommendations':'Review source evidence, confirm KPI validation, then issue the report snapshot.',
-    'Target vs Actual':'Target values are not yet configured in the current report source model; actual source records are included below.',
+    'Target vs Actual':'Target values are not yet configured in the current report source model; actual source records are included.',
     'Trend vs Previous Month':'Historical comparison is not yet populated in the current report snapshot.',
     'Recurring Problems':'Recurring classification is not yet populated; source issue records are retained as evidence.',
-    'Site Map / Spatial Activities':'Spatial evidence is referenced from the current operational source set; map embedding is pending.',
-    'Supporting Evidence':'Source tables below retain report-period evidence from the RuntimeAdapter.',
     'Appendix / Evidence':'Source tables below retain report-period evidence from the RuntimeAdapter.'
   };
+  const totalRecords=Object.values(scoped).reduce((n,list)=>n+list.length,0);
   return {
     report_period_requested:requestedPeriod,
     report_period_effective:effectivePeriod,
-    report_data_status:requestedRows>0?'REQUESTED_PERIOD':'LATEST_AVAILABLE_DATA',
+    report_data_status:requestedRows>0?'REQUESTED_PERIOD':'NO_DATA_FOR_PERIOD',
     report_id:'DRAFT-'+type+'-'+requestedPeriod.start+'-'+requestedPeriod.end,
     report_type:type,
     period:requestedPeriod,
@@ -308,7 +497,8 @@ function renderReportCenterSummary(model){
   const host=document.getElementById('reportCenterSummary'),status=document.getElementById('reportCenterStatus');
   if(!host||!model)return;
   const p=model.period;
-  host.innerHTML='<b>'+esc(model.report_type)+' REPORT</b> · '+esc(p.start)+(p.start!==p.end?' → '+esc(p.end):'')+' · '+model.total_records+' source records · KPI '+esc(model.kpi?.status||'UNAVAILABLE');
+  const totalRecords=Number.isFinite(Number(model.total_records))?Number(model.total_records):Number(model.total_source_records||0);
+  host.innerHTML='<b>'+esc(model.report_type)+' REPORT</b> · '+esc(p.start)+(p.start!==p.end?' → '+esc(p.end):'')+' · '+totalRecords+' source records · KPI '+esc(model.kpi?.status||'UNAVAILABLE');
   if(status)status.textContent='Draft prepared';
 }
 function reportBar(value,max){
@@ -334,6 +524,98 @@ function reportKpiEquipment(model){
     };
   });
 }
+function reportCountText(value){
+  if(!value||typeof value!=='object'||Array.isArray(value))return '';
+  const entries=Object.entries(value);
+  if(!entries.length)return 'None recorded.';
+  return entries.map(([key,count])=>key+': '+count).join(' · ');
+}
+function reportSectionText(value){
+  if(value===null||value===undefined)return '';
+  if(typeof value==='string')return value;
+  if(typeof value==='number'||typeof value==='boolean')return String(value);
+  if(Array.isArray(value))return value.length?value.map(item=>reportSectionText(item)).join('\n'):'None recorded.';
+  if(typeof value==='object'){
+    const lines=[];
+    const add=(label,text)=>{if(text!==undefined&&text!==null&&String(text)!=='')lines.push(label+': '+String(text));};
+    if(value.headline)add('Headline',value.headline);
+    if(value.statement)add('Summary',value.statement);
+    if(value.status)add('Status',value.status);
+    if(value.management_attention)add('Management attention',value.management_attention);
+    if(value.record_count!==undefined)add('Records',value.record_count);
+    if(value.completed_count!==undefined)add('Completed / validated',value.completed_count);
+    if(value.open_count!==undefined)add('Open',value.open_count);
+    if(value.open_issue_count!==undefined)add('Open issues',value.open_issue_count);
+    if(value.open_plan_count!==undefined)add('Open plans',value.open_plan_count);
+    if(value.operations!==undefined)add('Operations',value.operations);
+    if(value.completed!==undefined)add('Completed',value.completed);
+    if(value.equipment!==undefined)add('Equipment',value.equipment);
+    if(value.workfront!==undefined)add('WorkFront',value.workfront);
+    if(value.hse!==undefined)add('HSE',value.hse);
+    if(value.maintenance!==undefined)add('Maintenance',value.maintenance);
+    if(value.downtime_hours!==undefined)add('Downtime hours',value.downtime_hours===null?'Not available':value.downtime_hours);
+    if(value.quantity_total!==undefined)add('Quantity total',value.quantity_total===null?'Not available':value.quantity_total);
+    if(value.source_issue_records!==undefined)add('Source issue records',value.source_issue_records);
+    if(value.target_data_available===false)add('Target vs actual','Target data is not available in the current source model; no target is fabricated.');
+    if(value.comparison_available===false)add('Comparison','Historical comparison is not available in this report snapshot.');
+    if(value.classification_available===false)add('Recurring classification','Historical recurring classification is not available in this report snapshot.');
+    if(value.decision_required!==undefined)add('Decision required',value.decision_required?'Yes':'No');
+    if(value.source_domains) add('Source domains',Array.isArray(value.source_domains)?value.source_domains.join(', '):value.source_domains);
+    if(value.by_status){const text=reportCountText(value.by_status);if(text)add('By status',text);}
+    if(value.by_activity){const text=reportCountText(value.by_activity);if(text)add('By activity',text);}
+    if(value.by_workfront){const text=reportCountText(value.by_workfront);if(text)add('By WorkFront',text);}
+    if(value.by_severity){const text=reportCountText(value.by_severity);if(text)add('By severity',text);}
+    if(value.by_unit){const text=reportCountText(value.by_unit);if(text)add('By unit',text);}
+    if(value.planned_by_status){const text=reportCountText(value.planned_by_status);if(text)add('Planned by status',text);}
+    if(value.actual_by_status){const text=reportCountText(value.actual_by_status);if(text)add('Actual by status',text);}
+    if(value.issues_by_status){const text=reportCountText(value.issues_by_status);if(text)add('Issues by status',text);}
+    if(value.plans_by_status){const text=reportCountText(value.plans_by_status);if(text)add('Plans by status',text);}
+    if(value.kpi&&typeof value.kpi==='object'){
+      const k=value.kpi;
+      const parts=[];
+      if(k.status)parts.push('Status '+k.status);
+      if(k.PA!==undefined&&k.PA!==null)parts.push('PA '+fmtPct(k.PA));
+      if(k.UA!==undefined&&k.UA!==null)parts.push('UA '+fmtPct(k.UA));
+      if(k.EU!==undefined&&k.EU!==null)parts.push('EU '+fmtPct(k.EU));
+      if(k.eligible!==undefined)parts.push('Eligible '+k.eligible);
+      if(k.excluded!==undefined)parts.push('Excluded '+k.excluded);
+      if(parts.length)add('KPI',parts.join(' · '));
+    }
+    if(value.current&&typeof value.current==='object'){
+      const current=value.current;
+      const parts=[];
+      if(current.status)parts.push('Status '+current.status);
+      if(current.PA!==undefined&&current.PA!==null)parts.push('PA '+fmtPct(current.PA));
+      if(current.UA!==undefined&&current.UA!==null)parts.push('UA '+fmtPct(current.UA));
+      if(current.EU!==undefined&&current.EU!==null)parts.push('EU '+fmtPct(current.EU));
+      if(parts.length)add('Current KPI',parts.join(' · '));
+    }
+    if(value.items&&Array.isArray(value.items)&&value.items.length)add('Actions',value.items.join(' · '));
+    if(value.note)add('Note',value.note);
+    if(value.comparison_status)add('Comparison status',value.comparison_status);
+    if(value.comparable_plan_count!==undefined)add('Comparable plans',value.comparable_plan_count);
+    if(value.unallocated_plan_count!==undefined)add('Plans with targets not allocated to this period',value.unallocated_plan_count);
+    if(value.validated_operations_count!==undefined)add('Validated Operations in period',value.validated_operations_count);
+    if(value.matched_operation_count!==undefined)add('Operations assigned to one comparable plan',value.matched_operation_count);
+    if(value.ambiguous_operation_count!==undefined)add('Ambiguous Operation-to-plan matches',value.ambiguous_operation_count);
+    if(value.target_by_measurement)add('Target by measurement',reportCountText(value.target_by_measurement));
+    if(value.actual_by_measurement)add('Matched actual by measurement',reportCountText(value.actual_by_measurement));
+    if(value.variance_by_measurement)add('Variance by measurement',reportCountText(value.variance_by_measurement));
+    if(value.achievement_by_measurement)add('Achievement by measurement',reportCountText(value.achievement_by_measurement));
+    if(value.remaining_by_measurement)add('Remaining by measurement',reportCountText(value.remaining_by_measurement));
+    if(value.actual_period_output_by_measurement)add('All validated actual output in period',reportCountText(value.actual_period_output_by_measurement));
+    if(value.unallocated_plan_ids&&value.unallocated_plan_ids.length)add('Unallocated plan IDs',value.unallocated_plan_ids.join(', '));
+    if(value.plan_details&&value.plan_details.length)add('Plan details',value.plan_details.join('\n'));
+    if(value.allocation_note)add('Target allocation rule',value.allocation_note);
+    if(value.ambiguity_note)add('Ambiguous matching',value.ambiguity_note);
+    if(value.evidence&&typeof value.evidence==='object'){
+      const evidenceSummary=Object.entries(value.evidence).map(([domain,items])=>domain+': '+(Array.isArray(items)?items.length:0)).join(' · ');
+      if(evidenceSummary)add('Evidence records',evidenceSummary);
+    }
+    if(lines.length)return lines.join('\n');
+  }
+  return 'Structured report data is available in the issued snapshot.';
+}
 function renderReportPreview(model){
   const host=document.getElementById('reportPreviewBody'),meta=document.getElementById('reportPreviewMeta');
   if(!host||!model)return;
@@ -344,10 +626,11 @@ function renderReportPreview(model){
   const eqRows=eq.map(r=>'<tr><td><b>'+esc(r.id)+'</b></td><td>'+esc(r.unit)+'</td><td>'+esc(r.date)+'</td><td>'+fmtHours(r.scheduled)+'</td><td>'+fmtHours(r.available)+'</td><td>'+fmtHours(r.used)+'</td><td><b>'+fmtPct(r.pa)+'</b></td><td>'+fmtPct(r.ua)+'</td><td>'+fmtPct(r.eu)+'</td><td>'+esc(r.status)+'</td></tr>').join('');
   const sourceRows=entities.map(entity=>'<tr><td>'+esc(entity)+'</td><td>'+model.source_counts[entity]+'</td></tr>').join('');
   const narrative=(title,text)=>'<section class="report-preview-block"><div class="report-preview-block-head"><b>'+esc(title)+'</b></div><div class="report-preview-copy">'+esc(text)+'</div></section>';
+  const totalRecords=Number.isFinite(Number(model.total_records))?Number(model.total_records):Number(model.total_source_records||0);
   host.innerHTML=
-    '<div class="report-preview-kpis"><div><small>Records</small><b>'+model.total_records+'</b></div><div><small>PA</small><b>'+fmtPct(k.PA)+'</b></div><div><small>UA</small><b>'+fmtPct(k.UA)+'</b></div><div><small>EU</small><b>'+fmtPct(k.EU)+'</b></div></div>'+
+    '<div class="report-preview-kpis"><div><small>Records</small><b>'+totalRecords+'</b></div><div><small>PA</small><b>'+fmtPct(k.PA)+'</b></div><div><small>UA</small><b>'+fmtPct(k.UA)+'</b></div><div><small>EU</small><b>'+fmtPct(k.EU)+'</b></div></div>'+
     '<div class="report-preview-period"><b>Effective data period</b> '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+esc(model.report_period_effective.end):'')+' · '+esc(model.report_data_status)+'</div>'+
-    narrative('Executive Summary','Operational source records: '+model.total_records+'. KPI validation state: '+(k.status||'UNAVAILABLE')+'. The report uses the same KPI snapshot and source evidence shown in Report Center.')+
+    narrative('Executive Summary','Operational source records: '+totalRecords+'. KPI validation state: '+(k.status||'UNAVAILABLE')+'. The report uses the same KPI snapshot and source evidence shown in Report Center.')+
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Fleet KPI</b><span>Current KPI snapshot</span></div><div class="report-kpi-bars">'+
       '<div><label>PA <b>'+fmtPct(k.PA)+'</b></label>'+reportBar(pa,maxPct)+'</div>'+
       '<div><label>UA <b>'+fmtPct(k.UA)+'</b></label>'+reportBar(ua,maxPct)+'</div>'+
@@ -355,45 +638,107 @@ function renderReportPreview(model){
     '</div></section>'+
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Equipment Performance</b><span>'+eq.length+' KPI rows</span></div>'+
       '<div class="report-table-wrap"><table class="report-preview-table"><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table></div></section>'+
-    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Operational Source Summary</b><span>'+model.total_records+' records</span></div><div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table></div></section>'+
-    narrative('Planned vs Actual',model.section_data['Planned vs Actual']||'Plan and actual source data are retained for the selected period.')+
-    narrative('Maintenance / Downtime',model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime']||'Maintenance source evidence is retained below.')+
-    narrative('HSE Summary',model.section_data['HSE Summary']||model.section_data['HSE Events']||'HSE source evidence is retained below.')+
-    narrative('Issues and Actions',model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities']||'Issue source evidence is retained below.')+
+    '<section class="report-preview-block"><div class="report-preview-block-head"><b>Operational Source Summary</b><span>'+totalRecords+' records</span></div><div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table></div></section>'+
+    narrative('Plan vs Actual',reportSectionText(model.section_data['Planned vs Actual']||model.section_data['Plan vs Actual']||model.section_data['Target vs Actual'])||'Plan and actual source data are retained for the selected period.')+
+    narrative('Maintenance / Downtime',reportSectionText(model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime'])||'Maintenance source evidence is retained below.')+
+    narrative('HSE Summary',reportSectionText(model.section_data['HSE Summary']||model.section_data['HSE Events'])||'HSE source evidence is retained below.')+
+    narrative('Issues and Actions',reportSectionText(model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities'])||'Issue source evidence is retained below.')+
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Source Evidence</b><span>Traceable RuntimeAdapter records</span></div><div class="report-preview-copy">Detailed source rows remain available in the report snapshot. No source data is invented when a domain does not provide the required field.</div></section>'+
     '<div class="report-preview-note">Preview is read-only. Generate PDF uses this same Report Snapshot.</div>';
 }
-function generatePdf(model){
+async function generatePdf(model,reader){
   if(!model)return;
-  const win=window.open('','_blank');
-  if(!win){msg('PDF window was blocked by the browser.',true);return;}
-  const title=model.report_type+' Report · '+model.period.start+(model.period.start!==model.period.end?' → '+model.period.end:'');
-  const k=model.kpi||{},eq=reportKpiEquipment(model);
-  const pct=v=>fmtPct(v);
-  const bar=v=>'<div class="bar"><i style="width:'+Math.max(0,Math.min(100,Number(v)||0)).toFixed(1)+'%"></i></div>';
-  const eqRows=eq.map(r=>'<tr><td>'+esc(r.id)+'</td><td>'+esc(r.unit)+'</td><td>'+esc(r.date)+'</td><td>'+fmtHours(r.scheduled)+'</td><td>'+fmtHours(r.available)+'</td><td>'+fmtHours(r.used)+'</td><td>'+pct(r.pa)+'</td><td>'+pct(r.ua)+'</td><td>'+pct(r.eu)+'</td><td>'+esc(r.status)+'</td></tr>').join('');
-  const sourceRows=entities.map(e=>'<tr><td>'+esc(e)+'</td><td>'+model.source_counts[e]+'</td></tr>').join('');
-  const section=(title,text)=>'<section><h2>'+esc(title)+'</h2><p>'+esc(text||'Source evidence retained in the snapshot.')+'</p></section>';
-  win.document.open();
-  win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(title)+'</title><style>body{font-family:Arial,sans-serif;color:#172333;margin:28px;font-size:9px}h1{font-size:22px;margin:0 0 4px}h2{font-size:13px;margin:18px 0 6px;border-bottom:1px solid #cbd5e1;padding-bottom:4px}p{line-height:1.45;color:#475569}.meta{color:#64748b;margin-bottom:16px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.kpi{border:1px solid #cbd5e1;padding:8px;border-radius:5px}.kpi small{display:block;color:#64748b;text-transform:uppercase}.kpi b{font-size:16px}.bar{height:7px;background:#e2e8f0;border-radius:8px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:#2563eb}table{width:100%;border-collapse:collapse;margin:7px 0 14px}th,td{text-align:left;padding:5px;border-bottom:1px solid #e2e8f0}th{font-size:7px;text-transform:uppercase;color:#64748b}td{font-size:8px}section{break-inside:avoid}.footer{margin-top:22px;color:#64748b;font-size:8px}</style></head><body><h1>Reports &amp; KPI</h1><div class="meta">'+esc(title)+' · DRAFT · Report ID '+esc(model.report_id||'DRAFT')+' · Effective '+esc(model.report_period_effective.start)+(model.report_period_effective.start!==model.report_period_effective.end?' → '+model.report_period_effective.end:'')+'</div><div class="kpis"><div class="kpi"><small>Records</small><b>'+model.total_records+'</b></div><div class="kpi"><small>PA</small><b>'+pct(k.PA)+'</b>'+bar(k.PA)+'</div><div class="kpi"><small>UA</small><b>'+pct(k.UA)+'</b>'+bar(k.UA)+'</div><div class="kpi"><small>EU</small><b>'+pct(k.EU)+'</b>'+bar(k.EU)+'</div></div>'+section('Executive Summary','Operational source records: '+model.total_records+'. KPI validation state: '+(k.status||'UNAVAILABLE')+'.')+'<h2>Equipment Performance</h2><table><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table><h2>Operational Source Summary</h2><table><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table>'+section('Planned vs Actual',model.section_data['Planned vs Actual'])+section('Maintenance / Downtime',model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime'])+section('HSE Summary',model.section_data['HSE Summary']||model.section_data['HSE Events'])+section('Issues and Actions',model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities'])+'<div class="footer">Generated from the same Report Snapshot used by Preview.</div><script>window.onload=function(){setTimeout(function(){window.print()},150)}</script></body></html>');
-  win.document.close();
+  if(!model.snapshot?.immutable){
+    msg('Issue the report before generating the final PDF.',true);
+    return;
+  }
+  if(!reader?.modal||!reader?.frame){
+    msg('Inline PDF reader is unavailable.',true);
+    return;
+  }
+  try{
+    if(!global.LithositePdfRenderer?.renderInline)throw new Error('PDF renderer is unavailable.');
+    reader.title.textContent=(model.report_type||'REPORT')+' Report';
+    reader.meta.textContent='Inline PDF Reader · Fit Width';
+    reader.modal.classList.add('show');
+    reader.modal.setAttribute('aria-hidden','false');
+    await global.LithositePdfRenderer.renderInline(model,reader.frame);
+  }catch(error){
+    if(reader?.modal){
+      reader.modal.classList.add('show');
+      reader.modal.setAttribute('aria-hidden','false');
+    }
+    console.error('[Lithosite PDF Reader]',error);
+    msg(error.message||'PDF generation failed.',true);
+  }
 }
+
 function bind(){
   const reportType=document.getElementById('reportCenterType');
   const reportDate=document.getElementById('reportCenterDate');
   const reportPrepare=document.getElementById('reportCenterPrepare');
   const reportPreview=document.getElementById('reportCenterPreview');
+  const reportValidate=document.getElementById('reportCenterValidate');
+  const reportIssue=document.getElementById('reportCenterIssue');
+  const reportHistory=document.getElementById('reportCenterHistory');
   const reportPdf=document.getElementById('reportCenterPdf');
+  const reportPdfReaderModal=document.getElementById('reportPdfReaderModal');
+  const reportPdfReaderFrame=document.getElementById('reportPdfReaderFrame');
+  const reportPdfReaderTitle=document.getElementById('reportPdfReaderTitle');
+  const reportPdfReaderMeta=document.getElementById('reportPdfReaderMeta');
+  const reportPdfReaderClose=document.getElementById('reportPdfReaderClose');
+  const issuedHistoryModal=document.getElementById('reportIssuedHistoryModal');
+  const issuedHistoryBody=document.getElementById('reportIssuedHistoryBody');
+  const issuedHistoryClose=document.getElementById('reportIssuedHistoryClose');
   const previewModal=document.getElementById('reportPreviewModal');
   const previewClose=document.getElementById('reportPreviewClose');
   let reportDraft=null;
   const latest=latestOperationalDate();
   if(reportDate)reportDate.value=latest;
+  const notice=document.getElementById('reportCenterNotice');
+  const setReportNotice=(text,error)=>{
+    if(notice){
+      notice.textContent=text||'';
+      notice.classList.toggle('is-warning',!!text&&!!error);
+      notice.hidden=!text;
+    }
+    if(text)msg(text,!!error);
+  };
+  const resetReportActions=()=>{
+    if(reportDraft)reportDraft=null;
+    if(reportPreview)reportPreview.disabled=true;
+    if(reportValidate)reportValidate.disabled=true;
+    if(reportIssue)reportIssue.disabled=true;
+    if(reportPdf)reportPdf.disabled=true;
+  };
+  const syncReportPeriodNotice=()=>{
+    const type=reportType?.value||'DAILY';
+    const date=reportDate?.value||'';
+    const periodNotice=reportPeriodNotice(type,date);
+    setReportNotice(periodNotice,true);
+    if(reportPrepare)reportPrepare.disabled=!!periodNotice;
+    if(periodNotice)resetReportActions();
+    return !periodNotice;
+  };
   const prepareReport=()=>{
-    reportDraft=buildReportModel();
+    if(!syncReportPeriodNotice())return;
+    const raw=buildReportModel();
+    reportDraft=global.LithositeReportValidation
+      ? global.LithositeReportValidation.apply(raw,{kpi:raw.kpi})
+      : raw;
     renderReportCenterSummary(reportDraft);
     if(reportPreview)reportPreview.disabled=!reportDraft;
-    if(reportPdf)reportPdf.disabled=!reportDraft;
+    if(reportValidate)reportValidate.disabled=!reportDraft;
+    if(reportIssue)reportIssue.disabled=!reportDraft||reportDraft.status!=='READY';
+    if(reportPdf)reportPdf.disabled=!reportDraft||!reportDraft.snapshot?.immutable;
+    if(reportDraft?.status==='VALIDATION REQUIRED'){
+      setReportNotice('Report prepared — validation is required before issue.',true);
+    }else if(reportDraft?.report_data_status==='NO_DATA_FOR_PERIOD'){
+      setReportNotice('No data is available for the selected report period.',true);
+    }else{
+      setReportNotice('',false);
+      msg('Report prepared and ready for review.',false);
+    }
   };
   const showReportPreview=()=>{
     if(!reportDraft||!previewModal)return;
@@ -406,14 +751,78 @@ function bind(){
     if(global.LithositeModalShowContract)global.LithositeModalShowContract.close('reportPreviewModal');
     else{previewModal.classList.remove('open');previewModal.setAttribute('aria-hidden','true');}
   };
-  if(reportType)reportType.onchange=()=>{prepareReport();};
-  if(reportDate)reportDate.onchange=()=>{prepareReport();};
+  if(reportType)reportType.onchange=()=>{syncReportPeriodNotice();};
+  if(reportDate)reportDate.onchange=()=>{syncReportPeriodNotice();};
   if(reportPrepare)reportPrepare.onclick=prepareReport;
+  syncReportPeriodNotice();
   if(reportPreview)reportPreview.onclick=showReportPreview;
-  if(reportPdf)reportPdf.onclick=()=>generatePdf(reportDraft);
+  if(reportValidate)reportValidate.onclick=()=>{
+    if(!reportDraft)return;
+    reportDraft=global.LithositeReportValidation
+      ? global.LithositeReportValidation.apply(reportDraft,{kpi:reportDraft.kpi})
+      : reportDraft;
+    renderReportCenterSummary(reportDraft);
+    if(reportIssue)reportIssue.disabled=reportDraft.status!=='READY';
+    msg(reportDraft.status==='READY'?'Validation PASS — report is ready to issue.':'Validation required — resolve the report gate before issue.',reportDraft.status!=='READY');
+  };
+  if(reportIssue)reportIssue.onclick=async()=>{
+    if(!reportDraft)return;
+    if(!global.LithositeReportSnapshot||!global.LithositeReportHistory){msg('Report snapshot/history engine is unavailable.',true);return;}
+    try{
+      reportDraft=await global.LithositeReportSnapshot.create(reportDraft);
+      global.LithositeReportHistory.save(reportDraft);
+      renderReportCenterSummary(reportDraft);
+      renderReportPreview(reportDraft);
+      if(reportIssue)reportIssue.disabled=true;
+      if(reportPdf)reportPdf.disabled=false;
+      msg('Report issued — immutable snapshot saved to Report History.',false);
+    }catch(error){msg(error.message||'Report issue failed.',true);}
+  };
+  const closeReportPdfReader=()=>{
+    if(!reportPdfReaderModal)return;
+    reportPdfReaderModal.classList.remove('show');
+    reportPdfReaderModal.setAttribute('aria-hidden','true');
+    if(reportPdfReaderFrame){
+      const objectUrl=reportPdfReaderFrame.dataset?.reportPdfObjectUrl;
+      if(objectUrl&&global.URL?.revokeObjectURL)global.URL.revokeObjectURL(objectUrl);
+      delete reportPdfReaderFrame.dataset.reportPdfObjectUrl;
+      reportPdfReaderFrame.src='about:blank';
+    }
+  };
+
+  if(reportPdf)reportPdf.onclick=()=>generatePdf(reportDraft,{
+    modal:reportPdfReaderModal,
+    frame:reportPdfReaderFrame,
+    title:reportPdfReaderTitle,
+    meta:reportPdfReaderMeta,
+  });
+  if(reportPdfReaderClose)reportPdfReaderClose.onclick=closeReportPdfReader;
+  if(reportPdfReaderModal)reportPdfReaderModal.onclick=e=>{if(e.target===reportPdfReaderModal)closeReportPdfReader();};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&reportPdfReaderModal?.classList.contains('show'))closeReportPdfReader();});
   if(previewClose)previewClose.onclick=hideReportPreview;
   if(previewModal)previewModal.onclick=e=>{if(e.target===previewModal)hideReportPreview();};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&previewModal&&previewModal.classList.contains('open'))hideReportPreview();});
+
+  const renderIssuedHistory=()=>{
+    if(!issuedHistoryBody||!global.LithositeReportHistory)return;
+    const items=global.LithositeReportHistory.list();
+    issuedHistoryBody.innerHTML=items.length
+      ? items.map(item=>'<div class="kpi-history-row"><span>'+esc(item.report_type||'REPORT')+'</span><b>'+esc(item.period?.start||'—')+'</b><b>'+esc(item.period?.end||'—')+'</b><span>'+esc(item.snapshot_id||'—')+'</span><span>'+esc(item.snapshot?.issued_at||'')+'</span></div>').join('')
+      : '<div class="kpi-history-empty">No issued report snapshot yet.</div>';
+  };
+  const showIssuedHistory=()=>{
+    renderIssuedHistory();
+    if(global.LithositeModalShowContract)global.LithositeModalShowContract.show('reportIssuedHistoryModal');
+    else if(issuedHistoryModal){issuedHistoryModal.classList.add('open');issuedHistoryModal.setAttribute('aria-hidden','false');}
+  };
+  const hideIssuedHistory=()=>{
+    if(!issuedHistoryModal)return;
+    if(global.LithositeModalShowContract)global.LithositeModalShowContract.close('reportIssuedHistoryModal');
+    else{issuedHistoryModal.classList.remove('open');issuedHistoryModal.setAttribute('aria-hidden','true');}
+  };
+  if(reportHistory)reportHistory.onclick=showIssuedHistory;
+  if(issuedHistoryClose)issuedHistoryClose.onclick=hideIssuedHistory;
+  if(issuedHistoryModal)issuedHistoryModal.onclick=e=>{if(e.target===issuedHistoryModal)hideIssuedHistory();};
 
   const refresh=document.getElementById('reportsRefresh');if(refresh)refresh.onclick=load;
   const clear=document.getElementById('reportsClear');if(clear)clear.onclick=()=>{document.getElementById('reportsSearch').value='';renderCounts();};

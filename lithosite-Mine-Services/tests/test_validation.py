@@ -170,3 +170,50 @@ def test_invalid_period_month_rejected():
     )
     assert result["status"] == "REJECTED"
     assert any(e.code == "VAL-E009" for e in result["errors"])
+
+
+
+def test_plan_date_range_validated_and_saved():
+    app = seed()
+    result = app.create(
+        "Plans",
+        {
+            "plan_id": "P-RANGE-01",
+            "period": "2026-10",
+            "start_date": "2026-10-09",
+            "end_date": "2026-10-15",
+            "domain": "Road & Hauling",
+            "work_front_id": "WF-01",
+            "activity": "Hauling",
+            "target_quantity": 500,
+            "measurement": "ton",
+            "status": "Draft",
+        },
+        "plan-range-valid",
+    )
+    assert result["status"] == "COMMITTED", result
+    row = app.read("Plans", "P-RANGE-01")
+    assert row["start_date"] == "2026-10-09"
+    assert row["end_date"] == "2026-10-15"
+
+
+def test_plan_end_date_cannot_precede_start_date():
+    app = seed()
+    result = app.create(
+        "Plans",
+        {
+            "plan_id": "P-RANGE-02",
+            "period": "2026-10",
+            "start_date": "2026-10-16",
+            "end_date": "2026-10-15",
+            "domain": "Road & Hauling",
+            "work_front_id": "WF-01",
+            "activity": "Hauling",
+            "target_quantity": 500,
+            "measurement": "ton",
+            "status": "Draft",
+        },
+        "plan-range-invalid",
+    )
+    assert result["status"] == "REJECTED"
+    assert any(error.code == "VAL-E008" and error.field == "end_date" for error in result["errors"])

@@ -2,7 +2,7 @@
 'use strict';
 const rc=global.LithositeRuntimeClient;
 if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 9 Equipment');
-const state={rows:[],status:'loading'};
+const state={rows:[],capacities:[],status:'loading'};
 let editId=null;
 let runtimeReady=false;
 
@@ -46,17 +46,33 @@ function fillLists(){
  fillSelect('f_eq_owner_type',LISTS.owner_type,'Select owner type');
  fillSelect('f_eq_status',LISTS.status,'Select status');
 }
+function matchesEquipmentGroup(type, group){
+ const normalizedType=String(type||'').trim().toLowerCase();
+ if(!group)return true;
+ if(group==='dump-truck')return normalizedType==='dump truck';
+ if(group==='excavator')return normalizedType==='excavator';
+ if(group==='support-unit')return normalizedType==='grader'||normalizedType==='dozer';
+ return true;
+}
 function filtered(){
  const id=document.getElementById('equipmentIdFilter').value.trim().toLowerCase();
+ const group=document.getElementById('equipmentMasterGroupFilter').value;
  const cat=document.getElementById('equipmentCategoryFilter').value;
  const type=document.getElementById('equipmentTypeFilter').value;
  const owner=document.getElementById('equipmentOwnerFilter').value;
  const status=document.getElementById('equipmentStatusFilter').value;
  return state.rows.filter(r=>
    (!id||String(r.equipment_id||'').toLowerCase().includes(id))&&
+   (!group||matchesEquipmentGroup(r.type,group))&&
    (!cat||r.category===cat)&&(!type||r.type===type)&&
    (!owner||r.owner_type===owner)&&(!status||r.status===status)
  );
+}
+function equipmentBrand(row){
+ const profile=state.capacities.find(function(item){
+  return String(item.capacity_profile_id||'')===String(row.capacity_profile_id||'');
+ });
+ return profile?String(profile.unit_brand||'—'):'—';
 }
 function render(){
  const host=document.getElementById('equipmentRows');
@@ -81,13 +97,14 @@ function render(){
     '<div class="cell">'+esc(r.equipment_id)+'</div>'+
     '<div class="cell">'+esc(r.unit_no)+'</div>'+
     '<div class="cell">'+esc(r.category)+'</div>'+
+    '<div class="cell">'+esc(equipmentBrand(r))+'</div>'+
     '<div class="cell">'+esc(r.type)+'</div>'+
     '<div class="cell">'+esc(r.owner_type)+'</div>'+
     '<div class="cell">'+esc(r.owner_name)+'</div>'+
     '<div class="cell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div>'+
     '<div class="cell">'+esc(r.effective_from)+'</div>'+
     '<div class="cell">'+esc(r.effective_to)+'</div>'+
-    '<div class="cell row-actions"><button class="control mini show-map-equipment" data-id="'+esc(r.equipment_id)+'">Show on Map</button><button class="control mini edit-equipment" data-id="'+esc(r.equipment_id)+'">Edit</button><button class="control mini danger delete-equipment" data-id="'+esc(r.equipment_id)+'">Delete</button></div>'+
+    '<div class="cell row-actions"><button class="control mini view show-map-equipment" data-id="'+esc(r.equipment_id)+'">Show on Map</button><button class="control mini edit edit-equipment" data-id="'+esc(r.equipment_id)+'">Edit</button><button class="control mini danger delete-equipment" data-id="'+esc(r.equipment_id)+'">Delete</button></div>'+
    '</div>';
  }).join(''):'<div class="empty">No equipment matches the current filters.</div>';
    document.getElementById('equipmentCount').textContent=rows.length+' records · Runtime Ready';
@@ -102,8 +119,13 @@ async function load(){
    runtimeReady=health.status==='READY';
    if(!runtimeReady) throw new Error('Runtime health is not READY');
    await loadLists();
-   const result=await rc.request({operation:'READ',entity:'Equipment'});
-   state.rows=Array.isArray(result.data)?result.data:[];
+   const results=await Promise.all([
+     rc.request({operation:'READ',entity:'Equipment'}),
+     rc.request({operation:'READ',entity:'GlobalCapacity'})
+   ]);
+   state.rows=Array.isArray(results[0].data)?results[0].data:[];
+   state.capacities=Array.isArray(results[1].data)?results[1].data:[];
+   fillCapacityProfiles();
    state.status='ready';
    render();
    setMsg('RuntimeAdapter connected — offline local persistence active.');
@@ -114,10 +136,43 @@ async function load(){
 }
 async function refreshData(){
  try{
-  const result=await rc.request({operation:'READ',entity:'Equipment'});
-  state.rows=Array.isArray(result.data)?result.data:[];
+  const results=await Promise.all([
+   rc.request({operation:'READ',entity:'Equipment'}),
+   rc.request({operation:'READ',entity:'GlobalCapacity'})
+  ]);
+  state.rows=Array.isArray(results[0].data)?results[0].data:[];
+  state.capacities=Array.isArray(results[1].data)?results[1].data:[];
+  fillCapacityProfiles();
   state.status='ready';render();
  }catch(e){setMsg('Refresh failed: '+e.message,true);}
+}
+function fillCapacityProfiles(selectedId){
+ const select=document.getElementById('f_eq_capacity_profile');
+ if(!select)return;
+ const current=String(selectedId??select.value??'');
+ select.innerHTML='<option value="">Select Global Capacity</option>';
+ state.capacities.slice().sort(function(a,b){
+   const activeA=String(a.status||'').toUpperCase()==='ACTIVE'?0:1;
+   const activeB=String(b.status||'').toUpperCase()==='ACTIVE'?0:1;
+   if(activeA!==activeB)return activeA-activeB;
+   return String(a.capacity_name||'').localeCompare(String(b.capacity_name||''));
+ }).forEach(function(row){
+   const option=document.createElement('option');
+   option.value=String(row.capacity_profile_id||'');
+   option.textContent=String(row.capacity_name||row.capacity_profile_id||'')+' — '+String(row.unit_brand||'—')+' — '+String(row.capacity_value??'')+' '+String(row.measurement||'ton');
+   select.appendChild(option);
+ });
+ if(current)select.value=current;
+ updateCapacitySummary();
+}
+function updateCapacitySummary(){
+ const select=document.getElementById('f_eq_capacity_profile');
+ const brand=document.getElementById('f_eq_brand');
+ const capacity=document.getElementById('f_eq_capacity');
+ if(!select||!brand||!capacity)return;
+ const profile=state.capacities.find(function(row){return String(row.capacity_profile_id||'')===String(select.value||'');});
+ brand.value=profile?String(profile.unit_brand||'—'):'';
+ capacity.value=profile?String(profile.capacity_value??'')+' '+String(profile.measurement||'ton'):'';
 }
 function resetForm(){
  const now=new Date();
@@ -129,13 +184,14 @@ function resetForm(){
  document.getElementById('f_eq_owner_type').value='';
  document.getElementById('f_eq_owner_name').value='';
  document.getElementById('f_eq_status').value='Active';
+ fillCapacityProfiles('');
  document.getElementById('f_eq_from').value=d;
  document.getElementById('f_eq_to').value='';
 }
 function openAdd(){
  editId=null;document.getElementById('equipmentModalTitle').textContent='Add Equipment';
  document.getElementById('equipmentSave').textContent='Save via RuntimeAdapter';resetForm();
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('equipmentModal');}else{document.getElementById('equipmentModal').classList.add('show')};
+ global.LithositeModalShowContract.show('equipmentModal');
 }
 function openEdit(id){
  const row=state.rows.find(x=>String(x.equipment_id)===String(id));if(!row)return;
@@ -143,7 +199,8 @@ function openEdit(id){
  document.getElementById('equipmentSave').textContent='Update via RuntimeAdapter';
  const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_owner_name:row.owner_name,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('equipmentModal');}else{document.getElementById('equipmentModal').classList.add('show')};
+ fillCapacityProfiles(row.capacity_profile_id||'');
+ global.LithositeModalShowContract.show('equipmentModal');
 }
 function payload(){
  return {
@@ -155,17 +212,19 @@ function payload(){
   owner_name:document.getElementById('f_eq_owner_name').value,
   status:document.getElementById('f_eq_status').value,
   effective_from:document.getElementById('f_eq_from').value||null,
-  effective_to:document.getElementById('f_eq_to').value||null
+  effective_to:document.getElementById('f_eq_to').value||null,
+  capacity_profile_id:document.getElementById('f_eq_capacity_profile').value||null
  };
 }
 async function save(){
  if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}
  const row=payload();
  if(!row.unit_no||!row.category||!row.type||!row.owner_type||!row.status){setMsg('Unit / Fleet No., Category, Type, Owner Type and Status are required.',true);return;}
+ if(String(row.type||'').trim().toLowerCase()==='dump truck'&&!row.capacity_profile_id){setMsg('Global Capacity Profile is required for Dump Truck.',true);return;}
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Equipment',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the equipment');
-  document.getElementById('equipmentModal').classList.remove('show');
+  global.LithositeModalShowContract.close('equipmentModal');
   await refreshData();setMsg(editId?'Equipment updated and audited.':'Equipment created and audited.');
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
@@ -181,10 +240,11 @@ function bind(){
  document.getElementById('equipmentAdd').onclick=openAdd;
  document.getElementById('equipmentRefresh').onclick=load;
  document.getElementById('equipmentSave').onclick=save;
- document.getElementById('equipmentClose').onclick=()=>document.getElementById('equipmentModal').classList.remove('show');
- document.getElementById('equipmentCancel').onclick=()=>document.getElementById('equipmentModal').classList.remove('show');
- document.getElementById('equipmentClear').onclick=()=>{['equipmentIdFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
- ['equipmentIdFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
+ document.getElementById('f_eq_capacity_profile').addEventListener('change',updateCapacitySummary);
+ document.getElementById('equipmentClose').onclick=()=>global.LithositeModalShowContract.close('equipmentModal');
+ document.getElementById('equipmentCancel').onclick=()=>global.LithositeModalShowContract.close('equipmentModal');
+ document.getElementById('equipmentClear').onclick=()=>{['equipmentIdFilter','equipmentMasterGroupFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
+ ['equipmentIdFilter','equipmentMasterGroupFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
  document.getElementById('equipmentRows').addEventListener('click',e=>{
   const showMap=e.target.closest('.show-map-equipment');if(showMap){
    const api=global.MineServicesMarkerLocation;

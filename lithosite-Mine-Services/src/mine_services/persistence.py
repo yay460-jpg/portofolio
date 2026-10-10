@@ -3,6 +3,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from openpyxl import load_workbook
+from openpyxl.utils.cell import get_column_letter, range_boundaries
 
 from . import schema as DEFAULT_SCHEMA
 
@@ -13,6 +14,8 @@ class PersistenceStore:
         self.path = Path(path) if path else None
         self._data = {e: {} for e in self.schema.DOMAIN_ENTITIES}
         self._audit = []
+        # Production vocabulary is loaded exclusively from the A3 workbook `_Lists`.
+        # This fallback exists only for explicit in-memory/test stores with no workbook path.
         self.controlled_lists = {
             "equipment_category": {"Heavy Equipment", "Light Vehicle", "Support Equipment"},
             "equipment_type": {"Dump Truck", "Excavator", "Dozer", "Grader", "Water Truck", "Loader", "Light Vehicle", "Other"},
@@ -20,8 +23,11 @@ class PersistenceStore:
             "equipment_status": {"Active", "Inactive", "Retired"},
             "service_domain": {"Road & Hauling", "Drainage & Dewatering", "Land Clearing", "Disposal & Stockpile", "Mining", "Reclamation", "Other"},
             "work_front_status": {"Active", "Inactive", "Closed"},
+            "capacity_status": {"Active", "Inactive"},
+            "checker_shift": {"Day", "Night"},
+            "checker_material": {"Ore", "OB", "Quarry", "Top Soil"},
             "transaction_status": {"DRAFT", "VALIDATED", "REJECTED", "VOIDED"},
-            "unit": {"hour", "km", "m", "m2", "m3", "ton", "unit", "cycle"},
+            "measurement": {"hour", "km", "m", "m2", "m3", "ton", "unit", "cycle"},
             "maintenance_event_type": {"Preventive", "Corrective", "Inspection", "Breakdown"},
             "issue_severity": {"Low", "Medium", "High", "Critical"},
             "issue_status": {"Open", "In Progress", "Closed", "Void"},
@@ -30,7 +36,7 @@ class PersistenceStore:
             "plan_status": {"Draft", "Approved", "In Progress", "Completed", "Cancelled"},
             "hse_severity": {"Low", "Medium", "High", "Critical"},
             "hse_status": {"Open", "In Progress", "Closed", "Void"},
-        }
+        } if not self.path else {}
         if self.path and self.path.exists():
             self.load()
 
@@ -80,6 +86,177 @@ class PersistenceStore:
                     return str(vals[i + 1])
         raise ValueError("SCHEMA_VERSION:MISSING")
 
+    def _migrate_a3_checker_support_headers(self, workbook):
+        """Upgrade the existing A3 workbook headers for the V38 Operations/Checker support layer.
+
+        This is intentionally narrow: only the known pre-support A3 headers are migrated.
+        Existing row values are preserved; new support fields start blank.
+        """
+        if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
+            return False
+
+        changed = False
+
+        equipment = workbook["Equipment"]
+        current_equipment = [cell.value for cell in equipment[1]]
+        legacy_equipment = list(self.schema.HEADERS["Equipment"][:-1])
+        if current_equipment == legacy_equipment:
+            equipment.cell(row=1, column=equipment.max_column + 1, value="capacity_profile_id")
+            changed = True
+
+        operations = workbook["Operations"]
+        current_operations = [cell.value for cell in operations[1]]
+        legacy_operations = list(self.schema.HEADERS["Operations"][:-4])
+        if current_operations == legacy_operations:
+            for header in self.schema.HEADERS["Operations"][-4:]:
+                operations.cell(row=1, column=operations.max_column + 1, value=header)
+            changed = True
+
+        global_capacity = workbook["GlobalCapacity"]
+        current_global_capacity = [cell.value for cell in global_capacity[1]]
+        legacy_global_capacity = list(self.schema.HEADERS["GlobalCapacity"])
+        legacy_global_capacity.remove("unit_brand")
+        if current_global_capacity == legacy_global_capacity:
+            insert_at = current_global_capacity.index("capacity_value") + 1
+            global_capacity.insert_cols(insert_at, 1)
+            global_capacity.cell(row=1, column=insert_at, value="unit_brand")
+            changed = True
+
+        checker = workbook["Checker"]
+        current_checker = [cell.value for cell in checker[1]]
+        legacy_checker = [h for h in self.schema.HEADERS["Checker"] if h != "operation_id"]
+        if current_checker == legacy_checker:
+            checker.insert_cols(2, 1)
+            checker.cell(row=1, column=2, value="operation_id")
+            changed = True
+
+        plans = workbook["Plans"]
+        current_plans = [cell.value for cell in plans[1]]
+        legacy_plans = ["plan_id", "period", "domain", "work_front_id", "activity", "target_quantity", "measurement", "target_hours", "status"]
+        legacy_plans_without_hours = [header for header in legacy_plans if header != "target_hours"]
+        if current_plans in (legacy_plans, legacy_plans_without_hours):
+            plans.insert_cols(3, 2)
+            plans.cell(row=1, column=3, value="start_date")
+            plans.cell(row=1, column=4, value="end_date")
+            changed = True
+            # Preserve historical monthly plans by expanding them to calendar month bounds.
+            from calendar import monthrange
+            for row_index in range(2, plans.max_row + 1):
+                period = plans.cell(row=row_index, column=2).value
+                if not period:
+                    continue
+                period_text = str(period).strip()
+                if len(period_text) == 7 and period_text[4] == "-":
+                    try:
+                        year, month = int(period_text[:4]), int(period_text[5:7])
+                        last_day = monthrange(year, month)[1]
+                        plans.cell(row=row_index, column=3, value=f"{year:04d}-{month:02d}-01")
+                        plans.cell(row=row_index, column=4, value=f"{year:04d}-{month:02d}-{last_day:02d}")
+                    except (ValueError, TypeError):
+                        pass
+
+        return changed
+
+    def _migrate_a3_top_soil_material(self, workbook):
+        """Add Top Soil to the A.3 controlled material list without changing existing entries."""
+        if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
+            return False
+        lists = workbook["_Lists"] if "_Lists" in workbook.sheetnames else None
+        if lists is None:
+            return False
+
+        headers = [cell.value for cell in lists[1]]
+        try:
+            column = headers.index("checker_material") + 1
+        except ValueError:
+            return False
+
+        values = [
+            lists.cell(row=row_index, column=column).value
+            for row_index in range(2, lists.max_row + 1)
+        ]
+        if any(value == "Top Soil" for value in values):
+            return False
+
+        last_value_row = max(
+            (row_index for row_index in range(2, lists.max_row + 1)
+             if lists.cell(row=row_index, column=column).value not in (None, "")),
+            default=1,
+        )
+        lists.cell(row=last_value_row + 1, column=column, value="Top Soil")
+        return True
+
+    def _migrate_a3_remove_plans_target_hours(self, workbook):
+        """Remove the retired target_hours column from the A.3 Plans worksheet."""
+        if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
+            return False
+        if "Plans" not in workbook.sheetnames:
+            return False
+
+        plans = workbook["Plans"]
+        headers = [cell.value for cell in plans[1]]
+        try:
+            column_index = headers.index("target_hours") + 1
+        except ValueError:
+            return False
+
+        # Track worksheet filter/table ranges before deleting the field.
+        worksheet_filter_ref = plans.auto_filter.ref
+        table_ranges = []
+        for table in plans.tables.values():
+            try:
+                min_col, min_row, max_col, max_row = range_boundaries(table.ref)
+            except (TypeError, ValueError):
+                continue
+            table_ranges.append((table, min_col, min_row, max_col, max_row))
+
+        # Delete by header name rather than a fixed position to preserve all other fields.
+        plans.delete_cols(column_index, 1)
+
+        # openpyxl does not automatically update worksheet AutoFilter/table metadata
+        # when deleting columns, so update those ranges explicitly to keep the XLSX valid.
+        if worksheet_filter_ref:
+            try:
+                min_col, min_row, max_col, max_row = range_boundaries(worksheet_filter_ref)
+                if min_col <= column_index <= max_col:
+                    max_col -= 1
+                elif column_index < min_col:
+                    min_col -= 1
+                    max_col -= 1
+                if max_col >= min_col:
+                    plans.auto_filter.ref = (
+                        f"{get_column_letter(min_col)}{min_row}:"
+                        f"{get_column_letter(max_col)}{max_row}"
+                    )
+            except (TypeError, ValueError):
+                pass
+
+        for table, min_col, min_row, max_col, max_row in table_ranges:
+            if min_col <= column_index <= max_col:
+                table_column_index = column_index - min_col
+                if 0 <= table_column_index < len(table.tableColumns) and table.tableColumns[table_column_index].name == "target_hours":
+                    del table.tableColumns[table_column_index]
+                else:
+                    table.tableColumns = [
+                        table_column for table_column in table.tableColumns
+                        if table_column.name != "target_hours"
+                    ]
+                for column_id, table_column in enumerate(table.tableColumns, start=1):
+                    table_column.id = column_id
+                max_col -= 1
+            elif column_index < min_col:
+                min_col -= 1
+                max_col -= 1
+            if max_col >= min_col:
+                table.ref = (
+                    f"{get_column_letter(min_col)}{min_row}:"
+                    f"{get_column_letter(max_col)}{max_row}"
+                )
+                if table.autoFilter is not None:
+                    table.autoFilter.ref = table.ref
+
+        return True
+
     def _validate_workbook_contract(self, workbook):
         required = set(self.schema.DOMAIN_ENTITIES) | {"_System", "_Lists", "AuditLog"}
         missing = required - set(workbook.sheetnames)
@@ -99,6 +276,20 @@ class PersistenceStore:
             raise ValueError("HEADER_MISMATCH:AuditLog")
 
     def load(self):
+        wb = load_workbook(self.path, data_only=False)
+        expected_schema = getattr(self.schema, "SCHEMA_VERSION", None)
+        if expected_schema and self._system_version(wb) != expected_schema:
+            raise ValueError(f"SCHEMA_VERSION:{self._system_version(wb)}")
+        if expected_schema == "A.3":
+            required_migration_sheets = {"Operations", "GlobalCapacity", "Checker"}
+            missing = required_migration_sheets - set(wb.sheetnames)
+            if missing:
+                raise ValueError(f"SHEET_MISSING:{sorted(missing)}")
+        migrated = self._migrate_a3_checker_support_headers(wb)
+        top_soil_migrated = self._migrate_a3_top_soil_material(wb)
+        plan_hours_migrated = self._migrate_a3_remove_plans_target_hours(wb)
+        if migrated or top_soil_migrated or plan_hours_migrated:
+            wb.save(self.path)
         wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)
 
@@ -123,11 +314,10 @@ class PersistenceStore:
                 for i, header in enumerate(values[0])
                 if header not in (None, "")
             }
-            # Keep only newly locked reference values available when an
-            # older workbook predates them. Existing workbook values remain
-            # unchanged and all other vocabulary stays workbook-defined.
-            workbook_lists.setdefault("service_domain", set()).add("Mining")
-            workbook_lists.setdefault("unit", set()).add("cycle")
+            required_lists = set(self.schema.CONTROLLED.values())
+            missing_lists = sorted(required_lists - set(workbook_lists))
+            if missing_lists:
+                raise ValueError(f"CONTROLLED_LIST_MISSING:{missing_lists}")
             self.controlled_lists = workbook_lists
 
         rows = list(wb["AuditLog"].values)

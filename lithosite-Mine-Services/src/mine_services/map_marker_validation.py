@@ -1,7 +1,7 @@
 """Stage 20 A.3 MapMarker schema helpers used by validation.
 
-The default runtime schema remains A.2. This module is imported by the A.3
-validation path so marker-specific rules remain isolated from HSE/domain rules.
+A.3 is the only active runtime schema. This module keeps marker-specific
+rules isolated from HSE/domain validation rules.
 """
 
 from .map_marker_contract import (

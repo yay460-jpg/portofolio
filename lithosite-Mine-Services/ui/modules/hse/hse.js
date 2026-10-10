@@ -101,6 +101,20 @@ function filtered(){
 }
 function statusClass(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,'-')||'status';}
 function severityClass(v){return String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,'-')||'severity';}
+function openHseEvidence(id){
+ const row=state.rows.find(function(item){return String(item.hse_id)===String(id);});
+ if(!row)return;
+ const evidence=global.LithositeEvidence;
+ if(!evidence||typeof evidence.open!=='function'){setMsg('Shared Evidence viewer is unavailable. Reload the application shell.',true);return;}
+ const opened=evidence.open({
+  module:'HSE',
+  recordId:String(row.hse_id),
+  title:'HSE Evidence',
+  recordLabel:[row.hse_id,row.event_date,row.event_type].filter(Boolean).join(' · '),
+  allowUpload:true
+ });
+ if(!opened)setMsg('Could not open Evidence for HSE '+row.hse_id+'.',true);
+}
 function render(){
  const host=document.getElementById('hseRows');if(!host)return;
  if(state.status==='loading')host.innerHTML='<div class="empty">Loading HSE from RuntimeAdapter…</div>';
@@ -118,12 +132,13 @@ function render(){
    '<div class="cell">'+esc(r.action)+'</div>'+
    '<div class="cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
    '<div class="cell">'+esc(r.closed_at)+'</div>'+
-   '<div class="cell row-actions"><button class="control mini show-map-hse" data-id="'+esc(r.hse_id)+'">Show on Map</button><button class="control mini edit-hse" data-id="'+esc(r.hse_id)+'">Edit</button><button class="control mini danger delete-hse" data-id="'+esc(r.hse_id)+'">Delete</button></div>'+
+   '<div class="cell evidence-cell"><button type="button" class="control mini view-evidence evidence-hse evidence-indicator" data-evidence-module="HSE" data-evidence-id="'+esc(r.hse_id)+'" data-id="'+esc(r.hse_id)+'">View</button></div><div class="cell row-actions"><button class="control mini view show-map-hse" data-id="'+esc(r.hse_id)+'">Show on Map</button><button class="control mini edit edit-hse" data-id="'+esc(r.hse_id)+'">Edit</button><button class="control mini danger delete-hse" data-id="'+esc(r.hse_id)+'">Delete</button></div>'+
   '</div>').join(''):'<div class="empty">No HSE records match the current filters.</div>';
   document.getElementById('hseCount').textContent=rows.length+' records · Runtime Ready';
  }
  if(state.status==='loading')document.getElementById('hseCount').textContent='Loading · Runtime Connecting';
  if(state.status==='error')document.getElementById('hseCount').textContent='Unavailable · Runtime Error';
+ if(global.LithositeEvidence&&typeof global.LithositeEvidence.syncIndicators==='function')global.LithositeEvidence.syncIndicators(host);
 }
 function nowLocalDate(){
  const now=new Date();
@@ -164,7 +179,7 @@ function openAdd(){
  document.getElementById('hseModalTitle').textContent='Add HSE Event';
  document.getElementById('hseSave').textContent='Save via RuntimeAdapter';
  resetForm();
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('hseModal');}else{document.getElementById('hseModal').classList.add('show')};
+ global.LithositeModalShowContract.show('hseModal');
 }
 function openEdit(id){
  const row=state.rows.find(x=>String(x.hse_id)===String(id));if(!row)return;
@@ -180,7 +195,7 @@ function openEdit(id){
  };
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
  syncClosedAtField();
- if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('hseModal');}else{document.getElementById('hseModal').classList.add('show')};
+ global.LithositeModalShowContract.show('hseModal');
 }
 function payload(){
  const status=document.getElementById('f_hse_status').value;
@@ -209,7 +224,7 @@ async function save(){
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'HSE',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'HSE',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the HSE record');
-  document.getElementById('hseModal').classList.remove('show');
+  global.LithositeModalShowContract.close('hseModal');
   await refreshData();
   setMsg(editId?'HSE event updated and audited.':'HSE event created and audited.');
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
@@ -219,15 +234,17 @@ async function remove(id){
  try{
   const result=await rc.request({operation:'DELETE',entity:'HSE',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
-  await refreshData();setMsg('HSE event deleted and audited.');
+  await refreshData();
+  if(result.evidence_cleanup_status==='FAILED')setMsg('HSE event deleted and audited, but Evidence cleanup failed: '+(result.evidence_cleanup_message||'Unknown reason'),true);
+  else setMsg('HSE event deleted and audited.');
  }catch(e){setMsg('Delete failed: '+e.message,true);}
 }
 function bind(){
  document.getElementById('hseAdd').onclick=openAdd;
  document.getElementById('hseRefresh').onclick=load;
  document.getElementById('hseSave').onclick=save;
- document.getElementById('hseClose').onclick=()=>document.getElementById('hseModal').classList.remove('show');
- document.getElementById('hseCancel').onclick=()=>document.getElementById('hseModal').classList.remove('show');
+ document.getElementById('hseClose').onclick=()=>global.LithositeModalShowContract.close('hseModal');
+ document.getElementById('hseCancel').onclick=()=>global.LithositeModalShowContract.close('hseModal');
  document.getElementById('hseClear').onclick=()=>{
   ['hseIdFilter','hseDomainFilter','hseWorkFrontFilter','hseEventTypeFilter','hseSeverityFilter','hseStatusFilter'].forEach(id=>document.getElementById(id).value='');
   render();
@@ -237,6 +254,7 @@ function bind(){
  });
  document.getElementById('f_hse_status').addEventListener('change',syncClosedAtField);
  document.getElementById('hseRows').addEventListener('click',e=>{
+  const evidence=e.target.closest('.evidence-hse');if(evidence){openHseEvidence(evidence.dataset.id);return;}
   const showMap=e.target.closest('.show-map-hse');if(showMap){
    const api=global.MineServicesMarkerLocation;
    const result=api&&typeof api.showDomainRecordOnMap==='function'?api.showDomainRecordOnMap('HSE',showMap.dataset.id):{ok:false,status:'MAP_INTERACTION_UNAVAILABLE'};

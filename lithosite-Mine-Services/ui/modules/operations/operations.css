@@ -21,20 +21,10 @@
 #operationsScreen .title h1{margin:0;font-size:21px;line-height:24px;background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);background-clip:text;-webkit-background-clip:text;color:transparent}
 #operationsScreen .title p{margin:2px 0;color:var(--ops-muted);font-size:11px}
 #operationsScreen .controls{display:flex;gap:7px}
-#operationsScreen .control{height:34px;padding:7px 10px;border:1px solid #29435d;border-radius:8px;background:#12243a;color:#dbe8f5;font-size:10.5px;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer}
-#operationsScreen .control.primary{background:#2563eb;border-color:#3b82f6;color:#fff;font-weight:700}
-#operationsScreen .control:hover,
-#timelineModal .control:hover{
-  border-color:#4d8dff;
-  box-shadow:0 0 0 1px #4d8dff55,0 4px 12px #02081255;
-  transform:translateY(-1px);
-}
-#operationsScreen .control:focus-visible,
-#timelineModal .control:focus-visible{
-  outline:none;
-  border-color:#60a5fa;
-  box-shadow:0 0 0 2px #60a5fa55;
-}
+
+
+
+
 #operationsScreen .field input:hover,
 #operationsScreen .field select:hover,
 #operationsScreen .field input:focus,
@@ -48,7 +38,7 @@
 
 #operationsScreen .icon{width:15px;height:15px;display:block;color:currentColor}
 #operationsScreen .panel{background:var(--ops-panel);border:1px solid var(--ops-line);border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
-#operationsScreen .filters{height:auto;min-height:0;flex:0 0 auto;flex-shrink:0;padding:12px;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;align-items:end}
+#operationsScreen .filters{height:auto;min-height:0;flex:0 0 auto;flex-shrink:0;padding:12px;display:grid;grid-template-columns:repeat(8,minmax(0,1fr)) auto;gap:8px;align-items:end}
 #operationsScreen .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}
 #operationsScreen .field input,#operationsScreen .field select{width:100%;height:32px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px;outline:none}
 #operationsScreen .field input:focus,#operationsScreen .field select:focus{border-color:#4d8dff}
@@ -60,8 +50,8 @@
 #operationsScreen .grid{flex:1 1 auto;min-width:0;min-height:0;height:auto;overflow:auto}
 #operationsScreen .tr{
   display:grid;
-  grid-template-columns:90px 70px 1fr 1.15fr 1.2fr 1.15fr 1.15fr 95px 95px 95px 105px 95px;
-  min-width:1250px;
+  grid-template-columns:85px 55px 55px 110px 120px 120px 110px minmax(100px,1fr) 80px 75px 75px 90px 105px 80px;
+  min-width:0;
   width:100%;
   align-items:center;
 }
@@ -76,19 +66,18 @@
 #operationsScreen .voided{background:#27364a;color:#a9b8c9}
 #operationsScreen .row-actions{display:flex;gap:4px}
 #operationsScreen .mini{height:24px;padding:3px 7px;font-size:8px}
-#operationsScreen .danger{color:#fca5a5;border-color:#5a2b32}
-#operationsScreen .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
-#operationsScreen .runtime-msg.error{color:#fca5a5;border-color:#5a2b32;background:#2a1519}
+
 #operationsScreen .empty{display:grid;place-items:center;height:140px;color:#8ea3ba;font-size:10px}
 #operationsScreen .muted{color:#8fa5bb}
-#modal.modalback{position:fixed;inset:0;background:#02081299;display:none;align-items:center;justify-content:center;z-index:20}
-#modal.modalback.show{display:flex}
-#modal .modal{width:620px;background:#101f31;border:1px solid #31506d;border-radius:12px;box-shadow:0 20px 70px #0009}
-#modal .modalhead{height:48px;padding:0 16px;border-bottom:1px solid #29435d;display:flex;align-items:center;justify-content:space-between}
-#modal .modalhead .ptitle{font-weight:700}
-#modal .modalbody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-#modal .modalfoot{padding:12px 16px;border-top:1px solid #29435d;display:flex;justify-content:flex-end;gap:8px}
-#modal .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
+
+/* Operation data-entry form layout. Shared modal shell owns the modal frame. */
+#modal .modalbody{
+  padding:16px;
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:12px;
+}
+#modal .modalbody>.field{grid-column:span 2}
 #modal .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}
 #modal .field input,#modal .field select{width:100%;height:32px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px;outline:none}
 @media(max-width:1400px){#operationsScreen .boundary{padding:18px}#operationsScreen .title h1{font-size:20px}#operationsScreen .filters{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}}
@@ -126,20 +115,39 @@
 #timelineModal .modalhead .ptitle{font-weight:700}
 #timelineModal .timeline-meta{padding:10px 16px 0;color:#8fa5bb;font-size:10px}
 #timelineModal .timeline-summary{
-  display:flex;
-  gap:18px;
-  flex-wrap:wrap;
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:8px;
   padding:10px 16px;
   color:#dce8f5;
   font-size:9.5px;
 }
 #timelineModal .timeline-summary span{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
   background:#0c1b2c;
   border:1px solid #29435d;
   border-radius:7px;
   padding:7px 9px;
 }
-#timelineModal .timeline-summary b{color:#8fa5bb;margin-right:5px;font-weight:600}
+#timelineModal .timeline-summary b{
+  color:#8fa5bb;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.25px;
+  font-weight:600;
+}
+#timelineModal .timeline-summary strong{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#dce8f5;
+  font-size:9.5px;
+  font-weight:600;
+}
 #timelineModal .timeline-grid{
   margin:0 16px 16px;
   border:1px solid #29435d;
@@ -149,8 +157,8 @@
 }
 #timelineModal .timeline-tr{
   display:grid;
-  grid-template-columns:70px 125px 120px 80px 65px 85px 85px 90px 110px 140px;
-  min-width:970px;
+  grid-template-columns:90px 140px 90px 70px 80px 65px 85px 85px 90px 70px 130px;
+  min-width:1000px;
   align-items:center;
 }
 #timelineModal .timeline-tr .row-actions{
@@ -194,33 +202,65 @@
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-#timelineModal .control{
-  height:34px;
-  padding:7px 10px;
-  border:1px solid #29435d;
-  border-radius:8px;
-  background:#12243a;
-  color:#dbe8f5;
-  font-size:10.5px;
-  font-weight:500;
-  display:flex;
-  align-items:center;
-  gap:6px;
-  cursor:pointer;
-}
-#timelineModal .control:hover{border-color:#4d8dff}
-#timelineModal .control.danger{
-  color:#fecaca;
-  border-color:#ef4444;
-  background:#4b2024;
-}
-#timelineModal .control.danger:hover{
-  color:#fff;
-  border-color:#f87171;
-  background:#7f1d1d;
-  box-shadow:0 0 0 1px #f8717155,0 4px 12px #02081255;
-}
+
+
+
+
 
 /* Stage 26 — Cross-module traceability: Operations → Maintenance. */
 #operationsScreen .maintenance-link{color:#93c5fd;border-color:#315a86;min-width:64px;justify-content:center}
 #operationsScreen .maintenance-link:hover{border-color:#60a5fa;background:#16304b}
+
+
+/* V38 — Clear control width parity across module filter panels */
+#operationsScreen .clear{width:56px;min-width:56px;height:32px;padding:0 10px;justify-content:center;box-sizing:border-box}
+
+
+/* V38 — unified Clear button geometry across all filter panels */
+#operationsScreen #clear{width:56px;min-width:56px;max-width:56px;height:32px;padding:0 10px;justify-content:center;align-items:center;box-sizing:border-box;flex:0 0 56px}
+
+
+/* V38 — Work Timeline header parity with Maintenance Timeline.
+   Keep the existing operations icon and timeline structure; only normalize header typography. */
+#timelineModal .modalhead{
+  height:44px;
+  min-height:44px;
+  padding:0 14px;
+}
+#timelineModal .modalhead .ptitle{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  font-size:11.5px;
+  font-weight:700;
+  line-height:1;
+  white-space:nowrap;
+}
+#timelineModal .modalhead .ptitle .icon{
+  flex:0 0 15px;
+  width:15px;
+  height:15px;
+}
+
+@media(max-width:900px){
+  #timelineModal .timeline-summary{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+@media(max-width:560px){
+  #timelineModal .timeline-summary{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+
+/* Warn users that Dumping should be recorded as the Hauling activity. */
+#modal .field-warning{
+  display:block;
+  margin-top:5px;
+  color:#fbbf24;
+  font-size:9.5px;
+  line-height:1.35;
+}
+#modal .field-warning[hidden]{display:none!important}
+
+
+/* V39 — trace target highlight from Maintenance linked-operation navigation. */
+#operationsScreen .operation-trace-highlight{background:#173753!important;outline:1px solid #60a5fa;box-shadow:inset 0 0 0 1px #60a5fa55;animation:operationsTracePulse .8s ease-in-out 3}
+@keyframes operationsTracePulse{0%,100%{background:#10243a}50%{background:#1e4568}}

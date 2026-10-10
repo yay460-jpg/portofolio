@@ -6,9 +6,9 @@ from openpyxl import Workbook, load_workbook
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
-from mine_services.schema import HEADERS as A2_HEADERS, SHEETS as A2_SHEETS
+from mine_services.schema import HEADERS as A3_HEADERS
 from mine_services.schema_migration import SchemaMigrationError, migrate_a2_to_a3
-from mine_services.schema_migration_contract import A3_SHEETS
+from mine_services.schema_migration_contract import A2_HEADERS, A2_SHEETS, A3_SHEETS
 
 
 def make_a2_workbook(path: Path):
@@ -71,6 +71,18 @@ def test_stage20_migration_creates_a3_without_mutating_a2(tmp_path):
         "elevation", "source_entity", "source_id", "status"
     )]
     assert migrated["MapMarker"].max_row == 1
+    assert list(migrated["GlobalCapacity"].values)[0] == tuple(A3_HEADERS["GlobalCapacity"])
+    assert list(migrated["Checker"].values)[0] == tuple(A3_HEADERS["Checker"])
+    assert list(migrated["WorkFront"].values)[0] == tuple(A3_HEADERS["WorkFront"])
+    assert list(migrated["Operations"].values)[0] == tuple(A3_HEADERS["Operations"])
+    migrated_plan_headers = list(migrated["Plans"].values)[0]
+    expected_plan_headers = tuple(
+        "measurement" if header == "unit" else header
+        for header in A2_HEADERS["Plans"]
+        if header != "target_hours"
+    )
+    assert migrated_plan_headers == expected_plan_headers
+    assert "target_hours" not in migrated_plan_headers
 
 
 def test_stage20_migration_preserves_existing_domain_data_and_audit(tmp_path):

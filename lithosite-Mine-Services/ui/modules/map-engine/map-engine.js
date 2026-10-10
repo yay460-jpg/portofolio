@@ -420,11 +420,42 @@
         else{startAutoRotate();rotate360.classList.add('is-active');rotate360.textContent='360° Auto';}
       });
       document.addEventListener('mine-services:marker-pick-request',function(){if(!engine||!engine.getState().ready)return;engine.setView('top');syncTopViewClass();updateNorthArrow();activePickPoint='__MARKER__';setStatus('Marker Location · Top View aktif · klik terrain untuk memilih koordinat');});
+      function blinkFocusedMarkerLabel(marker){
+        var markerId=String(marker&&marker.marker_id||'');
+        if(!markerId)return;
+        var retries=0;
+        function locateAndBlink(){
+          var layer=host.querySelector('.map-marker-layer');
+          var elements=layer?layer.querySelectorAll('.map-location-marker[data-marker-id]'):[];
+          var markerElement=null;
+          for(var i=0;i<elements.length;i++){
+            if(elements[i].getAttribute('data-marker-id')===markerId){
+              markerElement=elements[i];
+              break;
+            }
+          }
+          var label=markerElement&&markerElement.querySelector('.map-location-marker__label');
+          if(!label){
+            if(retries++<12)requestAnimationFrame(locateAndBlink);
+            return;
+          }
+          if(label.__lithositeFocusBlinkTimer)clearTimeout(label.__lithositeFocusBlinkTimer);
+          label.classList.remove('is-focus-blinking');
+          void label.offsetWidth;
+          label.classList.add('is-focus-blinking');
+          label.__lithositeFocusBlinkTimer=setTimeout(function(){
+            label.classList.remove('is-focus-blinking');
+            label.__lithositeFocusBlinkTimer=null;
+          },2100);
+        }
+        requestAnimationFrame(locateAndBlink);
+      }
       document.addEventListener('mine-services:focus-marker',function(event){
         var marker=event&&event.detail&&event.detail.marker;
         if(!marker||!engine||!engine.getState().ready)return;
         requestAnimationFrame(function(){
           if(engine.focusCoordinate)engine.focusCoordinate(marker.easting,marker.northing,marker.elevation);
+          requestAnimationFrame(function(){blinkFocusedMarkerLabel(marker);});
         });
       });
       var northSync=setInterval(updateNorthArrow,100);

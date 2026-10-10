@@ -1,7 +1,8 @@
-"""Safe A.2 -> A.3 workbook migration for the Stage 20 MapMarker schema.
+"""Safe A.2 -> A.3 workbook migration for the active V38 schema.
 
 The migration never mutates the source workbook. It creates a separate target
-workbook, validates the A.2 source contract, adds an empty MapMarker sheet,
+workbook, validates the A.2 source contract, adds the V38 GlobalCapacity and
+Checker sheets, appends V38 capacity fields, adds an empty MapMarker sheet,
 updates _System.schema_version to A.3, and validates the resulting structure.
 """
 
@@ -9,15 +10,17 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from openpyxl import load_workbook
+from openpyxl.utils.cell import get_column_letter, range_boundaries
 
-from .schema import HEADERS as A2_HEADERS
 from .schema_migration_contract import (
     CURRENT_SCHEMA_VERSION,
     TARGET_SCHEMA_VERSION,
     A2_DOMAIN_ENTITIES,
+    A2_HEADERS,
     A3_SHEETS,
     MAP_MARKER_ENTITY,
     MAP_MARKER_SCHEMA_HEADERS,
+    A3_HEADERS_ADDITIONS,
 )
 
 
@@ -67,7 +70,8 @@ def _validate_a2_source(workbook):
 
     for entity in A2_DOMAIN_ENTITIES:
         values = list(workbook[entity].values)
-        if not values or list(values[0]) != A2_HEADERS[entity]:
+        expected = A2_HEADERS[entity]
+        if not values or list(values[0]) != expected:
             raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
 
     audit = list(workbook["AuditLog"].values)
@@ -84,6 +88,21 @@ def _validate_a3_result(workbook):
     if _read_schema_version(workbook) != TARGET_SCHEMA_VERSION:
         raise SchemaMigrationError("SCHEMA_VERSION:A3_UPDATE_FAILED")
 
+    for entity, additions in A3_HEADERS_ADDITIONS.items():
+        if entity in {"GlobalCapacity", "Checker"}:
+            rows = list(workbook[entity].values)
+            if not rows or list(rows[0]) != list(additions):
+                raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
+
+    for entity in ("WorkFront", "Operations"):
+        values = list(workbook[entity].values)
+        expected = list(A2_HEADERS[entity])
+        if entity == "Operations" and "unit" in expected:
+            expected[expected.index("unit")] = "measurement"
+        expected += A3_HEADERS_ADDITIONS[entity]
+        if not values or list(values[0]) != expected:
+            raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
+
     marker = workbook[MAP_MARKER_ENTITY]
     if list(marker.values)[0] != tuple(MAP_MARKER_SCHEMA_HEADERS):
         raise SchemaMigrationError("HEADER_MISMATCH:MapMarker")
@@ -91,9 +110,19 @@ def _validate_a3_result(workbook):
     if marker.max_row != 1:
         raise SchemaMigrationError("MAPMARKER_NOT_EMPTY")
 
+    # WorkFront and Operations now carry the A.3 appended fields.
+    # The remaining A.2 domain sheets must retain their original headers.
     for entity in A2_DOMAIN_ENTITIES:
+        if entity in {"WorkFront", "Operations"}:
+            continue
         values = list(workbook[entity].values)
-        if not values or list(values[0]) != A2_HEADERS[entity]:
+        expected = list(A2_HEADERS[entity])
+        if entity == "Plans":
+            if "unit" in expected:
+                expected[expected.index("unit")] = "measurement"
+            # A.3 Plans no longer stores target_hours.
+            expected = [header for header in expected if header != "target_hours"]
+        if not values or list(values[0]) != expected:
             raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
 
     audit = list(workbook["AuditLog"].values)
@@ -114,6 +143,97 @@ def migrate_a2_to_a3(source_path, target_path):
 
     workbook = load_workbook(source)
     _validate_a2_source(workbook)
+
+    # Add V38 A.3 sheets and append the new headers to existing A2 sheets.
+    for entity in ("GlobalCapacity", "Checker"):
+        ws = workbook.create_sheet(entity, index=workbook.sheetnames.index("Operations"))
+        ws.append(A3_HEADERS_ADDITIONS[entity])
+
+    for entity in ("WorkFront", "Operations"):
+        ws = workbook[entity]
+        additions = A3_HEADERS_ADDITIONS[entity]
+        current = [cell.value for cell in ws[1]]
+        for header in additions:
+            if header not in current:
+                ws.cell(row=1, column=ws.max_column + 1, value=header)
+                current.append(header)
+
+    # Canonical V38 terminology replaces the historical A2 "unit" field.
+    operations_headers = [cell.value for cell in workbook["Operations"][1]]
+    if "unit" in operations_headers and "measurement" not in operations_headers:
+        workbook["Operations"].cell(
+            row=1, column=operations_headers.index("unit") + 1, value="measurement"
+        )
+
+    lists = workbook["_Lists"]
+    list_headers = [cell.value for cell in lists[1]]
+    if "unit" in list_headers and "measurement" not in list_headers:
+        lists.cell(
+            row=1, column=list_headers.index("unit") + 1, value="measurement"
+        )
+
+    plans = workbook["Plans"]
+    plans_headers = [cell.value for cell in plans[1]]
+    if "unit" in plans_headers and "measurement" not in plans_headers:
+        plans.cell(
+            row=1, column=plans_headers.index("unit") + 1, value="measurement"
+        )
+        plans_headers[plans_headers.index("unit")] = "measurement"
+    if "target_hours" in plans_headers:
+        target_hours_column = plans_headers.index("target_hours") + 1
+        filter_ref = plans.auto_filter.ref
+        table_ranges = []
+        for table in plans.tables.values():
+            try:
+                min_col, min_row, max_col, max_row = range_boundaries(table.ref)
+            except (TypeError, ValueError):
+                continue
+            table_ranges.append((table, min_col, min_row, max_col, max_row))
+
+        plans.delete_cols(target_hours_column, 1)
+
+        if filter_ref:
+            try:
+                min_col, min_row, max_col, max_row = range_boundaries(filter_ref)
+                if min_col <= target_hours_column <= max_col:
+                    max_col -= 1
+                elif target_hours_column < min_col:
+                    min_col -= 1
+                    max_col -= 1
+                if max_col >= min_col:
+                    plans.auto_filter.ref = (
+                        f"{get_column_letter(min_col)}{min_row}:"
+                        f"{get_column_letter(max_col)}{max_row}"
+                    )
+            except (TypeError, ValueError):
+                pass
+
+        for table, min_col, min_row, max_col, max_row in table_ranges:
+            if min_col <= target_hours_column <= max_col:
+                table_column_index = target_hours_column - min_col
+                if (
+                    0 <= table_column_index < len(table.tableColumns)
+                    and table.tableColumns[table_column_index].name == "target_hours"
+                ):
+                    del table.tableColumns[table_column_index]
+                else:
+                    table.tableColumns = [
+                        table_column for table_column in table.tableColumns
+                        if table_column.name != "target_hours"
+                    ]
+                for column_id, table_column in enumerate(table.tableColumns, start=1):
+                    table_column.id = column_id
+                max_col -= 1
+            elif target_hours_column < min_col:
+                min_col -= 1
+                max_col -= 1
+            if max_col >= min_col:
+                table.ref = (
+                    f"{get_column_letter(min_col)}{min_row}:"
+                    f"{get_column_letter(max_col)}{max_row}"
+                )
+                if table.autoFilter is not None:
+                    table.autoFilter.ref = table.ref
 
     workbook.create_sheet(MAP_MARKER_ENTITY, index=len(workbook.sheetnames) - 1)
     marker = workbook[MAP_MARKER_ENTITY]

@@ -22,18 +22,17 @@ python desktop-host/server.py
 Optional database override:
 
 ```powershell
-$env:MINE_SERVICES_DB="D:\path\to\Mine-Services-Database.xlsx"
+$env:MINE_SERVICES_DB="D:\path\to\Mine-Services-Database-A3.xlsx"
 python desktop-host/server.py
 ```
 
 Default database:
 
-`Database/Mine-Services-Database.xlsx`
+`Database/Mine-Services-Database-A3.xlsx`
 
 ## Browser
 
-Open the Operations v1 HTML through Live Server on the normal local port
-(`127.0.0.1:5500`). The UI checks:
+Open the V38 Stage 27 HTML through the Desktop Host or development tooling as appropriate. The runtime health check is:
 
 `GET http://127.0.0.1:8765/health`
 
@@ -46,5 +45,5 @@ or remote REST service is used by this integration.
 
 ## Status
 
-Stage 8 desktop integration host: implementation in progress.
+V38 Desktop Host: implemented and validated against the canonical A3 database.
 Android remains a later follower host and is not part of this desktop step.

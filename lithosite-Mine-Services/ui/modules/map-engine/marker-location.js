@@ -52,6 +52,9 @@
   var ACTIVE_MARKER_STORAGE_KEY = 'lithosite-mine-services-active-markers-v1';
   var MARKER_PACKAGE_MAGIC = 'LITMARKR';
   var MARKER_PACKAGE_VERSION = 1;
+  var runtimeMarkerSyncReady = false;
+  var runtimeMarkerSyncSuppressed = false;
+  var runtimeMarkerSyncQueue = Promise.resolve();
 
   TYPES.forEach(function(type){ visibility[type]=true; });
 
@@ -122,11 +125,138 @@
     sequence=max;
   }
 
+  function notifyMarkerLocationsChanged(){
+    if(typeof document==='undefined'||typeof global.CustomEvent!=='function')return;
+    document.dispatchEvent(new global.CustomEvent('mine-services:marker-locations-changed'));
+  }
+
   function persistActiveMarkers(){
+    var saved=true;
     try{
       localStorage.setItem(ACTIVE_MARKER_STORAGE_KEY,JSON.stringify(listMarkers()));
-      return true;
-    }catch(error){return false;}
+    }catch(error){saved=false;}
+    notifyMarkerLocationsChanged();
+    if(runtimeMarkerSyncReady&&!runtimeMarkerSyncSuppressed){
+      queueRuntimeMarkerSync(listMarkers());
+    }
+    return saved;
+  }
+
+  function runtimeMarkerRows(result){
+    return result&&Array.isArray(result.data)?result.data:[];
+  }
+
+  function readRuntimeMarkers(){
+    if(!global.LithositeRuntimeClient)throw new Error('RuntimeAdapter is unavailable.');
+    return global.LithositeRuntimeClient.request({operation:'READ',entity:'MapMarker'}).then(runtimeMarkerRows);
+  }
+
+  function sameMarker(a,b){
+    var left=normalizeMarker(a),right=normalizeMarker(b);
+    return ['marker_id','marker_type','label','easting','northing','elevation','source_entity','source_id','status'].every(function(key){
+      return left[key]===right[key];
+    });
+  }
+
+  async function writeMarkerSnapshotToA3(rows){
+    var desired=validateMarkerCollection(rows);
+    var result=await global.LithositeRuntimeClient.request({operation:'READ',entity:'MapMarker'});
+    var existing=runtimeMarkerRows(result),byId={};
+    existing.forEach(function(row){byId[String(row.marker_id)]=row;});
+    var wanted={};
+    var report={created:0,updated:0,deleted:0,total:desired.length};
+    desired.forEach(function(row){wanted[row.marker_id]=row;});
+
+    for(var i=0;i<desired.length;i++){
+      var marker=desired[i],prior=byId[marker.marker_id],mutation;
+      if(!prior){
+        mutation=await global.LithositeRuntimeClient.request({operation:'CREATE',entity:'MapMarker',row:marker});
+        if(!mutation||mutation.status!=='COMMITTED'){
+          throw new Error('MapMarker CREATE failed for '+marker.marker_id+': '+runtimeMutationMessage(mutation));
+        }
+        report.created+=1;
+      }else if(!sameMarker(prior,marker)){
+        mutation=await global.LithositeRuntimeClient.request({operation:'UPDATE',entity:'MapMarker',entity_id:marker.marker_id,patch:marker});
+        if(!mutation||mutation.status!=='COMMITTED'){
+          throw new Error('MapMarker UPDATE failed for '+marker.marker_id+': '+runtimeMutationMessage(mutation));
+        }
+        report.updated+=1;
+      }
+    }
+
+    for(var j=0;j<existing.length;j++){
+      var existingId=String(existing[j].marker_id||'');
+      if(!wanted[existingId]) {
+        var removed=await global.LithositeRuntimeClient.request({operation:'DELETE',entity:'MapMarker',entity_id:existingId});
+        if(!removed||removed.status!=='COMMITTED'){
+          throw new Error('MapMarker DELETE failed for '+existingId+': '+runtimeMutationMessage(removed));
+        }
+        report.deleted+=1;
+      }
+    }
+    return report;
+  }
+
+  function runtimeMutationMessage(result){
+    return result&&Array.isArray(result.errors)&&result.errors.length
+      ?result.errors.map(function(item){return item.message;}).join('; ')
+      :'RuntimeAdapter did not commit the marker change.';
+  }
+
+  function queueRuntimeMarkerSync(rows){
+    if(!runtimeMarkerSyncReady||runtimeMarkerSyncSuppressed||!global.LithositeRuntimeClient)return;
+    var snapshot=(Array.isArray(rows)?rows:[]).map(clone);
+    runtimeMarkerSyncQueue=runtimeMarkerSyncQueue.then(function(){
+      return writeMarkerSnapshotToA3(snapshot);
+    }).then(function(report){
+      if(report.created||report.updated||report.deleted){
+        setMarkerLocationPanelMessage('A3 MapMarker synced · '+report.created+' created · '+report.updated+' updated · '+report.deleted+' removed.',false);
+      }
+      return report;
+    }).catch(function(error){
+      setMarkerLocationPanelMessage('MapMarker A3 sync failed: '+(error&&error.message?error.message:'Runtime error')+'. Browser marker data was retained.',true);
+      return null;
+    });
+  }
+
+  async function initializeRuntimeMarkerPersistence(){
+    if(!global.LithositeRuntimeClient)return;
+    try{
+      var health=await global.LithositeRuntimeClient.health();
+      if(!health||health.status!=='READY')throw new Error('RuntimeAdapter is not READY.');
+      var stored=await readRuntimeMarkers();
+      var localRows=listMarkers();
+      var storedById={};
+      stored.forEach(function(row){storedById[String(row.marker_id)]=row;});
+
+      // Preserve the existing browser marker set while migrating it into A3.
+      // Existing A3 rows win for the same marker_id; browser-only rows are added.
+      var merged=stored.map(normalizeMarker);
+      localRows.forEach(function(row){
+        if(!storedById[String(row.marker_id)])merged.push(row);
+      });
+      merged=validateMarkerCollection(merged);
+
+      runtimeMarkerSyncSuppressed=true;
+      var writeReport=await writeMarkerSnapshotToA3(merged);
+      var confirmed=await readRuntimeMarkers();
+      replaceMarkers(confirmed);
+      runtimeMarkerSyncReady=true;
+      runtimeMarkerSyncSuppressed=false;
+
+      var message;
+      if(writeReport.created){
+        message='MapMarker A3 sync complete · migrated '+writeReport.created+' marker(s) from browser storage.';
+      }else{
+        message='MapMarker A3 ready · '+confirmed.length+' record(s) loaded from database.';
+      }
+      setMarkerLocationPanelMessage(message,false);
+      renderMarkerLocationNow();
+    }catch(error){
+      runtimeMarkerSyncSuppressed=false;
+      runtimeMarkerSyncReady=false;
+      setMarkerLocationPanelMessage('MapMarker A3 sync failed: '+(error&&error.message?error.message:'Runtime error')+'. Existing browser markers were retained.',true);
+    }
   }
 
   function clearActiveMarkerPersistence(){
@@ -143,6 +273,7 @@
       rows.forEach(function(row){next[row.marker_id]=row;});
       markers=next;
       updateSequenceFromMarkers(rows);
+      notifyMarkerLocationsChanged();
       return true;
     }catch(error){
       clearActiveMarkerPersistence();
@@ -712,6 +843,8 @@
     markers={};
     selectedMarkerId=null;
     clearActiveMarkerPersistence();
+    notifyMarkerLocationsChanged();
+    if(runtimeMarkerSyncReady&&!runtimeMarkerSyncSuppressed)queueRuntimeMarkerSync([]);
   }
 
   function ensureRenderLayer(container){
@@ -963,7 +1096,11 @@
   function initMarkerLocationUI(){
     restoreActiveMarkers();
     if(typeof document==='undefined')return;
-    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindMarkerLocationUI);else bindMarkerLocationUI();
+    function ready(){
+      bindMarkerLocationUI();
+      initializeRuntimeMarkerPersistence();
+    }
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready();
   }
 
   initMarkerLocationUI();
