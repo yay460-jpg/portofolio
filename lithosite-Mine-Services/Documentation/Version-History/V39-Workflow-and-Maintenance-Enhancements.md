@@ -64,6 +64,8 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 - Expanded Desktop Host upload authorization to verify the selected Target Plan, HSE event, or Maintenance event through RuntimeAdapter before saving files. Supported modules now receive their own record-scoped folder after a committed create, and only the corresponding folder is removed after a committed record deletion.
 - Loaded the shared Evidence script before Maintenance and refreshed HSE, Maintenance, Evidence JS, and relevant CSS cache keys. Kept the shared upload picker hidden behind the styled Upload button.
 
+- Updated the HSE Register to show a dedicated **Evidence** column with a **View** button between `Closed At` and `Actions`. The Evidence trigger is no longer mixed into row Actions; the HSE grid width and stylesheet cache key were updated to retain the existing Show on Map, Edit, and Delete controls.
+
 ## Versioning and validation rule
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
