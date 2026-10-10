@@ -32,5 +32,5 @@ def test_report_pdf_reader_opens_instantly_and_closes_after_motion():
 
 def test_active_artifact_uses_updated_report_assets():
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "reports.css?v=20261011-slideout" in html
+    assert "reports.css?v=20261011-runtime-errors" in html
     assert "reports.js?v=20261011-slideout" in html

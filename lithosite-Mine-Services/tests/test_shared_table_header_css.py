@@ -91,10 +91,10 @@ def test_module_specific_table_container_geometry_is_preserved():
     for relative, selector in expectations:
         css = read(ROOT / "ui" / "modules" / relative)
         assert compact(selector) in compact(css)
-    maintenance = compact(read(ROOT / "ui" / "modules" / "maintenance" / "maintenance.css"))
-    plans = compact(read(ROOT / "ui" / "modules" / "plans" / "plans.css"))
-    assert "flex:0 0 40px" in maintenance
-    assert "flex:0 0 40px" in plans
+    maintenance = read(ROOT / "ui" / "modules" / "maintenance" / "maintenance.css")
+    plans = read(ROOT / "ui" / "modules" / "plans" / "plans.css")
+    assert re.search(r"flex:\s*0\s+0\s+40px", maintenance)
+    assert re.search(r"flex:\s*0\s+0\s+40px", plans)
 
 
 def test_table_stylesheet_link_is_well_formed_and_loaded_after_modules():
