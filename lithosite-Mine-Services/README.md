@@ -12,7 +12,7 @@ Mine Services is the Lithosite **offline-first desktop runtime** for mine work c
 - **Runtime database:** local XLSX
 - **VS Code Live Server:** development-only; not the official runtime acceptance path
 
-The A.3 schema is the **single active schema** for the V40 workspace. Earlier A.1/A.2 schemas and databases are historical predecessors and are not active runtime sources. Earlier A.1/A.2 schemas and databases are historical predecessors and are not active runtime sources.
+The A.3 schema is the **single active schema** for the V40 workspace. Earlier A.1/A.2 schemas and databases are historical predecessors and are not active runtime sources.
 
 ## Baseline and Workspace
 
@@ -216,7 +216,7 @@ When working on V40:
 3. Use the Desktop Host for runtime acceptance.
 4. Use shared contracts for shared shell/modal/navigation behavior.
 5. Do not introduce parallel owners for behavior already governed by a shared contract.
-6. Keep historical V37 assets/tests separate conceptually from the V38 runtime.
+6. Keep historical V37/V38 assets and tests separate conceptually from the active V40 runtime.
 7. Update the relevant documentation and contracts when a canonical runtime boundary changes.
 8. Preserve historical A.1/A.2 stage records as historical evidence; do not rewrite them to current V40 workspace state.
-9. Do not treat future Android Host work as part of V38 desktop runtime acceptance.
+9. Do not treat future Android Host work as part of V40 desktop runtime acceptance.
