@@ -275,6 +275,10 @@
       if (input) input.value = '';
     }
 
+    if (current === context && !isModalVisible()) {
+      clearSessionAfterExternalClose();
+      return;
+    }
     if (current === context) {
       try {
         await refresh();
@@ -327,6 +331,15 @@
       meta.textContent = payload.folder + ' · Evidence viewer' +
         (context.allowUpload ? ' · Upload destination managed by Desktop Host' : '');
     }
+  }
+
+  function clearSessionAfterExternalClose() {
+    if (!current || isModalVisible() || uploadBusy) return;
+    invalidatePreview();
+    resetPreview();
+    setUploadStatus('', false);
+    files = [];
+    current = null;
   }
 
   function close() {
@@ -433,6 +446,10 @@
     const modal = element('modal');
     const list = element('list');
 
+    if (modal && typeof MutationObserver === 'function') {
+      const visibilityObserver = new MutationObserver(clearSessionAfterExternalClose);
+      visibilityObserver.observe(modal, { attributes: true, attributeFilter: ['class', 'hidden'] });
+    }
     if (closeButton) closeButton.addEventListener('click', close);
     if (refreshButton) refreshButton.addEventListener('click', function () {
       refresh().catch(function (error) {
