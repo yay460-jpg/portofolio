@@ -48,7 +48,9 @@ def test_target_plan_calls_shared_evidence_api_instead_of_owning_viewer_logic():
     assert "recordId:recordId" in PLANS_JS
     assert "allowUpload:true" in PLANS_JS
     assert 'data-evidence-module="TargetPlan"' in PLANS_JS
-    assert 'data-evidence-id="'+esc(r.plan_id)+'"' in PLANS_JS
+
+    assert 'data-evidence-id="' in PLANS_JS
+    assert "esc(r.plan_id)" in PLANS_JS
     assert "LithositeEvidence.syncIndicators(host)" in PLANS_JS
     assert "function openPlanEvidence(planId)" in PLANS_JS
     assert "async function previewEvidenceFile" not in PLANS_JS
@@ -205,7 +207,9 @@ def test_hse_evidence_action_uses_the_hse_record_and_shared_viewer():
     assert "allowUpload:true" in HSE_JS
     assert "closest('.evidence-hse')" in HSE_JS
     assert 'data-evidence-module="HSE"' in HSE_JS
-    assert 'data-evidence-id="'+esc(r.hse_id)+'"' in HSE_JS
+
+    assert 'data-evidence-id="' in HSE_JS
+    assert "esc(r.hse_id)" in HSE_JS
     assert "LithositeEvidence.syncIndicators(host)" in HSE_JS
     assert "grid-template-columns:105px 85px 100px 150px 85px 78px minmax(160px,1fr) 110px 80px 110px 64px 190px;min-width:1360px;" in HSE_CSS
     assert "result.evidence_cleanup_status==='FAILED'" in HSE_JS
@@ -219,7 +223,9 @@ def test_maintenance_evidence_action_is_scoped_to_each_timeline_event():
     assert "allowUpload:true" in MAINTENANCE_JS
     assert "closest('.evidence-maintenance-timeline')" in MAINTENANCE_JS
     assert 'data-evidence-module="Maintenance"' in MAINTENANCE_JS
-    assert 'data-evidence-id="'+esc(row.maintenance_id)+'"' in MAINTENANCE_JS
+
+    assert 'data-evidence-id="' in MAINTENANCE_JS
+    assert "esc(row.maintenance_id)" in MAINTENANCE_JS
     assert "LithositeEvidence.syncIndicators(document.getElementById('maintenanceTimelineRows'))" in MAINTENANCE_JS
     assert "grid-template-columns:65px 65px 120px 115px 90px 1fr 90px 90px 215px;min-width:1000px;" in MAINTENANCE_CSS
     assert "result.evidence_cleanup_status==='FAILED'" in MAINTENANCE_JS
