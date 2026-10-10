@@ -45,15 +45,15 @@ def rule_body(css, selector):
 
 def test_shared_form_control_geometry_has_one_owner():
     css = read(FORM_FIELD_CSS)
+    selector_group = ",".join(SHARED_SELECTORS)
+    body = compact(rule_body(css, selector_group))
     expected = (
         "width:100%", "height:32px", "border:1px solid #29435d",
         "border-radius:7px", "background:#0c1b2c", "color:#dce8f5",
         "padding:0 9px", "font:inherit", "font-size:10px", "outline:none",
     )
-    for selector in SHARED_SELECTORS:
-        body = compact(rule_body(css, selector))
-        for declaration in expected:
-            assert compact(declaration) in body, f"Missing {declaration} from shared selector {selector}"
+    for declaration in expected:
+        assert compact(declaration) in body, f"Missing shared declaration: {declaration}"
 
 
 def test_shared_form_control_duplicates_are_removed_from_modules():
