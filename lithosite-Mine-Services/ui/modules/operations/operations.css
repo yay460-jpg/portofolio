@@ -1,7 +1,4 @@
-/* Lithosite Mine Services — Operations module CSS
-   Stage 18 modular CSS migration — Operations only.
-   Shell/global primitives remain in the V30 workspace stylesheet.
-*/
+/* Lithosite Mine Services — Operations module styles. Shared shell and control primitives live in ui/shared. */
 #operationsScreen{
   position:relative;
   flex:1 1 auto;
@@ -13,7 +10,7 @@
   min-height:0;
   margin:0;
 }
-/* Operations screen — scoped from Operations v1 master layout */
+/* Operations screen styles. */
 #operationsScreen{--ops-panel:#101f31;--ops-line:#28425c;--ops-muted:#8ea3ba;--ops-blue:#4d8dff;box-sizing:border-box}
 #operationsScreen *{box-sizing:border-box}
 #operationsScreen .boundary{flex:1 1 auto;height:auto;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;position:relative;overflow:hidden}
@@ -42,7 +39,7 @@
 #operationsScreen .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}
 #operationsScreen .field input,#operationsScreen .field select{width:100%;height:32px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px;outline:none}
 #operationsScreen .field input:focus,#operationsScreen .field select:focus{border-color:#4d8dff}
-#operationsScreen .clear{height:32px}
+
 #operationsScreen .tablepanel{position:relative;flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;margin-top:12px;overflow:hidden}
 #operationsScreen .tablehead{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #263e57}
 #operationsScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
@@ -207,20 +204,18 @@
 
 
 
-/* Stage 26 — Cross-module traceability: Operations → Maintenance. */
+/* Cross-module traceability: Operations → Maintenance. */
 #operationsScreen .maintenance-link{color:#93c5fd;border-color:#315a86;min-width:64px;justify-content:center}
 #operationsScreen .maintenance-link:hover{border-color:#60a5fa;background:#16304b}
 
 
-/* V38 — Clear control width parity across module filter panels */
-#operationsScreen .clear{width:56px;min-width:56px;height:32px;padding:0 10px;justify-content:center;box-sizing:border-box}
 
 
-/* V38 — unified Clear button geometry across all filter panels */
-#operationsScreen #clear{width:56px;min-width:56px;max-width:56px;height:32px;padding:0 10px;justify-content:center;align-items:center;box-sizing:border-box;flex:0 0 56px}
 
 
-/* V38 — Work Timeline header parity with Maintenance Timeline.
+
+
+/* Work Timeline header parity with Maintenance Timeline.
    Keep the existing operations icon and timeline structure; only normalize header typography. */
 #timelineModal .modalhead{
   height:44px;
@@ -261,6 +256,6 @@
 #modal .field-warning[hidden]{display:none!important}
 
 
-/* V39 — trace target highlight from Maintenance linked-operation navigation. */
+/* Trace target highlight from Maintenance linked-operation navigation. */
 #operationsScreen .operation-trace-highlight{background:#173753!important;outline:1px solid #60a5fa;box-shadow:inset 0 0 0 1px #60a5fa55;animation:operationsTracePulse .8s ease-in-out 3}
 @keyframes operationsTracePulse{0%,100%{background:#10243a}50%{background:#1e4568}}
