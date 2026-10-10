@@ -203,6 +203,53 @@ def test_evidence_upload_accepts_hse_and_maintenance_record_scoped_files(
     assert saved.read_bytes() == original
 
 
+
+def test_evidence_status_lists_only_records_with_supported_direct_child_files(evidence_host):
+    base_url, server = evidence_host
+    fixtures = {
+        "TargetPlan": ("PLN-STATUS-01", ["approval.pdf", "field-photo.JPG"], ["ignored.exe"]),
+        "HSE": ("HSE-STATUS-01", ["incident.jpg"], ["notes.tmp"]),
+        "Maintenance": ("MNT-STATUS-01", ["repair.docx"], ["backup.zip"]),
+    }
+    for module, (record_id, valid_names, ignored_names) in fixtures.items():
+        record_dir = server.EVIDENCE_ROOT / module / record_id
+        record_dir.mkdir(parents=True)
+        for name in valid_names + ignored_names:
+            (record_dir / name).write_bytes(b"test evidence")
+        (record_dir / "subfolder").mkdir()
+        (record_dir / "subfolder" / "nested.pdf").write_bytes(b"nested file")
+        (server.EVIDENCE_ROOT / module / (record_id + "-EMPTY")).mkdir()
+
+        status, headers, body = _get(
+            base_url,
+            "/evidence/status",
+            {"module": module},
+        )
+
+        assert status == 200
+        assert headers.get_content_type() == "application/json"
+        payload = _payload(body)
+        assert payload["status"] == "READY"
+        assert payload["module"] == module
+        assert payload["records"] == [{"record_id": record_id, "file_count": len(valid_names)}]
+
+
+def test_evidence_status_rejects_unsupported_modules(evidence_host):
+    base_url, _server = evidence_host
+
+    status, headers, body = _get(
+        base_url,
+        "/evidence/status",
+        {"module": "Unknown"},
+    )
+
+    assert status == 400
+    assert headers.get_content_type() == "application/json"
+    payload = _payload(body)
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"][0]["code"] == "HOST-009"
+
+
 def test_listing_a_missing_evidence_folder_does_not_create_it(evidence_host):
     base_url, server = evidence_host
     missing = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-NO-FOLDER-01"
