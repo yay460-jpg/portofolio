@@ -109,43 +109,68 @@ def ensure_evidence_record_directory(module: str, record_id: str) -> Path:
     return target
 
 
-def _target_plan_exists(plan_id: str) -> bool:
-    """Use RuntimeAdapter as the source of truth for Target Plan identity."""
+def _evidence_record_exists(module: str, record_id: str) -> bool:
+    """Verify an Evidence owner record through RuntimeAdapter before accepting uploads."""
+    record_specs = {
+        "TargetPlan": ("Plans", "plan_id"),
+        "HSE": ("HSE", "hse_id"),
+        "Maintenance": ("Maintenance", "maintenance_id"),
+    }
+    spec = record_specs.get(module)
+    if spec is None:
+        raise ValueError("Unsupported evidence module")
+    entity, id_field = spec
     result = ADAPTER.handle({
-        "request_id": "host-evidence-plan-exists",
+        "request_id": f"host-evidence-{module.casefold()}-exists",
         "operation": "READ",
-        "entity": "Plans",
+        "entity": entity,
     })
     if not isinstance(result, dict) or result.get("status") == "REJECTED":
-        raise RuntimeError("Target Plan records could not be verified")
+        raise RuntimeError(f"{module} records could not be verified")
     records = result.get("data")
     return isinstance(records, list) and any(
-        isinstance(row, dict) and str(row.get("plan_id", "")) == plan_id
+        isinstance(row, dict) and str(row.get(id_field, "")) == str(record_id)
         for row in records
     )
 
 
+def _target_plan_exists(plan_id: str) -> bool:
+    """Compatibility helper retained for Target Plan lifecycle checks."""
+    return _evidence_record_exists("TargetPlan", plan_id)
+
+
 def apply_plan_evidence_lifecycle(request: dict, result: dict) -> dict:
-    """Create/clean the associated Evidence folder only after a committed Plan mutation."""
+    """Manage Evidence folders only after a supported record mutation commits."""
     if not isinstance(request, dict) or not isinstance(result, dict):
         return result
-    if str(request.get("entity", "")).casefold() != "plans" or result.get("status") != "COMMITTED":
+    if result.get("status") != "COMMITTED":
         return result
 
+    entity = str(request.get("entity", "")).casefold()
+    record_specs = {
+        "plans": ("TargetPlan", "plan_id"),
+        "hse": ("HSE", "hse_id"),
+        "maintenance": ("Maintenance", "maintenance_id"),
+    }
+    spec = record_specs.get(entity)
+    if spec is None:
+        return result
+
+    module, id_field = spec
     operation = str(request.get("operation", "")).upper()
     if operation == "CREATE":
         row = request.get("row") if isinstance(request.get("row"), dict) else {}
-        plan_id = row.get("plan_id")
+        record_id = row.get(id_field)
         try:
-            ensure_evidence_record_directory("TargetPlan", plan_id)
+            ensure_evidence_record_directory(module, record_id)
             result["evidence_folder_status"] = "READY"
         except (OSError, ValueError, TypeError) as exc:
             result["evidence_folder_status"] = "FAILED"
             result["evidence_folder_message"] = str(exc)
     elif operation == "DELETE":
-        plan_id = request.get("entity_id")
+        record_id = request.get("entity_id")
         try:
-            target = evidence_record_directory("TargetPlan", plan_id)
+            target = evidence_record_directory(module, record_id)
             if target.exists():
                 if not target.is_dir():
                     raise ValueError("Evidence record path is not a directory")
@@ -1115,8 +1140,8 @@ class Handler(BaseHTTPRequestHandler):
             module = query.get("module", [""])[0]
             record_id = query.get("record_id", [""])[0]
             filename = query.get("filename", [""])[0]
-            if module != "TargetPlan":
-                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Evidence upload is enabled only for Target Plan"}]}, origin)
+            if module not in EVIDENCE_MODULES:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Unsupported Evidence module"}]}, origin)
                 return
             try:
                 record_dir = evidence_record_directory(module, record_id)
@@ -1138,12 +1163,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB per-file limit"}]}, origin)
                 return
             try:
-                plan_exists = _target_plan_exists(record_id)
+                record_exists = _evidence_record_exists(module, record_id)
             except Exception:
-                self._json(503, {"status": "REJECTED", "errors": [{"code": "HOST-013", "message": "Target Plan could not be verified through RuntimeAdapter"}]}, origin)
+                self._json(503, {"status": "REJECTED", "errors": [{"code": "HOST-013", "message": f"{module} record could not be verified through RuntimeAdapter"}]}, origin)
                 return
-            if not plan_exists:
-                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Target Plan not found"}]}, origin)
+            if not record_exists:
+                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": f"{module} record not found"}]}, origin)
                 return
 
             body = self.rfile.read(length)
