@@ -2,9 +2,9 @@
 
 **Status:** LOCKED / CLOSED TO FEATURE CHANGES  
 **Locked version:** V39  
-**Baseline branch:** `v39-workspace`  
+**Baseline branch:** `main` (released baseline; reference branch: `v39-baseline-release`)  
 **Validated code snapshot:** `5da238623454bc6df3f97feb57b07b7e89c26c4e`  
-**Main artifact:** `lithosite-Mine-Services/Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html`  
+**Main artifact at release:** `Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html`  
 **Lock date:** 2026-10-10
 
 ## Final verification
@@ -16,7 +16,7 @@ python -m pytest -q
 434 passed in 27.15s
 ```
 
-This result was reported from the project's local Windows workstation on 2026-10-10. The test result applies to the validated code snapshot above; the documentation-only commits that record this lock do not change runtime code.
+This result was reported from the project's local Windows workstation on 2026-10-10. The test result applies to the validated code snapshot above; documentation-only commits that record this lock do not change runtime code.
 
 ## Locked scope
 
@@ -34,9 +34,10 @@ V39 is the accepted baseline for the following completed areas:
 
 The **Plan vs Actual cards in Work Control** remain a future V40 work item. The V39 baseline does not contain that new card implementation.
 
-## Baseline policy
+## Version history and retirement policy
 
-- V39 is the current locked baseline. Do not add new feature or layout work to `v39-workspace`.
-- V38 is superseded as the current baseline. Its branch, migration code, contracts, and historical notes are retained for rollback and traceability; they are not deleted as history.
-- New development starts in `v40-workspace`, derived from this locked V39 state.
-- Operational databases and Evidence files remain governed by their existing runtime/storage contracts; a baseline lock must not overwrite operational data.
+- V39 is the current locked baseline. Do not add new feature or layout work to the retired `v39-workspace` branch.
+- V38 (Stage 27) is superseded by V39. Its active HTML artifact and development branch are being retired; the historical record remains in this Version History documentation. V38 is not the current baseline and must not be used for new development.
+- New development continues in `v40-workspace`, based on the locked V39 state.
+- The V39 release reference is `v39-baseline-release`; the baseline code is also present in `main`.
+- Operational databases and Evidence files remain governed by their existing runtime/storage contracts; baseline documentation or artifact cleanup must not overwrite operational data.
