@@ -33,5 +33,5 @@ def test_marker_location_keeps_browser_data_when_runtime_sync_fails():
 
 
 def test_marker_location_uses_a_fresh_script_cache_key():
-    assert "marker-location.js?v=20261016" in ARTIFACT
-    assert "../ui/modules/map-engine/marker-location.js?v=20261016" in ARTIFACT
+    assert "marker-location.js?v=20261017" in ARTIFACT
+    assert "../ui/modules/map-engine/marker-location.js?v=20261017" in ARTIFACT
