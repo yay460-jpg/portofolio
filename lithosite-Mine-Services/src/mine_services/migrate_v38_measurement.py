@@ -1,12 +1,12 @@
-"""V38 one-time migration: Unit -> Measurement.
+"""One-time migration: Unit -> Measurement.
 
 Renames only schema field headers in the active A3 workbook.
 Equipment.unit_no is intentionally untouched.
 
 Run:
-    python -m src.mine_services.migrate_v38_measurement
+    python -m src.mine_services.migrate_measurement
 or:
-    python -m src.mine_services.migrate_v38_measurement path/to/Mine-Services-Database-A3.xlsx
+    python -m src.mine_services.migrate_measurement path/to/Mine-Services-Database-A3.xlsx
 """
 from pathlib import Path
 import sys
