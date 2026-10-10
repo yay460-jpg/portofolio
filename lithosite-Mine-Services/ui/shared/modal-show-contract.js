@@ -16,6 +16,7 @@
     'maintenanceModal',
     'plansModal',
     'plansDeleteConfirmModal',
+    'globalDeleteConfirmModal',
     'evidenceModal',
     'hseModal',
     'issuesModal'
