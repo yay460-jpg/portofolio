@@ -7,7 +7,7 @@ TOPO_ENGINE = ROOT / "shared" / "topo3d" / "topo3d-engine.js"
 
 def test_stage20_marker_overlay_assets_are_loaded_before_map_engine():
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/modules/map-engine/marker-location.css?v=20261012" in html
+    assert "../ui/modules/map-engine/marker-location.css?v=20261013" in html
     assert "../ui/modules/map-engine/marker-location.js?v=20261017" in html
     assert html.index("../ui/modules/map-engine/geo-adapter.js?v=20261001") < html.index("../ui/modules/map-engine/marker-location.js?v=20261017")
     assert html.index("../ui/modules/map-engine/marker-location.js?v=20261017") < html.index("../ui/modules/map-engine/map-engine.js?v=20261006")
@@ -49,5 +49,5 @@ def test_workfront_focus_event_blinks_the_exact_marker_label_temporarily():
     assert "},2100);" in js
     assert "@keyframes map-marker-label-focus-blink" in marker_css
     assert ".map-location-marker__label.is-focus-blinking" in marker_css
-    assert "animation:map-marker-label-focus-blink .42s ease-in-out 4;" in marker_css
+    assert "animation:map-marker-label-focus-blink .62s cubic-bezier(.45,0,.55,1) 3;" in marker_css
     assert "@media(prefers-reduced-motion:reduce)" in marker_css
