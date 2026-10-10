@@ -383,7 +383,7 @@
       recordId: recordId,
       title: String(input.title || (moduleName + ' Evidence')),
       recordLabel: String(input.recordLabel || recordId),
-      allowUpload: input.allowUpload === true && moduleName === 'TargetPlan'
+      allowUpload: input.allowUpload === true && ALLOWED_MODULES.has(moduleName)
     };
     const openedContext = current;
     files = [];
