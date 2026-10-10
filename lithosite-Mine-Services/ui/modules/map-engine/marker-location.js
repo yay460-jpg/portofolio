@@ -125,11 +125,17 @@
     sequence=max;
   }
 
+  function notifyMarkerLocationsChanged(){
+    if(typeof document==='undefined'||typeof global.CustomEvent!=='function')return;
+    document.dispatchEvent(new global.CustomEvent('mine-services:marker-locations-changed'));
+  }
+
   function persistActiveMarkers(){
     var saved=true;
     try{
       localStorage.setItem(ACTIVE_MARKER_STORAGE_KEY,JSON.stringify(listMarkers()));
     }catch(error){saved=false;}
+    notifyMarkerLocationsChanged();
     if(runtimeMarkerSyncReady&&!runtimeMarkerSyncSuppressed){
       queueRuntimeMarkerSync(listMarkers());
     }
@@ -267,6 +273,7 @@
       rows.forEach(function(row){next[row.marker_id]=row;});
       markers=next;
       updateSequenceFromMarkers(rows);
+      notifyMarkerLocationsChanged();
       return true;
     }catch(error){
       clearActiveMarkerPersistence();
@@ -836,6 +843,7 @@
     markers={};
     selectedMarkerId=null;
     clearActiveMarkerPersistence();
+    notifyMarkerLocationsChanged();
     if(runtimeMarkerSyncReady&&!runtimeMarkerSyncSuppressed)queueRuntimeMarkerSync([]);
   }
 
