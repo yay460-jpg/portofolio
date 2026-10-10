@@ -3,8 +3,6 @@
 #hseScreen[hidden]{display:none!important}
 #hseScreen .boundary{flex:1 1 auto;height:auto;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;position:relative;overflow:hidden}
 #hseScreen .head{height:48px;min-height:48px;flex:0 0 48px;display:flex;justify-content:space-between}
-#hseScreen .title h1{margin:0;font-size:21px;line-height:24px;background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);background-clip:text;-webkit-background-clip:text;color:transparent}
-#hseScreen .title p{margin:2px 0;color:#8ea3ba;font-size:11px}
 #hseScreen .controls{display:flex;gap:7px}
 
 
