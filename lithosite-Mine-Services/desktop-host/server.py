@@ -40,7 +40,7 @@ MAX_EVIDENCE_FILE_BYTES = 100_000_000
 SCHEMA_NAME = os.environ.get("MINE_SERVICES_SCHEMA", "A3").upper()
 if SCHEMA_NAME != "A3":
     raise RuntimeError(
-        f"Unsupported MINE_SERVICES_SCHEMA: {SCHEMA_NAME}. V39 requires A3 as the single active schema."
+        f"Unsupported MINE_SERVICES_SCHEMA: {SCHEMA_NAME}. Mine Services requires A3 as the single active schema."
     )
 SCHEMA_MODULE = schema
 ALLOWED_ORIGINS = {
@@ -897,7 +897,7 @@ def build_report_pdf(model: dict) -> bytes:
     if y < 72:
         start_page()
     line(y + 4, (0.78, 0.82, 0.87), 0.7)
-    at(f"Lithosite Mine Services · V39 · {report_type} Report", M, y - 8, 7, False, (0.42, 0.48, 0.55))
+    at(f"Lithosite Mine Services · {report_type} Report", M, y - 8, 7, False, (0.42, 0.48, 0.55))
     at("Immutable report snapshot", W - M - 112, y - 8, 7, False, (0.42, 0.48, 0.55))
 
     objects: list[bytes] = [
