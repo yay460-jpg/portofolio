@@ -124,7 +124,7 @@ function render(){
     '<div class="cell num achievement">'+(achievement===null?'—':esc(numberLabel(achievement)+'%'))+'</div>'+
     '<div class="cell num remaining">'+(remaining===null?'—':esc(numberLabel(remaining)))+'</div>'+
     '<div class="cell status-cell"><span class="statuspill '+statusClass(r.status)+'">'+esc(r.status)+'</span></div>'+
-    '<div class="cell evidence-cell"><button type="button" class="control mini view-evidence" data-id="'+esc(r.plan_id)+'">View</button></div>'+
+    '<div class="cell evidence-cell"><button type="button" class="control mini view-evidence evidence-indicator" data-evidence-module="TargetPlan" data-evidence-id="'+esc(r.plan_id)+'" data-id="'+esc(r.plan_id)+'">View</button></div>'+
     '<div class="cell row-actions"><button class="control mini edit edit-plan" data-id="'+esc(r.plan_id)+'">Edit</button><button class="control mini danger delete-plan" data-id="'+esc(r.plan_id)+'">Delete</button></div>'+
    '</div>';
   }).join(''):'<div class="empty">No Target Plan records match the current filters.</div>';
@@ -139,6 +139,7 @@ function render(){
  }
  if(state.status==='loading'&&count)count.textContent='Loading · Runtime Connecting';
  if(state.status==='error'&&count)count.textContent='Unavailable · Runtime Error';
+ if(global.LithositeEvidence&&typeof global.LithositeEvidence.syncIndicators==='function')global.LithositeEvidence.syncIndicators(host);
 }
 function openPlanEvidence(planId){
  const row=state.rows.find(function(item){return String(item.plan_id)===String(planId);});
