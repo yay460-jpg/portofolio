@@ -2,8 +2,6 @@
 #equipmentScreen.active{display:flex}
 #equipmentScreen .boundary{flex:1 1 auto;height:auto;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;position:relative;overflow:hidden}
 #equipmentScreen .head{height:48px;min-height:48px;flex:0 0 48px}
-#equipmentScreen .title h1{margin:0;font-size:21px;line-height:24px;background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);background-clip:text;-webkit-background-clip:text;color:transparent}
-#equipmentScreen .title p{margin:2px 0;color:var(--muted);font-size:11px}
 #equipmentScreen .controls{display:flex;gap:7px}
 
 
@@ -38,7 +36,7 @@
 #equipmentModal .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}
 #equipmentModal .field input,#equipmentModal .field select{width:100%;height:32px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px;outline:none}
 #equipmentModal .field input:focus,#equipmentModal .field select:focus{border-color:#4d8dff}
-@media(max-width:1400px){#equipmentScreen .boundary{padding:18px}#equipmentScreen .title h1{font-size:20px}#equipmentScreen .filters{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}}
+@media(max-width:1400px){#equipmentScreen .boundary{padding:18px}#equipmentScreen .filters{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}}
 @media(prefers-reduced-motion:reduce){#equipmentScreen *{scroll-behavior:auto}}
 
 
