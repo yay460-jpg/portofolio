@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 PLANS_JS = (ROOT / "ui" / "modules" / "plans" / "plans.js").read_text(encoding="utf-8")
 PLANS_CSS = (ROOT / "ui" / "modules" / "plans" / "plans.css").read_text(encoding="utf-8")
+TABLE_CSS = (ROOT / "ui" / "shared" / "table.css").read_text(encoding="utf-8")
 HTML = (ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html").read_text(encoding="utf-8")
 
 
@@ -53,7 +54,8 @@ def test_target_plan_source_has_no_obsolete_toggle_or_dynamic_header_code():
     assert "plansColumns" not in PLANS_JS
     assert "plansTableTitleText" not in PLANS_JS
     assert PLANS_CSS.count("#plansScreen .filters {") == 1
-    assert PLANS_CSS.count("#plansScreen .tablepanel {") == 1
+    assert "#plansScreen .tablepanel {" not in PLANS_CSS
+    assert "#plansScreen .tablepanel" in TABLE_CSS
     assert "actual-th" not in PLANS_CSS and "actual-tr" not in PLANS_CSS
 
 
