@@ -647,11 +647,7 @@
 
     if (!row) return;
 
-    if (!confirm(
-      'Delete operation ' + id + '?\nThis action is permanent in the local database.'
-    )) {
-      return;
-    }
+    if (!await global.LithositeDeleteConfirmContract.confirm({entity:'Operation',id:id,warning:'This action is permanent in the local database. The runtime will validate and audit the deletion.'})) { return; }
 
     try {
       const result = await runtimeClient.request({
