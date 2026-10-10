@@ -70,6 +70,8 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 
 - Rebalanced the HSE Register columns: Work Front now has 150px, Event Type is reduced to 85px, and Domain is tightened to 100px. The dedicated Evidence **View** button uses the same 24px mini-button dimensions as Actions so it no longer appears oversized.
 
+- Reduced the shared Evidence **Upload** button slightly to 30px high with tighter horizontal padding and 9px text. The rule is scoped to the Evidence panel action area, so it does not change other application buttons or the Refresh list control.
+
 ## Versioning and validation rule
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
