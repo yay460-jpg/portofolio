@@ -2,7 +2,7 @@
 
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html"
 MARKER_JS = ROOT / "ui" / "modules" / "map-engine" / "marker-location.js"
 EQUIPMENT_JS = ROOT / "ui" / "modules" / "equipment" / "equipment.js"
 WORKFRONT_JS = ROOT / "ui" / "modules" / "workfront" / "workfront.js"
