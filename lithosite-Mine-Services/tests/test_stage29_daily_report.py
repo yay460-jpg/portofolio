@@ -4,7 +4,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "ui" / "modules" / "reports" / "reports.js"
 DAILY = ROOT / "ui" / "modules" / "reports" / "daily-report.js"
 ENGINE = ROOT / "ui" / "modules" / "reports" / "report-engine.js"
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v38-STAGE27.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
 
 
 def test_daily_report_engine_contract():
@@ -51,8 +51,8 @@ def test_daily_report_uses_formal_report_engine():
 
 def test_v38_artifact_wires_daily_report_engine():
     html = ARTIFACT.read_text(encoding="utf-8")
-    daily = '<script src="../ui/modules/reports/daily-report.js?v=20261010"></script>'
-    formal = '<script src="../ui/modules/reports/report-engine.js?v=20261007"></script>'
+    daily = '<script src="../ui/modules/reports/daily-report.js?"></script>'
+    formal = '<script src="../ui/modules/reports/report-engine.js?"></script>'
     assert daily in html
     assert formal in html
     assert html.index(daily) < html.index(formal)
