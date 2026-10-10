@@ -1,31 +1,9 @@
 /* Lithosite Mine Services — Shared interactive feedback
    V37 Stage 26: consistent hover/focus states for genuinely interactive controls.
 */
-.control,
-.nav-item,
-button,
-[role="button"],
-select,
-input{
+/* Button transitions, hover, focus and disabled states are owned by button.css. */
+.nav-item{
   transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease,transform .14s ease;
-}
-
-.control:hover,
-button.control:hover{
-  border-color:#4d8dff;
-  box-shadow:0 0 0 1px #4d8dff55,0 4px 12px #02081255;
-  transform:translateY(-1px);
-}
-
-.control.primary:hover{
-  border-color:#7db0ff;
-  box-shadow:0 0 0 1px #7db0ff66,0 4px 14px #02081266;
-}
-
-.control.danger:hover,
-button.danger:hover{
-  border-color:#f87171;
-  box-shadow:0 0 0 1px #f8717155,0 4px 12px #02081255;
 }
 
 .nav-item:hover{
@@ -40,8 +18,6 @@ button.danger:hover{
   box-shadow:0 0 0 1px #7db0ff55,0 4px 12px #02081255;
 }
 
-button:focus-visible,
-.control:focus-visible,
 .nav-item:focus-visible,
 select:focus-visible,
 input:focus-visible,
@@ -49,13 +25,6 @@ input:focus-visible,
   outline:none;
   border-color:#60a5fa;
   box-shadow:0 0 0 2px #60a5fa55;
-}
-
-button:disabled,
-.control:disabled{
-  transform:none!important;
-  box-shadow:none!important;
-  cursor:not-allowed;
 }
 
 #dashboardScreen .tool:hover,
@@ -90,7 +59,5 @@ button:disabled,
 }
 
 @media(prefers-reduced-motion:reduce){
-  .control,.nav-item,button,[role="button"],select,input{
-    transition:none;
-  }
+  .nav-item,[role="button"],select,input{transition:none!important;transform:none!important}
 }
