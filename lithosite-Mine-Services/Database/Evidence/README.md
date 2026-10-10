@@ -28,6 +28,8 @@ Upload is enabled for verified Target Plan, HSE, and Maintenance records. Suppor
 
 Deleting a Target Plan, HSE event, or Maintenance event first requires RuntimeAdapter to commit the record deletion. Only after that commit does the Desktop Host remove that record's Evidence folder and contents. Other record folders are not touched; the RuntimeAdapter audit entry is retained. If folder cleanup fails, the mutation result reports that cleanup remains incomplete.
 
+The **View / Evidence** trigger in Target Plan, HSE, and each Maintenance timeline event turns green only when the Desktop Host confirms one or more supported Evidence files in that record's folder. Empty folders and unavailable status checks keep the default button style. The indicator is informational and does not change record approval or validation status.
+
 ## Safety and handling
 
 - The local Desktop Host exposes dedicated Evidence endpoints rather than making the whole `Database/` tree web-accessible. Upload is enabled only for records verified through RuntimeAdapter, with allowlisted extensions, filename/path checks, a 100 MB per-file limit, and create-exclusive writes to prevent silent overwrite.
