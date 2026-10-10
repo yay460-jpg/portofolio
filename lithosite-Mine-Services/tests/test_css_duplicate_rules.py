@@ -40,6 +40,14 @@ def test_equipment_row_actions_keep_layout_with_one_rule():
         assert token in rules[0]
 
 
+
+def test_maintenance_boundary_has_one_min_height_declaration():
+    css = MAINTENANCE.read_text(encoding="utf-8")
+    boundary = rule_bodies(css, r"#maintenanceScreen\\s+\\.boundary")
+    assert len(boundary) == 1
+    assert len(re.findall(r"(?<![-\\w])min-height\\s*:", boundary[0])) == 1
+    assert "min-height:0!important" in boundary[0]
+
 def test_maintenance_timeline_title_keeps_complete_shared_header_style():
     css = MAINTENANCE.read_text(encoding="utf-8")
     title = rule_bodies(css, r"#maintenanceTimelineModal\s+\.modalhead\s+\.ptitle")
