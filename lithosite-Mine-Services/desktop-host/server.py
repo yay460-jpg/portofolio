@@ -970,6 +970,46 @@ class Handler(BaseHTTPRequestHandler):
         origin = self.headers.get("Origin")
         path = unquote(self.path.split("?", 1)[0])
 
+        if path == "/evidence/status":
+            if origin and not is_allowed_origin(origin):
+                self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
+                return
+            query = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            module = query.get("module", [""])[0]
+            if module not in EVIDENCE_MODULES:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Unsupported Evidence module"}]}, origin)
+                return
+
+            try:
+                records = []
+                module_dir = EVIDENCE_ROOT / module
+                if module_dir.exists():
+                    if _is_evidence_link(module_dir) or not module_dir.is_dir():
+                        raise OSError("Evidence module directory is not a safe directory")
+                    for record_dir in sorted(module_dir.iterdir(), key=lambda entry: entry.name.casefold()):
+                        if (
+                            _is_evidence_link(record_dir)
+                            or not record_dir.is_dir()
+                            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", record_dir.name)
+                        ):
+                            continue
+                        file_count = 0
+                        for item in record_dir.iterdir():
+                            if _is_evidence_link(item) or not item.is_file():
+                                continue
+                            if item.suffix.lower() in EVIDENCE_EXTENSIONS:
+                                file_count += 1
+                        if file_count:
+                            records.append({"record_id": record_dir.name, "file_count": file_count})
+                self._json(200, {
+                    "status": "READY",
+                    "module": module,
+                    "records": records,
+                }, origin)
+            except OSError:
+                self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence status could not be read"}]}, origin)
+            return
+
         if path in {"/evidence/list", "/evidence/file"}:
             if origin and not is_allowed_origin(origin):
                 self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
