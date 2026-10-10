@@ -54,3 +54,24 @@ body:has(.sidebar.expanded) #stage15DataModal .dm-card{
   #stage15DataModal{inset:64px 14px 14px 82px}
   #stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 96px);max-height:calc(100vh - 78px)}
 }
+
+/* Selective motion: slide only for Operational Data Management; intentionally no opacity/fade. */
+#stage15DataModal.show:not(.is-closing) .dm-card{
+  animation:dataManagementSlideIn 180ms cubic-bezier(.2,.75,.25,1) both;
+}
+#stage15DataModal.show.is-closing .dm-card{
+  animation:dataManagementSlideOut 160ms cubic-bezier(.55,0,.8,.35) both;
+  pointer-events:none;
+}
+@keyframes dataManagementSlideIn{
+  from{transform:translateX(-24px)}
+  to{transform:translateX(0)}
+}
+@keyframes dataManagementSlideOut{
+  from{transform:translateX(0)}
+  to{transform:translateX(-24px)}
+}
+@media(prefers-reduced-motion:reduce){
+  #stage15DataModal.show:not(.is-closing) .dm-card,
+  #stage15DataModal.show.is-closing .dm-card{animation:none}
+}
