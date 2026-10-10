@@ -29,6 +29,8 @@ def test_evidence_modal_is_a_generic_shared_component_registered_with_the_shell(
     assert 'id="evidenceClose"' in HTML
     assert 'id="evidenceRefresh"' in HTML
     assert 'id="evidencePreview"' in HTML
+    assert 'id="evidenceModuleLabel"' in HTML
+    assert 'id="evidenceIconUse"' in HTML
     assert '<span>Preview</span><span class="evidence-preview-label" id="evidencePreviewLabel" aria-live="polite"></span>' in HTML
     assert 'id="planEvidenceModal"' not in HTML
     assert "'evidenceModal'" in MODAL_CONTRACT
@@ -91,6 +93,8 @@ def test_shared_evidence_api_validates_record_context_and_scopes_upload_capabili
     assert "if (!ALLOWED_MODULES.has(moduleName)" in EVIDENCE_JS
     assert "input.allowUpload === true && moduleName === 'TargetPlan'" in EVIDENCE_JS
     assert "record_id: context.recordId" in EVIDENCE_JS
+    assert "MODULE_ICON_HREFS" in EVIDENCE_JS
+    assert "moduleName.toUpperCase()" in EVIDENCE_JS
 
 
 def test_evidence_endpoint_is_scoped_to_allowed_modules_and_extensions():
@@ -125,10 +129,10 @@ def test_central_evidence_folder_is_documented_for_the_three_modules():
 def test_shared_evidence_assets_use_current_cache_keys_and_load_before_plans():
     assert "plans.js?v=20261030" in HTML
     assert "plans.css?v=20261112" in HTML
-    assert "evidence.js?v=20261011" in HTML
+    assert "evidence.js?v=20261012" in HTML
     assert "evidence.css?v=20261010" in HTML
     assert "modal-show-contract.js?v=20261028" in HTML
-    assert HTML.index("evidence.js?v=20261011") < HTML.index("plans.js?v=20261030")
+    assert HTML.index("evidence.js?v=20261012") < HTML.index("plans.js?v=20261030")
     assert HTML.index("evidence.css?v=20261010") < HTML.index("</head>")
 
 
