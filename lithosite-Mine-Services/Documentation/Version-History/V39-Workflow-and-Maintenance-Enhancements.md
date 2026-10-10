@@ -60,6 +60,10 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 - Replaced the browser-native `window.confirm` used by Target Plan deletion with a Lithosite-styled confirmation modal registered in the shared modal shell contract. The dialog shows the Target Plan ID, exact managed Evidence folder, permanent-deletion warning, and retained RuntimeAdapter audit log, with explicit Cancel and Delete Plan & Evidence actions. Escape, backdrop click, Close, and Cancel dismiss without deleting; only the destructive action proceeds to RuntimeAdapter.
 - Evidence listing no longer creates folders for arbitrary IDs. Existing/legacy Plan folders can be prepared when a verified Plan uploads its first file.
 
+- Enabled the shared Evidence modal for HSE and Maintenance without creating module-specific viewers. HSE uses an Evidence action on each HSE event; Maintenance places the Evidence action on each individual event inside its grouped Maintenance Timeline so uploads bind to the exact `hse_id` or `maintenance_id`.
+- Expanded Desktop Host upload authorization to verify the selected Target Plan, HSE event, or Maintenance event through RuntimeAdapter before saving files. Supported modules now receive their own record-scoped folder after a committed create, and only the corresponding folder is removed after a committed record deletion.
+- Loaded the shared Evidence script before Maintenance and refreshed HSE, Maintenance, Evidence JS, and relevant CSS cache keys. Kept the shared upload picker hidden behind the styled Upload button.
+
 ## Versioning and validation rule
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
