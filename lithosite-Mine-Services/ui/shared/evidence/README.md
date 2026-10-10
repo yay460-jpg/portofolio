@@ -37,7 +37,7 @@ Optional fields:
 - `recordLabel`: human-readable record context. Defaults to the record ID.
 - `allowUpload`: requests an Upload control. It is honored for the allowlisted modules `TargetPlan`, `HSE`, and `Maintenance`; the Desktop Host independently validates that the matching record exists through RuntimeAdapter before accepting any upload.
 
-The API also exposes `close()`, `refresh()`, and `isOpen()`. `open()` returns whether the modal could be opened. The calling module remains responsible for choosing the correct record and deciding when Evidence should open.
+The API also exposes `close()`, `refresh()`, `syncIndicators(root, options)`, and `isOpen()`. `syncIndicators()` updates record-level Evidence triggers from the Desktop Host's `/evidence/status?module=<module>` response. Only records with one or more supported direct-child files receive the green `has-evidence` style; empty records or status failures retain the default button appearance. Status responses are cached briefly per module to avoid one request per row, and a successful Evidence list refresh updates the matching trigger immediately. `open()` returns whether the modal could be opened. The calling module remains responsible for choosing the correct record and deciding when Evidence should open.
 
 ## Adding a module in the future
 
