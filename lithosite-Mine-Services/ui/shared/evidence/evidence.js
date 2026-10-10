@@ -404,7 +404,7 @@
       button.disabled = uploadBusy;
     }
     if (fileInput) {
-      fileInput.hidden = !current.allowUpload;
+      fileInput.hidden = true;
       fileInput.value = '';
     }
     if (list) list.innerHTML = '<div class="evidence-empty">Loading evidence files…</div>';
