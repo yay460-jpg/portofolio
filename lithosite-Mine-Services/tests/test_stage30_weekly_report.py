@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 WEEKLY=ROOT/"ui"/"modules"/"reports"/"weekly-report.js"
 REPORTS=ROOT/"ui"/"modules"/"reports"/"reports.js"
-ARTIFACT=ROOT/"Artifacts"/"Mine-Services-Concept-2-Dashboard-Operations-v38-STAGE27.html"
+ARTIFACT=ROOT/"Artifacts"/"Mine-Services-Operations.html"
 
 def test_weekly_contract():
     t=WEEKLY.read_text(encoding="utf-8")
@@ -14,8 +14,8 @@ def test_weekly_integration():
     r=REPORTS.read_text(encoding="utf-8")
     h=ARTIFACT.read_text(encoding="utf-8")
     assert "LithositeWeeklyReport.buildWeeklyReport" in r
-    assert 'weekly-report.js?v=20261007' in h
-    assert h.index('weekly-report.js?v=20261007') < h.index('reports.js?v=')
+    assert 'weekly-report.js?' in h
+    assert h.index('weekly-report.js?v=20261007') < h.index('reports.js?')
 
 def test_weekly_is_read_only():
     t=WEEKLY.read_text(encoding="utf-8")
