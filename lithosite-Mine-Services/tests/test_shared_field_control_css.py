@@ -84,7 +84,11 @@ def test_form_field_stylesheet_link_is_well_formed_and_ordered():
     well_formed_links = len(re.findall(r'<link rel="stylesheet" href="[^"]+">', html))
     assert well_formed_links == style_link_count, "A stylesheet link is malformed"
     assert 'href=""' not in html, "An empty stylesheet href is present"
-    assert html.count("<style>") == html.count("</style>"), "Inline stylesheet tags are unbalanced"
+    assert len(re.findall(r"<style\b[^>]*>", html)) == html.count("</style>"), "Inline stylesheet tags are unbalanced"
+    assert not re.search(r"<style>\s*</style>", html), "An empty style block is present"
+    assert "v30ImportLock" not in html
+    assert "V20.1 LOCKED" not in html
+    assert '<style id="navigation-disabled-state">' in html
     assert html.count('href="../ui/shared/form-field.css?v=20261011-form-field"') == 1
     assert "field-label.css" not in html
     shared = html.index("form-field.css?v=20261011-form-field")
