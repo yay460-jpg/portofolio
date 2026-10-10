@@ -7,7 +7,7 @@ REPORTS_JS = (ROOT / "ui/modules/reports/reports.js").read_text(encoding="utf-8"
 DAILY_JS = (ROOT / "ui/modules/reports/daily-report.js").read_text(encoding="utf-8")
 WEEKLY_JS = (ROOT / "ui/modules/reports/weekly-report.js").read_text(encoding="utf-8")
 MONTHLY_JS = (ROOT / "ui/modules/reports/monthly-report.js").read_text(encoding="utf-8")
-HTML = (ROOT / "Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html").read_text(encoding="utf-8")
+HTML = (ROOT / "Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html").read_text(encoding="utf-8")
 SCHEMA = (ROOT / "src/mine_services/schema.py").read_text(encoding="utf-8")
 PLANS_SCREEN = HTML[HTML.index('<section id="plansScreen"'):HTML.index('<section id="hseScreen"')]
 
