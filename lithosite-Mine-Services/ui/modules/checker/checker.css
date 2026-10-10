@@ -241,12 +241,6 @@
   grid-column:1/-1;
 }
 
-#checkerScreen .runtime-msg.error{
-  color:#fca5a5;
-  border-color:#5a2b32;
-  background:#2a1519;
-}
-
 #checkerModal.modalback{
   position:fixed;
   inset:0;

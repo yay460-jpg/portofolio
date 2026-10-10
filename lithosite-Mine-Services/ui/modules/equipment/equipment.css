@@ -26,7 +26,6 @@
 #equipmentScreen .row-actions{display:flex;gap:4px}
 #equipmentScreen .mini{height:24px;padding:3px 7px;font-size:8px}
 #equipmentScreen .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
-#equipmentScreen .runtime-msg.error{color:#fca5a5;border-color:#5a2b32;background:#2a1519}
 #equipmentModal .modalbody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 #equipmentModal .field input,#equipmentModal .field select{width:100%;height:32px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px;outline:none}
 #equipmentModal .field input:focus,#equipmentModal .field select:focus{border-color:#4d8dff}

@@ -51,7 +51,6 @@
 #issuesScreen .row-actions{display:flex;gap:4px}
 #issuesScreen .mini{height:24px;padding:3px 7px;font-size:8px}
 #issuesScreen .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
-#issuesScreen .runtime-msg.error{color:#fca5a5;border-color:#5a2b32;background:#2a1519}
 #issuesModal .modalbody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 #issuesModal .field input,#issuesModal .field select,#issuesModal .field textarea{width:100%;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:8px 9px;font:inherit;font-size:10px;outline:none}
 #issuesModal .field input,#issuesModal .field select{height:32px;padding:0 9px}

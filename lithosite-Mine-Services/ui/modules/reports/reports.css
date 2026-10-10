@@ -13,7 +13,6 @@
 .report-bar i{display:block;height:100%;background:linear-gradient(90deg,#3b82f6 0%,#2563eb 55%,#f59e0b 100%)}
 .report-note{padding:14px;color:#8ea3ba;font-size:10px;line-height:1.5}
 .report-runtime{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;margin-top:8px}
-.report-runtime.error{color:#fca5a5;border-color:#5a2b32;background:#2a1519}
 
 #reportsScreen .filters{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;padding:10px 12px}
 #reportsScreen .filters .field{min-width:0}
