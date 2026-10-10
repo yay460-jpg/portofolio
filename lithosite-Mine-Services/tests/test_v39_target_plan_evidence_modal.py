@@ -54,9 +54,14 @@ def test_target_plan_calls_shared_evidence_api_instead_of_owning_viewer_logic():
 
 
 def test_shared_evidence_upload_uses_managed_storage_without_a_folder_picker():
-    modal_start = HTML.index('id="evidenceModal"')
-    modal_end = HTML.index('</div></div></section><section id="hseScreen"', modal_start)
+    modal_start = HTML.index('<div class="modalback" id="evidenceModal"')
+    modal_end = HTML.index('<script src="../ui/shared/runtime-client.js', modal_start)
     modal_markup = HTML[modal_start:modal_end]
+    plans_start = HTML.index('<section id="plansScreen"')
+    plans_end = HTML.index('<section id="hseScreen"', plans_start)
+    assert not (plans_start < modal_start < plans_end)
+    assert modal_start < modal_end
+    assert modal_start > HTML.index('<section id="reportsScreen"')
     assert modal_markup.count(">Close</button>") == 1
     assert 'id="evidenceUploadButton"' in modal_markup
     assert 'id="evidenceUploadInput"' in modal_markup
@@ -157,7 +162,7 @@ def test_shared_evidence_assets_use_current_cache_keys_and_load_before_plans():
 
 def test_plan_delete_uses_a_lithosite_confirmation_modal_not_a_browser_prompt():
     modal_start = HTML.index('id="plansDeleteConfirmModal"')
-    modal_end = HTML.index('id="evidenceModal"', modal_start)
+    modal_end = HTML.index('<section id="hseScreen"', modal_start)
     modal_markup = HTML[modal_start:modal_end]
 
     assert 'role="dialog" aria-modal="true"' in modal_markup
