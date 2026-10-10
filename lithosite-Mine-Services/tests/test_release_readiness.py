@@ -137,7 +137,7 @@ def test_report_pdf_uses_user_guide_native_reader_without_custom_toolbar():
     assert 'class="user-guide-reader-head"' in artifact
     assert 'class="user-guide-reader-body"' in artifact
     assert 'id="reportPdfReaderFrame"' in artifact
-    assert "user-guide.css?v=20261007" in artifact
+    assert "user-guide.css?v=20261011-reader-geometry" in artifact
     assert "reportPdfReaderSidebar" not in artifact
     assert "reportPdfReaderZoomOut" not in artifact
     assert "reportPdfReaderPrint" not in artifact
