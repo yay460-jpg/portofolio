@@ -15,8 +15,8 @@ See [V39 Baseline Lock](./V39-Baseline-Lock.md) for the scope, acceptance record
 
 V38 is no longer the active locked baseline. Its workspace branch and V38-specific documents are retained as historical/rollback references; they are not the current baseline.
 
-## Next workspace
+## Active development workspace
 
-The next development workspace is `v40-workspace`, copied from the locked V39 state. New features and layout changes must be made in that workspace, not in the closed V39 baseline.
+The active development workspace is `v40-workspace`, copied from the locked V39 state. New features and layout changes must be made in that workspace, not in the closed V39 baseline. See `../V40-Workspace-Initialization.md` for its scope and initial backlog.
 
 Runtime operations must never overwrite the baseline.
