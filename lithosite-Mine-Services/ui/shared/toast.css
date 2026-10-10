@@ -1,0 +1,43 @@
+/* Shared Lithosite toast presentation and motion. Toast behavior remains in its owning JS contract. */
+.lithosite-toast{
+  position:fixed;
+  left:50%;
+  bottom:48px;
+  z-index:100000;
+  display:none;
+  max-width:min(520px,calc(100vw - 32px));
+  padding:10px 14px;
+  border:1px solid #6b4d22;
+  border-radius:8px;
+  background:#241b0d;
+  color:#f8d58a;
+  box-shadow:0 12px 32px #0009;
+  font:600 11px "Segoe UI",Arial,sans-serif;
+  line-height:1.45;
+  text-align:center;
+  opacity:0;
+  transform:translate(-50%,8px);
+  pointer-events:none;
+}
+.lithosite-toast.is-visible{
+  display:block;
+  animation:lithosite-toast-in 160ms ease-out both;
+  pointer-events:auto;
+}
+.lithosite-toast.is-hiding{
+  display:block;
+  animation:lithosite-toast-out 140ms ease-in both;
+}
+@keyframes lithosite-toast-in{
+  from{opacity:0;transform:translate(-50%,8px)}
+  to{opacity:1;transform:translate(-50%,0)}
+}
+@keyframes lithosite-toast-out{
+  from{opacity:1;transform:translate(-50%,0)}
+  to{opacity:0;transform:translate(-50%,5px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .lithosite-toast.is-visible,.lithosite-toast.is-hiding{animation:none}
+  .lithosite-toast.is-visible{opacity:1;transform:translate(-50%,0)}
+  .lithosite-toast.is-hiding{opacity:0;transform:translate(-50%,0)}
+}
