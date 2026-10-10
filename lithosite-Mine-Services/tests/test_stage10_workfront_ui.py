@@ -13,6 +13,8 @@ def test_stage10_workfront_screen_exists():
     assert 'id="workfrontScreen"' in TEXT
     assert ">Work Front<" in TEXT
     assert "workfront.js?v=20261107" in TEXT
+    assert "workfront.css?v=20261107" in TEXT
+    assert "marker-location.js?v=20261017" in TEXT
     assert "entity:'WorkFront'" in WORKFRONT_JS
 
 
