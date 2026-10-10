@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
@@ -53,7 +54,7 @@ def test_target_plan_source_has_no_obsolete_toggle_or_dynamic_header_code():
     assert "plansViewToggle" not in PLANS_JS
     assert "plansColumns" not in PLANS_JS
     assert "plansTableTitleText" not in PLANS_JS
-    assert PLANS_CSS.count("#plansScreen .filters {") == 1
+    assert len(re.findall(r"#plansScreen\s+\.filters\s*\{", PLANS_CSS)) == 1
     assert "#plansScreen .tablepanel {" not in PLANS_CSS
     assert "#plansScreen .tablepanel" in TABLE_CSS
     assert "actual-th" not in PLANS_CSS and "actual-tr" not in PLANS_CSS
