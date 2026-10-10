@@ -1,7 +1,4 @@
-/* Lithosite Mine Services — Checker module CSS
-   V38 Stage 27 — aligned to the Desktop Master / Operations screen geometry.
-   Checker-specific behavior remains in checker.js; this file owns presentation only.
-*/
+/* Lithosite Mine Services — Checker module styles. Shared screen headings live in ui/shared/screen-header.css; checker behavior lives in checker.js. */
 
 #checkerScreen{
   position:relative;
@@ -39,22 +36,6 @@
   flex:0 0 48px;
   display:flex;
   justify-content:space-between;
-}
-
-#checkerScreen .title h1{
-  margin:0;
-  font-size:21px;
-  line-height:24px;
-  background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);
-  background-clip:text;
-  -webkit-background-clip:text;
-  color:transparent;
-}
-
-#checkerScreen .title p{
-  margin:2px 0;
-  color:#8ea3ba;
-  font-size:11px;
 }
 
 #checkerScreen .controls{
@@ -380,7 +361,6 @@
 
 @media(max-width:1400px){
   #checkerScreen .boundary{padding:18px}
-  #checkerScreen .title h1{font-size:20px}
   #checkerScreen .filters{
     grid-template-columns:repeat(4,minmax(0,1fr));
     row-gap:10px;
