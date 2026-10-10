@@ -74,6 +74,8 @@ The numbered labels communicate the navigation sequence; they do not impose a st
 
 - Added record-level Evidence presence indicators across Target Plan, HSE, and each Maintenance timeline event. Shared Evidence status returns per-record counts for the selected module; triggers use green styling only when at least one supported file is confirmed. Empty records and status-service errors retain the default button style. Upload refresh updates the related trigger state without creating module-specific status logic.
 
+- Added a Work Front **Show on Map** availability indicator. The button is green only when the shared Marker Location model finds an active `WorkFront` marker linked to the exact `work_front_id` and backed by finite Easting, Northing, and Elevation values; rows without a valid active marker keep the default style. Marker create/update/restore/remove/clear changes notify the Work Front register so the indicator updates without requiring a full page reload. Card-based Plan vs Actual remains on the Work Control backlog for a separate change.
+
 ## Versioning and validation rule
 
 - Global UI labels, shared shell navigation, and reusable contracts must use stable, version-neutral names.
