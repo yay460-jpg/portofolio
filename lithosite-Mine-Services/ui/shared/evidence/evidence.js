@@ -32,6 +32,10 @@
   let previewRequest = 0;
   let uploadBusy = false;
   let initialized = false;
+  const indicatorCache = new Map();
+  const indicatorRequests = new Map();
+  const INDICATOR_CACHE_MS = 10000;
+  const INDICATOR_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
 
   function element(key) {
     return document.getElementById(ELEMENT_IDS[key] || key);
@@ -325,6 +329,7 @@
 
     files = Array.isArray(payload.files) ? payload.files : [];
     renderFiles(files);
+    updateIndicatorsForRecord(context.module, context.recordId, files.length);
     setStatus(files.length
       ? files.length + ' evidence file(s) found. Select a file to preview it.'
       : 'No evidence files found for this record.', false);
@@ -332,6 +337,123 @@
       meta.textContent = payload.folder + ' · Evidence viewer' +
         (context.allowUpload ? ' · Upload destination managed by Desktop Host' : '');
     }
+  }
+
+  function setIndicatorState(button, fileCount, status) {
+    if (!button) return;
+    const count = Math.max(0, Number(fileCount) || 0);
+    const hasEvidence = status === 'ready' && count > 0;
+    const label = String(button.textContent || 'Evidence').trim() || 'Evidence';
+    button.classList.toggle('has-evidence', hasEvidence);
+    button.dataset.evidenceState = status;
+    if (status === 'ready') {
+      button.dataset.evidenceCount = String(count);
+      button.title = count
+        ? count + ' Evidence file(s) attached'
+        : 'No Evidence files attached';
+      button.setAttribute('aria-label', label + (count
+        ? ', ' + count + ' Evidence file(s) attached'
+        : ', no Evidence files attached'));
+    } else {
+      delete button.dataset.evidenceCount;
+      button.title = 'Evidence status unavailable';
+      button.setAttribute('aria-label', label + ', Evidence status unavailable');
+    }
+  }
+
+  function applyIndicatorCounts(buttons, counts) {
+    buttons.forEach(function (button) {
+      const recordId = String(button.dataset.evidenceId || '');
+      setIndicatorState(button, counts.get(recordId) || 0, 'ready');
+    });
+  }
+
+  async function fetchIndicatorCounts(moduleName, forceRefresh) {
+    const cached = indicatorCache.get(moduleName);
+    if (!forceRefresh && cached && Date.now() - cached.checkedAt < INDICATOR_CACHE_MS) {
+      return cached.counts;
+    }
+    if (indicatorRequests.has(moduleName)) return indicatorRequests.get(moduleName);
+
+    const request = (async function () {
+      const response = await fetch(
+        runtime.HOST + '/evidence/status?module=' + encodeURIComponent(moduleName),
+        { cache: 'no-store' }
+      );
+      const payload = await response.json();
+      if (!response.ok || payload.status !== 'READY' || payload.module !== moduleName) {
+        const detail = payload.errors && payload.errors[0] && payload.errors[0].message;
+        throw new Error(detail || 'Evidence status could not be read');
+      }
+      const counts = new Map();
+      (Array.isArray(payload.records) ? payload.records : []).forEach(function (record) {
+        if (!record || typeof record.record_id !== 'string' || !INDICATOR_ID_PATTERN.test(record.record_id)) return;
+        const fileCount = Number(record.file_count);
+        if (Number.isFinite(fileCount) && fileCount > 0) counts.set(record.record_id, Math.floor(fileCount));
+      });
+      indicatorCache.set(moduleName, { checkedAt: Date.now(), counts: counts });
+      return counts;
+    })();
+    indicatorRequests.set(moduleName, request);
+    try {
+      return await request;
+    } finally {
+      if (indicatorRequests.get(moduleName) === request) indicatorRequests.delete(moduleName);
+    }
+  }
+
+  function updateIndicatorsForRecord(moduleName, recordId, fileCount) {
+    const count = Math.max(0, Number(fileCount) || 0);
+    const cached = indicatorCache.get(moduleName);
+    if (cached) {
+      if (count > 0) cached.counts.set(recordId, count);
+      else cached.counts.delete(recordId);
+      cached.checkedAt = Date.now();
+    }
+    document.querySelectorAll('[data-evidence-module][data-evidence-id]').forEach(function (button) {
+      if (button.dataset.evidenceModule === moduleName && button.dataset.evidenceId === recordId) {
+        setIndicatorState(button, count, 'ready');
+      }
+    });
+  }
+
+  function syncIndicators(root, options) {
+    const scope = root && typeof root.querySelectorAll === 'function' ? root : document;
+    const selector = '[data-evidence-module][data-evidence-id]';
+    const buttons = [];
+    if (typeof scope.matches === 'function' && scope.matches(selector)) buttons.push(scope);
+    scope.querySelectorAll(selector).forEach(function (button) { buttons.push(button); });
+    const groups = new Map();
+    buttons.forEach(function (button) {
+      const moduleName = String(button.dataset.evidenceModule || '');
+      const recordId = String(button.dataset.evidenceId || '');
+      if (!ALLOWED_MODULES.has(moduleName) || !INDICATOR_ID_PATTERN.test(recordId)) {
+        setIndicatorState(button, 0, 'unavailable');
+        return;
+      }
+      if (!groups.has(moduleName)) groups.set(moduleName, []);
+      groups.get(moduleName).push(button);
+    });
+    const forceRefresh = !!(options && options.forceRefresh);
+    const jobs = [];
+    groups.forEach(function (moduleButtons, moduleName) {
+      const cached = indicatorCache.get(moduleName);
+      if (!forceRefresh && cached && Date.now() - cached.checkedAt < INDICATOR_CACHE_MS) {
+        applyIndicatorCounts(moduleButtons, cached.counts);
+        return;
+      }
+      moduleButtons.forEach(function (button) {
+        if (button.dataset.evidenceState !== 'ready') setIndicatorState(button, 0, 'unavailable');
+      });
+      jobs.push(fetchIndicatorCounts(moduleName, forceRefresh).then(function (counts) {
+        applyIndicatorCounts(moduleButtons, counts);
+      }).catch(function () {
+        moduleButtons.forEach(function (button) {
+          setIndicatorState(button, 0, 'unavailable');
+        });
+      }));
+    });
+    return Promise.all(jobs);
   }
 
   function clearSessionAfterExternalClose() {
@@ -485,6 +607,7 @@
     open: open,
     close: close,
     refresh: refresh,
+    syncIndicators: syncIndicators,
     isOpen: function () { return !!current && isModalVisible(); }
   });
 })(window);
