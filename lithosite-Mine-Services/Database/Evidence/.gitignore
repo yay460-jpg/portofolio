@@ -1,0 +1,13 @@
+# Operational evidence is local/private data and must not be committed.
+*
+!.gitignore
+!README.md
+!TargetPlan/
+!HSE/
+!Maintenance/
+TargetPlan/*
+!TargetPlan/.gitkeep
+HSE/*
+!HSE/.gitkeep
+Maintenance/*
+!Maintenance/.gitkeep

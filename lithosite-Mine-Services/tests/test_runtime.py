@@ -139,7 +139,7 @@ def test_workfront_delete_is_rejected_when_referenced():
         "work_front_id": "WF-REF",
         "activity": "Functional Test",
         "quantity": 10,
-        "unit": "ton",
+        "measurement": "ton",
         "actual_hours": 1,
         "target_hours": 2,
         "status": "VALIDATED",

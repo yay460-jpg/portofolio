@@ -4,7 +4,7 @@
 ROOT = Path(__file__).parents[1]
 MARKER_JS = ROOT / "ui" / "modules" / "map-engine" / "marker-location.js"
 HSE_JS = ROOT / "ui" / "modules" / "hse" / "hse.js"
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html"
 
 
 def test_stage20_hse_spatial_record_uses_central_marker_model():
@@ -95,6 +95,6 @@ def test_stage20_hse_spatial_record_is_integrated_through_central_marker_overlay
 
     assert "marker-location.js" in html
     assert "marker-location.css" in html
-    assert "../ui/modules/map-engine/marker-location.js?v=20261015" in html
-    assert "../ui/modules/map-engine/marker-location.css?v=20261011" in html
+    assert "../ui/modules/map-engine/marker-location.js?v=20261017" in html
+    assert "../ui/modules/map-engine/marker-location.css?v=20261013" in html
 

@@ -20,10 +20,13 @@ DATE_FIELDS = {
     "Maintenance": {"event_date"},
     "Issues": {"issue_date"},
     "HSE": {"event_date"},
+    "Checker": {"observation_date"},
+    "Plans": {"start_date", "end_date"},
 }
 TIME_FIELDS = {
-    "Operations": {"transaction_time"},
+    "Operations": {"transaction_time", "end_time"},
     "Maintenance": {"start_time", "end_time"},
+    "Checker": {"start_time", "end_time"},
 }
 DATETIME_FIELDS = {
     "Operations": {"created_at", "updated_at"},
@@ -31,11 +34,13 @@ DATETIME_FIELDS = {
 }
 TEXT_FIELDS = {
     "Equipment": {"equipment_id", "category", "type", "owner_type", "owner_name", "status"},
-    "WorkFront": {"work_front_id", "domain", "location", "responsible", "status"},
-    "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "unit", "status", "source"},
+    "WorkFront": {"work_front_id", "domain", "location", "responsible", "status", "capacity_profile_id"},
+    "GlobalCapacity": {"capacity_profile_id", "capacity_name", "measurement", "status"},
+    "Checker": {"checker_id", "checker_name", "shift", "equipment_id", "work_front_id", "activity", "material", "source"},
+    "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "measurement", "status", "source", "capacity_profile_id", "capacity_measurement", "shift", "material", "checker_name"},
     "Maintenance": {"maintenance_id", "equipment_id", "event_type", "failure_code", "action", "status", "source"},
     "Issues": {"issue_id", "domain", "work_front_id", "equipment_id", "description", "severity", "status", "assigned_to"},
-    "Plans": {"plan_id", "period", "domain", "work_front_id", "activity", "unit", "status"},
+    "Plans": {"plan_id", "period", "start_date", "end_date", "domain", "work_front_id", "activity", "measurement", "status"},
     "HSE": {"hse_id", "domain", "work_front_id", "event_type", "severity", "description", "action", "status"},
 }
 
@@ -92,17 +97,22 @@ class ValidationEngine:
             if row.get(field) in (None, ""):
                 errors.append(ValidationError("VAL-E003", field, "Required field is blank"))
 
+        # Numeric runtime fields are non-negative by contract.
+        for field in getattr(self.schema, "NUMERIC", set()):
+            if field not in row or row.get(field) in (None, ""):
+                continue
+            value = row.get(field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                errors.append(ValidationError("VAL-E002", field, "Value type is invalid"))
+            elif value < 0:
+                errors.append(ValidationError("VAL-E007", field, "Value must be greater than or equal to zero"))
+
         if existing is not None and row.get(pk) != existing.get(pk):
             errors.append(ValidationError("VAL-E010", pk, "Primary key is immutable"))
 
-        for field in row:
-            if field in self.schema.SYSTEM_FIELDS and context in {"CREATE", "IMPORT", "UPDATE"}:
+        for field in self.schema.SYSTEM_FIELDS:
+            if field in row and context in {"CREATE", "IMPORT", "UPDATE"}:
                 errors.append(ValidationError("VAL-E010", field, "System field is generated"))
-
-        for field in self.schema.NUMERIC:
-            if field in row and row[field] not in (None, ""):
-                if not isinstance(row[field], (int, float)) or isinstance(row[field], bool) or row[field] < 0:
-                    errors.append(ValidationError("VAL-E007", field, "Numeric value must be >= 0"))
 
         for key, (target, targetpk, required) in self.schema.FK.items():
             owner, field = key.split(".")
@@ -121,23 +131,91 @@ class ValidationEngine:
                 code = "VAL-E003" if reason == "required" else "VAL-E002"
                 errors.append(ValidationError(code, field, f"MapMarker validation failed: {reason}"))
 
-        if entity == "Equipment" and row.get("owner_type") == "Contractor" and not row.get("owner_name"):
-            errors.append(ValidationError("VAL-E008", "owner_name", "owner_name required for Contractor"))
+        if entity == "GlobalCapacity":
+            if row.get("capacity_value") in (None, "") or float(row.get("capacity_value")) <= 0:
+                errors.append(ValidationError("VAL-E007", "capacity_value", "Capacity must be greater than zero"))
+            if row.get("measurement") != "ton":
+                errors.append(ValidationError("VAL-E006", "measurement", "Global Capacity measurement must be ton"))
 
-        if entity in {"Issues", "HSE"}:
-            if row.get("status") == "Closed" and not row.get("closed_at"):
-                errors.append(ValidationError("VAL-E008", "closed_at", "closed_at required when Closed"))
-            if row.get("status") != "Closed" and row.get("closed_at") not in (None, ""):
-                errors.append(ValidationError("VAL-E008", "closed_at", "closed_at must be blank unless Closed"))
+        if entity == "Checker":
+            start = row.get("start_time")
+            end = row.get("end_time")
+            if start not in (None, "") and end not in (None, ""):
+                start_text = start.strftime("%H:%M:%S") if isinstance(start, time) else str(start)
+                end_text = end.strftime("%H:%M:%S") if isinstance(end, time) else str(end)
+                if end_text < start_text:
+                    errors.append(ValidationError("VAL-E008", "end_time", "end_time must be >= start_time"))
 
-        if entity == "Operations" and row.get("quantity") not in (None, "") and not row.get("unit"):
-            errors.append(ValidationError("VAL-E008", "unit", "unit required with quantity"))
+            activity = str(row.get("activity") or "").strip().lower()
+            equipment = store.get("Equipment", row.get("equipment_id")) if store and row.get("equipment_id") else None
+            is_dump_truck = str((equipment or {}).get("type") or "").strip().lower() == "dump truck"
+            if is_dump_truck and activity == "hauling" and row.get("retase") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "retase", "Retase is required for Dump Truck Hauling"))
 
-        if entity == "Plans" and row.get("target_quantity") not in (None, "") and not row.get("unit"):
-            errors.append(ValidationError("VAL-E008", "unit", "unit required with target_quantity"))
+        if entity == "Operations" and str(row.get("checker_name") or "").strip():
+            if row.get("end_time") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "end_time", "end_time is required when Checker Name is provided"))
+            if row.get("shift") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "shift", "shift is required when Checker Name is provided"))
+
+        if entity == "Operations":
+            start = row.get("transaction_time")
+            end = row.get("end_time")
+            if start not in (None, "") and end not in (None, ""):
+                start_text = start.strftime("%H:%M:%S") if isinstance(start, time) else str(start)
+                end_text = end.strftime("%H:%M:%S") if isinstance(end, time) else str(end)
+                if end_text < start_text:
+                    errors.append(ValidationError("VAL-E008", "end_time", "end_time must be >= transaction_time"))
+
+        if (
+            entity == "Operations"
+            and "retase" in self.schema.HEADERS.get(entity, [])
+            and str(row.get("activity") or "").strip().lower() == "hauling"
+        ):
+            equipment = store.get("Equipment", row.get("equipment_id")) if store and row.get("equipment_id") else None
+            is_dump_truck = str((equipment or {}).get("type") or "").strip().lower() == "dump truck"
+            if is_dump_truck and row.get("retase") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "retase", "Retase is required for Dump Truck Hauling"))
+            equipment_profile_id = (equipment or {}).get("capacity_profile_id")
+            if is_dump_truck and equipment_profile_id in (None, ""):
+                errors.append(ValidationError("VAL-E003", "capacity_profile_id", "Equipment Global Capacity Profile is required for Dump Truck Hauling"))
+            if is_dump_truck and row.get("capacity_profile_id") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "capacity_profile_id", "Capacity profile is required for Dump Truck Hauling"))
+            if is_dump_truck and row.get("applied_capacity") in (None, ""):
+                errors.append(ValidationError("VAL-E003", "applied_capacity", "Applied Capacity is required for Dump Truck Hauling"))
+            if is_dump_truck and row.get("measurement") != "ton":
+                errors.append(ValidationError("VAL-E006", "measurement", "Dump Truck Hauling quantity measurement must be ton"))
+            if is_dump_truck and row.get("quantity") not in (None, "") and row.get("retase") not in (None, "") and row.get("applied_capacity") not in (None, ""):
+                expected = float(row["retase"]) * float(row["applied_capacity"])
+                if abs(float(row["quantity"]) - expected) > 1e-9:
+                    errors.append(ValidationError("VAL-E008", "quantity", "Quantity must equal Retase × Applied Capacity"))
+
+        if entity == "Operations" and row.get("quantity") not in (None, "") and not row.get("measurement"):
+            errors.append(ValidationError("VAL-E008", "measurement", "measurement required with quantity"))
+
+        if entity == "Plans" and row.get("target_quantity") not in (None, "") and not row.get("measurement"):
+            errors.append(ValidationError("VAL-E008", "measurement", "measurement required with target_quantity"))
 
         if entity == "Plans" and row.get("period") and not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", str(row["period"])):
             errors.append(ValidationError("VAL-E009", "period", "period must be YYYY-MM"))
+
+        if entity == "Plans":
+            start_date = row.get("start_date")
+            end_date = row.get("end_date")
+            if start_date and end_date and str(end_date) < str(start_date):
+                errors.append(ValidationError("VAL-E008", "end_date", "end_date must be on or after start_date"))
+            if start_date and re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(start_date)):
+                expected_period = str(start_date)[:7]
+                if row.get("period") and str(row["period"]) != expected_period:
+                    errors.append(ValidationError("VAL-E008", "period", "period must match the month of start_date"))
+
+        if entity in {"Issues", "HSE"} and "closed_at" in self.schema.HEADERS.get(entity, {}):
+            status = str(row.get("status") or "").strip().lower()
+            closed_at = row.get("closed_at")
+            if status == "closed" and closed_at in (None, ""):
+                errors.append(ValidationError("VAL-E008", "closed_at", "closed_at is required when status is Closed"))
+            elif status in {"open", "in progress"} and closed_at not in (None, ""):
+                errors.append(ValidationError("VAL-E008", "closed_at", "closed_at must be blank unless Closed"))
 
         if row.get("effective_from") and row.get("effective_to"):
             start = row["effective_from"]

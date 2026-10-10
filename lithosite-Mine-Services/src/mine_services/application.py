@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from calendar import monthrange
 import json
 
 from .audit import AuditRepository
@@ -36,11 +37,65 @@ class ApplicationService:
             return {"status": "DUPLICATE_REQUEST"}
         return None
 
+
+    def _prepare_row(self, entity, row, context="CREATE", existing=None):
+        prepared = dict(row)
+        if entity == "Plans":
+            # Backward compatibility: older clients submit only the monthly
+            # period. Convert that month to explicit date bounds before the
+            # canonical schema validator checks required start/end dates.
+            period = str(prepared.get("period") or "").strip()
+            if len(period) == 7 and period[4] == "-":
+                try:
+                    year, month = int(period[:4]), int(period[5:7])
+                    last_day = monthrange(year, month)[1]
+                    if not prepared.get("start_date"):
+                        prepared["start_date"] = f"{year:04d}-{month:02d}-01"
+                    if not prepared.get("end_date"):
+                        prepared["end_date"] = f"{year:04d}-{month:02d}-{last_day:02d}"
+                except (ValueError, TypeError):
+                    pass
+            return prepared
+        if entity != "Operations":
+            return prepared
+        if str(prepared.get("activity") or "").strip().lower() != "hauling":
+            return prepared
+        equipment = self.store.get("Equipment", prepared.get("equipment_id")) or {}
+        if str(equipment.get("type") or "").strip().lower() != "dump truck":
+            return prepared
+        equipment_profile_id = equipment.get("capacity_profile_id")
+        profile_id = equipment_profile_id
+        applied = None
+
+        # Operations store a historical capacity snapshot. On update, preserve
+        # that snapshot when the equipment reference itself is unchanged.
+        if context == "UPDATE" and existing:
+            equipment_changed = str(prepared.get("equipment_id") or "") != str(existing.get("equipment_id") or "")
+            if not equipment_changed and existing.get("capacity_profile_id") not in (None, ""):
+                profile_id = existing.get("capacity_profile_id")
+                applied = existing.get("applied_capacity")
+
+        if applied in (None, "") and profile_id:
+            profile = self.store.get("GlobalCapacity", profile_id)
+            if profile:
+                applied = profile.get("capacity_value")
+                prepared["capacity_measurement"] = profile.get("measurement") or "ton"
+
+        if applied not in (None, ""):
+            prepared["applied_capacity"] = float(applied)
+            prepared["capacity_profile_id"] = profile_id
+            prepared["capacity_measurement"] = prepared.get("capacity_measurement") or "ton"
+            if prepared.get("retase") not in (None, ""):
+                prepared["quantity"] = float(prepared["retase"]) * float(applied)
+                prepared["measurement"] = "ton"
+        return prepared
+
     def create(self, entity, row, request_id):
         guard = self._request_guard(request_id)
         if guard:
             return guard
 
+        row = self._prepare_row(entity, row, "CREATE")
         errors = self.validator.validate(entity, row, self.store, "CREATE")
         if errors:
             return {"status": "REJECTED", "errors": errors}
@@ -90,6 +145,17 @@ class ApplicationService:
             }
 
         row = {**old, **patch}
+        if (
+            entity == "Plans"
+            and "period" in patch
+            and not ({"start_date", "end_date"} & set(patch))
+            and patch.get("period") != old.get("period")
+        ):
+            # A legacy month-only update should replace the old implicit
+            # month bounds instead of failing against the new range contract.
+            row["start_date"] = None
+            row["end_date"] = None
+        row = self._prepare_row(entity, row, "UPDATE", old)
         if "created_at" in old:
             row["created_at"] = old["created_at"]
 
@@ -135,11 +201,21 @@ class ApplicationService:
         refs = {
             "Equipment": [
                 ("Operations", "equipment_id"),
+                ("Checker", "equipment_id"),
                 ("Maintenance", "equipment_id"),
                 ("Issues", "equipment_id"),
             ],
+            "GlobalCapacity": [
+                ("Equipment", "capacity_profile_id"),
+                ("WorkFront", "capacity_profile_id"),
+                ("Operations", "capacity_profile_id"),
+            ],
+            "Operations": [
+                ("Checker", "operation_id"),
+            ],
             "WorkFront": [
                 ("Operations", "work_front_id"),
+                ("Checker", "work_front_id"),
                 ("Issues", "work_front_id"),
                 ("Plans", "work_front_id"),
                 ("HSE", "work_front_id"),

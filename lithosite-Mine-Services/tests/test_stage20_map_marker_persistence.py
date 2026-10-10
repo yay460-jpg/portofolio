@@ -70,15 +70,15 @@ def test_stage20_map_marker_contract_maps_hse_and_existing_runtime_entities():
     assert MAP_MARKER_SOURCE_ENTITIES["WORKFRONT"] == "WorkFront"
 
 
-def test_stage20_map_marker_contract_is_not_active_in_runtime_schema_yet():
+def test_stage20_map_marker_contract_is_active_in_canonical_runtime_schema():
     from mine_services.schema import DOMAIN_ENTITIES, SHEETS, HEADERS
 
-    assert "MapMarker" not in DOMAIN_ENTITIES
-    assert "MapMarker" not in SHEETS
-    assert "MapMarker" not in HEADERS
+    assert "MapMarker" in DOMAIN_ENTITIES
+    assert "MapMarker" in SHEETS
+    assert HEADERS["MapMarker"] == MAP_MARKER_HEADERS
 
 
-def test_stage20_map_marker_contract_does_not_change_current_schema_version():
+def test_stage20_map_marker_contract_matches_current_schema_version():
     from mine_services.schema import SCHEMA_VERSION
 
-    assert SCHEMA_VERSION == "A.2"
+    assert SCHEMA_VERSION == "A.3"

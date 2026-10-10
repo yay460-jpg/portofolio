@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 MARKER_JS = ROOT / "ui" / "modules" / "map-engine" / "marker-location.js"
 MARKER_CSS = ROOT / "ui" / "modules" / "map-engine" / "marker-location.css"
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html"
 
 
 def test_stage20_marker_location_model_exists_and_is_centralized():
@@ -260,7 +260,7 @@ def test_stage20_marker_location_is_integrated_into_v32_overlay_layer():
 
     assert "marker-location.js" in html
     assert "marker-location.css" in html
-    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261015") < html.index("../ui/modules/map-engine/map-engine.js?v=20261005")
+    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261017") < html.index("../ui/modules/map-engine/map-engine.js?v=20261006")
 
 
 def test_stage20_marker_location_css_is_namespaced_and_ready_for_v32_overlay():
@@ -399,3 +399,20 @@ def test_stage20_marker_location_global_spatial_links_are_not_reported_as_orphan
 
     assert "status:'NOT_LINKED'" in js
     assert "!entity && !sourceId && isGlobalSpatialType(marker.marker_type)" in js
+
+def test_stage20_marker_location_mutations_notify_workfront_map_indicators():
+    js = MARKER_JS.read_text(encoding="utf-8")
+
+    assert "function notifyMarkerLocationsChanged()" in js
+    assert "mine-services:marker-locations-changed" in js
+    persist_start = js.index("function persistActiveMarkers()")
+    persist_end = js.index("function runtimeMarkerRows", persist_start)
+    assert "notifyMarkerLocationsChanged();" in js[persist_start:persist_end]
+
+    restore_start = js.index("function restoreActiveMarkers()")
+    restore_end = js.index("function replaceMarkers", restore_start)
+    assert "notifyMarkerLocationsChanged();" in js[restore_start:restore_end]
+
+    clear_start = js.index("function clearMarkers()")
+    clear_end = js.index("function ensureRenderLayer", clear_start)
+    assert "notifyMarkerLocationsChanged();" in js[clear_start:clear_end]

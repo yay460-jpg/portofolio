@@ -1,7 +1,7 @@
 ﻿from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v38-STAGE27.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 MAINTENANCE_JS = (ROOT / "ui" / "modules" / "maintenance" / "maintenance.js").read_text(encoding="utf-8")
 SHELL_JS = (ROOT / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
@@ -61,8 +61,9 @@ def test_stage11_no_browser_database_access():
 
 def test_stage11_workfront_action_buttons_follow_crud_mini_contract():
     WORKFRONT_CSS = (ROOT / "ui" / "modules" / "workfront" / "workfront.css").read_text(encoding="utf-8")
+    BUTTON_CSS = (ROOT / "ui" / "shared" / "button.css").read_text(encoding="utf-8")
     assert '.wfcell.row-actions .control.mini{height:24px;padding:3px 7px;font-size:8px}' in WORKFRONT_CSS
-    assert '#workfrontScreen .danger{color:#fca5a5;border-color:#5a2b32;background:#12243a}' in WORKFRONT_CSS
+    assert '.control.danger{background:var(--button-danger);border-color:var(--button-danger-border);color:var(--button-danger-text)}' in BUTTON_CSS
     assert '.wfcell.row-actions .control{height:30px;padding:5px 8px}' not in WORKFRONT_CSS
 
 def test_stage11_native_picker_icons_follow_dark_theme():

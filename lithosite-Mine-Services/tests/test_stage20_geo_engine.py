@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html"
 GEO_ENGINE = ROOT / "shared" / "geo-engine.js"
 ADAPTER = ROOT / "ui" / "modules" / "map-engine" / "geo-adapter.js"
 MAP_ENGINE = ROOT / "ui" / "modules" / "map-engine" / "map-engine.js"
@@ -12,7 +12,7 @@ def test_stage20_geo_engine_sources_are_loaded_in_order():
     html = ARTIFACT.read_text(encoding="utf-8")
     assert "../shared/geo-engine.js" in html
     assert "../ui/modules/map-engine/geo-adapter.js?v=20261001" in html
-    assert "../ui/modules/map-engine/map-engine.js?v=20261005" in html
+    assert "../ui/modules/map-engine/map-engine.js?v=20261006" in html
     assert html.index("../shared/geo-engine.js") < html.index("../ui/modules/map-engine/geo-adapter.js")
     assert html.index("../ui/modules/map-engine/geo-adapter.js") < html.index("../ui/modules/map-engine/map-engine.js")
 

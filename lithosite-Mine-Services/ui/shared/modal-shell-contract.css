@@ -1,0 +1,121 @@
+
+/* Shared runtime status accessory — owned by the modal shell contract. */
+.modal-runtime-status{
+  margin-right:auto;
+  min-width:0;
+  max-width:60%;
+  color:#8fa5bb;
+  font-size:9px;
+  line-height:1.2;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.modal-runtime-status.error{color:#fca5a5;}
+
+/* The shared shell also owns the backdrop for validated data-entry modals. */
+.modalback:has(> .modal.modal-shell-valid){
+  position:fixed;
+  top:64px;
+  right:0;
+  bottom:34px;
+  left:0;
+  z-index:20;
+  padding:0;
+  background:#02081299;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+}
+
+.modalback:has(> .modal.modal-shell-valid).show{
+  display:flex;
+}
+
+/* Lithosite Mine Services — Modal Shell Contract
+   V38 — shared guard for data-entry modal geometry and presentation.
+   Header / Body / Footer are the shell boundary; modules own only inner layout.
+*/
+
+.modalback > .modal.modal-shell-valid{
+  position:relative;
+  width:960px;
+  max-width:calc(100vw - 48px);
+  height:auto;
+  max-height:calc(100vh - 64px - 34px - 24px);
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  box-sizing:border-box;
+  background:#101f31;
+  border:1px solid #31506d;
+  border-radius:12px;
+  box-shadow:0 20px 70px #0009;
+}
+
+.modalback > .modal.modal-shell-valid > .modalhead{
+  flex:0 0 48px;
+  height:48px;
+  min-height:48px;
+  padding:0 16px;
+  border-bottom:1px solid #29435d;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+
+.modalback > .modal.modal-shell-valid > .modalhead .ptitle{
+  font-size:11.5px;
+  font-weight:700;
+  line-height:1.2;
+}
+
+.modalback > .modal.modal-shell-valid > .modalbody{
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  max-height:none;
+  box-sizing:border-box;
+  overflow:auto;
+}
+
+.modalback > .modal.modal-shell-valid > .modalfoot{
+  flex:0 0 56px;
+  min-height:56px;
+  padding:12px 16px;
+  border-top:1px solid #29435d;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+
+@media(max-height:560px){
+  .modalback > .modal.modal-shell-valid{
+    max-height:calc(100vh - 64px - 34px - 16px);
+  }
+  .modalback > .modal.modal-shell-valid > .modalhead{
+    flex-basis:44px;
+    height:44px;
+    min-height:44px;
+  }
+  .modalback > .modal.modal-shell-valid > .modalfoot{
+    flex-basis:52px;
+    min-height:52px;
+    padding-top:10px;
+    padding-bottom:10px;
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  .modalback > .modal.modal-shell-valid{
+    scroll-behavior:auto;
+  }
+}

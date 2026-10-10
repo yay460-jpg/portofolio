@@ -187,3 +187,51 @@ def test_stage20_domain_spatial_sync_plan_missing_marker_is_explicit():
     assert payload["ok"] is True
     assert payload["result"]["status"] == "MISSING_MARKER"
     assert payload["result"]["action"] == "NO_SPATIAL_MUTATION"
+
+def test_workfront_map_indicator_can_distinguish_active_missing_and_inactive_markers():
+    expression = """
+(() => {
+  api.createDomainSpatialMarker({
+    marker_id:'MAP-WF-ACTIVE',
+    marker_type:'WORKFRONT',
+    source_entity:'WorkFront',
+    source_id:'WF-HAS-MAP',
+    label:'Block A marker',
+    easting:53364.669,
+    northing:397465.680,
+    elevation:51.571,
+    status:'ACTIVE'
+  });
+  api.createDomainSpatialMarker({
+    marker_id:'MAP-WF-INACTIVE',
+    marker_type:'WORKFRONT',
+    source_entity:'WorkFront',
+    source_id:'WF-INACTIVE-MAP',
+    label:'Inactive Work Front marker',
+    easting:53370.669,
+    northing:397470.680,
+    elevation:52.571,
+    status:'INACTIVE'
+  });
+  const active = api.findActiveMarkerBySource('WorkFront','WF-HAS-MAP');
+  const missing = api.findActiveMarkerBySource('WorkFront','WF-NO-MAP');
+  const inactive = api.findActiveMarkerBySource('WorkFront','WF-INACTIVE-MAP');
+  return {
+    active:active&&{marker_id:active.marker_id,easting:active.easting,northing:active.northing,elevation:active.elevation},
+    missing:missing,
+    inactive:inactive
+  };
+})()
+"""
+    code, payload = run_marker_runtime(expression)
+    assert code == 0
+    assert payload["ok"] is True
+    result = payload["result"]
+    assert result["active"] == {
+        "marker_id": "MAP-WF-ACTIVE",
+        "easting": 53364.669,
+        "northing": 397465.680,
+        "elevation": 51.571,
+    }
+    assert result["missing"] is None
+    assert result["inactive"] is None

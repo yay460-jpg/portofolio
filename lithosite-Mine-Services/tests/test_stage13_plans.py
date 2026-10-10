@@ -24,8 +24,7 @@ def valid_plan(plan_id="PLN-01"):
         "work_front_id": "WF-PLAN-01",
         "activity": "Hauling target",
         "target_quantity": 1200,
-        "unit": "ton",
-        "target_hours": 8,
+        "measurement": "ton",
         "status": "Draft",
     }
 
@@ -39,12 +38,16 @@ def seed():
 def test_plans_crud_and_audit():
     app = seed()
     assert app.create("Plans", valid_plan(), "stage13-create")["status"] == "COMMITTED"
-    assert app.read("Plans", "PLN-01")["target_quantity"] == 1200
+    created_plan = app.read("Plans", "PLN-01")
+    assert created_plan["target_quantity"] == 1200
+    assert created_plan["start_date"] == "2026-10-01"
+    assert created_plan["end_date"] == "2026-10-31"
+    assert "target_hours" not in created_plan
 
     updated = app.update(
         "Plans",
         "PLN-01",
-        {"target_quantity": 1500, "target_hours": 9},
+        {"target_quantity": 1500},
         "stage13-update",
     )
     assert updated["status"] == "COMMITTED"
@@ -71,9 +74,9 @@ def test_plans_fk_and_controlled_values_are_rejected():
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E006" for error in result["errors"])
 
-    bad_unit = valid_plan("PLN-BAD-UNIT")
-    bad_unit["unit"] = "Not A Unit"
-    result = app.create("Plans", bad_unit, "stage13-bad-unit")
+    bad_measurement = valid_plan("PLN-BAD-UNIT")
+    bad_measurement["measurement"] = "Not A Unit"
+    result = app.create("Plans", bad_measurement, "stage13-bad-measurement")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E006" for error in result["errors"])
 
@@ -102,14 +105,14 @@ def test_plans_period_and_numeric_validation():
 
 def test_v27_plans_shell_contract():
     root = Path(__file__).parents[1]
-    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html").read_text(encoding="utf-8")
     shell = (root / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "plans" / "plans.js").read_text(encoding="utf-8")
 
     assert 'id="plansScreen"' in html
     assert 'id="plansModal"' in html
-    assert "shell-navigation.js?v=20261008" in html
-    assert "../ui/modules/plans/plans.js?v=20261001" in html
+    assert "shell-navigation.js?v=20261011" in html
+    assert "../ui/modules/plans/plans.js?v=20261030" in html
     assert "Plans: 'plansScreen'" in shell
     assert "let initialized = false;" in shell
     assert "event.preventDefault();" in shell

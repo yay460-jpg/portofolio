@@ -7,7 +7,7 @@ MARKER_CSS = ROOT / "ui" / "modules" / "map-engine" / "marker-location.css"
 EQUIPMENT_JS = ROOT / "ui" / "modules" / "equipment" / "equipment.js"
 WORKFRONT_JS = ROOT / "ui" / "modules" / "workfront" / "workfront.js"
 HSE_JS = ROOT / "ui" / "modules" / "hse" / "hse.js"
-ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html"
 
 
 def test_stage20_10_marker_click_opens_domain_popup():
@@ -59,11 +59,11 @@ def test_stage20_10_popup_is_map_overlay_not_layout_content():
 def test_stage20_10_v32_loads_current_assets():
     html = ARTIFACT.read_text(encoding="utf-8")
     for marker in (
-        "../ui/modules/map-engine/marker-location.js?v=20261015",
-        "../ui/modules/map-engine/marker-location.css?v=20261011",
-        "../ui/modules/equipment/equipment.js?v=20261006",
-        "../ui/modules/workfront/workfront.js?v=20261007",
-        "../ui/modules/hse/hse.js?v=20261005",
+        "../ui/modules/map-engine/marker-location.js?v=20261017",
+        "../ui/modules/map-engine/marker-location.css?v=20261013",
+        "../ui/modules/equipment/equipment.js?v=20261109",
+        "../ui/modules/workfront/workfront.js?v=20261107",
+        "../ui/modules/hse/hse.js?v=20261006",
     ):
         assert marker in html
 

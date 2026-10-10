@@ -135,15 +135,15 @@ def test_hse_closed_with_timestamp_commits():
 
 def test_current_hse_shell_contract():
     root = Path(__file__).parents[1]
-    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v37-STAGE26.html").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html").read_text(encoding="utf-8")
     shell = (root / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "hse" / "hse.js").read_text(encoding="utf-8")
 
     assert 'id="hseScreen"' in html
     assert 'id="hseModal"' in html
     assert 'data-screen="HSE"' in html
-    assert "shell-navigation.js?v=20261008" in html
-    assert "../ui/modules/hse/hse.js?v=20261005" in html
+    assert "shell-navigation.js?v=20261011" in html
+    assert "../ui/modules/hse/hse.js?v=20261006" in html
     assert "function syncClosedAtField()" in module
     assert "closed.disabled=true" in module
     assert "if(status==='Closed')" in module
@@ -151,3 +151,21 @@ def test_current_hse_shell_contract():
     assert "'HSE'" in shell
     assert "entity:'HSE'" in module
     assert "RuntimeAdapter" in module
+
+
+def test_hse_register_has_a_dedicated_evidence_view_column():
+    root = Path(__file__).parents[1]
+    html = (root / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html").read_text(encoding="utf-8")
+    module = (root / "ui" / "modules" / "hse" / "hse.js").read_text(encoding="utf-8")
+    css = (root / "ui" / "modules" / "hse" / "hse.css").read_text(encoding="utf-8")
+
+    assert '<div class="cell">Closed At</div><div class="cell">Evidence</div><div class="cell">Actions</div>' in html
+    assert 'class="cell evidence-cell"><button type="button" class="control mini view-evidence evidence-hse evidence-indicator"' in module
+    assert 'data-evidence-module="HSE"' in module
+    assert 'data-evidence-id="' in module
+    assert "esc(r.hse_id)" in module
+    assert ">View</button></div>" in module
+    assert "#hseScreen .evidence-cell .control.mini{height:24px;padding:3px 6px;font-size:8px;white-space:nowrap;flex:0 0 auto}" in css
+    assert 'class="cell row-actions"><button class="control mini view show-map-hse"' in module
+    assert 'row-actions"><button class="control mini view evidence-hse"' not in module
+    assert "grid-template-columns:105px 85px 100px 150px 85px 78px minmax(160px,1fr) 110px 80px 110px 64px 190px;min-width:1360px;" in css

@@ -7,6 +7,20 @@
     blockedToast: null
   };
 
+  const DATA_MODAL_IDS = new Set([
+    'modal',
+    'equipmentModal',
+    'workfrontModal',
+    'capacityModal',
+    'capacityEditModal',
+    'maintenanceModal',
+    'plansModal',
+    'plansDeleteConfirmModal',
+    'evidenceModal',
+    'hseModal',
+    'issuesModal'
+  ]);
+
   const OPEN_CLASS_BY_ID = new Set([
     'reportsConsoleModal',
     'reportsHistoryModal',
@@ -18,6 +32,19 @@
       el.classList.contains('show') ||
       el.classList.contains('open')
     );
+  }
+
+  function enforceShellContract() {
+    document.querySelectorAll('.modalback > .modal').forEach(function (modal) {
+      if (!DATA_MODAL_IDS.has(modal.parentElement && modal.parentElement.id)) {
+        modal.classList.remove('modal-shell-valid');
+        return;
+      }
+      const hasHeader = !!modal.querySelector(':scope > .modalhead');
+      const hasBody = !!modal.querySelector(':scope > .modalbody');
+      const hasFooter = !!modal.querySelector(':scope > .modalfoot');
+      modal.classList.toggle('modal-shell-valid', hasHeader && hasBody && hasFooter);
+    });
   }
 
   function hide(el) {
@@ -91,6 +118,8 @@
 
     closeAll(id);
 
+    enforceShellContract();
+
     const openClass = OPEN_CLASS_BY_ID.has(id) ? 'open' : 'show';
     const closedClass = openClass === 'open' ? 'show' : 'open';
 
@@ -143,6 +172,7 @@
       attributeFilter: ['class']
     });
 
+    enforceShellContract();
     enforceSingleVisible();
   }
 
@@ -152,6 +182,7 @@
     close: close,
     closeAll: closeAll,
     closeTransient: closeTransient,
+    enforceShellContract: enforceShellContract,
     isVisible: isVisible,
     hasOtherVisible: hasOtherVisible,
     notifyBlocked: notifyBlocked,
