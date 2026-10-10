@@ -16,7 +16,7 @@
     'maintenanceModal',
     'plansModal',
     'plansDeleteConfirmModal',
-    'planEvidenceModal',
+    'evidenceModal',
     'hseModal',
     'issuesModal'
   ]);
