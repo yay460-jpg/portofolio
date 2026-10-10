@@ -75,33 +75,26 @@
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'modalShowGuardToast';
+      toast.className = 'lithosite-toast';
       toast.setAttribute('role', 'status');
       toast.setAttribute('aria-live', 'polite');
-      toast.style.cssText = [
-        'position:fixed',
-        'left:50%',
-        'bottom:48px',
-        'transform:translateX(-50%)',
-        'z-index:100000',
-        'display:none',
-        'max-width:min(520px,calc(100vw - 32px))',
-        'padding:10px 14px',
-        'border:1px solid #6b4d22',
-        'border-radius:8px',
-        'background:#241b0d',
-        'color:#f8d58a',
-        'box-shadow:0 12px 32px #0009',
-        'font:600 11px Segoe UI,Arial,sans-serif',
-        'text-align:center'
-      ].join(';');
       document.body.appendChild(toast);
       state.blockedToast = toast;
     }
-    toast.textContent = message || 'Close the current modal before opening this.';
-    toast.style.display = 'block';
     clearTimeout(toast._hideTimer);
+    clearTimeout(toast._removeTimer);
+    toast.classList.remove('is-hiding');
+    toast.textContent = message || 'Close the current modal before opening this.';
+    toast.classList.remove('is-visible');
+    // Restart the entry animation when repeated actions trigger the same toast.
+    void toast.offsetWidth;
+    toast.classList.add('is-visible');
     toast._hideTimer = setTimeout(function () {
-      toast.style.display = 'none';
+      toast.classList.remove('is-visible');
+      toast.classList.add('is-hiding');
+      toast._removeTimer = setTimeout(function () {
+        toast.classList.remove('is-hiding');
+      }, 160);
     }, 3200);
   }
 
