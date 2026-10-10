@@ -2,7 +2,6 @@
 #equipmentScreen.active{display:flex}
 #equipmentScreen .boundary{flex:1 1 auto;height:auto;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;position:relative;overflow:hidden}
 #equipmentScreen .head{height:48px;min-height:48px;flex:0 0 48px}
-#equipmentScreen .controls{display:flex;gap:7px}
 
 
 #equipmentScreen .panel{background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
@@ -27,8 +26,6 @@
 #equipmentScreen .retired-status{background:#27364a;color:#a9b8c9}
 #equipmentScreen .row-actions{display:flex;gap:4px}
 #equipmentScreen .mini{height:24px;padding:3px 7px;font-size:8px}
-
-#equipmentScreen .empty{display:grid;place-items:center;height:140px;color:#8ea3ba;font-size:10px}
 #equipmentScreen .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
 #equipmentScreen .runtime-msg.error{color:#fca5a5;border-color:#5a2b32;background:#2a1519}
 #equipmentModal .modalbody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}

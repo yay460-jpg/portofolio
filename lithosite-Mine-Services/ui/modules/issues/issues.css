@@ -26,11 +26,6 @@
   overflow:hidden;
 }
 #issuesScreen .head{height:48px;min-height:48px;flex:0 0 48px;display:flex;justify-content:space-between}
-#issuesScreen .controls{display:flex;gap:7px}
-
-
-
-#issuesScreen .icon{width:15px;height:15px;display:block;color:currentColor}
 #issuesScreen .panel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
 #issuesScreen .filters{height:auto;min-height:0;flex:0 0 auto;flex-shrink:0;padding:12px;display:grid;grid-template-columns:1.1fr repeat(5,minmax(0,1fr)) auto;gap:8px;align-items:end}
 #issuesScreen .field input,#issuesScreen .field select{width:100%;height:32px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px;outline:none}
@@ -58,7 +53,6 @@
 #issuesScreen .mini{height:24px;padding:3px 7px;font-size:8px}
 #issuesScreen .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
 #issuesScreen .runtime-msg.error{color:#fca5a5;border-color:#5a2b32;background:#2a1519}
-#issuesScreen .empty{display:grid;place-items:center;height:140px;color:#8ea3ba;font-size:10px}
 #issuesModal .modalbody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 #issuesModal .field input,#issuesModal .field select,#issuesModal .field textarea{width:100%;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:8px 9px;font:inherit;font-size:10px;outline:none}
 #issuesModal .field input,#issuesModal .field select{height:32px;padding:0 9px}

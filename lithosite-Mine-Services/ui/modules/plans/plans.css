@@ -33,7 +33,6 @@
   height:48px;
   min-height:48px;
 }
-#plansScreen .controls { display:flex; gap:7px; }
 #plansScreen #plansAdd[hidden] { display:none!important; }
 
 #plansScreen .filters {
@@ -107,7 +106,6 @@
   font-weight:700;
 }
 #plansModal .modalhead .ptitle { font-size:11.5px; font-weight:700; line-height:1.2; }
-#plansScreen .icon { display:block; width:15px; height:15px; color:currentColor; }
 #plansScreen .tablemeta { color:#8ea3ba; font-size:9px; }
 #plansScreen .grid {
   flex:1 1 auto;
