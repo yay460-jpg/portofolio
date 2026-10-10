@@ -9,7 +9,7 @@ SNAPSHOT = BASE / "ui/modules/reports/report-snapshot.js"
 PDF = BASE / "ui/modules/reports/report-pdf.js"
 SERVER = BASE / "desktop-host/server.py"
 HISTORY = BASE / "ui/modules/reports/report-history.js"
-ARTIFACT = BASE / "Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html"
+ARTIFACT = BASE / "Artifacts/Mine-Services-Operations.html"
 
 def read(path):
     return path.read_text(encoding="utf-8")
