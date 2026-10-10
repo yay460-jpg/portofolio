@@ -92,6 +92,8 @@ def test_stage10_show_on_map_button_uses_active_workfront_marker_location():
     assert "data-map-location" in WORKFRONT_JS
     assert "'Marker Location available':'No Marker Location assigned'" in WORKFRONT_JS
     assert ".show-map-workfront.has-map-location" in WORKFRONT_CSS
+    assert "if(!hasWorkFrontMapLocation(showMap.dataset.id))" in WORKFRONT_JS
+    assert "No active Marker Location assigned for Work Front " in WORKFRONT_JS
     assert "background:#173a2c;" in WORKFRONT_CSS
     assert "mine-services:marker-locations-changed" in WORKFRONT_JS
     assert "function notifyMarkerLocationsChanged()" in MARKER_JS
