@@ -3,6 +3,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
+TABLE_CSS = ROOT / "ui" / "shared" / "table.css"
 MODULE_RULES = {
     "operations/operations.css": {
         "#operationsScreen .cell": r"padding\s*:\s*0\s+9px",
@@ -38,14 +39,27 @@ def rule_body(css, selector):
     raise AssertionError(f"CSS rule not found: {selector}")
 
 
-def test_active_shell_owns_shared_cell_text_clipping():
-    html = compact(read(ARTIFACT))
+def test_shared_table_stylesheet_owns_cell_text_clipping():
+    css = compact(read(TABLE_CSS))
     selector = compact(SHARED_SELECTOR)
-    rules = [m for m in re.finditer(r"([^{}]+)\{([^{}]*)\}", html) if compact(m.group(1)) == selector]
-    assert len(rules) == 1, "Shared table-cell clipping should have one owner in active shell"
+    rules = [m for m in re.finditer(r"([^{}]+)\{([^{}]*)\}", css) if compact(m.group(1)) == selector]
+    assert len(rules) == 1, "Shared table-cell clipping should have one owner in table.css"
     body = compact(rules[0].group(2))
     for declaration in TEXT_CLIP_DECLARATIONS:
         assert declaration in body
+
+
+def test_shared_table_stylesheet_is_loaded_after_module_styles():
+    html = read(ARTIFACT)
+    link = "table.css?v=20261011-shared-table"
+    shared = html.index(link)
+    assert html.index("form-field.css") < shared
+    for module in (
+        "operations.css", "equipment.css", "workfront.css", "maintenance.css",
+        "issues.css", "plans.css", "hse.css",
+    ):
+        assert html.index(module) < shared
+    assert compact(SHARED_SELECTOR) + "{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" not in compact(html)
 
 
 def test_module_cell_rules_keep_padding_but_drop_duplicate_clipping():

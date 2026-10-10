@@ -112,18 +112,6 @@
   width:100%;
   min-width:0;
 }
-#plansScreen .th {
-  position:sticky;
-  top:0;
-  z-index:2;
-  height:34px;
-  background:#12243a;
-  color:#8fa5bb;
-  font-size:8px;
-  font-weight:600;
-  letter-spacing:.3px;
-  text-transform:uppercase;
-}
 #plansScreen .td {
   min-height:42px;
   border-bottom:1px solid #223b55;

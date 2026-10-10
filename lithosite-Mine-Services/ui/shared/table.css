@@ -1,0 +1,22 @@
+/* Shared table cell clipping and header baseline. */
+#operationsScreen .cell,#equipmentScreen .cell,#maintenanceScreen .cell,#issuesScreen .cell,#plansScreen .cell,#hseScreen .cell,#workfrontScreen .wfcell,#timelineModal .timeline-tr .cell{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+#operationsScreen .th,#equipmentScreen .th,#maintenanceScreen .th,#issuesScreen .th,#plansScreen .th,#hseScreen .th,#checkerScreen .checker-tr.th{
+  height:34px;
+  background:#12243a;
+  color:#8fa5bb;
+  font-size:8px;
+  text-transform:uppercase;
+  font-weight:600;
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+
+#operationsScreen .th,#equipmentScreen .th,#maintenanceScreen .th,#issuesScreen .th,#plansScreen .th,#checkerScreen .checker-tr.th{
+  letter-spacing:.3px;
+}

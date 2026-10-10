@@ -169,19 +169,6 @@
   align-items:center;
 }
 
-#checkerScreen .checker-tr.th{
-  height:34px;
-  background:#12243a;
-  color:#8fa5bb;
-  font-size:8px;
-  text-transform:uppercase;
-  font-weight:600;
-  letter-spacing:.3px;
-  position:sticky;
-  top:0;
-  z-index:2;
-}
-
 #checkerScreen .checker-tr.td{
   min-height:39px;
   border-bottom:1px solid #223b55;
