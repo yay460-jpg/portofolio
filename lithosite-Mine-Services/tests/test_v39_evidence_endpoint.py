@@ -122,7 +122,7 @@ def _post_raw(base_url, endpoint, params, body, content_type="application/octet-
 
 def test_evidence_upload_saves_to_the_plan_folder_and_never_overwrites(evidence_host, monkeypatch):
     base_url, server = evidence_host
-    monkeypatch.setattr(server, "_target_plan_exists", lambda plan_id: plan_id == "PLN-UPLOAD-01")
+    monkeypatch.setattr(server, "_evidence_record_exists", lambda module, record_id: module == "TargetPlan" and record_id == "PLN-UPLOAD-01")
     params = {
         "module": "TargetPlan",
         "record_id": "PLN-UPLOAD-01",
@@ -149,9 +149,9 @@ def test_evidence_upload_saves_to_the_plan_folder_and_never_overwrites(evidence_
 
 
 @pytest.mark.parametrize(
-    ("params", "existing_plan", "expected_status"),
+    ("params", "record_exists", "expected_status"),
     [
-        ({"module": "HSE", "record_id": "HSE-01", "filename": "evidence.jpg"}, True, 400),
+        ({"module": "Unknown", "record_id": "REC-01", "filename": "evidence.jpg"}, True, 400),
         ({"module": "TargetPlan", "record_id": "../outside", "filename": "evidence.pdf"}, True, 400),
         ({"module": "TargetPlan", "record_id": "PLN-UPLOAD-02", "filename": "../outside.pdf"}, True, 400),
         ({"module": "TargetPlan", "record_id": "PLN-UPLOAD-02", "filename": "payload.exe"}, True, 400),
@@ -159,11 +159,11 @@ def test_evidence_upload_saves_to_the_plan_folder_and_never_overwrites(evidence_
         ({"module": "TargetPlan", "record_id": "PLN-UPLOAD-02", "filename": "empty.pdf"}, True, 400),
     ],
 )
-def test_evidence_upload_rejects_invalid_target_filename_or_empty_body(
-    evidence_host, monkeypatch, params, existing_plan, expected_status
+def test_evidence_upload_rejects_invalid_module_record_filename_or_empty_body(
+    evidence_host, monkeypatch, params, record_exists, expected_status
 ):
     base_url, server = evidence_host
-    monkeypatch.setattr(server, "_target_plan_exists", lambda _plan_id: existing_plan)
+    monkeypatch.setattr(server, "_evidence_record_exists", lambda _module, _record_id: record_exists)
     body = b"" if params["filename"] == "empty.pdf" else b"sample bytes"
 
     status, _headers, response_body = _post_raw(base_url, "/evidence/upload", params, body)
@@ -172,6 +172,35 @@ def test_evidence_upload_rejects_invalid_target_filename_or_empty_body(
     result = _payload(response_body)
     assert result["status"] == "REJECTED"
     assert result["errors"]
+
+
+@pytest.mark.parametrize(
+    ("module", "record_id"),
+    [
+        ("HSE", "HSE-UPLOAD-01"),
+        ("Maintenance", "MAINT-UPLOAD-01"),
+    ],
+)
+def test_evidence_upload_accepts_hse_and_maintenance_record_scoped_files(
+    evidence_host, monkeypatch, module, record_id
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(
+        server,
+        "_evidence_record_exists",
+        lambda candidate_module, candidate_id: (candidate_module, candidate_id) == (module, record_id),
+    )
+    params = {"module": module, "record_id": record_id, "filename": "evidence.jpg"}
+    original = b"module-specific evidence"
+
+    status, _headers, body = _post_raw(base_url, "/evidence/upload", params, original)
+
+    assert status == 201
+    payload = _payload(body)
+    assert payload["status"] == "READY"
+    assert payload["folder"] == f"Database/Evidence/{module}/{record_id}"
+    saved = server.EVIDENCE_ROOT / module / record_id / params["filename"]
+    assert saved.read_bytes() == original
 
 
 def test_listing_a_missing_evidence_folder_does_not_create_it(evidence_host):
