@@ -26,8 +26,6 @@
   overflow:hidden;
 }
 #issuesScreen .head{height:48px;min-height:48px;flex:0 0 48px;display:flex;justify-content:space-between}
-#issuesScreen .title h1{margin:0;font-size:21px;line-height:24px;background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);background-clip:text;-webkit-background-clip:text;color:transparent}
-#issuesScreen .title p{margin:2px 0;color:#8ea3ba;font-size:11px}
 #issuesScreen .controls{display:flex;gap:7px}
 
 
@@ -71,7 +69,6 @@
 #issuesModal .field.full{grid-column:1/-1}
 @media(max-width:1400px){
   #issuesScreen .boundary{padding:18px}
-  #issuesScreen .title h1{font-size:20px}
   #issuesScreen .filters{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}
 }
 
