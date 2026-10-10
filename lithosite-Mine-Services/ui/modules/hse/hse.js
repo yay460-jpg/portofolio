@@ -233,7 +233,9 @@ async function remove(id){
  try{
   const result=await rc.request({operation:'DELETE',entity:'HSE',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
-  await refreshData();setMsg('HSE event deleted and audited.');
+  await refreshData();
+  if(result.evidence_cleanup_status==='FAILED')setMsg('HSE event deleted and audited, but Evidence cleanup failed: '+(result.evidence_cleanup_message||'Unknown reason'),true);
+  else setMsg('HSE event deleted and audited.');
  }catch(e){setMsg('Delete failed: '+e.message,true);}
 }
 function bind(){
