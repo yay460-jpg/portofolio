@@ -76,7 +76,10 @@
   flex:0 0 auto;
 }
 #evidenceModal .evidence-panel-actions .control {
-  padding:6px 10px;
+  height:30px;
+  padding:5px 9px;
+  border-radius:7px;
+  font-size:9px;
 }
 #evidenceModal .evidence-preview-label {
   flex:1 1 auto;
