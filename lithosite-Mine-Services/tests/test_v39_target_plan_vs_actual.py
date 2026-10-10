@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).parents[1]
 PLANS_JS = (ROOT / "ui" / "modules" / "plans" / "plans.js").read_text(encoding="utf-8")
 PLANS_CSS = (ROOT / "ui" / "modules" / "plans" / "plans.css").read_text(encoding="utf-8")
-HTML = (ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html").read_text(encoding="utf-8")
+HTML = (ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html").read_text(encoding="utf-8")
 
 
 def test_combined_register_reads_operations_and_uses_validated_records_only():
