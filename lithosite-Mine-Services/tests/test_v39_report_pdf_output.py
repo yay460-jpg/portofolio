@@ -75,8 +75,8 @@ def test_appendix_evidence_is_rendered_as_compact_traceability_table():
 
 
 def test_pdf_branding_matches_v39():
-    assert 'Lithosite Mine Services · V39 · {report_type} Report' in SERVER_TEXT
-    assert "Operational Management Report · V39" in (ROOT / "ui" / "modules" / "reports" / "report-pdf.js").read_text(encoding="utf-8")
+    assert 'Lithosite Mine Services · {report_type} Report' in SERVER_TEXT
+    assert "Operational Management Report</div>" in (ROOT / "ui" / "modules" / "reports" / "report-pdf.js").read_text(encoding="utf-8")
     assert "report-pdf.js?v=20261016" in ARTIFACT_TEXT
 def test_monthly_previous_month_trend_formats_current_kpis():
     assert 'name_upper == "TREND VS PREVIOUS MONTH"' in SERVER_TEXT
