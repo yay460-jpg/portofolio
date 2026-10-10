@@ -5,12 +5,14 @@
   if (!runtime) throw new Error('LithositeRuntimeClient is required before LithositeEvidence');
 
   const ALLOWED_MODULES = new Set(['TargetPlan', 'HSE', 'Maintenance']);
+  const MODULE_ICON_HREFS = Object.freeze({ TargetPlan: '#plans', HSE: '#hse', Maintenance: '#maintenance' });
   const UPLOAD_EXTENSIONS = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx']);
   const MAX_FILE_BYTES = 100000000;
   const ELEMENT_IDS = Object.freeze({
     modal: 'evidenceModal',
     title: 'evidenceTitle',
     moduleLabel: 'evidenceModuleLabel',
+    iconUse: 'evidenceIconUse',
     close: 'evidenceClose',
     refresh: 'evidenceRefresh',
     record: 'evidenceRecord',
@@ -374,11 +376,13 @@
     const title = element('title');
     const record = element('record');
     const moduleLabel = element('moduleLabel');
+    const iconUse = element('iconUse');
     const button = element('uploadButton');
     const fileInput = element('uploadInput');
     const list = element('list');
     if (title) title.textContent = current.title;
     if (moduleLabel) moduleLabel.textContent = moduleName === 'TargetPlan' ? 'TARGET PLAN' : moduleName.toUpperCase();
+    if (iconUse) iconUse.setAttribute('href', '../../assets/lithosite-icons.svg' + (MODULE_ICON_HREFS[moduleName] || '#reports'));
     if (record) record.textContent = current.recordLabel;
     if (button) {
       button.hidden = !current.allowUpload;
