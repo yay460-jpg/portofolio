@@ -336,3 +336,19 @@ footer.status{
 
 
 /* V38 inline Report PDF reader — stays inside the Lithosite application tab. */
+
+/* Selective report-reader motion: open stays instant; close slides downward without fade. */
+#reportsScreen #reportPdfReaderModal.is-closing .user-guide-reader-dialog{
+  animation:reportPdfReaderSlideOut 180ms cubic-bezier(.55,0,.8,.35) both;
+  pointer-events:none;
+}
+@keyframes reportPdfReaderSlideOut{
+  from{transform:translateY(0)}
+  to{transform:translateY(36px)}
+}
+@media(prefers-reduced-motion:reduce){
+  #reportsScreen #reportPdfReaderModal.is-closing .user-guide-reader-dialog{
+    animation:none;
+    transform:none;
+  }
+}
