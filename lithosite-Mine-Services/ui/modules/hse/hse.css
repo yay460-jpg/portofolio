@@ -1,4 +1,4 @@
-/* Stage 18 — HSE module stylesheet */
+/* Lithosite Mine Services — HSE module stylesheet. */
 #hseScreen{position:relative;flex:1 1 auto;display:flex;flex-direction:column;width:100%;height:auto;min-width:0;min-height:0;margin:0}
 #hseScreen[hidden]{display:none!important}
 #hseScreen .boundary{flex:1 1 auto;height:auto;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;position:relative;overflow:hidden}
@@ -39,22 +39,20 @@
 #hseScreen .runtime-msg.error{border-color:#71343d;color:#ff9aa4;background:#28171c}
 
 
-/* V38 — filter panel visual parity with Operations */
+/* HSE filter panel styling. */
 #hseScreen .filters{border:1px solid #28425c;border-radius:9px;background:#101f31;box-shadow:0 2px 9px #02081255}
 
 
-/* V38 — Clear control width parity across module filter panels */
-#hseScreen .clear{width:56px;min-width:56px;height:32px;padding:0 10px;justify-content:center;box-sizing:border-box}
 
 
-/* V38 — unified Clear button geometry across all filter panels */
-#hseScreen #hseClear{width:56px;min-width:56px;max-width:56px;height:32px;padding:0 10px;justify-content:center;align-items:center;box-sizing:border-box;flex:0 0 56px}
 
 
-/* V38 — register header parity with Operations */
+
+
+/* HSE register header styling. */
 #hseScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 #hseScreen .icon{width:15px;height:15px;display:block;color:currentColor}
 
 
-/* V39 — table panel visual parity with Operations */
+/* HSE table panel styling. */
 #hseScreen .tablepanel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
