@@ -34,6 +34,13 @@
     return document.getElementById(ELEMENT_IDS[key] || key);
   }
 
+  function isModalVisible() {
+    const modal = element('modal');
+    return !!modal && !modal.hidden && (
+      modal.classList.contains('show') || modal.classList.contains('open')
+    );
+  }
+
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
       return ({
@@ -435,7 +442,7 @@
       if (button && !button.disabled) previewFile(button.dataset.evidenceName || '');
     });
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && current) {
+      if (event.key === 'Escape' && current && isModalVisible()) {
         event.preventDefault();
         close();
       }
@@ -452,6 +459,6 @@
     open: open,
     close: close,
     refresh: refresh,
-    isOpen: function () { return !!current; }
+    isOpen: function () { return !!current && isModalVisible(); }
   });
 })(window);
