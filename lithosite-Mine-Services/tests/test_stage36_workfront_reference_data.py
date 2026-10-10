@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -24,7 +25,7 @@ def test_stage36_location_remains_free_text_reference():
 def test_stage36_persisted_lists_expose_new_reference_values():
     from openpyxl import load_workbook
 
-    db = ROOT / "Database" / "Mine-Services-Database-A3.xlsx"
+    db = Path(os.environ.get("MINE_SERVICES_TEST_DB", str(ROOT / "Database" / "Mine-Services-Database-A3.xlsx")))
     wb = load_workbook(db, read_only=True, data_only=True)
     rows = list(wb["_Lists"].values)
     headers = list(rows[0])

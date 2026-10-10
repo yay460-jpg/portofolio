@@ -33,5 +33,11 @@ jobs:
           cache-dependency-path: lithosite-Mine-Services/pyproject.toml
       - name: Install project and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e . pytest
+      - name: Prepare isolated A3 workbook fixture for database-dependent tests
+        run: python tests/prepare_ci_database_fixture.py
+        env:
+          MINE_SERVICES_TEST_DB: ${{ runner.temp }}/mine-services-ci-a3.xlsx
       - name: Run full pytest suite
         run: python -m pytest -q
+        env:
+          MINE_SERVICES_TEST_DB: ${{ runner.temp }}/mine-services-ci-a3.xlsx
