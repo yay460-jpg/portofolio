@@ -75,16 +75,7 @@
   border-radius:9px;
   background:#101f31;
   box-shadow:0 2px 9px #02081255;
-}
-#plansScreen .tablehead {
-  display:flex;
-  flex:0 0 40px;
-  align-items:center;
-  justify-content:space-between;
-  height:40px;
-  padding:0 12px;
-  border-bottom:1px solid #263e57;
-}
+}#plansScreen .tablehead{flex:0 0 40px}
 #plansScreen .ptitle {
   display:flex;
   align-items:center;

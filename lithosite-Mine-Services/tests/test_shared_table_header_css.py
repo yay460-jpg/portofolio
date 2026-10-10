@@ -78,19 +78,35 @@ def test_duplicate_header_rules_are_removed_but_workfront_remains_specific():
     assert ".wfgrid.th{height:34px;background:#12243a;color:#8fa5bb;font-size:8px;text-transform:uppercase}" in workfront
 
 
-def test_module_specific_table_container_geometry_is_preserved():
-    expectations = (
-        ("operations/operations.css", "#operationsScreen .tablehead"),
-        ("equipment/equipment.css", "#equipmentScreen .tablehead"),
-        ("workfront/workfront.css", "#workfrontScreen .tablehead"),
-        ("maintenance/maintenance.css", "#maintenanceScreen .tablehead"),
-        ("issues/issues.css", "#issuesScreen .tablehead"),
-        ("plans/plans.css", "#plansScreen .tablehead"),
-        ("hse/hse.css", "#hseScreen .tablehead"),
+def test_shared_tablehead_geometry_preserves_only_required_local_flex_overrides():
+    css = read(TABLE_CSS)
+    group = (
+        "#operationsScreen .tablehead,#equipmentScreen .tablehead,#workfrontScreen .tablehead,"
+        "#maintenanceScreen .tablehead,#issuesScreen .tablehead,#plansScreen .tablehead,"
+        "#hseScreen .tablehead,#checkerScreen .tablehead"
     )
-    for relative, selector in expectations:
-        css = read(ROOT / "ui" / "modules" / relative)
-        assert compact(selector) in compact(css)
+    body = compact(rule_body(css, group))
+    for declaration in (
+        "height:40px", "display:flex", "align-items:center", "justify-content:space-between",
+        "padding:0 12px", "border-bottom:1px solid #263e57",
+    ):
+        assert compact(declaration) in body
+    modules = {
+        "operations/operations.css": "#operationsScreen .tablehead",
+        "equipment/equipment.css": "#equipmentScreen .tablehead",
+        "workfront/workfront.css": "#workfrontScreen .tablehead",
+        "maintenance/maintenance.css": "#maintenanceScreen .tablehead",
+        "issues/issues.css": "#issuesScreen .tablehead",
+        "plans/plans.css": "#plansScreen .tablehead",
+        "hse/hse.css": "#hseScreen .tablehead",
+        "checker/checker.css": "#checkerScreen .tablehead",
+    }
+    for relative, selector in modules.items():
+        module_css = compact(read(ROOT / "ui" / "modules" / relative))
+        if relative in ("maintenance/maintenance.css", "plans/plans.css"):
+            assert compact(selector + "{flex:0 0 40px}") in module_css
+        else:
+            assert compact(selector + "{") not in module_css
     maintenance = read(ROOT / "ui" / "modules" / "maintenance" / "maintenance.css")
     plans = read(ROOT / "ui" / "modules" / "plans" / "plans.css")
     assert re.search(r"flex:\s*0\s+0\s+40px", maintenance)
@@ -100,7 +116,7 @@ def test_module_specific_table_container_geometry_is_preserved():
 def test_table_stylesheet_link_is_well_formed_and_loaded_after_modules():
     html = read(ARTIFACT)
     assert html.count('rel="stylesheet"') == len(re.findall(r'<link rel="stylesheet" href="[^"]+">', html))
-    link = html.index("table.css?v=20261011-shared-table")
+    link = html.index("table.css?v=20261011-tablehead")
     for module in (
         "operations.css", "equipment.css", "workfront.css", "maintenance.css",
         "issues.css", "plans.css", "hse.css",

@@ -20,3 +20,13 @@
 #operationsScreen .th,#equipmentScreen .th,#maintenanceScreen .th,#issuesScreen .th,#plansScreen .th,#checkerScreen .checker-tr.th{
   letter-spacing:.3px;
 }
+
+/* Shared geometry for table title bars across workspaces. */
+#operationsScreen .tablehead,#equipmentScreen .tablehead,#workfrontScreen .tablehead,#maintenanceScreen .tablehead,#issuesScreen .tablehead,#plansScreen .tablehead,#hseScreen .tablehead,#checkerScreen .tablehead{
+  height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 12px;
+  border-bottom:1px solid #263e57;
+}

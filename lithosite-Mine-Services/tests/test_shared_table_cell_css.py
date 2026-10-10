@@ -51,7 +51,7 @@ def test_shared_table_stylesheet_owns_cell_text_clipping():
 
 def test_shared_table_stylesheet_is_loaded_after_module_styles():
     html = read(ARTIFACT)
-    link = "table.css?v=20261011-shared-table"
+    link = "table.css?v=20261011-tablehead"
     shared = html.index(link)
     assert html.index("form-field.css") < shared
     for module in (
