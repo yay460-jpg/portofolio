@@ -17,12 +17,28 @@
   let currentScreen = 'Dashboard';
   let initialized = false;
 
+  function animateScreenTitle(name) {
+    Object.keys(SCREENS).forEach(function (screenName) {
+      const screen = document.getElementById(SCREENS[screenName]);
+      const title = screen && screen.querySelector('.title h1');
+      if (!title) return;
+      title.classList.remove('layout-title-entering');
+    });
+    const activeScreen = document.getElementById(SCREENS[name]);
+    const title = activeScreen && activeScreen.querySelector('.title h1');
+    if (!title) return;
+    // Reflow after class removal so the title animation restarts on every real screen change.
+    void title.offsetWidth;
+    title.classList.add('layout-title-entering');
+  }
+
   function setScreen(name, persist) {
     if (!SCREENS[name]) return false;
     if (global.LithositeNavigationGuardContract &&
         !global.LithositeNavigationGuardContract.guard()) {
       return false;
     }
+    const previousScreen = currentScreen;
     if (global.LithositeModalShowContract) {
       global.LithositeModalShowContract.closeTransient();
     }
@@ -47,6 +63,9 @@
       item.classList.toggle('active', active);
       item.setAttribute('aria-current', active ? 'page' : 'false');
     });
+
+    // Skip initial shell restoration; animate only user/programmatic transitions between screens.
+    if (persist !== false && previousScreen !== name) animateScreenTitle(name);
 
     return true;
   }
