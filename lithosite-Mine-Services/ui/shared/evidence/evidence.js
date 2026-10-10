@@ -136,8 +136,8 @@
     if (!preview || !file) return;
 
     const context = current;
-    const requestId = ++previewRequest;
     invalidatePreview();
+    const requestId = ++previewRequest;
     const safeName = escapeHtml(file.name);
 
     if (file.available === false) {
