@@ -72,6 +72,12 @@ def test_hse_panel_title_has_one_complete_rule():
 
 
 
+
+def test_reports_filter_search_field_min_width_has_one_declaration_rule():
+    css = REPORTS.read_text(encoding="utf-8")
+    selector = r"#reportsScreen\\s+\\.filters\\s+\\.reports-search-field"
+    assert len(rule_bodies(css, selector)) == 1
+
 def test_reports_preview_reuses_single_shared_kpi_card_and_note_rules():
     css = REPORTS.read_text(encoding="utf-8")
     for selector in (
