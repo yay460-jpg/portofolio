@@ -127,7 +127,7 @@ def test_shared_evidence_assets_use_current_cache_keys_and_load_before_plans():
     assert "plans.css?v=20261112" in HTML
     assert "evidence.js?v=20261010" in HTML
     assert "evidence.css?v=20261010" in HTML
-    assert "modal-show-contract.js?v=20261027" in HTML
+    assert "modal-show-contract.js?v=20261028" in HTML
     assert HTML.index("evidence.js?v=20261010") < HTML.index("plans.js?v=20261030")
     assert HTML.index("evidence.css?v=20261010") < HTML.index("</head>")
 
