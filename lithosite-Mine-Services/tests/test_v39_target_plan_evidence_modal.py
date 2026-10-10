@@ -142,19 +142,19 @@ def test_central_evidence_folder_is_documented_for_the_three_modules():
 def test_shared_evidence_assets_use_current_cache_keys_and_load_before_plans():
     assert "plans.js?v=20261030" in HTML
     assert "plans.css?v=20261112" in HTML
-    assert "evidence.js?v=20261017" in HTML
+    assert "evidence.js?v=20261018" in HTML
     assert "maintenance.js?v=20261012" in HTML
     assert "hse.js?v=20261006" in HTML
     assert "maintenance.css?v=20261029" in HTML
     assert "hse.css?v=20261029" in HTML
-    assert HTML.index("evidence.js?v=20261017") < HTML.index("maintenance.js?v=20261012")
-    assert HTML.index("evidence.js?v=20261017") < HTML.index("hse.js?v=20261006")
-    assert "evidence.css?v=20261011" in HTML
+    assert HTML.index("evidence.js?v=20261018") < HTML.index("maintenance.js?v=20261012")
+    assert HTML.index("evidence.js?v=20261018") < HTML.index("hse.js?v=20261006")
+    assert "evidence.css?v=20261012" in HTML
     assert "modal-show-contract.js?v=20261028" in HTML
-    assert HTML.index("runtime-client.js") < HTML.index("evidence.js?v=20261017")
-    assert HTML.index("modal-show-contract.js?v=20261028") < HTML.index("evidence.js?v=20261017")
-    assert HTML.index("evidence.js?v=20261017") < HTML.index("plans.js?v=20261030")
-    assert HTML.index("evidence.css?v=20261011") < HTML.index("</head>")
+    assert HTML.index("runtime-client.js") < HTML.index("evidence.js?v=20261018")
+    assert HTML.index("modal-show-contract.js?v=20261028") < HTML.index("evidence.js?v=20261018")
+    assert HTML.index("evidence.js?v=20261018") < HTML.index("plans.js?v=20261030")
+    assert HTML.index("evidence.css?v=20261012") < HTML.index("</head>")
     assert "#evidenceModal .evidence-layout" in EVIDENCE_CSS
     assert "#evidenceModal .evidence-panel-actions .control {\n  height:30px;\n  padding:5px 9px;\n  border-radius:7px;\n  font-size:9px;\n}" in EVIDENCE_CSS
     assert "#evidenceModal .evidence-layout" not in PLANS_CSS
