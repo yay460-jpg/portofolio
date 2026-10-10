@@ -4,7 +4,7 @@ Mine Services is the Lithosite **offline-first desktop runtime** for mine work c
 
 ## Current Runtime
 
-- **Workspace:** V39
+- **Workspace:** V40
 - **Schema:** A.3
 - **Canonical database:** `Database/Mine-Services-Database-A3.xlsx`
 - **Runtime:** Python Desktop Host
@@ -12,7 +12,14 @@ Mine Services is the Lithosite **offline-first desktop runtime** for mine work c
 - **Runtime database:** local XLSX
 - **VS Code Live Server:** development-only; not the official runtime acceptance path
 
-The A.3 schema is the **single active schema** for V39. Earlier A.1/A.2 schemas and databases are historical predecessors and are not active runtime sources.
+The A.3 schema is the **single active schema** for the V40 workspace. Earlier A.1/A.2 schemas and databases are historical predecessors and are not active runtime sources. Earlier A.1/A.2 schemas and databases are historical predecessors and are not active runtime sources.
+
+## Baseline and Workspace
+
+- **Locked baseline:** V39 — see `Documentation/Version-History/Baseline/V39-Baseline-Lock.md`.
+- **Active workspace:** V40 on `v40-workspace`, copied from the locked V39 snapshot.
+- **Active artifact:** `Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html`.
+- **Next Work Control item:** Plan vs Actual cards; use Target Plan and `VALIDATED Operations` as the sources of truth. This remains backlog, not yet implemented.
 
 ## Open Mine Services
 
@@ -55,9 +62,9 @@ Python Desktop Host :8765
 
 The Desktop Host is the authoritative local runtime path. Live Server is only a development convenience for static UI work.
 
-## V39 Shared Contracts
+## Shared Contracts
 
-V38 uses shared contracts for application-level behavior rather than allowing individual modules to become independent owners of the same shell behavior.
+The V40 workspace carries forward the shared contracts from the locked V39 baseline. Application-level behavior must not be reimplemented as independent module owners.
 
 ### Shared navigation
 
@@ -65,7 +72,7 @@ Canonical navigation owner:
 
 `ui/shared/shell-navigation.js`
 
-The former V31 navigation implementation has been retired. V38 uses this canonical owner exclusively; there is no parallel V31 navigation owner.
+The former V31 navigation implementation has been retired. The current workspace uses this canonical owner exclusively; there is no parallel V31 navigation owner.
 
 ### Shared modal behavior
 
@@ -90,7 +97,7 @@ Runtime health/status behavior is provided through the shared runtime status/cli
 
 ## Canonical Database and Schema
 
-The active V39 database is:
+The active workspace database is:
 
 `Database/Mine-Services-Database-A3.xlsx`
 
@@ -106,9 +113,9 @@ The A3 workbook is the single active runtime database. Schema evolution is track
 
 Historical A.1/A.2 databases and migration utilities may remain in the repository as historical records or migration boundaries. They must not be treated as the current runtime source.
 
-## V39 Measurement Terminology
+## Measurement Terminology
 
-V39 retains **Measurement** as the canonical field terminology where the value represents a measurement unit.
+The current workspace retains **Measurement** as the canonical field terminology where the value represents a measurement unit.
 
 Canonical examples include:
 
@@ -150,9 +157,9 @@ tests/
     └── automated regression and contract tests
 ```
 
-## Current V39 Baseline State
+## Workspace and baseline status
 
-- V39 workspace — **active**
+- V40 workspace — **active**
 - Schema A.3 — **canonical / active**
 - Database A3 — **canonical / active**
 - Offline Desktop Runtime — **implemented**
@@ -162,15 +169,15 @@ tests/
 - Shared Runtime Status — **active**
 - Controlled Vocabulary — **locked**
 - MapMarker — **A.3 active / Phase B complete**
-- Checker — **V39 active**
-- Global Capacity — **V39 active**
+- Checker — **carried forward from locked V39**
+- Global Capacity — **carried forward from locked V39**
 - Operation form layout — **locked**
 - Application shell boundary — **locked**
 - Legacy active-runtime residue audit — **closed**
-- Regression suite — **309 passed / 0 failed**
+- Locked V39 baseline regression suite — **434 passed / 0 failed in 27.15s**; rerun the full suite against the V40 artifact before treating V40 as validated.
 - Desktop Host runtime bootstrap — **validated against A.3**
 
-The V38 baseline is locked as the predecessor for V39. The V37 master artifact has been retired; historical V37 stage records and tests remain only where required to preserve historical regression coverage.
+V39 is the current locked baseline and V40 is the active workspace derived from it. V38 and V37 remain historical/rollback references and are not active entry points.
 
 ## Database Protection
 
@@ -178,7 +185,7 @@ Earlier database generations are historical predecessors:
 
 - A.1 — historical predecessor
 - A.2 — retired predecessor
-- A.3 — **current V39 canonical database**
+- A.3 — **canonical runtime database**
 
 The active runtime database is:
 
@@ -202,7 +209,7 @@ again.
 
 ## Development Rule
 
-When working on V39:
+When working on V40:
 
 1. Treat `src/mine_services/schema.py` as the canonical schema source.
 2. Treat `Database/Mine-Services-Database-A3.xlsx` as the active runtime database.
@@ -211,5 +218,5 @@ When working on V39:
 5. Do not introduce parallel owners for behavior already governed by a shared contract.
 6. Keep historical V37 assets/tests separate conceptually from the V38 runtime.
 7. Update the relevant documentation and contracts when a canonical runtime boundary changes.
-8. Preserve historical A.1/A.2 stage records as historical evidence; do not rewrite them to current V39 state.
+8. Preserve historical A.1/A.2 stage records as historical evidence; do not rewrite them to current V40 workspace state.
 9. Do not treat future Android Host work as part of V38 desktop runtime acceptance.
