@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CHECKER = (ROOT / "ui" / "modules" / "checker" / "checker.js").read_text(encoding="utf-8")
 OPERATIONS = (ROOT / "ui" / "modules" / "operations" / "operations.js").read_text(encoding="utf-8")
-HTML = (ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html").read_text(encoding="utf-8")
+HTML = (ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html").read_text(encoding="utf-8")
 
 
 def test_existing_operations_can_backfill_missing_checker_rows():
