@@ -19,7 +19,7 @@ def test_v40_has_a_new_artifact_and_preserves_the_locked_v39_artifact():
 def test_desktop_host_and_launcher_open_the_v40_artifact():
     server = (ROOT / "desktop-host" / "server.py").read_text(encoding="utf-8")
     launcher = (ROOT / "desktop-host" / "start-mine-services.bat").read_text(encoding="utf-8")
-    expected = "Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html"
+    expected = "/Artifacts/Mine-Services-Operations.html"
 
     assert expected in server
     assert expected in launcher
