@@ -38,8 +38,7 @@
 #issuesScreen .grid{flex:1 1 auto;min-width:0;min-height:0;height:auto;overflow:auto}
 #issuesScreen .tr{display:grid;grid-template-columns:130px 76px 115px 190px 140px minmax(180px,1fr) 72px 88px 110px 135px 118px;min-width:1374px;align-items:center}
 #issuesScreen .th{height:34px;background:#12243a;color:#8fa5bb;font-size:8px;text-transform:uppercase;font-weight:600;letter-spacing:.3px;position:sticky;top:0;z-index:2}
-#issuesScreen .td{min-height:39px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}
-#issuesScreen .cell{padding:0 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#issuesScreen .td{min-height:39px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}#issuesScreen .cell{padding:0 9px}
 #issuesScreen .issue-description{cursor:default}
 #issuesScreen .low{background:#173a2c;color:#4ade80}
 #issuesScreen .medium{background:#4d4718;color:#facc15}

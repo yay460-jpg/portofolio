@@ -18,8 +18,7 @@
 #equipmentScreen .grid{flex:1 1 auto;min-width:0;min-height:0;overflow:auto}
 #equipmentScreen .tr{display:grid;grid-template-columns:150px 115px 125px 100px 115px 90px minmax(140px,1fr) 80px 100px 100px 185px;min-width:1300px;align-items:center}#equipmentScreen .row-actions{display:flex;align-items:center;justify-content:flex-start;gap:4px;white-space:nowrap;overflow:visible}
 #equipmentScreen .th{height:34px;background:#12243a;color:#8fa5bb;font-size:8px;text-transform:uppercase;font-weight:600;letter-spacing:.3px;position:sticky;top:0;z-index:2}
-#equipmentScreen .td{min-height:40px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}
-#equipmentScreen .cell{padding:0 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#equipmentScreen .td{min-height:40px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}#equipmentScreen .cell{padding:0 9px}
 
 #equipmentScreen .active-status{background:#123d2b;color:#4ade80}
 #equipmentScreen .inactive-status{background:#493715;color:#fbbf24}
