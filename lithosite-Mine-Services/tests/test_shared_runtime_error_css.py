@@ -55,10 +55,10 @@ def test_runtime_message_base_styles_and_distinct_palettes_are_preserved():
     reports = compact(read(ROOT / "ui" / "modules" / "reports" / "reports.css"))
     plans = compact(read(ROOT / "ui" / "modules" / "plans" / "plans.css"))
     hse = compact(read(ROOT / "ui" / "modules" / "hse" / "hse.css"))
-    assert "#equipmentScreen .runtime-msg{" in equipment
-    assert "#issuesScreen .runtime-msg{" in issues
-    assert "#checkerScreen .runtime-msg{" in checker
-    assert ".report-runtime{" in reports
+    assert "grid-column:1/-1" in rule_body(equipment, "#equipmentScreen .runtime-msg")
+    assert "grid-column:1/-1" in rule_body(issues, "#issuesScreen .runtime-msg")
+    assert "grid-column:1/-1" in rule_body(checker, "#checkerScreen .runtime-msg")
+    assert "margin-top:8px" in rule_body(reports, ".report-runtime")
     for css in (plans, hse):
         assert "border-color:#71343d" in css
         assert "background:#28171c" in css
