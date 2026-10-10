@@ -264,7 +264,7 @@ footer.status{
 #reportsScreen .reports-search-row .reports-search-clear{height:32px;flex:0 0 auto}
 
 #reportsScreen .filters{grid-template-columns:minmax(300px,1fr) 145px 145px 145px auto;gap:8px;align-items:end}
-#reportsScreen .filters .reports-search-field{min-width:0}
+
 #reportsScreen .filters .report-filter-actions{display:flex;align-items:end;gap:5px;height:32px}
 #reportsScreen .filters .report-filter-actions .control{height:32px;white-space:nowrap}
 #reportsScreen .report-center{margin-top:0}
