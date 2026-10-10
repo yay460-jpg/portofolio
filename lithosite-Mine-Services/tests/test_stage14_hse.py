@@ -160,7 +160,9 @@ def test_hse_register_has_a_dedicated_evidence_view_column():
     css = (root / "ui" / "modules" / "hse" / "hse.css").read_text(encoding="utf-8")
 
     assert '<div class="cell">Closed At</div><div class="cell">Evidence</div><div class="cell">Actions</div>' in html
-    assert 'class="cell evidence-cell"><button type="button" class="control mini view-evidence evidence-hse"' in module
+    assert 'class="cell evidence-cell"><button type="button" class="control mini view-evidence evidence-hse evidence-indicator"' in module
+    assert 'data-evidence-module="HSE"' in module
+    assert 'data-evidence-id="' in module
     assert "esc(r.hse_id)" in module
     assert ">View</button></div>" in module
     assert "#hseScreen .evidence-cell .control.mini{height:24px;padding:3px 6px;font-size:8px;white-space:nowrap;flex:0 0 auto}" in css
