@@ -47,6 +47,9 @@ def test_target_plan_calls_shared_evidence_api_instead_of_owning_viewer_logic():
     assert "module:'TargetPlan'" in PLANS_JS
     assert "recordId:recordId" in PLANS_JS
     assert "allowUpload:true" in PLANS_JS
+    assert 'data-evidence-module="TargetPlan"' in PLANS_JS
+    assert 'data-evidence-id="'+esc(r.plan_id)+'"' in PLANS_JS
+    assert "LithositeEvidence.syncIndicators(host)" in PLANS_JS
     assert "function openPlanEvidence(planId)" in PLANS_JS
     assert "async function previewEvidenceFile" not in PLANS_JS
     assert "async function uploadSelectedEvidenceFiles" not in PLANS_JS
@@ -108,6 +111,14 @@ def test_shared_evidence_api_validates_record_context_and_scopes_upload_capabili
     assert "function clearSessionAfterExternalClose()" in EVIDENCE_JS
     assert "new MutationObserver(clearSessionAfterExternalClose)" in EVIDENCE_JS
     assert "moduleName.toUpperCase()" in EVIDENCE_JS
+    assert "syncIndicators: syncIndicators" in EVIDENCE_JS
+    assert "function syncIndicators(root, options)" in EVIDENCE_JS
+    assert "function fetchIndicatorCounts(moduleName, forceRefresh)" in EVIDENCE_JS
+    assert "function updateIndicatorsForRecord(moduleName, recordId, fileCount)" in EVIDENCE_JS
+    assert "runtime.HOST + '/evidence/status?module='" in EVIDENCE_JS
+    assert "INDICATOR_CACHE_MS = 10000" in EVIDENCE_JS
+    assert ".control.evidence-indicator.has-evidence" in EVIDENCE_CSS
+    assert "background:#173a2c;" in EVIDENCE_CSS
 
 
 def test_evidence_endpoint_is_scoped_to_allowed_modules_and_extensions():
@@ -193,6 +204,9 @@ def test_hse_evidence_action_uses_the_hse_record_and_shared_viewer():
     assert "recordId:String(row.hse_id)" in HSE_JS
     assert "allowUpload:true" in HSE_JS
     assert "closest('.evidence-hse')" in HSE_JS
+    assert 'data-evidence-module="HSE"' in HSE_JS
+    assert 'data-evidence-id="'+esc(r.hse_id)+'"' in HSE_JS
+    assert "LithositeEvidence.syncIndicators(host)" in HSE_JS
     assert "grid-template-columns:105px 85px 100px 150px 85px 78px minmax(160px,1fr) 110px 80px 110px 64px 190px;min-width:1360px;" in HSE_CSS
     assert "result.evidence_cleanup_status==='FAILED'" in HSE_JS
 
@@ -204,6 +218,9 @@ def test_maintenance_evidence_action_is_scoped_to_each_timeline_event():
     assert "recordId:String(row.maintenance_id)" in MAINTENANCE_JS
     assert "allowUpload:true" in MAINTENANCE_JS
     assert "closest('.evidence-maintenance-timeline')" in MAINTENANCE_JS
+    assert 'data-evidence-module="Maintenance"' in MAINTENANCE_JS
+    assert 'data-evidence-id="'+esc(row.maintenance_id)+'"' in MAINTENANCE_JS
+    assert "LithositeEvidence.syncIndicators(document.getElementById('maintenanceTimelineRows'))" in MAINTENANCE_JS
     assert "grid-template-columns:65px 65px 120px 115px 90px 1fr 90px 90px 215px;min-width:1000px;" in MAINTENANCE_CSS
     assert "result.evidence_cleanup_status==='FAILED'" in MAINTENANCE_JS
 
