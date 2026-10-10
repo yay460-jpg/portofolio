@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / "ui/modules/reports/monthly-report.js"
 REPORTS = ROOT / "ui/modules/reports/reports.js"
-ARTIFACT = ROOT / "Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v38-STAGE27.html"
+ARTIFACT = ROOT / "Artifacts/Mine-Services-Operations.html"
 
 def read(path):
     return path.read_text(encoding="utf-8")
@@ -50,8 +50,8 @@ def test_reports_integrates_monthly_engine():
 
 def test_artifact_wires_monthly_before_formal_engine():
     text = read(ARTIFACT)
-    monthly = '<script src="../ui/modules/reports/monthly-report.js?v=20261010"></script>'
-    formal = '<script src="../ui/modules/reports/report-engine.js?v=20261007"></script>'
+    monthly = '<script src="../ui/modules/reports/monthly-report.js?"></script>'
+    formal = '<script src="../ui/modules/reports/report-engine.js?"></script>'
     assert monthly in text
     assert formal in text
     assert text.index(monthly) < text.index(formal)
