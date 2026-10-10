@@ -188,6 +188,7 @@ def test_hse_evidence_action_uses_the_hse_record_and_shared_viewer():
     assert "allowUpload:true" in HSE_JS
     assert "closest('.evidence-hse')" in HSE_JS
     assert "grid-template-columns:105px 88px 115px 145px 125px 82px minmax(180px,1fr) 125px 92px 125px 208px;min-width:1400px;" in HSE_CSS
+    assert "result.evidence_cleanup_status==='FAILED'" in HSE_JS
 
 
 def test_maintenance_evidence_action_is_scoped_to_each_timeline_event():
@@ -198,6 +199,7 @@ def test_maintenance_evidence_action_is_scoped_to_each_timeline_event():
     assert "allowUpload:true" in MAINTENANCE_JS
     assert "closest('.evidence-maintenance-timeline')" in MAINTENANCE_JS
     assert "grid-template-columns:65px 65px 120px 115px 90px 1fr 90px 90px 215px;min-width:1000px;" in MAINTENANCE_CSS
+    assert "result.evidence_cleanup_status==='FAILED'" in MAINTENANCE_JS
 
 
 def test_evidence_upload_authorization_and_lifecycle_cover_all_supported_records():
