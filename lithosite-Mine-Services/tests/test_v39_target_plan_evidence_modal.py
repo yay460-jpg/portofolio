@@ -146,7 +146,7 @@ def test_shared_evidence_assets_use_current_cache_keys_and_load_before_plans():
     assert "maintenance.js?v=20261012" in HTML
     assert "hse.js?v=20261006" in HTML
     assert "maintenance.css?v=20261029" in HTML
-    assert "hse.css?v=20261027" in HTML
+    assert "hse.css?v=20261028" in HTML
     assert HTML.index("evidence.js?v=20261017") < HTML.index("maintenance.js?v=20261012")
     assert HTML.index("evidence.js?v=20261017") < HTML.index("hse.js?v=20261006")
     assert "evidence.css?v=20261010" in HTML
@@ -192,7 +192,7 @@ def test_hse_evidence_action_uses_the_hse_record_and_shared_viewer():
     assert "recordId:String(row.hse_id)" in HSE_JS
     assert "allowUpload:true" in HSE_JS
     assert "closest('.evidence-hse')" in HSE_JS
-    assert "grid-template-columns:105px 88px 115px 145px 125px 82px minmax(180px,1fr) 125px 92px 125px 72px 160px;min-width:1460px;" in HSE_CSS
+    assert "grid-template-columns:105px 85px 105px 125px 108px 78px minmax(160px,1fr) 110px 80px 110px 64px 190px;min-width:1360px;" in HSE_CSS
     assert "result.evidence_cleanup_status==='FAILED'" in HSE_JS
 
 
