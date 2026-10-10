@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
-UI = ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v38-STAGE27.html"
+UI = ROOT / "Artifacts" / "Mine-Services-Operations.html"
 OPS_JS = ROOT / "ui" / "modules" / "operations" / "operations.js"
 
 
