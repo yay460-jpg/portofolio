@@ -331,7 +331,7 @@ footer.status{
 #reportsScreen .report-preview-table.compact{min-width:0}
 #reportsScreen .report-preview-table.compact th,#reportsScreen .report-preview-table.compact td{padding:5px 7px}
 
-@media(max-width:900px){#reportsScreen .report-preview-kpis{grid-template-columns:repeat(2,1fr)}}
+
 
 
 /* V38 inline Report PDF reader — stays inside the Lithosite application tab. */
