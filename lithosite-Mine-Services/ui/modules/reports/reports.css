@@ -305,7 +305,7 @@ footer.status{
 #reportsScreen .report-preview-source th{color:#7890a8;font-size:7px;text-transform:uppercase}
 #reportsScreen .report-preview-source td{color:#b6c7d8}
 
-#reportsScreen .report-preview-body{padding:10px;overflow:auto;max-height:calc(100vh - 150px);font-size:8px}
+#reportsScreen .report-preview-body{font-size:8px}
 #reportsScreen .report-preview-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 
 
