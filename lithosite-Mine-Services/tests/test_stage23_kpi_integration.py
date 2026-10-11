@@ -13,7 +13,7 @@ BAT = ROOT / "desktop-host" / "start-mine-services.bat"
 def test_stage23_artifact_wires_foundation():
     html = ARTIFACT.read_text(encoding="utf-8")
     assert "kpi-foundation.js?v=20261006" in html
-    assert "reports.css?v=20261011-mobile-preview-kpi-dedupe" in html
+    assert "reports.css?v=20261011-preview-body-dedupe" in html
     assert 'class="report-body"' in html
     assert "report-operational-panel" in html
     assert 'id="equipmentKpiRows"' in html
