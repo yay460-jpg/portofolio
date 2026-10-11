@@ -75,6 +75,12 @@ def test_hse_panel_title_has_one_complete_rule():
 
 
 
+
+def test_reports_mobile_preview_kpi_columns_are_declared_once():
+    css = REPORTS.read_text(encoding="utf-8")
+    rule = "#reportsScreen .report-preview-kpis{grid-template-columns:repeat(2,1fr)}"
+    assert css.count(rule) == 1
+
 def test_reports_mobile_filter_grid_columns_are_not_redeclared_identically():
     css = REPORTS.read_text(encoding="utf-8")
     assert css.count("#reportsScreen .filters{grid-template-columns:1fr 1fr}") == 1
