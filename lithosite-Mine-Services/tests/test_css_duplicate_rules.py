@@ -107,7 +107,7 @@ def test_reports_preview_reuses_single_shared_kpi_card_and_note_rules():
         assert len(rule_bodies(css, selector)) == 1
 
     assert "#reportsScreen .report-preview-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}" in css
-    assert "@media(max-width:900px){#reportsScreen .report-preview-kpis{grid-template-columns:repeat(2,1fr)}}" in css
+    assert css.count("#reportsScreen .report-preview-kpis{grid-template-columns:repeat(2,1fr)}") == 1
 
 def test_active_artifact_refreshes_only_affected_css_cache_keys():
     html = ARTIFACT.read_text(encoding="utf-8")
@@ -115,7 +115,7 @@ def test_active_artifact_refreshes_only_affected_css_cache_keys():
         assert f"../ui/modules/{name}/{name}.css?v=20261011-css-dedupe" in html
     assert "../ui/modules/maintenance/maintenance.css?v=20261011-boundary-dedupe" in html
     assert "../ui/modules/hse/hse.css?v=20261011-ptitle-dedupe" in html
-    assert "../ui/modules/reports/reports.css?v=20261011-mobile-search-dedupe" in html
+    assert "../ui/modules/reports/reports.css?v=20261011-mobile-preview-kpi-dedupe" in html
 
     operations = OPERATIONS.read_text(encoding="utf-8")
     assert "grid-template-columns:repeat(3,minmax(0,1fr))" in operations
