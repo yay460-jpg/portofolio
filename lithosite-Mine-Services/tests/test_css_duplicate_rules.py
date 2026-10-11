@@ -76,6 +76,16 @@ def test_hse_panel_title_has_one_complete_rule():
 
 
 
+
+def test_reports_preview_body_shared_properties_are_not_repeated():
+    css = REPORTS.read_text(encoding="utf-8")
+    rules = rule_bodies(css, r"#reportsScreen\\s+\\.report-preview-body")
+    assert len(rules) == 2
+    assert "padding:10px" in rules[0]
+    assert "overflow:auto" in rules[0]
+    assert "max-height:calc(100vh - 150px)" in rules[0]
+    assert rules[1].strip() == "font-size:8px"
+
 def test_reports_mobile_preview_kpi_columns_are_declared_once():
     css = REPORTS.read_text(encoding="utf-8")
     rule = "#reportsScreen .report-preview-kpis{grid-template-columns:repeat(2,1fr)}"
