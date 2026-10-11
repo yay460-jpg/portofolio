@@ -73,6 +73,12 @@ def test_hse_panel_title_has_one_complete_rule():
 
 
 
+
+def test_reports_mobile_search_field_grid_column_is_declared_once():
+    css = REPORTS.read_text(encoding="utf-8")
+    assert css.count(".reports-search-field{grid-column:1/-1}") == 1
+    assert "@media(max-width:900px)" in css
+
 def test_reports_filter_search_field_min_width_has_one_declaration_rule():
     css = REPORTS.read_text(encoding="utf-8")
     selector = r"#reportsScreen\s+\.filters\s+\.reports-search-field"
