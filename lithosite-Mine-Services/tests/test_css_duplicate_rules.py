@@ -97,7 +97,7 @@ def test_active_artifact_refreshes_only_affected_css_cache_keys():
         assert f"../ui/modules/{name}/{name}.css?v=20261011-css-dedupe" in html
     assert "../ui/modules/maintenance/maintenance.css?v=20261011-boundary-dedupe" in html
     assert "../ui/modules/hse/hse.css?v=20261011-ptitle-dedupe" in html
-    assert "../ui/modules/reports/reports.css?v=20261011-preview-dedupe" in html
+    assert "../ui/modules/reports/reports.css?v=20261011-searchfield-dedupe" in html
 
     operations = OPERATIONS.read_text(encoding="utf-8")
     assert "grid-template-columns:repeat(3,minmax(0,1fr))" in operations
