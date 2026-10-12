@@ -1,5 +1,5 @@
 /*
- * V34 — Scheduled Time Contract
+ * Scheduled Time Contract
  *
  * Bridges a resolved Time Baseline to the PA denominator without
  * inventing a company/site-specific Scheduled Time formula.

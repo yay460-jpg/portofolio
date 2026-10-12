@@ -1,4 +1,4 @@
-/* V38 Stage 32 — Validation + KPI Lineage. Pure validation layer. */
+/* Validation + KPI Lineage. Pure validation layer. */
 (function(global){
 'use strict';
 const REQUIRED=Object.freeze(['Operations','Equipment','WorkFront','Maintenance','Issues','Plans','HSE']);

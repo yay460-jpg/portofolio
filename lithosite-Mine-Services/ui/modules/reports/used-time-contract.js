@@ -1,5 +1,5 @@
 /*
- * V34 — Used Time Contract
+ * Used Time Contract
  *
  * Used Time is derived only from intervals that are explicitly:
  *   AVAILABLE + USED
