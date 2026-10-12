@@ -61,7 +61,7 @@ def test_stage36_equipment_list_owns_scroll_without_visible_scrollbar():
     assert "#reportsScreen .equipment-kpi-list::-webkit-scrollbar{width:0;height:0;display:none}" in css
 
 def test_stage36_dedicated_equipment_scroll_viewport():
-    html = read("Documentation/Version-History/Artifacts/Workspace-UI-Snapshot.html")
+    html = read("Artifacts/Mine-Services-Operations.html")
     css = read("ui/modules/reports/reports.css")
     reports = read("ui/modules/reports/reports.js")
 
@@ -72,7 +72,7 @@ def test_stage36_dedicated_equipment_scroll_viewport():
     assert "e.preventDefault()" in reports
 
 def test_stage36_equipment_unit_column():
-    html = read("Documentation/Version-History/Artifacts/Workspace-UI-Snapshot.html")
+    html = read("Artifacts/Mine-Services-Operations.html")
     reports = read("ui/modules/reports/reports.js")
     foundation = read("ui/modules/reports/kpi-foundation.js")
     css = read("ui/modules/reports/reports.css")
