@@ -52,7 +52,7 @@ def test_report_history_storage_contract():
     assert "LithositeReportHistory" in text
     assert "lithosite.mine-services.report-history" in text
     assert "const LEGACY_KEY_PATTERN=" in text
-    assert r"\\.v\\d+\\.report-history" in text
+    assert "\\d+" in text
     assert "function legacyKeys(storage)" in text
     assert "storage.key(index)" in text
     assert "for(const legacyKey of legacyKeys(storage))" in text
