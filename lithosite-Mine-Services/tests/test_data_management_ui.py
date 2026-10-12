@@ -67,3 +67,12 @@ def test_dataManagement_uses_lithosite_owned_dataset_dialogs():
     assert "dataManagementActiveDataset" not in module
     assert "dataManagementDatasetDialogConfirm" in module
     assert "dm-native-dialog" in css
+
+
+def test_data_management_dom_identifiers_are_version_neutral():
+    module = read("ui/modules/data-management/data-management.js")
+    css = read("ui/modules/data-management/data-management.css")
+    assert "stage15" not in module
+    assert "stage15" not in css
+    assert "dataManagementModal" in module
+    assert "#dataManagementModal" in css

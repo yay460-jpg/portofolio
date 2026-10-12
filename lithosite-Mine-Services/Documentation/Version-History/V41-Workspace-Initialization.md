@@ -48,6 +48,10 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 - Removed stale V23/V34/V35/V38/V39/Stage labels from active runtime comments, diagnostics, and source metadata. Component-level identifiers and the A.3 schema contract remain intact; report metadata now defaults to the neutral application label.
 
+## Data Management identifiers
+
+- Renamed the Data Management module's `stage15...` DOM identifier namespace to `dataManagement...` across its generated markup, CSS selectors, and tests. The dataset save/load/backup dialog behavior stays owned by the same module; an assertion prevents the legacy namespace from returning.
+
 ## Workspace policy
 
 All new implementation work starts from this branch. Do not add version-specific runtime artifacts. Keep the current runtime entry point canonical and version-neutral. Update version-history documents when a release is completed; do not treat this workspace initialization as a release or baseline lock.
