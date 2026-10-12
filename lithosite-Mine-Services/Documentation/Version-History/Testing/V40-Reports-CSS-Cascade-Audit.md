@@ -98,4 +98,4 @@ Before any further CSS edit:
 - Final full test suite must pass on the exact release HEAD.
 - Update the version history / test evidence only after CI confirms the final commit.
 
-**Historical release status: CSS CASCADE CLEANUP CLOSED.** Full Pytest #435 passed on exact HEAD `ea0a96332a4b42b23414d7b7f3a1818df5cbc280`, validating the version-neutral audit test contract. Cleanup #15–#17 and cache synchronization remain validated. Remaining `REVIEW` entries are deliberately retained without deletion. The later V40 Baseline Lock records the overall release decision and explicitly defers operational A3 runtime acceptance rather than claiming it passed.
+**Release status: CLOSED — CSS cascade cleanup.** Full Pytest #435 passed on exact HEAD `ea0a96332a4b42b23414d7b7f3a1818df5cbc280`, validating the version-neutral audit test contract. Cleanup #15–#17 and cache synchronization remain validated. Remaining `REVIEW` entries are deliberately retained without deletion. The later V40 Baseline Lock records the overall release decision and explicitly defers operational A3 runtime acceptance rather than claiming it passed.

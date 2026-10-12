@@ -719,7 +719,8 @@ def test_v40_cascade_audit_is_archived_and_does_not_claim_release_is_open():
     text = audit.read_text(encoding="utf-8")
     index = (ROOT / "Documentation" / "README.md").read_text(encoding="utf-8")
 
-    assert "Cleanup #17 validated by #418/#419" in text
+    assert "Cleanup #17 CSS deletion:" in text
+    assert "Cleanup #17 focused cascade test:" in text
     assert "the overall V40 baseline can be locked" not in text
     assert "V40 Reports CSS Cascade Audit" not in index
 
