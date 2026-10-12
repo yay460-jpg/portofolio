@@ -42,6 +42,7 @@ This branch was created directly from the promoted `main` baseline after V40 was
 ## KPI contract dependency audit
 
 - Neutralized legacy V34/V35/V36 release labels in the active KPI engine/foundation metadata. Preserved algorithm and storage-contract revisions as component-level identifiers, and added generic compatibility loading for older version-prefixed KPI store files so historical snapshots are retained.
+- Migrated the shared Dashboard/Reports KPI policy cache from a release-prefixed key to a version-neutral key. Both readers discover legacy version-prefixed keys and normalize valid saved policy into the canonical key without deleting the legacy value.
 
 ## Workspace policy
 
