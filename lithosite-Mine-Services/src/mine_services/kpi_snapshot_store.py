@@ -11,7 +11,7 @@ class KPIHistoryStore:
     """Append-only KPI final snapshot store."""
 
     VERSION = "KPI-SNAPSHOT-STORE-1"
-    LEGACY_VERSION_PATTERN = re.compile(r"^V\\d+-KPI-SNAPSHOT-STORE-1$")
+    LEGACY_VERSION_PATTERN = re.compile(r"^V\d+-KPI-SNAPSHOT-STORE-1$")
 
     def __init__(self, path=None):
         self.path = Path(path) if path else None
