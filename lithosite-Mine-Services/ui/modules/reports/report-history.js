@@ -2,13 +2,24 @@
 (function(global){
 'use strict';
 const KEY='lithosite.mine-services.report-history';
-const LEGACY_KEYS=['lithosite.mine-services.v38.report-history'];
+const LEGACY_KEY_PATTERN=/^lithosite\.mine-services\.v\d+\.report-history$/;
+function legacyKeys(storage){
+  if(!storage||typeof storage.key!=='function')return [];
+  const found=[];
+  const length=Number(storage.length)||0;
+  for(let index=0;index<length;index++){
+    const key=storage.key(index);
+    if(typeof key==='string'&&LEGACY_KEY_PATTERN.test(key))found.push(key);
+  }
+  const versionNumber=key=>Number(key.match(/\.v(\d+)\.report-history$/)?.[1]||0);
+  return found.sort((a,b)=>versionNumber(b)-versionNumber(a));
+}
 function read(){
   try{
     const storage=global.localStorage;
     const current=storage?.getItem(KEY);
     if(current){const value=JSON.parse(current);return Array.isArray(value)?value:[];}
-    for(const legacyKey of LEGACY_KEYS){
+    for(const legacyKey of legacyKeys(storage)){
       const raw=storage?.getItem(legacyKey);
       if(!raw)continue;
       const value=JSON.parse(raw);
@@ -31,5 +42,5 @@ function list(type){
   return type?items.filter(x=>String(x.report_type||'')===String(type).toUpperCase()):items;
 }
 function get(id){return read().find(x=>String(x.snapshot_id)===String(id))||null;}
-global.LithositeReportHistory=Object.freeze({KEY,LEGACY_KEYS,save,list,get});
+global.LithositeReportHistory=Object.freeze({KEY,LEGACY_KEY_PATTERN,save,list,get});
 })(window);

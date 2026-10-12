@@ -14,7 +14,7 @@ ARTIFACT = BASE / "Artifacts/Mine-Services-Operations.html"
 def read(path):
     return path.read_text(encoding="utf-8")
 
-def test_stage32_validation_and_lineage():
+def test_report_validation_and_lineage():
     text = read(VALIDATION)
     assert "LithositeReportValidation" in text
     assert "VALIDATION REQUIRED" in text
@@ -25,13 +25,13 @@ def test_stage32_validation_and_lineage():
     reports = read(REPORTS)
     assert "LithositeReportValidation.apply" in reports
 
-def test_stage33_immutable_snapshot():
+def test_report_snapshot_is_immutable():
     text = read(SNAPSHOT)
     for token in ("immutable:true", "snapshot_id", "fingerprint", "SHA-256", "deepFreeze"):
         assert token in text
     assert "LithositeReportSnapshot" in text
 
-def test_stage34_report_center_issue_flow():
+def test_report_center_issue_flow():
     html = read(ARTIFACT)
     reports = read(REPORTS)
     for token in ("reportCenterValidate", "reportCenterIssue", "reportCenterHistory"):
@@ -39,7 +39,7 @@ def test_stage34_report_center_issue_flow():
     assert "Report issued" in reports
     assert "LithositeReportHistory.save" in reports
 
-def test_stage35_pdf_renderer():
+def test_pdf_renderer_contract():
     text = read(PDF)
     assert "LithositePdfRenderer" in text
     assert "print()" in text
@@ -47,15 +47,18 @@ def test_stage35_pdf_renderer():
     reports = read(REPORTS)
     assert "LithositePdfRenderer.render" in reports
 
-def test_stage36_report_history():
+def test_report_history_storage_contract():
     text = read(HISTORY)
     assert "LithositeReportHistory" in text
     assert "lithosite.mine-services.report-history" in text
-    assert "lithosite.mine-services.v38.report-history" in text
-    assert "LEGACY_KEYS" in text
+    assert r"const LEGACY_KEY_PATTERN=/^lithosite\\.mine-services\\.v\\d+\\.report-history$/" in text
+    assert "function legacyKeys(storage)" in text
+    assert "storage.key(index)" in text
+    assert "for(const legacyKey of legacyKeys(storage))" in text
+    assert "lithosite.mine-services.v38.report-history" not in text
     assert "Only immutable issued snapshots" in text
 
-def test_artifact_stage_order():
+def test_artifact_script_load_order():
     html = read(ARTIFACT)
     order = [
         "daily-report.js",
