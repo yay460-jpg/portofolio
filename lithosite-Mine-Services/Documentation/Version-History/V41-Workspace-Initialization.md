@@ -36,7 +36,7 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Contract audit
 
-- Repointed 23 active UI contract test files across Dashboard, Reports, Data Management, HSE, Maintenance, Map, Operations, Plans/Target Plan, and WorkFront to the canonical runtime HTML. The historical UI snapshot remains archived as evidence only. Where cache dates were stale, checks now assert stable asset paths and script order instead of fixed query dates.
+- Repointed 23 active UI contract test files across Dashboard, Reports, Data Management, HSE, Maintenance, Map, Operations, Plans/Target Plan, and WorkFront to the canonical runtime HTML. The historical UI snapshot remains archived as evidence only. Where cache dates were stale, checks assert stable asset paths and script order instead of fixed query dates.
 - Replaced the stale V37/Stage 26 app-info display with version-neutral workspace metadata and aligned the artifact label with the canonical Mine Services Operations entry point.
 
 ## KPI contract dependency audit
@@ -50,7 +50,7 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Data Management identifiers
 
-- Renamed the Data Management module's `stage15...` DOM identifier namespace to `dataManagement...` across its generated markup, CSS selectors, and tests. The dataset save/load/backup dialog behavior stays owned by the same module; an assertion prevents the legacy namespace from returning.
+- Renamed the Data Management module's release-stage-specific DOM identifier namespace to `dataManagement...` across its generated markup, CSS selectors, and tests. Its tests now use a generic release-marker guard and stable script/style paths rather than literal stage labels or cache dates. The dataset save/load/backup dialog behavior stays owned by the same module.
 
 ## Workspace policy
 
