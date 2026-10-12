@@ -148,7 +148,7 @@
 
   global.LithositeEffectiveTimeContract = Object.freeze({
     id: 'EFFECTIVE_TIME',
-    version: 'V35-EFFECTIVE-TIME-CONTRACT-0.1',
+    version: 'EFFECTIVE-TIME-CONTRACT-0.1',
     summarize
   });
 })(window);

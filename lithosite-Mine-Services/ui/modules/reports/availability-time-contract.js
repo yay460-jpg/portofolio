@@ -1,5 +1,5 @@
 /*
- * V34 — Available Time Contract
+ * Available Time Contract
  *
  * Purpose:
  * - formalize Available Time as a validated timeline-derived layer;

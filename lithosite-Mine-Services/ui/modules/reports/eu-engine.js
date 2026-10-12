@@ -63,7 +63,7 @@
   const api = Object.freeze({
     id: ENGINE_ID,
     name: 'Equipment Effectiveness',
-    version: 'V35-EU-ENGINE-0.1',
+    version: 'EU-ENGINE-0.1',
     status: center.ENGINE_STATUS.ACTIVE,
     calculate
   });

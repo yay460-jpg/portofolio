@@ -1,4 +1,4 @@
-/* V38 Stage 29 — Daily Report Engine.
+/* Daily Report Engine.
  * Pure aggregation layer for management Daily reports.
  * Read-only: consumes prepared source arrays and KPI snapshot; never mutates domain data.
  */
