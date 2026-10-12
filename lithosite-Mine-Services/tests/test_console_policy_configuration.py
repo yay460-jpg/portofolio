@@ -104,27 +104,22 @@ def test_console_reset_warns_before_replacing_policy_selection():
 def test_kpi_policy_storage_uses_version_neutral_key_and_legacy_migration():
     reports = read("ui/modules/reports/reports.js")
     dashboard = read("ui/modules/dashboard/dashboard.js")
-    dashboard_storage = read("ui/modules/dashboard/kpi-policy-storage.js")
+    shared_storage = read("ui/shared/kpi-policy-storage.js")
     html = read("Artifacts/Mine-Services-Operations.html")
 
-    assert "const POLICY_STORAGE_KEY='lithosite.mine-services.kpi-policy';" in reports
-    assert "const LEGACY_POLICY_STORAGE_PATTERN=" in reports
-    assert "function legacyPolicyKeys(storage)" in reports
-    assert "function readPolicyStorage()" in reports
-    assert "if(stored.legacy)persistPolicy(policy);" in reports
-
-    assert "const KEY = 'lithosite.mine-services.kpi-policy';" in dashboard_storage
-    assert "const LEGACY_KEY_PATTERN =" in dashboard_storage
-    assert "function legacyKeys(storage)" in dashboard_storage
-    assert "function read(storage)" in dashboard_storage
-    assert "storage.setItem(KEY, raw)" in dashboard_storage
-
-    assert "LithositeDashboardKpiPolicyStorage" in dashboard
+    assert "const KEY = 'lithosite.mine-services.kpi-policy';" in shared_storage
+    assert "const LEGACY_KEY_PATTERN =" in shared_storage
+    assert "function legacyKeys(storage)" in shared_storage
+    assert "function read(storage)" in shared_storage
+    assert "const POLICY_STORAGE_KEY=policyStorage.KEY;" in reports
+    assert "const kpiPolicyStorage = global.LithositeKpiPolicyStorage;" in dashboard
     assert "kpiPolicyStorage.read(global.localStorage)" in dashboard
+    assert "policyStorage.read(global.localStorage)" in reports
     assert "function legacyKpiPolicyKeys(storage)" not in dashboard
-    policy_storage_script = "../ui/modules/dashboard/kpi-policy-storage.js"
+    assert "function legacyPolicyKeys" not in reports
+    shared_script = "../ui/shared/kpi-policy-storage.js"
     dashboard_script = "../ui/modules/dashboard/dashboard.js"
-    assert policy_storage_script in html
-    assert dashboard_script in html
-    assert html.index(policy_storage_script) < html.index(dashboard_script)
-
+    reports_script = "../ui/modules/reports/reports.js"
+    assert shared_script in html
+    assert html.index(shared_script) < html.index(dashboard_script)
+    assert html.index(shared_script) < html.index(reports_script)

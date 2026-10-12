@@ -4,7 +4,7 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.resolve(__dirname, '..');
-const MODULE = path.join(ROOT, 'ui', 'modules', 'dashboard', 'kpi-policy-storage.js');
+const MODULE = path.join(ROOT, 'ui', 'shared', 'kpi-policy-storage.js');
 const source = fs.readFileSync(MODULE, 'utf8');
 const KEY = 'lithosite.mine-services.kpi-policy';
 const LEGACY_PREFIX = 'lithosite.mine-services.v';
@@ -26,7 +26,7 @@ function loadStore() {
   context.window = context;
   vm.createContext(context);
   vm.runInContext(source, context, { filename: MODULE });
-  return context.LithositeDashboardKpiPolicyStorage;
+  return context.LithositeKpiPolicyStorage;
 }
 
 function sameJson(actual, expected, message) {
@@ -44,7 +44,9 @@ function sameJson(actual, expected, message) {
   });
   const store = loadStore();
 
-  sameJson(store.read(storage), newer, 'Newest valid policy should be selected');
+  const migrated = store.read(storage);
+  sameJson(migrated.policy, newer, 'Newest valid policy should be selected');
+  assert.strictEqual(migrated.legacy, true, 'Legacy reads must be marked as migrated');
   sameJson(JSON.parse(storage.getItem(KEY)), newer, 'Selected policy should be normalized into the canonical key');
   assert.strictEqual(storage.getItem(olderKey), JSON.stringify(older), 'Older compatibility data must remain');
   assert.strictEqual(storage.getItem(newerKey), JSON.stringify(newer), 'Migrated compatibility data must remain');
@@ -61,7 +63,9 @@ function sameJson(actual, expected, message) {
   });
   const store = loadStore();
 
-  sameJson(store.read(storage), fallback, 'Malformed current/newest values must not hide a valid older policy');
+  const migrated = store.read(storage);
+  sameJson(migrated.policy, fallback, 'Malformed current/newest values must not hide a valid older policy');
+  assert.strictEqual(migrated.legacy, true, 'Recovered legacy policy must be marked as migrated');
   sameJson(JSON.parse(storage.getItem(KEY)), fallback, 'Recovered policy should become canonical');
   assert.strictEqual(storage.getItem(corruptNewestKey), '{invalid', 'Corrupt legacy entry must not be deleted');
   assert.strictEqual(storage.getItem(validOlderKey), JSON.stringify(fallback), 'Source legacy policy must remain intact');
@@ -77,7 +81,9 @@ function sameJson(actual, expected, message) {
   });
   const store = loadStore();
 
-  sameJson(store.read(storage), current, 'Valid canonical policy must take precedence');
+  const loaded = store.read(storage);
+  sameJson(loaded.policy, current, 'Valid canonical policy must take precedence');
+  assert.strictEqual(loaded.legacy, false, 'Canonical reads must not be marked as migrated');
   assert.strictEqual(storage.getItem(legacyStorageKey), JSON.stringify(legacy), 'Canonical read must not mutate compatibility data');
 }
 

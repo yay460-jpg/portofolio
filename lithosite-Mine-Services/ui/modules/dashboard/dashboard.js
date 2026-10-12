@@ -4,13 +4,13 @@
   const runtimeClient = global.LithositeRuntimeClient;
   const dashboardStatus = global.LithositeDashboardStatus;
   const planActualCalculator = global.LithositeDashboardPlanActual;
-  const kpiPolicyStorage = global.LithositeDashboardKpiPolicyStorage;
+  const kpiPolicyStorage = global.LithositeKpiPolicyStorage;
 
   if (!runtimeClient) {
     throw new Error('LithositeRuntimeClient is required before dashboard.js');
   }
   if (!kpiPolicyStorage || typeof kpiPolicyStorage.read !== 'function') {
-    throw new Error('LithositeDashboardKpiPolicyStorage is required before dashboard.js');
+    throw new Error('LithositeKpiPolicyStorage is required before dashboard.js');
   }
 
   const state = {
@@ -125,7 +125,8 @@
     const defaultBaseline = foundation.DEFAULT_BASELINE || baselines[0];
     let policy = { baseline: defaultBaseline, euDenominator: 'AVAILABLE', effectiveTimeRule: 'PURE_EFFECTIVE' };
     try {
-      const saved = kpiPolicyStorage.read(global.localStorage);
+      const stored = kpiPolicyStorage.read(global.localStorage);
+      const saved = stored && stored.policy;
       if (saved) {
         const baseline = baselines.find(function (item) { return item.baseline_id === saved.baselineId; });
         policy = {

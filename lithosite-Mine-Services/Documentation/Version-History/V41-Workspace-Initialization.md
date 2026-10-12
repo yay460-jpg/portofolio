@@ -56,7 +56,7 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
-- Dashboard KPI policy migration now has an isolated storage owner and behavioral tests for newest-valid selection, malformed-cache fallback, canonical precedence, and preservation of legacy values.
+- Dashboard and Reports now share one KPI policy storage owner with behavioral tests for newest-valid selection, malformed-cache fallback, canonical precedence, and preservation of legacy values.
 
 - Report-history compatibility audit: malformed canonical or legacy cache entries no longer prevent fallback to the next valid legacy history. Behavioral tests verify newest-valid selection, canonical-key precedence, and non-destructive migration.
 

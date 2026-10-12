@@ -3,12 +3,13 @@
 
   const KEY = 'lithosite.mine-services.kpi-policy';
   const LEGACY_KEY_PATTERN = /^lithosite\.mine-services\.v\d+\.kpi-policy$/;
+  const DENOMINATORS = ['AVAILABLE', 'SCHEDULED'];
+  const EFFECTIVE_RULES = ['PURE_EFFECTIVE', 'STANDARD_CYCLE'];
 
   function legacyKeys(storage) {
     if (!storage || typeof storage.key !== 'function') return [];
     let length = 0;
     try { length = Number(storage.length) || 0; } catch (_) { return []; }
-
     const keys = [];
     for (let index = 0; index < length; index += 1) {
       let key = null;
@@ -23,7 +24,11 @@
     if (typeof raw !== 'string' || !raw) return null;
     try {
       const value = JSON.parse(raw);
-      return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+      if (typeof value.baselineId !== 'string' || !value.baselineId.trim()) return null;
+      if (value.euDenominator != null && !DENOMINATORS.includes(value.euDenominator)) return null;
+      if (value.effectiveTimeRule != null && !EFFECTIVE_RULES.includes(value.effectiveTimeRule)) return null;
+      return value;
     } catch (_) {
       return null;
     }
@@ -31,12 +36,11 @@
 
   function read(storage) {
     if (!storage || typeof storage.getItem !== 'function') return null;
-
     try {
       let currentRaw = null;
       try { currentRaw = storage.getItem(KEY); } catch (_) {}
       const current = parsePolicy(currentRaw);
-      if (current) return current;
+      if (current) return { policy: current, legacy: false };
 
       for (const legacyKey of legacyKeys(storage)) {
         let raw = null;
@@ -44,15 +48,11 @@
         const saved = parsePolicy(raw);
         if (!saved) continue;
         try { storage.setItem(KEY, raw); } catch (_) {}
-        return saved;
+        return { policy: saved, legacy: true };
       }
     } catch (_) {}
     return null;
   }
 
-  global.LithositeDashboardKpiPolicyStorage = Object.freeze({
-    KEY,
-    LEGACY_KEY_PATTERN,
-    read
-  });
+  global.LithositeKpiPolicyStorage = Object.freeze({ KEY, LEGACY_KEY_PATTERN, read });
 })(window);
