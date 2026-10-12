@@ -384,14 +384,14 @@ def test_data_management_card_keeps_only_effective_viewport_bounds():
     css = (ROOT / "ui" / "modules" / "data-management" / "data-management.css").read_text(encoding="utf-8")
     html = ARTIFACT.read_text(encoding="utf-8")
 
-    base = "#stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 108px);max-height:calc(100vh - 96px);overflow:auto;background:#0e1d2e;border:1px solid #35506b;border-radius:12px;box-shadow:0 18px 60px #0009;pointer-events:auto}"
+    base = "#dataManagementModal .dm-card{width:750px;max-width:calc(100vw - 108px);max-height:calc(100vh - 96px);overflow:auto;background:#0e1d2e;border:1px solid #35506b;border-radius:12px;box-shadow:0 18px 60px #0009;pointer-events:auto}"
     assert css.count(base) == 1
     assert "@media (max-width:1100px)" not in css
-    expanded_sidebar = rule_bodies(css, r"body\s*:\s*has\(\.sidebar\.expanded\)\s*#stage15DataModal\s+\.dm-card")
+    expanded_sidebar = rule_bodies(css, r"body\s*:\s*has\(\.sidebar\.expanded\)\s*#dataManagementModal\s+\.dm-card")
     assert len(expanded_sidebar) == 1
     assert "max-width:calc(100vw - 248px)" in expanded_sidebar[0]
     assert "@media (max-width:900px)" in css
-    assert "#stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 96px);max-height:calc(100vh - 78px)}" in css
+    assert "#dataManagementModal .dm-card{width:750px;max-width:calc(100vw - 96px);max-height:calc(100vh - 78px)}" in css
 
     # Removing the identical viewport rule must not disturb selective motion or reduced-motion handling.
     assert "@keyframes dataManagementSlideIn" in css
