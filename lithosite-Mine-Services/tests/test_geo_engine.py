@@ -156,3 +156,9 @@ def test_stage20_point_interaction_contract():
     assert "dashboardTopo3DMeasureLine" in map_engine
     assert "topo3d-measure-line" in css
     assert "this.onRender" in topo_engine
+
+
+def test_topo3d_component_metadata_is_version_neutral():
+    topo = (ROOT / "shared" / "topo3d" / "topo3d-engine.js").read_text(encoding="utf-8")
+    assert "baseline:'Offline DTM 3D Viewer'" in topo
+    assert "V23.2" not in topo

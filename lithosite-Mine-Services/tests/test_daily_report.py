@@ -49,7 +49,7 @@ def test_daily_report_uses_formal_report_engine():
     assert "STATUS.VALIDATION_REQUIRED" in engine
 
 
-def test_v38_artifact_wires_daily_report_engine():
+def test_active_artifact_wires_daily_report_engine():
     html = ARTIFACT.read_text(encoding="utf-8")
     daily = "../ui/modules/reports/daily-report.js?"
     formal = "../ui/modules/reports/report-engine.js?"

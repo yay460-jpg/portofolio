@@ -94,3 +94,9 @@ def test_open_plans_trigger_management_attention_in_monthly_and_weekly_reports()
     assert "decision_required:validation.length>0||openI.length>0||openP.length>0" in MONTHLY_ENGINE
     assert "v.length?'VALIDATION REQUIRED':(openI.length||openP.length)?'ATTENTION':'CLEAR'" in WEEKLY_ENGINE
     assert "open_issues:openI.length,open_plans:openP.length" in WEEKLY_ENGINE
+
+
+def test_report_engine_default_application_metadata_is_version_neutral():
+    report_engine = (ROOT / "ui" / "modules" / "reports" / "report-engine.js").read_text(encoding="utf-8")
+    assert "application_version:o.application_version||'Mine Services Operations'" in report_engine
+    assert "application_version:o.application_version||'V38'" not in report_engine

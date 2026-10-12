@@ -44,6 +44,10 @@ This branch was created directly from the promoted `main` baseline after V40 was
 - Neutralized legacy V34/V35/V36 release labels in the active KPI engine/foundation metadata. Preserved algorithm and storage-contract revisions as component-level identifiers, and added generic compatibility loading for older version-prefixed KPI store files so historical snapshots are retained.
 - Migrated the shared Dashboard/Reports KPI policy cache from a release-prefixed key to a version-neutral key. Both readers discover legacy version-prefixed keys and normalize valid saved policy into the canonical key without deleting the legacy value.
 
+## Runtime source neutralization
+
+- Removed stale V23/V34/V35/V38/V39/Stage labels from active runtime comments, diagnostics, and source metadata. Component-level identifiers and the A.3 schema contract remain intact; report metadata now defaults to the neutral application label.
+
 ## Workspace policy
 
 All new implementation work starts from this branch. Do not add version-specific runtime artifacts. Keep the current runtime entry point canonical and version-neutral. Update version-history documents when a release is completed; do not treat this workspace initialization as a release or baseline lock.
