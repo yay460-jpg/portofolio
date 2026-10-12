@@ -1,4 +1,4 @@
-/* V38 Stage 33 — Immutable Report Snapshot. */
+/* Immutable Report Snapshot. */
 (function(global){
 'use strict';
 function deepFreeze(v){

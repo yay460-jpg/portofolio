@@ -1,4 +1,4 @@
-/* V38 Stage 28 — Report Engine foundation.
+/* Report Engine foundation.
  * Pure report-model layer. It consumes prepared source data and KPI results;
  * it does not read the DOM, mutate domain records, or render PDF.
  */
@@ -116,7 +116,7 @@ function buildReportModel(options){
     scope:o.scope||'ALL',
     status,
     generated_at:generatedAt,
-    application_version:o.application_version||'V38',
+    application_version:o.application_version||'Mine Services Operations',
     source_counts:counts,
     total_source_records:total,
     kpi,

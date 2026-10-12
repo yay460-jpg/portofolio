@@ -1,4 +1,4 @@
-/* V39 Stage 35 — Report PDF print renderer. */
+/* Report PDF print renderer. */
 (function(global){
 'use strict';
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
