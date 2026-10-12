@@ -98,3 +98,22 @@ def test_stage36_console_reset_warns_before_replacing_policy_selection():
     reports = read("ui/modules/reports/reports.js")
     assert "global.confirm('Reset Policy Set to the project default?" in reports
     assert "samePolicy(state.policy,DEFAULT_POLICY)" in reports
+
+
+def test_kpi_policy_storage_uses_version_neutral_key_and_legacy_migration():
+    reports = read("ui/modules/reports/reports.js")
+    dashboard = read("ui/modules/dashboard/dashboard.js")
+
+    assert "const POLICY_STORAGE_KEY='lithosite.mine-services.kpi-policy';" in reports
+    assert "const LEGACY_POLICY_STORAGE_PATTERN=" in reports
+    assert "function legacyPolicyKeys(storage)" in reports
+    assert "function readPolicyStorage()" in reports
+    assert "if(stored.legacy)persistPolicy(policy);" in reports
+
+    assert "const KPI_POLICY_STORAGE_KEY = 'lithosite.mine-services.kpi-policy';" in dashboard
+    assert "const LEGACY_KPI_POLICY_STORAGE_PATTERN =" in dashboard
+    assert "function legacyKpiPolicyKeys(storage)" in dashboard
+    assert "storage.setItem(KPI_POLICY_STORAGE_KEY, raw)" in dashboard
+
+    assert "lithosite.mine-services.v36.kpi-policy" not in reports
+    assert "lithosite.mine-services.v36.kpi-policy" not in dashboard
