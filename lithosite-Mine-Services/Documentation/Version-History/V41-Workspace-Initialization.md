@@ -39,6 +39,10 @@ This branch was created directly from the promoted `main` baseline after V40 was
 - Aligned active Reports UI and PDF contract tests with the canonical runtime HTML instead of the historical UI snapshot. Cache-busting query dates are no longer treated as report contracts.
 - Replaced the stale V37/Stage 26 app-info display with version-neutral workspace metadata and aligned the artifact label with the canonical Mine Services Operations entry point.
 
+## KPI contract dependency audit
+
+- Neutralized legacy V34/V35/V36 release labels in the active KPI engine/foundation metadata. Preserved algorithm and storage-contract revisions as component-level identifiers, and added generic compatibility loading for older version-prefixed KPI store files so historical snapshots are retained.
+
 ## Workspace policy
 
 All new implementation work starts from this branch. Do not add version-specific runtime artifacts. Keep the current runtime entry point canonical and version-neutral. Update version-history documents when a release is completed; do not treat this workspace initialization as a release or baseline lock.

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 import tempfile
 import uuid
 from datetime import datetime, timezone
@@ -7,9 +8,10 @@ from pathlib import Path
 
 
 class KPIHistoryStore:
-    """Append-only KPI final snapshot store for V34 Stage 23."""
+    """Append-only KPI final snapshot store."""
 
-    VERSION = "V34-KPI-SNAPSHOT-STORE-1"
+    VERSION = "KPI-SNAPSHOT-STORE-1"
+    LEGACY_VERSION_PATTERN = re.compile(r"^V\\d+-KPI-SNAPSHOT-STORE-1$")
 
     def __init__(self, path=None):
         self.path = Path(path) if path else None
@@ -37,7 +39,11 @@ class KPIHistoryStore:
             return
         with self.path.open("r", encoding="utf-8") as handle:
             payload = json.load(handle)
-        if payload.get("store_version") != self.VERSION:
+        store_version = payload.get("store_version")
+        if store_version != self.VERSION and not (
+            isinstance(store_version, str)
+            and self.LEGACY_VERSION_PATTERN.fullmatch(store_version)
+        ):
             raise ValueError("KPI_SNAPSHOT_STORE_VERSION")
         records = payload.get("snapshots", [])
         if not isinstance(records, list):

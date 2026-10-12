@@ -2,7 +2,7 @@
   'use strict';
   const center = global.LithositeKPIEngine;
   if (!center) throw new Error('LithositeKPIEngine is required before kpi-foundation.js');
-  const VERSION = 'V35-KPI-FOUNDATION-E2E-0.1';
+  const VERSION = 'KPI-FOUNDATION-E2E-0.1';
   const DEFAULT_BASELINE = Object.freeze({
     baseline_id: 'TB-PROJECT-DAY-0600-1800',
     version: '1.0',
@@ -13,7 +13,7 @@
     effective_from: '2026-01-01',
     effective_to: null,
     status: 'PROJECT_DEFAULT',
-    source: 'V34 Stage 23 prototype'
+    source: 'PROJECT_DEFAULT'
   });
   const TIME_BASELINES=Object.freeze([
     DEFAULT_BASELINE,
@@ -27,7 +27,7 @@
       effective_from:'2026-01-01',
       effective_to:null,
       status:'ALTERNATE_POLICY',
-      source:'V36 Console Policy Set — alternate work timeline; break carried from project baseline until site-specific override'
+      source:'ALTERNATE_WORK_TIMELINE — break carried from project baseline until site-specific override'
     })
   ]);
   function clone(value){return JSON.parse(JSON.stringify(value));}
@@ -397,7 +397,7 @@
     const payload=input||{},calculation=payload.calculation;
     if(!calculation||!calculation.results)return{status:center.KPI_STATUS.INVALID_INPUT,reason:'CALCULATION_REQUIRED'};
     const eventVersions=[];(calculation.equipment||[]).forEach(e=>((e.timeline&&e.timeline.events)||[]).forEach(event=>eventVersions.push({event_id:event.event_id,source_entity:event.source_entity,source_id:event.source_id,version:event.event_version||'V1',validation_status:event.validation_status||'VALID'})));
-    return{snapshot_version:'V35-KPI-SNAPSHOT-1',scope_type:payload.scopeType||'FLEET',scope_id:payload.scopeId||'FLEET:ALL',period_id:payload.periodId||calculation.date,status:calculation.status===center.KPI_STATUS.READY?'FINAL_CANDIDATE':calculation.status,calculation_version:calculation.calculationVersion||VERSION,policy:{id:'V34-PA-UA-BASELINE',version:'1.0',status:'PROJECT_DEFAULT'},kpi_policy:clone(calculation.policy||null),time_baseline:{id:calculation.baseline.baseline_id,version:calculation.baseline.version,status:calculation.baseline.status,shift_start:calculation.baseline.shift_start,shift_end:calculation.baseline.shift_end,breaks:clone(calculation.baseline.breaks)},result:{PA:calculation.results.PA,UA:calculation.results.UA,EU:calculation.results.EU},population:clone(calculation.population),contributing_hours:clone(calculation.contributingHours),event_versions:eventVersions,exclusions:clone(calculation.exclusions||[]),source_fingerprint:fingerprint({scope_id:payload.scopeId||'FLEET:ALL',period_id:payload.periodId||calculation.date,calculation_version:calculation.calculationVersion||VERSION,policy_version:'1.0',baseline_version:calculation.baseline.version,event_versions:eventVersions,result:calculation.results})};
+    return{snapshot_version:'KPI-SNAPSHOT-1',scope_type:payload.scopeType||'FLEET',scope_id:payload.scopeId||'FLEET:ALL',period_id:payload.periodId||calculation.date,status:calculation.status===center.KPI_STATUS.READY?'FINAL_CANDIDATE':calculation.status,calculation_version:calculation.calculationVersion||VERSION,policy:{id:'PA-UA-BASELINE',version:'1.0',status:'PROJECT_DEFAULT'},kpi_policy:clone(calculation.policy||null),time_baseline:{id:calculation.baseline.baseline_id,version:calculation.baseline.version,status:calculation.baseline.status,shift_start:calculation.baseline.shift_start,shift_end:calculation.baseline.shift_end,breaks:clone(calculation.baseline.breaks)},result:{PA:calculation.results.PA,UA:calculation.results.UA,EU:calculation.results.EU},population:clone(calculation.population),contributing_hours:clone(calculation.contributingHours),event_versions:eventVersions,exclusions:clone(calculation.exclusions||[]),source_fingerprint:fingerprint({scope_id:payload.scopeId||'FLEET:ALL',period_id:payload.periodId||calculation.date,calculation_version:calculation.calculationVersion||VERSION,policy_version:'1.0',baseline_version:calculation.baseline.version,event_versions:eventVersions,result:calculation.results})};
   }
   async function finalizeSnapshot(snapshot){const rc=global.LithositeRuntimeClient;if(!rc)throw new Error('LithositeRuntimeClient is required for snapshot finalization');return rc.request({operation:'FINALIZE_KPI',snapshot});}
   async function listSnapshots(scopeId,periodId){const rc=global.LithositeRuntimeClient;if(!rc)throw new Error('LithositeRuntimeClient is required for KPI snapshot history');const result=await rc.request({operation:'READ_KPI_SNAPSHOTS',scope_id:scopeId||null,period_id:periodId||null});return Array.isArray(result.data)?result.data:[];}

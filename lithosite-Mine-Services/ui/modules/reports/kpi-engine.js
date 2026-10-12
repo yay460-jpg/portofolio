@@ -1,5 +1,5 @@
 /*
- * V34 — Equipment KPI Engine Center
+ * Equipment KPI Engine Center
  * Scope: PA / UA / EU / MTBF / MTTR
  *
  * This file is the central orchestration/contract layer for the KPI engines.
@@ -18,7 +18,7 @@
 (function (global) {
   'use strict';
 
-  const VERSION = 'V35-KPI-ENGINE-CENTER-0.1';
+  const VERSION = 'KPI-ENGINE-CENTER-0.1';
 
   const ENGINE_STATUS = Object.freeze({
     ACTIVE: 'ACTIVE',

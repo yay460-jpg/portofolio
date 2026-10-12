@@ -24,7 +24,7 @@ def test_active_artifact_wires_kpi_foundation():
 def test_kpi_foundation_contracts():
     js = FOUNDATION.read_text(encoding="utf-8")
     for term in (
-        "V35-KPI-FOUNDATION-E2E-0.1",
+        "KPI-FOUNDATION-E2E-0.1",
         "buildEquipmentTimeline",
         "calculateEquipment",
         "calculateFleet",

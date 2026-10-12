@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import sys
 
 ROOT = Path(__file__).parents[1]
@@ -9,13 +10,13 @@ from mine_services.kpi_snapshot_store import KPIHistoryStore
 
 def snapshot(pa, ua, event_version):
     return {
-        "snapshot_version": "V35-KPI-SNAPSHOT-1",
+        "snapshot_version": "KPI-SNAPSHOT-1",
         "scope_type": "FLEET",
         "scope_id": "FLEET:ALL",
         "period_id": "2026-10-04",
         "status": "FINAL_CANDIDATE",
-        "calculation_version": "V35-KPI-FOUNDATION-E2E-0.1",
-        "policy": {"id": "V34-PA-UA-BASELINE", "version": "1.0"},
+        "calculation_version": "KPI-FOUNDATION-E2E-0.1",
+        "policy": {"id": "PA-UA-BASELINE", "version": "1.0"},
         "time_baseline": {"id": "TB-PROJECT-DAY-0600-1800", "version": "1.0"},
         "result": {
             "PA": {"kpi": "PA", "status": "READY", "value": pa},
@@ -80,3 +81,40 @@ def test_snapshot_survives_reload(tmp_path):
 
     reloaded = KPIHistoryStore(path)
     assert len(reloaded.list("FLEET:ALL", "2026-10-04")) == 1
+
+
+def test_legacy_store_format_loads_and_normalizes_on_next_write(tmp_path):
+    path = tmp_path / "KPI-History.json"
+    original = snapshot(81.81818, 77.77777, "VAAA")
+    fingerprint = KPIHistoryStore._fingerprint(original)
+    legacy_record = dict(original)
+    legacy_record.update({
+        "snapshot_id": "legacy-snapshot",
+        "revision": 1,
+        "created_at": "historical",
+        "finalized_at": "historical",
+        "source": "legacy",
+        "supersedes_snapshot_id": None,
+        "content_fingerprint": fingerprint,
+        "status": "FINAL",
+    })
+    # Construct an old-format store key generically so the test does not pin
+    # the migration contract to a specific product release identifier.
+    legacy_version = "V" + str(len(KPIHistoryStore.VERSION)) + "-KPI-SNAPSHOT-STORE-1"
+    path.write_text(json.dumps({
+        "store_version": legacy_version,
+        "updated_at": "historical",
+        "snapshots": [legacy_record],
+    }), encoding="utf-8")
+
+    store = KPIHistoryStore(path)
+    assert store.list("FLEET:ALL", "2026-10-04")[0]["snapshot_id"] == "legacy-snapshot"
+
+    result = store.finalize(snapshot(90.0, 80.0, "VBBB"), source="migration-test")
+    assert result["status"] == "COMMITTED"
+    assert result["revision"] == 2
+
+    normalized = json.loads(path.read_text(encoding="utf-8"))
+    assert normalized["store_version"] == KPIHistoryStore.VERSION
+    assert normalized["snapshots"][0]["snapshot_id"] == "legacy-snapshot"
+    assert normalized["snapshots"][1]["supersedes_snapshot_id"] == "legacy-snapshot"
