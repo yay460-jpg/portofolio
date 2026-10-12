@@ -1,7 +1,7 @@
 (function(global){
 'use strict';
 const rc=global.LithositeRuntimeClient;
-if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 14 HSE');
+if(!rc) throw new Error('LithositeRuntimeClient is required before the HSE module');
 
 const state={rows:[],workfronts:[],status:'loading'};
 const LISTS={domain:[],event_type:[],severity:[],status:[]};

@@ -1,7 +1,7 @@
 (function(global){
 'use strict';
 const rc=global.LithositeRuntimeClient;
-if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 13 Plans');
+if(!rc) throw new Error('LithositeRuntimeClient is required before the Plans module');
 
 const state={rows:[],operations:[],workfronts:[],status:'loading',operationsStatus:'loading'};
 let editId=null;

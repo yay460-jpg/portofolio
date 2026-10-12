@@ -1,7 +1,7 @@
 (function(global){
 'use strict';
 const rc=global.LithositeRuntimeClient;
-if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 11 Maintenance');
+if(!rc) throw new Error('LithositeRuntimeClient is required before the Maintenance module');
 const state={rows:[],equipment:[],capacities:[],operations:[],status:'loading'};
 let editId=null;
 let runtimeReady=false;
