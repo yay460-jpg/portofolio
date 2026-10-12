@@ -155,7 +155,7 @@ def test_current_hse_shell_contract():
 
 def test_hse_register_has_a_dedicated_evidence_view_column():
     root = Path(__file__).parents[1]
-    html = (root / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "hse" / "hse.js").read_text(encoding="utf-8")
     css = (root / "ui" / "modules" / "hse" / "hse.css").read_text(encoding="utf-8")
 
