@@ -103,7 +103,7 @@ def test_native_date_and_time_picker_icons_have_dark_theme_contrast():
 
 
 def test_active_and_stage_entrypoints_load_picker_contrast_stylesheet():
-    stage = read(ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html")
+    stage = read(ROOT / "Artifacts" / "Mine-Services-Operations.html")
     expected = 'form-field.css?v=20261012-picker-contrast'
     assert expected in read(ARTIFACT)
     assert expected in stage

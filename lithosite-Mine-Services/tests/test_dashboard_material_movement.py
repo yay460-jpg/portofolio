@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
 DASHBOARD_JS = (ROOT / "ui" / "modules" / "dashboard" / "dashboard.js").read_text(encoding="utf-8")
 DASHBOARD_CSS = (ROOT / "ui" / "modules" / "dashboard" / "dashboard.css").read_text(encoding="utf-8")
 HTML = ARTIFACT.read_text(encoding="utf-8")

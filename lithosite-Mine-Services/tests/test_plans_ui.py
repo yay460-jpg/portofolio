@@ -105,7 +105,7 @@ def test_plans_period_and_numeric_validation():
 
 def test_v27_plans_shell_contract():
     root = Path(__file__).parents[1]
-    html = (root / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     shell = (root / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "plans" / "plans.js").read_text(encoding="utf-8")
 

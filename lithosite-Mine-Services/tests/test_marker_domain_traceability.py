@@ -7,7 +7,7 @@ MARKER_CSS = ROOT / "ui" / "modules" / "map-engine" / "marker-location.css"
 EQUIPMENT_JS = ROOT / "ui" / "modules" / "equipment" / "equipment.js"
 WORKFRONT_JS = ROOT / "ui" / "modules" / "workfront" / "workfront.js"
 HSE_JS = ROOT / "ui" / "modules" / "hse" / "hse.js"
-ARTIFACT = ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
 
 
 def test_stage20_10_marker_click_opens_domain_popup():

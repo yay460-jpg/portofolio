@@ -5,7 +5,7 @@ ROOT = Path(__file__).parents[1]
 PLANS_JS = (ROOT / "ui" / "modules" / "plans" / "plans.js").read_text(encoding="utf-8")
 PLANS_CSS = (ROOT / "ui" / "modules" / "plans" / "plans.css").read_text(encoding="utf-8")
 TABLE_CSS = (ROOT / "ui" / "shared" / "table.css").read_text(encoding="utf-8")
-HTML = (ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html").read_text(encoding="utf-8")
+HTML = (ROOT / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
 
 
 def test_target_plan_has_one_static_unified_register_header():

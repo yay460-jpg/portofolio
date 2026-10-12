@@ -1,6 +1,6 @@
 from pathlib import Path
 
-ARTIFACT = Path(__file__).parents[1] / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html"
+ARTIFACT = Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 EQUIPMENT_JS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.js").read_text(encoding="utf-8")
 EQUIPMENT_CSS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.css").read_text(encoding="utf-8")

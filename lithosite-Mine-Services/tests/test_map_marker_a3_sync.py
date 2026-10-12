@@ -2,7 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MARKER_JS = (ROOT / "ui" / "modules" / "map-engine" / "marker-location.js").read_text(encoding="utf-8")
-ARTIFACT = (ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html").read_text(encoding="utf-8")
+ARTIFACT = (ROOT / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
 
 
 def test_marker_location_migrates_existing_browser_markers_into_a3():

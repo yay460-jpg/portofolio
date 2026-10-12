@@ -1,7 +1,7 @@
 ﻿from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 WORKFRONT_JS = (ROOT / "ui" / "modules" / "workfront" / "workfront.js").read_text(encoding="utf-8")
 WORKFRONT_CSS = (ROOT / "ui" / "modules" / "workfront" / "workfront.css").read_text(encoding="utf-8")

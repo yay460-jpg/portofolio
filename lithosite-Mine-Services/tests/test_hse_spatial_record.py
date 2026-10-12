@@ -4,7 +4,7 @@
 ROOT = Path(__file__).parents[1]
 MARKER_JS = ROOT / "ui" / "modules" / "map-engine" / "marker-location.js"
 HSE_JS = ROOT / "ui" / "modules" / "hse" / "hse.js"
-ARTIFACT = ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
 
 
 def test_stage20_hse_spatial_record_uses_central_marker_model():

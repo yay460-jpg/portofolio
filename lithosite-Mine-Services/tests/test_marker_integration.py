@@ -1,7 +1,7 @@
 ﻿from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
-ARTIFACT = ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
 MAP_ENGINE = ROOT / "ui" / "modules" / "map-engine" / "map-engine.js"
 TOPO_ENGINE = ROOT / "shared" / "topo3d" / "topo3d-engine.js"
 

@@ -6,7 +6,7 @@ def read(path):
     return (ROOT / path).read_text(encoding="utf-8")
 
 def test_stage36_console_policy_set_surface():
-    html = read("Documentation/Version-History/Artifacts/Workspace-UI-Snapshot.html")
+    html = read("Artifacts/Mine-Services-Operations.html")
     reports = read("ui/modules/reports/reports.js")
     foundation = read("ui/modules/reports/kpi-foundation.js")
 
@@ -32,7 +32,7 @@ def test_stage36_console_policy_set_surface():
     assert "PURE_EFFECTIVE" in foundation
 
 def test_stage36_console_contains_policy_only():
-    html = read("Documentation/Version-History/Artifacts/Workspace-UI-Snapshot.html")
+    html = read("Artifacts/Mine-Services-Operations.html")
     start = html.index('<div id="reportsConsoleModal"')
     end = html.index('<div id="reportsHistoryModal"', start)
     modal = html[start:end]

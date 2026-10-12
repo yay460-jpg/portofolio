@@ -135,7 +135,7 @@ def test_hse_closed_with_timestamp_commits():
 
 def test_current_hse_shell_contract():
     root = Path(__file__).parents[1]
-    html = (root / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html").read_text(encoding="utf-8")
+    html = (root / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     shell = (root / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
     module = (root / "ui" / "modules" / "hse" / "hse.js").read_text(encoding="utf-8")
 

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-HTML = (ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html").read_text(encoding="utf-8")
+HTML = (ROOT / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
 PLANS_JS = (ROOT / "ui" / "modules" / "plans" / "plans.js").read_text(encoding="utf-8")
 PLANS_CSS = (ROOT / "ui" / "modules" / "plans" / "plans.css").read_text(encoding="utf-8")
 EVIDENCE_JS = (ROOT / "ui" / "shared" / "evidence" / "evidence.js").read_text(encoding="utf-8")
