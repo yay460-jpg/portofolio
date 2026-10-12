@@ -1,6 +1,6 @@
 from mine_services import ApplicationService, PersistenceStore, RuntimeInterface
 
-def test_stage16_reports_read_aggregation():
+def test_reports_read_aggregation():
     app = ApplicationService(PersistenceStore())
 
     equipment = {
@@ -13,8 +13,8 @@ def test_stage16_reports_read_aggregation():
         "location":"Pit North","responsible":"Reports Test","status":"Active"
     }
 
-    assert app.create("Equipment", equipment, "stage16-report-wf-create")["status"] == "COMMITTED"
-    assert app.create("WorkFront", workfront, "stage16-report-wf-create-2")["status"] == "COMMITTED"
+    assert app.create("Equipment", equipment, "reports-wf-create")["status"] == "COMMITTED"
+    assert app.create("WorkFront", workfront, "reports-wf-create-2")["status"] == "COMMITTED"
 
     runtime = RuntimeInterface(application=app)
 
@@ -27,7 +27,7 @@ def test_stage16_reports_read_aggregation():
     assert counts["WorkFront"] == 1
     assert sum(counts.values()) == 2
 
-def test_stage16_reports_search_filter_contract():
+def test_reports_search_filter_contract():
     from pathlib import Path
 
     text = (Path(__file__).resolve().parents[1] / "ui" / "modules" / "reports" / "reports.js").read_text(encoding="utf-8")

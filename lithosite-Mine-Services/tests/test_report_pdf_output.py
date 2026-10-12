@@ -4,7 +4,7 @@ import ast
 ROOT = Path(__file__).resolve().parents[1]
 SERVER = ROOT / "desktop-host" / "server.py"
 SNAPSHOT = ROOT / "ui" / "modules" / "reports" / "report-snapshot.js"
-ARTIFACT = ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
 
 SERVER_TEXT = SERVER.read_text(encoding="utf-8")
 SNAPSHOT_TEXT = SNAPSHOT.read_text(encoding="utf-8")
@@ -65,8 +65,8 @@ def test_issued_snapshot_has_non_draft_id_and_incremented_revision():
     assert "copy.snapshot_id=copy.report_id+'@r'+revision;" in SNAPSHOT_TEXT
 
 
-def test_report_snapshot_script_uses_fresh_browser_cache_key():
-    assert "report-snapshot.js?v=20261009" in ARTIFACT_TEXT
+def test_active_artifact_loads_report_snapshot_script():
+    assert "../ui/modules/reports/report-snapshot.js" in ARTIFACT_TEXT
 def test_appendix_evidence_is_rendered_as_compact_traceability_table():
     assert "def render_evidence_table(value: dict)" in SERVER_TEXT
     assert 'if name_upper == "APPENDIX / EVIDENCE" and isinstance(value, dict):' in SERVER_TEXT
@@ -78,7 +78,7 @@ def test_pdf_branding_is_version_neutral():
     assert 'Lithosite Mine Services · {report_type} Report' in SERVER_TEXT
     assert "Operational Management Report</div>" in (ROOT / "ui" / "modules" / "reports" / "report-pdf.js").read_text(encoding="utf-8")
     assert "Lithosite Mine Services</b> · Report Snapshot" in (ROOT / "ui" / "modules" / "reports" / "report-pdf.js").read_text(encoding="utf-8")
-    assert "report-pdf.js?v=20261017" in ARTIFACT_TEXT
+    assert "../ui/modules/reports/report-pdf.js" in ARTIFACT_TEXT
 def test_monthly_previous_month_trend_formats_current_kpis():
     assert 'name_upper == "TREND VS PREVIOUS MONTH"' in SERVER_TEXT
     assert 'display_value(key, current_kpi[key])' in SERVER_TEXT

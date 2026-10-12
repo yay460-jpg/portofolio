@@ -119,4 +119,4 @@ assert.equal(snapshot.time_baseline.version, '1.0');
 assert(snapshot.event_versions.length >= 1);
 assert(snapshot.source_fingerprint);
 
-console.log('V34 STAGE 23 KPI FOUNDATION TEST PASS');
+console.log('KPI FOUNDATION TEST PASS');

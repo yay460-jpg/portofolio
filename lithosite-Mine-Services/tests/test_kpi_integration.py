@@ -10,10 +10,10 @@ SERVER = ROOT / "desktop-host" / "server.py"
 BAT = ROOT / "desktop-host" / "start-mine-services.bat"
 
 
-def test_stage23_artifact_wires_foundation():
+def test_active_artifact_wires_kpi_foundation():
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "kpi-foundation.js?v=20261006" in html
-    assert "reports.css?v=20261012-cascade-owner-17" in html
+    assert "../ui/modules/reports/kpi-foundation.js" in html
+    assert "../ui/modules/reports/reports.css" in html
     assert 'class="report-body"' in html
     assert "report-operational-panel" in html
     assert 'id="equipmentKpiRows"' in html
@@ -21,7 +21,7 @@ def test_stage23_artifact_wires_foundation():
     assert 'id="reportsKpiDate"' in html
 
 
-def test_stage23_foundation_contracts():
+def test_kpi_foundation_contracts():
     js = FOUNDATION.read_text(encoding="utf-8")
     for term in (
         "V35-KPI-FOUNDATION-E2E-0.1",
@@ -35,13 +35,13 @@ def test_stage23_foundation_contracts():
         assert term in js
 
 
-def test_stage23_kpi_engine_allows_pa_ua_while_eu_pending():
+def test_kpi_engine_allows_pa_ua_while_eu_pending():
     js = KPI_ENGINE.read_text(encoding="utf-8")
     assert "requireEffectiveness: false" in js
     assert "config.requireEffectiveness" in js
 
 
-def test_stage23_runtime_dispatch():
+def test_runtime_dispatch_contract():
     adapter = ADAPTER.read_text(encoding="utf-8")
     runtime = RUNTIME.read_text(encoding="utf-8")
     assert '"FINALIZE_KPI"' in adapter
@@ -50,7 +50,7 @@ def test_stage23_runtime_dispatch():
     assert "def read_kpi_snapshots" in runtime
 
 
-def test_stage23_default_entry():
+def test_default_entry_is_canonical():
     server = SERVER.read_text(encoding="utf-8")
     bat = BAT.read_text(encoding="utf-8")
     assert "/Artifacts/Mine-Services-Operations.html" in server

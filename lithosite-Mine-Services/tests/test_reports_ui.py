@@ -1,12 +1,12 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ARTIFACT = ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html"
+ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
 SHELL = ROOT / "ui" / "shared" / "shell-navigation.js"
 MODULE = ROOT / "ui" / "modules" / "reports" / "reports.js"
 
 
-def test_stage16_reports_artifact_contract():
+def test_active_reports_artifact_contract():
     text = ARTIFACT.read_text(encoding="utf-8")
     assert 'id="reportsScreen"' in text
     assert "Reports" in text
@@ -14,14 +14,14 @@ def test_stage16_reports_artifact_contract():
     assert "Operational Data Summary" in text
 
 
-def test_stage16_reports_shell_contract():
+def test_reports_shell_contract():
     text = SHELL.read_text(encoding="utf-8")
     assert "Reports: 'reportsScreen'" in text
     assert "'Reports'" in text
     assert "lithosite-active-screen" in text
 
 
-def test_stage16_reports_runtime_contract():
+def test_reports_runtime_contract():
     text = MODULE.read_text(encoding="utf-8")
     assert "LithositeRuntimeClient" in text
     assert "for(const entity of entities)" in text
