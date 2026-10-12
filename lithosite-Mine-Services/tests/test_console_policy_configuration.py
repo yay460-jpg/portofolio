@@ -87,7 +87,8 @@ def test_stage36_equipment_unit_column():
 def test_stage36_console_policy_persists_across_reload():
     reports = read("ui/modules/reports/reports.js")
     assert "POLICY_STORAGE_KEY" in reports
-    assert "global.localStorage.getItem(POLICY_STORAGE_KEY)" in reports
+    assert "function readPolicyStorage()" in reports
+    assert "storage?.getItem(POLICY_STORAGE_KEY)" in reports
     assert "global.localStorage.setItem(POLICY_STORAGE_KEY" in reports
     assert "state.policy=loadStoredPolicy()" in reports
     assert "persistPolicy(state.policy)" in reports
