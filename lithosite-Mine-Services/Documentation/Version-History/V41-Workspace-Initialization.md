@@ -54,6 +54,10 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 - Renamed the Data Management module's release-stage-specific DOM identifier namespace to `dataManagement...` across its generated markup, CSS selectors, and tests. Its tests now use a generic release-marker guard and stable script/style paths rather than literal stage labels or cache dates. The dataset save/load/backup dialog behavior stays owned by the same module.
 
+## Compatibility audit
+
+- Report-history compatibility audit: malformed canonical or legacy cache entries no longer prevent fallback to the next valid legacy history. Behavioral tests verify newest-valid selection, canonical-key precedence, and non-destructive migration.
+
 ## Workspace policy
 
 All new implementation work starts from this branch. Do not add version-specific runtime artifacts. Keep the current runtime entry point canonical and version-neutral. Update version-history documents when a release is completed; do not treat this workspace initialization as a release or baseline lock.

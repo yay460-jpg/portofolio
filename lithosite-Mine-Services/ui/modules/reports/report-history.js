@@ -18,12 +18,21 @@ function read(){
   try{
     const storage=global.localStorage;
     const current=storage?.getItem(KEY);
-    if(current){const value=JSON.parse(current);return Array.isArray(value)?value:[];}
+    if(current){
+      try{
+        const value=JSON.parse(current);
+        if(Array.isArray(value))return value;
+      }catch(_){}
+    }
     for(const legacyKey of legacyKeys(storage)){
       const raw=storage?.getItem(legacyKey);
       if(!raw)continue;
-      const value=JSON.parse(raw);
-      if(Array.isArray(value)){try{storage?.setItem(KEY,JSON.stringify(value));}catch(e){}return value;}
+      let value;
+      try{value=JSON.parse(raw);}catch(_){continue;}
+      if(Array.isArray(value)){
+        try{storage?.setItem(KEY,JSON.stringify(value));}catch(e){}
+        return value;
+      }
     }
     return [];
   }catch(e){return [];}
