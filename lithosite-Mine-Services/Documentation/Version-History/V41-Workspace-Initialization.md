@@ -28,7 +28,7 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## V41 housekeeping record
 
-- Normalized 48 active test filenames from historical Stage/Vxx labels to feature-oriented names. Test bodies were not renamed or rewritten as part of the path normalization.
+- Normalized 48 active test filenames from historical Stage/Vxx labels to feature-oriented names. Added a CI guard to prevent version-labelled test filenames from returning.
 - Updated the workspace baseline guard to verify the active artifact directory contains exactly the canonical HTML entry point without hard-coding retired artifact filenames.
 - Corrected malformed single-byte dash characters in two historical Stage 16 Markdown records to valid UTF-8, preserving the surrounding evidence text.
 - Generalized report-history fallback discovery to recognize legacy versioned cache-key patterns while keeping the active storage key version-neutral.

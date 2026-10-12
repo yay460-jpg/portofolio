@@ -5,6 +5,7 @@ ROOT = Path(__file__).parents[1]
 ACTIVE_ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
 ARTIFACTS_DIR = ROOT / "Artifacts"
 BASELINE_DOCS = ROOT / "Documentation" / "Version-History" / "Baseline"
+VERSIONED_TEST_FILENAME = re.compile(r"(?i)(?:^|[_-])(?:stage[-_]?\d+|v\d+(?:\.\d+)*)(?=[_.-]|$)")
 
 
 def test_runtime_has_one_version_neutral_canonical_artifact():
@@ -33,3 +34,15 @@ def test_locked_baseline_records_the_release_decision():
     assert "Full Pytest #" in document
     assert "Plan vs Actual" in document
     assert "HOLD" in document
+
+
+def test_active_test_filenames_are_version_neutral():
+    tests_dir = ROOT / "tests"
+    offenders = [
+        path.name
+        for path in tests_dir.iterdir()
+        if path.is_file()
+        and path.name.startswith("test_")
+        and VERSIONED_TEST_FILENAME.search(path.name)
+    ]
+    assert not offenders, f"Versioned test filenames remain: {offenders}"
