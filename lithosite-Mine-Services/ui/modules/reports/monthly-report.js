@@ -1,4 +1,4 @@
-/* V38 Stage 31 — Monthly Management Report Engine.
+/* Monthly Management Report Engine.
  * Pure aggregation layer for management Monthly reports.
  * Read-only: consumes prepared source arrays and KPI snapshot; never mutates domain data.
  */

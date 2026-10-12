@@ -255,7 +255,7 @@ def test_stage20_marker_location_placement_uses_explicit_coordinates():
     assert "elevation:Number(elevation)" in js
 
 
-def test_stage20_marker_location_is_integrated_into_v32_overlay_layer():
+def test_marker_location_is_integrated_into_overlay_layer():
     html = ARTIFACT.read_text(encoding="utf-8")
 
     assert "marker-location.js" in html
@@ -263,7 +263,7 @@ def test_stage20_marker_location_is_integrated_into_v32_overlay_layer():
     assert html.index("../ui/modules/map-engine/marker-location.js?v=20261017") < html.index("../ui/modules/map-engine/map-engine.js?v=20261006")
 
 
-def test_stage20_marker_location_css_is_namespaced_and_ready_for_v32_overlay():
+def test_marker_location_css_is_namespaced_for_overlay():
     css = MARKER_CSS.read_text(encoding="utf-8")
 
     assert ".map-location-marker" in css
@@ -272,7 +272,7 @@ def test_stage20_marker_location_css_is_namespaced_and_ready_for_v32_overlay():
     assert ".map-location-marker.is-selected" in css
     assert ".map-location-marker__icon" in css
     assert ".map-location-marker__icon" in css
-    assert "Loaded by V32 Stage 20 as the centralized marker overlay presentation layer." in css
+    assert "Centralized marker overlay presentation layer." in css
 
 
 def test_stage20_marker_location_has_operational_active_limits_by_type():

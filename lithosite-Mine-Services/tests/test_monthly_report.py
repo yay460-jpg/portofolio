@@ -11,7 +11,7 @@ def read(path):
 def test_monthly_engine_contract():
     text = read(ENGINE)
     for value in [
-        "V38 Stage 31",
+        "Monthly Management Report Engine",
         "buildMonthlyReport",
         "Management Executive Summary",
         "Monthly KPI",
