@@ -70,8 +70,9 @@ def test_dataManagement_uses_lithosite_owned_dataset_dialogs():
 
 
 def test_data_management_dom_identifiers_are_version_neutral():
-    module = read("ui/modules/data-management/data-management.js")
-    css = read("ui/modules/data-management/data-management.css")
+    root = Path(__file__).resolve().parents[1]
+    module = (root / "ui" / "modules" / "data-management" / "data-management.js").read_text(encoding="utf-8")
+    css = (root / "ui" / "modules" / "data-management" / "data-management.css").read_text(encoding="utf-8")
     assert "stage15" not in module
     assert "stage15" not in css
     assert "dataManagementModal" in module
