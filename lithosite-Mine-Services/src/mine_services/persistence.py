@@ -87,7 +87,7 @@ class PersistenceStore:
         raise ValueError("SCHEMA_VERSION:MISSING")
 
     def _migrate_a3_checker_support_headers(self, workbook):
-        """Upgrade the existing A3 workbook headers for the V38 Operations/Checker support layer.
+        """Upgrade the existing A3 workbook headers for the Operations/Checker support layer.
 
         This is intentionally narrow: only the known pre-support A3 headers are migrated.
         Existing row values are preserved; new support fields start blank.

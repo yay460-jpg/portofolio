@@ -1,6 +1,6 @@
 /*
  * Lithosite Shared Topo3D Engine
- * Source baseline: Offline DTM 3D Viewer V23.2 supplied by project.
+ * Source baseline: Offline DTM 3D Viewer supplied by project.
  * UI-independent: no document IDs, no Member/Master layout, no global singleton state.
  * One engine instance owns one canvas + one WebGL context + one terrain model.
  */
@@ -184,5 +184,5 @@
   Topo3DEngine.prototype.clear=function(){var gl=this.gl;if(gl){[this.pb,this.nb,this.ab,this.ib,this.wb].forEach(function(b){if(b)gl.deleteBuffer(b);});}this.pb=this.nb=this.ab=this.ib=this.wb=null;this.wireIdx=null;this.ic=0;this.model=null;this._sourcePackage=null;this.angleX=.44;this.angleY=-.38;this.zoom=1;this.panX=0;this.panY=0;this.view='3d';this.mode='shaded';this.onStatus('Topography cleared. Menunggu data topografi…');};
   Topo3DEngine.prototype.destroy=function(){this.destroyed=true;if(this.raf)cancelAnimationFrame(this.raf);this.raf=null;window.removeEventListener('resize',this._boundResize);if(this.canvas){this.canvas.removeEventListener('pointerdown',this._boundPointerDown);this.canvas.removeEventListener('pointermove',this._boundPointerMove);this.canvas.removeEventListener('pointerup',this._boundPointerUp);this.canvas.removeEventListener('pointercancel',this._boundPointerUp);this.canvas.removeEventListener('wheel',this._boundWheel);}if(this.gl){[this.pb,this.nb,this.ab,this.ib,this.wb].forEach(function(b){if(b)this.gl.deleteBuffer(b);},this);if(this.prog)this.gl.deleteProgram(this.prog);}this.model=null;this.gl=null;this.prepared=false;};
 
-  global.LithositeTopo3D={create:function(options){return new Topo3DEngine(options||{});},version:'1.0.0',baseline:'V23.2'};
+  global.LithositeTopo3D={create:function(options){return new Topo3DEngine(options||{});},version:'1.0.0',baseline:'Offline DTM 3D Viewer'};
 })(window);

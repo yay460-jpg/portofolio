@@ -1,4 +1,4 @@
-"""Stage 20 A.3 MapMarker schema helpers used by validation.
+"""A.3 MapMarker schema helpers used by validation.
 
 A.3 is the only active runtime schema. This module keeps marker-specific
 rules isolated from HSE/domain validation rules.

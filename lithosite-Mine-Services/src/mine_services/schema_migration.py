@@ -1,8 +1,8 @@
-"""Safe A.2 -> A.3 workbook migration for the active V38 schema.
+"""Safe A.2 -> A.3 workbook migration for the active schema.
 
 The migration never mutates the source workbook. It creates a separate target
-workbook, validates the A.2 source contract, adds the V38 GlobalCapacity and
-Checker sheets, appends V38 capacity fields, adds an empty MapMarker sheet,
+workbook, validates the A.2 source contract, adds GlobalCapacity and
+Checker sheets, appends capacity fields, adds an empty MapMarker sheet,
 updates _System.schema_version to A.3, and validates the resulting structure.
 """
 
@@ -144,7 +144,7 @@ def migrate_a2_to_a3(source_path, target_path):
     workbook = load_workbook(source)
     _validate_a2_source(workbook)
 
-    # Add V38 A.3 sheets and append the new headers to existing A2 sheets.
+    # Add A.3 sheets and append the new headers to existing A2 sheets.
     for entity in ("GlobalCapacity", "Checker"):
         ws = workbook.create_sheet(entity, index=workbook.sheetnames.index("Operations"))
         ws.append(A3_HEADERS_ADDITIONS[entity])
@@ -158,7 +158,7 @@ def migrate_a2_to_a3(source_path, target_path):
                 ws.cell(row=1, column=ws.max_column + 1, value=header)
                 current.append(header)
 
-    # Canonical V38 terminology replaces the historical A2 "unit" field.
+    # Canonical terminology replaces the historical A2 "unit" field.
     operations_headers = [cell.value for cell in workbook["Operations"][1]]
     if "unit" in operations_headers and "measurement" not in operations_headers:
         workbook["Operations"].cell(
