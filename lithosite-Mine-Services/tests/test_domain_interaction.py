@@ -51,10 +51,10 @@ def test_stage20_9_domain_screens_expose_show_on_map_action():
 def test_stage20_9_v32_loads_current_domain_interaction_scripts():
     html = ARTIFACT.read_text(encoding="utf-8")
     for marker in (
-        "../ui/modules/map-engine/marker-location.js?v=20261017",
-        "../ui/modules/equipment/equipment.js?v=20261109",
-        "../ui/modules/workfront/workfront.js?v=20261107",
-        "../ui/modules/hse/hse.js?v=20261006",
+        "../ui/modules/map-engine/marker-location.js",
+        "../ui/modules/equipment/equipment.js",
+        "../ui/modules/workfront/workfront.js",
+        "../ui/modules/hse/hse.js",
     ):
         assert marker in html
 

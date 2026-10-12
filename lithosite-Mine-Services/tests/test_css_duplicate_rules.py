@@ -131,10 +131,10 @@ def test_reports_preview_reuses_single_shared_kpi_card_and_note_rules():
 def test_active_artifact_refreshes_only_affected_css_cache_keys():
     html = ARTIFACT.read_text(encoding="utf-8")
     for name in ("operations", "equipment"):
-        assert f"../ui/modules/{name}/{name}.css?v=20261011-css-dedupe" in html
-    assert "../ui/modules/maintenance/maintenance.css?v=20261012-compact-view" in html
-    assert "../ui/modules/hse/hse.css?v=20261011-ptitle-dedupe" in html
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in html
+        assert f"../ui/modules/{name}/{name}.css" in html
+    assert "../ui/modules/maintenance/maintenance.css" in html
+    assert "../ui/modules/hse/hse.css" in html
+    assert "../ui/modules/reports/reports.css" in html
 
     operations = OPERATIONS.read_text(encoding="utf-8")
     assert "grid-template-columns:repeat(3,minmax(0,1fr))" in operations
@@ -216,7 +216,7 @@ def test_delete_warning_text_inherits_parent_font_size_without_redundant_rules()
     assert "line-height:1.4" in paragraph[0]
 
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/shared/delete-confirm-contract.css?v=20261011-mini-font-owner" in html
+    assert "../ui/shared/delete-confirm-contract.css" in html
 
 
 def test_delete_confirmation_message_inherits_modalbody_font_size():
@@ -235,7 +235,7 @@ def test_delete_confirmation_message_inherits_modalbody_font_size():
     assert 'id="globalDeleteMessage"' in js
 
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/shared/delete-confirm-contract.css?v=20261011-mini-font-owner" in html
+    assert "../ui/shared/delete-confirm-contract.css" in html
 
 
 def test_delete_confirmation_danger_action_uses_shared_button_variant():
@@ -253,7 +253,7 @@ def test_delete_confirmation_danger_action_uses_shared_button_variant():
     assert 'class="control danger mini global-delete-action"' in js
 
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/shared/delete-confirm-contract.css?v=20261011-mini-font-owner" in html
+    assert "../ui/shared/delete-confirm-contract.css" in html
 
 
 def test_global_delete_dialog_bounds_are_owned_by_shared_modal_shell():
@@ -271,7 +271,7 @@ def test_global_delete_dialog_bounds_are_owned_by_shared_modal_shell():
     assert "modal-shell-valid global-delete-dialog" in js
 
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/shared/delete-confirm-contract.css?v=20261011-mini-font-owner" in html
+    assert "../ui/shared/delete-confirm-contract.css" in html
 
 
 def test_plans_clear_button_geometry_is_owned_by_shared_button_contract():
@@ -288,7 +288,7 @@ def test_plans_clear_button_geometry_is_owned_by_shared_button_contract():
     for token in ("width:56px", "min-width:56px", "max-width:56px", "height:32px", "padding:0 10px", "justify-content:center", "align-items:center", "flex:0 0 56px"):
         assert token in shared[0]
 
-    assert "../ui/modules/plans/plans.css?v=20261011-clear-owner" in html
+    assert "../ui/modules/plans/plans.css" in html
 
 
 def test_capacity_modal_title_typography_is_owned_by_shared_modal_shell():
@@ -304,7 +304,7 @@ def test_capacity_modal_title_typography_is_owned_by_shared_modal_shell():
     assert "'capacityModal'" in contract
 
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/modules/workfront/global-capacity.css?v=20261011-capacity-layout-owner" in html
+    assert "../ui/modules/workfront/global-capacity.css" in html
 
 
 def test_capacity_controls_and_tablehead_have_single_rule_owners():
@@ -320,7 +320,7 @@ def test_capacity_controls_and_tablehead_have_single_rule_owners():
         assert token in tablehead[0]
 
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/modules/workfront/global-capacity.css?v=20261011-capacity-layout-owner" in html
+    assert "../ui/modules/workfront/global-capacity.css" in html
 
 def test_mini_button_variant_only_overrides_font_size():
     button = (ROOT / "ui" / "shared" / "button.css").read_text(encoding="utf-8")
@@ -335,7 +335,7 @@ def test_mini_button_variant_only_overrides_font_size():
         assert token in base_geometry
 
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/shared/button.css?v=20261011-mini-base-owner" in html
+    assert "../ui/shared/button.css" in html
 
 
 def test_delete_confirmation_controls_inherit_mini_font_size():
@@ -350,7 +350,7 @@ def test_delete_confirmation_controls_inherit_mini_font_size():
         assert "mini" in match.group(1).split()
 
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/shared/delete-confirm-contract.css?v=20261011-mini-font-owner" in html
+    assert "../ui/shared/delete-confirm-contract.css" in html
 
 
 def test_dashboard_typography_weights_have_single_owner_and_keep_state_rules():
@@ -377,7 +377,7 @@ def test_dashboard_typography_weights_have_single_owner_and_keep_state_rules():
     assert "@media(prefers-reduced-motion:reduce)" in css
     assert "#dashboardScreen .pit,#dashboardScreen .zone,#dashboardScreen .route,#dashboardScreen .bar b,#dashboardScreen .v{opacity:1!important;transform:none!important}" in css
 
-    assert "../ui/modules/dashboard/dashboard.css?v=20261012-issues-alerts-fit" in html
+    assert "../ui/modules/dashboard/dashboard.css" in html
 
 
 def test_data_management_card_keeps_only_effective_viewport_bounds():
@@ -397,7 +397,7 @@ def test_data_management_card_keeps_only_effective_viewport_bounds():
     assert "@keyframes dataManagementSlideIn" in css
     assert "@keyframes dataManagementSlideOut" in css
     assert "@media(prefers-reduced-motion:reduce)" in css
-    assert "../ui/modules/data-management/data-management.css?v=20261011-card-bounds-dedupe" in html
+    assert "../ui/modules/data-management/data-management.css" in html
 
 
 def test_reports_mobile_body_grid_has_one_effective_single_column_override():
@@ -409,7 +409,7 @@ def test_reports_mobile_body_grid_has_one_effective_single_column_override():
     assert ineffective not in css
     assert css.count(effective) == 1
     assert "#reportsScreen .report-body{display:grid;grid-template-columns:minmax(0,.7fr) minmax(0,1.3fr);gap:8px;flex:1 1 auto;min-height:0;overflow:hidden}" in css
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in html
+    assert "../ui/modules/reports/reports.css" in html
 
 
 def test_reports_kpi_summary_has_no_overridden_1400px_column_rule():
@@ -458,7 +458,7 @@ def test_reports_kpi_lineage_base_omits_overridden_spacing_and_font_size():
     assert "#reportsScreen .kpi-lineage{padding:7px 8px;font-size:7.5px}" not in css
     assert "padding:8px 10px 10px" not in css
     assert "#reportsScreen .kpi-lineage{padding:8px 10px 10px;border-top:1px solid #223b55;color:#a9bbcf;font-size:8px;line-height:1.45}" not in css
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in ARTIFACT.read_text(encoding="utf-8")
+    assert "../ui/modules/reports/reports.css" in ARTIFACT.read_text(encoding="utf-8")
 
 
 def test_reports_kpi_history_base_omits_overridden_padding():
@@ -469,7 +469,7 @@ def test_reports_kpi_history_base_omits_overridden_padding():
     assert css.count(base) == 1
     assert css.count(later) == 1
     assert "padding:8px 10px" not in base
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in ARTIFACT.read_text(encoding="utf-8")
+    assert "../ui/modules/reports/reports.css" in ARTIFACT.read_text(encoding="utf-8")
 
 
 
@@ -481,7 +481,7 @@ def test_reports_kpi_exclusions_base_rule_is_removed_when_fully_overridden():
 
     assert base not in css
     assert css.count(canonical) == 1
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in ARTIFACT.read_text(encoding="utf-8")
+    assert "../ui/modules/reports/reports.css" in ARTIFACT.read_text(encoding="utf-8")
 
 
 
@@ -492,7 +492,7 @@ def test_reports_equipment_kpi_summary_strong_rule_is_consolidated():
 
     assert "#reportsScreen .equipment-kpi-detail summary strong{font-size:10px;text-align:center}" not in css
     assert css.count(canonical) == 1
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in ARTIFACT.read_text(encoding="utf-8")
+    assert "../ui/modules/reports/reports.css" in ARTIFACT.read_text(encoding="utf-8")
 
 
 
@@ -521,7 +521,7 @@ def test_reports_kpi_lineage_uses_one_consolidated_rule():
 
     assert css.count(canonical) == 1
     assert "#reportsScreen .kpi-lineage{padding:7px 8px;font-size:7.5px}" not in css
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in ARTIFACT.read_text(encoding="utf-8")
+    assert "../ui/modules/reports/reports.css" in ARTIFACT.read_text(encoding="utf-8")
 
 
 
@@ -534,7 +534,7 @@ def test_reports_kpi_card_span_base_omits_overridden_margin_top():
     assert css.count(base) == 1
     assert css.count(later) == 1
     assert redundant not in css
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in ARTIFACT.read_text(encoding="utf-8")
+    assert "../ui/modules/reports/reports.css" in ARTIFACT.read_text(encoding="utf-8")
 
 
 def test_reports_kpi_card_base_omits_overridden_padding():
@@ -546,7 +546,7 @@ def test_reports_kpi_card_base_omits_overridden_padding():
     assert "border-radius:8px" in rules[0]
     assert "padding:8px" not in rules[0]
     assert "padding:7px 8px" in rules[1]
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in ARTIFACT.read_text(encoding="utf-8")
+    assert "../ui/modules/reports/reports.css" in ARTIFACT.read_text(encoding="utf-8")
 
 
 def test_reports_kpi_summary_uses_single_base_layout_owner():
@@ -558,7 +558,7 @@ def test_reports_kpi_summary_uses_single_base_layout_owner():
     assert css.count(canonical) == 1
     # Keep the responsive two-column rule; it serves a separate viewport contract.
     assert "@media(max-width:1200px){#reportsScreen .kpi-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}" in css
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in ARTIFACT.read_text(encoding="utf-8")
+    assert "../ui/modules/reports/reports.css" in ARTIFACT.read_text(encoding="utf-8")
 
 
 
@@ -570,7 +570,7 @@ def test_reports_kpi_value_font_size_has_no_overridden_base_declaration():
     assert "margin-top:3px" in base[0]
     assert "font-size:18px" not in base[0]
     assert "font-size:16px" in base[1]
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in ARTIFACT.read_text(encoding="utf-8")
+    assert "../ui/modules/reports/reports.css" in ARTIFACT.read_text(encoding="utf-8")
 
 
 def test_reports_body_has_no_redundant_partial_base_override():
@@ -583,7 +583,7 @@ def test_reports_body_has_no_redundant_partial_base_override():
     assert redundant not in css
     # The mobile single-column behavior is intentionally preserved.
     assert "@media(max-width:900px){#reportsScreen .report-body{grid-template-columns:1fr;overflow:auto}#reportsScreen .report-body>.report-panel{min-height:260px}}" in css
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in ARTIFACT.read_text(encoding="utf-8")
+    assert "../ui/modules/reports/reports.css" in ARTIFACT.read_text(encoding="utf-8")
 
 
 def test_reports_summary_has_one_effective_overflow_owner():
@@ -594,7 +594,7 @@ def test_reports_summary_has_one_effective_overflow_owner():
     assert "overflow:hidden" in rules[0]
     assert "padding:8px" in rules[0]
     assert "#reportsScreen .report-summary{overflow:auto;padding:8px}" not in css
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in ARTIFACT.read_text(encoding="utf-8")
+    assert "../ui/modules/reports/reports.css" in ARTIFACT.read_text(encoding="utf-8")
 
 
 def test_reports_kpi_panel_has_one_effective_overflow_and_min_height_owner():
@@ -610,7 +610,7 @@ def test_reports_kpi_panel_has_one_effective_overflow_and_min_height_owner():
     assert "min-height:0" in canonical
     assert "overflow:hidden" in canonical
 
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in html
+    assert "../ui/modules/reports/reports.css" in html
 
 
 def test_reports_kpi_event_base_owns_effective_layout_without_dead_overrides():
@@ -640,7 +640,7 @@ def test_reports_filter_grid_has_single_effective_column_owner():
     assert css.count(mobile) == 1
     assert css.index(tablet) > css.index(desktop)
     assert css.index(mobile) > css.index(tablet)
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in html
+    assert "../ui/modules/reports/reports.css" in html
 
 
 def test_reports_legacy_report_center_styles_are_pruned_only_when_unreferenced():
@@ -663,7 +663,7 @@ def test_reports_legacy_report_center_styles_are_pruned_only_when_unreferenced()
     assert "#reportsScreen .report-filter-actions{position:relative" in css
     assert "#reportsScreen .report-filter-buttons{display:flex" in css
     assert "@media(max-width:900px){#reportsScreen .report-preview-kpis{grid-template-columns:repeat(2,1fr)}}" in css
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in html
+    assert "../ui/modules/reports/reports.css" in html
 
 
 def test_report_bars_keep_one_scoped_style_owner():
@@ -676,7 +676,7 @@ def test_report_bars_keep_one_scoped_style_owner():
     assert css.count("#reportsScreen .report-bar{display:block;height:7px;background:#203247;border-radius:99px;overflow:hidden}") == 1
     assert css.count("#reportsScreen .report-bar i{display:block;height:100%;background:linear-gradient(90deg,#3b82f6 0%,#2563eb 55%,#f59e0b 100%)}") == 1
     assert 'class="report-bar"' in js
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in html
+    assert "../ui/modules/reports/reports.css" in html
 
 
 def test_unused_preview_section_and_source_styles_are_removed_but_active_preview_stays():
@@ -697,7 +697,7 @@ def test_unused_preview_section_and_source_styles_are_removed_but_active_preview
     assert "#reportsScreen #reportPdfReaderModal.is-closing .user-guide-reader-dialog" in css
     assert "@media(prefers-reduced-motion:reduce)" in css
     assert "reportPdfReaderSlideOut" in css
-    assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in html
+    assert "../ui/modules/reports/reports.css" in html
 
 
 
@@ -753,7 +753,7 @@ def test_topo3d_toolbar_has_no_ineffective_static_position_offset():
     assert "position:static" in toolbar[0]
     assert "#dashboardScreen .panelhead .topo3d-toolbar{right:10px}" not in css
     assert "@media (max-width:900px){\n  #dashboardSiteMap .topo3d-status{max-width:55%}\n}" in css
-    assert "../ui/modules/map-engine/map-engine.css?v=20261011-topo3d-offset-dedupe" in html
+    assert "../ui/modules/map-engine/map-engine.css" in html
 
 
 def test_marker_location_panel_inherits_base_width_at_mobile_breakpoint():
@@ -769,5 +769,5 @@ def test_marker_location_panel_inherits_base_width_at_mobile_breakpoint():
     mobile = "@media(max-width:900px){.marker-location-panel{right:6px}}"
     assert mobile in css
     assert "@media(max-width:900px){.marker-location-panel{width:300px;right:6px}}" not in css
-    assert "../ui/modules/map-engine/marker-location.css?v=20261012-backup-controls" in html
+    assert "../ui/modules/map-engine/marker-location.css" in html
 

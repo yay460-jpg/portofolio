@@ -37,6 +37,7 @@ This branch was created directly from the promoted `main` baseline after V40 was
 ## Contract audit
 
 - Repointed 23 active UI contract test files across Dashboard, Reports, Data Management, HSE, Maintenance, Map, Operations, Plans/Target Plan, and WorkFront to the canonical runtime HTML. The historical UI snapshot remains archived as evidence only. Where cache dates were stale, checks assert stable asset paths and script order instead of fixed query dates.
+- Follow-up cache-contract audit normalized 31 test files to assert stable asset paths and ordering instead of fixed cache-buster values; the runtime asset query strings remain unchanged.
 - Replaced the stale V37/Stage 26 app-info display with version-neutral workspace metadata and aligned the artifact label with the canonical Mine Services Operations entry point.
 
 ## KPI contract dependency audit

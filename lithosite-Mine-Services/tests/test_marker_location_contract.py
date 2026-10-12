@@ -260,7 +260,7 @@ def test_marker_location_is_integrated_into_overlay_layer():
 
     assert "marker-location.js" in html
     assert "marker-location.css" in html
-    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261017") < html.index("../ui/modules/map-engine/map-engine.js?v=20261006")
+    assert html.index("../ui/modules/map-engine/marker-location.js") < html.index("../ui/modules/map-engine/map-engine.js")
 
 
 def test_marker_location_css_is_namespaced_for_overlay():

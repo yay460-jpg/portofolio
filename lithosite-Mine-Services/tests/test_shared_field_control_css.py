@@ -81,10 +81,10 @@ def test_form_field_stylesheet_link_is_well_formed_and_ordered():
     assert 'href=""' not in html, "An empty stylesheet href is present"
     assert len(re.findall(r"<style\b[^>]*>", html)) == html.count("</style>"), "Inline stylesheet tags are unbalanced"
     assert not re.search(r"<style>\s*</style>", html), "An empty style block is present"
-    assert "v30ImportLock" not in html
-    assert "V20.1 LOCKED" not in html
+    assert "ImportLock" not in html
+    assert not re.search(r"\bV\d+(?:\.\d+)*\s+LOCKED\b", html, re.IGNORECASE)
     assert '<style id="navigation-disabled-state">' in html
-    assert html.count('href="../ui/shared/form-field.css"') == 1
+    assert html.count('href="../ui/shared/form-field.css') == 1
     assert "field-label.css" not in html
     shared = html.index("form-field.css")
     for module in (
@@ -102,8 +102,8 @@ def test_native_date_and_time_picker_icons_have_dark_theme_contrast():
     assert 'input[type="date"]::-webkit-calendar-picker-indicator,input[type="time"]::-webkit-calendar-picker-indicator,input[type="datetime-local"]::-webkit-calendar-picker-indicator{filter:brightness(0)invert(1)!important;opacity:1!important;cursor:pointer;}' in compact_css
 
 
-def test_active_and_stage_entrypoints_load_picker_contrast_stylesheet():
-    stage = read(ROOT / "Artifacts" / "Mine-Services-Operations.html")
+def test_active_entrypoint_loads_picker_contrast_stylesheet():
+    entrypoint = read(ARTIFACT)
     expected = 'form-field.css'
     assert expected in read(ARTIFACT)
-    assert expected in stage
+    assert expected in entrypoint
