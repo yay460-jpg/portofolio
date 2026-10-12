@@ -11,7 +11,28 @@ const TIME_BASELINES=foundation.TIME_BASELINES||Object.freeze([foundation.DEFAUL
 const EU_DENOMINATOR_OPTIONS=Object.freeze({AVAILABLE:'Available Time',SCHEDULED:'Scheduled Time'});
 const EFFECTIVE_RULE_OPTIONS=Object.freeze({PURE_EFFECTIVE:'Pure Effective / Net Operating',STANDARD_CYCLE:'Standard Cycle Operating'});
 const DEFAULT_POLICY=Object.freeze({baseline:TIME_BASELINES[0],euDenominator:'AVAILABLE',effectiveTimeRule:'PURE_EFFECTIVE'});
-const POLICY_STORAGE_KEY='lithosite.mine-services.v36.kpi-policy';
+const POLICY_STORAGE_KEY='lithosite.mine-services.kpi-policy';
+const LEGACY_POLICY_STORAGE_PATTERN=/^lithosite\.mine-services\.v\d+\.kpi-policy$/;
+function legacyPolicyKeys(storage){
+  if(!storage||typeof storage.key!=='function')return [];
+  const keys=[];
+  for(let index=0;index<(Number(storage.length)||0);index++){
+    const key=storage.key(index);
+    if(typeof key==='string'&&LEGACY_POLICY_STORAGE_PATTERN.test(key))keys.push(key);
+  }
+  const versionNumber=key=>Number(key.match(/\.v(\d+)\.kpi-policy$/)?.[1]||0);
+  return keys.sort((a,b)=>versionNumber(b)-versionNumber(a));
+}
+function readPolicyStorage(){
+  const storage=global.localStorage;
+  const current=storage?.getItem(POLICY_STORAGE_KEY);
+  if(current)return{raw:current,legacy:false};
+  for(const legacyKey of legacyPolicyKeys(storage)){
+    const raw=storage?.getItem(legacyKey);
+    if(raw)return{raw,legacy:true};
+  }
+  return{raw:null,legacy:false};
+}
 function clonePolicy(policy){
   const p=policy||DEFAULT_POLICY;
   return Object.freeze({
@@ -27,11 +48,13 @@ function samePolicy(a,b){
 function loadStoredPolicy(){
   try{
     if(!global.localStorage)return DEFAULT_POLICY;
-    const raw=global.localStorage.getItem(POLICY_STORAGE_KEY);
-    if(!raw)return DEFAULT_POLICY;
-    const saved=JSON.parse(raw);
+    const stored=readPolicyStorage();
+    if(!stored.raw)return DEFAULT_POLICY;
+    const saved=JSON.parse(stored.raw);
     const baseline=TIME_BASELINES.find(item=>item.baseline_id===saved.baselineId)||DEFAULT_POLICY.baseline;
-    return clonePolicy({baseline,euDenominator:saved.euDenominator,effectiveTimeRule:saved.effectiveTimeRule});
+    const policy=clonePolicy({baseline,euDenominator:saved.euDenominator,effectiveTimeRule:saved.effectiveTimeRule});
+    if(stored.legacy)persistPolicy(policy);
+    return policy;
   }catch(error){return DEFAULT_POLICY;}
 }
 function persistPolicy(policy){
