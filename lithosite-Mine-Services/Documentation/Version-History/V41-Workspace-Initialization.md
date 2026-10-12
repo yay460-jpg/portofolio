@@ -1,0 +1,31 @@
+# V41 — Workspace Initialization
+
+**Status:** ACTIVE DEVELOPMENT WORKSPACE  
+**Base baseline:** V40 locked baseline promoted to `main`  
+**Base commit:** `f1bc72240441049cc51a5c8aacc537b7e5674c44`  
+**Workspace branch:** `v41-workspace`  
+**Canonical runtime artifact:** `Artifacts/Mine-Services-Operations.html`
+
+## Workspace creation record
+
+This branch was created directly from the promoted `main` baseline after V40 was explicitly locked. The repository's unrelated portfolio projects were preserved during promotion. Previous release-specific runtime artifacts and test filenames were removed from the active project tree; historical snapshots and release records remain under Documentation.
+
+## Standing engineering rules
+
+1. Keep runtime, CSS, JavaScript, configuration, migration, and test filenames version-neutral. Version lineage belongs in Documentation only.
+2. Do not edit `main` directly for ordinary development. Work on `v41-workspace`; promote only after an explicit lock decision and validation.
+3. Preserve existing PASS behavior. Do not reopen the Reports CSS cascade cleanup without evidence of regression or duplication.
+4. Keep the Equipment Performance layout and established dashboard/map behavior protected unless a reproducible defect proves a change is needed.
+5. The shared Deep Navy date/time picker contrast fix is part of the baseline.
+6. The global Target vs Actual decision remains **HOLD**: retain the initial dialog, but do not finalize universal material-category formulas, date/shift behavior, or full Target Plan/Dashboard integration until owner direction.
+7. Do not reset, replace, or mutate the operational A3 workbook as a way to satisfy CI. CI uses an isolated fixture; operational workbook acceptance remains explicitly deferred and unverified.
+
+## Source baseline evidence
+
+- Final normalized source tree passed GitHub Actions Full Pytest #457: **573 passed in 49.32s**, commit `a7bafa5f8f4ef276595ae712eb909a80497f3219`.
+- The final baseline documentation commit passed Full Pytest #458.
+- V40 lock record: [V40 Baseline Lock](./Baseline/V40-Baseline-Lock.md).
+
+## Workspace policy
+
+All new implementation work starts from this branch. Do not add version-specific runtime artifacts. Keep the current runtime entry point canonical and version-neutral. Update version-history documents when a release is completed; do not treat this workspace initialization as a release or baseline lock.

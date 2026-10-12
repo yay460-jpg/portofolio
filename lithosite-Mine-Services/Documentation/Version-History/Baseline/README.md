@@ -14,8 +14,8 @@ See [V40 Baseline Lock](./V40-Baseline-Lock.md) for the release decision, eviden
 
 Earlier baseline lock documents remain in this directory as historical records only. Their runtime artifacts and version-specific filenames are not kept in the active Artifacts folder.
 
-## Next workspace
+## Current development workspace
 
-The next development workspace must be created from the latest locked baseline after promotion to `main`. Runtime filenames remain version-neutral; version history belongs in Documentation.
+The fresh workspace branch is `v41-workspace`, created from the promoted `main` baseline. See [V41 Workspace Initialization](../V41-Workspace-Initialization.md). All development changes belong on the workspace branch; `main` remains the locked baseline until a later release is explicitly promoted. Runtime filenames remain version-neutral; version history belongs in Documentation.
 
 Runtime operations must never overwrite the baseline or mutate the operational database without authorization.
