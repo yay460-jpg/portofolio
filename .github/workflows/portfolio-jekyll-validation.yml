@@ -1,0 +1,40 @@
+name: Portfolio Jekyll Build Validation
+
+on:
+  push:
+    branches:
+      - '*-workspace'
+    paths:
+      - '**/*.md'
+      - '_config.yml'
+      - 'Gemfile'
+      - 'Gemfile.lock'
+      - 'assets/css/**'
+      - '.github/workflows/portfolio-jekyll-validation.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**/*.md'
+      - '_config.yml'
+      - 'Gemfile'
+      - 'Gemfile.lock'
+      - 'assets/css/**'
+      - '.github/workflows/portfolio-jekyll-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Jekyll build only (no deployment)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Build with GitHub Pages Jekyll builder
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: .
+          destination: ./_site

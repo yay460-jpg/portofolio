@@ -32,6 +32,7 @@ This branch was created directly from the promoted `main` baseline after V40 was
 - Updated the workspace baseline guard to verify the active artifact directory contains exactly the canonical HTML entry point without hard-coding retired artifact filenames.
 - Corrected malformed single-byte dash characters in two historical Stage 16 Markdown records to valid UTF-8, preserving the surrounding evidence text.
 - Generalized report-history fallback discovery to recognize legacy versioned cache-key patterns while keeping the active storage key version-neutral.
+- Added a branch-only Jekyll build validation workflow using the same GitHub Pages build action, with no deployment, so documentation can be checked before changing the locked main baseline.
 
 ## Workspace policy
 
