@@ -177,6 +177,21 @@ class RuntimeInterface:
             result["audit_status"] = "ALREADY_APPENDED"
             return result
 
+        finalized_snapshot = next(
+            (
+                record
+                for record in self._kpi_history.list(
+                    scope_id=snapshot.get("scope_id"),
+                    period_id=snapshot.get("period_id"),
+                )
+                if str(record.get("snapshot_id")) == str(snapshot_id)
+            ),
+            None,
+        )
+        if finalized_snapshot is None:
+            result["audit_status"] = "NOT_APPENDED"
+            return result
+
         # KPI history is an append-only store separate from the workbook audit
         # log. If the snapshot committed but audit persistence failed, a retry
         # returns EXISTING; reconcile the missing audit entry on that retry.
@@ -187,7 +202,7 @@ class RuntimeInterface:
                 entity_id=snapshot_id,
                 action="FINALIZE",
                 request_id=snapshot_id,
-                new_value=json.dumps(snapshot, default=str, sort_keys=True),
+                new_value=json.dumps(finalized_snapshot, default=str, sort_keys=True),
                 source=source,
             )
             self._application.store.save()

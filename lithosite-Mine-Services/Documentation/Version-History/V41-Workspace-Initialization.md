@@ -34,7 +34,7 @@ This branch was created directly from the promoted `main` baseline after V40 was
 - Generalized report-history fallback discovery to recognize legacy versioned cache-key patterns while keeping the active storage key version-neutral.
 - Hardened Report History legacy-key enumeration against storage access exceptions and added runtime migration coverage for malformed current data, interrupted key enumeration, immutable-only writes, and non-destructive fallback.
 - Consolidated the Report History migration and storage-failure scenarios into one canonical runtime harness to avoid duplicate test entry points.
-- Hardened KPI snapshot/audit coordination: retries of an existing committed snapshot now reconcile a missing audit entry, repeated retries avoid duplicate audit records, and the Reports UI warns when snapshot persistence succeeded but audit persistence did not.
+- Hardened KPI snapshot/audit coordination: retries of an existing committed snapshot reconcile a missing audit entry; audit records store the actual finalized snapshot (including ID, revision, FINAL status, and fingerprint); repeated retries avoid duplicate audit records; and the Reports UI warns when audit persistence did not succeed.
 - Added a branch-only Jekyll build validation workflow using the same GitHub Pages build action, with no deployment, so documentation can be checked before changing the locked main baseline.
 
 ## Contract audit

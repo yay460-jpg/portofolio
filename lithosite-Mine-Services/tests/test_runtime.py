@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -277,6 +278,11 @@ def test_kpi_snapshot_retry_reconciles_audit_after_persistence_failure():
     assert events[0]["entity"] == "KPI_Snapshot"
     assert events[0]["entity_id"] == first["snapshot_id"]
     assert events[0]["action"] == "FINALIZE"
+    finalized_payload = json.loads(events[0]["new_value"])
+    assert finalized_payload["snapshot_id"] == first["snapshot_id"]
+    assert finalized_payload["revision"] == 1
+    assert finalized_payload["status"] == "FINAL"
+    assert finalized_payload["content_fingerprint"]
 
     repeated = runtime.finalize_kpi(candidate, source="test")
     assert repeated["status"] == "EXISTING"
