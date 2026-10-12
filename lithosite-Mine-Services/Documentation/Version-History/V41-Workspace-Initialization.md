@@ -36,7 +36,7 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Contract audit
 
-- Aligned active Reports UI and PDF contract tests with the canonical runtime HTML instead of the historical UI snapshot. Cache-busting query dates are no longer treated as report contracts.
+- Repointed 23 active UI contract test files across Dashboard, Reports, Data Management, HSE, Maintenance, Map, Operations, Plans/Target Plan, and WorkFront to the canonical runtime HTML. The historical UI snapshot remains archived as evidence only. Where cache dates were stale, checks now assert stable asset paths and script order instead of fixed query dates.
 - Replaced the stale V37/Stage 26 app-info display with version-neutral workspace metadata and aligned the artifact label with the canonical Mine Services Operations entry point.
 
 ## KPI contract dependency audit
