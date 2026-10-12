@@ -704,7 +704,7 @@ def test_unused_preview_section_and_source_styles_are_removed_but_active_preview
 
 
 def test_v40_cascade_audit_records_latest_ci_and_release_status():
-    audit = ROOT / "Documentation" / "Testing" / "V40-Reports-CSS-Cascade-Audit.md"
+    audit = ROOT / "Documentation" / "Version-History" / "Testing" / "V40-Reports-CSS-Cascade-Audit.md"
     text = audit.read_text(encoding="utf-8")
 
     # Keep this contract version-neutral: the documented CI run advances as

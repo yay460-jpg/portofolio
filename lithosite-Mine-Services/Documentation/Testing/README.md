@@ -1,9 +1,8 @@
 # Testing
 
-Mine Services test strategy, matrices, audits, and verification records.
+Mine Services active test strategy and version-neutral test entry points.
 
-- [V40 Work Control Plan vs Actual Integration Plan](./V40-Work-Control-Plan-vs-Actual-Integration-Plan.md) — historical implementation context; current business semantics remain on global HOLD.
-
-- `test_dashboard_plan_actual.py` — initial dialog contract and regression guards.
-
-- [V40 Desktop Runtime Acceptance — Operational A3](./V40-Desktop-Runtime-A3-Acceptance.md) — local-only read-only acceptance steps for the operational A3 workbook; explicitly separate from the isolated CI fixture.
+- `tests/` contains the active automated regression suite.
+- `test_workspace_baseline.py` guards the canonical runtime artifact, host entry point, baseline lock index, and version-neutral active test filenames.
+- The V40 implementation plans, CSS audit, and operational A3 acceptance checklist are retained as historical evidence under [Version History / Testing](../Version-History/Testing/).
+- Plan vs Actual business semantics remain governed by the global reminder in [Documentation README](../README.md) and remain on HOLD until owner direction.
