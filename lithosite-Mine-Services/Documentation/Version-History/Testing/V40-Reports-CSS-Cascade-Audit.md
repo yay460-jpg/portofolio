@@ -1,5 +1,7 @@
 # V40 Workspace — Reports CSS Cascade Audit
 
+> **Historical record — scope closed.** V40 was subsequently locked and promoted to `main`. This audit records the cleanup history only; its earlier “final review” wording about the overall V40 lock is superseded by [V40 Baseline Lock](../Baseline/V40-Baseline-Lock.md). Do not reopen validated CSS cleanup without evidence of regression or duplication.
+
 **Repository:** `yay460-jpg/portofolio`  
 **Branch:** `v40-workspace`  
 **Audit target:** `ui/modules/reports/reports.css`  
@@ -96,4 +98,4 @@ Before any further CSS edit:
 - Final full test suite must pass on the exact release HEAD.
 - Update the version history / test evidence only after CI confirms the final commit.
 
-**Release status: FINAL REVIEW — NO FURTHER CSS DELETION AUTHORIZED BY CURRENT EVIDENCE.** Full Pytest #435 passed on exact HEAD `ea0a96332a4b42b23414d7b7f3a1818df5cbc280`, validating the version-neutral audit test contract. The next documentation update must itself be validated before the overall V40 baseline can be locked. Cleanup #15–#17 and cache synchronization remain validated. Remaining `REVIEW` entries are deliberately retained without deletion. This closes the Reports CSS cascade cleanup scope; it does not, by itself, lock the entire V40 workspace or certify unrelated runtime/manual acceptance.
+**Historical release status: CSS CASCADE CLEANUP CLOSED.** Full Pytest #435 passed on exact HEAD `ea0a96332a4b42b23414d7b7f3a1818df5cbc280`, validating the version-neutral audit test contract. Cleanup #15–#17 and cache synchronization remain validated. Remaining `REVIEW` entries are deliberately retained without deletion. The later V40 Baseline Lock records the overall release decision and explicitly defers operational A3 runtime acceptance rather than claiming it passed.
