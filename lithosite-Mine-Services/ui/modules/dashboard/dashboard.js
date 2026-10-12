@@ -4,22 +4,13 @@
   const runtimeClient = global.LithositeRuntimeClient;
   const dashboardStatus = global.LithositeDashboardStatus;
   const planActualCalculator = global.LithositeDashboardPlanActual;
-  const KPI_POLICY_STORAGE_KEY = 'lithosite.mine-services.kpi-policy';
-  const LEGACY_KPI_POLICY_STORAGE_PATTERN = /^lithosite\.mine-services\.v\d+\.kpi-policy$/;
-
-  function legacyKpiPolicyKeys(storage) {
-    if (!storage || typeof storage.key !== 'function') return [];
-    const keys = [];
-    for (let index = 0; index < (Number(storage.length) || 0); index++) {
-      const key = storage.key(index);
-      if (typeof key === 'string' && LEGACY_KPI_POLICY_STORAGE_PATTERN.test(key)) keys.push(key);
-    }
-    const versionNumber = key => Number(key.match(/\.v(\d+)\.kpi-policy$/)?.[1] || 0);
-    return keys.sort((a, b) => versionNumber(b) - versionNumber(a));
-  }
+  const kpiPolicyStorage = global.LithositeDashboardKpiPolicyStorage;
 
   if (!runtimeClient) {
     throw new Error('LithositeRuntimeClient is required before dashboard.js');
+  }
+  if (!kpiPolicyStorage || typeof kpiPolicyStorage.read !== 'function') {
+    throw new Error('LithositeDashboardKpiPolicyStorage is required before dashboard.js');
   }
 
   const state = {
@@ -134,23 +125,8 @@
     const defaultBaseline = foundation.DEFAULT_BASELINE || baselines[0];
     let policy = { baseline: defaultBaseline, euDenominator: 'AVAILABLE', effectiveTimeRule: 'PURE_EFFECTIVE' };
     try {
-      const storage = global.localStorage;
-      let raw = storage && storage.getItem(KPI_POLICY_STORAGE_KEY);
-      let migrated = false;
-      if (!raw && storage) {
-        for (const legacyKey of legacyKpiPolicyKeys(storage)) {
-          raw = storage.getItem(legacyKey);
-          if (raw) {
-            migrated = true;
-            break;
-          }
-        }
-      }
-      if (raw) {
-        const saved = JSON.parse(raw);
-        if (migrated) {
-          try { storage.setItem(KPI_POLICY_STORAGE_KEY, raw); } catch (_) {}
-        }
+      const saved = kpiPolicyStorage.read(global.localStorage);
+      if (saved) {
         const baseline = baselines.find(function (item) { return item.baseline_id === saved.baselineId; });
         policy = {
           baseline: baseline || defaultBaseline,
