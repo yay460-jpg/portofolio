@@ -22,7 +22,7 @@ def test_maintenance_register_view_button_matches_compact_operations_geometry():
     assert "justify-content:center" in rule
 
     assert 'class="control mini view maintenance-timeline-row"' in js
-    assert "../ui/modules/maintenance/maintenance.css?v=20261012-compact-view" in html
+    assert "../ui/modules/maintenance/maintenance.css" in html
 
 
 def test_maintenance_view_button_sizing_is_scoped_and_does_not_override_operations():

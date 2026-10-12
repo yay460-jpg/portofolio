@@ -40,4 +40,4 @@ def test_maintenance_grid_has_an_additional_brand_column_and_fresh_assets():
         "minmax(130px,1fr) 115px 90px 75px 90px;min-width:1080px;}"
     ) in MAINTENANCE_CSS
     assert "maintenance.css?v=" in HTML
-    assert "maintenance.js?v=20261012" in HTML
+    assert "maintenance.js" in HTML

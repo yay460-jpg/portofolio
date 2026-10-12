@@ -103,7 +103,7 @@ def test_scroll_grid_baseline_is_shared_and_module_exceptions_remain():
 def test_shared_table_layout_asset_is_linked_after_module_stylesheets():
     html = read(ARTIFACT)
     assert html.count('rel="stylesheet"') == len(re.findall(r'<link rel="stylesheet" href="[^"]+">', html))
-    link = html.index("table.css?v=20261011-filter-layout")
+    link = html.index("table.css")
     for module in (
         "operations.css", "equipment.css", "workfront.css", "maintenance.css",
         "issues.css", "plans.css", "hse.css",

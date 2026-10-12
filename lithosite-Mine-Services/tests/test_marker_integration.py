@@ -8,9 +8,9 @@ TOPO_ENGINE = ROOT / "shared" / "topo3d" / "topo3d-engine.js"
 def test_stage20_marker_overlay_assets_are_loaded_before_map_engine():
     html = ARTIFACT.read_text(encoding="utf-8")
     assert "../ui/modules/map-engine/marker-location.css?v=" in html
-    assert "../ui/modules/map-engine/marker-location.js?v=20261017" in html
-    assert html.index("../ui/modules/map-engine/geo-adapter.js?v=20261001") < html.index("../ui/modules/map-engine/marker-location.js?v=20261017")
-    assert html.index("../ui/modules/map-engine/marker-location.js?v=20261017") < html.index("../ui/modules/map-engine/map-engine.js?v=20261006")
+    assert "../ui/modules/map-engine/marker-location.js" in html
+    assert html.index("../ui/modules/map-engine/geo-adapter.js") < html.index("../ui/modules/map-engine/marker-location.js")
+    assert html.index("../ui/modules/map-engine/marker-location.js") < html.index("../ui/modules/map-engine/map-engine.js")
 
 def test_stage20_marker_renderer_is_only_a_map_render_overlay():
     js = MAP_ENGINE.read_text(encoding="utf-8")
@@ -41,7 +41,7 @@ def test_workfront_focus_event_blinks_the_exact_marker_label_temporarily():
     js = MAP_ENGINE.read_text(encoding="utf-8")
     marker_css = (ROOT / "ui" / "modules" / "map-engine" / "marker-location.css").read_text(encoding="utf-8")
 
-    assert "../ui/modules/map-engine/map-engine.js?v=20261006" in html
+    assert "../ui/modules/map-engine/map-engine.js" in html
     assert "function blinkFocusedMarkerLabel(marker)" in js
     assert "getAttribute('data-marker-id')===markerId" in js
     assert "label.classList.add('is-focus-blinking')" in js

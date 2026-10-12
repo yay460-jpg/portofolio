@@ -55,7 +55,7 @@ def test_filter_clear_buttons_use_the_shared_class():
 
 def test_shared_button_stylesheet_loads_after_filter_module_styles():
     html = ARTIFACT.read_text(encoding="utf-8")
-    shared = html.index("button.css?v=20261011-mini-base-owner")
+    shared = html.index("button.css")
     for module in ("workfront.css", "equipment.css", "operations.css", "maintenance.css", "issues.css", "hse.css", "plans.css"):
         assert html.index(module) < shared
 

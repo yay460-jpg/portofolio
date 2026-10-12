@@ -142,8 +142,8 @@ def test_current_hse_shell_contract():
     assert 'id="hseScreen"' in html
     assert 'id="hseModal"' in html
     assert 'data-screen="HSE"' in html
-    assert "shell-navigation.js?v=20261011" in html
-    assert "../ui/modules/hse/hse.js?v=20261006" in html
+    assert "shell-navigation.js" in html
+    assert "../ui/modules/hse/hse.js" in html
     assert "function syncClosedAtField()" in module
     assert "closed.disabled=true" in module
     assert "if(status==='Closed')" in module

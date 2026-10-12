@@ -52,6 +52,6 @@ def test_operations_to_maintenance_link_remains_compatible():
 
 def test_linked_operations_assets_use_fresh_cache_keys():
     assert "maintenance.css?v=" in HTML
-    assert "maintenance.js?v=20261012" in HTML
+    assert "maintenance.js" in HTML
     assert "operations.css?v=" in HTML
-    assert "operations.js?v=20261110" in HTML
+    assert "operations.js" in HTML

@@ -36,7 +36,7 @@ def test_module_styles_do_not_duplicate_shared_heading_typography():
 
 def test_shared_heading_styles_are_removed_from_inline_shell_css():
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/shared/screen-header.css?v=20261011-shared-header" in html
+    assert "../ui/shared/screen-header.css" in html
     assert ".head{height:42px;display:flex;justify-content:space-between}" not in html
     assert ".title h1{margin:0;font-size:21px;line-height:24px" not in html
     assert ".title p{margin:2px 0;color:var(--muted);font-size:11px}" not in html

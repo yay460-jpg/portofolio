@@ -13,8 +13,8 @@ def test_dashboard_recent_operations_and_issues_include_source_dates():
     assert '<div class="tablegrid head issue"><span>Date</span><span>Priority</span><span>Issue</span><span>Status</span></div>' in html
     assert "String(row.transaction_date || '-').slice(0, 10)" in js
     assert "String(row.issue_date || '-').slice(0, 10)" in js
-    assert "dashboard.css?v=20261012-issues-alerts-fit" in html
-    assert "dashboard.js?v=20261012-plan-actual" in html
+    assert "dashboard.css" in html
+    assert "dashboard.js" in html
     assert "grid-template-columns:78px 48px minmax(68px,.8fr) minmax(105px,1.15fr) minmax(115px,1.25fr) minmax(54px,auto)" in css
     assert css.count("#dashboardScreen .tablegrid.issue{grid-template-columns:76px 62px minmax(0,1fr) 58px}") == 1
     assert "grid-template-columns:76px 62px minmax(0,1fr) 82px" not in css

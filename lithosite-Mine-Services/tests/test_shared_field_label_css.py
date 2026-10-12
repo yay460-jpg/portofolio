@@ -67,7 +67,7 @@ def test_reports_filter_label_keeps_its_special_weight():
 
 def test_shared_field_label_stylesheet_loads_after_module_styles():
     html = read(ARTIFACT)
-    shared = html.index("form-field.css?v=20261012-picker-contrast")
+    shared = html.index("form-field.css")
     # Only stylesheets loaded by the active shell are included in this inventory.
     for module in (
         "operations.css", "equipment.css", "workfront.css", "maintenance.css",

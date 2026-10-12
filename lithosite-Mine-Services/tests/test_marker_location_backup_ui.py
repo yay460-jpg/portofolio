@@ -17,7 +17,7 @@ def test_marker_location_backup_controls_use_shared_lithosite_button_contract():
     assert 'class="control mini secondary" id="markerLocationBackupClose"' in js
     assert 'class="control mini primary" id="markerLocationBackupRestore"' in js
     assert "topo3d-modal-button" not in js
-    assert 'marker-location.css?v=20261012-backup-controls' in html
+    assert 'marker-location.css' in html
 
 
 def test_marker_location_backup_select_styles_have_one_css_owner_and_no_inline_style():

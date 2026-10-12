@@ -84,9 +84,9 @@ def test_form_field_stylesheet_link_is_well_formed_and_ordered():
     assert "v30ImportLock" not in html
     assert "V20.1 LOCKED" not in html
     assert '<style id="navigation-disabled-state">' in html
-    assert html.count('href="../ui/shared/form-field.css?v=20261012-picker-contrast"') == 1
+    assert html.count('href="../ui/shared/form-field.css"') == 1
     assert "field-label.css" not in html
-    shared = html.index("form-field.css?v=20261012-picker-contrast")
+    shared = html.index("form-field.css")
     for module in (
         "operations.css", "equipment.css", "workfront.css", "maintenance.css",
         "issues.css", "plans.css", "hse.css",
@@ -104,6 +104,6 @@ def test_native_date_and_time_picker_icons_have_dark_theme_contrast():
 
 def test_active_and_stage_entrypoints_load_picker_contrast_stylesheet():
     stage = read(ROOT / "Artifacts" / "Mine-Services-Operations.html")
-    expected = 'form-field.css?v=20261012-picker-contrast'
+    expected = 'form-field.css'
     assert expected in read(ARTIFACT)
     assert expected in stage

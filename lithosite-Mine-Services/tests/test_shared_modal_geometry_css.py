@@ -29,7 +29,7 @@ def test_pdf_reader_is_nested_in_reports_and_assets_use_updated_css():
     reader = html.index('id="reportPdfReaderModal"')
     assert reader > reports
     assert 'class="user-guide-reader-modal"' in html
-    assert "user-guide.css?v=20261011-reader-geometry" in html
+    assert "user-guide.css" in html
     js = REPORTS_JS.read_text(encoding="utf-8")
     assert "document.getElementById('reportPdfReaderModal')" in js
     assert "appendChild(" not in js

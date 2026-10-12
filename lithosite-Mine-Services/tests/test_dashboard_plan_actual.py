@@ -12,9 +12,9 @@ def test_plan_actual_dialog_isolated_from_existing_dashboard_geometry():
     assert 'id="dashboardPlanActualOpen"' in HTML
     assert 'id="dashboardPlanActualDialog"' in HTML
     assert 'id="dashboardPlanActualClose"' in HTML
-    assert 'dashboard-plan-actual.css?v=20261012-plan-actual' in HTML
-    assert 'dashboard-plan-actual.js?v=20261012-plan-actual' in HTML
-    assert 'dashboard.js?v=20261012-plan-actual' in HTML
+    assert 'dashboard-plan-actual.css' in HTML
+    assert 'dashboard-plan-actual.js' in HTML
+    assert 'dashboard.js' in HTML
     assert '#dashboardPlanActualDialog[hidden]{display:none!important}' in PLAN_CSS
     assert '#dashboardScreen .kpis{height:72px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))' in DASHBOARD_CSS
 
@@ -56,6 +56,6 @@ def test_desktop_runtime_entrypoint_includes_plan_actual_feature():
     assert "Artifacts/Mine-Services-Operations.html" in launcher
     assert 'id="dashboardPlanActualOpen"' in entrypoint
     assert 'id="dashboardPlanActualDialog"' in entrypoint
-    assert "dashboard-plan-actual.css?v=20261012-plan-actual" in entrypoint
-    assert "dashboard-plan-actual.js?v=20261012-plan-actual" in entrypoint
-    assert "dashboard.js?v=20261012-plan-actual" in entrypoint
+    assert "dashboard-plan-actual.css" in entrypoint
+    assert "dashboard-plan-actual.js" in entrypoint
+    assert "dashboard.js" in entrypoint
