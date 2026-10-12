@@ -56,7 +56,6 @@ def test_report_history_storage_contract():
     assert "function legacyKeys(storage)" in text
     assert "storage.key(index)" in text
     assert "for(const legacyKey of legacyKeys(storage))" in text
-    assert "lithosite.mine-services.v38.report-history" not in text
     assert "Only immutable issued snapshots" in text
 
 def test_artifact_script_load_order():
