@@ -27,4 +27,13 @@ def test_about_modal_close_waits_for_fade_and_supports_reduced_motion():
     assert "event.animationName !== 'appInfoFadeOut'" in shell
     assert "finishAppInfoClose(modal, token)" in shell
     assert "matchMedia('(prefers-reduced-motion: reduce)')" in shell
-    assert "stylesheet.href = '../ui/shared/app-info.css?v=20261011-fade';" in shell
+    assert "stylesheet.href = '../ui/shared/app-info.css" in shell
+
+
+def test_about_modal_metadata_is_version_neutral():
+    shell = SHELL.read_text(encoding="utf-8")
+    assert "Application Info" in shell
+    assert "Active Development Workspace" in shell
+    assert "Mine Services Operations" in shell
+    assert "V37 · Stage 26" not in shell
+    assert "Version & Developer" not in shell

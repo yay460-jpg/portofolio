@@ -34,6 +34,11 @@ This branch was created directly from the promoted `main` baseline after V40 was
 - Generalized report-history fallback discovery to recognize legacy versioned cache-key patterns while keeping the active storage key version-neutral.
 - Added a branch-only Jekyll build validation workflow using the same GitHub Pages build action, with no deployment, so documentation can be checked before changing the locked main baseline.
 
+## Contract audit
+
+- Aligned active Reports UI and PDF contract tests with the canonical runtime HTML instead of the historical UI snapshot. Cache-busting query dates are no longer treated as report contracts.
+- Replaced the stale V37/Stage 26 app-info display with version-neutral workspace metadata and aligned the artifact label with the canonical Mine Services Operations entry point.
+
 ## Workspace policy
 
 All new implementation work starts from this branch. Do not add version-specific runtime artifacts. Keep the current runtime entry point canonical and version-neutral. Update version-history documents when a release is completed; do not treat this workspace initialization as a release or baseline lock.
