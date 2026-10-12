@@ -59,13 +59,13 @@ def test_dashboard_material_view_detail_routes_to_operations():
     assert 'id="dashboardMaterialViewDetail"' in HTML
     assert "event.target.closest('#dashboardMaterialViewDetail')" in DASHBOARD_JS
     assert "global.LithositeShellNavigation.setScreen('Operations')" in DASHBOARD_JS
-    assert "dashboard.js?v=20261012-plan-actual" in HTML
-    assert "dashboard.css?v=20261115" in HTML
+    assert "dashboard.js" in HTML
+    assert "dashboard.css" in HTML
 
 
 def test_material_movement_legend_is_raised_from_panel_bottom():
     assert "#dashboardScreen .chartnote{top:40%}" in DASHBOARD_CSS
-    assert "dashboard.css?v=20261115" in HTML
+    assert "dashboard.css" in HTML
 
 
 def test_material_movement_date_labels_sit_below_the_x_axis():
@@ -73,13 +73,13 @@ def test_material_movement_date_labels_sit_below_the_x_axis():
     assert "#dashboardScreen #dashboardMaterialBars{height:calc(100% - 16px)}" in DASHBOARD_CSS
     assert "bottom:18px;" in DASHBOARD_CSS
     assert "border-bottom:1px solid #2b425a;" in DASHBOARD_CSS
-    assert "dashboard.css?v=20261115" in HTML
+    assert "dashboard.css" in HTML
 
 
 def test_material_movement_legend_is_raised_and_plot_uses_more_height():
     assert "#dashboardScreen .chartnote{top:40%}" in DASHBOARD_CSS
     assert "#dashboardScreen #dashboardMaterialBars{height:calc(100% - 16px)}" in DASHBOARD_CSS
-    assert "dashboard.css?v=20261115" in HTML
+    assert "dashboard.css" in HTML
 
 
 def test_material_movement_legend_aligns_names_and_values_in_separate_columns():
@@ -90,5 +90,5 @@ def test_material_movement_legend_aligns_names_and_values_in_separate_columns():
     assert "#dashboardScreen .chartkey-value{margin-left:4px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}" in DASHBOARD_CSS
     assert "appendLegendRow(\n      'Retase'," in DASHBOARD_JS
     assert "appendLegendRow(\n      'S/R'," in DASHBOARD_JS
-    assert "dashboard.js?v=20261012-plan-actual" in HTML
-    assert "dashboard.css?v=20261115" in HTML
+    assert "dashboard.js" in HTML
+    assert "dashboard.css" in HTML

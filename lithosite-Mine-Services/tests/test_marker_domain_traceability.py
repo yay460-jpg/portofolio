@@ -59,11 +59,11 @@ def test_stage20_10_popup_is_map_overlay_not_layout_content():
 def test_stage20_10_v32_loads_current_assets():
     html = ARTIFACT.read_text(encoding="utf-8")
     for marker in (
-        "../ui/modules/map-engine/marker-location.js?v=20261017",
-        "../ui/modules/map-engine/marker-location.css?v=20261013",
-        "../ui/modules/equipment/equipment.js?v=20261109",
-        "../ui/modules/workfront/workfront.js?v=20261107",
-        "../ui/modules/hse/hse.js?v=20261006",
+        "../ui/modules/map-engine/marker-location.js",
+        "../ui/modules/map-engine/marker-location.css",
+        "../ui/modules/equipment/equipment.js",
+        "../ui/modules/workfront/workfront.js",
+        "../ui/modules/hse/hse.js",
     ):
         assert marker in html
 

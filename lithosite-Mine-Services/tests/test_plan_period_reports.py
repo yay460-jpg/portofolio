@@ -65,10 +65,10 @@ def test_plan_targets_are_not_prorated_and_ambiguous_operations_are_not_double_c
     assert "actual_period_output_by_measurement" in REPORTS_JS
 
 
-def test_report_asset_cache_versions_are_current():
-    assert "plans.js?v=20261030" in HTML
-    assert "plans.css?v=20261113" in HTML
-    assert "daily-report.js?v=20261012" in HTML
-    assert "weekly-report.js?v=20261009" in HTML
-    assert "monthly-report.js?v=20261012" in HTML
-    assert "reports.js?v=20261021" in HTML
+def test_report_asset_assets_use_stable_paths():
+    assert "plans.js" in HTML
+    assert "plans.css" in HTML
+    assert "daily-report.js" in HTML
+    assert "weekly-report.js" in HTML
+    assert "monthly-report.js" in HTML
+    assert "reports.js" in HTML

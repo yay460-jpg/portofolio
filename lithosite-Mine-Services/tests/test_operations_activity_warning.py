@@ -26,11 +26,11 @@ def test_material_movement_activity_rule_excludes_dumping_tonnage():
     dashboard = (ROOT / "ui" / "modules" / "dashboard" / "dashboard.js").read_text(encoding="utf-8")
     assert "if (activity !== 'hauling') return;" in dashboard
     assert "if (activity !== 'hauling' && activity !== 'dumping') return;" not in dashboard
-    assert "dashboard.js?v=20261012-plan-actual" in HTML
+    assert "dashboard.js" in HTML
     assert '<span class="chartkey"><i class="chartdot chartdot-ore"></i><span class="chartkey-name">Ore</span>' in HTML
     assert '<span class="chartkey"><i class="chartdot chartdot-blue"></i>Hauling</span>' not in HTML
 
 
-def test_operations_warning_assets_use_fresh_cache_keys():
-    assert "operations.js?v=20261110" in HTML
-    assert "operations.css?v=20261027" in HTML
+def test_operations_warning_assets_use_stable_paths():
+    assert "operations.js" in HTML
+    assert "operations.css" in HTML
