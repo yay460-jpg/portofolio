@@ -123,7 +123,7 @@
 
     bindControls();
 
-    // V39 default is deliberately ALL DATES / Day + Night.
+    // Default is deliberately ALL DATES / Day + Night.
     // When Today is selected, the shift defaults to Day/Night Shift (ALL).
     state.scope = 'ALL_DAYS';
     state.shift = 'ALL';

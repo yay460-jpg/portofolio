@@ -2,7 +2,7 @@
   'use strict';
 
   /*
-   * V38 Checker Support Layer
+   * Checker Support Layer
    * -------------------------
    * Checker is no longer a standalone operational screen.
    * Operations is the operational entry point; this layer records the

@@ -358,7 +358,7 @@
   async function runBackup() {
     try {
       msg('Creating sealed runtime snapshot…');
-      const result = await runtimeClient.request({ operation: 'BACKUP', source: 'Stage15-UI' });
+      const result = await runtimeClient.request({ operation: 'BACKUP', source: 'Data Management UI' });
       if (result.status !== 'SEALED') {
         throw new Error(result.errors && result.errors.length ? result.errors.map(function (e) { return e.message; }).join('; ') : 'Backup failed');
       }
