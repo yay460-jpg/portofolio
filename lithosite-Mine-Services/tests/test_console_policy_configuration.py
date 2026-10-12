@@ -104,6 +104,8 @@ def test_console_reset_warns_before_replacing_policy_selection():
 def test_kpi_policy_storage_uses_version_neutral_key_and_legacy_migration():
     reports = read("ui/modules/reports/reports.js")
     dashboard = read("ui/modules/dashboard/dashboard.js")
+    dashboard_storage = read("ui/modules/dashboard/kpi-policy-storage.js")
+    html = read("Artifacts/Mine-Services-Operations.html")
 
     assert "const POLICY_STORAGE_KEY='lithosite.mine-services.kpi-policy';" in reports
     assert "const LEGACY_POLICY_STORAGE_PATTERN=" in reports
@@ -111,8 +113,18 @@ def test_kpi_policy_storage_uses_version_neutral_key_and_legacy_migration():
     assert "function readPolicyStorage()" in reports
     assert "if(stored.legacy)persistPolicy(policy);" in reports
 
-    assert "const KPI_POLICY_STORAGE_KEY = 'lithosite.mine-services.kpi-policy';" in dashboard
-    assert "const LEGACY_KPI_POLICY_STORAGE_PATTERN =" in dashboard
-    assert "function legacyKpiPolicyKeys(storage)" in dashboard
-    assert "storage.setItem(KPI_POLICY_STORAGE_KEY, raw)" in dashboard
+    assert "const KEY = 'lithosite.mine-services.kpi-policy';" in dashboard_storage
+    assert "const LEGACY_KEY_PATTERN =" in dashboard_storage
+    assert "function legacyKeys(storage)" in dashboard_storage
+    assert "function read(storage)" in dashboard_storage
+    assert "storage.setItem(KEY, raw)" in dashboard_storage
+
+    assert "LithositeDashboardKpiPolicyStorage" in dashboard
+    assert "kpiPolicyStorage.read(global.localStorage)" in dashboard
+    assert "function legacyKpiPolicyKeys(storage)" not in dashboard
+    policy_storage_script = "../ui/modules/dashboard/kpi-policy-storage.js"
+    dashboard_script = "../ui/modules/dashboard/dashboard.js"
+    assert policy_storage_script in html
+    assert dashboard_script in html
+    assert html.index(policy_storage_script) < html.index(dashboard_script)
 
