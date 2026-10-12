@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
@@ -21,14 +22,14 @@ def test_desktop_host_and_launcher_open_the_canonical_artifact():
 
 
 def test_locked_baseline_records_the_release_decision():
-    locked_documents = []
-    for path in BASELINE_DOCS.glob("*-Baseline-Lock.md"):
-        document = path.read_text(encoding="utf-8")
-        if "**Status:** LOCKED" in document:
-            locked_documents.append(document)
+    index = (BASELINE_DOCS / "README.md").read_text(encoding="utf-8")
+    match = re.search(r"\\[[^\\]]+\\]\\(([^)]+-Baseline-Lock\\.md)\\)", index)
+    assert match, "Baseline index must identify the current lock record"
 
-    assert len(locked_documents) == 1
-    document = locked_documents[0]
+    lock_path = (BASELINE_DOCS / match.group(1)).resolve()
+    assert lock_path.parent == BASELINE_DOCS.resolve()
+    document = lock_path.read_text(encoding="utf-8")
+    assert "**Status:** LOCKED" in document
     assert "Full Pytest #" in document
     assert "Plan vs Actual" in document
     assert "HOLD" in document
