@@ -714,12 +714,14 @@ def test_v40_cascade_audit_records_latest_ci_and_release_status():
     assert "Cleanup #17" in text
     assert "Remaining `REVIEW` entries are deliberately retained" in text
 
-def test_v40_cascade_audit_index_does_not_report_validated_cleanup_as_pending():
-    index = ROOT / "Documentation" / "README.md"
-    text = index.read_text(encoding="utf-8")
+def test_v40_cascade_audit_is_archived_and_does_not_claim_release_is_open():
+    audit = ROOT / "Documentation" / "Version-History" / "Testing" / "V40-Reports-CSS-Cascade-Audit.md"
+    text = audit.read_text(encoding="utf-8")
+    index = (ROOT / "Documentation" / "README.md").read_text(encoding="utf-8")
 
     assert "Cleanup #17 validated by #418/#419" in text
-    assert "Cleanup #17 (`.boundary` rule consolidation) is awaiting CI" not in text
+    assert "the overall V40 baseline can be locked" not in text
+    assert "V40 Reports CSS Cascade Audit" not in index
 
 def test_reports_boundary_has_one_canonical_layout_and_final_height_override():
     css = REPORTS.read_text(encoding="utf-8")
