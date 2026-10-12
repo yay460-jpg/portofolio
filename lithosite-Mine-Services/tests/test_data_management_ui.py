@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-def test_stage15_data_management_ui_contract():
+def test_dataManagement_data_management_ui_contract():
     root = Path(__file__).parents[1]
     html = (root / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     shell = (root / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
@@ -25,7 +25,7 @@ def test_stage15_data_management_ui_contract():
     assert "global.LithositeDataManagement.open()" in shell
 
 
-def test_stage15_runtime_adapter_data_operations():
+def test_dataManagement_runtime_adapter_data_operations():
     root = Path(__file__).parents[1]
     adapter = (root / "src" / "mine_services" / "adapter.py").read_text(encoding="utf-8")
     assert '"IMPORT_XLSX"' in adapter
@@ -39,7 +39,7 @@ def test_stage15_runtime_adapter_data_operations():
 
 
 
-def test_stage15_dataset_manager_contract():
+def test_dataManagement_dataset_manager_contract():
     root = Path(__file__).parents[1]
     manager = (root / "src" / "mine_services" / "dataset.py").read_text(encoding="utf-8")
     runtime = (root / "src" / "mine_services" / "runtime.py").read_text(encoding="utf-8")
@@ -55,15 +55,15 @@ def test_stage15_dataset_manager_contract():
     assert "def load_dataset(" in runtime
     assert "'LOAD_DATASET'" in client
 
-def test_stage15_uses_lithosite_owned_dataset_dialogs():
+def test_dataManagement_uses_lithosite_owned_dataset_dialogs():
     root = Path(__file__).parents[1]
     module = (root / "ui" / "modules" / "data-management" / "data-management.js").read_text(encoding="utf-8")
     css = (root / "ui" / "modules" / "data-management" / "data-management.css").read_text(encoding="utf-8")
     assert "window.prompt(" not in module
     assert "window.confirm(" not in module
-    assert "stage15DatasetDialog" in module
-    assert "stage15ConfirmDialog" in module
-    assert "stage15DatasetNameInput" in module
-    assert "stage15ActiveDataset" not in module
-    assert "stage15DatasetDialogConfirm" in module
+    assert "dataManagementDatasetDialog" in module
+    assert "dataManagementConfirmDialog" in module
+    assert "dataManagementDatasetNameInput" in module
+    assert "dataManagementActiveDataset" not in module
+    assert "dataManagementDatasetDialogConfirm" in module
     assert "dm-native-dialog" in css

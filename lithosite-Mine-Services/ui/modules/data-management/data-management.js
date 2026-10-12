@@ -9,70 +9,70 @@
   let closeToken = 0;
 
   function ensureDom() {
-    if (document.getElementById('stage15DataModal')) return;
+    if (document.getElementById('dataManagementModal')) return;
     const modal = document.createElement('div');
-    modal.id = 'stage15DataModal';
+    modal.id = 'dataManagementModal';
     modal.innerHTML =
       '<div class="dm-card">' +
-        '<div class="dm-head"><div class="ptitle">Operational Data Management</div><button class="control" id="stage15DataClose">Close</button></div>' +
+        '<div class="dm-head"><div class="ptitle">Operational Data Management</div><button class="control" id="dataManagementClose">Close</button></div>' +
         '<div class="dm-body">' +
           '<div class="dm-tabs">' +
             '<button class="dm-tab active" data-pane="data">Data Files</button>' +
             '<button class="dm-tab" data-pane="backup">Backup / Restore</button>' +
             '<button class="dm-tab" data-pane="import" disabled aria-disabled="true" title="Import temporarily locked">Import Data</button>' +
           '</div>' +
-          '<div class="dm-pane active" id="stage15PaneData">' +
+          '<div class="dm-pane active" id="dataManagementPaneData">' +
             '<div class="dm-help">Save updates the active dataset file. Save As creates a new dataset and makes it the active working dataset. Load Data switches the runtime to a saved dataset.</div>' +
             '<div class="dm-load">' +
-              '<label for="stage15DatasetSelect">Load Data</label>' +
+              '<label for="dataManagementDatasetSelect">Load Data</label>' +
               '<div class="dm-actions dm-data-actions">' +
-                '<button class="control primary" id="stage15SaveRun">Save</button>' +
-                '<button class="control" id="stage15SaveAsRun">Save As</button>' +
-                '<select id="stage15DatasetSelect"><option value="">No saved datasets</option></select>' +
-                '<button class="control" id="stage15DatasetRefresh">Refresh</button>' +
-                '<button class="control primary" id="stage15LoadRun">Load Data</button>' +
+                '<button class="control primary" id="dataManagementSaveRun">Save</button>' +
+                '<button class="control" id="dataManagementSaveAsRun">Save As</button>' +
+                '<select id="dataManagementDatasetSelect"><option value="">No saved datasets</option></select>' +
+                '<button class="control" id="dataManagementDatasetRefresh">Refresh</button>' +
+                '<button class="control primary" id="dataManagementLoadRun">Load Data</button>' +
               '</div>' +
             '</div>' +
           '</div>' +
-          '<div class="dm-pane" id="stage15PaneImport">' +
-            '<label for="stage15ImportPath">XLSX source path</label>' +
-            '<input id="stage15ImportPath" type="text" placeholder="D:\\path\\source.xlsx">' +
+          '<div class="dm-pane" id="dataManagementPaneImport">' +
+            '<label for="dataManagementImportPath">XLSX source path</label>' +
+            '<input id="dataManagementImportPath" type="text" placeholder="D:\\path\\source.xlsx">' +
             '<div class="dm-help">The desktop host imports from a local path visible to Python. Import is validated and committed atomically; rejected data does not partially persist.</div>' +
-            '<button class="control primary" id="stage15ImportRun" disabled>Import XLSX</button>' +
+            '<button class="control primary" id="dataManagementImportRun" disabled>Import XLSX</button>' +
           '</div>' +
-          '<div class="dm-pane" id="stage15PaneBackup">' +
+          '<div class="dm-pane" id="dataManagementPaneBackup">' +
             '<div class="dm-help">Backup creates a sealed SHA-256 snapshot of the current runtime. Restore accepts that snapshot JSON and uses transactional validation before commit.</div>' +
             '<div class="dm-actions">' +
-              '<button class="control primary" id="stage15BackupRun">Create Backup</button>' +
-              '<input id="stage15RestoreFile" type="file" accept=".json,application/json">' +
-              '<button class="control" id="stage15RestoreRun">Restore Selected</button>' +
+              '<button class="control primary" id="dataManagementBackupRun">Create Backup</button>' +
+              '<input id="dataManagementRestoreFile" type="file" accept=".json,application/json">' +
+              '<button class="control" id="dataManagementRestoreRun">Restore Selected</button>' +
             '</div>' +
           '</div>' +
-          '<div class="dm-msg" id="stage15DataMsg">RuntimeAdapter ready.</div>' +
+          '<div class="dm-msg" id="dataManagementMsg">RuntimeAdapter ready.</div>' +
         '</div>' +
         '' +
       '</div>' +
-      '<div class="dm-native-dialog" id="stage15DatasetDialog" hidden aria-hidden="true">' +
-        '<div class="dm-dialog-card" role="dialog" aria-modal="true" aria-labelledby="stage15DatasetDialogTitle">' +
-          '<div class="dm-dialog-title" id="stage15DatasetDialogTitle">Save Dataset As</div>' +
+      '<div class="dm-native-dialog" id="dataManagementDatasetDialog" hidden aria-hidden="true">' +
+        '<div class="dm-dialog-card" role="dialog" aria-modal="true" aria-labelledby="dataManagementDatasetDialogTitle">' +
+          '<div class="dm-dialog-title" id="dataManagementDatasetDialogTitle">Save Dataset As</div>' +
           '<div class="dm-dialog-body">' +
-            '<label for="stage15DatasetNameInput">Dataset name</label>' +
-            '<input id="stage15DatasetNameInput" type="text" autocomplete="off" spellcheck="false">' +
+            '<label for="dataManagementDatasetNameInput">Dataset name</label>' +
+            '<input id="dataManagementDatasetNameInput" type="text" autocomplete="off" spellcheck="false">' +
             '<div class="dm-dialog-help">Create a new working dataset from the current runtime.</div>' +
           '</div>' +
           '<div class="dm-dialog-foot">' +
-            '<button class="control" id="stage15DatasetDialogCancel">Cancel</button>' +
-            '<button class="control primary" id="stage15DatasetDialogConfirm">Save As</button>' +
+            '<button class="control" id="dataManagementDatasetDialogCancel">Cancel</button>' +
+            '<button class="control primary" id="dataManagementDatasetDialogConfirm">Save As</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="dm-native-dialog" id="stage15ConfirmDialog" hidden aria-hidden="true">' +
-        '<div class="dm-dialog-card" role="dialog" aria-modal="true" aria-labelledby="stage15ConfirmDialogTitle">' +
-          '<div class="dm-dialog-title" id="stage15ConfirmDialogTitle">Load Dataset</div>' +
-          '<div class="dm-dialog-body"><div class="dm-dialog-help" id="stage15ConfirmDialogText"></div></div>' +
+      '<div class="dm-native-dialog" id="dataManagementConfirmDialog" hidden aria-hidden="true">' +
+        '<div class="dm-dialog-card" role="dialog" aria-modal="true" aria-labelledby="dataManagementConfirmDialogTitle">' +
+          '<div class="dm-dialog-title" id="dataManagementConfirmDialogTitle">Load Dataset</div>' +
+          '<div class="dm-dialog-body"><div class="dm-dialog-help" id="dataManagementConfirmDialogText"></div></div>' +
           '<div class="dm-dialog-foot">' +
-            '<button class="control" id="stage15ConfirmDialogCancel">Cancel</button>' +
-            '<button class="control primary" id="stage15ConfirmDialogConfirm">Load Data</button>' +
+            '<button class="control" id="dataManagementConfirmDialogCancel">Cancel</button>' +
+            '<button class="control primary" id="dataManagementConfirmDialogConfirm">Load Data</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -118,10 +118,10 @@
 
   function askSaveAsName(current) {
     return new Promise(function (resolve) {
-      const dialog = document.getElementById('stage15DatasetDialog');
-      const input = document.getElementById('stage15DatasetNameInput');
-      const confirm = document.getElementById('stage15DatasetDialogConfirm');
-      const cancel = document.getElementById('stage15DatasetDialogCancel');
+      const dialog = document.getElementById('dataManagementDatasetDialog');
+      const input = document.getElementById('dataManagementDatasetNameInput');
+      const confirm = document.getElementById('dataManagementDatasetDialogConfirm');
+      const cancel = document.getElementById('dataManagementDatasetDialogCancel');
       if (!dialog || !input || !confirm || !cancel) return resolve(null);
 
       input.value = current;
@@ -129,7 +129,7 @@
         confirm.removeEventListener('click', onConfirm);
         cancel.removeEventListener('click', onCancel);
         input.removeEventListener('keydown', onKeydown);
-        hideDialog('stage15DatasetDialog');
+        hideDialog('dataManagementDatasetDialog');
         resolve(value);
       };
       const onConfirm = function () {
@@ -149,23 +149,23 @@
       confirm.addEventListener('click', onConfirm);
       cancel.addEventListener('click', onCancel);
       input.addEventListener('keydown', onKeydown);
-      showDialog('stage15DatasetDialog');
+      showDialog('dataManagementDatasetDialog');
     });
   }
 
   function askLoadConfirmation(name) {
     return new Promise(function (resolve) {
-      const dialog = document.getElementById('stage15ConfirmDialog');
-      const text = document.getElementById('stage15ConfirmDialogText');
-      const confirm = document.getElementById('stage15ConfirmDialogConfirm');
-      const cancel = document.getElementById('stage15ConfirmDialogCancel');
+      const dialog = document.getElementById('dataManagementConfirmDialog');
+      const text = document.getElementById('dataManagementConfirmDialogText');
+      const confirm = document.getElementById('dataManagementConfirmDialogConfirm');
+      const cancel = document.getElementById('dataManagementConfirmDialogCancel');
       if (!dialog || !text || !confirm || !cancel) return resolve(false);
 
       text.textContent = 'Load dataset "' + name + '" and replace the current runtime data?';
       const finish = function (value) {
         confirm.removeEventListener('click', onConfirm);
         cancel.removeEventListener('click', onCancel);
-        hideDialog('stage15ConfirmDialog');
+        hideDialog('dataManagementConfirmDialog');
         resolve(value);
       };
       const onConfirm = function () { finish(true); };
@@ -177,13 +177,13 @@
       dialog.addEventListener('keydown', onKeydown);
       confirm.addEventListener('click', onConfirm);
       cancel.addEventListener('click', onCancel);
-      showDialog('stage15ConfirmDialog');
+      showDialog('dataManagementConfirmDialog');
       confirm.focus();
     });
   }
 
   function msg(text, error) {
-    const el = document.getElementById('stage15DataMsg');
+    const el = document.getElementById('dataManagementMsg');
     if (!el) return;
     el.textContent = text;
     el.classList.toggle('error', !!error);
@@ -194,7 +194,7 @@
       const result = await runtimeClient.request({ operation: 'LIST_DATASETS' });
       if (result.status !== 'READY') throw new Error('Dataset list unavailable');
       activeDataset = result.active || activeDataset;
-      const select = document.getElementById('stage15DatasetSelect');
+      const select = document.getElementById('dataManagementDatasetSelect');
       const datasets = Array.isArray(result.datasets) ? result.datasets : [];
       select.innerHTML = datasets.length
         ? datasets.map(function (item) {
@@ -213,12 +213,12 @@
   }
 
   function openPane(name) {
-    document.querySelectorAll('#stage15DataModal .dm-tab').forEach(function (tab) {
+    document.querySelectorAll('#dataManagementModal .dm-tab').forEach(function (tab) {
       tab.classList.toggle('active', tab.dataset.pane === name);
     });
-    document.getElementById('stage15PaneImport').classList.toggle('active', name === 'import');
-    document.getElementById('stage15PaneBackup').classList.toggle('active', name === 'backup');
-    document.getElementById('stage15PaneData').classList.toggle('active', name === 'data');
+    document.getElementById('dataManagementPaneImport').classList.toggle('active', name === 'import');
+    document.getElementById('dataManagementPaneBackup').classList.toggle('active', name === 'backup');
+    document.getElementById('dataManagementPaneData').classList.toggle('active', name === 'data');
     if (name === 'data') refreshDatasets();
     msg(
       name === 'import'
@@ -231,7 +231,7 @@
 
   function open() {
     ensureDom();
-    const modal = document.getElementById('stage15DataModal');
+    const modal = document.getElementById('dataManagementModal');
     closeToken += 1;
     if (closeTimer !== null) {
       global.clearTimeout(closeTimer);
@@ -248,14 +248,14 @@
     }
     openPane('data');
     if (global.LithositeModalShowContract) {
-      global.LithositeModalShowContract.show('stage15DataModal');
+      global.LithositeModalShowContract.show('dataManagementModal');
     } else {
-      document.getElementById('stage15DataModal').classList.add('show');
+      document.getElementById('dataManagementModal').classList.add('show');
     }
   }
 
   function close() {
-    const modal = document.getElementById('stage15DataModal');
+    const modal = document.getElementById('dataManagementModal');
     if (!modal || !modal.classList.contains('show') || modal.classList.contains('is-closing')) return;
     const token = ++closeToken;
     modal.dataset.closeToken = String(token);
@@ -310,7 +310,7 @@
   }
 
   async function runLoad() {
-    const select = document.getElementById('stage15DatasetSelect');
+    const select = document.getElementById('dataManagementDatasetSelect');
     const name = select && select.value;
     if (!name) return msg('Select a saved dataset first.', true);
     if (!(await askLoadConfirmation(name))) return;
@@ -331,7 +331,7 @@
   }
 
   async function runImport() {
-    const path = document.getElementById('stage15ImportPath').value.trim();
+    const path = document.getElementById('dataManagementImportPath').value.trim();
     if (!path) return msg('XLSX source path is required.', true);
     try {
       msg('Importing and validating XLSX…');
@@ -371,7 +371,7 @@
   }
 
   async function runRestore() {
-    const input = document.getElementById('stage15RestoreFile');
+    const input = document.getElementById('dataManagementRestoreFile');
     const file = input && input.files && input.files[0];
     if (!file) return msg('Select a backup JSON file first.', true);
     try {
@@ -396,19 +396,19 @@
 
   function bind() {
     ensureDom();
-    document.getElementById('stage15DataClose').addEventListener('click', close);
-    document.querySelectorAll('#stage15DataModal .dm-tab').forEach(function (tab) {
+    document.getElementById('dataManagementClose').addEventListener('click', close);
+    document.querySelectorAll('#dataManagementModal .dm-tab').forEach(function (tab) {
       tab.addEventListener('click', function () { openPane(tab.dataset.pane); });
     });
-    document.getElementById('stage15ImportRun').addEventListener('click', runImport);
-    document.getElementById('stage15BackupRun').addEventListener('click', runBackup);
-    document.getElementById('stage15RestoreRun').addEventListener('click', runRestore);
-    document.getElementById('stage15SaveRun').addEventListener('click', runSave);
-    document.getElementById('stage15SaveAsRun').addEventListener('click', runSaveAs);
-    document.getElementById('stage15DatasetRefresh').addEventListener('click', function () { refreshDatasets(); });
-    document.getElementById('stage15LoadRun').addEventListener('click', runLoad);
-    document.getElementById('stage15DataModal').addEventListener('click', function (event) {
-      if (event.target.id === 'stage15DataModal') close();
+    document.getElementById('dataManagementImportRun').addEventListener('click', runImport);
+    document.getElementById('dataManagementBackupRun').addEventListener('click', runBackup);
+    document.getElementById('dataManagementRestoreRun').addEventListener('click', runRestore);
+    document.getElementById('dataManagementSaveRun').addEventListener('click', runSave);
+    document.getElementById('dataManagementSaveAsRun').addEventListener('click', runSaveAs);
+    document.getElementById('dataManagementDatasetRefresh').addEventListener('click', function () { refreshDatasets(); });
+    document.getElementById('dataManagementLoadRun').addEventListener('click', runLoad);
+    document.getElementById('dataManagementModal').addEventListener('click', function (event) {
+      if (event.target.id === 'dataManagementModal') close();
     });
   }
 

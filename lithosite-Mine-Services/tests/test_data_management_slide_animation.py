@@ -8,8 +8,8 @@ JS = ROOT / "ui" / "modules" / "data-management" / "data-management.js"
 
 def test_data_management_modal_uses_slide_only_motion():
     css = CSS.read_text(encoding="utf-8")
-    assert "#stage15DataModal.show:not(.is-closing) .dm-card" in css
-    assert "#stage15DataModal.show.is-closing .dm-card" in css
+    assert "#dataManagementModal.show:not(.is-closing) .dm-card" in css
+    assert "#dataManagementModal.show.is-closing .dm-card" in css
     assert "@keyframes dataManagementSlideIn" in css
     assert "@keyframes dataManagementSlideOut" in css
     assert "transform:translateX(-24px)" in css
