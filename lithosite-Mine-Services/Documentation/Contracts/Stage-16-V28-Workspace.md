@@ -1,4 +1,4 @@
-# Stage 16 — V28 Closure Lock
+# Stage 16 â€” V28 Closure Lock
 
 ## Baseline
 
