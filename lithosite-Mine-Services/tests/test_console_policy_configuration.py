@@ -86,9 +86,11 @@ def test_equipment_unit_column():
 
 def test_console_policy_persists_across_reload():
     reports = read("ui/modules/reports/reports.js")
+    storage = read("ui/shared/kpi-policy-storage.js")
     assert "POLICY_STORAGE_KEY" in reports
-    assert "function readPolicyStorage()" in reports
-    assert "storage?.getItem(POLICY_STORAGE_KEY)" in reports
+    assert "policyStorage.read(global.localStorage)" in reports
+    assert "function read(storage)" in storage
+    assert "storage.getItem(KEY)" in storage
     assert "global.localStorage.setItem(POLICY_STORAGE_KEY" in reports
     assert "state.policy=loadStoredPolicy()" in reports
     assert "persistPolicy(state.policy)" in reports
