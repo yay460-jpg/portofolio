@@ -53,7 +53,7 @@ function makeStorage(seed,options){
 
 {
   const storage=makeStorage({}, {throwLength:true});
-  assert.deepStrictEqual(load(storage).list(),[]);
+  assert.strictEqual(load(storage).list().length,0);
 }
 {
   const storage=makeStorage();
