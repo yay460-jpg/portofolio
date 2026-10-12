@@ -2,7 +2,7 @@
 (function(global){
 'use strict';
 const KEY='lithosite.mine-services.report-history';
-const LEGACY_KEY_PATTERN=/^lithosite\\.mine-services\\.v\\d+\\.report-history$/;
+const LEGACY_KEY_PATTERN=/^lithosite\.mine-services\.v\d+\.report-history$/;
 function legacyKeys(storage){
   if(!storage||typeof storage.key!=='function')return [];
   const found=[];
@@ -13,7 +13,7 @@ function legacyKeys(storage){
     try{key=storage.key(index);}catch(_){continue;}
     if(typeof key==='string'&&LEGACY_KEY_PATTERN.test(key))found.push(key);
   }
-  const versionNumber=key=>Number(key.match(/\\.v(\\d+)\\.report-history$/)?.[1]||0);
+  const versionNumber=key=>Number(key.match(/\.v(\d+)\.report-history$/)?.[1]||0);
   return found.sort((a,b)=>versionNumber(b)-versionNumber(a));
 }
 function read(){
