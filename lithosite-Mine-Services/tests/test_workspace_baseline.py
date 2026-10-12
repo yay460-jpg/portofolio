@@ -23,7 +23,7 @@ def test_desktop_host_and_launcher_open_the_canonical_artifact():
 
 def test_locked_baseline_records_the_release_decision():
     index = (BASELINE_DOCS / "README.md").read_text(encoding="utf-8")
-    match = re.search(r"\\[[^\\]]+\\]\\(([^)]+-Baseline-Lock\\.md)\\)", index)
+    match = re.search(r"\[[^\]]+\]\(([^)]+-Baseline-Lock\.md)\)", index)
     assert match, "Baseline index must identify the current lock record"
 
     lock_path = (BASELINE_DOCS / match.group(1)).resolve()
