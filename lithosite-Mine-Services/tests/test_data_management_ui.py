@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-VERSIONED_MARKER = re.compile(r"(?i)\\b(?:stage[-_ ]?\\d+|v\\d+(?:\\.\\d+)*)\\b")
+VERSIONED_MARKER = re.compile(r"(?i)\b(?:stage[-_ ]?\d+|v\d+(?:\.\d+)*)\b")
 
 
 def test_data_management_ui_contract():
