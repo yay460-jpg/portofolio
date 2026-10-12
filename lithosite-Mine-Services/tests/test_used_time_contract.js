@@ -74,4 +74,4 @@ testOnlyAvailableUsedCounts();
 testUnresolvedBlocksUsedTime();
 testGapBlocksUsedTime();
 
-console.log('V34 USED TIME CONTRACT TEST PASS');
+console.log('USED TIME CONTRACT TEST PASS');

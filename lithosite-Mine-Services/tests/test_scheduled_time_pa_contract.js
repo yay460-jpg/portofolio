@@ -1,5 +1,5 @@
 /*
- * V34 — Scheduled Time / PA Contract Test
+ * Scheduled Time / PA Contract Test
  *
  * Verifies:
  * 1. a resolved baseline without an approved Scheduled Time definition
@@ -143,4 +143,4 @@ testPendingScheduledTimeDoesNotInventDenominator();
 testExplicitApprovedScheduledTimeFlowsToPA();
 testZeroAndMultipleBaselineDoNotGuess();
 
-console.log('V34 SCHEDULED TIME PA CONTRACT TEST PASS');
+console.log('SCHEDULED TIME PA CONTRACT TEST PASS');

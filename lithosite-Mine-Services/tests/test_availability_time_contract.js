@@ -87,4 +87,4 @@ testInternalGapNeedsValidation();
 testUnresolvedClassificationNeedsValidation();
 testAvailableAndNotUsedStillCountsAvailable();
 
-console.log('V34 AVAILABLE TIME CONTRACT TEST PASS');
+console.log('AVAILABLE TIME CONTRACT TEST PASS');
