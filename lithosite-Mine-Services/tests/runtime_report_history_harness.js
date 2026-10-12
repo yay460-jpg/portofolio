@@ -44,7 +44,7 @@ function makeStorage(seed,options){
 {
   const validKey='lithosite.mine-services.v4.report-history';
   const records=[{snapshot_id:'recoverable',report_type:'MONTHLY',snapshot:{immutable:true,issued_at:'2026-10-01T00:00:00Z'}}];
-  const storage=makeStorage({[KEY]:'{broken',[validKey]:JSON.stringify(records]},{throwKeyAt:0});
+  const storage=makeStorage({[KEY]:'{broken',[validKey]:JSON.stringify(records)},{throwKeyAt:0});
   const history=load(storage);
   assert.strictEqual(history.get('recoverable').snapshot_id,'recoverable');
   assert.deepStrictEqual(JSON.parse(storage.getItem(KEY)),records);
