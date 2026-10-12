@@ -224,3 +224,61 @@ def test_runtime_dataset_load_replaces_runtime_data(tmp_path):
     assert app.store.exists("Equipment", "E-ORIGINAL")
     assert not app.store.exists("Equipment", "E-SECOND")
     assert runtime.list_datasets()["active"]["dataset_name"] == "Original State"
+
+
+def valid_kpi_snapshot():
+    return {
+        "snapshot_version": "KPI-SNAPSHOT-1",
+        "scope_type": "FLEET",
+        "scope_id": "FLEET:ALL",
+        "period_id": "2026-10-04",
+        "status": "FINAL_CANDIDATE",
+        "calculation_version": "KPI-FOUNDATION-E2E-0.1",
+        "policy": {"id": "PA-UA-BASELINE", "version": "1.0"},
+        "time_baseline": {"id": "TB-PROJECT-DAY-0600-1800", "version": "1.0"},
+        "result": {
+            "PA": {"kpi": "PA", "status": "READY", "value": 81.8},
+            "UA": {"kpi": "UA", "status": "READY", "value": 77.7},
+            "EU": {"kpi": "EU", "status": "PENDING_DEFINITION", "value": None},
+        },
+        "event_versions": [],
+        "population": {"total": 1, "eligible": 1, "excluded": 0},
+        "contributing_hours": {"scheduledHours": 11, "availableHours": 9, "usedHours": 7},
+        "exclusions": [],
+    }
+
+
+def test_kpi_snapshot_retry_reconciles_audit_after_persistence_failure():
+    app = ApplicationService(PersistenceStore())
+    runtime = RuntimeInterface(application=app)
+    real_save = app.store.save
+    save_attempts = {"count": 0}
+
+    def fail_first_save():
+        save_attempts["count"] += 1
+        if save_attempts["count"] == 1:
+            raise OSError("simulated audit persistence failure")
+        return real_save()
+
+    app.store.save = fail_first_save
+    candidate = valid_kpi_snapshot()
+
+    first = runtime.finalize_kpi(candidate, source="test")
+    assert first["status"] == "COMMITTED"
+    assert first["audit_status"] == "NOT_APPENDED"
+    assert runtime.read("AuditLog") == []
+
+    retry = runtime.finalize_kpi(candidate, source="test")
+    assert retry["status"] == "EXISTING"
+    assert retry["audit_status"] == "APPENDED"
+
+    events = runtime.read("AuditLog")
+    assert len(events) == 1
+    assert events[0]["entity"] == "KPI_Snapshot"
+    assert events[0]["entity_id"] == first["snapshot_id"]
+    assert events[0]["action"] == "FINALIZE"
+
+    repeated = runtime.finalize_kpi(candidate, source="test")
+    assert repeated["status"] == "EXISTING"
+    assert repeated["audit_status"] == "ALREADY_APPENDED"
+    assert len(runtime.read("AuditLog")) == 1

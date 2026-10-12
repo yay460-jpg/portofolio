@@ -153,22 +153,48 @@ class RuntimeInterface:
 
     def finalize_kpi(self, snapshot, source="runtime"):
         result = self._kpi_history.finalize(snapshot, source=source)
-        if result.get("status") == "COMMITTED":
-            before = self._application.store.snapshot()
-            try:
-                self._application.audit_repository.append(
-                    entity="KPI_Snapshot",
-                    entity_id=result.get("snapshot_id"),
-                    action="FINALIZE",
-                    request_id=result.get("snapshot_id"),
-                    new_value=json.dumps(snapshot, default=str, sort_keys=True),
-                    source=source,
-                )
-                self._application.store.save()
-                result["audit_status"] = "APPENDED"
-            except Exception:
-                self._application.store.replace(before)
-                result["audit_status"] = "NOT_APPENDED"
+        if result.get("status") not in {"COMMITTED", "EXISTING"}:
+            return result
+
+        snapshot_id = result.get("snapshot_id")
+        if not snapshot_id:
+            result["audit_status"] = "NOT_APPENDED"
+            return result
+
+        try:
+            audit_events = self._application.audit_repository.all()
+        except Exception:
+            result["audit_status"] = "NOT_APPENDED"
+            return result
+
+        audit_exists = any(
+            event.get("entity") == "KPI_Snapshot"
+            and str(event.get("entity_id")) == str(snapshot_id)
+            and event.get("action") == "FINALIZE"
+            for event in audit_events
+        )
+        if audit_exists:
+            result["audit_status"] = "ALREADY_APPENDED"
+            return result
+
+        # KPI history is an append-only store separate from the workbook audit
+        # log. If the snapshot committed but audit persistence failed, a retry
+        # returns EXISTING; reconcile the missing audit entry on that retry.
+        before = self._application.store.snapshot()
+        try:
+            self._application.audit_repository.append(
+                entity="KPI_Snapshot",
+                entity_id=snapshot_id,
+                action="FINALIZE",
+                request_id=snapshot_id,
+                new_value=json.dumps(snapshot, default=str, sort_keys=True),
+                source=source,
+            )
+            self._application.store.save()
+            result["audit_status"] = "APPENDED"
+        except Exception:
+            self._application.store.replace(before)
+            result["audit_status"] = "NOT_APPENDED"
         return result
 
     def read_kpi_snapshots(self, scope_id=None, period_id=None):

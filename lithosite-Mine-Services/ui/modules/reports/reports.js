@@ -154,7 +154,9 @@ async function finalizeCurrent(){
   try{
     const snapshot=foundation.buildSnapshot({calculation:state.kpi,scopeType:'FLEET',scopeId:'FLEET:ALL',periodId:state.date});
     const result=await foundation.finalizeSnapshot(snapshot);
-    if(result.status==='COMMITTED')msg('KPI snapshot finalized — Revision '+result.revision+'.');
+    if(result.audit_status==='NOT_APPENDED')msg('KPI snapshot is saved, but its audit record could not be saved. Retry finalization to reconcile the audit log.',true);
+    else if(result.status==='COMMITTED')msg('KPI snapshot finalized — Revision '+result.revision+'.');
+    else if(result.status==='EXISTING'&&result.audit_status==='APPENDED')msg('Identical KPI snapshot remains current — Revision '+result.revision+'; missing audit record has been restored.');
     else if(result.status==='EXISTING')msg('Identical KPI snapshot already exists — Revision '+result.revision+' remains current.');
     else msg('KPI finalization rejected: '+(result.reason||result.status||'Unknown'),true);
     state.snapshots=await foundation.listSnapshots('FLEET:ALL',state.date);renderSnapshotHistory();
