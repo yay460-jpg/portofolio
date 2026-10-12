@@ -1,4 +1,4 @@
-# Stage 16 — Reports Final Evidence
+# Stage 16 â€” Reports Final Evidence
 
 - Workspace: V28
 - Baseline: V27 FINAL / LOCKED
