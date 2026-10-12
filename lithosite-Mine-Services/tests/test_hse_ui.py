@@ -32,25 +32,25 @@ def valid_hse(hse_id="HSE-01"):
 
 def seed():
     app = ApplicationService()
-    assert app.create("WorkFront", valid_work_front(), "stage14-wf")["status"] == "COMMITTED"
+    assert app.create("WorkFront", valid_work_front(), "hse-wf")["status"] == "COMMITTED"
     return app
 
 
 def test_hse_crud_and_audit():
     app = seed()
-    assert app.create("HSE", valid_hse(), "stage14-create")["status"] == "COMMITTED"
+    assert app.create("HSE", valid_hse(), "hse-create")["status"] == "COMMITTED"
     assert app.read("HSE", "HSE-01")["severity"] == "Medium"
 
     updated = app.update(
         "HSE",
         "HSE-01",
         {"severity": "High", "status": "In Progress"},
-        "stage14-update",
+        "hse-update",
     )
     assert updated["status"] == "COMMITTED"
     assert app.read("HSE", "HSE-01")["severity"] == "High"
 
-    deleted = app.delete("HSE", "HSE-01", "stage14-delete")
+    deleted = app.delete("HSE", "HSE-01", "hse-delete")
     assert deleted["status"] == "COMMITTED"
     assert app.read("HSE", "HSE-01") is None
     assert [event["action"] for event in app.store.audit()] == ["CREATE", "CREATE", "UPDATE", "DELETE"]
@@ -61,19 +61,19 @@ def test_hse_fk_and_controlled_values_are_rejected():
 
     bad_fk = valid_hse("HSE-BAD-FK")
     bad_fk["work_front_id"] = "NO-SUCH-WORK-FRONT"
-    result = app.create("HSE", bad_fk, "stage14-bad-fk")
+    result = app.create("HSE", bad_fk, "hse-bad-fk")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E005" for error in result["errors"])
 
     bad_enum = valid_hse("HSE-BAD-ENUM")
     bad_enum["severity"] = "Extreme"
-    result = app.create("HSE", bad_enum, "stage14-bad-enum")
+    result = app.create("HSE", bad_enum, "hse-bad-enum")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E006" for error in result["errors"])
 
     bad_type = valid_hse("HSE-BAD-TYPE")
     bad_type["event_type"] = "Unsafe Condition"
-    result = app.create("HSE", bad_type, "stage14-bad-type")
+    result = app.create("HSE", bad_type, "hse-bad-type")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E006" for error in result["errors"])
 
@@ -83,13 +83,13 @@ def test_hse_closed_requires_timestamp_and_open_must_be_blank():
 
     closed_without_time = valid_hse("HSE-CLOSED-NO-TIME")
     closed_without_time["status"] = "Closed"
-    result = app.create("HSE", closed_without_time, "stage14-closed-no-time")
+    result = app.create("HSE", closed_without_time, "hse-closed-no-time")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E008" for error in result["errors"])
 
     open_with_time = valid_hse("HSE-OPEN-WITH-TIME")
     open_with_time["closed_at"] = "2026-09-30T20:00"
-    result = app.create("HSE", open_with_time, "stage14-open-with-time")
+    result = app.create("HSE", open_with_time, "hse-open-with-time")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E008" for error in result["errors"])
 
@@ -101,7 +101,7 @@ def test_hse_open_or_in_progress_with_timestamp_is_rejected():
         row = valid_hse(f"HSE-{status.replace(' ', '-')}-WITH-TIME")
         row["status"] = status
         row["closed_at"] = "2026-09-30T20:00"
-        result = app.create("HSE", row, f"stage14-{status.lower().replace(' ', '-')}-with-time")
+        result = app.create("HSE", row, f"hse-{status.lower().replace(' ', '-')}-with-time")
         assert result["status"] == "REJECTED"
         assert any(error.code == "VAL-E008" for error in result["errors"])
 
@@ -112,7 +112,7 @@ def test_runtime_adapter_returns_structured_validation_errors():
     row = valid_hse("HSE-ADAPTER-ERROR")
     row["closed_at"] = "2026-09-30T20:00"
     result = adapter.handle({
-        "request_id": "stage14-adapter-error",
+        "request_id": "hse-adapter-error",
         "operation": "CREATE",
         "entity": "HSE",
         "row": row,
@@ -128,7 +128,7 @@ def test_hse_closed_with_timestamp_commits():
     row = valid_hse("HSE-CLOSED")
     row["status"] = "Closed"
     row["closed_at"] = "2026-09-30T20:00"
-    result = app.create("HSE", row, "stage14-closed")
+    result = app.create("HSE", row, "hse-closed")
     assert result["status"] == "COMMITTED"
     assert app.read("HSE", "HSE-CLOSED")["closed_at"] == "2026-09-30T20:00"
 

@@ -7,14 +7,14 @@ EQUIPMENT_CSS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "e
 SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
 
 
-def test_stage9_equipment_screen_exists():
+def test_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
     assert "equipment.js" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
-def test_stage9_equipment_fields_present():
+def test_equipment_fields_present():
     for field in (
         "equipment_id",
         "category",
@@ -30,7 +30,7 @@ def test_stage9_equipment_fields_present():
         assert field in EQUIPMENT_JS
 
 
-def test_stage9_runtime_crud_contract_present():
+def test_equipment_runtime_crud_contract_present():
     assert "operation:'READ',entity:'Equipment'" in EQUIPMENT_JS
     assert "operation:'CREATE',entity:'Equipment'" in EQUIPMENT_JS
     assert "operation:'UPDATE',entity:'Equipment'" in EQUIPMENT_JS
@@ -38,17 +38,17 @@ def test_stage9_runtime_crud_contract_present():
     assert "RuntimeAdapter" in EQUIPMENT_JS
 
 
-def test_stage9_reference_protection_is_runtime_authoritative():
+def test_equipment_reference_protection_is_runtime_authoritative():
     assert "Runtime will reject deletion if the equipment is referenced." in EQUIPMENT_JS
     assert "Delete failed:" in EQUIPMENT_JS
 
 
-def test_stage9_no_browser_database():
+def test_equipment_avoids_browser_database():
     assert "indexedDB" not in (TEXT + EQUIPMENT_JS).lower()
     assert "localStorage" not in (TEXT + EQUIPMENT_JS)
 
 
-def test_stage9_controlled_vocab_contract_present():
+def test_equipment_controlled_vocab_contract_present():
     assert "equipment_category" in EQUIPMENT_JS
     assert "equipment_type" in EQUIPMENT_JS
     assert "owner_type" in EQUIPMENT_JS
@@ -57,7 +57,7 @@ def test_stage9_controlled_vocab_contract_present():
     assert "loadLists" in EQUIPMENT_JS
 
 
-def test_stage9_navigation_and_shell_guard_available():
+def test_equipment_navigation_and_shell_guard_available():
     assert 'Equipment' in TEXT
     assert "equipmentScreen" in TEXT
     assert "let currentScreen = 'Dashboard';" in SHELL_JS
@@ -70,7 +70,7 @@ def test_stage9_navigation_and_shell_guard_available():
     assert "equipmentScreen" in SHELL_JS
 
 
-def test_stage9_runtime_error_is_not_rendered_as_empty_dataset():
+def test_equipment_runtime_error_is_not_rendered_as_empty_dataset():
     assert "state.status='error'" in EQUIPMENT_JS
     assert "Equipment data unavailable" in EQUIPMENT_JS
     assert "state.rows=[]" not in EQUIPMENT_JS
@@ -78,7 +78,7 @@ def test_stage9_runtime_error_is_not_rendered_as_empty_dataset():
 
 
 
-def test_stage9_global_capacity_resolution_contract_present():
+def test_equipment_global_capacity_resolution_contract_present():
     assert "Global Capacity Profile" in TEXT
     assert "f_eq_capacity_profile" in TEXT
     assert "f_eq_brand" in TEXT
@@ -87,7 +87,7 @@ def test_stage9_global_capacity_resolution_contract_present():
     assert "capacity_profile_id" in EQUIPMENT_JS
 
 
-def test_stage9_equipment_master_brand_column_resolves_from_global_capacity():
+def test_equipment_master_brand_column_resolves_from_global_capacity():
     header = (
         '<div class="cell">Category</div><div class="cell">Brand / Merk</div>'
         '<div class="cell">Type</div>'

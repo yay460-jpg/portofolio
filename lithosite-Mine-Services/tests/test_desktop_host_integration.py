@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-def test_stage13_desktop_host_serves_offline_ui_contract():
+def test_desktop_host_serves_offline_ui_contract():
     root = Path(__file__).parents[1]
     server = (root / "desktop-host" / "server.py").read_text(encoding="utf-8")
     launcher = (root / "desktop-host" / "start-mine-services.bat").read_text(encoding="utf-8")
@@ -20,7 +20,7 @@ def test_stage13_desktop_host_serves_offline_ui_contract():
     assert 'curl.exe --silent --fail' in launcher
 
 
-def test_stage13_root_launcher_delegates_to_desktop_host():
+def test_root_launcher_delegates_to_desktop_host():
     root = Path(__file__).parents[1]
     launcher = (root / "Start-Mine-Services.bat").read_text(encoding="utf-8")
     assert 'desktop-host\\start-mine-services.bat' in launcher

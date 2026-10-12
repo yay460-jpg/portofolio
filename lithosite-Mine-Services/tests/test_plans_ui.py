@@ -31,13 +31,13 @@ def valid_plan(plan_id="PLN-01"):
 
 def seed():
     app = ApplicationService()
-    assert app.create("WorkFront", valid_work_front(), "stage13-wf")["status"] == "COMMITTED"
+    assert app.create("WorkFront", valid_work_front(), "plans-wf")["status"] == "COMMITTED"
     return app
 
 
 def test_plans_crud_and_audit():
     app = seed()
-    assert app.create("Plans", valid_plan(), "stage13-create")["status"] == "COMMITTED"
+    assert app.create("Plans", valid_plan(), "plans-create")["status"] == "COMMITTED"
     created_plan = app.read("Plans", "PLN-01")
     assert created_plan["target_quantity"] == 1200
     assert created_plan["start_date"] == "2026-10-01"
@@ -48,12 +48,12 @@ def test_plans_crud_and_audit():
         "Plans",
         "PLN-01",
         {"target_quantity": 1500},
-        "stage13-update",
+        "plans-update",
     )
     assert updated["status"] == "COMMITTED"
     assert app.read("Plans", "PLN-01")["target_quantity"] == 1500
 
-    deleted = app.delete("Plans", "PLN-01", "stage13-delete")
+    deleted = app.delete("Plans", "PLN-01", "plans-delete")
     assert deleted["status"] == "COMMITTED"
     assert app.read("Plans", "PLN-01") is None
     assert [event["action"] for event in app.store.audit()] == ["CREATE", "CREATE", "UPDATE", "DELETE"]
@@ -64,25 +64,25 @@ def test_plans_fk_and_controlled_values_are_rejected():
 
     bad_fk = valid_plan("PLN-BAD-FK")
     bad_fk["work_front_id"] = "NO-SUCH-WORK-FRONT"
-    result = app.create("Plans", bad_fk, "stage13-bad-fk")
+    result = app.create("Plans", bad_fk, "plans-bad-fk")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E005" for error in result["errors"])
 
     bad_domain = valid_plan("PLN-BAD-DOMAIN")
     bad_domain["domain"] = "Not A Controlled Domain"
-    result = app.create("Plans", bad_domain, "stage13-bad-domain")
+    result = app.create("Plans", bad_domain, "plans-bad-domain")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E006" for error in result["errors"])
 
     bad_measurement = valid_plan("PLN-BAD-UNIT")
     bad_measurement["measurement"] = "Not A Unit"
-    result = app.create("Plans", bad_measurement, "stage13-bad-measurement")
+    result = app.create("Plans", bad_measurement, "plans-bad-measurement")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E006" for error in result["errors"])
 
     bad_status = valid_plan("PLN-BAD-STATUS")
     bad_status["status"] = "Not A Plan Status"
-    result = app.create("Plans", bad_status, "stage13-bad-status")
+    result = app.create("Plans", bad_status, "plans-bad-status")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E006" for error in result["errors"])
 
@@ -92,18 +92,18 @@ def test_plans_period_and_numeric_validation():
 
     bad_period = valid_plan("PLN-BAD-PERIOD")
     bad_period["period"] = "2026-13"
-    result = app.create("Plans", bad_period, "stage13-bad-period")
+    result = app.create("Plans", bad_period, "plans-bad-period")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E009" for error in result["errors"])
 
     bad_quantity = valid_plan("PLN-BAD-QTY")
     bad_quantity["target_quantity"] = -1
-    result = app.create("Plans", bad_quantity, "stage13-bad-qty")
+    result = app.create("Plans", bad_quantity, "plans-bad-qty")
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E007" for error in result["errors"])
 
 
-def test_v27_plans_shell_contract():
+def test_plans_shell_contract():
     root = Path(__file__).parents[1]
     html = (root / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     shell = (root / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")

@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,5 +36,5 @@ def test_about_modal_metadata_is_version_neutral():
     assert "Application Info" in shell
     assert "Active Development Workspace" in shell
     assert "Mine Services Operations" in shell
-    assert "V37 · Stage 26" not in shell
+    assert re.search(r"\bV[0-9]+\s*[·—-]\s*Stage\s*[0-9]+\b", shell, flags=re.I) is None
     assert "Version & Developer" not in shell

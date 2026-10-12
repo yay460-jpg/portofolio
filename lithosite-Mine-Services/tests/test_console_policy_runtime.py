@@ -3,7 +3,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 
-def test_stage36_runtime_kpi_policy_harness():
+def test_runtime_kpi_policy_harness():
     harness = ROOT / "tests" / "runtime_kpi_policy_harness.js"
     result = subprocess.run(
         ["node", str(harness)],
