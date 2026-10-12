@@ -1,7 +1,7 @@
 (function(global){
 'use strict';
 const rc=global.LithositeRuntimeClient;
-if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 10 Work Front');
+if(!rc) throw new Error('LithositeRuntimeClient is required before the WorkFront module');
 const state={rows:[],status:'loading'};
 let editId=null;
 let runtimeReady=false;

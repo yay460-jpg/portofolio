@@ -1,11 +1,11 @@
-/* V38 Global Capacity */
+/* Global Capacity */
 .capacity-grid{display:grid;grid-template-columns:150px minmax(180px,1fr) 110px 70px 110px 170px;align-items:center}
 .capacity-grid.th{font-weight:700;color:#8ea3ba}
 .capacity-cell{padding:7px 9px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .capacity-value{font-weight:700;color:#dbeafe}
 .capacity-help{font-size:10.5px;color:#8ea3ba;margin:0 0 10px}
 
-/* V38 — Global Capacity compact layout */
+/* Global Capacity compact layout */
 #capacityModal .modalbody{padding:14px 16px 16px;}
 #capacityModal .capacity-help{
   font-size:9.5px;
@@ -94,7 +94,7 @@
   color:#8ea3ba;
 }
 
-/* V38 — Add/Edit Global Capacity form layout */
+/* Add/Edit Global Capacity form layout */
 #capacityEditModal .modalbody{
   display:grid;
   grid-template-columns:1fr 1fr;
