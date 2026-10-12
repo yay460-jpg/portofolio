@@ -2,16 +2,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 ACTIVE_ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
-LEGACY_ARTIFACTS = (
-    ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html",
-    ROOT / "Artifacts" / "Mine-Services-Concept-2-Dashboard-Operations-v40-STAGE29.html",
-)
-LOCK = ROOT / "Documentation" / "Version-History" / "Baseline" / "V40-Baseline-Lock.md"
+ARTIFACTS_DIR = ROOT / "Artifacts"
+BASELINE_DOCS = ROOT / "Documentation" / "Version-History" / "Baseline"
 
 
 def test_runtime_has_one_version_neutral_canonical_artifact():
     assert ACTIVE_ARTIFACT.is_file()
-    assert all(not artifact.exists() for artifact in LEGACY_ARTIFACTS)
+    html_artifacts = sorted(ARTIFACTS_DIR.glob("*.html"), key=lambda path: path.name)
+    assert [path.name for path in html_artifacts] == [ACTIVE_ARTIFACT.name]
 
 
 def test_desktop_host_and_launcher_open_the_canonical_artifact():
@@ -22,9 +20,15 @@ def test_desktop_host_and_launcher_open_the_canonical_artifact():
     assert expected in launcher
 
 
-def test_v40_baseline_lock_records_the_release_decision():
-    doc = LOCK.read_text(encoding="utf-8")
-    assert "**Status:** LOCKED" in doc
-    assert "Full Pytest #451" in doc
-    assert "Plan vs Actual" in doc
-    assert "HOLD" in doc
+def test_locked_baseline_records_the_release_decision():
+    locked_documents = []
+    for path in BASELINE_DOCS.glob("*-Baseline-Lock.md"):
+        document = path.read_text(encoding="utf-8")
+        if "**Status:** LOCKED" in document:
+            locked_documents.append(document)
+
+    assert len(locked_documents) == 1
+    document = locked_documents[0]
+    assert "Full Pytest #" in document
+    assert "Plan vs Actual" in document
+    assert "HOLD" in document

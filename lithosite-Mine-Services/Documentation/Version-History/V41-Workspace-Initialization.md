@@ -8,7 +8,7 @@
 
 ## Workspace creation record
 
-This branch was created directly from the promoted `main` baseline after V40 was explicitly locked. The repository's unrelated portfolio projects were preserved during promotion. Previous release-specific runtime artifacts and test filenames were removed from the active project tree; historical snapshots and release records remain under Documentation.
+This branch was created directly from the promoted `main` baseline after V40 was explicitly locked. The repository's unrelated portfolio projects were preserved during promotion. Historical snapshots and release records remain under Documentation.
 
 ## Standing engineering rules
 
@@ -25,6 +25,12 @@ This branch was created directly from the promoted `main` baseline after V40 was
 - Final normalized source tree passed GitHub Actions Full Pytest #457: **573 passed in 49.32s**, commit `a7bafa5f8f4ef276595ae712eb909a80497f3219`.
 - The final baseline documentation commit passed Full Pytest #458.
 - V40 lock record: [V40 Baseline Lock](./Baseline/V40-Baseline-Lock.md).
+
+## V41 housekeeping record
+
+- Normalized 48 active test filenames from historical Stage/Vxx labels to feature-oriented names. Test bodies were not renamed or rewritten as part of the path normalization.
+- Updated the workspace baseline guard to verify the active artifact directory contains exactly the canonical HTML entry point without hard-coding retired artifact filenames.
+- Corrected malformed single-byte dash characters in two historical Stage 16 Markdown records to valid UTF-8, preserving the surrounding evidence text.
 
 ## Workspace policy
 
