@@ -1,5 +1,7 @@
 # V40 Desktop Runtime Acceptance — Operational A3
 
+> **Historical procedure — gate deferred at V40 lock.** This checklist was retained for traceability. The V40 lock explicitly records operational A3 runtime acceptance as deferred/not evidenced by CI, not as PASS. Use it only if the owner later requests a runtime acceptance session; it is not an open V40 release blocker.
+
 **Status: OPEN — local evidence required.** This checklist is intentionally separate from CI pytest results. CI creates an isolated temporary A3 workbook fixture; it does not prove that the developer's operational workbook opens correctly or that the installed Desktop Host uses it.
 
 ## Safety boundary
