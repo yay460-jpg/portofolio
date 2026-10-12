@@ -1,4 +1,4 @@
-/* V40 — isolated Plan vs Actual dialog; existing Work Control grid geometry is unchanged. */
+/* Isolated Plan vs Actual dialog; existing Work Control grid geometry is unchanged. */
 #dashboardScreen .dashboard-plan-open{white-space:nowrap}
 #dashboardPlanActualDialog[hidden]{display:none!important}
 #dashboardPlanActualDialog{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:24px;background:#020812c9}

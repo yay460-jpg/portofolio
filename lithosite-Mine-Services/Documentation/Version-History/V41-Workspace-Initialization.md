@@ -46,7 +46,7 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Runtime source neutralization
 
-- Removed stale V23/V34/V35/V38/V39/Stage labels from active runtime comments, diagnostics, and source metadata. Component-level identifiers and the A.3 schema contract remain intact; report metadata now defaults to the neutral application label.
+- Removed stale V23/V34/V35/V38/V39/V40/Stage labels from active runtime comments, diagnostics, and source metadata. Component-level identifiers and the A.3 schema contract remain intact; report metadata now defaults to the neutral application label.
 
 ## Data Management identifiers
 

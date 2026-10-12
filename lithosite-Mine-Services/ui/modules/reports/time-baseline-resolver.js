@@ -1,5 +1,5 @@
 /*
- * V34 — Time Baseline Resolver
+ * Time Baseline Resolver
  *
  * Scope:
  * - validates a Time Baseline contract;
