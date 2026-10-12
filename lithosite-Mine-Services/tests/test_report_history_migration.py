@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 HARNESS = ROOT / "tests" / "runtime_report_history_migration_harness.js"
 
 
-def test_report_history_migration_preserves_compatibility_data():
+def test_report_history_storage_and_migration_contract():
     node = shutil.which("node")
     assert node, "Node.js is required for the report history migration contract"
 

@@ -10,13 +10,26 @@ const KEY = 'lithosite.mine-services.report-history';
 const LEGACY_PREFIX = 'lithosite.mine-services.v';
 const legacyKey = label => LEGACY_PREFIX + String(label.length) + '.report-history';
 
-function storageWith(seed) {
+function storageWith(seed, options) {
   const values = Object.assign(Object.create(null), seed || {});
+  const settings = options || {};
   return {
-    get length() { return Object.keys(values).length; },
-    key(index) { return Object.keys(values)[index] || null; },
-    getItem(key) { return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : null; },
-    setItem(key, value) { values[key] = String(value); },
+    get length() {
+      if (settings.throwLength) throw new Error('length unavailable');
+      return Object.keys(values).length;
+    },
+    key(index) {
+      if (settings.throwKeyAt === index) throw new Error('key unavailable');
+      return Object.keys(values)[index] || null;
+    },
+    getItem(key) {
+      if (settings.throwGetItem === key) throw new Error('read unavailable');
+      return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : null;
+    },
+    setItem(key, value) {
+      if (settings.throwSetItem) throw new Error('write unavailable');
+      values[key] = String(value);
+    },
     removeItem(key) { delete values[key]; }
   };
 }
@@ -80,6 +93,42 @@ function sameJson(actual, expected, message) {
 
   sameJson(history.list('MONTHLY'), current, 'Valid canonical history must take precedence');
   assert.strictEqual(storage.getItem(legacyStorageKey), JSON.stringify(legacy), 'Canonical reads must not mutate legacy history');
+}
+
+{
+  const invalidCanonical = '{broken';
+  const validKey = legacyKey('valid-older');
+  const records = [{ report_type: 'MONTHLY', snapshot_id: 'recoverable-entry' }];
+  const storage = storageWith({
+    [KEY]: invalidCanonical,
+    [validKey]: JSON.stringify(records)
+  }, { throwKeyAt: 0 });
+  const history = loadHistory(storage);
+
+  sameJson(history.list('MONTHLY'), records, 'A key enumeration error must not hide later valid legacy entries');
+  sameJson(JSON.parse(storage.getItem(KEY)), records, 'Recovered history should normalize to the canonical key');
+  assert.strictEqual(storage.getItem(validKey), JSON.stringify(records), 'Source legacy history must remain intact');
+}
+
+{
+  const storage = storageWith({}, { throwLength: true });
+  assert.strictEqual(loadHistory(storage).list().length, 0, 'Inaccessible storage should fail safely');
+}
+
+{
+  const storage = storageWith({});
+  const history = loadHistory(storage);
+  assert.throws(
+    () => history.save({ snapshot_id: 'draft-entry', snapshot: { immutable: false } }),
+    /Only immutable issued snapshots/
+  );
+  const issued = {
+    snapshot_id: 'issued-entry',
+    report_type: 'DAILY',
+    snapshot: { immutable: true, issued_at: '2026-10-13T00:00:00Z' }
+  };
+  history.save(issued);
+  assert.strictEqual(history.get('issued-entry').snapshot_id, 'issued-entry');
 }
 
 console.log('REPORT_HISTORY_MIGRATION_PASS');
