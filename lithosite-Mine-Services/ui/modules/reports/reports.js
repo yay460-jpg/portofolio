@@ -637,7 +637,7 @@ function renderReportPreview(model){
       '<div><label>EU <b>'+fmtPct(k.EU)+'</b></label>'+reportBar(eu,maxPct)+'</div>'+
     '</div></section>'+
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Equipment Performance</b><span>'+eq.length+' KPI rows</span></div>'+
-      '<div class="report-table-wrap"><table class="report-preview-table"><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table></div></section>'+
+      '<div class="report-table-wrap"><table class="report-preview-table equipment-performance-table"><colgroup><col class="eq-col-equipment"><col class="eq-col-unit"><col class="eq-col-date"><col class="eq-col-scheduled"><col class="eq-col-available"><col class="eq-col-used"><col class="eq-col-pa"><col class="eq-col-ua"><col class="eq-col-eu"><col class="eq-col-status"></colgroup><thead><tr><th>Equipment</th><th>Unit</th><th>Date</th><th>Scheduled</th><th>Available</th><th>Used</th><th>PA</th><th>UA</th><th>EU</th><th>Status</th></tr></thead><tbody>'+eqRows+'</tbody></table></div></section>'+
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Operational Source Summary</b><span>'+totalRecords+' records</span></div><div class="report-table-wrap"><table class="report-preview-table compact"><thead><tr><th>Domain</th><th>Records</th></tr></thead><tbody>'+sourceRows+'</tbody></table></div></section>'+
     narrative('Plan vs Actual',reportSectionText(model.section_data['Planned vs Actual']||model.section_data['Plan vs Actual']||model.section_data['Target vs Actual'])||'Plan and actual source data are retained for the selected period.')+
     narrative('Maintenance / Downtime',reportSectionText(model.section_data['Maintenance and Downtime Analysis']||model.section_data['Maintenance / Downtime'])||'Maintenance source evidence is retained below.')+
@@ -645,6 +645,16 @@ function renderReportPreview(model){
     narrative('Issues and Actions',reportSectionText(model.section_data['Issues and Recurring Issues']||model.section_data['Issues and Abnormalities'])||'Issue source evidence is retained below.')+
     '<section class="report-preview-block"><div class="report-preview-block-head"><b>Source Evidence</b><span>Traceable RuntimeAdapter records</span></div><div class="report-preview-copy">Detailed source rows remain available in the report snapshot. No source data is invented when a domain does not provide the required field.</div></section>'+
     '<div class="report-preview-note">Preview is read-only. Generate PDF uses this same Report Snapshot.</div>';
+}
+function resetReportPdfReaderClose(modal){
+  if(!modal)return;
+  modal._reportPdfCloseToken=(Number(modal._reportPdfCloseToken)||0)+1;
+  if(modal._reportPdfCloseTimer!==null&&modal._reportPdfCloseTimer!==undefined){
+    global.clearTimeout(modal._reportPdfCloseTimer);
+  }
+  modal._reportPdfCloseTimer=null;
+  modal._reportPdfCloseFinish=null;
+  modal.classList.remove('is-closing');
 }
 async function generatePdf(model,reader){
   if(!model)return;
@@ -660,11 +670,13 @@ async function generatePdf(model,reader){
     if(!global.LithositePdfRenderer?.renderInline)throw new Error('PDF renderer is unavailable.');
     reader.title.textContent=(model.report_type||'REPORT')+' Report';
     reader.meta.textContent='Inline PDF Reader · Fit Width';
+    resetReportPdfReaderClose(reader.modal);
     reader.modal.classList.add('show');
     reader.modal.setAttribute('aria-hidden','false');
     await global.LithositePdfRenderer.renderInline(model,reader.frame);
   }catch(error){
     if(reader?.modal){
+      resetReportPdfReaderClose(reader.modal);
       reader.modal.classList.add('show');
       reader.modal.setAttribute('aria-hidden','false');
     }
@@ -779,16 +791,44 @@ function bind(){
     }catch(error){msg(error.message||'Report issue failed.',true);}
   };
   const closeReportPdfReader=()=>{
-    if(!reportPdfReaderModal)return;
-    reportPdfReaderModal.classList.remove('show');
-    reportPdfReaderModal.setAttribute('aria-hidden','true');
-    if(reportPdfReaderFrame){
-      const objectUrl=reportPdfReaderFrame.dataset?.reportPdfObjectUrl;
-      if(objectUrl&&global.URL?.revokeObjectURL)global.URL.revokeObjectURL(objectUrl);
-      delete reportPdfReaderFrame.dataset.reportPdfObjectUrl;
-      reportPdfReaderFrame.src='about:blank';
+    const modal=reportPdfReaderModal;
+    if(!modal||!modal.classList.contains('show')||modal.classList.contains('is-closing'))return;
+    const token=(Number(modal._reportPdfCloseToken)||0)+1;
+    modal._reportPdfCloseToken=token;
+    modal.setAttribute('aria-hidden','true');
+    modal.classList.add('is-closing');
+    const finish=()=>{
+      if(modal._reportPdfCloseToken!==token||!modal.classList.contains('is-closing'))return;
+      if(modal._reportPdfCloseTimer!==null&&modal._reportPdfCloseTimer!==undefined){
+        global.clearTimeout(modal._reportPdfCloseTimer);
+      }
+      modal._reportPdfCloseTimer=null;
+      modal._reportPdfCloseFinish=null;
+      modal.classList.remove('show','is-closing');
+      if(reportPdfReaderFrame){
+        const objectUrl=reportPdfReaderFrame.dataset?.reportPdfObjectUrl;
+        if(objectUrl&&global.URL?.revokeObjectURL)global.URL.revokeObjectURL(objectUrl);
+        delete reportPdfReaderFrame.dataset.reportPdfObjectUrl;
+        reportPdfReaderFrame.src='about:blank';
+      }
+    };
+    modal._reportPdfCloseFinish=finish;
+    if(global.matchMedia&&global.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      finish();
+      return;
     }
+    if(modal._reportPdfCloseTimer!==null&&modal._reportPdfCloseTimer!==undefined){
+      global.clearTimeout(modal._reportPdfCloseTimer);
+    }
+    modal._reportPdfCloseTimer=global.setTimeout(finish,240);
   };
+  const reportPdfReaderDialog=reportPdfReaderModal?.querySelector('.user-guide-reader-dialog');
+  if(reportPdfReaderDialog)reportPdfReaderDialog.addEventListener('animationend',event=>{
+    if(event.animationName!=='reportPdfReaderSlideOut')return;
+    if(typeof reportPdfReaderModal._reportPdfCloseFinish==='function'){
+      reportPdfReaderModal._reportPdfCloseFinish();
+    }
+  });
 
   if(reportPdf)reportPdf.onclick=()=>generatePdf(reportDraft,{
     modal:reportPdfReaderModal,

@@ -1,9 +1,21 @@
-/* V38 Stage 36 — Issued Report History. */
+/* Issued Report History. */
 (function(global){
 'use strict';
-const KEY='lithosite.mine-services.v38.report-history';
+const KEY='lithosite.mine-services.report-history';
+const LEGACY_KEYS=['lithosite.mine-services.v38.report-history'];
 function read(){
-  try{const raw=global.localStorage?.getItem(KEY);const value=raw?JSON.parse(raw):[];return Array.isArray(value)?value:[];}catch(e){return [];}
+  try{
+    const storage=global.localStorage;
+    const current=storage?.getItem(KEY);
+    if(current){const value=JSON.parse(current);return Array.isArray(value)?value:[];}
+    for(const legacyKey of LEGACY_KEYS){
+      const raw=storage?.getItem(legacyKey);
+      if(!raw)continue;
+      const value=JSON.parse(raw);
+      if(Array.isArray(value)){try{storage?.setItem(KEY,JSON.stringify(value));}catch(e){}return value;}
+    }
+    return [];
+  }catch(e){return [];}
 }
 function write(items){try{global.localStorage?.setItem(KEY,JSON.stringify(items));return true;}catch(e){return false;}}
 function save(snapshot){
@@ -19,5 +31,5 @@ function list(type){
   return type?items.filter(x=>String(x.report_type||'')===String(type).toUpperCase()):items;
 }
 function get(id){return read().find(x=>String(x.snapshot_id)===String(id))||null;}
-global.LithositeReportHistory=Object.freeze({KEY,save,list,get});
+global.LithositeReportHistory=Object.freeze({KEY,LEGACY_KEYS,save,list,get});
 })(window);

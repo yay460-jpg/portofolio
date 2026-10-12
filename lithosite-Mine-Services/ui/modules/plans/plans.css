@@ -33,91 +33,8 @@
   height:48px;
   min-height:48px;
 }
-#plansScreen .title h1 {
-  margin:0;
-  font-size:21px;
-  line-height:24px;
-  background:linear-gradient(90deg,#60a5fa,#dbeafe 58%,#fff);
-  background-clip:text;
-  -webkit-background-clip:text;
-  color:transparent;
-}
-#plansScreen .title p { margin:2px 0; color:#8ea3ba; font-size:11px; }
-#plansScreen .controls { display:flex; gap:7px; }
-#plansScreen #plansAdd[hidden] { display:none!important; }
-
-#plansScreen .filters {
-  display:grid;
-  grid-template-columns:1fr 1fr 1.1fr 1.1fr 1fr auto;
-  align-items:end;
-  flex:0 0 auto;
-  height:auto;
-  gap:8px;
-  padding:12px;
-  border:1px solid #28425c;
-  border-radius:9px;
-  background:#101f31;
-  box-shadow:0 2px 9px #02081255;
-}
-#plansScreen .field label {
-  display:block;
-  margin-bottom:5px;
-  color:#8fa5bb;
-  font-size:8.5px;
-  font-weight:600;
-  letter-spacing:.4px;
-  text-transform:uppercase;
-}
-#plansScreen .field input,
-#plansScreen .field select {
-  width:100%;
-  height:32px;
-  padding:0 9px;
-  border:1px solid #29435d;
-  border-radius:7px;
-  outline:none;
-  background:#0c1b2c;
-  color:#dce8f5;
-  font:inherit;
-  font-size:10px;
-}
-#plansScreen .clear,
-#plansScreen #plansClear {
-  display:flex;
-  flex:0 0 56px;
-  align-items:center;
-  justify-content:center;
-  width:56px;
-  min-width:56px;
-  max-width:56px;
-  height:32px;
-  padding:0 10px;
-  box-sizing:border-box;
-}
-
-#plansScreen .tablepanel {
-  position:relative;
-  display:flex;
-  flex:1 1 auto;
-  flex-direction:column;
-  min-width:0;
-  min-height:0;
-  margin-top:12px;
-  overflow:hidden;
-  border:1px solid #28425c;
-  border-radius:9px;
-  background:#101f31;
-  box-shadow:0 2px 9px #02081255;
-}
-#plansScreen .tablehead {
-  display:flex;
-  flex:0 0 40px;
-  align-items:center;
-  justify-content:space-between;
-  height:40px;
-  padding:0 12px;
-  border-bottom:1px solid #263e57;
-}
+#plansScreen #plansAdd[hidden] { display:none!important; }#plansScreen .filters{grid-template-columns:1fr 1fr 1.1fr 1.1fr 1fr auto;height:auto}
+#plansScreen .tablehead{flex:0 0 40px}
 #plansScreen .ptitle {
   display:flex;
   align-items:center;
@@ -125,17 +42,7 @@
   font-size:11.5px;
   font-weight:700;
 }
-#plansModal .modalhead .ptitle { font-size:11.5px; font-weight:700; line-height:1.2; }
-#plansScreen .icon { display:block; width:15px; height:15px; color:currentColor; }
-#plansScreen .tablemeta { color:#8ea3ba; font-size:9px; }
-#plansScreen .grid {
-  flex:1 1 auto;
-  width:100%;
-  min-width:0;
-  min-height:0;
-  height:auto;
-  overflow:auto;
-}
+#plansScreen .tablemeta { color:#8ea3ba; font-size:9px; }#plansScreen .grid{width:100%;height:auto}
 
 /* Unified Target Plan register: fifteen aligned columns; hour controls belong to Operations. */
 #plansScreen .plantr.consolidated-th,
@@ -146,30 +53,12 @@
   width:100%;
   min-width:0;
 }
-#plansScreen .th {
-  position:sticky;
-  top:0;
-  z-index:2;
-  height:34px;
-  background:#12243a;
-  color:#8fa5bb;
-  font-size:8px;
-  font-weight:600;
-  letter-spacing:.3px;
-  text-transform:uppercase;
-}
 #plansScreen .td {
   min-height:42px;
   border-bottom:1px solid #223b55;
   color:#dce8f5;
   font-size:9.5px;
-}
-#plansScreen .cell {
-  padding:0 8px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
+}#plansScreen .cell{padding:0 8px}
 #plansScreen .num { text-align:right; }
 
 /* Work Front identifiers combine an ID and location; give them room and wrap instead of hiding the tail. */
@@ -351,9 +240,6 @@
 }
 #plansDeleteConfirmModal .plans-delete-confirm-warning span {
   color:#c6b5bd;
-}
-#plansDeleteConfirmModal .plans-delete-confirm-foot {
-  gap:8px;
 }
 #plansDeleteConfirmModal .plans-delete-confirm-note {
   flex:1 1 auto;

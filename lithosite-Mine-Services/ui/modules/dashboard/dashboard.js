@@ -3,6 +3,7 @@
 
   const runtimeClient = global.LithositeRuntimeClient;
   const dashboardStatus = global.LithositeDashboardStatus;
+  const planActualCalculator = global.LithositeDashboardPlanActual;
 
   if (!runtimeClient) {
     throw new Error('LithositeRuntimeClient is required before dashboard.js');
@@ -13,7 +14,10 @@
     workFronts: [],
     operations: [],
     issues: [],
-    maintenance: []
+    maintenance: [],
+    plans: [],
+    plansStatus: 'loading',
+    operationsStatus: 'loading'
   };
 
   function setText(id, value) {
@@ -205,7 +209,8 @@
       const line = document.createElement('div');
       line.className = 'tablegrid row';
       [
-        row.transaction_time || row.transaction_date || '-',
+        String(row.transaction_date || '-').slice(0, 10),
+        row.transaction_time || '-',
         row.activity || '-',
         row.work_front_id || '-',
         row.equipment_id || '-',
@@ -218,7 +223,7 @@
     if (!body.children.length) {
       const line = document.createElement('div');
       line.className = 'tablegrid row';
-      line.innerHTML = '<span>No operations</span><span>—</span><span>—</span><span>—</span><span>—</span>';
+      line.innerHTML = '<span>—</span><span>—</span><span>No operations</span><span>—</span><span>—</span><span>—</span>';
       body.appendChild(line);
     }
   }
@@ -237,6 +242,8 @@
       return String(b.issue_date || '').localeCompare(String(a.issue_date || ''));
     }).slice(0, 3).forEach(function (row) {
       const line = document.createElement('div'); line.className = 'tablegrid row issue';
+      const date = document.createElement('span'); date.textContent = String(row.issue_date || '-').slice(0, 10);
+      line.appendChild(date);
       const priority = document.createElement('span');
       const pill = document.createElement('b');
       pill.className = 'pill ' + String(row.severity || '').trim().toLowerCase();
@@ -250,7 +257,7 @@
     });
     if (!body.children.length) {
       const line = document.createElement('div'); line.className = 'tablegrid row issue';
-      line.innerHTML = '<span>—</span><span>No issues</span><span>—</span>'; body.appendChild(line);
+      line.innerHTML = '<span>—</span><span>—</span><span>No issues</span><span>—</span>'; body.appendChild(line);
     }
   }
 
@@ -456,6 +463,122 @@
     if (totalStrong) totalStrong.textContent = formatTotal(classifiedTotal) + ' ton';
   }
 
+  function formatPlanMetric(value) {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
+    return String(Number(Number(value).toFixed(2)));
+  }
+
+  function renderPlanActual() {
+    const host = document.getElementById('dashboardPlanActualBody');
+    const status = document.getElementById('dashboardPlanActualStatus');
+    if (!host || !status) return;
+    if (state.plansStatus === 'loading') {
+      status.textContent = 'Loading Target Plan…';
+      host.innerHTML = '<div class="dashboard-plan-empty">Loading plan and validated actuals…</div>';
+      return;
+    }
+    if (state.plansStatus === 'error') {
+      status.textContent = 'Unavailable';
+      host.innerHTML = '<div class="dashboard-plan-empty">Target Plan data is unavailable. Existing dashboard panels remain active.</div>';
+      return;
+    }
+    if (!planActualCalculator || typeof planActualCalculator.calculate !== 'function') {
+      status.textContent = 'Unavailable';
+      host.innerHTML = '<div class="dashboard-plan-empty">Plan vs Actual calculator is unavailable.</div>';
+      return;
+    }
+    if (state.operationsStatus === 'loading') {
+      status.textContent = 'Loading Operations…';
+      host.innerHTML = '<div class="dashboard-plan-empty">Waiting for Operations data before calculating Actuals…</div>';
+      return;
+    }
+    if (state.operationsStatus === 'error') {
+      status.textContent = 'Unavailable';
+      host.innerHTML = '<div class="dashboard-plan-empty">Operations data is unavailable. Actuals are not calculated.</div>';
+      return;
+    }
+    const model = planActualCalculator.calculate(state.plans, state.operations, dashboardStatus.getContext(), localDateKey(new Date()));
+    status.textContent = model.status.replace(/_/g, ' ');
+    if (model.status === 'SHIFT_NOT_COMPARABLE') {
+      host.innerHTML = '<div class="dashboard-plan-empty">Shift-level comparison is unavailable because Target Plan records do not define shift allocation. Select All Shift or All Day to compare on a supported basis.</div>';
+      return;
+    }
+    if (!model.rows.length) {
+      host.innerHTML = '<div class="dashboard-plan-empty">No comparable Target Plan records for this context. Multi-day targets are not prorated in Today view.</div>';
+      return;
+    }
+    function safe(value) { return String(value).replace(/[&<>"]/g, function (ch) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]); }); }
+    function metric(label, value, unit) {
+      return '<div class="dashboard-plan-metric"><span>' + label + '</span><strong>' + value + '</strong>' + (unit ? '<small>' + safe(unit) + '</small>' : '') + '</div>';
+    }
+    host.innerHTML = model.rows.map(function (row) {
+      const actual = row.actual === null ? 'Unavailable' : formatPlanMetric(row.actual);
+      const variance = row.variance === null ? '—' : (row.variance > 0 ? '+' : '') + formatPlanMetric(row.variance);
+      const achievement = row.achievement === null ? '—' : formatPlanMetric(row.achievement) + '%';
+      const remaining = row.remaining === null ? '—' : formatPlanMetric(row.remaining);
+      return '<section class="dashboard-plan-unit"><div class="dashboard-plan-unit-head"><strong>' + safe(row.unit) + '</strong><span>' + model.comparablePlanCount + ' comparable plan(s)</span></div><div class="dashboard-plan-metrics">' +
+        metric('Target', formatPlanMetric(row.target), row.unit) +
+        metric('Actual', actual, row.unit) +
+        metric('Variance', variance, row.unit) +
+        metric('Achievement', achievement, '') +
+        metric('Remaining', remaining, row.unit) +
+        '</div></section>';
+    }).join('') + '<p class="dashboard-plan-note">' + safe(model.note) +
+      (model.ambiguousOperationCount ? ' ' + model.ambiguousOperationCount + ' ambiguous validated operation(s) were excluded to prevent double counting.' : '') +
+      (model.unallocatedPlanCount ? ' ' + model.unallocatedPlanCount + ' overlapping plan(s) were not comparable to this context.' : '') + '</p>';
+  }
+
+  async function loadPlanData() {
+    state.plansStatus = 'loading';
+    renderPlanActual();
+    try {
+      const result = await runtimeClient.request({ operation: 'READ', entity: 'Plans' });
+      state.plans = Array.isArray(result.data) ? result.data : [];
+      state.plansStatus = 'ready';
+    } catch (error) {
+      state.plans = [];
+      state.plansStatus = 'error';
+      console.error('[Dashboard] Target Plan load failed:', error);
+    }
+    renderPlanActual();
+  }
+
+  function bindPlanActualDialog() {
+    if (document.body.dataset.dashboardPlanActualBound) return;
+    document.body.dataset.dashboardPlanActualBound = '1';
+    document.addEventListener('click', function (event) {
+      if (event.target.closest('#dashboardPlanActualOpen')) {
+        const dialog = document.getElementById('dashboardPlanActualDialog');
+        if (dialog) {
+          dialog.hidden = false;
+          dialog.setAttribute('aria-hidden', 'false');
+          renderPlanActual();
+          const close = document.getElementById('dashboardPlanActualClose');
+          if (close) close.focus();
+        }
+        return;
+      }
+      if (event.target.closest('#dashboardPlanActualClose') || event.target.id === 'dashboardPlanActualDialog') {
+        const dialog = document.getElementById('dashboardPlanActualDialog');
+        if (dialog) {
+          dialog.hidden = true;
+          dialog.setAttribute('aria-hidden', 'true');
+          const opener = document.getElementById('dashboardPlanActualOpen');
+          if (opener) opener.focus();
+        }
+      }
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape') return;
+      const dialog = document.getElementById('dashboardPlanActualDialog');
+      if (!dialog || dialog.hidden) return;
+      dialog.hidden = true;
+      dialog.setAttribute('aria-hidden', 'true');
+      const opener = document.getElementById('dashboardPlanActualOpen');
+      if (opener) opener.focus();
+    });
+  }
+
   function render() {
     updateKpis();
     updateFleetKpi();
@@ -463,6 +586,7 @@
     updateRecentOperations();
     updateIssuesAlerts();
     updateMaterialMovement();
+    renderPlanActual();
   }
 
   async function loadData() {
@@ -480,9 +604,12 @@
       state.operations = Array.isArray(results[2].data) ? results[2].data : [];
       state.issues = Array.isArray(results[3].data) ? results[3].data : [];
       state.maintenance = Array.isArray(results[4].data) ? results[4].data : [];
+      state.operationsStatus = 'ready';
 
       render();
     } catch (error) {
+      state.operationsStatus = 'error';
+      renderPlanActual();
       console.error('[Dashboard] Runtime load failed:', error);
     }
   }
@@ -532,7 +659,9 @@
       });
     }
 
+    bindPlanActualDialog();
     loadData();
+    loadPlanData();
   }
 
   if (document.readyState === 'loading') {
@@ -541,10 +670,15 @@
     init();
   }
 
-  if (global.LithositeDataSync) global.LithositeDataSync.register('Dashboard', loadData);
+  function refreshDashboard() {
+    loadData();
+    loadPlanData();
+  }
+
+  if (global.LithositeDataSync) global.LithositeDataSync.register('Dashboard', refreshDashboard);
 
   global.LithositeDashboard = Object.freeze({
     init: init,
-    refresh: loadData
+    refresh: refreshDashboard
   });
 })(window);

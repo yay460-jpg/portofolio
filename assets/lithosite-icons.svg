@@ -81,4 +81,4 @@
   <symbol id="light-vehicle" viewBox="0 0 24 24" fill="currentColor"><path d="M5 17l2-6h10l2 6h2v3h-3a2 2 0 1 1-4 0H9a2 2 0 1 1-4 0H2v-3z"/></symbol>
   <symbol id="dumping" viewBox="0 0 24 24" fill="currentColor"><path d="M4 18h16v2H4zM6 17V8h10l3 4v5zM8 6h8l-1-3H9z"/></symbol>
 
-</svg>
+<symbol id="target-plan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="12" r=".5" fill="currentColor" stroke="none"/></symbol></svg>

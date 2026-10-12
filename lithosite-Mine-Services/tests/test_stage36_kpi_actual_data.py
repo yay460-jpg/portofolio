@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import os
 import subprocess
 import tempfile
 
@@ -9,6 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _database_path():
+    configured = os.environ.get("MINE_SERVICES_TEST_DB")
+    if configured:
+        path = Path(configured)
+        if not path.is_file():
+            raise AssertionError(f"Configured test workbook was not found: {path}")
+        return path
+
     candidates = [
         ROOT / "Database" / "Mine-Services-Database.xlsx",
         ROOT / "Database" / "Mine-Services-Database-A3.xlsx",

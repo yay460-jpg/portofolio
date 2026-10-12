@@ -1,17 +1,16 @@
-#maintenanceScreen{position:relative;flex:1 1 auto;display:none;flex-direction:column;width:100%;height:auto;min-width:0;min-height:0}#maintenanceScreen.active{display:flex!important;flex:1 1 0!important;width:100%;height:100%!important;min-height:0!important}#maintenanceScreen .head{height:48px;min-height:48px;flex:0 0 48px}#maintenanceScreen .controls{display:flex;gap:7px}#maintenanceScreen .boundary{flex:1 1 0!important;height:100%!important;min-height:0!important;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;overflow:hidden}#maintenanceScreen .filters{height:auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:8px;align-items:end;padding:12px;flex:0 0 auto}#maintenanceScreen .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}#maintenanceScreen .field input,#maintenanceScreen .field select{width:100%;height:32px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px;outline:none}#maintenanceScreen .tablehead{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #263e57;flex:0 0 40px}#maintenanceScreen .tablemeta{font-size:9px;color:var(--muted);white-space:nowrap}#maintenanceScreen .tablepanel{position:relative;flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;margin-top:12px;overflow:hidden}#maintenanceScreen .grid{flex:1 1 auto;min-width:0;min-height:0;overflow:auto}#maintenanceScreen .grid #maintenanceRows{min-height:calc(100% - 34px);display:block}#maintenanceScreen .grid #maintenanceRows .empty{display:grid;place-items:center;width:100%;height:100%;min-height:140px;padding:20px;color:#8ea3ba;font-size:10px}#maintenanceScreen .tr{display:grid;grid-template-columns:155px 155px 90px 110px 95px 65px 65px 90px 1fr 80px 90px 105px;min-width:1320px;align-items:center}#maintenanceScreen .th{height:34px;background:#12243a;color:#8fa5bb;font-size:8px;text-transform:uppercase;font-weight:600;letter-spacing:.3px;position:sticky;top:0;z-index:2}#maintenanceScreen .td{min-height:39px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}#maintenanceScreen .cell{padding:0 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#maintenanceScreen .row-actions{display:flex;gap:4px}#maintenanceScreen .mini{height:24px;padding:3px 7px;font-size:8px}
+#maintenanceScreen{position:relative;flex:1 1 auto;display:none;flex-direction:column;width:100%;height:auto;min-width:0;min-height:0}#maintenanceScreen.active{display:flex!important;flex:1 1 0!important;width:100%;height:100%!important;min-height:0!important}#maintenanceScreen .head{height:48px;min-height:48px;flex:0 0 48px}#maintenanceScreen .boundary{flex:1 1 0!important;height:100%!important;min-height:0!important;min-width:0;display:flex;flex-direction:column;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;overflow:hidden}#maintenanceScreen .filters{height:auto;grid-template-columns:repeat(5,minmax(0,1fr)) auto}#maintenanceScreen .tablehead{flex:0 0 40px}#maintenanceScreen .tablemeta{font-size:9px;color:var(--muted);white-space:nowrap}#maintenanceScreen .grid #maintenanceRows{min-height:calc(100% - 34px);display:block}#maintenanceScreen .grid #maintenanceRows .empty{display:grid;place-items:center;width:100%;height:100%;min-height:140px;padding:20px;color:#8ea3ba;font-size:10px}#maintenanceScreen .tr{display:grid;grid-template-columns:155px 155px 90px 110px 95px 65px 65px 90px 1fr 80px 90px 105px;min-width:1320px;align-items:center}#maintenanceScreen .td{min-height:39px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}#maintenanceScreen .cell{padding:0 9px}#maintenanceScreen .row-actions{display:flex;gap:4px}#maintenanceScreen .mini{height:24px;padding:3px 7px;font-size:8px}
 
 
-#maintenanceModal .modalbody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}#maintenanceModal .field label{display:block;font-size:8.5px;color:#8fa5bb;text-transform:uppercase;font-weight:600;letter-spacing:.4px;margin-bottom:5px}#maintenanceModal .field input,#maintenanceModal .field select{width:100%;height:32px;border:1px solid #29435d;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px;outline:none}
+#maintenanceModal .modalbody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
 
-/* Stage 26 — Maintenance timeline grouping follows the Operations interaction pattern. */
+/* Maintenance timeline grouping follows the Operations interaction pattern. */
 #maintenanceScreen .tr{grid-template-columns:100px 145px 110px 100px minmax(130px,1fr) 115px 90px 75px 90px;min-width:1080px;}
 #maintenanceScreen .maintenance-timeline-row{min-width:72px;justify-content:center;}
 #maintenanceTimelineModal.modalback{position:fixed;inset:0;background:#02081299;display:none;align-items:center;justify-content:center;z-index:25}
 #maintenanceTimelineModal.modalback.show{display:flex}
 #maintenanceTimelineModal .modal{width:min(1040px,calc(100vw - 48px));max-height:calc(100vh - 48px);overflow:hidden;background:#101f31;border:1px solid #31506d;border-radius:12px;box-shadow:0 20px 70px #0009;display:flex;flex-direction:column}
 #maintenanceTimelineModal .modalhead{height:48px;min-height:48px;padding:0 16px;border-bottom:1px solid #29435d;display:flex;align-items:center;justify-content:space-between}
-#maintenanceTimelineModal .modalhead .ptitle{font-weight:700}
 #maintenanceTimelineModal .timeline-meta{padding:10px 16px 0;color:#8fa5bb;font-size:10px}
 #maintenanceTimelineModal .timeline-summary{display:flex;gap:18px;flex-wrap:wrap;padding:10px 16px;color:#dce8f5;font-size:9.5px}
 #maintenanceTimelineModal .timeline-summary span{background:#0c1b2c;border:1px solid #29435d;border-radius:7px;padding:7px 9px}
@@ -25,7 +24,7 @@
 
 
 
-/* Stage 26 — Cross-module traceability target. */
+/* Cross-module traceability target. */
 #maintenanceScreen .maintenance-trace-row.trace-active{background:#142d46}
 #maintenanceScreen .maintenance-timeline-row.trace-highlight{
   animation:maintenanceTracePulse .8s ease-in-out 3;
@@ -38,24 +37,17 @@
 }
 
 
-/* V38 — filter panel visual parity with Operations */
-#maintenanceScreen .filters{border:1px solid #28425c;border-radius:9px;background:#101f31;box-shadow:0 2px 9px #02081255}
 
 
-/* V38 — Clear control width parity across module filter panels */
-#maintenanceScreen .clear{width:56px;min-width:56px;height:32px;padding:0 10px;justify-content:center;box-sizing:border-box}
 
 
-/* V38 — unified Clear button geometry across all filter panels */
-#maintenanceScreen #maintenanceClear{width:56px;min-width:56px;max-width:56px;height:32px;padding:0 10px;justify-content:center;align-items:center;box-sizing:border-box;flex:0 0 56px}
 
 
-/* V38 — table header parity with Operations */
+/* Maintenance table header styling. */
 #maintenanceScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
-#maintenanceScreen .icon{width:15px;height:15px;display:block;color:currentColor}
 
 
-/* V38 — Maintenance Timeline header parity with Operations.
+/* Maintenance Timeline header parity with Operations.
    Keep icon + title on one compact row without changing timeline structure. */
 #maintenanceTimelineModal .modalhead{
   height:44px;
@@ -78,6 +70,14 @@
   height:15px;
 }
 
-
-/* V39 — table panel visual parity with Operations */
-#maintenanceScreen .tablepanel{background:#101f31;border:1px solid #28425c;border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
+/* Keep the Maintenance register View action as compact as Operations. */
+#maintenanceScreen .row-actions .control.view{
+  width:42px;
+  min-width:42px;
+  max-width:42px;
+  flex:0 0 42px;
+  height:30px;
+  padding:4px 6px;
+  justify-content:center;
+  white-space:nowrap;
+}

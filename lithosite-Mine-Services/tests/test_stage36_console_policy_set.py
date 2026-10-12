@@ -6,7 +6,7 @@ def read(path):
     return (ROOT / path).read_text(encoding="utf-8")
 
 def test_stage36_console_policy_set_surface():
-    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html")
+    html = read("Documentation/Version-History/Artifacts/Workspace-UI-Snapshot.html")
     reports = read("ui/modules/reports/reports.js")
     foundation = read("ui/modules/reports/kpi-foundation.js")
 
@@ -32,7 +32,7 @@ def test_stage36_console_policy_set_surface():
     assert "PURE_EFFECTIVE" in foundation
 
 def test_stage36_console_contains_policy_only():
-    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html")
+    html = read("Documentation/Version-History/Artifacts/Workspace-UI-Snapshot.html")
     start = html.index('<div id="reportsConsoleModal"')
     end = html.index('<div id="reportsHistoryModal"', start)
     modal = html[start:end]
@@ -54,12 +54,14 @@ def test_stage36_console_reset_restores_default_selection():
 
 def test_stage36_equipment_list_owns_scroll_without_visible_scrollbar():
     css = read("ui/modules/reports/reports.css")
-    assert "#reportsScreen .kpi-panel{overflow:hidden}" in css
-    assert "#reportsScreen .equipment-kpi-list{flex:1 1 auto;min-height:0;max-height:none;overflow:auto;scrollbar-width:none;" in css
+    assert "#reportsScreen .kpi-panel{display:flex;flex-direction:column;min-height:0;overflow:hidden}" in css
+    # The list is a content container; the dedicated parent owns vertical scrolling.
+    assert "#reportsScreen .equipment-kpi-list{flex:1 1 auto;min-height:0;max-height:none;scrollbar-width:none}" in css
+    assert "#reportsScreen .equipment-kpi-scroll{flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;" in css
     assert "#reportsScreen .equipment-kpi-list::-webkit-scrollbar{width:0;height:0;display:none}" in css
 
 def test_stage36_dedicated_equipment_scroll_viewport():
-    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html")
+    html = read("Documentation/Version-History/Artifacts/Workspace-UI-Snapshot.html")
     css = read("ui/modules/reports/reports.css")
     reports = read("ui/modules/reports/reports.js")
 
@@ -70,7 +72,7 @@ def test_stage36_dedicated_equipment_scroll_viewport():
     assert "e.preventDefault()" in reports
 
 def test_stage36_equipment_unit_column():
-    html = read("Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html")
+    html = read("Documentation/Version-History/Artifacts/Workspace-UI-Snapshot.html")
     reports = read("ui/modules/reports/reports.js")
     foundation = read("ui/modules/reports/kpi-foundation.js")
     css = read("ui/modules/reports/reports.css")

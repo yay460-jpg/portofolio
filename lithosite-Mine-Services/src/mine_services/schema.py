@@ -1,4 +1,4 @@
-"""Canonical V38 runtime schema.
+"""Canonical active runtime schema.
 
 A.3 is the only active Mine Services schema. Historical A.2 is retired and
 must not be used as a runtime fallback. Future schema evolution replaces this

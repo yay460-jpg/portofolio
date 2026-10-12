@@ -227,15 +227,12 @@
   }
 }
 
-/* Stage 26 — Guide icons use restrained role-based accents. */
+/* Guide icons use restrained role-based accents. */
 .user-guide-item:nth-child(1) .user-guide-item-icon{color:#60a5fa;border-color:#315a86;background:#10243a}
 .user-guide-item:nth-child(2) .user-guide-item-icon{color:#f59e0b;border-color:#66502a;background:#211d14}
 .user-guide-item:nth-child(3) .user-guide-item-icon{color:#22c55e;border-color:#286343;background:#10251b}
 
-/* V38 Shell Contract — inline PDF reader must remain inside the active application shell.
-   The reader is rendered from Reports, so its overlay is bounded by #reportsScreen
-   rather than the browser viewport. This prevents the dialog/header from entering
-   the topbar or footer shell zones. */
+/* Inline PDF reader stays inside the active Reports workspace shell, below the topbar and above the footer. */
 #reportsScreen{
   position:relative;
   min-height:0;
@@ -279,38 +276,5 @@
   #reportsScreen .user-guide-reader-dialog{
     width:100%;
     height:calc(100% - 28px);
-  }
-}
-
-/* V38 Shell Contract — User Guide Reader follows the same shell-safe vertical geometry.
-   The reader is dynamically appended to document.body, so it cannot inherit
-   #reportsScreen containment. Keep the overlay explicitly between topbar and footer. */
-.user-guide-reader-modal{
-  position:fixed;
-  top:64px;
-  right:0;
-  bottom:34px;
-  left:0;
-  box-sizing:border-box;
-  padding:20px 24px 20px 82px;
-  overflow:hidden;
-}
-.user-guide-reader-dialog{
-  width:min(850px,calc(100% - 20px));
-  height:calc(100% - 40px);
-  max-height:none;
-  min-height:0;
-  margin:0 auto;
-  box-sizing:border-box;
-}
-@media(max-width:700px){
-  .user-guide-reader-modal{
-    top:64px;
-    bottom:34px;
-    padding:10px 8px;
-  }
-  .user-guide-reader-dialog{
-    width:100%;
-    height:calc(100% - 20px);
   }
 }

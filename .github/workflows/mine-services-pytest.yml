@@ -3,9 +3,9 @@ name: Mine Services Full Pytest
 on:
   push:
     branches:
-      - v40-workspace
+      - main
+      - '*-workspace'
     paths-ignore:
-      - "lithosite-Mine-Services/Documentation/**"
       - "lithosite-Mine-Services/README.md"
   pull_request:
     branches:

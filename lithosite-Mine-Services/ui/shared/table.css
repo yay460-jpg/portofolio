@@ -1,0 +1,67 @@
+/* Shared table cell clipping and header baseline. */
+#operationsScreen .cell,#equipmentScreen .cell,#maintenanceScreen .cell,#issuesScreen .cell,#plansScreen .cell,#hseScreen .cell,#workfrontScreen .wfcell,#timelineModal .timeline-tr .cell{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+#operationsScreen .th,#equipmentScreen .th,#maintenanceScreen .th,#issuesScreen .th,#plansScreen .th,#hseScreen .th{
+  height:34px;
+  background:#12243a;
+  color:#8fa5bb;
+  font-size:8px;
+  text-transform:uppercase;
+  font-weight:600;
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+
+#operationsScreen .th,#equipmentScreen .th,#maintenanceScreen .th,#issuesScreen .th,#plansScreen .th{
+  letter-spacing:.3px;
+}
+
+/* Shared geometry for table title bars across workspaces. */
+#operationsScreen .tablehead,#equipmentScreen .tablehead,#workfrontScreen .tablehead,#maintenanceScreen .tablehead,#issuesScreen .tablehead,#plansScreen .tablehead,#hseScreen .tablehead{
+  height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 12px;
+  border-bottom:1px solid #263e57;
+}
+
+/* Shared layout constraints for table containers and scrolling grids. */
+#operationsScreen .tablepanel,#equipmentScreen .tablepanel,#workfrontScreen .tablepanel,#maintenanceScreen .tablepanel,#issuesScreen .tablepanel,#plansScreen .tablepanel,#hseScreen .tablepanel{
+  position:relative;
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  margin-top:12px;
+  overflow:hidden;
+}
+
+#workfrontScreen .tablepanel,#maintenanceScreen .tablepanel,#plansScreen .tablepanel,#hseScreen .tablepanel,#workfrontScreen .filters,#maintenanceScreen .filters,#plansScreen .filters,#hseScreen .filters{
+  background:#101f31;
+  border:1px solid #28425c;
+  border-radius:9px;
+  box-shadow:0 2px 9px #02081255;
+}
+
+#operationsScreen .grid,#equipmentScreen .grid,#workfrontScreen .grid,#maintenanceScreen .grid,#issuesScreen .grid,#plansScreen .grid,#hseScreen .grid{
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  overflow:auto;
+}
+
+/* Shared filter bar geometry; each workspace retains its own column template. */
+#operationsScreen .filters,#equipmentScreen .filters,#workfrontScreen .filters,#maintenanceScreen .filters,#issuesScreen .filters,#plansScreen .filters,#hseScreen .filters{
+  display:grid;
+  gap:8px;
+  align-items:end;
+  padding:12px;
+  flex:0 0 auto;
+}

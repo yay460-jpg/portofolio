@@ -95,7 +95,6 @@
 #dashboardSiteMap .topo3d-status.ready{color:#86efac}
 #dashboardSiteMap .topo3d-status.error{color:#fca5a5}
 @media (max-width:900px){
-  #dashboardScreen .panelhead .topo3d-toolbar{right:10px}
   #dashboardSiteMap .topo3d-status{max-width:55%}
 }
 

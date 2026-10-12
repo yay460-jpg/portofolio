@@ -18,6 +18,8 @@ An audit result must identify:
 
 ## Current Status
 
+- [CSS Cleanup Roadmap](CSS-Cleanup-Roadmap.md) — inventory, confirmed cleanups, candidate clusters, and final validation gates.
+
 Stage 1 Data Model is the current audit starting point.
 
 No Stage 2 transaction contract is locked yet.

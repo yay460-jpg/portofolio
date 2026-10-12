@@ -1,22 +1,21 @@
 # Baseline
 
-## Current locked baseline — V39
+## Current locked baseline
 
-**Status:** LOCKED / CLOSED TO FEATURE CHANGES  
+**Status:** LOCKED  
 **Product:** Lithosite Mine Services  
-**Baseline branch:** `v39-workspace`  
-**Validated code snapshot:** `5da238623454bc6df3f97feb57b07b7e89c26c4e`  
-**Primary artifact:** `Artifacts/Mine-Services-Concept-2-Dashboard-Operations-v39-STAGE28.html`  
-**Validation:** `python -m pytest -q` — **434 passed in 27.15s**, reported from the local workstation on 2026-10-10.
+**Canonical artifact:** `Artifacts/Mine-Services-Operations.html`  
+**Schema:** A.3  
+**Database:** `Database/Mine-Services-Database-A3.xlsx`
 
-See [V39 Baseline Lock](./V39-Baseline-Lock.md) for the scope, acceptance record, and close-out details.
+See [V40 Baseline Lock](./V40-Baseline-Lock.md) for the release decision, evidence, commit, and explicitly deferred gates.
 
-## Superseded baseline
+## Historical baselines
 
-V38 is no longer the active locked baseline. Its workspace branch and V38-specific documents are retained as historical/rollback references; they are not the current baseline.
+Earlier baseline lock documents remain in this directory as historical records only. Their runtime artifacts and version-specific filenames are not kept in the active Artifacts folder.
 
 ## Next workspace
 
-The next development workspace is `v40-workspace`, copied from the locked V39 state. New features and layout changes must be made in that workspace, not in the closed V39 baseline.
+The next development workspace must be created from the latest locked baseline after promotion to `main`. Runtime filenames remain version-neutral; version history belongs in Documentation.
 
-Runtime operations must never overwrite the baseline.
+Runtime operations must never overwrite the baseline or mutate the operational database without authorization.

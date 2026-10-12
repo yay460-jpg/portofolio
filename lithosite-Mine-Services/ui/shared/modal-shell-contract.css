@@ -33,9 +33,8 @@
   display:flex;
 }
 
-/* Lithosite Mine Services — Modal Shell Contract
-   V38 — shared guard for data-entry modal geometry and presentation.
-   Header / Body / Footer are the shell boundary; modules own only inner layout.
+/* Lithosite Mine Services — Shared Modal Shell Contract
+   Header / Body / Footer form the shell boundary; modules own only inner layout.
 */
 
 .modalback > .modal.modal-shell-valid{

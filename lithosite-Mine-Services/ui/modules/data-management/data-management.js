@@ -5,6 +5,8 @@
   let initialized = false;
   let restorePayload = null;
   let activeDataset = null;
+  let closeTimer = null;
+  let closeToken = 0;
 
   function ensureDom() {
     if (document.getElementById('stage15DataModal')) return;
@@ -75,6 +77,25 @@
         '</div>' +
       '</div>';
     document.body.appendChild(modal);
+    const card = modal.querySelector('.dm-card');
+    if (card) {
+      card.addEventListener('animationend', function (event) {
+        if (event.target !== card || event.animationName !== 'dataManagementSlideOut') return;
+        const token = Number(modal.dataset.closeToken || 0);
+        finishClose(modal, token);
+      });
+    }
+  }
+
+  function finishClose(modal, token) {
+    if (!modal || !token || token !== closeToken || modal.dataset.closeToken !== String(token)) return;
+    if (closeTimer !== null) {
+      global.clearTimeout(closeTimer);
+      closeTimer = null;
+    }
+    modal.classList.remove('show', 'is-closing');
+    modal.removeAttribute('data-close-token');
+    modal.setAttribute('aria-hidden', 'true');
   }
 
   function showDialog(id) {
@@ -210,6 +231,17 @@
 
   function open() {
     ensureDom();
+    const modal = document.getElementById('stage15DataModal');
+    closeToken += 1;
+    if (closeTimer !== null) {
+      global.clearTimeout(closeTimer);
+      closeTimer = null;
+    }
+    if (modal) {
+      modal.classList.remove('is-closing');
+      modal.removeAttribute('data-close-token');
+      modal.setAttribute('aria-hidden', 'false');
+    }
     if (!initialized) {
       bind();
       initialized = true;
@@ -224,7 +256,19 @@
 
   function close() {
     const modal = document.getElementById('stage15DataModal');
-    if (modal) modal.classList.remove('show');
+    if (!modal || !modal.classList.contains('show') || modal.classList.contains('is-closing')) return;
+    const token = ++closeToken;
+    modal.dataset.closeToken = String(token);
+    modal.setAttribute('aria-hidden', 'true');
+    modal.classList.add('is-closing');
+    if (global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      finishClose(modal, token);
+      return;
+    }
+    if (closeTimer !== null) global.clearTimeout(closeTimer);
+    closeTimer = global.setTimeout(function () {
+      finishClose(modal, token);
+    }, 220);
   }
 
   async function runSave() {

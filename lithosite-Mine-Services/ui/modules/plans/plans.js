@@ -294,36 +294,7 @@ function settleDeletePlanConfirmation(confirmed){
  resolve(confirmed===true);
 }
 function requestDeletePlanConfirmation(id){
- return new Promise(function(resolve){
-  if(deletePlanConfirmResolve)settleDeletePlanConfirmation(false);
-  const planId=String(id||'');
-  const idLabel=document.getElementById('plansDeleteConfirmId');
-  const folderId=document.getElementById('plansDeleteConfirmFolderId');
-  if(idLabel)idLabel.textContent=planId;
-  if(folderId)folderId.textContent=planId;
-  deletePlanConfirmReturnFocus=document.activeElement;
-  deletePlanConfirmResolve=resolve;
-  let opened=false;
-  if(global.LithositeModalShowContract){
-   opened=global.LithositeModalShowContract.show('plansDeleteConfirmModal');
-  }else{
-   const modal=document.getElementById('plansDeleteConfirmModal');
-   if(modal){
-    modal.hidden=false;
-    modal.classList.add('show');
-    modal.setAttribute('aria-hidden','false');
-    opened=true;
-   }
-  }
-  if(!opened){
-   deletePlanConfirmResolve=null;
-   deletePlanConfirmReturnFocus=null;
-   resolve(false);
-   return;
-  }
-  const cancel=document.getElementById('plansDeleteConfirmCancel');
-  if(cancel)cancel.focus();
- });
+ return global.LithositeDeleteConfirmContract.confirm({entity:'Target Plan',id:id,message:'This action permanently deletes the Target Plan record and every file in its managed Evidence folder.',evidenceFolder:'Database/Evidence/TargetPlan/'+id+'/',warning:'This action cannot be undone. The RuntimeAdapter audit log for the deletion is retained.'});
 }
 async function remove(id){
  if(!await requestDeletePlanConfirmation(id))return;
