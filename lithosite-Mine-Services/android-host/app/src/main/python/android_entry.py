@@ -1,5 +1,5 @@
 import json
-import shutil
+import threading
 from pathlib import Path
 
 from mine_services.adapter import RuntimeAdapter
@@ -12,10 +12,17 @@ from mine_services.snapshot import SnapshotManager
 
 
 DATABASE_NAME = "Mine-Services-Database.xlsx"
+_ADAPTERS = {}
+_ADAPTERS_LOCK = threading.RLock()
 
 
 def _runtime_for(app_dir):
-    root = Path(app_dir)
+    root = Path(app_dir).resolve()
+    cache_key = str(root)
+    with _ADAPTERS_LOCK:
+        cached = _ADAPTERS.get(cache_key)
+        if cached is not None:
+            return cached
     root.mkdir(parents=True, exist_ok=True)
     database = root / DATABASE_NAME
 
@@ -30,7 +37,9 @@ def _runtime_for(app_dir):
         importer=ImportCoordinator(store, audit_repository=audit),
         snapshots=SnapshotManager(store, audit_repository=audit),
     )
-    return RuntimeAdapter(runtime)
+    adapter = RuntimeAdapter(runtime)
+    _ADAPTERS[cache_key] = adapter
+    return adapter
 
 
 def healthcheck(app_dir):
