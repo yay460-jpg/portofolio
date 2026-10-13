@@ -167,3 +167,11 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Added isolated test `test_finalize_kpi_same_request_returns_detached_cached_response`: identical request ID and payload should return the original committed result from the adapter cache as a detached copy, without adding another KPI history record or audit event. It also mutates the first returned object to prove cache isolation.
 - Full Pytest #701 PASS on Python 3.13 for commit `40bbb36`; detached response isolation and no duplicate KPI history/audit side effects verified. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38483042457. Documentation workflows #702 and #703 passed.
 - Remaining operation inventory: `BACKUP`, `LIST_DATASETS`, `LIST_TOPOGRAPHY_BACKUPS`, `LIST_MARKER_LOCATION_BACKUPS`, `LOAD_TOPOGRAPHY_BACKUP`, and `LOAD_MARKER_LOCATION_BACKUP` are not in the adapter's selected replay-cache set. This matrix records that observation, not a confirmed vulnerability. Trace actual mutation/audit behavior and define retry contract before modifying cache membership or behavior.
+
+
+### BACKUP and LIST operation contract — 2026-10-14
+
+- `BACKUP` calls `SnapshotManager.capture()`: it reads a store snapshot, seals it with a unique snapshot ID and checksum, and does not itself persist or append an audit event. Repeated calls are fresh captures rather than replayed cached responses.
+- `LIST_DATASETS`, `LIST_TOPOGRAPHY_BACKUPS`, and `LIST_MARKER_LOCATION_BACKUPS` are observational reads. Their responses can legitimately change as files change; same request ID does not mean a stale cached list should be returned.
+- Added isolated tests for fresh read-only backup captures and uncached LIST behavior, including assertions that store snapshot and audit history remain unchanged. Full Pytest is **PENDING** for commit `f7fe053`; do not mark PASS before CI.
+- Next: trace `LOAD_TOPOGRAPHY_BACKUP` and `LOAD_MARKER_LOCATION_BACKUP` to verify they parse and return backup content without mutating runtime state or audit, then cover malformed/missing-file retry contracts.
