@@ -1046,8 +1046,8 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/evidence/list":
                 try:
-                with _adapter_exclusive():
-                    record_dir = evidence_record_directory(module, record_id)
+                    with _adapter_exclusive():
+                        record_dir = evidence_record_directory(module, record_id)
                         files = []
                         if record_dir.exists():
                             if not record_dir.is_dir():
@@ -1072,7 +1072,7 @@ class Handler(BaseHTTPRequestHandler):
                             "folder": f"Database/Evidence/{module}/{record_id}",
                             "files": files,
                         }, origin)
-                except OSError:
+                except (OSError, ValueError):
                     self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence directory could not be read"}]}, origin)
                 return
 
