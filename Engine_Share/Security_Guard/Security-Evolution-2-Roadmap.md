@@ -187,3 +187,13 @@ Source inspection performed on workspace code at HEAD `30ff61b8a693aec691ab03119
 - Corrective patch committed as `8cf53b1e7b137b9322e592ab5e1d3303f599a94b`: Android host now retains RuntimeAdapter instances in a process-local map keyed by the resolved application directory, with a lock around adapter lookup/construction. This aligns the adapter cache lifetime with repeated bridge calls for a given app directory.
 - Full Pytest #663 is queued; do not mark Android replay lifecycle PASS until the workflow completes successfully. Follow-up review should assess adapter cache lifecycle when app directories change and ensure Android host shutdown/process restart semantics are documented. This remains process-local and does not provide cross-restart idempotency.
 - `main` remains locked; no promotion. Release gate remains blocked.
+
+
+## EVO2-02 — Android lifecycle validation and initialization race hardening — 2026-10-14
+
+- Full Pytest #663 PASS: the first scoped Android adapter-retention correction passed the complete suite. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38470291849.
+- Full Pytest #664 PASS: documentation synchronization. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38470313842.
+- Follow-up code review identified a first-initialization race: cache lookup was locked, but adapter construction and insertion happened after releasing the lock. Concurrent first calls for the same app directory could therefore still construct separate adapters. This was not covered by #663.
+- Corrected in commit `a3d20dfcbe9ca0fec91488f14dba94c09d648778`: keep adapter lookup, construction, and insertion within `_ADAPTERS_LOCK`.
+- Added isolated tests for concurrent initialization (16 calls across 8 threads must create one adapter) and cache scoping across separate application directories. Full Pytest is pending; do not mark the race-hardening follow-up PASS until CI succeeds.
+- Cache remains process-local and unbounded; app-directory changes create separate adapters, and process restart clears replay state. These lifecycle semantics still require explicit documentation and resource-lifetime review. No promotion to `main`; release gate remains blocked.
