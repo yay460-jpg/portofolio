@@ -33,7 +33,8 @@ def test_desktop_host_serializes_evidence_lifecycle_with_runtime_and_upload():
     server = (root / "desktop-host" / "server.py").read_text(encoding="utf-8")
     assert "handle_with_postprocess" in server
     assert "def _handle_runtime_request(request: dict)" in server
-    assert "apply_plan_evidence_lifecycle," in server
+    assert "apply_plan_evidence_lifecycle" in server
+    assert "return method(request, apply_plan_evidence_lifecycle)" in server
     assert "def _adapter_exclusive()" in server
     assert "with _adapter_exclusive():" in server
     assert server.index("with ADAPTER.exclusive():") < server.index("_evidence_record_exists(module, record_id)", server.index("with ADAPTER.exclusive():"))
