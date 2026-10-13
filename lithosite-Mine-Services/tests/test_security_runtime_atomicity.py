@@ -101,10 +101,12 @@ def test_adapter_read_allows_only_declared_domain_entities_and_controlled_lists(
         "entity": entity,
     })
 
-    assert result["status"] == "OK"
     if entity == "_Lists":
-        assert isinstance(result["data"], dict)
+        # Controlled-list reads preserve the established flattened response contract.
+        assert "equipment_category" in result
+        assert isinstance(result["equipment_category"], list)
     else:
+        assert result["status"] == "OK"
         assert isinstance(result["data"], list)
 
 
