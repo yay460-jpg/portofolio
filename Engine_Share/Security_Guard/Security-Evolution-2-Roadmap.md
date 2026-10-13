@@ -354,3 +354,10 @@ The UI source trace was extended beyond Operations:
 - Started the next operation-contract slice: backup SAVE write-failure behavior for Topography and Marker Location. Added isolated tests that simulate a filesystem write failure while saving a new package and assert existing backup bytes and directory contents remain unchanged.
 - Test commits: Topography `c61d472`, Marker Location `b832870`. Full Pytest and documentation sync are **PENDING**. These tests cover failure before retention cleanup; they do not claim rollback of a failure during multi-file retention eviction. If green, map retention-cleanup failure semantics separately before changing production behavior.
 - `main` remains locked; no release-gate promotion.
+
+
+### EVO2-02 backup retention cleanup failure — red-phase reproduction — 2026-10-14
+
+- Full Pytest #718 and #719 PASS: failures while writing a new Topography or Marker Location backup preserve existing files. Documentation workflows #720 and #721 PASS.
+- Added isolated red-phase tests for a distinct failure window: the new backup has been written, but retention cleanup fails while evicting an older backup. The required rollback expectation is that all pre-existing backup bytes/files remain and the newly created backup is removed. Test commits: Topography `be3240b`, Marker Location `eafbfef`.
+- Full Pytest and docs CI are **PENDING**. This test intentionally probes current behavior before production changes; do not call retention atomic until the failure window is addressed. Next: inspect red-phase results, then implement a small shared/consistent rollback strategy only if reproduced. `main` remains locked.
