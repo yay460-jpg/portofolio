@@ -1,4 +1,5 @@
 import hashlib
+from copy import deepcopy
 import json
 import tempfile
 import uuid
@@ -83,7 +84,7 @@ class KPIHistoryStore:
             records = [x for x in records if x.get("scope_id") == scope_id]
         if period_id not in (None, ""):
             records = [x for x in records if x.get("period_id") == period_id]
-        return [dict(x) for x in records]
+        return deepcopy(records)
 
     def finalize(self, snapshot, source="runtime"):
         if not isinstance(snapshot, dict):
