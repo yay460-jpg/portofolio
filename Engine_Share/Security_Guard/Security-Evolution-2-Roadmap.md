@@ -197,3 +197,12 @@ Source inspection performed on workspace code at HEAD `30ff61b8a693aec691ab03119
 - Corrected in commit `a3d20dfcbe9ca0fec91488f14dba94c09d648778`: keep adapter lookup, construction, and insertion within `_ADAPTERS_LOCK`.
 - Added isolated tests for concurrent initialization (16 calls across 8 threads must create one adapter) and cache scoping across separate application directories. Full Pytest is pending; do not mark the race-hardening follow-up PASS until CI succeeds.
 - Cache remains process-local and unbounded; app-directory changes create separate adapters, and process restart clears replay state. These lifecycle semantics still require explicit documentation and resource-lifetime review. No promotion to `main`; release gate remains blocked.
+
+
+## EVO2-02 — Android adapter initialization race closed by tests — 2026-10-14
+
+- Full Pytest #665 PASS: adapter lookup, construction and insertion are serialized under `_ADAPTERS_LOCK`. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38471552956.
+- Full Pytest #666 PASS: concurrent initialization (16 calls across 8 threads) creates one adapter for the same resolved app directory; different app directories receive separate adapters. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38471569652.
+- Full Pytest #667 PASS: roadmap synchronization. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38471607265.
+- Android in-process adapter lifetime/replay guard now has targeted regression evidence. Remaining limits: process restart clears cache; cache is process-local and currently unbounded; no durable cross-restart idempotency claim. Review resource lifetime and shutdown semantics before declaring the host lifecycle audit complete.
+- Next audit slice: READ exposure and caller policy. Existing unit tests confirm detached copies for `AuditLog`, `_Lists`, and KPI snapshots, but that is data-isolation evidence, not authorization. Trace which UI features call these entities, what fields are returned, and whether the local-host threat model requires role/scope filtering. No restriction patch until expected access contract is defined.
