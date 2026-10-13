@@ -73,8 +73,13 @@ class ImportCoordinator:
     def read_xlsx(self, path):
         try:
             wb = load_workbook(path, data_only=True)
-        except Exception as exc:
-            return None, [self._error(IMPORT_ERROR_CODES["FILE_UNREADABLE"], f"Workbook could not be opened: {exc}")]
+        except Exception:
+            # Do not disclose local paths or parser/OS exception details through the
+            # RuntimeAdapter response. Keep the stable import error code and status.
+            return None, [self._error(
+                IMPORT_ERROR_CODES["FILE_UNREADABLE"],
+                "Workbook could not be opened or is not a valid XLSX file.",
+            )]
 
         required = set(self.schema.DOMAIN_ENTITIES) | {"_System", "_Lists"}
         missing = required - set(wb.sheetnames)

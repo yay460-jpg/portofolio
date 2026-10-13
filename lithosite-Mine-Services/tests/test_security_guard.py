@@ -1,6 +1,9 @@
 from pathlib import Path
 import sys
 
+MINE_SERVICES_SRC = Path(__file__).parents[1] / "src"
+sys.path.insert(0, str(MINE_SERVICES_SRC))
+
 HOST_GUARD_ROOT = (
     Path(__file__).parents[2]
     / "Engine_Share"
@@ -9,6 +12,7 @@ HOST_GUARD_ROOT = (
 )
 sys.path.insert(0, str(HOST_GUARD_ROOT))
 
+from mine_services import RuntimeAdapter
 from security_guard import is_allowed_origin
 
 
@@ -47,3 +51,22 @@ def test_origin_policy_allows_missing_origin_for_local_nonbrowser_clients(monkey
 def test_origin_policy_tracks_configured_host_port():
     assert is_allowed_origin("http://localhost:9000", host_port=9000)
     assert not is_allowed_origin("http://localhost:9001", host_port=9000)
+
+
+
+def test_import_rejects_unreadable_workbook_without_disclosing_local_path(tmp_path):
+    missing_path = tmp_path / "private-local-folder" / "sensitive-workbook-name.xlsx"
+    result = RuntimeAdapter().handle({
+        "request_id": "security-import-unreadable",
+        "operation": "IMPORT_XLSX",
+        "path": str(missing_path),
+    })
+
+    assert result["status"] == "REJECTED"
+    assert result["rows_committed"] == 0
+    assert result["errors"][0]["code"] == "E001"
+    message = result["errors"][0]["message"]
+    assert message == "Workbook could not be opened or is not a valid XLSX file."
+    assert str(tmp_path) not in message
+    assert missing_path.name not in message
+    assert "No such file or directory" not in message
