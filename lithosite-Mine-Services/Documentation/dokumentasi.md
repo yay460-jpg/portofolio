@@ -72,7 +72,9 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 - [x] Full Pytest pada kedua branch dan GitHub Pages pada commit baseline sinkron saat ini lulus.
 - [x] Periksa integritas ZIP workbook operasional A.3 secara read-only — pengguna melaporkan `Workbook ZIP integrity: PASS`; tidak ada mutasi workbook pada langkah ini.
 - [ ] Jalankan health check dan smoke test read-only Desktop Host terhadap workbook operasional A.3; jangan reset atau menimpa workbook.
-- [ ] Rekam hasil health check (`status`, `offline`, `schema`), modul yang dibuka, dan console; lakukan review akhir release gate.
+- [x] Health check Desktop Host — pengguna mengonfirmasi `status = READY`, `offline = true`, `schema = A.3`, `runtime = RuntimeAdapter`; database path mengarah ke workbook operasional A.3 lokal.
+- [ ] Smoke test read-only modul utama (Dashboard/Work Control, Equipment, Work Front, Operations, Target Plan, Reports), dialog Add Operation/Add Work Front, dan pemeriksaan console.
+- [ ] Rekam hasil smoke test modul dan console; lakukan review akhir release gate.
 - [ ] Setelah seluruh gate lulus, perbarui catatan keputusan dan lock baseline; baru kemudian siapkan workspace turunan berikutnya.
 
 ## Status dan batasan
