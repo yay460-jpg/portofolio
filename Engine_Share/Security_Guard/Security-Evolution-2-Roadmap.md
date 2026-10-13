@@ -157,3 +157,14 @@ Source inspection performed on workspace code at HEAD `30ff61b8a693aec691ab03119
 - The adapter accepts arbitrary `request_id` values and tracks duplicate request IDs only in the in-memory `ApplicationService` for CREATE/UPDATE/DELETE; other operations have their own/no idempotency behavior. Record per-operation replay expectations explicitly before centralizing this policy.
 - Next isolated tests should cover CREATE/UPDATE/DELETE audit-failure rollback, dataset file vs audit/store save failure, KPI finalize cross-store atomicity/replay, and READ exposure of `AuditLog` / controlled lists. Use in-memory stores and pytest temporary directories; never use the operational A3 workbook or real backup/Evidence folders.
 
+
+
+
+## EVO2-02 continuation — replay retry and persistence rollback — 2026-10-14
+
+- Full Pytest #655 PASS: a rejected XLSX import attempt is not cached as a successful response; a retry with the same request ID may execute again. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38467949013.
+- Full Pytest #656 PASS: replay validation documentation synchronized. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38467958760.
+- Added isolated regression tests for dataset overwrite rollback when workbook/store persistence fails, and KPI History rollback preserving pre-existing file bytes/records when the later store save fails. Both use temporary directories/stores. Validation pending.
+- Scope note: #653 uses a stubbed import call, so it validates adapter request replay semantics, not real XLSX parsing or domain mutation.
+- Next: wait for Full Pytest on the new rollback tests; inspect any failure logs before production changes. Then audit request-cache size/lifetime and cross-restart behavior. Do not implement durable idempotency until storage/ownership and recovery semantics are defined.
+- Release gate remains blocked; no changes promoted to `main`.
