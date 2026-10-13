@@ -1,7 +1,9 @@
 from pathlib import Path
 
+import pytest
 from openpyxl import Workbook, load_workbook
 
+from src.mine_services import migrate_measurement as measurement_migration
 from src.mine_services.migrate_measurement import migrate
 
 
@@ -57,3 +59,41 @@ def test_measurement_migration_is_idempotent(tmp_path):
     wb = load_workbook(path, data_only=False)
     assert wb["Operations"]["C1"].value == "measurement"
     assert wb["Operations"]["D1"].value == "capacity_measurement"
+
+
+def test_measurement_migration_preserves_source_when_temp_verification_fails(tmp_path, monkeypatch):
+    path = tmp_path / "Mine-Services-Database-A3.xlsx"
+    make_workbook(path)
+    original = path.read_bytes()
+    real_verify = measurement_migration._verify_measurement_headers
+
+    def fail_temp_verification(candidate):
+        if Path(candidate) != path:
+            raise RuntimeError("simulated temporary workbook verification failure")
+        return real_verify(candidate)
+
+    monkeypatch.setattr(measurement_migration, "_verify_measurement_headers", fail_temp_verification)
+    with pytest.raises(RuntimeError, match="simulated temporary workbook verification failure"):
+        migrate(path)
+
+    assert path.read_bytes() == original
+    assert list(tmp_path.glob("Mine-Services-Database-A3.*.xlsx")) == []
+
+
+def test_measurement_migration_preserves_source_when_atomic_replace_fails(tmp_path, monkeypatch):
+    path = tmp_path / "Mine-Services-Database-A3.xlsx"
+    make_workbook(path)
+    original = path.read_bytes()
+    real_replace = Path.replace
+
+    def fail_target_replace(source, target):
+        if Path(target) == path and Path(source) != path:
+            raise OSError("simulated atomic workbook replacement failure")
+        return real_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", fail_target_replace)
+    with pytest.raises(OSError, match="simulated atomic workbook replacement failure"):
+        migrate(path)
+
+    assert path.read_bytes() == original
+    assert list(tmp_path.glob("Mine-Services-Database-A3.*.xlsx")) == []

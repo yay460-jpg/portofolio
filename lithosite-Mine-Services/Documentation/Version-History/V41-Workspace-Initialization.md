@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- Measurement-header migration now saves to a same-directory temporary workbook, verifies the renamed headers there, and only then atomically replaces the active workbook. Fault-injection tests prove verification or replacement failure leaves the original workbook byte-for-byte intact and removes the temporary file.
+
+
 - A.2-to-A.3 migration publishes the validated temporary workbook with an atomic no-overwrite install; if a target appears after the initial check, migration fails without replacing it or mutating the source.
 
 
