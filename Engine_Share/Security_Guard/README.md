@@ -1,8 +1,12 @@
-# Lithosite Security Guard
+# Lithosite Security Guard — Security Evolution 2
 
 ## Misi
 
-Menerapkan aturan keamanan bersama lintas produk Lithosite tanpa menyatukan seluruh validasi domain ke dalam satu modul dan tanpa membuat browser sebagai otoritas keamanan.
+Evo 2 menerapkan aturan keamanan bersama lintas produk Lithosite tanpa menyatukan seluruh validasi domain ke satu modul dan tanpa membuat browser sebagai otoritas keamanan.
+
+## Hubungan dengan Evo 1
+
+Evo 1 adalah track hardening historis yang sudah mencatat audit batas keamanan, hardening XSS, batas sumber daya, dependency, dan session. Evo 2 tidak mengulang atau membatalkan kontrol tersebut; Evo 2 mengaudit kontrol yang sudah ada, menyelaraskan kebijakan yang memang generik, dan menambah kontrol hanya jika ada gap yang dibuktikan oleh tes.
 
 ## Lapisan pemilik
 
@@ -21,6 +25,7 @@ Menerapkan aturan keamanan bersama lintas produk Lithosite tanpa menyatukan selu
 5. Semua tes adversarial berjalan memakai database dan direktori sementara; jangan menulis ke workbook operasional A.3.
 6. Setiap perubahan memiliki regression test dan pemilik yang jelas.
 7. Kontrol yang sudah ada dipertahankan sampai pengganti teruji.
+8. Pengetatan Origin, ukuran request, dan akses lokal tidak boleh dilakukan tanpa menguji kompatibilitas launcher/runtime dan skenario browser yang didukung.
 
 ## Tahap kerja
 
@@ -30,9 +35,12 @@ Menerapkan aturan keamanan bersama lintas produk Lithosite tanpa menyatukan selu
 4. Jalankan tes terarah dan seluruh regression suite.
 5. Audit efek samping dan dokumentasikan PASS atau HOLD.
 
+Roadmap terperinci: [Security Evolution 2 Roadmap](Security-Evolution-2-Roadmap.md). Daftar permukaan awal: [Attack-Surface Matrix](Attack-Surface-Matrix.md).
+
 ## Bukan tujuan
 
 - Membuat autentikasi semu yang tidak terikat pada threat model.
 - Memindahkan logika bisnis dari RuntimeAdapter/ValidationEngine.
 - Menganggap CSS sebagai kontrol keamanan.
 - Mengubah Geo Engine atau Topo3D Engine pada tahap pertama.
+- Mengklaim gap sebagai kerentanan terkonfirmasi sebelum ada reproduksi tes.

@@ -1,4 +1,4 @@
-# Host Guard
+# Host Guard — Evo 2
 
 ## Scope
 
@@ -6,7 +6,7 @@ Penjagaan otoritatif pada batas HTTP/proses: pemeriksaan request, Origin, parsin
 
 ## Pemilik existing
 
-Mine Services saat ini memakai `lithosite-Mine-Services/desktop-host/server.py`, yang bind ke `127.0.0.1`, memiliki allowlist/aturan Origin, endpoint Evidence, static-file guard, batas ukuran di beberapa endpoint, dan meneruskan operasi runtime ke `RuntimeAdapter`.
+Mine Services saat ini memakai `lithosite-Mine-Services/desktop-host/server.py`, yang bind ke `127.0.0.1`, memiliki aturan Origin, endpoint Evidence, static-file guard, batas ukuran di beberapa endpoint, dan meneruskan operasi runtime ke `RuntimeAdapter`.
 
 Kontrol tersebut harus diuji sebelum dirapikan. Jangan menganggap setiap dugaan sebagai kerentanan sampai ada reproduksi tes.
 
@@ -20,4 +20,4 @@ Kontrol tersebut harus diuji sebelum dirapikan. Jangan menganggap setiap dugaan 
 
 ## Status
 
-Tahap sekarang adalah audit dan pembuatan attack-surface matrix. Belum ada perubahan pada `server.py` atau konfigurasi operasi.
+Tahap Evo 2 sekarang adalah audit dan pembuatan attack-surface matrix. Belum ada perubahan pada `server.py` atau konfigurasi operasi.

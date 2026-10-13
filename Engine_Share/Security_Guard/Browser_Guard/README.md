@@ -1,4 +1,4 @@
-# Browser Guard
+# Browser Guard — Evo 2
 
 ## Scope
 
@@ -14,8 +14,8 @@ Defense-in-depth di sisi browser untuk input pengguna, payload yang diimpor, pem
 
 ## Kepemilikan existing
 
-Lithosite Mine Geologist sudah memiliki `member-app/scripts/map/map-security.js`. File itu tetap dipertahankan sebagai kontrol existing hingga call-site, ekspor global, dan tesnya dipetakan. Jangan langsung memindahkan atau mengganti nama file tersebut.
+Lithosite Mine Geologist sudah memiliki `member-app/scripts/map/map-security.js`. File itu tetap dipertahankan sebagai kontrol Evo 1/existing hingga call-site, ekspor global, dan tesnya dipetakan. Jangan langsung memindahkan atau mengganti nama file tersebut.
 
 ## Status
 
-Belum ada implementasi baru pada tahap scaffold ini. Temuan konkret dan regression test harus mendahului patch.
+Evo 2: dokumentasi/ownership disiapkan; belum ada implementasi baru. Audit call-site, urutan pemuatan script, dan tes perlu mendahului integrasi atau refactor.

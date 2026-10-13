@@ -1,4 +1,4 @@
-# Lithosite Security Guard — Attack-Surface Matrix
+# Lithosite Security Guard Evo 2 — Attack-Surface Matrix
 
 ## Status
 
