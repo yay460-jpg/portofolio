@@ -5,9 +5,9 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 ## Baseline saat ini
 
 - Branch utama: `main`
-- Commit validasi terakhir: `74a9f37c7bc20df96ffc7ca547a1ce664c32526a` (`docs: record passing checklist validation and workspace sync`). Full Pytest dan Pages PASS; `main` dan `v41-workspace` telah disinkronkan ke SHA ini. Baseline final belum di-lock.
-- Branch workspace: `v41-workspace`; tersinkron dengan `main` pada commit `74a9f37c7bc20df96ffc7ca547a1ce664c32526a` melalui fast-forward tanpa force push.
-- Status validasi commit `74a9f37c7bc20df96ffc7ca547a1ce664c32526a`: Full Pytest PASS ([run](https://github.com/yay460-jpg/portofolio/actions/runs/38395499733)) dan GitHub Pages Build & Deployment PASS ([run](https://github.com/yay460-jpg/portofolio/actions/runs/38395499802)). `v41-workspace` telah fast-forward ke SHA yang sama sesudah kedua pemeriksaan lulus.
+- Commit validasi terakhir: `edfddab769636c69cd7b461cb8f8ff6cf961fe35` (`docs: record desktop runtime health check pass`). Full Pytest dan Pages PASS; `main` dan `v41-workspace` sinkron pada SHA ini. Smoke test read-only Desktop Host A.3 juga dilaporkan PASS oleh pengguna; baseline final belum di-lock.
+- Branch workspace: `v41-workspace`; tersinkron dengan `main` pada commit `edfddab769636c69cd7b461cb8f8ff6cf961fe35` melalui fast-forward tanpa force push.
+- Status validasi commit `edfddab769636c69cd7b461cb8f8ff6cf961fe35`: Full Pytest #594 PASS ([run](https://github.com/yay460-jpg/portofolio/actions/runs/38400171040)); GitHub Pages #2126 PASS ([run](https://github.com/yay460-jpg/portofolio/actions/runs/38400170437)); Full Pytest `v41-workspace` PASS ([run](https://github.com/yay460-jpg/portofolio/actions/runs/38400770281)). Kedua branch berada di SHA yang sama.
 - Catatan pengujian: workflow Pytest menyiapkan fixture workbook A.3 terisolasi untuk tes yang bergantung pada database. Hasil CI tidak menggantikan acceptance runtime terhadap workbook operasional.
 - Status rilis: pemeriksaan CI pada commit tersebut lulus. Audit tautan lokal masih berstatus parsial; baseline final belum di-lock sampai cakupan audit per dokumen dapat direkonsiliasi dan validasi diulang pada commit dokumentasi final.
 - Runtime aktif: `Artifacts/Mine-Services-Operations.html`
@@ -58,10 +58,11 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 | 1 | Inventaris nama file proyek dan netralisasi identitas versi pada nama file | PASS — 327 file proyek diperiksa; 0 nama file berversi terdeteksi |
 | 2 | Perbaiki indeks sejarah dan tautan yang diketahui terdampak rename | PASS — indeks diperbarui; pencarian nama lama yang diperiksa tidak menemukan hasil |
 | 3 | Normalisasi encoding dokumen Stage 16 yang menggagalkan Jekyll | PASS — kedua dokumen dikomit ulang sebagai UTF-8; isi teks dipertahankan |
-| 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS pada commit `57c6f2da135217d25a9e90766a3872132a6c1c10` — Pytest `main` run #584 dan Pages Build/Deploy run #2121 PASS |
+| 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS pada commit `edfddab769636c69cd7b461cb8f8ff6cf961fe35` — Pytest #594, Pages #2126, dan Pytest `v41-workspace` PASS |
 | 5 | Audit referensi Markdown relatif | PASS — seluruh 98 file Markdown pada tree diperiksa untuk tautan inline Markdown dan pola autolink lokal. Semua 15 target relatif yang ditemukan di indeks README, Contracts, Testing, Version-History, dan panduan hauling cocok dengan path yang ada di tree; 0 target rusak dalam cakupan pola tersebut. |
-| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PASS pada commit `57c6f2da135217d25a9e90766a3872132a6c1c10`; `main` dan `v41-workspace` menunjuk SHA yang sama saat diverifikasi |
-| 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — rekonsiliasi cakupan audit tautan Markdown, kemudian validasi CI atas commit dokumentasi final |
+| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PASS pada `edfddab769636c69cd7b461cb8f8ff6cf961fe35`; fast-forward tanpa force push |
+| 7 | Acceptance runtime Desktop Host A.3 (workbook integrity, health, modul, dialog, Console) | PASS berdasarkan bukti lokal yang dilaporkan pengguna; pemeriksaan read-only, tanpa menyimpan perubahan. Gate tulis/persistence tidak dijalankan dan dicatat tidak dilakukan. |
+| 8 | Verifikasi final release gate dan lock baseline | PENDING — perbarui dokumen ini, jalankan CI pada commit dokumentasi final, sinkronkan workspace bila lulus, lalu lakukan lock baseline secara eksplisit |
 
 ## Checklist kerja aktif
 
@@ -71,15 +72,19 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 - [x] Periksa 98/98 file Markdown untuk tautan inline Markdown/autolink lokal; semua 15 target relatif yang ditemukan ada pada tree.
 - [x] Full Pytest pada kedua branch dan GitHub Pages pada commit baseline sinkron saat ini lulus.
 - [x] Periksa integritas ZIP workbook operasional A.3 secara read-only — pengguna melaporkan `Workbook ZIP integrity: PASS`; tidak ada mutasi workbook pada langkah ini.
-- [ ] Jalankan health check dan smoke test read-only Desktop Host terhadap workbook operasional A.3; jangan reset atau menimpa workbook.
-- [x] Health check Desktop Host — pengguna mengonfirmasi `status = READY`, `offline = true`, `schema = A.3`, `runtime = RuntimeAdapter`; database path mengarah ke workbook operasional A.3 lokal.
-- [ ] Smoke test read-only modul utama (Dashboard/Work Control, Equipment, Work Front, Operations, Target Plan, Reports), dialog Add Operation/Add Work Front, dan pemeriksaan console.
-- [ ] Rekam hasil smoke test modul dan console; lakukan review akhir release gate.
-- [ ] Setelah seluruh gate lulus, perbarui catatan keputusan dan lock baseline; baru kemudian siapkan workspace turunan berikutnya.
+- [x] Jalankan health check dan smoke test read-only Desktop Host terhadap workbook operasional A.3; tidak ada perubahan data yang disimpan.
+- [x] Health check Desktop Host — `status = READY`, `offline = true`, `schema = A.3`, `runtime = RuntimeAdapter`; database path mengarah ke workbook operasional A.3 lokal.
+- [x] Smoke test Dashboard/Work Control, Equipment, Work Front, Operations, Target Plan, Reports, dialog Add Operation/Add Work Front, dan Console — seluruhnya PASS berdasarkan hasil yang dilaporkan pengguna.
+- [x] Rekam hasil smoke test modul dan Console pada checklist ini; semua sembilan pemeriksaan PASS.
+- [x] Catat write/persistence test sebagai NOT RUN; smoke test hanya read-only dan tidak ada perubahan operasional.
+- [ ] Lakukan review akhir release gate setelah validasi CI dokumentasi final lulus.
+- [ ] Setelah CI pada commit dokumentasi final lulus dan review gate disetujui, catat keputusan lock baseline; baru kemudian siapkan workspace turunan berikutnya.
 
 ## Status dan batasan
 
-Audit tautan pada 90 dokumen prioritas sebelumnya menemukan dua referensi yang masih menunjuk nama file lama. Keduanya telah diperbarui: kontrak Dump Truck Retase pada panduan hauling dan bukti penerimaan Desktop Runtime A.3 pada catatan inisialisasi workspace. Dalam pemeriksaan lanjutan, tautan kontrak Dump Truck Retase pada panduan hauling ditemukan masih salah relatif terhadap folder `Documentation`; tautan itu telah diperbaiki dan lolos GitHub Pages build/deploy serta Full Pytest pada commit `57c6f2da135217d25a9e90766a3872132a6c1c10`. Audit tambahan pada dokumen README, kontrak, panduan, dan bukti pengujian yang diperiksa tidak menemukan tautan lokal rusak. Jumlah file Markdown pada tree proyek terhitung 98. Daftar audit terdahulu yang 90 dokumen belum direkonsiliasi satu-per-satu dengan tree terkini; sesi ini memeriksa 36 file tambahan/sampel yang terdiri dari README, Architecture, dan Contracts. Mayoritas sampel tersebut tidak memiliki tautan Markdown relatif inline. Karena audit ini belum memeriksa dan merekonsiliasi semua 98 file, audit menyeluruh tetap berstatus belum selesai.
+Audit tautan mencakup 98 file Markdown pada tree untuk tautan inline Markdown dan pola autolink lokal; 15 target relatif yang terdeteksi pada indeks README, Contracts, Testing, Version-History, dan panduan hauling semuanya ditemukan di tree. Tidak ada target rusak dalam cakupan pola tersebut; tautan eksternal dan sintaks tautan kustom/nonstandar tidak diklaim telah divalidasi.
+
+Runtime acceptance A.3: integritas ZIP workbook operasional PASS; health check PASS (`READY`, `offline=true`, `schema=A.3`, `RuntimeAdapter`); smoke test read-only PASS untuk Dashboard/Work Control, Equipment, Work Front, Operations, Target Plan, Reports, dialog Add Operation dan Add Work Front, serta Console tanpa error merah baru. Pengguna melaporkan tidak ada perubahan data yang disimpan. Write/persistence test tidak dijalankan dan tetap dicatat NOT RUN; tidak diwajibkan untuk acceptance read-only ini.
 
 CI memakai fixture A.3 terisolasi untuk tes database-dependent. Workbook operasional tidak diubah oleh langkah validasi ini. Hasil CI saja tidak membuktikan acceptance runtime desktop terhadap workbook operasional.
 
