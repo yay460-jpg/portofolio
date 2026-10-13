@@ -97,8 +97,8 @@ All Evo 2 code patches above exist on `v41-workspace` only. `main` remains the l
 - Red-phase workflow #634 failed as intended: 599 passed, 1 failed. Mutating nested fields in the result of `read_kpi_snapshots()` changed the stored KPI history (`result.PA.value` became `-999`): https://github.com/yay460-jpg/portofolio/actions/runs/38454460124.
 - Confirmed cause: `KPIHistoryStore.list()` copied only each top-level record with `dict(x)`, leaving nested objects shared with internal records.
 - Fix committed as `8d1107ef5da24d4cccd20ac536c048fbbd73c3bb`: return `deepcopy(records)` from `list()`. This isolates nested response data from runtime-owned history.
-- Validation for the fix is pending; do not mark the read-exposure issue PASS until Full Pytest on the fix commit completes successfully.
-- Next READ checks: verify `AuditLog` and controlled-list results are detached/read-only, then document replay/idempotency expectations for all 19 adapter operations.
+- Full Pytest #635 completed successfully on the fix commit: https://github.com/yay460-jpg/portofolio/actions/runs/38454745839. The nested KPI read-exposure fix is PASS for the reproduced case.
+- Next READ checks: verify `AuditLog` and controlled-list results are detached/read-only. Isolated tests were added in `tests/test_security_read_collections.py`; Full Pytest #637 is queued at https://github.com/yay460-jpg/portofolio/actions/runs/38455358687. Then document replay/idempotency expectations for all 20 adapter operations.
 ## Workflow #631 — KPI finalization atomicity fix — 2026-10-14
 
 - Full Pytest #631 completed successfully: https://github.com/yay460-jpg/portofolio/actions/runs/38454081053.
