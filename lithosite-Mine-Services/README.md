@@ -129,7 +129,7 @@ Canonical examples include:
 
 The historical measurement migration contract is documented in:
 
-`Documentation/Contracts/V38-Measurement-Field-Migration-Contract.md`
+`Documentation/Contracts/Measurement-Field-Migration-Contract.md`
 
 ## Project Structure
 

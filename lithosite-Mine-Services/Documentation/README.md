@@ -1,5 +1,7 @@
 # Documentation
 
+Start here: [`dokumentasi.md`](./dokumentasi.md), the consolidated version-history index and baseline record.
+
 Global Mine Services documentation.
 
 Global UI labels, shared navigation, and reusable contracts use stable, version-neutral names. Version-specific implementation summaries belong directly under Version-History; stage/baseline evidence belongs under Version-History/Baseline.
@@ -7,15 +9,15 @@ Global UI labels, shared navigation, and reusable contracts use stable, version-
 
 ## Version History
 
-- [V39 Workflow and Maintenance Enhancements](./Version-History/V39-Workflow-and-Maintenance-Enhancements.md) — version-specific record of workflow navigation, Maintenance ↔ Operations traceability, and related V39 behavior.
+- [V39 Workflow and Maintenance Enhancements](./Version-History/Workflow-and-Maintenance-Enhancements.md) — version-specific record of workflow navigation, Maintenance ↔ Operations traceability, and related V39 behavior.
 
-## V38 Workflow Guides
+## Workflow Guides
 
-- [V38 Dump Truck Hauling Workflow & Timeline Guide](./V38-Dump-Truck-Hauling-Workflow-and-Timeline-Guide.md) — end-to-end guide from Global Capacity and Work Front / Console through Equipment, Checker Retase, Operation, Work Timeline, accumulated progress, and reporting.
+- [V38 Dump Truck Hauling Workflow & Timeline Guide](./Hauling-Workflow-and-Timeline-Guide.md) — end-to-end guide from Global Capacity and Work Front / Console through Equipment, Checker Retase, Operation, Work Timeline, accumulated progress, and reporting.
 
-## V40 Reports CSS Cascade Audit
+## Reports CSS Cascade Audit
 
-- [V40 Reports CSS Cascade Audit](Testing/V40-Reports-CSS-Cascade-Audit.md) — cleanup register, repeated-selector decisions, and remaining release gates. Cleanup #15 validated by #411; Cleanup #16 by #412; Cleanup #17 validated by #418/#419; cache sync validated by #424; Full Pytest #435 passed on exact HEAD `ea0a96332a4b42b23414d7b7f3a1818df5cbc280`, including the version-neutral audit test contract. Reports CSS cascade cleanup is closed; the overall V40 workspace remains open pending its separate release gates.
+- [V40 Reports CSS Cascade Audit](Testing/Reports-CSS-Cascade-Audit.md) — cleanup register, repeated-selector decisions, and remaining release gates. Cleanup #15 validated by #411; Cleanup #16 by #412; Cleanup #17 validated by #418/#419; cache sync validated by #424; Full Pytest #435 passed on exact HEAD `ea0a96332a4b42b23414d7b7f3a1818df5cbc280`, including the version-neutral audit test contract. Reports CSS cascade cleanup is closed; the overall V40 workspace remains open pending its separate release gates.
 
 ## Global Decision Reminder — Target vs Actual
 
