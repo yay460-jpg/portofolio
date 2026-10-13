@@ -75,7 +75,7 @@ class TopographyBackupManager:
     def save(self, package_base64, filename=None, source="runtime"):
         if not package_base64:
             raise ValueError("LT-DTM package data is required.")
-        cls._preflight_encoded_size(package_base64)
+        self._preflight_encoded_size(package_base64)
         try:
             payload = base64.b64decode(package_base64, validate=True)
         except (binascii.Error, ValueError) as exc:
