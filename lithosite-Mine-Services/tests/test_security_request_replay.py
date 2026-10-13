@@ -200,3 +200,54 @@ def test_save_as_dataset_same_request_id_and_payload_returns_cached_response(tmp
     assert replay is not first
     assert len(list((tmp_path / "datasets").glob("*.json"))) == 1
     assert len(adapter._runtime._application.store.audit()) == 1
+
+
+def test_import_xlsx_rejects_reused_request_id_for_different_path(tmp_path):
+    adapter = make_adapter(tmp_path)
+    calls = []
+
+    def fake_import(path):
+        calls.append(path)
+        return {"status": "COMMITTED", "rows_committed": 3, "errors": []}
+
+    adapter._runtime.import_xlsx = fake_import
+
+    first = adapter.handle({
+        "request_id": "replay-import-001",
+        "operation": "IMPORT_XLSX",
+        "path": "first.xlsx",
+    })
+    conflict = adapter.handle({
+        "request_id": "replay-import-001",
+        "operation": "IMPORT_XLSX",
+        "path": "second.xlsx",
+    })
+
+    assert first["status"] == "COMMITTED"
+    assert conflict["status"] == "REJECTED"
+    assert conflict["errors"][0]["code"] == "ADP-006"
+    assert calls == ["first.xlsx"]
+
+
+def test_import_xlsx_same_request_reuses_cached_response_copy(tmp_path):
+    adapter = make_adapter(tmp_path)
+    calls = []
+
+    def fake_import(path):
+        calls.append(path)
+        return {"status": "COMMITTED", "rows_committed": 3, "errors": []}
+
+    adapter._runtime.import_xlsx = fake_import
+    request = {
+        "request_id": "replay-import-same-001",
+        "operation": "IMPORT_XLSX",
+        "path": "stable.xlsx",
+    }
+
+    first = adapter.handle(dict(request))
+    replay = adapter.handle(dict(request))
+    replay["errors"].append({"code": "TEST-MUTATION"})
+
+    assert first["status"] == "COMMITTED"
+    assert first["errors"] == []
+    assert calls == ["stable.xlsx"]
