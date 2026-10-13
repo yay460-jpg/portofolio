@@ -5,10 +5,10 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 ## Baseline saat ini
 
 - Branch utama: `main`
-- Commit baseline terverifikasi: `d8d8e205cdebcee84d8256ae1db176e5ad9d1000`
-- Branch workspace: `v41-workspace` (perlu disinkronkan ke commit baseline terbaru setelah audit akhir).
-- Status validasi commit tersebut: Full Pytest PASS dan GitHub Pages Build/Deploy PASS.
-- Status rilis: pemeriksaan CI dasar lulus; audit referensi menyeluruh dan sinkronisasi workspace masih menjadi gate sebelum deklarasi lock baru.
+- Commit pemeriksaan terbaru: `4c706c7f122adc99dff1a5272c18aef601314882` (Pytest dan Pages Build/Deploy PASS).
+- Branch workspace: `v41-workspace`; telah tersinkron ke commit `4c706c7f122adc99dff1a5272c18aef601314882` tanpa force push.
+- Status validasi commit `4c706c7f122adc99dff1a5272c18aef601314882`: Full Pytest PASS pada `main` dan `v41-workspace`; GitHub Pages Build/Deploy PASS pada `main`.
+- Status rilis: CI terbaru lulus dan workspace tersinkron. Audit seluruh referensi Markdown masih belum terbukti selesai; baseline final tetap belum di-lock.
 - Runtime aktif: `Artifacts/Mine-Services-Operations.html`
 - Database runtime: A.3, `Database/Mine-Services-Database-A3.xlsx`
 
@@ -57,10 +57,10 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 | 1 | Inventaris nama file proyek dan netralisasi identitas versi pada nama file | PASS — 327 file proyek diperiksa; 0 nama file berversi terdeteksi |
 | 2 | Perbaiki indeks sejarah dan tautan yang diketahui terdampak rename | PASS — indeks diperbarui; pencarian nama lama yang diperiksa tidak menemukan hasil |
 | 3 | Normalisasi encoding dokumen Stage 16 yang menggagalkan Jekyll | PASS — kedua dokumen dikomit ulang sebagai UTF-8; isi teks dipertahankan |
-| 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS — `d8d8e205cdebcee84d8256ae1db176e5ad9d1000` |
+| 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS — commit `4c706c7f122adc99dff1a5272c18aef601314882`; Pytest `main` #569, workspace #570; Pages #2113 |
 | 5 | Audit referensi Markdown relatif pada dokumen prioritas | PARTIAL PASS — 90 dokumen diperiksa; 2 tautan lama ditemukan dan diperbaiki; 0 tautan lokal rusak pada kelompok lainnya; beberapa dokumen Markdown masih belum diperiksa |
-| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PENDING — lakukan setelah commit dokumentasi final dan CI-nya lulus |
-| 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — jangan nyatakan lock sebelum audit menyeluruh dan CI final selesai |
+| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PASS — `main` dan `v41-workspace` berada pada commit `4c706c7f122adc99dff1a5272c18aef601314882` |
+| 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — audit seluruh tautan Markdown belum selesai; lakukan setelah gate audit tuntas dan CI pada commit dokumentasi final lulus |
 
 ## Status dan batasan
 
