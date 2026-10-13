@@ -20,11 +20,11 @@ Evo 2 is the global, cross-product Lithosite security track. Evo 1 remains the h
 | ID | Stage | Exit criteria | Status |
 |---|---|---|---|
 | EVO2-01 | Confirm nomenclature and ownership | Evo 1 / Evo 2 definitions and responsibility boundaries documented | PASS — accepted and recorded |
-| EVO2-02 | Complete attack-surface inventory | Endpoints, operations, input types, file paths, trust boundaries, owners, and existing controls mapped | IN PROGRESS — host routes, all 19 adapter operations, host/Evidence tests, Browser Guard call-sites recorded; adapter downstream trace, static policy, Geo ranges, and full Topo3D path comparison remain |
+| EVO2-02 | Complete attack-surface inventory | Endpoints, operations, input types, file paths, trust boundaries, owners, and existing controls mapped | IN PROGRESS — host routes and all 19 adapter operations mapped; first-pass import/restore/dataset/backup control trace recorded. Remaining: per-operation CREATE/UPDATE/DELETE/READ/KPI trace, static-path tests/policy, Geo caller/range inventory, and full Topo3D copy/caller comparison. |
 | EVO2-03 | Design isolated adversarial tests | Tests cover each prioritized boundary using temporary database and file fixtures | BLOCKED — wait for remaining EVO2-02 tracing and test prioritization |
 | EVO2-04 | Implement Host Guard gaps | Only confirmed gaps patched behind regression tests; Host Guard does not bypass RuntimeAdapter | BLOCKED — wait for reproducing tests |
-| EVO2-05 | Audit Browser Guard integration | Existing map-security.js call-sites, script order, export names, and tests mapped before reuse/refactor | IN PROGRESS — script order and two call-site paths observed; export compatibility and coverage remain to be verified |
-| EVO2-06 | Record Geo and Topo3D responsibilities | Domain rules and resource boundaries mapped; no engine migration yet | IN PROGRESS — Geo files have identical blobs; Topo3D copies differ; size/count bounds found and full call-path audit remains |
+| EVO2-05 | Audit Browser Guard integration | Existing map-security.js call-sites, script order, export names, and tests mapped before reuse/refactor | IN PROGRESS — script order, two call-site paths, export shape, and test hypotheses recorded; full export/call-site coverage remains to be verified |
+| EVO2-06 | Record Geo and Topo3D responsibilities | Domain rules and resource boundaries mapped; no engine migration yet | IN PROGRESS — Geo files have identical blobs; Topo3D copies differ; limits and package-load pre-check ordering recorded as a test hypothesis; caller/range audit remains |
 | EVO2-07 | Full regression and security gate | Targeted adversarial tests, full pytest, UI/static regression, console checks, and documented PASS/HOLD | BLOCKED — requires prior stages |
 
 ## Attack surface priority

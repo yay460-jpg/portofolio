@@ -112,14 +112,49 @@ At baseline source:
 - The two `shared/topo3d/topo3d-engine.js` files have different Git blobs and are not interchangeable by assumption. Compare callers and differences before any shared-engine move.
 - Both Topo3D copies define DTM and STR limits of 64 MiB each, package limit 128 MiB, vertex limit 300,000, and triangle limit 600,000. DTM+STR parsing checks file sizes and record counts. The LTDtm v1/v2 loader calls `file.arrayBuffer()` before checking the package's byte limit; this is a high-priority test hypothesis for memory pressure, not yet a confirmed exploit.
 
+## Downstream owner trace — first pass
+
+### Import XLSX
+
+The UI's Data Management flow reads a value from the `stage15ImportPath` text field and sends `{operation: "IMPORT_XLSX", path: path}` to `/runtime`. `RuntimeAdapter` requires a non-empty path and calls `RuntimeInterface.import_xlsx(path)`; `ImportCoordinator.read_xlsx()` calls `openpyxl.load_workbook(path, data_only=True)`, then validates required/unexpected sheets, schema version, and column headers. `import_dataset()` stages data, validates rows, and uses `TransactionManager` for commit/rollback.
+
+In the inspected import layer, no explicit file-size limit or path-root allowlist was observed before `load_workbook()`. That may be intentional because the current UI accepts an explicit local path, so a policy change must not break the supported import workflow. Test hypotheses:
+
+- Can an invalid/oversized file cause excessive resource use or return local OS path details in the import error?
+- What exact file-location policy is required for a local single-user host?
+- Can a browser-origin request invoke import with a path the user did not intentionally select? Test only with a temporary fixture and a benign workbook.
+
+### Restore and dataset operations
+
+- `SnapshotManager.verify()` checks required fields, schema version, SHA-256 checksum algorithm/value, status and entity counts; restore validates payload/domain rows and uses `TransactionManager` with rollback on failure.
+- `DatasetManager._safe_name()` normalizes dataset names; `_validate_document()` checks format/schema/metadata/payload, primary-key consistency, and domain validation before load. Dataset save/load operations are followed by audit writes in `RuntimeInterface`.
+- `PersistenceStore` opens the configured workbook, validates its contract on load/save, and saves through a temporary workbook path before replacing its active file.
+- These observed controls reduce certain risk classes but do not replace tests for traversal, malformed data, oversized inputs, atomic rollback, and error disclosure.
+
+### Backup domains
+
+- Topography backups use base64 decoding with strict validation, a 128 MiB package bound, `LITHODTM` magic and supported-version checks, sanitized filename stems, containment on reads, and a five-backup retention limit.
+- Marker backups use strict base64, a 16 MiB package bound, `LT-MARKER` magic/version, JSON shape and marker validation including finite coordinate values, sanitized filename stems, containment on reads, and a five-backup retention limit.
+- The host `/runtime` envelope currently accepts declared JSON bodies up to 180,000,000 bytes. Per-operation payload limits should be harmonized against the smaller owning service limits before any host-level limit is changed.
+
+### Static asset boundary
+
+The static fallback resolves paths under `STATIC_ROOT`, where the configured root is the repository root, then denies paths containing a `Database` segment and the suffixes `.xlsx`, `.xls`, and `.csv`. Because the fallback is broader than a dedicated UI asset directory, test the intended allowlist against actual UI imports and benign requests to hidden/private repository paths. Do not change the root until required HTML/JS/CSS/SVG/PDF assets and paths have been inventoried.
+
+### Geo and Topo3D differences
+
+- The Geo Engine files in Mine Geologist and Mine Services have the same Git blob in the inspected baseline; their bytes are identical, but caller and load-order contracts still need documenting.
+- The two Topo3D Engine copies have different Git blobs. Their current limit constants include 64 MiB DTM, 64 MiB STR, 128 MiB package, 300,000 vertices and 600,000 triangles.
+- `loadDTMSTR()` checks file sizes before parsing and checks vertex/triangle counts during parsing. `loadLTDtm()` calls `file.arrayBuffer()` before validating package length against the 128 MiB limit, so the ordering is a test hypothesis for memory pressure. No Topo3D changes are authorized from this observation alone.
+
 ## EVO2-02 remaining work
 
 - [x] Record the host's HTTP routes and per-route high-level controls.
 - [x] Enumerate all 19 RuntimeAdapter operation names.
 - [x] Record existing host/Evidence test coverage by test function name.
 - [x] Record Browser Guard script order and its presently observed call-sites.
-- [ ] Trace each adapter operation to downstream path/domain validation and rollback/audit behavior.
-- [ ] Trace static-file access against the local repository tree and define the intended static allowlist.
-- [ ] Finish Topo3D loader path/caller comparison and create isolated resource-boundary tests.
+- [ ] Complete per-operation trace for CREATE/UPDATE/DELETE/READ and KPI operations; first-pass import/restore/dataset/backup trace recorded above.
+- [ ] Test static-file access against the local repository tree and define the intended static allowlist.
+- [ ] Finish Topo3D copy/caller comparison and create isolated resource-boundary tests.
 - [ ] Finish Geo input caller inventory and range/finite-value contract.
 - [ ] Promote only reproduced gaps to confirmed findings.
