@@ -5,9 +5,9 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 ## Baseline saat ini
 
 - Branch utama: `main`
-- Commit validasi terakhir: `57c6f2da135217d25a9e90766a3872132a6c1c10` (`docs: fix hauling contract relative link`). Audit dokumen masih berjalan; commit ini belum menjadi release lock.
-- Branch workspace: `v41-workspace`; saat verifikasi terakhir, branch ini tersinkron dengan `main` pada commit yang sama melalui fast-forward tanpa force push.
-- Status validasi commit `57c6f2da135217d25a9e90766a3872132a6c1c10`: Full Pytest PASS pada `main` ([run #584](https://github.com/yay460-jpg/portofolio/actions/runs/38388112253)); GitHub Pages Build & Deployment PASS ([run #2121](https://github.com/yay460-jpg/portofolio/actions/runs/38388111923)). `v41-workspace` telah disinkronkan ke SHA yang sama setelah hasil CI lulus.
+- Commit validasi terakhir: `0ef33d647c5610daaa28bbfe549b24009b88209e` (`docs: record passing link-fix validation`). `main` dan `v41-workspace` sinkron pada SHA ini; baseline final belum di-lock.
+- Branch workspace: `v41-workspace`; tersinkron dengan `main` pada commit `0ef33d647c5610daaa28bbfe549b24009b88209e` melalui fast-forward tanpa force push.
+- Status validasi commit `0ef33d647c5610daaa28bbfe549b24009b88209e`: Full Pytest PASS pada `main` ([run #586](https://github.com/yay460-jpg/portofolio/actions/runs/38391803801)) dan `v41-workspace` ([run #587](https://github.com/yay460-jpg/portofolio/actions/runs/38392133793)); GitHub Pages Build & Deployment PASS ([run #2122](https://github.com/yay460-jpg/portofolio/actions/runs/38391802593)).
 - Catatan pengujian: workflow Pytest menyiapkan fixture workbook A.3 terisolasi untuk tes yang bergantung pada database. Hasil CI tidak menggantikan acceptance runtime terhadap workbook operasional.
 - Status rilis: pemeriksaan CI pada commit tersebut lulus. Audit tautan lokal masih berstatus parsial; baseline final belum di-lock sampai cakupan audit per dokumen dapat direkonsiliasi dan validasi diulang pada commit dokumentasi final.
 - Runtime aktif: `Artifacts/Mine-Services-Operations.html`
@@ -59,9 +59,20 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 | 2 | Perbaiki indeks sejarah dan tautan yang diketahui terdampak rename | PASS — indeks diperbarui; pencarian nama lama yang diperiksa tidak menemukan hasil |
 | 3 | Normalisasi encoding dokumen Stage 16 yang menggagalkan Jekyll | PASS — kedua dokumen dikomit ulang sebagai UTF-8; isi teks dipertahankan |
 | 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS pada commit `57c6f2da135217d25a9e90766a3872132a6c1c10` — Pytest `main` run #584 dan Pages Build/Deploy run #2121 PASS |
-| 5 | Audit referensi Markdown relatif | PARTIAL PASS — audit terdahulu mencakup 90 dokumen prioritas; audit sesi ini memeriksa lagi 36 dari 98 file Markdown pada tree. Sampel tambahan tersebut tidak memiliki tautan Markdown relatif dalam pola inline yang diperiksa. Ini bukan bukti audit tautan menyeluruh; matriks cakupan seluruh 98 dokumen belum selesai. |
+| 5 | Audit referensi Markdown relatif | PASS — seluruh 98 file Markdown pada tree diperiksa untuk tautan inline Markdown dan pola autolink lokal. Semua 15 target relatif yang ditemukan di indeks README, Contracts, Testing, Version-History, dan panduan hauling cocok dengan path yang ada di tree; 0 target rusak dalam cakupan pola tersebut. |
 | 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PASS pada commit `57c6f2da135217d25a9e90766a3872132a6c1c10`; `main` dan `v41-workspace` menunjuk SHA yang sama saat diverifikasi |
 | 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — rekonsiliasi cakupan audit tautan Markdown, kemudian validasi CI atas commit dokumentasi final |
+
+## Checklist kerja aktif
+
+- [x] Netralisasi nama file versi dan pertahankan identitas sejarah di isi dokumen.
+- [x] Perbarui indeks/tautan yang terdampak dan perbaiki tautan relatif hauling yang ditemukan rusak.
+- [x] Pastikan `main` dan `v41-workspace` sinkron pada commit CI yang lulus, tanpa force push.
+- [x] Periksa 98/98 file Markdown untuk tautan inline Markdown/autolink lokal; semua 15 target relatif yang ditemukan ada pada tree.
+- [x] Full Pytest pada kedua branch dan GitHub Pages pada commit baseline sinkron saat ini lulus.
+- [ ] Jalankan acceptance runtime Desktop Host terhadap workbook operasional A.3 sesuai prosedur read-only; jangan reset atau menimpa workbook.
+- [ ] Rekam bukti acceptance runtime dan lakukan review akhir release gate.
+- [ ] Setelah seluruh gate lulus, perbarui catatan keputusan dan lock baseline; baru kemudian siapkan workspace turunan berikutnya.
 
 ## Status dan batasan
 
