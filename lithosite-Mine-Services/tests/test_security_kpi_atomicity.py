@@ -44,3 +44,25 @@ def test_finalize_kpi_does_not_commit_history_when_store_save_fails(tmp_path, mo
     assert result["status"] != "COMMITTED"
     assert runtime.read_kpi_snapshots("FLEET:ALL", "2026-10-04") == []
     assert runtime._application.store.audit() == []
+
+
+def test_finalize_kpi_restores_existing_history_file_when_store_save_fails(tmp_path, monkeypatch):
+    runtime = make_runtime(tmp_path)
+    committed = runtime.finalize_kpi(snapshot(81.8, 77.7, "V-KPI-BASELINE"))
+    assert committed["status"] == "COMMITTED"
+
+    history_path = runtime._kpi_history.path
+    original_bytes = history_path.read_bytes()
+    original_records = runtime.read_kpi_snapshots("FLEET:ALL", "2026-10-04")
+    audit_before = runtime._application.store.audit()
+
+    def fail_store_save():
+        raise OSError("simulated workbook save failure")
+
+    monkeypatch.setattr(runtime._application.store, "save", fail_store_save)
+    failed = runtime.finalize_kpi(snapshot(92.0, 84.0, "V-KPI-ROLLBACK"))
+
+    assert failed["status"] != "COMMITTED"
+    assert history_path.read_bytes() == original_bytes
+    assert runtime.read_kpi_snapshots("FLEET:ALL", "2026-10-04") == original_records
+    assert runtime._application.store.audit() == audit_before
