@@ -25,7 +25,7 @@ Initial inventory of candidate risks. **No row is a confirmed vulnerability unti
 | SG-07 | Static-file fallback | Repository-root serving may expose paths that are not intended as browser assets | Resolved path is contained under repository root; blocks Database path segment and XLSX/XLS/CSV suffixes | Host Guard / static asset ownership | Test hidden/private paths and define allowed asset roots before changing behavior | High |
 | SG-08 | RuntimeAdapter | Unsupported operation, weak operation-specific envelope or response object exposure | Required request ID/operation, operation name allowlist, operation-specific field checks, generic runtime failure envelope | RuntimeAdapter + services | Per-operation contract tests; trace validation, idempotency, audit, transaction and error boundaries | High |
 | SG-09 | Geo input | Non-finite/extreme coordinates or invalid CRS parameters reach numeric calculations | Domain calculation functions exist; two source copies currently have identical blobs | Geo Engine | Enumerate all callers and accepted ranges; isolated finite/range tests without altering validated formulas | Medium |
-| SG-10 | Topo3D input | Oversized/malformed DTM/STR/package stresses memory or GPU; malformed counts/indices reach allocations | 64 MiB DTM/STR, 128 MiB package, 300k vertex, 600k triangle limits observed | Topo3D owner | Verify all loaders enforce bounds before expensive allocation; the package loader's pre-check order is a test hypothesis | High |
+| SG-10 | Topo3D input | Oversized/malformed DTM/STR/package stresses memory or GPU; malformed counts/indices reach allocations | File/count limits exist; both `loadLTDtm` copies now preflight `file.size` against 128 MiB before WebGL preparation and `arrayBuffer`; byte-length validation remains after read | Topo3D owner | Source-order regression test validates both copies; broader malformed-package/browser runtime coverage remains pending | Initial preflight patch validated by Full Pytest #609 | High |
 | SG-11 | Map package/import/rendering | Integrity-valid package still contains unsafe or malformed content; helper/call-site drift | Existing `map-security.js`, package contract, validation before import; script order observed | Browser Guard / Map Library | Test the real call chain, compatibility export, safe DOM and reject-before-storage behavior | Medium |
 | SG-12 | Logging and resource controls | Local paths/details disclosed or repeated/concurrent requests consume resources | Coded errors and several size caps; request logging exists | Host Guard | Trace errors/logs and concurrent load; set local-host limits based on actual single-user usage | Medium |
 
@@ -38,9 +38,17 @@ Initial inventory of candidate risks. **No row is a confirmed vulnerability unti
 - [ ] Complete per-operation downstream validation/atomicity/audit tracing.
 - [ ] Complete static-file access policy and isolated negative-path tests.
 - [ ] Complete Geo caller/range inventory.
-- [ ] Complete Topo3D loader/caller comparison and isolated limit tests.
+- [x] Compare both Topo3D source copies and verify `loadDTMSTR`, `exportLTDtm`, `loadLTDtm`, and `loadFiles` methods are identical despite different overall file blobs.
+- [x] Add source-order regression test that asserts LTDtm size preflight precedes `prepare()` and `arrayBuffer()` in both copies; Full Pytest #609 PASS.
+- [ ] Complete browser/WebGL adversarial runtime coverage for malformed/truncated package input and GPU cleanup.
 - [ ] Create adversarial tests for prioritized rows, still using temporary data only.
 - [ ] Mark any vulnerability CONFIRMED only after reproduction; otherwise record PASS/NOT REPRODUCED or unresolved hypothesis.
+
+## Initial Evo 2 implementation evidence
+
+- Host Origin policy guard: `security_guard.py` centralizes the allowlist and retains no-Origin support for non-browser local clients; `null` and unlisted local ports are rejected on protected routes. Unit and endpoint regression tests passed Full Pytest #608: https://github.com/yay460-jpg/portofolio/actions/runs/38416665156.
+- Topo3D package resource preflight: both engine copies now call `guardTopoFileSize_(file, maxPackageBytes, ...)` before `prepare()` and `file.arrayBuffer()`, retaining the post-read byte-length check. Source-order regression coverage passed Full Pytest #609: https://github.com/yay460-jpg/portofolio/actions/runs/38417323954.
+- These are narrow hardening changes; they do not establish that all attack-surface rows are closed. Browser/WebGL runtime attacks and import/static-file policy remain open.
 
 ## Change rule
 

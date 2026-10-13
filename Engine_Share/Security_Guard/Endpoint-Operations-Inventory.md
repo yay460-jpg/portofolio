@@ -155,7 +155,9 @@ The static fallback resolves paths under `STATIC_ROOT`, where the configured roo
 - [x] Record Browser Guard script order and its presently observed call-sites.
 - [ ] Complete per-operation trace for CREATE/UPDATE/DELETE/READ and KPI operations; first-pass import/restore/dataset/backup trace recorded above.
 - [ ] Test static-file access against the local repository tree and define the intended static allowlist.
-- [ ] Finish Topo3D copy/caller comparison and create isolated resource-boundary tests.
+- [x] Compare the two Topo3D source blobs and confirm four import/export loader methods are identical.
+- [x] Add source-order regression test for package-size preflight in both copies; Full Pytest #609 PASS.
+- [ ] Complete browser/WebGL runtime tests for malformed/truncated package input, allocation behavior and cleanup.
 - [ ] Finish Geo input caller inventory and range/finite-value contract.
 - [ ] Promote only reproduced gaps to confirmed findings.
 
