@@ -202,9 +202,16 @@ class MarkerLocationBackupManager:
         files = self._files()
         candidates = [path for path in files if path != target]
         removed = []
-        for old in candidates[self.MAX_BACKUPS - 1:]:
-            old.unlink(missing_ok=True)
-            removed.append(old.name)
+        try:
+            for old in candidates[self.MAX_BACKUPS - 1:]:
+                old.unlink(missing_ok=True)
+                removed.append(old.name)
+        except OSError:
+            # Do not leave a newly written backup behind when retention fails.
+            # This rolls back the new file; previously removed files cannot be
+            # restored if a later unlink fails after earlier deletions succeeded.
+            target.unlink(missing_ok=True)
+            raise
 
         stored = self._files()[: self.MAX_BACKUPS]
         result = self._info(target, source=source)
