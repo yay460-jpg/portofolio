@@ -92,6 +92,18 @@ Evo 2 is not LOCKED by the creation of this folder or by a green suite alone. Ea
 
 All Evo 2 code patches above exist on `v41-workspace` only. `main` remains the locked V41 baseline. Each result validates the current full regression suite, but does not lock Security Evolution 2 as a whole.
 
+## Workflow #637–#638 — READ collection isolation — 2026-10-14
+
+- Full Pytest #637 completed successfully: https://github.com/yay460-jpg/portofolio/actions/runs/38455358687. Tests verify that mutating returned AuditLog events and controlled-list values does not mutate the backing store.
+- Documentation sync #638 completed successfully: https://github.com/yay460-jpg/portofolio/actions/runs/38455386931.
+- READ isolation now has passing targeted coverage for KPI nested history, AuditLog events, and controlled-list values. This does not establish that every operation response or nested payload across all runtime managers is detached.
+
+## EVO2-02 next slice — RuntimeAdapter replay/idempotency inventory — 2026-10-14
+
+- RuntimeAdapter declares 20 operations. CRUD (`CREATE`, `UPDATE`, `DELETE`) pass `request_id` to `ApplicationService`, whose in-memory `_request_guard` rejects already-successful IDs as `DUPLICATE_REQUEST`; this is process-local and not a durable replay cache.
+- Other operations do not pass `request_id` into their side-effecting runtime methods (`IMPORT_XLSX`, `BACKUP`, `RESTORE`, dataset save/load, Topography/Marker backup save/load, `FINALIZE_KPI`). Their replay semantics must be assessed operation by operation; do not infer idempotency from a required adapter envelope alone.
+- READ and LIST operations are read-only by intent but still require response isolation and authorization/exposure checks.
+- Next: add an explicit operation contract matrix with side effects, audit behavior, idempotency key usage, and test evidence; then add isolated replay tests for high-impact side effects before any production patch.
 ## Workflow #634 — KPI READ nested-data exposure — 2026-10-14
 
 - Red-phase workflow #634 failed as intended: 599 passed, 1 failed. Mutating nested fields in the result of `read_kpi_snapshots()` changed the stored KPI history (`result.PA.value` became `-999`): https://github.com/yay460-jpg/portofolio/actions/runs/38454460124.
