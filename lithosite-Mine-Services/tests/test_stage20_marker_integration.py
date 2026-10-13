@@ -51,3 +51,9 @@ def test_workfront_focus_event_blinks_the_exact_marker_label_temporarily():
     assert ".map-location-marker__label.is-focus-blinking" in marker_css
     assert "animation:map-marker-label-focus-blink .62s cubic-bezier(.45,0,.55,1) 3;" in marker_css
     assert "@media(prefers-reduced-motion:reduce)" in marker_css
+
+
+def test_marker_location_dynamic_read_is_restricted_to_allowlisted_source_entities():
+    source = (ROOT / "ui" / "modules" / "map-engine" / "marker-location.js").read_text(encoding="utf-8")
+    assert "['Equipment','WorkFront','HSE'].includes(entity)" in source
+    assert "request({operation:'READ',entity:entity})" in source
