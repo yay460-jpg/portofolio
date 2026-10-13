@@ -18,7 +18,7 @@ Initial inventory of candidate risks. **No row is a confirmed vulnerability unti
 |---|---|---|---|---|---|---|
 | SG-01 | Origin and loopback caller | At locked baseline, literal `null` and arbitrary localhost ports were accepted by policy | Evo 2 now applies an explicit allowlist: configured host port plus documented `5500/5501` development origins; missing Origin remains for non-browser local clients | Unit and endpoint regression tests reject external, `null`, and unlisted loopback origins; same-user process threat remains out of CORS scope | High — initial patch applied, validate CI |
 | SG-02 | `POST /runtime` | Malformed, partial, oversized or wrong-content-type request; error detail leakage | JSON object check, 180,000,000-byte declared-length bound, origin check, RuntimeAdapter envelope checks | Host Guard + RuntimeAdapter | Boundary sizes, invalid JSON/types, required fields, all operations, sanitization | High |
-| SG-03 | Import, restore, datasets, backups | Path/name escape, unsafe file package, destructive replacement, replay or non-atomic behavior | Dispatch through RuntimeAdapter and downstream services | RuntimeAdapter / owning service / persistence | Trace each operation; test temp roots, checksum/schema, rollback and audit | High |
+| SG-03 | Import, restore, datasets, backups | Path/name escape, unsafe file package, destructive replacement, replay or non-atomic behavior | Dispatch through RuntimeAdapter and downstream services; unreadable XLSX import returns a stable error without exposing the local path/parser exception (Full Pytest #613) | RuntimeAdapter / owning service / persistence | Trace each operation; test temp roots, checksum/schema, rollback/audit, and other parser/validation error disclosure | High |
 | SG-04 | Evidence upload | Crafted filename, unsupported content, oversized/partial body, link/race, duplicate overwrite | Allowlisted module, constrained record/name, extension allowlist, 100 MB limit, owner-record check and exclusive create | Host Guard | MIME/content policy and boundary/path failures via temporary root | High |
 | SG-05 | Evidence status/list/preview/file | Path traversal, unintended read, link/junction escape, response metadata/header issues | Allowlist, containment, direct-file checks, file size limits and some security headers | Host Guard / filesystem | Encoded and Windows path cases, links, size bounds and sanitized responses | High |
 | SG-06 | Report PDF | Oversized/deep/extreme model uses excessive CPU/memory or errors expose internals | 10 MB declared-length limit and JSON parser | Host Guard / PDF builder | Bound model depth/collections, malformed types, limits and response sanitization | Medium |
@@ -41,7 +41,9 @@ Initial inventory of candidate risks. **No row is a confirmed vulnerability unti
 - [x] Compare both Topo3D source copies and verify `loadDTMSTR`, `exportLTDtm`, `loadLTDtm`, and `loadFiles` methods are identical despite different overall file blobs.
 - [x] Add source-order regression test that asserts LTDtm size preflight precedes `prepare()` and `arrayBuffer()` in both copies; Full Pytest #609 PASS.
 - [ ] Complete browser/WebGL adversarial runtime coverage for malformed/truncated package input and GPU cleanup.
-- [ ] Create adversarial tests for prioritized rows, still using temporary data only.
+- [x] Add isolated regression test proving unreadable XLSX import does not disclose the local path or OS/parser error; Full Pytest #613 PASS.
+- [ ] Trace other import/schema/validation error responses for path/detail leakage.
+- [ ] Create adversarial tests for remaining prioritized rows, still using temporary data only.
 - [ ] Mark any vulnerability CONFIRMED only after reproduction; otherwise record PASS/NOT REPRODUCED or unresolved hypothesis.
 
 ## Initial Evo 2 implementation evidence

@@ -8,8 +8,8 @@ Evo 2 is the global, cross-product Lithosite security track. Evo 1 remains the h
 
 - Work branch: `v41-workspace`.
 - Locked base before Evo 2 work: `698469057aa588de2c3d17a1327ef4892863994d`.
-- Latest documentation-only scaffold commit before this inventory update: `7d13d2046467621a2cb942e2faae103e4d9025b3`.
-- The current stage is source inventory and documentation; it does not change runtime behavior.
+- Latest validated workspace commit before this reconciliation: `f7d35751c8d8b0075361925d94186001d9320a0d` (Full Pytest #613 PASS).
+- Current work includes narrow, tested runtime hardening in the owning layers: explicit local Origin policy, static asset allowlist, Topo3D package-size preflight, and sanitized unreadable-workbook import errors. This is not a broad refactor; full coverage remains incomplete.
 - Do not change `main` during this track until the owner explicitly promotes a tested and reviewed change.
 - Use temporary A3 fixtures and temporary Evidence paths for adversarial tests.
 - Never use the operational A3 workbook as a test fixture.
@@ -20,9 +20,9 @@ Evo 2 is the global, cross-product Lithosite security track. Evo 1 remains the h
 | ID | Stage | Exit criteria | Status |
 |---|---|---|---|
 | EVO2-01 | Confirm nomenclature and ownership | Evo 1 / Evo 2 definitions and responsibility boundaries documented | PASS — accepted and recorded |
-| EVO2-02 | Complete attack-surface inventory | Endpoints, operations, input types, file paths, trust boundaries, owners, and existing controls mapped | IN PROGRESS — host routes and all 19 adapter operations mapped; first-pass import/restore/dataset/backup control trace recorded. Remaining: per-operation CREATE/UPDATE/DELETE/READ/KPI trace, static-path tests/policy, Geo caller/range inventory, and full Topo3D copy/caller comparison. |
-| EVO2-03 | Design isolated adversarial tests | Tests cover each prioritized boundary using temporary database and file fixtures | IN PROGRESS — isolated tests cover Origin allowlist, pre-allocation Topo3D package-size preflight, and positive/negative static asset paths; import and Geo adversarial tests remain to design |
-| EVO2-04 | Implement Host Guard gaps | Only confirmed gaps patched behind regression tests; Host Guard does not bypass RuntimeAdapter | IN PROGRESS — Origin allowlist guard and Topo3D LTDtm file-size preflight are integrated with regression tests; other host/file gaps stay unpatched until reproduced |
+| EVO2-02 | Complete attack-surface inventory | Endpoints, operations, input types, file paths, trust boundaries, owners, and existing controls mapped | IN PROGRESS — host routes and all 19 adapter operations are listed; initial import/restore/dataset/backup trace and static-path behavior are documented. Remaining: per-operation downstream validation/atomicity/audit trace, Geo caller/range inventory, full Browser Guard call-site coverage, and broader Topo3D runtime coverage. |
+| EVO2-03 | Design isolated adversarial tests | Tests cover each prioritized boundary using temporary database and file fixtures | IN PROGRESS — isolated tests cover Origin allowlist (#608), Topo3D package-size preflight (#609), static asset allowlist (#611), and sanitized unreadable-XLSX import errors (#613). Remaining: deeper path/body boundary cases, malformed Topo3D runtime input, and Geo finite/range tests. |
+| EVO2-04 | Implement confirmed guard gaps in their owning layers | Only reproduced gaps patched behind regression tests; Host Guard must not bypass RuntimeAdapter | IN PROGRESS — explicit Origin allowlist, static asset allowlist, Topo3D LTDtm size preflight, and unreadable-workbook error sanitization are implemented with regression tests. Other host/file/Geo/browser gaps remain open until reproduced. |
 | EVO2-05 | Audit Browser Guard integration | Existing map-security.js call-sites, script order, export names, and tests mapped before reuse/refactor | IN PROGRESS — script order, two call-site paths, export shape, and test hypotheses recorded; full export/call-site coverage remains to be verified |
 | EVO2-06 | Record Geo and Topo3D responsibilities | Domain rules and resource boundaries mapped; no engine migration yet | IN PROGRESS — Geo blobs identical; Topo3D files differ overall but four loader methods are identical; preflight order fixed/tested; Geo caller/range and broader Topo3D runtime coverage remain |
 | EVO2-07 | Full regression and security gate | Targeted adversarial tests, full pytest, UI/static regression, console checks, and documented PASS/HOLD | BLOCKED — requires prior stages |
@@ -84,7 +84,7 @@ Evo 2 is not LOCKED by the creation of this folder or by a green suite alone. Ea
 
 - Host Origin policy patch: Full Pytest #608 PASS — https://github.com/yay460-jpg/portofolio/actions/runs/38416665156.
 - Topo3D package-size preflight patch: Full Pytest #609 PASS — https://github.com/yay460-jpg/portofolio/actions/runs/38417323954.
-- Both patches are on `v41-workspace` only. `main` remains the locked V41 baseline. These results validate the current regression suite and do not lock Security Evolution 2 as a whole.
-
-
 - Static-file allowlist patch: Full Pytest #611 PASS — https://github.com/yay460-jpg/portofolio/actions/runs/38418373578.
+- Unreadable-workbook import error sanitization: Full Pytest #613 PASS — https://github.com/yay460-jpg/portofolio/actions/runs/38419516850.
+
+All patches above exist on `v41-workspace` only. `main` remains the locked V41 baseline. Each result validates the current full regression suite, but does not lock Security Evolution 2 as a whole.
