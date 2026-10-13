@@ -5,9 +5,9 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 ## Baseline saat ini
 
 - Branch utama: `main`
-- Commit validasi terakhir: `0ef33d647c5610daaa28bbfe549b24009b88209e` (`docs: record passing link-fix validation`). `main` dan `v41-workspace` sinkron pada SHA ini; baseline final belum di-lock.
-- Branch workspace: `v41-workspace`; tersinkron dengan `main` pada commit `0ef33d647c5610daaa28bbfe549b24009b88209e` melalui fast-forward tanpa force push.
-- Status validasi commit `0ef33d647c5610daaa28bbfe549b24009b88209e`: Full Pytest PASS pada `main` ([run #586](https://github.com/yay460-jpg/portofolio/actions/runs/38391803801)) dan `v41-workspace` ([run #587](https://github.com/yay460-jpg/portofolio/actions/runs/38392133793)); GitHub Pages Build & Deployment PASS ([run #2122](https://github.com/yay460-jpg/portofolio/actions/runs/38391802593)).
+- Commit validasi terakhir: `95c6e5241f52a36ce02584207e372ea2d6d625f9` (`docs: complete markdown link audit checklist`). Full Pytest dan Pages PASS; `main` dan `v41-workspace` telah disinkronkan ke SHA ini. Baseline final belum di-lock.
+- Branch workspace: `v41-workspace`; tersinkron dengan `main` pada commit `95c6e5241f52a36ce02584207e372ea2d6d625f9` melalui fast-forward tanpa force push.
+- Status validasi commit `95c6e5241f52a36ce02584207e372ea2d6d625f9`: Full Pytest PASS pada `main` ([run #588](https://github.com/yay460-jpg/portofolio/actions/runs/38393670059)); GitHub Pages Build & Deployment PASS ([run #2123](https://github.com/yay460-jpg/portofolio/actions/runs/38393669070)). `v41-workspace` telah fast-forward ke SHA yang sama sesudah kedua pemeriksaan lulus.
 - Catatan pengujian: workflow Pytest menyiapkan fixture workbook A.3 terisolasi untuk tes yang bergantung pada database. Hasil CI tidak menggantikan acceptance runtime terhadap workbook operasional.
 - Status rilis: pemeriksaan CI pada commit tersebut lulus. Audit tautan lokal masih berstatus parsial; baseline final belum di-lock sampai cakupan audit per dokumen dapat direkonsiliasi dan validasi diulang pada commit dokumentasi final.
 - Runtime aktif: `Artifacts/Mine-Services-Operations.html`
