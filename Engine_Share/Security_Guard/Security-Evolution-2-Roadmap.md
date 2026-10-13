@@ -346,3 +346,11 @@ The UI source trace was extended beyond Operations:
 - Full Pytest #712 PASS after correcting the LOAD replay tests to the established adapter contract (successful identical requests are cached; normalized `REJECTED`/`ADP-005` failures are not cached). Documentation workflows #713 and #714 PASS.
 - Added isolated adapter-boundary regression coverage for missing files, traversal-style filenames, corrupt package contents, and oversized files for both Topography and Marker Location LOAD operations. Expected public response is a generic `REJECTED` / `ADP-005` without leaking internal exception details.
 - Test commit `b4361d7`; Full Pytest and documentation CI are **PENDING**. If green, next audit the complete operation matrix for remaining persistence/replay/error-normalization gaps. `main` remains locked.
+
+
+### EVO2-02 backup SAVE write-failure atomicity gate — 2026-10-14
+
+- Full Pytest #715 PASS for backup LOAD rejection-boundary coverage; documentation workflows #716 and #717 PASS.
+- Started the next operation-contract slice: backup SAVE write-failure behavior for Topography and Marker Location. Added isolated tests that simulate a filesystem write failure while saving a new package and assert existing backup bytes and directory contents remain unchanged.
+- Test commits: Topography `c61d472`, Marker Location `b832870`. Full Pytest and documentation sync are **PENDING**. These tests cover failure before retention cleanup; they do not claim rollback of a failure during multi-file retention eviction. If green, map retention-cleanup failure semantics separately before changing production behavior.
+- `main` remains locked; no release-gate promotion.
