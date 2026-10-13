@@ -132,3 +132,12 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - #682 failed on the earlier test commit and stale `AuditLog` expectation; #683 is the subsequent green full-suite run. Documentation runs #684 and #685 also passed.
 - Contract under test: `DOMAIN_ENTITIES` plus `_Lists` allowed; generic public READ of `AuditLog`, unknown entities and dunder-style names rejected with `ADP-007`. Dedicated KPI snapshot reads remain separate.
 - Status: adapter-level CI **PASS**; full shipped-script, bridge and host consumer compatibility audit **OPEN**. Do not mark the entire security item complete or promote the branch until that inventory and boundary validation are finished.
+
+
+### Caller/host compatibility trace — 2026-10-14
+
+- UI READ inventory: the Reports module iterates the fixed set `Operations`, `Equipment`, `WorkFront`, `Maintenance`, `Issues`, `Plans`, and `HSE`; Marker Location's dynamic READ is gated to `Equipment`, `WorkFront`, or `HSE`; other inspected UI reads use schema entities and/or `_Lists`. All are covered by the public allowlist.
+- Desktop Host Evidence verification uses a fixed mapping: `TargetPlan -> Plans`, `HSE -> HSE`, `Maintenance -> Maintenance`. These READ calls remain compatible with the allowlist. Android Host creates and dispatches through `RuntimeAdapter`, with no alternate entity-read route observed in its entry point.
+- Shared runtime client intentionally forwards the request; entity authorization is enforced server-side in `RuntimeAdapter`. KPI snapshot history uses dedicated `READ_KPI_SNAPSHOTS`, not generic READ.
+- No generic public `READ AuditLog` call was found in the inspected shipped UI/host paths. Internal `RuntimeInterface.read("AuditLog")` remains a separate API and is not covered by the public adapter guard.
+- Result: **inspected in-repository caller compatibility PASS**. Broader assurance for external integrations and direct internal Python consumers remains OPEN. Regression gate: exercise Marker Location's dynamic source entities and Desktop Evidence owner checks through the adapter/host before declaring the overall READ item complete.
