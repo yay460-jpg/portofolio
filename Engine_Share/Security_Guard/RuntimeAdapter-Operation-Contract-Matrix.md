@@ -30,7 +30,7 @@ This matrix records the adapter surface and current known replay/idempotency bou
 
 ## Known idempotency boundary
 
-The adapter requires a `request_id` for every request envelope, but only CRUD currently forwards that identifier to the application request guard. A required envelope field is not equivalent to idempotency enforcement.
+The adapter requires a `request_id` for every request envelope. CRUD retains the existing ApplicationService duplicate guard and its established `DUPLICATE_REQUEST` response. Other selected mutating operations now have an adapter-level, process-local fingerprint/response cache under validation. A required envelope field is not equivalent to durable idempotency enforcement.
 
 Before implementing a generic replay cache, define:
 1. Whether a repeated request ID with the same payload returns the original response or a duplicate rejection.
@@ -47,4 +47,4 @@ No workbook A.3 fixtures should be used; use isolated temporary stores/files for
 - Full Pytest #641 failed as intended: 602 passed, 2 failed. `SAVE_AS_DATASET` accepted a second request using the same `request_id` with a different dataset name (`SAVED_AS`); `FINALIZE_KPI` accepted the same ID with a changed snapshot and returned `COMMITTED`. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38456045507.
 - A process-local adapter guard was added on `v41-workspace`: successful side-effecting requests cache their canonical request fingerprint and response; the same ID and same payload returns a detached copy of the original response, while the same ID with a different payload is rejected with `ADP-006`.
 - This is process-local protection only. It does not survive process restart and is not a durable exactly-once guarantee. The cache's lifetime/size and durable replay semantics remain open design items; do not claim cross-process idempotency.
-- Patch validation is pending in Full Pytest #643: https://github.com/yay460-jpg/portofolio/actions/runs/38456354989. Do not mark replay protection PASS until CI succeeds.
+- Full Pytest #642 and #643 exposed a regression: the initial guard intercepted CRUD duplicate requests and returned `REJECTED` instead of the established `DUPLICATE_REQUEST` contract. This was corrected by excluding CRUD from the adapter-level cache and preserving ApplicationService ownership. The corrected patch is committed as `6c68b1e582e95469a2bc76a4447fc26cec6ccc7d`; its Full Pytest validation is pending. Do not mark replay protection PASS until CI succeeds.
