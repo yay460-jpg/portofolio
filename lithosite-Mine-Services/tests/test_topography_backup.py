@@ -94,3 +94,24 @@ def test_ltdtm_backup_rejects_oversized_base64_before_decode(tmp_path, monkeypat
     oversized = "A" * (4 * ((12 + 2) // 3) + 1)
     with pytest.raises(ValueError, match="exceeds"):
         manager.save(oversized)
+
+
+
+def test_ltdtm_listing_skips_entries_whose_metadata_cannot_be_read(tmp_path, monkeypatch):
+    directory = tmp_path / "topography"
+    manager = TopographyBackupManager(directory)
+    saved = manager.save(base64.b64encode(ltdtm_payload(body=b"valid")).decode("ascii"))
+    unreadable = directory / "unreadable.ltdtm"
+    unreadable.write_bytes(ltdtm_payload(body=b"damaged entry"))
+
+    original_stat = Path.stat
+
+    def selective_stat(path, *args, **kwargs):
+        if path == unreadable:
+            raise OSError("simulated metadata read failure")
+        return original_stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "stat", selective_stat)
+    listed = manager.list()
+
+    assert [entry["filename"] for entry in listed] == [saved["filename"]]

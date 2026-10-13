@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- Backup listing and retention discovery now skip symlinks, non-regular entries, and paths whose metadata cannot be read, so one stale/unreadable directory entry does not break listing or save retention; targeted tests inject a stat failure for each package type.
+
+
 - Topography and Marker Location backup writes now use a same-directory temporary file and atomic replacement; base64 length is checked against the package-size limit before decoding, and fault-injection tests verify failed replacement leaves no partial backup.
 
 

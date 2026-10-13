@@ -112,3 +112,24 @@ def test_marker_backup_rejects_oversized_base64_before_decode(tmp_path, monkeypa
     oversized = "A" * (4 * ((12 + 2) // 3) + 1)
     with pytest.raises(ValueError, match="exceeds"):
         manager.save(oversized)
+
+
+
+def test_marker_listing_skips_entries_whose_metadata_cannot_be_read(tmp_path, monkeypatch):
+    directory = tmp_path / "marker-location"
+    manager = MarkerLocationBackupManager(directory)
+    saved = manager.save(package([marker("ML-VALID-001")]))
+    unreadable = directory / "unreadable.ltmarker"
+    unreadable.write_bytes(base64.b64decode(package([marker("ML-BROKEN-001")])))
+
+    original_stat = Path.stat
+
+    def selective_stat(path, *args, **kwargs):
+        if path == unreadable:
+            raise OSError("simulated metadata read failure")
+        return original_stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "stat", selective_stat)
+    listed = manager.list()
+
+    assert [entry["filename"] for entry in listed] == [saved["filename"]]

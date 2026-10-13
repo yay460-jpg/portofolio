@@ -3,6 +3,7 @@ import binascii
 import json
 import math
 import tempfile
+import stat
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -49,11 +50,19 @@ class MarkerLocationBackupManager:
         self.directory.mkdir(parents=True, exist_ok=True)
 
     def _files(self):
-        return sorted(
-            self.directory.glob("*.ltmarker"),
-            key=lambda p: p.stat().st_mtime_ns,
-            reverse=True,
-        )
+        files = []
+        for path in self.directory.glob("*.ltmarker"):
+            try:
+                if path.is_symlink():
+                    continue
+                info = path.stat()
+            except (OSError, RuntimeError):
+                continue
+            if not stat.S_ISREG(info.st_mode):
+                continue
+            files.append((info.st_mtime_ns, path))
+        files.sort(key=lambda item: item[0], reverse=True)
+        return [path for _, path in files]
 
     @staticmethod
     def _safe_name(name):
