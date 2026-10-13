@@ -5,10 +5,11 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 ## Baseline saat ini
 
 - Branch utama: `main`
-- Commit dokumentasi terbaru sebelum pembaruan catatan ini: `b1bbf7d2169df0aca367aab08578b6a70e8c0631`; Full Pytest PASS pada `main` #575 dan `v41-workspace` #576, serta Pages Build/Deploy PASS #2116.
-- Branch workspace: `v41-workspace`; pada commit `b1bbf7d2169df0aca367aab08578b6a70e8c0631`, tersinkron dengan `main` melalui fast-forward tanpa force push.
-- Status validasi commit `b1bbf7d2169df0aca367aab08578b6a70e8c0631`: Full Pytest PASS pada `main` dan `v41-workspace`; GitHub Pages Build/Deploy PASS pada `main`.
-- Status rilis: validasi CI pada commit tersebut lulus. Audit tautan lokal terdokumentasi di bawah; baseline final baru boleh di-lock setelah validasi ulang atas commit dokumentasi final.
+- Commit dokumentasi terbaru: `76442b67ad116af566eff16d24c4af1a07af6c9b` (`docs: restore report implementation markdown line breaks`).
+- Branch workspace: `v41-workspace`; saat verifikasi terakhir, branch ini tersinkron dengan `main` pada commit yang sama melalui fast-forward tanpa force push.
+- Status validasi commit tersebut: Full Pytest PASS pada `main` dan `v41-workspace`; GitHub Pages Build & Deployment PASS pada `main`.
+- Catatan pengujian: workflow Pytest menyiapkan fixture workbook A.3 terisolasi untuk tes yang bergantung pada database. Hasil CI tidak menggantikan acceptance runtime terhadap workbook operasional.
+- Status rilis: pemeriksaan CI pada commit tersebut lulus. Audit tautan lokal masih berstatus parsial; baseline final belum di-lock sampai cakupan audit per dokumen dapat direkonsiliasi dan validasi diulang pada commit dokumentasi final.
 - Runtime aktif: `Artifacts/Mine-Services-Operations.html`
 - Database runtime: A.3, `Database/Mine-Services-Database-A3.xlsx`
 
@@ -57,15 +58,17 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 | 1 | Inventaris nama file proyek dan netralisasi identitas versi pada nama file | PASS — 327 file proyek diperiksa; 0 nama file berversi terdeteksi |
 | 2 | Perbaiki indeks sejarah dan tautan yang diketahui terdampak rename | PASS — indeks diperbarui; pencarian nama lama yang diperiksa tidak menemukan hasil |
 | 3 | Normalisasi encoding dokumen Stage 16 yang menggagalkan Jekyll | PASS — kedua dokumen dikomit ulang sebagai UTF-8; isi teks dipertahankan |
-| 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS pada commit `b1bbf7d2169df0aca367aab08578b6a70e8c0631` — Pytest `main` #575, workspace #576; Pages #2116 |
-| 5 | Audit referensi Markdown relatif | PARTIAL PASS — 90 dokumen telah diperiksa dalam audit terdahulu; dokumen tambahan yang tersisa dalam daftar audit diperiksa terhadap tree repository dan tidak menunjukkan tautan lokal rusak. Catatan ini tidak mengklaim pemeriksaan otomatis seluruh 98 dokumen selesai sampai matriks cakupan per dokumen dapat direkonsiliasi. |
-| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PASS pada commit `b1bbf7d2169df0aca367aab08578b6a70e8c0631` |
-| 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — rekonsiliasi cakupan audit tautan Markdown dan validasi CI atas commit dokumentasi final |
+| 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS pada commit `76442b67ad116af566eff16d24c4af1a07af6c9b` — Pytest `main`, Pytest `v41-workspace`, dan Pages Build/Deploy `main` semuanya PASS |
+| 5 | Audit referensi Markdown relatif | PARTIAL PASS — 90 dokumen telah diperiksa dalam audit terdahulu; dokumen tambahan yang diperiksa terhadap tree repository tidak menunjukkan tautan lokal rusak. Belum diklaim seluruh 98 dokumen selesai sampai matriks cakupan per dokumen direkonsiliasi. |
+| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PASS pada commit `76442b67ad116af566eff16d24c4af1a07af6c9b`; kedua branch menunjuk SHA yang sama saat diverifikasi |
+| 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — rekonsiliasi cakupan audit tautan Markdown, kemudian validasi CI atas commit dokumentasi final |
 
 ## Status dan batasan
 
-Audit tautan pada 90 dokumen prioritas sebelumnya menemukan dua referensi yang masih menunjuk nama file lama. Keduanya telah diperbarui: kontrak Dump Truck Retase pada panduan hauling dan bukti penerimaan Desktop Runtime A.3 pada catatan inisialisasi workspace. Audit tambahan pada dokumen README, kontrak, panduan, dan bukti pengujian yang diperiksa pada sesi ini tidak menemukan tautan lokal rusak. Jumlah file Markdown pada tree proyek adalah 98; karena daftar per-dokumen yang diperiksa belum direkonsiliasi menjadi matriks cakupan lengkap, audit menyeluruh tetap berstatus belum selesai.
+Audit tautan pada 90 dokumen prioritas sebelumnya menemukan dua referensi yang masih menunjuk nama file lama. Keduanya telah diperbarui: kontrak Dump Truck Retase pada panduan hauling dan bukti penerimaan Desktop Runtime A.3 pada catatan inisialisasi workspace. Audit tambahan pada dokumen README, kontrak, panduan, dan bukti pengujian yang diperiksa tidak menemukan tautan lokal rusak. Jumlah file Markdown pada tree proyek sebelumnya terhitung 98; karena daftar per-dokumen yang diperiksa belum direkonsiliasi menjadi matriks cakupan lengkap, audit menyeluruh tetap berstatus belum selesai.
+
+CI memakai fixture A.3 terisolasi untuk tes database-dependent. Workbook operasional tidak diubah oleh langkah validasi ini. Hasil CI saja tidak membuktikan acceptance runtime desktop terhadap workbook operasional.
 
 Indeks ini tidak menyatakan ulang semua keputusan historis sebagai keputusan aktif. Untuk perilaku aktif, ikuti README proyek dan kontrak bersama yang berlaku.
 
-Konsolidasi ini harus diikuti pemeriksaan tautan internal, tes workspace baseline, tes CSS cascade, serta seluruh pytest. Promosi ke `main` dan lock baseline hanya dilakukan setelah pemeriksaan tersebut lulus.
+Konsolidasi ini harus diikuti pemeriksaan tautan internal, tes workspace baseline, tes CSS cascade, serta seluruh pytest. Promosi dan lock baseline hanya dilakukan setelah pemeriksaan yang relevan lulus dan bukti audit terdokumentasi.
