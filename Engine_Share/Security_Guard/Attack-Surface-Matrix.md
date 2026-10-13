@@ -22,7 +22,7 @@ Initial inventory of candidate risks. **No row is a confirmed vulnerability unti
 | SG-04 | Evidence upload | Crafted filename, unsupported content, oversized/partial body, link/race, duplicate overwrite | Allowlisted module, constrained record/name, extension allowlist, 100 MB limit, owner-record check and exclusive create | Host Guard | MIME/content policy and boundary/path failures via temporary root | High |
 | SG-05 | Evidence status/list/preview/file | Path traversal, unintended read, link/junction escape, response metadata/header issues | Allowlist, containment, direct-file checks, file size limits and some security headers | Host Guard / filesystem | Encoded and Windows path cases, links, size bounds and sanitized responses | High |
 | SG-06 | Report PDF | Oversized/deep/extreme model uses excessive CPU/memory or errors expose internals | 10 MB declared-length limit and JSON parser | Host Guard / PDF builder | Bound model depth/collections, malformed types, limits and response sanitization | Medium |
-| SG-07 | Static-file fallback | Repository-root serving may expose paths that are not intended as browser assets | Resolved path is contained under repository root; blocks Database path segment and XLSX/XLS/CSV suffixes | Host Guard / static asset ownership | Test hidden/private paths and define allowed asset roots before changing behavior | High |
+| SG-07 | Static-file fallback | Repository-root serving may expose paths that are not intended as browser assets | Explicit allowlist permits `assets/`, `lithosite-Mine-Geologist/assets/`, and `lithosite-Mine-Services/{Artifacts,ui,shared}/`; dot-prefixed path segments are rejected; workbook deny remains as defense-in-depth | Host Guard / static asset ownership | Positive and negative endpoint tests verify core HTML/JS/SVG/image paths remain served and root metadata, backend source, docs and tests return 404; dynamic future assets require allowlist review | Initial allowlist implemented — Full Pytest #611 PASS | High |
 | SG-08 | RuntimeAdapter | Unsupported operation, weak operation-specific envelope or response object exposure | Required request ID/operation, operation name allowlist, operation-specific field checks, generic runtime failure envelope | RuntimeAdapter + services | Per-operation contract tests; trace validation, idempotency, audit, transaction and error boundaries | High |
 | SG-09 | Geo input | Non-finite/extreme coordinates or invalid CRS parameters reach numeric calculations | Domain calculation functions exist; two source copies currently have identical blobs | Geo Engine | Enumerate all callers and accepted ranges; isolated finite/range tests without altering validated formulas | Medium |
 | SG-10 | Topo3D input | Oversized/malformed DTM/STR/package stresses memory or GPU; malformed counts/indices reach allocations | File/count limits exist; both `loadLTDtm` copies now preflight `file.size` against 128 MiB before WebGL preparation and `arrayBuffer`; byte-length validation remains after read | Topo3D owner | Source-order regression test validates both copies; broader malformed-package/browser runtime coverage remains pending | Initial preflight patch validated by Full Pytest #609 | High |
@@ -36,7 +36,7 @@ Initial inventory of candidate risks. **No row is a confirmed vulnerability unti
 - [x] Existing host/Evidence tests identified.
 - [x] Browser security script order and observed call-sites identified.
 - [ ] Complete per-operation downstream validation/atomicity/audit tracing.
-- [ ] Complete static-file access policy and isolated negative-path tests.
+- [x] Implement initial static asset allowlist and isolated positive/negative endpoint tests; Full Pytest #611 PASS. Audit any future new static asset roots before adding them.
 - [ ] Complete Geo caller/range inventory.
 - [x] Compare both Topo3D source copies and verify `loadDTMSTR`, `exportLTDtm`, `loadLTDtm`, and `loadFiles` methods are identical despite different overall file blobs.
 - [x] Add source-order regression test that asserts LTDtm size preflight precedes `prepare()` and `arrayBuffer()` in both copies; Full Pytest #609 PASS.
@@ -47,8 +47,9 @@ Initial inventory of candidate risks. **No row is a confirmed vulnerability unti
 ## Initial Evo 2 implementation evidence
 
 - Host Origin policy guard: `security_guard.py` centralizes the allowlist and retains no-Origin support for non-browser local clients; `null` and unlisted local ports are rejected on protected routes. Unit and endpoint regression tests passed Full Pytest #608: https://github.com/yay460-jpg/portofolio/actions/runs/38416665156.
+- Static asset allowlist: Desktop Host now serves only `assets/`, `lithosite-Mine-Geologist/assets/`, and `lithosite-Mine-Services/Artifacts/`, `ui/`, and `shared/` trees; hidden segments are denied. Positive/negative tests passed Full Pytest #611: https://github.com/yay460-jpg/portofolio/actions/runs/38418373578.
 - Topo3D package resource preflight: both engine copies now call `guardTopoFileSize_(file, maxPackageBytes, ...)` before `prepare()` and `file.arrayBuffer()`, retaining the post-read byte-length check. Source-order regression coverage passed Full Pytest #609: https://github.com/yay460-jpg/portofolio/actions/runs/38417323954.
-- These are narrow hardening changes; they do not establish that all attack-surface rows are closed. Browser/WebGL runtime attacks and import/static-file policy remain open.
+- These are narrow hardening changes; they do not establish that all attack-surface rows are closed. Browser/WebGL runtime tests and the import boundary remain open. Static-file allowlist behavior is covered for the current documented UI paths; future asset roots still require review.
 
 ## Change rule
 

@@ -54,7 +54,7 @@ Most data endpoints explicitly return 403 when a present Origin is not accepted;
 | `/evidence/status` | Query `module` | Allowlisted modules; filters unsafe linked paths and supported direct-child files | Encoded IDs, junction/symlink edge cases, and error leakage |
 | `/evidence/list` | Query `module`, `record_id` | Allowlisted module and constrained record ID; skips unsupported/symlinked items; reports file metadata | Path boundary, unusual names, size/header behavior |
 | `/evidence/file` | Query `module`, `record_id`, `filename` | Filename/path checks, resolved containment check, extension allowlist, 100,000,000-byte limit, `no-store`, `nosniff`, Content-Disposition | Encoded traversal, Windows path cases, race/symlink cases, MIME/disposition and errors |
-| Generic static-file fallback | URL path | Decodes path, resolves under `STATIC_ROOT`, denies paths containing a `Database` segment and extensions `.xlsx`, `.xls`, `.csv` | Verify whether serving the repository root exposes unintended source/config/metadata paths (including hidden paths); constrain only with an explicit asset allowlist and compatibility tests |
+| Generic static-file fallback | URL path | Decodes and resolves under `STATIC_ROOT`; allows only `assets/`, `lithosite-Mine-Geologist/assets/`, `lithosite-Mine-Services/Artifacts/`, `ui/`, and `shared/`; rejects dot-prefixed path segments; retains `Database`/XLSX/XLS/CSV defense-in-depth | Existing positive/negative endpoint tests confirm listed UI roots work and `.gitignore`, `.github` workflow, backend source, documentation and test paths return 404 (Full Pytest #611) |
 
 ### POST
 
@@ -139,7 +139,7 @@ In the inspected import layer, no explicit file-size limit or path-root allowlis
 
 ### Static asset boundary
 
-The static fallback resolves paths under `STATIC_ROOT`, where the configured root is the repository root, then denies paths containing a `Database` segment and the suffixes `.xlsx`, `.xls`, and `.csv`. Because the fallback is broader than a dedicated UI asset directory, test the intended allowlist against actual UI imports and benign requests to hidden/private repository paths. Do not change the root until required HTML/JS/CSS/SVG/PDF assets and paths have been inventoried.
+The static fallback still uses the repository as its resolution root, but access now requires one of the explicit runtime asset roots: `assets/`, `lithosite-Mine-Geologist/assets/`, or `lithosite-Mine-Services/Artifacts/`, `ui/`, `shared/`. Dot-prefixed segments are rejected, and existing Database/XLSX/XLS/CSV denials remain. The principal Operations HTML contains 89 local `src`/`href` references; the references inspected resolve into these permitted roots. Endpoint tests confirm common HTML/JS/SVG/image paths serve successfully and `.gitignore`, `.github/workflows/mine-services-pytest.yml`, backend Python source, documentation, and test files are denied. Future dynamic asset roots must be reviewed and added only alongside regression coverage.
 
 ### Geo and Topo3D differences
 
@@ -154,7 +154,8 @@ The static fallback resolves paths under `STATIC_ROOT`, where the configured roo
 - [x] Record existing host/Evidence test coverage by test function name.
 - [x] Record Browser Guard script order and its presently observed call-sites.
 - [ ] Complete per-operation trace for CREATE/UPDATE/DELETE/READ and KPI operations; first-pass import/restore/dataset/backup trace recorded above.
-- [ ] Test static-file access against the local repository tree and define the intended static allowlist.
+- [x] Define the initial static asset allowlist and test positive/negative endpoint paths; Full Pytest #611 PASS.
+- [ ] Review future dynamic asset paths before extending the allowlist.
 - [x] Compare the two Topo3D source blobs and confirm four import/export loader methods are identical.
 - [x] Add source-order regression test for package-size preflight in both copies; Full Pytest #609 PASS.
 - [ ] Complete browser/WebGL runtime tests for malformed/truncated package input, allocation behavior and cleanup.
