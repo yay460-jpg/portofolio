@@ -361,3 +361,11 @@ The UI source trace was extended beyond Operations:
 - Full Pytest #718 and #719 PASS: failures while writing a new Topography or Marker Location backup preserve existing files. Documentation workflows #720 and #721 PASS.
 - Added isolated red-phase tests for a distinct failure window: the new backup has been written, but retention cleanup fails while evicting an older backup. The required rollback expectation is that all pre-existing backup bytes/files remain and the newly created backup is removed. Test commits: Topography `be3240b`, Marker Location `eafbfef`.
 - Full Pytest and docs CI are **PENDING**. This test intentionally probes current behavior before production changes; do not call retention atomic until the failure window is addressed. Next: inspect red-phase results, then implement a small shared/consistent rollback strategy only if reproduced. `main` remains locked.
+
+
+### EVO2-02 backup retention cleanup failure — reproduced and scoped fix — 2026-10-14
+
+- Red-phase CI confirmed a real gap: Full Pytest #722 and #723 failed (647 passed, 2 failed) because both backup managers left the newly written package behind when the first retention unlink raised `OSError`. Workflow #724 also failed because its documentation job ran the full suite against the intentionally failing red-phase tests; this was expected evidence, not a docs-content defect.
+- Applied a scoped production fix in both Topography and Marker Location managers: if retention cleanup raises `OSError`, remove the newly created target and re-raise. Commits Topography `2d2bb66`, Marker Location `75c9143`.
+- Explicit limitation: this protects against the tested cleanup failure before any old file has been removed. It does **not** guarantee rollback of old files already deleted if a later unlink fails part-way through multi-file eviction. Do not describe retention as fully atomic until that partial-eviction case is separately designed and tested.
+- Full Pytest and roadmap/matrix documentation CI for the fix are **PENDING**. `main` remains locked.
