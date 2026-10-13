@@ -244,3 +244,11 @@ The UI source trace was extended beyond Operations:
 - The shared runtime client sends requests to loopback `/runtime` and relies on the host to dispatch; it does not implement client-side entity authorization. Desktop Host's Origin policy is enforced separately and does not substitute for adapter-level operation/entity policy.
 - Candidate contract for review (not enforced yet): generic READ should accept only the ten schema domain entities plus `_Lists`; keep `AuditLog` excluded from generic public READ unless a confirmed UI/integration consumer requires it. This is a proposal, not a confirmed policy, because the shipped-script and integration inventory is still being completed.
 - Next: scan remaining shipped UI scripts, bridge/integration callers, and host helpers; verify whether any legitimate caller needs `READ AuditLog`; add isolated tests for each allowed entity, `_Lists`, `AuditLog`, and unknown entity behavior. Only then implement the smallest compatible enforcement and run Full Pytest. No code guard changed in this slice.
+
+
+### Public READ guard implementation — 2026-10-14
+
+- Implemented the generic READ allowlist in `lithosite-Mine-Services/src/mine_services/adapter.py`: schema-backed `DOMAIN_ENTITIES` plus `_Lists` are allowed; `AuditLog` and unknown names are rejected with contract error `ADP-007` at the adapter boundary.
+- Added parameterized regression coverage in `tests/test_security_runtime_atomicity.py` for all ten domain entities, `_Lists`, `AuditLog`, an unknown entity, and a dunder-style name.
+- Scope is intentionally limited to external `RuntimeAdapter.handle(operation=READ)`. The internal `RuntimeInterface.read("AuditLog")` method remains available for internal tests/services; do not describe this as universal audit-data authorization until all internal call paths and host adapters are reviewed.
+- Validation gate: wait for the Full Pytest run triggered by these commits. No baseline promotion; main remains locked. If CI reveals any legitimate caller of generic READ AuditLog, investigate the caller and add a dedicated scoped operation rather than broadly reopening AuditLog.
