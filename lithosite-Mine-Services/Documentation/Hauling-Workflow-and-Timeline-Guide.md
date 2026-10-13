@@ -711,7 +711,7 @@ For Dump Truck Hauling:
 
 This guide defines the intended V38 workflow from configuration through reporting and should be used together with:
 
-- [V38 Dump Truck Retase & Quantity Contract](../Contracts/Dump-Truck-Retase-Quantity-Contract.md)
+- [V38 Dump Truck Retase & Quantity Contract](Contracts/Dump-Truck-Retase-Quantity-Contract.md)
 - the existing V38 Report System and Output contracts
 
 The implementation phase follows this guide; UI/runtime changes must remain contract-compliant with the workflow defined above.
