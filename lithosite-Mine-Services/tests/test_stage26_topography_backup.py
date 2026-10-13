@@ -112,3 +112,28 @@ def test_ltdtm_backup_write_failure_preserves_existing_backups(tmp_path, monkeyp
 
     assert existing.read_bytes() == original_payload
     assert sorted(path.name for path in manager.directory.iterdir()) == ["existing.ltdtm"]
+
+
+def test_ltdtm_retention_failure_rolls_back_new_backup(tmp_path, monkeypatch):
+    manager = TopographyBackupManager(tmp_path / "topography")
+    for index in range(manager.MAX_BACKUPS):
+        manager.save(
+            base64.b64encode(ltdtm_payload(body=f"stable-{index}".encode())).decode("ascii"),
+            filename=f"stable-{index}",
+        )
+    before = {path.name: path.read_bytes() for path in manager.directory.glob("*.ltdtm")}
+    original_unlink = Path.unlink
+
+    def fail_retention(path, *args, **kwargs):
+        if path.suffix == ".ltdtm" and path.name in before:
+            raise OSError("simulated retention cleanup failure")
+        return original_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", fail_retention)
+    with pytest.raises(OSError, match="simulated retention cleanup failure"):
+        manager.save(
+            base64.b64encode(ltdtm_payload(body=b"new")).decode("ascii"),
+            filename="new-package",
+        )
+
+    assert {path.name: path.read_bytes() for path in manager.directory.glob("*.ltdtm")} == before
