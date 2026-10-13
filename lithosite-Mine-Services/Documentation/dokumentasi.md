@@ -5,9 +5,9 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 ## Baseline saat ini
 
 - Branch utama: `main`
-- Commit validasi terakhir: `95c6e5241f52a36ce02584207e372ea2d6d625f9` (`docs: complete markdown link audit checklist`). Full Pytest dan Pages PASS; `main` dan `v41-workspace` telah disinkronkan ke SHA ini. Baseline final belum di-lock.
-- Branch workspace: `v41-workspace`; tersinkron dengan `main` pada commit `95c6e5241f52a36ce02584207e372ea2d6d625f9` melalui fast-forward tanpa force push.
-- Status validasi commit `95c6e5241f52a36ce02584207e372ea2d6d625f9`: Full Pytest PASS pada `main` ([run #588](https://github.com/yay460-jpg/portofolio/actions/runs/38393670059)); GitHub Pages Build & Deployment PASS ([run #2123](https://github.com/yay460-jpg/portofolio/actions/runs/38393669070)). `v41-workspace` telah fast-forward ke SHA yang sama sesudah kedua pemeriksaan lulus.
+- Commit validasi terakhir: `74a9f37c7bc20df96ffc7ca547a1ce664c32526a` (`docs: record passing checklist validation and workspace sync`). Full Pytest dan Pages PASS; `main` dan `v41-workspace` telah disinkronkan ke SHA ini. Baseline final belum di-lock.
+- Branch workspace: `v41-workspace`; tersinkron dengan `main` pada commit `74a9f37c7bc20df96ffc7ca547a1ce664c32526a` melalui fast-forward tanpa force push.
+- Status validasi commit `74a9f37c7bc20df96ffc7ca547a1ce664c32526a`: Full Pytest PASS ([run](https://github.com/yay460-jpg/portofolio/actions/runs/38395499733)) dan GitHub Pages Build & Deployment PASS ([run](https://github.com/yay460-jpg/portofolio/actions/runs/38395499802)). `v41-workspace` telah fast-forward ke SHA yang sama sesudah kedua pemeriksaan lulus.
 - Catatan pengujian: workflow Pytest menyiapkan fixture workbook A.3 terisolasi untuk tes yang bergantung pada database. Hasil CI tidak menggantikan acceptance runtime terhadap workbook operasional.
 - Status rilis: pemeriksaan CI pada commit tersebut lulus. Audit tautan lokal masih berstatus parsial; baseline final belum di-lock sampai cakupan audit per dokumen dapat direkonsiliasi dan validasi diulang pada commit dokumentasi final.
 - Runtime aktif: `Artifacts/Mine-Services-Operations.html`
@@ -70,8 +70,9 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 - [x] Pastikan `main` dan `v41-workspace` sinkron pada commit CI yang lulus, tanpa force push.
 - [x] Periksa 98/98 file Markdown untuk tautan inline Markdown/autolink lokal; semua 15 target relatif yang ditemukan ada pada tree.
 - [x] Full Pytest pada kedua branch dan GitHub Pages pada commit baseline sinkron saat ini lulus.
-- [ ] Jalankan acceptance runtime Desktop Host terhadap workbook operasional A.3 sesuai prosedur read-only; jangan reset atau menimpa workbook.
-- [ ] Rekam bukti acceptance runtime dan lakukan review akhir release gate.
+- [x] Periksa integritas ZIP workbook operasional A.3 secara read-only — pengguna melaporkan `Workbook ZIP integrity: PASS`; tidak ada mutasi workbook pada langkah ini.
+- [ ] Jalankan health check dan smoke test read-only Desktop Host terhadap workbook operasional A.3; jangan reset atau menimpa workbook.
+- [ ] Rekam hasil health check (`status`, `offline`, `schema`), modul yang dibuka, dan console; lakukan review akhir release gate.
 - [ ] Setelah seluruh gate lulus, perbarui catatan keputusan dan lock baseline; baru kemudian siapkan workspace turunan berikutnya.
 
 ## Status dan batasan
