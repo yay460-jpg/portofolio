@@ -1,3 +1,6 @@
+from pathlib import Path
+
+import pytest
 from openpyxl import Workbook, load_workbook
 
 from src.mine_services.application import ApplicationService
@@ -225,3 +228,29 @@ def test_conservative_migration_resolves_unique_operation_profile(tmp_path):
     migrated = load_workbook(path, data_only=True)
     equipment_row = list(migrated["Equipment"].iter_rows(min_row=2, values_only=True))[0]
     assert equipment_row[-1] == "GC-275"
+
+
+
+def test_equipment_capacity_migration_preserves_source_if_atomic_replace_fails(tmp_path, monkeypatch):
+    path = tmp_path / "equipment-capacity-atomic.xlsx"
+    wb = Workbook()
+    wb.remove(wb.active)
+    for entity in ("Equipment", "Operations", "WorkFront", "GlobalCapacity"):
+        wb.create_sheet(entity).append(schema.HEADERS[entity])
+    wb.save(path)
+    original = path.read_bytes()
+    real_replace = Path.replace
+
+    def fail_target_replace(source, target):
+        if Path(target) == path and Path(source) != path:
+            raise OSError("simulated capacity migration replacement failure")
+        return real_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", fail_target_replace)
+    from src.mine_services.migrate_equipment_capacity import migrate
+
+    with pytest.raises(OSError, match="simulated capacity migration replacement failure"):
+        migrate(path)
+
+    assert path.read_bytes() == original
+    assert list(tmp_path.glob("equipment-capacity-atomic.*.xlsx")) == []

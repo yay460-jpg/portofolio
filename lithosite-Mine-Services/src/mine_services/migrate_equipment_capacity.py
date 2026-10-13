@@ -12,6 +12,7 @@ Run:
 """
 from pathlib import Path
 import sys
+from tempfile import NamedTemporaryFile
 
 from openpyxl import load_workbook
 
@@ -22,6 +23,9 @@ DEFAULT_DB = Path(__file__).resolve().parents[2] / "Database" / "Mine-Services-D
 
 
 def migrate(path: Path):
+    path = Path(path)
+    if not path.is_file():
+        raise FileNotFoundError(path)
     wb = load_workbook(path)
     for sheet in ("Equipment", "Operations", "WorkFront", "GlobalCapacity"):
         if sheet not in wb.sheetnames:
@@ -131,7 +135,51 @@ def migrate(path: Path):
         else:
             unresolved.append(equipment_id)
 
-    wb.save(path)
+    temp_path = None
+    try:
+        with NamedTemporaryFile(
+            prefix=path.stem + ".",
+            suffix=path.suffix,
+            dir=path.parent,
+            delete=False,
+        ) as handle:
+            temp_path = Path(handle.name)
+
+        wb.save(temp_path)
+        wb.close()
+
+        # Validate the serialized workbook before replacing the live database.
+        check = load_workbook(temp_path, read_only=True, data_only=True)
+        try:
+            verified_equipment = check["Equipment"]
+            verified_headers = read_headers(verified_equipment)
+            if verified_headers != current_equipment_headers:
+                raise ValueError("MIGRATION_VERIFY_FAILED:Equipment headers")
+            verified_index = {name: index for index, name in enumerate(verified_headers)}
+            verified_profiles = {
+                row[verified_index["equipment_id"]]: row[verified_index["capacity_profile_id"]]
+                for row in verified_equipment.iter_rows(min_row=2, values_only=True)
+            }
+
+            for equipment_id, profile_id in resolved + preserved:
+                if verified_profiles.get(equipment_id) != profile_id:
+                    raise ValueError(
+                        f"MIGRATION_VERIFY_FAILED:Equipment capacity profile for {equipment_id}"
+                    )
+            for equipment_id in ambiguous + unresolved:
+                if verified_profiles.get(equipment_id) not in (None, ""):
+                    raise ValueError(
+                        f"MIGRATION_VERIFY_FAILED:Unexpected profile assignment for {equipment_id}"
+                    )
+        finally:
+            check.close()
+
+        temp_path.replace(path)
+    finally:
+        wb.close()
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink()
+
     return resolved, ambiguous, unresolved, preserved
 
 

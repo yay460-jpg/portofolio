@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- Equipment capacity migration now writes to a sibling temporary workbook and verifies the final Equipment header plus resolved/preserved/unresolved profile assignments before atomic replacement; injected replace failures preserve the active workbook byte-for-byte.
+
+
 - Measurement-header migration now saves to a same-directory temporary workbook, verifies the renamed headers there, and only then atomically replaces the active workbook. Fault-injection tests prove verification or replacement failure leaves the original workbook byte-for-byte intact and removes the temporary file.
 
 
