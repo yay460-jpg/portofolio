@@ -440,3 +440,75 @@ def test_list_operations_are_uncached_observational_reads(tmp_path):
 
     assert adapter._runtime._application.store.snapshot() == before_store
     assert adapter._runtime._application.store.audit() == before_audit
+
+
+def test_load_backup_operations_are_read_only_and_retryable(tmp_path):
+    adapter = make_adapter(tmp_path)
+    calls = {"topography": 0, "marker": 0}
+
+    def read_topography(filename):
+        calls["topography"] += 1
+        return {"filename": filename, "data": "dG9wbw==", "format": "LITHODTM"}
+
+    def read_marker(filename):
+        calls["marker"] += 1
+        return {"filename": filename, "data": "bWFya2Vy", "format": "LT-MARKER"}
+
+    adapter._runtime._topography.read = read_topography
+    adapter._runtime._marker_location.read = read_marker
+    before_store = adapter._runtime._application.store.snapshot()
+    before_audit = adapter._runtime._application.store.audit()
+
+    cases = [
+        ("LOAD_TOPOGRAPHY_BACKUP", "topography", "sample.ltdtm", "LITHODTM"),
+        ("LOAD_MARKER_LOCATION_BACKUP", "marker", "sample.ltmarker", "LT-MARKER"),
+    ]
+    for operation, key, filename, expected_format in cases:
+        request = {
+            "request_id": f"load-backup-repeat-{key}",
+            "operation": operation,
+            "filename": filename,
+        }
+        first = adapter.handle(dict(request))
+        second = adapter.handle(dict(request))
+        assert first["status"] == "READY"
+        assert second["status"] == "READY"
+        assert first["format"] == expected_format
+        assert second["format"] == expected_format
+        assert calls[key] == 2
+
+    assert adapter._runtime._application.store.snapshot() == before_store
+    assert adapter._runtime._application.store.audit() == before_audit
+
+
+def test_load_backup_failed_attempt_can_retry_same_request_id(tmp_path):
+    adapter = make_adapter(tmp_path)
+    calls = {"topography": 0, "marker": 0}
+
+    def flaky_read(key, filename):
+        calls[key] += 1
+        if calls[key] == 1:
+            raise FileNotFoundError("backup not found")
+        return {"filename": filename, "data": "dGVzdA==", "format": key}
+
+    adapter._runtime._topography.read = lambda filename: flaky_read("topography", filename)
+    adapter._runtime._marker_location.read = lambda filename: flaky_read("marker", filename)
+
+    for operation, key, filename in [
+        ("LOAD_TOPOGRAPHY_BACKUP", "topography", "retry.ltdtm"),
+        ("LOAD_MARKER_LOCATION_BACKUP", "marker", "retry.ltmarker"),
+    ]:
+        request = {
+            "request_id": f"load-backup-retry-{key}",
+            "operation": operation,
+            "filename": filename,
+        }
+        try:
+            adapter.handle(dict(request))
+        except FileNotFoundError:
+            pass
+        else:
+            raise AssertionError("first load attempt should fail")
+        retry = adapter.handle(dict(request))
+        assert retry["status"] == "READY"
+        assert calls[key] == 2
