@@ -149,3 +149,36 @@ def test_topography_backup_rejects_reused_request_id_for_different_filename(tmp_
     assert replay_with_changed_payload["status"] == "REJECTED"
     assert replay_with_changed_payload["errors"][0]["code"] == "ADP-006"
     assert len(list((tmp_path / "topography").glob("*.ltdtm"))) == 1
+
+
+def test_marker_location_backup_rejects_reused_request_id_for_different_package(tmp_path):
+    import base64
+    import json
+
+    adapter = make_adapter(tmp_path)
+    first_bytes = b"LITMARKR" + (1).to_bytes(4, "little") + json.dumps({
+        "format": "LT-MARKER", "version": 1, "markers": []
+    }).encode()
+    second_bytes = b"LITMARKR" + (1).to_bytes(4, "little") + json.dumps({
+        "format": "LT-MARKER", "version": 1, "markers": [],
+        "metadata": {"source": "different"}
+    }).encode()
+
+    first = adapter.handle({
+        "request_id": "replay-marker-001",
+        "operation": "SAVE_MARKER_LOCATION_BACKUP",
+        "filename": "first.ltmarker",
+        "package_base64": base64.b64encode(first_bytes).decode("ascii"),
+    })
+    assert first["status"] == "SAVED"
+
+    replay_with_changed_payload = adapter.handle({
+        "request_id": "replay-marker-001",
+        "operation": "SAVE_MARKER_LOCATION_BACKUP",
+        "filename": "second.ltmarker",
+        "package_base64": base64.b64encode(second_bytes).decode("ascii"),
+    })
+
+    assert replay_with_changed_payload["status"] == "REJECTED"
+    assert replay_with_changed_payload["errors"][0]["code"] == "ADP-006"
+    assert len(list((tmp_path / "marker-location").glob("*.ltmarker"))) == 1
