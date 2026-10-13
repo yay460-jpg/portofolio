@@ -117,3 +117,10 @@ Observed UI dependencies in the modules traced: `Plans`, `Equipment`, `WorkFront
 | KPI history | Separate `READ_KPI_SNAPSHOTS` operation; not part of generic READ allowlist | Existing operation contract |
 
 Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface.read("AuditLog")` remains an internal API and is not covered by the public adapter allowlist; broader authorization requires a separate internal-call-path review. Full Pytest validation is pending after the implementation commits.
+
+
+### Test compatibility correction — 2026-10-14
+
+- First full-suite run after public READ allowlist failed because `tests/test_stage5.py` still asserted generic READ of `AuditLog` returned all events. This is an obsolete expectation under the new contract and is now changed to assert `REJECTED` with `ADP-007`.
+- The new `_Lists` test also assumed a wrapped `status/data` response. It now validates the established flattened controlled-list shape without changing runtime response compatibility.
+- The allowlist implementation is unchanged. Validation remains pending until the follow-up Full Pytest run passes.
