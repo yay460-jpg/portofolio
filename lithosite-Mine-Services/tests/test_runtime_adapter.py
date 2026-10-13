@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from threading import Event, Thread
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
@@ -168,3 +169,61 @@ def test_adapter_sanitizes_unexpected_runtime_failure():
     assert "secret internal detail" not in result["errors"][0]["message"]
     assert not hasattr(adapter, "store")
     assert not hasattr(adapter, "validator")
+
+
+def test_adapter_serializes_shared_runtime_requests_across_threads():
+    create_entered = Event()
+    release_create = Event()
+    second_started = Event()
+    read_entered = Event()
+
+    class BlockingRuntime:
+        def create(self, entity, row, request_id):
+            create_entered.set()
+            if not release_create.wait(timeout=3):
+                raise AssertionError("test did not release the blocked create")
+            return {"status": "COMMITTED", "entity_id": row["equipment_id"]}
+
+        def read(self, entity, entity_id=None):
+            read_entered.set()
+            return {"status": "OK", "data": []}
+
+    adapter = RuntimeAdapter(BlockingRuntime())
+    results = {}
+
+    first = Thread(
+        target=lambda: results.setdefault("create", adapter.handle({
+            "request_id": "concurrency-create",
+            "operation": "CREATE",
+            "entity": "Equipment",
+            "row": valid_equipment("EQ-CONCURRENT"),
+        }))
+    )
+
+    def run_read():
+        second_started.set()
+        results["read"] = adapter.handle({
+            "request_id": "concurrency-read",
+            "operation": "READ",
+            "entity": "Equipment",
+        })
+
+    second = Thread(target=run_read)
+    first.start()
+    try:
+        assert create_entered.wait(timeout=1), "create request did not enter runtime"
+        second.start()
+        assert second_started.wait(timeout=1), "second request did not start"
+        read_entered_while_create_blocked = read_entered.wait(timeout=0.05)
+    finally:
+        release_create.set()
+        first.join(timeout=3)
+        if second.ident is not None:
+            second.join(timeout=3)
+
+    assert not first.is_alive()
+    assert not second.is_alive()
+    assert not read_entered_while_create_blocked
+    assert read_entered.is_set()
+    assert results["create"]["status"] == "COMMITTED"
+    assert results["read"]["status"] == "OK"

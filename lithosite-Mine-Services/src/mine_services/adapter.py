@@ -1,3 +1,5 @@
+from threading import RLock
+
 from .runtime import RuntimeInterface
 
 
@@ -37,6 +39,10 @@ class RuntimeAdapter:
 
     def __init__(self, runtime=None):
         self._runtime = runtime or RuntimeInterface()
+        # The desktop host uses ThreadingHTTPServer with one shared adapter.
+        # Serialize complete adapter operations so RuntimeInterface's shared
+        # transaction state cannot be entered concurrently by two requests.
+        self._lock = RLock()
 
     @staticmethod
     def _required(request, field):
@@ -97,6 +103,10 @@ class RuntimeAdapter:
         }
 
     def handle(self, request):
+        with self._lock:
+            return self._handle(request)
+
+    def _handle(self, request):
         request_id = request.get("request_id") if isinstance(request, dict) else None
         try:
             request_id, operation = self._validate_request(request)
