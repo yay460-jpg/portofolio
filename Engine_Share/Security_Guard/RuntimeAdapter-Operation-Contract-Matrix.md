@@ -56,3 +56,12 @@ No workbook A.3 fixtures should be used; use isolated temporary stores/files for
 - Full Pytest #651 PASS: Marker Location backup rejects a reused request ID with a different package and does not create a second backup file: https://github.com/yay460-jpg/portofolio/actions/runs/38458423985.
 - Full Pytest #652 PASS: identical `SAVE_AS_DATASET` request replay returns a detached cached response and does not create a second dataset or audit entry: https://github.com/yay460-jpg/portofolio/actions/runs/38458690154.
 - Next isolated tests cover `IMPORT_XLSX` request-ID payload conflicts and detached cached responses. These use a stubbed import call to test adapter replay behavior without requiring an operational workbook. Validation is pending.
+
+
+
+## Workflow #653–#654 — XLSX replay validation — 2026-10-14
+
+- Full Pytest #653 PASS: isolated adapter tests verify that reusing a request ID for a different XLSX path is rejected with `ADP-006`, and identical requests return detached cached responses without calling the import path twice. The import function is stubbed; this validates adapter replay semantics, not workbook parser/domain import behavior. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38467458050.
+- Full Pytest #654 PASS: documentation synchronization. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38467470045.
+- Additional retry test is now queued: a rejected import attempt must not be cached as a successful response, so the same request can be retried. CI pending.
+- Process-local cache size/lifetime and cross-restart idempotency remain unresolved. No claim of durable exactly-once semantics.
