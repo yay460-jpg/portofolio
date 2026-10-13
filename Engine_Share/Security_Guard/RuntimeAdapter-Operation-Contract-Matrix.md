@@ -195,3 +195,10 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 
 - Full Pytest #712 PASS for corrected replay contract tests; documentation workflows #713 and #714 PASS.
 - Added tests for missing backup files, traversal-style filenames, corrupt package payloads, and oversized files on both Topography and Marker Location LOAD paths. Adapter must normalize failures to `REJECTED` / `ADP-005` and keep the public message generic. Test commit `b4361d7`, CI pending.
+
+
+### Backup SAVE write-failure contract — 2026-10-14
+
+- Full Pytest #715 PASS validates missing, traversal-style, corrupt, and oversized backup LOAD rejection paths. Documentation workflows #716–#717 PASS.
+- Added manager-level tests for both backup types: simulate failure writing a new backup and assert existing backup bytes/files remain unchanged. Commits `c61d472` and `b832870`; CI pending.
+- Scope is limited to a failure during creation of the new file, before retention eviction. Retention cleanup failure/partial eviction remains a distinct contract question and must not be assumed atomic without evidence.
