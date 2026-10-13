@@ -1,14 +1,14 @@
 # Baseline
 
-## Current locked baseline
+## Current baseline reference
 
-**Status:** LOCKED  
+**Recorded status:** LOCKED in the historical release record  
 **Product:** Lithosite Mine Services  
 **Canonical artifact:** `Artifacts/Mine-Services-Operations.html`  
 **Schema:** A.3  
 **Database:** `Database/Mine-Services-Database-A3.xlsx`
 
-See [V40 Baseline Lock](./V40-Baseline-Lock.md) for the release decision, evidence, commit, and explicitly deferred gates.
+See [Latest archived baseline lock](./Baseline-Lock-Archive-B.md) for the release decision, evidence, commit, and explicitly deferred gates.
 
 ## Historical baselines
 
