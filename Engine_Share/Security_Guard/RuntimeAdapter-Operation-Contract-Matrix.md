@@ -189,3 +189,9 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 
 - Full Pytest #709 red phase: 642 passed, 2 failed due to test assumptions, not yet a confirmed production defect. Successful `LOAD_TOPOGRAPHY_BACKUP` and `LOAD_MARKER_LOCATION_BACKUP` are replay-cached, so identical requests call the manager once. Exceptions are normalized by the adapter to `REJECTED` with `ADP-005`; rejected/error responses are not cached and may be retried with the same request ID.
 - Tests corrected in commit `8387be1` to assert the established contract, including read-only store/audit state and retry after a normalized rejection. CI pending.
+
+
+### Backup LOAD rejection boundary — 2026-10-14
+
+- Full Pytest #712 PASS for corrected replay contract tests; documentation workflows #713 and #714 PASS.
+- Added tests for missing backup files, traversal-style filenames, corrupt package payloads, and oversized files on both Topography and Marker Location LOAD paths. Adapter must normalize failures to `REJECTED` / `ADP-005` and keep the public message generic. Test commit `b4361d7`, CI pending.
