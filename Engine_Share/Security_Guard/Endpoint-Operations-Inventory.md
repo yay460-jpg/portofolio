@@ -168,3 +168,23 @@ The static fallback still uses the repository as its resolution root, but access
 On the active `v41-workspace`, `Engine_Share/Security_Guard/Host_Guard/security_guard.py` now owns the Origin policy. It permits the configured host origin (default `127.0.0.1:8765` and `localhost:8765`) plus the documented development origins on ports `5500` and `5501`. The literal `null` origin, empty Origin, arbitrary localhost ports, non-loopback hosts and HTTPS variants are rejected on routes that enforce Origin checks. Missing Origin remains allowed for non-browser local clients. Unit and host endpoint regression tests cover accepted origins and rejection of external/`null`/unlisted loopback origins.
 
 This is a narrow hardening change, not authentication. A process already executing as the same local user remains outside the protection provided by browser CORS policy. The host still binds only to loopback; no LAN exposure was added.
+
+
+## Post-baseline Evo 2 finding — restore schema boundary
+
+### Locked-source reproduction
+
+An isolated in-memory test against the locked source baseline created a snapshot from the known schema, inserted an extra key under `payload.data`, and recomputed the SHA-256 checksum. `RESTORE` returned `COMMITTED` even though the extra entity was not part of the A.3 schema. Full Pytest #615 recorded the expected red reproduction (584 passed, one focused failure): https://github.com/yay460-jpg/portofolio/actions/runs/38421789115.
+
+This is a confirmed schema-boundary gap in the locked source behavior, not a claim of remote code execution. The checksum proves payload consistency only; it does not replace strict schema allowlisting.
+
+### Workspace fix and regression evidence
+
+- `SnapshotManager.verify()` now rejects unexpected keys in `payload.data` before restore validation/transaction.
+- `DatasetManager._validate_document()` now rejects unexpected entity keys before loading/replacing runtime state.
+- `tests/test_security_snapshot_restore.py` tests both flows using `PersistenceStore()` in memory and a dataset file under pytest `tmp_path`; it does not use the operational workbook.
+- Full Pytest #616 passes 586 tests on workspace commit `9c8508a17c5c30558beeac9e8cdceec67df3016f`: https://github.com/yay460-jpg/portofolio/actions/runs/38422299996.
+
+### Remaining scope
+
+This closes only the unexpected-entity-key path. Other restore/dataset requirements (strict row fields, controlled-list trust semantics, path policies, malformed/oversized payloads, audit/rollback cases) remain under inventory/test design. `main` remains unchanged; no operational A3 workbook was used or changed.
