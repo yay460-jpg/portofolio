@@ -58,11 +58,13 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 | 2 | Perbaiki indeks sejarah dan tautan yang diketahui terdampak rename | PASS — indeks diperbarui; pencarian nama lama yang diperiksa tidak menemukan hasil |
 | 3 | Normalisasi encoding dokumen Stage 16 yang menggagalkan Jekyll | PASS — kedua dokumen dikomit ulang sebagai UTF-8; isi teks dipertahankan |
 | 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS — `d8d8e205cdebcee84d8256ae1db176e5ad9d1000` |
-| 5 | Audit referensi internal secara menyeluruh dan konsistensi indeks | IN PROGRESS — lanjutkan pemeriksaan link relatif dan referensi dokumentasi |
-| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PENDING |
-| 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — jangan nyatakan lock sebelum tahap 5–6 selesai |
+| 5 | Audit referensi Markdown relatif pada dokumen prioritas | PARTIAL PASS — 60 dokumen diperiksa; 2 tautan lama ditemukan dan diperbaiki; pemeriksaan tidak mencakup setiap Markdown dalam proyek |
+| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PENDING — lakukan setelah commit dokumentasi final dan CI-nya lulus |
+| 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — jangan nyatakan lock sebelum audit menyeluruh dan CI final selesai |
 
 ## Status dan batasan
+
+Audit tautan pada 60 dokumen prioritas menemukan dua referensi yang masih menunjuk nama file lama. Keduanya telah diperbarui: kontrak Dump Truck Retase pada panduan hauling dan bukti penerimaan Desktop Runtime A.3 pada catatan inisialisasi workspace. Pemeriksaan tersebut adalah audit prioritas, bukan klaim bahwa seluruh tautan dalam semua dokumen telah diaudit.
 
 Indeks ini tidak menyatakan ulang semua keputusan historis sebagai keputusan aktif. Untuk perilaku aktif, ikuti README proyek dan kontrak bersama yang berlaku.
 
