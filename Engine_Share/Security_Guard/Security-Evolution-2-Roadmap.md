@@ -168,3 +168,14 @@ Source inspection performed on workspace code at HEAD `30ff61b8a693aec691ab03119
 - Scope note: #653 uses a stubbed import call, so it validates adapter request replay semantics, not real XLSX parsing or domain mutation.
 - Next: wait for Full Pytest on the new rollback tests; inspect any failure logs before production changes. Then audit request-cache size/lifetime and cross-restart behavior. Do not implement durable idempotency until storage/ownership and recovery semantics are defined.
 - Release gate remains blocked; no changes promoted to `main`.
+
+
+## EVO2-02 continuation — rollback PASS and Android adapter lifetime finding — 2026-10-14
+
+- Full Pytest #657 PASS: KPI finalize rollback restores existing KPI History file bytes/records when the subsequent store save fails. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38468724314.
+- Full Pytest #658 PASS: dataset save rollback restores the pre-existing dataset file, active dataset state, and audit state after store-save failure. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38468750357.
+- Full Pytest #659 PASS: documentation sync. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38468756229.
+- Source-trace finding requiring a focused test/design decision: `android-host/app/src/main/python/android_entry.py` calls `_runtime_for(app_dir)` inside every `handle()` call, and `_runtime_for()` constructs a new `RuntimeAdapter`. Therefore the current in-memory replay cache is not retained between Android bridge calls, even though the Python module itself is loaded through the persistent Chaquopy module. Do not call this a confirmed exploit; it is a mismatch between the intended replay guarantee and Android host object lifetime. Add a host-level regression test and choose adapter/runtime lifecycle ownership before claiming replay protection on Android.
+- `MineServicesBridge.kt` holds the Python module but calls `android_entry.handle()` for each request; it does not itself retain the adapter. Confirm the intended runtime/store lifecycle before moving ownership, because changing it may also affect resource usage and shared state.
+- Next audit slice: host lifecycle/replay guarantee, then READ exposure of AuditLog and controlled lists against the actual host boundary. Desktop host binds to loopback; its lack of auth middleware is a threat-model fact, not by itself a confirmed vulnerability. No production patch until a focused test reproduces the behavior and expected contract is agreed.
+- Replay cache remains unbounded and process-local in the desktop adapter; cross-restart/cross-process idempotency is not guaranteed. Release gate remains blocked; no changes promoted to `main`.
