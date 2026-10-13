@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
@@ -12,6 +12,8 @@ from mine_services import (
     PersistenceStore,
     SnapshotManager,
 )
+from mine_services import import_engine as import_engine_module
+from mine_services import schema as schema_module
 
 
 def valid_equipment(equipment_id="EQ-01"):
@@ -362,3 +364,80 @@ def test_xlsx_persistence_roundtrip(tmp_path):
     verify = __import__("openpyxl").load_workbook(path, data_only=True)
     assert verify["_Baseline"]["B1"].value == "LOCKED"
 
+
+
+def make_import_workbook(path, invalid_equipment_header=False):
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+
+    for entity in schema_module.DOMAIN_ENTITIES:
+        worksheet = workbook.create_sheet(entity)
+        headers = list(schema_module.HEADERS[entity])
+        if entity == "Equipment" and invalid_equipment_header:
+            headers[0] = "invalid_equipment_key"
+        worksheet.append(headers)
+
+    system = workbook.create_sheet("_System")
+    system.append(["schema_version", schema_module.SCHEMA_VERSION])
+    lists = workbook.create_sheet("_Lists")
+    lists.append(list(dict.fromkeys(schema_module.CONTROLLED.values())))
+    workbook.save(path)
+    workbook.close()
+
+
+class TrackedWorkbook:
+    def __init__(self, workbook):
+        self._workbook = workbook
+        self.closed = False
+
+    def __getattr__(self, name):
+        return getattr(self._workbook, name)
+
+    def __getitem__(self, name):
+        return self._workbook[name]
+
+    def close(self):
+        self.closed = True
+        self._workbook.close()
+
+
+def test_import_read_xlsx_closes_source_workbook_on_success(tmp_path, monkeypatch):
+    path = tmp_path / "valid-import.xlsx"
+    make_import_workbook(path)
+    opened = []
+    real_loader = import_engine_module.load_workbook
+
+    def tracked_loader(*args, **kwargs):
+        workbook = TrackedWorkbook(real_loader(*args, **kwargs))
+        opened.append(workbook)
+        return workbook
+
+    monkeypatch.setattr(import_engine_module, "load_workbook", tracked_loader)
+    coordinator = ImportCoordinator(PersistenceStore())
+    rows, errors = coordinator.read_xlsx(path)
+
+    assert errors == []
+    assert rows is not None
+    assert len(opened) == 1
+    assert opened[0].closed is True
+
+
+def test_import_read_xlsx_closes_source_workbook_on_header_rejection(tmp_path, monkeypatch):
+    path = tmp_path / "invalid-import-header.xlsx"
+    make_import_workbook(path, invalid_equipment_header=True)
+    opened = []
+    real_loader = import_engine_module.load_workbook
+
+    def tracked_loader(*args, **kwargs):
+        workbook = TrackedWorkbook(real_loader(*args, **kwargs))
+        opened.append(workbook)
+        return workbook
+
+    monkeypatch.setattr(import_engine_module, "load_workbook", tracked_loader)
+    coordinator = ImportCoordinator(PersistenceStore())
+    rows, errors = coordinator.read_xlsx(path)
+
+    assert rows is None
+    assert errors[0]["code"] == "E005"
+    assert len(opened) == 1
+    assert opened[0].closed is True

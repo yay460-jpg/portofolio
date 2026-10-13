@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- `ImportCoordinator.read_xlsx()` now closes the opened workbook in a `finally` block across success, schema/header rejection, and unexpected parse failure; regression tests track the close call on both accepted and rejected workbook paths.
+
+
 - Remaining in-place A.3 header/list repairs in `PersistenceStore.load()` now write and verify a sibling workbook before atomic replacement; temporary validation checks both canonical entity headers and required controlled-list headers, with fault-injection tests proving the active XLSX bytes remain unchanged on validation/replace failures.
 
 

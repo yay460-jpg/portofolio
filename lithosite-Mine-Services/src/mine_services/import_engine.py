@@ -76,34 +76,39 @@ class ImportCoordinator:
         except Exception as exc:
             return None, [self._error(IMPORT_ERROR_CODES["FILE_UNREADABLE"], f"Workbook could not be opened: {exc}")]
 
-        required = set(self.schema.DOMAIN_ENTITIES) | {"_System", "_Lists"}
-        missing = required - set(wb.sheetnames)
-        if missing:
-            return None, [self._error(IMPORT_ERROR_CODES["SHEET_MISSING"], f"Missing sheets: {sorted(missing)}")]
+        try:
+            required = set(self.schema.DOMAIN_ENTITIES) | {"_System", "_Lists"}
+            missing = required - set(wb.sheetnames)
+            if missing:
+                return None, [self._error(IMPORT_ERROR_CODES["SHEET_MISSING"], f"Missing sheets: {sorted(missing)}")]
 
-        allowed = required | {"_Baseline", "AuditLog"}
-        unexpected = set(wb.sheetnames) - allowed
-        if unexpected:
-            return None, [self._error(IMPORT_ERROR_CODES["SHEET_UNEXPECTED"], f"Unexpected sheets: {sorted(unexpected)}")]
+            allowed = required | {"_Baseline", "AuditLog"}
+            unexpected = set(wb.sheetnames) - allowed
+            if unexpected:
+                return None, [self._error(IMPORT_ERROR_CODES["SHEET_UNEXPECTED"], f"Unexpected sheets: {sorted(unexpected)}")]
 
-        version = self._schema_version_from_system(wb["_System"])
-        if version != self.schema.SCHEMA_VERSION:
-            return None, [self._error(IMPORT_ERROR_CODES["SCHEMA_VERSION"], f"Expected schema {self.schema.SCHEMA_VERSION}, got {version}")]
+            version = self._schema_version_from_system(wb["_System"])
+            if version != self.schema.SCHEMA_VERSION:
+                return None, [self._error(IMPORT_ERROR_CODES["SCHEMA_VERSION"], f"Expected schema {self.schema.SCHEMA_VERSION}, got {version}")]
 
-        rows = {}
-        for entity in self.schema.DOMAIN_ENTITIES:
-            values = list(wb[entity].values)
-            if not values:
-                return None, [self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], "Sheet is empty", entity)]
-            headers = list(values[0])
-            if headers != self.schema.HEADERS[entity]:
-                return None, [self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], "Header mismatch", entity)]
-            rows[entity] = [
-                dict(zip(headers, values_row))
-                for values_row in values[1:]
-                if not all(value is None for value in values_row)
-            ]
-        return rows, []
+            rows = {}
+            for entity in self.schema.DOMAIN_ENTITIES:
+                values = list(wb[entity].values)
+                if not values:
+                    return None, [self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], "Sheet is empty", entity)]
+                headers = list(values[0])
+                if headers != self.schema.HEADERS[entity]:
+                    return None, [self._error(IMPORT_ERROR_CODES["HEADER_MISMATCH"], "Header mismatch", entity)]
+                rows[entity] = [
+                    dict(zip(headers, values_row))
+                    for values_row in values[1:]
+                    if not all(value is None for value in values_row)
+                ]
+            return rows, []
+        finally:
+            # Close the source workbook on success, schema rejection, and any
+            # unexpected parsing exception so Windows can replace/move it later.
+            wb.close()
 
     def import_xlsx(self, path):
         rows, errors = self.read_xlsx(path)
