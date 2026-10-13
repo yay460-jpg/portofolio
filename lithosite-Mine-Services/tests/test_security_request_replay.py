@@ -251,3 +251,28 @@ def test_import_xlsx_same_request_reuses_cached_response_copy(tmp_path):
     assert first["status"] == "COMMITTED"
     assert first["errors"] == []
     assert calls == ["stable.xlsx"]
+
+
+def test_import_xlsx_rejected_attempt_is_not_cached_as_success(tmp_path):
+    adapter = make_adapter(tmp_path)
+    calls = []
+
+    def flaky_import(path):
+        calls.append(path)
+        if len(calls) == 1:
+            return {"status": "REJECTED", "errors": [{"code": "E001"}]}
+        return {"status": "COMMITTED", "rows_committed": 3, "errors": []}
+
+    adapter._runtime.import_xlsx = flaky_import
+    request = {
+        "request_id": "replay-import-retry-001",
+        "operation": "IMPORT_XLSX",
+        "path": "retry.xlsx",
+    }
+
+    first = adapter.handle(dict(request))
+    retry = adapter.handle(dict(request))
+
+    assert first["status"] == "REJECTED"
+    assert retry["status"] == "COMMITTED"
+    assert calls == ["retry.xlsx", "retry.xlsx"]
