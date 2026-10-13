@@ -307,3 +307,10 @@ The UI source trace was extended beyond Operations:
 - Full Pytest #696 PASS: complete Python 3.13 suite succeeded for commit `cbcd8c0`; all three new CRUD replay tests are included. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38482028953. Documentation workflows #697 and #698 also succeeded: https://github.com/yay460-jpg/portofolio/actions/runs/38482050858 and https://github.com/yay460-jpg/portofolio/actions/runs/38482056039.
 - Result: **CRUD replay regression gate PASS**. This validates the existing ApplicationService-owned `DUPLICATE_REQUEST` contract and does not add or claim durable idempotency.
 - Next operation slice: add explicit identical-request replay coverage for `FINALIZE_KPI` (detached cached response, one history record and one audit event), then review remaining READ/LIST and file operations against the operation matrix. The unbounded process-local cache and restart limitation remain documented design gaps; do not implement durable idempotency without a defined persistence/ownership/recovery contract. `main` remains locked.
+
+
+### EVO2-02 KPI identical replay gate — 2026-10-14
+
+- Added an isolated regression test for identical `FINALIZE_KPI` request replay in `tests/test_security_request_replay.py`. It checks that the second call returns a detached copy of the cached committed response, caller mutation of the first response cannot corrupt the cache, and replay does not create a second KPI history record or audit event.
+- Fixtures use a fresh adapter, in-memory persistence store, and temporary KPI history/dataset/backup directories.
+- Validation: **PENDING CI** for commit `40bbb36`; do not mark PASS until Full Pytest succeeds. Existing CRUD replay gate remains PASS at #696. `main` remains locked.
