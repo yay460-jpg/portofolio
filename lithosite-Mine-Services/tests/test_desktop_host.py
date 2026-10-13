@@ -287,3 +287,42 @@ def test_static_handler_serves_required_ui_assets_but_rejects_repository_files(m
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+@pytest.mark.parametrize(
+    ("module", "entity", "id_field"),
+    [
+        ("TargetPlan", "Plans", "plan_id"),
+        ("HSE", "HSE", "hse_id"),
+        ("Maintenance", "Maintenance", "maintenance_id"),
+    ],
+)
+def test_evidence_owner_verification_uses_public_read_allowlist(
+    monkeypatch, tmp_path, module, entity, id_field
+):
+    server = _load_server(monkeypatch, tmp_path)
+    calls = []
+
+    class FakeAdapter:
+        def handle(self, request):
+            calls.append(request)
+            return {"request_id": request["request_id"], "status": "OK", "data": [{id_field: "record-1"}]}
+
+    monkeypatch.setattr(server, "ADAPTER", FakeAdapter())
+
+    assert server._evidence_record_exists(module, "record-1") is True
+    assert len(calls) == 1
+    assert calls[0]["operation"] == "READ"
+    assert calls[0]["entity"] == entity
+
+
+def test_evidence_owner_verification_rejects_unknown_module_before_read(monkeypatch, tmp_path):
+    server = _load_server(monkeypatch, tmp_path)
+
+    class NeverCalledAdapter:
+        def handle(self, request):
+            pytest.fail("unknown evidence module must not dispatch a READ")
+
+    monkeypatch.setattr(server, "ADAPTER", NeverCalledAdapter())
+    with pytest.raises(ValueError, match="Unsupported evidence module"):
+        server._evidence_record_exists("AuditLog", "record-1")
