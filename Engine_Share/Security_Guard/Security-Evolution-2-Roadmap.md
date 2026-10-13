@@ -8,7 +8,7 @@ Evo 2 is the global, cross-product Lithosite security track. Evo 1 remains the h
 
 - Work branch: `v41-workspace`.
 - Locked base before Evo 2 work: `698469057aa588de2c3d17a1327ef4892863994d`.
-- Latest validated workspace code commit before this documentation update: `0a8371d38d08ea7eae399a57d048e4ad6ca9ab86` (Full Pytest #620 PASS, 590 passed).
+- Latest validated workspace HEAD: `30ff61b8a693aec691ab03119f6906f171029173` (Full Pytest #623 PASS; workflow conclusion `success`). Earlier evidence #620 (590 passed) remains in the historical record below.
 - Current work includes narrow, tested runtime hardening in the owning layers: explicit local Origin policy, static asset allowlist, Topo3D package-size preflight, sanitized unreadable-workbook import errors, strict snapshot/dataset schema keys, and backup size preflight before decode/read. This is not a broad refactor; full coverage remains incomplete.
 - Do not change `main` during this track until the owner explicitly promotes a tested and reviewed change.
 - Use temporary A3 fixtures and temporary Evidence paths for adversarial tests.
@@ -91,3 +91,22 @@ Evo 2 is not LOCKED by the creation of this folder or by a green suite alone. Ea
 - Backup size preflight: temporary-directory tests reproduced four missing preflight cases (file read and Base64 decode for Topography and Marker Location backups). The test-only run #618 recorded 586 passed and four focused failures: https://github.com/yay460-jpg/portofolio/actions/runs/38423367223. First integration run #619 exposed an instance-helper invocation error in Topography backup save (585 passed, five failures); it was corrected in commit `0a8371d38d08ea7eae399a57d048e4ad6ca9ab86`. The final fix checks encoded Base64 size before decode and stats/reads at most `MAX_PACKAGE_BYTES + 1` before rejecting oversized backup files. Full Pytest #620 PASS, 590 passed: https://github.com/yay460-jpg/portofolio/actions/runs/38424109031.
 
 All Evo 2 code patches above exist on `v41-workspace` only. `main` remains the locked V41 baseline. Each result validates the current full regression suite, but does not lock Security Evolution 2 as a whole.
+
+## Workflow #623 synchronization — 2026-10-14
+
+- Latest workspace HEAD verified: `30ff61b8a693aec691ab03119f6906f171029173` (`v41-workspace`).
+- Full Pytest workflow #623 completed with conclusion `success`: https://github.com/yay460-jpg/portofolio/actions/runs/38439995521.
+- Commit #623 adds row-field allowlisting to `SnapshotManager._validate_payload()` and `DatasetManager._validate_document()`. Unknown row keys are rejected before domain validation / dataset load mutation.
+- Roadmap status remains unchanged: EVO2-02 through EVO2-06 are IN PROGRESS; EVO2-07 remains BLOCKED. A successful CI run validates the current suite only and is not a full security release gate.
+- Historical evidence for red-phase reproductions #615 and #618 and intermediate integration failure #619 is retained below.
+
+## EVO2-02 next audit slice — mutating operations and KPI boundary
+
+Source inspection performed on workspace code at HEAD `30ff61b8a693aec691ab03119f6906f171029173`:
+- `RuntimeAdapter.handle()` dispatches CREATE/UPDATE/DELETE to `ApplicationService`; that service validates domain rows and wraps store mutation plus audit append in `TransactionManager`. Existing `ApplicationService` checks primary-key immutability, system fields, foreign keys, controlled lists, and related domain rules through `ValidationEngine`.
+- `RuntimeAdapter` catches unexpected exceptions and returns generic `ADP-005` for adapter-dispatched operations. However, several operations have operation-specific downstream paths and need independent failure-injection tests rather than relying only on the generic envelope.
+- `RuntimeInterface.load_dataset()` takes an in-memory snapshot, applies dataset load, audits and saves; on exception it restores the prior runtime snapshot. `save_dataset()` and `save_dataset_as()` write audit and save after the dataset file has been written; inspect for orphaned dataset-file behavior if audit/save fails.
+- `RuntimeInterface.finalize_kpi()` asks `KPIHistoryStore.finalize()` to commit to its separate JSON history file before appending audit to the workbook store. If the later audit/save fails, the code reports `audit_status: NOT_APPENDED` and restores only the application store snapshot; the already-committed history file may remain changed. This is a confirmed ordering observation, **not yet a confirmed vulnerability**; verify intended contract and reproduce using a temporary KPI-history path plus a forced audit/store-save failure before proposing a patch.
+- The adapter accepts arbitrary `request_id` values and tracks duplicate request IDs only in the in-memory `ApplicationService` for CREATE/UPDATE/DELETE; other operations have their own/no idempotency behavior. Record per-operation replay expectations explicitly before centralizing this policy.
+- Next isolated tests should cover CREATE/UPDATE/DELETE audit-failure rollback, dataset file vs audit/store save failure, KPI finalize cross-store atomicity/replay, and READ exposure of `AuditLog` / controlled lists. Use in-memory stores and pytest temporary directories; never use the operational A3 workbook or real backup/Evidence folders.
+
