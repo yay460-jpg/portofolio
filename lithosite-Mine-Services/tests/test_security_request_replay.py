@@ -385,3 +385,58 @@ def test_finalize_kpi_same_request_returns_detached_cached_response(tmp_path):
     assert replay is not first
     assert len(history) == 1
     assert len(adapter._runtime._application.store.audit()) == 1
+
+
+def test_backup_repeated_request_captures_fresh_read_only_snapshot(tmp_path):
+    adapter = make_adapter(tmp_path)
+    request = {"request_id": "backup-readonly-001", "operation": "BACKUP", "source": "test"}
+    before_store = adapter._runtime._application.store.snapshot()
+    before_audit = adapter._runtime._application.store.audit()
+
+    first = adapter.handle(dict(request))
+    second = adapter.handle(dict(request))
+
+    assert first["status"] == "SEALED"
+    assert second["status"] == "SEALED"
+    assert first["snapshot_id"] != second["snapshot_id"]
+    assert adapter._runtime._application.store.snapshot() == before_store
+    assert adapter._runtime._application.store.audit() == before_audit
+
+
+def test_list_operations_are_uncached_observational_reads(tmp_path):
+    adapter = make_adapter(tmp_path)
+    calls = {"datasets": 0, "topography": 0, "marker": 0}
+
+    def list_datasets():
+        calls["datasets"] += 1
+        return [{"name": f"dataset-{calls['datasets']}"}]
+
+    def list_topography():
+        calls["topography"] += 1
+        return [{"filename": f"topo-{calls['topography']}.ltdtm"}]
+
+    def list_marker():
+        calls["marker"] += 1
+        return [{"filename": f"marker-{calls['marker']}.ltmarker"}]
+
+    adapter._runtime._datasets.list = list_datasets
+    adapter._runtime._topography.list = list_topography
+    adapter._runtime._marker_location.list = list_marker
+    adapter._runtime._datasets.active_info = lambda: {"name": "stable"}
+    before_store = adapter._runtime._application.store.snapshot()
+    before_audit = adapter._runtime._application.store.audit()
+
+    operations = [
+        ("LIST_DATASETS", "datasets", "datasets"),
+        ("LIST_TOPOGRAPHY_BACKUPS", "topography", "backups"),
+        ("LIST_MARKER_LOCATION_BACKUPS", "marker", "backups"),
+    ]
+    for operation, key, result_key in operations:
+        request = {"request_id": f"list-repeat-{key}", "operation": operation}
+        first = adapter.handle(dict(request))
+        second = adapter.handle(dict(request))
+        assert first[result_key] != second[result_key]
+        assert calls[key] == 2
+
+    assert adapter._runtime._application.store.snapshot() == before_store
+    assert adapter._runtime._application.store.audit() == before_audit
