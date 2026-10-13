@@ -85,3 +85,39 @@ def test_delete_rolls_back_runtime_when_audit_append_fails(monkeypatch):
     assert result["status"] == "REJECTED"
     assert store.get("Equipment", "EQ-ATOMIC") == before
     assert store.audit() == audit_before
+
+
+import pytest
+from mine_services.schema import DOMAIN_ENTITIES
+
+
+@pytest.mark.parametrize("entity", [*DOMAIN_ENTITIES, "_Lists"])
+def test_adapter_read_allows_only_declared_domain_entities_and_controlled_lists(entity):
+    _, _, adapter = make_adapter()
+
+    result = adapter.handle({
+        "request_id": f"read-allowed-{entity}",
+        "operation": "READ",
+        "entity": entity,
+    })
+
+    assert result["status"] == "OK"
+    if entity == "_Lists":
+        assert isinstance(result["data"], dict)
+    else:
+        assert isinstance(result["data"], list)
+
+
+@pytest.mark.parametrize("entity", ["AuditLog", "UnknownEntity", "__dict__"])
+def test_adapter_read_rejects_system_and_unknown_entities(entity):
+    _, _, adapter = make_adapter()
+
+    result = adapter.handle({
+        "request_id": f"read-denied-{entity}",
+        "operation": "READ",
+        "entity": entity,
+    })
+
+    assert result["status"] == "REJECTED"
+    assert result["errors"][0]["code"] == "ADP-007"
+    assert result["errors"][0]["field"] == "entity"
