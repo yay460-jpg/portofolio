@@ -133,8 +133,8 @@ In the inspected import layer, no explicit file-size limit or path-root allowlis
 
 ### Backup domains
 
-- Topography backups use base64 decoding with strict validation, a 128 MiB package bound, `LITHODTM` magic and supported-version checks, sanitized filename stems, containment on reads, and a five-backup retention limit.
-- Marker backups use strict base64, a 16 MiB package bound, `LT-MARKER` magic/version, JSON shape and marker validation including finite coordinate values, sanitized filename stems, containment on reads, and a five-backup retention limit.
+- Topography backups use base64 decoding with strict validation, a 128 MiB package bound, `LITHODTM` magic and supported-version checks, sanitized filename stems, containment on reads, and a five-backup retention limit. On current Evo 2 workspace code, encoded-size preflight runs before Base64 decoding, and file reads reject by `stat` plus bounded `read(limit + 1)` before materializing a full package.
+- Marker backups use strict base64, a 16 MiB package bound, `LT-MARKER` magic/version, JSON shape and marker validation including finite coordinate values, sanitized filename stems, containment on reads, and a five-backup retention limit. Encoded-size preflight and bounded file reads are now tested in the same way as Topography backups.
 - The host `/runtime` envelope currently accepts declared JSON bodies up to 180,000,000 bytes. Per-operation payload limits should be harmonized against the smaller owning service limits before any host-level limit is changed.
 
 ### Static asset boundary
@@ -188,3 +188,22 @@ This is a confirmed schema-boundary gap in the locked source behavior, not a cla
 ### Remaining scope
 
 This closes only the unexpected-entity-key path. Other restore/dataset requirements (strict row fields, controlled-list trust semantics, path policies, malformed/oversized payloads, audit/rollback cases) remain under inventory/test design. `main` remains unchanged; no operational A3 workbook was used or changed.
+
+
+## Post-baseline Evo 2 finding — backup size preflight
+
+### Reproduction
+
+Focused tests lowered each backup manager's maximum to 32 bytes and used small temporary files/encoded strings, so the tests did not allocate 16 MiB or 128 MiB payloads. The test-only run #618 reproduced all four late-check paths: `TopographyBackupManager.read/save` and `MarkerLocationBackupManager.read/save` performed a full file read or Base64 decode before rejecting the configured size (586 passed, four focused failures): https://github.com/yay460-jpg/portofolio/actions/runs/38423367223.
+
+### Workspace fix and validation
+
+- Both backup managers now reject oversized encoded Base64 input before calling `base64.b64decode`.
+- Both read paths check `stat().st_size` before opening the file and then read at most `MAX_PACKAGE_BYTES + 1`; this preserves a defense if the file changes between stat and read.
+- An intermediate implementation run #619 exposed a call-site error (`cls` used inside the Topography instance method); it was corrected in commit `0a8371d38d08ea7eae399a57d048e4ad6ca9ab86`.
+- Full Pytest #620 passed 590 tests: https://github.com/yay460-jpg/portofolio/actions/runs/38424109031.
+- All tests use pytest temporary directories and lowered test-only limits. They do not use the operational A3 workbook or user Evidence directories.
+
+### Remaining scope
+
+These checks close only size preflight/bounded-read behavior for these two backup managers. Package structure validation, concurrent file replacement, complete adapter-level request memory limits, and other input surfaces remain in EVO2-02/EVO2-03 scope.

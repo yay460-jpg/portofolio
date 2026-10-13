@@ -37,7 +37,7 @@ Evo 1 adalah track hardening historis yang sudah mencatat audit batas keamanan, 
 
 Roadmap: [Security Evolution 2 Roadmap](Security-Evolution-2-Roadmap.md). Matrix: [Attack-Surface Matrix](Attack-Surface-Matrix.md). Rute dan operasi terverifikasi: [Endpoint & Operation Inventory](Endpoint-Operations-Inventory.md).
 
-Initial narrow controls now implemented on `v41-workspace`: explicit local Origin allowlist in Host Guard, static asset allowlist for the Desktop Host, Topo3D LTDtm size preflight before array-buffer allocation, sanitized unreadable-workbook import errors, and strict unknown-entity rejection for snapshot restore/dataset loading. Full Pytest #608, #611, #609, #613, and #616 passed for their respective changes. The remaining matrix is still in progress; Evo 2 is not locked.
+Initial narrow controls now implemented on `v41-workspace`: explicit local Origin allowlist in Host Guard, static asset allowlist for the Desktop Host, Topo3D LTDtm size preflight before array-buffer allocation, sanitized unreadable-workbook import errors, strict unknown-entity rejection for snapshot restore/dataset loading, and backup preflight/bounded reads for Topography and Marker Location. Full Pytest #608, #611, #609, #613, #616, and #620 passed for their respective changes. The remaining matrix is still in progress; Evo 2 is not locked.
 
 ## Bukan tujuan
 
