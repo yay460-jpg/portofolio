@@ -169,24 +169,42 @@ class RuntimeInterface:
             raise
 
     def finalize_kpi(self, snapshot, source="runtime"):
-        result = self._kpi_history.finalize(snapshot, source=source)
-        if result.get("status") == "COMMITTED":
-            before = self._application.store.snapshot()
-            try:
-                self._application.audit_repository.append(
-                    entity="KPI_Snapshot",
-                    entity_id=result.get("snapshot_id"),
-                    action="FINALIZE",
-                    request_id=result.get("snapshot_id"),
-                    new_value=json.dumps(snapshot, default=str, sort_keys=True),
-                    source=source,
-                )
-                self._application.store.save()
-                result["audit_status"] = "APPENDED"
-            except Exception:
-                self._application.store.replace(before)
-                result["audit_status"] = "NOT_APPENDED"
-        return result
+        store = self._application.store
+        before_store = store.snapshot()
+        history_records = list(self._kpi_history._records)
+        history_path = self._kpi_history.path
+        history_file = history_path.read_bytes() if history_path and history_path.is_file() else None
+
+        try:
+            result = self._kpi_history.finalize(snapshot, source=source)
+            if result.get("status") != "COMMITTED":
+                return result
+
+            self._application.audit_repository.append(
+                entity="KPI_Snapshot",
+                entity_id=result.get("snapshot_id"),
+                action="FINALIZE",
+                request_id=result.get("snapshot_id"),
+                new_value=json.dumps(snapshot, default=str, sort_keys=True),
+                source=source,
+            )
+            store.save()
+            result["audit_status"] = "APPENDED"
+            return result
+        except Exception:
+            store.replace(before_store)
+            self._kpi_history._records = history_records
+            if history_path:
+                if history_file is None:
+                    history_path.unlink(missing_ok=True)
+                else:
+                    history_path.parent.mkdir(parents=True, exist_ok=True)
+                    history_path.write_bytes(history_file)
+            return {
+                "status": "REJECTED",
+                "reason": "KPI_FINALIZATION_FAILED",
+                "audit_status": "NOT_APPENDED",
+            }
 
     def read_kpi_snapshots(self, scope_id=None, period_id=None):
         return self._kpi_history.list(
