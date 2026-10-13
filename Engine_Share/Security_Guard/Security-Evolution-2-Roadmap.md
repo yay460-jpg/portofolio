@@ -179,3 +179,11 @@ Source inspection performed on workspace code at HEAD `30ff61b8a693aec691ab03119
 - `MineServicesBridge.kt` holds the Python module but calls `android_entry.handle()` for each request; it does not itself retain the adapter. Confirm the intended runtime/store lifecycle before moving ownership, because changing it may also affect resource usage and shared state.
 - Next audit slice: host lifecycle/replay guarantee, then READ exposure of AuditLog and controlled lists against the actual host boundary. Desktop host binds to loopback; its lack of auth middleware is a threat-model fact, not by itself a confirmed vulnerability. No production patch until a focused test reproduces the behavior and expected contract is agreed.
 - Replay cache remains unbounded and process-local in the desktop adapter; cross-restart/cross-process idempotency is not guaranteed. Release gate remains blocked; no changes promoted to `main`.
+
+
+## EVO2-02 — Android replay lifecycle reproduction and scoped correction — 2026-10-14
+
+- Full Pytest #662 FAILED as intended by the reproduction test: two calls to `android_entry.handle()` with the same request each constructed a fresh RuntimeAdapter, and the fake downstream side effect count was 2 instead of 1. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38469841530. Suite result: 1 failed, 614 passed.
+- Corrective patch committed as `8cf53b1e7b137b9322e592ab5e1d3303f599a94b`: Android host now retains RuntimeAdapter instances in a process-local map keyed by the resolved application directory, with a lock around adapter lookup/construction. This aligns the adapter cache lifetime with repeated bridge calls for a given app directory.
+- Full Pytest #663 is queued; do not mark Android replay lifecycle PASS until the workflow completes successfully. Follow-up review should assess adapter cache lifecycle when app directories change and ensure Android host shutdown/process restart semantics are documented. This remains process-local and does not provide cross-restart idempotency.
+- `main` remains locked; no promotion. Release gate remains blocked.
