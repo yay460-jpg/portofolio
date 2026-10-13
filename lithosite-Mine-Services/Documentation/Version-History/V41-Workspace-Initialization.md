@@ -59,7 +59,7 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
-- Dataset load failure rollback now restores the active controlled-list vocabulary and active-dataset metadata in addition to entity data and AuditLog, preventing a failed save of the load audit from leaving mixed runtime state.
+- Dataset load failure rollback restores controlled-list vocabulary and active-dataset metadata as well as entity data and AuditLog. Dataset save/save-as now compensate the JSON file, temp file, active-dataset pointer, and AuditLog state if workbook audit persistence fails.
 
 
 - Import staging now copies the active store's controlled vocabulary before validation, so imports honor the authoritative workbook `_Lists` values instead of staging-store defaults; coverage verifies custom values are accepted and retired defaults are rejected.

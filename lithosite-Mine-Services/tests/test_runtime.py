@@ -211,6 +211,68 @@ def test_runtime_dataset_save_overwrites_same_file_and_save_as_creates_new(tmp_p
     assert len(list(tmp_path.glob("*.json"))) == 2
 
 
+def test_runtime_dataset_save_rolls_back_file_and_audit_when_store_save_fails(tmp_path):
+    app = ApplicationService(PersistenceStore())
+    runtime = RuntimeInterface(application=app)
+    runtime._datasets.directory = tmp_path
+
+    assert app.create("Equipment", valid_equipment("E-SAVE-ROLLBACK"), "save-rollback-create")["status"] == "COMMITTED"
+    saved = runtime.save_dataset("Rollback State")
+    target = tmp_path / saved["filename"]
+    prior_file = target.read_bytes()
+    active_before = runtime._datasets.active_info()
+
+    assert app.update(
+        "Equipment", "E-SAVE-ROLLBACK", {"status": "Inactive"}, "save-rollback-update"
+    )["status"] == "COMMITTED"
+    state_before = app.store.snapshot()
+    original_save = app.store.save
+
+    def fail_save():
+        raise OSError("simulated dataset audit persistence failure")
+
+    app.store.save = fail_save
+    try:
+        with pytest.raises(OSError, match="simulated dataset audit persistence failure"):
+            runtime.save_dataset()
+    finally:
+        app.store.save = original_save
+
+    assert target.read_bytes() == prior_file
+    assert app.store.snapshot() == state_before
+    assert runtime._datasets.active_info() == active_before
+    assert not list(tmp_path.glob("*.restore-*"))
+
+
+def test_runtime_dataset_save_as_removes_new_file_when_audit_persistence_fails(tmp_path):
+    app = ApplicationService(PersistenceStore())
+    runtime = RuntimeInterface(application=app)
+    runtime._datasets.directory = tmp_path
+
+    assert app.create("Equipment", valid_equipment("E-SAVE-AS-ROLLBACK"), "save-as-create")["status"] == "COMMITTED"
+    state_before = app.store.snapshot()
+    active_before = runtime._datasets.active_info()
+    target = tmp_path / "Uncommitted Copy.json"
+    temp = target.with_suffix(".json.tmp")
+    original_save = app.store.save
+
+    def fail_save():
+        raise OSError("simulated dataset audit persistence failure")
+
+    app.store.save = fail_save
+    try:
+        with pytest.raises(OSError, match="simulated dataset audit persistence failure"):
+            runtime.save_dataset_as("Uncommitted Copy")
+    finally:
+        app.store.save = original_save
+
+    assert not target.exists()
+    assert not temp.exists()
+    assert app.store.snapshot() == state_before
+    assert runtime._datasets.active_info() == active_before
+    assert not list(tmp_path.glob("*.restore-*"))
+
+
 def test_runtime_dataset_load_replaces_runtime_data(tmp_path):
     app = ApplicationService(PersistenceStore())
     runtime = RuntimeInterface(application=app)

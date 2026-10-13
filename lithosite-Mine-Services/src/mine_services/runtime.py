@@ -1,4 +1,5 @@
 import json
+import uuid
 from pathlib import Path
 
 from .snapshot import SnapshotManager
@@ -106,31 +107,80 @@ class RuntimeInterface:
     def list_datasets(self):
         return {"status": "READY", "datasets": self._datasets.list(), "active": self._datasets.active_info()}
 
+    @staticmethod
+    def _capture_dataset_path_state(path):
+        if not path.exists():
+            return False, False, None
+        if not path.is_file():
+            return True, False, None
+        return True, True, path.read_bytes()
+
+    @staticmethod
+    def _restore_dataset_path_state(path, state):
+        existed, was_file, content = state
+        if existed:
+            if not was_file:
+                return
+            restore_path = path.with_name(
+                path.name + ".restore-" + uuid.uuid4().hex
+            )
+            try:
+                restore_path.write_bytes(content)
+                restore_path.replace(path)
+            finally:
+                if restore_path.exists():
+                    restore_path.unlink()
+            return
+        if path.is_file():
+            path.unlink()
+
+    def _commit_dataset_write(self, action, target_name, operation):
+        store = self._application.store
+        before = store.snapshot()
+        active_before = self._datasets.active_info()
+        target_path = self._datasets._path(target_name)
+        temp_path = target_path.with_suffix(".json.tmp")
+        file_states = {
+            target_path: self._capture_dataset_path_state(target_path),
+            temp_path: self._capture_dataset_path_state(temp_path),
+        }
+        try:
+            result = operation()
+            self._application.audit_repository.append(
+                entity="_System",
+                entity_id=result["dataset_id"],
+                action=action,
+                request_id=result["dataset_id"],
+                new_value=json.dumps(result, default=str, sort_keys=True),
+                source="DatasetManager",
+            )
+            store.save()
+            return result
+        except Exception:
+            store.replace(before)
+            self._datasets.active = active_before
+            for path, state in file_states.items():
+                self._restore_dataset_path_state(path, state)
+            raise
+
     def save_dataset(self, name=None):
-        result = self._datasets.save(name=name)
-        self._application.audit_repository.append(
-            entity="_System",
-            entity_id=result["dataset_id"],
-            action="DATASET_SAVE",
-            request_id=result["dataset_id"],
-            new_value=json.dumps(result, default=str, sort_keys=True),
-            source="DatasetManager",
+        active = self._datasets.active_info() or {}
+        target_name = self._datasets._safe_name(
+            name or active.get("dataset_name") or self._datasets.DEFAULT_NAME
         )
-        self._application.store.save()
-        return result
+        return self._commit_dataset_write(
+            "DATASET_SAVE",
+            target_name,
+            lambda: self._datasets.save(name=name),
+        )
 
     def save_dataset_as(self, name):
-        result = self._datasets.save_as(name=name)
-        self._application.audit_repository.append(
-            entity="_System",
-            entity_id=result["dataset_id"],
-            action="DATASET_SAVE_AS",
-            request_id=result["dataset_id"],
-            new_value=json.dumps(result, default=str, sort_keys=True),
-            source="DatasetManager",
+        target_name = self._datasets._safe_name(name)
+        return self._commit_dataset_write(
+            "DATASET_SAVE_AS",
+            target_name,
+            lambda: self._datasets.save_as(name=name),
         )
-        self._application.store.save()
-        return result
 
     def load_dataset(self, name):
         before = self._application.store.snapshot()
