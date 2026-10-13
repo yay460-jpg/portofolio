@@ -4,9 +4,11 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 
 ## Baseline saat ini
 
-- Branch kerja: `v41-workspace`
-- Commit dasar sebelum konsolidasi: `fce3f696442b1d635ec0a851691213acb9499add`
-- Status: konsolidasi nama file dan referensi; belum menjadi lock rilis baru.
+- Branch utama: `main`
+- Commit baseline terverifikasi: `d8d8e205cdebcee84d8256ae1db176e5ad9d1000`
+- Branch workspace: `v41-workspace` (perlu disinkronkan ke commit baseline terbaru setelah audit akhir).
+- Status validasi commit tersebut: Full Pytest PASS dan GitHub Pages Build/Deploy PASS.
+- Status rilis: pemeriksaan CI dasar lulus; audit referensi menyeluruh dan sinkronisasi workspace masih menjadi gate sebelum deklarasi lock baru.
 - Runtime aktif: `Artifacts/Mine-Services-Operations.html`
 - Database runtime: A.3, `Database/Mine-Services-Database-A3.xlsx`
 
@@ -47,6 +49,18 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 | `Testing/Desktop-Runtime-A3-Acceptance.md` | Prosedur acceptance runtime desktop A.3. |
 | `Testing/Reports-CSS-Cascade-Audit.md` | Catatan audit cascade CSS laporan. |
 | `Testing/Work-Control-Plan-vs-Actual-Integration-Plan.md` | Rencana integrasi Plan vs Actual; status bisnis tetap HOLD sampai ada keputusan pemilik. |
+
+## Roadmap Konsolidasi Baseline
+
+| Tahap | Target | Status |
+|---|---|---|
+| 1 | Inventaris nama file proyek dan netralisasi identitas versi pada nama file | PASS — 327 file proyek diperiksa; 0 nama file berversi terdeteksi |
+| 2 | Perbaiki indeks sejarah dan tautan yang diketahui terdampak rename | PASS — indeks diperbarui; pencarian nama lama yang diperiksa tidak menemukan hasil |
+| 3 | Normalisasi encoding dokumen Stage 16 yang menggagalkan Jekyll | PASS — kedua dokumen dikomit ulang sebagai UTF-8; isi teks dipertahankan |
+| 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS — `d8d8e205cdebcee84d8256ae1db176e5ad9d1000` |
+| 5 | Audit referensi internal secara menyeluruh dan konsistensi indeks | IN PROGRESS — lanjutkan pemeriksaan link relatif dan referensi dokumentasi |
+| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PENDING |
+| 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — jangan nyatakan lock sebelum tahap 5–6 selesai |
 
 ## Status dan batasan
 
