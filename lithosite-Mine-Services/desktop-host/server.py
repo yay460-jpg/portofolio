@@ -35,6 +35,13 @@ from security_guard import is_allowed_origin  # noqa: E402
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("MINE_SERVICES_PORT", "8765"))
 STATIC_ROOT = REPO_ROOT.resolve()
+STATIC_ALLOWED_ROOTS = (
+    Path("assets"),
+    Path("lithosite-Mine-Geologist") / "assets",
+    Path("lithosite-Mine-Services") / "Artifacts",
+    Path("lithosite-Mine-Services") / "ui",
+    Path("lithosite-Mine-Services") / "shared",
+)
 STATIC_ENTRY = os.environ.get("MINE_SERVICES_ENTRY", "/lithosite-Mine-Services/Artifacts/Mine-Services-Operations.html")
 DB_PATH = Path(os.environ.get("MINE_SERVICES_DB", str(MODULE_ROOT / "Database" / "Mine-Services-Database-A3.xlsx"))).resolve()
 EVIDENCE_ROOT = (DB_PATH.parent / "Evidence").resolve()
@@ -48,6 +55,20 @@ if SCHEMA_NAME != "A3":
         f"Unsupported MINE_SERVICES_SCHEMA: {SCHEMA_NAME}. Mine Services requires A3 as the single active schema."
     )
 SCHEMA_MODULE = schema
+def is_allowed_static_target(path: Path) -> bool:
+    """Allow only asset roots required by the Desktop Host UI."""
+    try:
+        relative = path.resolve().relative_to(STATIC_ROOT)
+    except (ValueError, OSError):
+        return False
+    if not relative.parts or any(part.startswith(".") for part in relative.parts):
+        return False
+    return any(
+        relative == allowed_root or allowed_root in relative.parents
+        for allowed_root in STATIC_ALLOWED_ROOTS
+    )
+
+
 def _is_evidence_link(path: Path) -> bool:
     """Treat symbolic links and Windows junctions as unsafe Evidence paths."""
     junction_check = getattr(path, "is_junction", None)
@@ -1132,8 +1153,13 @@ class Handler(BaseHTTPRequestHandler):
             self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-005", "message": "Invalid static path"}]}, origin)
             return
 
-        # The desktop host serves the UI and static assets, but never exposes
-        # the offline XLSX database itself.
+        # Expose only asset trees required by the Desktop Host UI; repository
+        # metadata, Python source, documentation and tests are not static assets.
+        if not is_allowed_static_target(target):
+            self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-006", "message": "Static resource not available"}]}, origin)
+            return
+
+        # Defense in depth: never expose the offline XLSX database itself.
         if "Database" in target.relative_to(STATIC_ROOT).parts or target.suffix.lower() in {".xlsx", ".xls", ".csv"}:
             self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-006", "message": "Static resource not available"}]}, origin)
             return

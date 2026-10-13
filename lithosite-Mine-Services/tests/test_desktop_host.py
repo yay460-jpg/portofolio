@@ -3,6 +3,7 @@ import sys
 import pytest
 from pathlib import Path
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 from urllib.parse import urlencode
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
@@ -242,3 +243,47 @@ def test_evidence_endpoint_rejects_disallowed_origin(monkeypatch, tmp_path):
         httpd.shutdown()
         httpd.server_close()
 
+
+
+
+def test_static_handler_serves_required_ui_assets_but_rejects_repository_files(monkeypatch, tmp_path):
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    repo_root = Path(__file__).parents[2].resolve()
+    monkeypatch.setattr(server, "STATIC_ROOT", repo_root)
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        base = f"http://{host}:{port}"
+
+        for allowed_path in (
+            "/lithosite-Mine-Services/ui/shared/runtime-client.js",
+            "/lithosite-Mine-Services/Artifacts/Mine-Services-Operations.html",
+            "/lithosite-Mine-Services/shared/geo-engine.js",
+            "/assets/lithosite-icons.svg",
+            "/lithosite-Mine-Geologist/assets/icon-192.png",
+        ):
+            with urlopen(base + allowed_path) as response:
+                assert response.status == 200, allowed_path
+                assert response.read(), allowed_path
+
+        for denied_path in (
+            "/.gitignore",
+            "/.github/workflows/mine-services-pytest.yml",
+            "/lithosite-Mine-Services/src/mine_services/adapter.py",
+            "/lithosite-Mine-Services/Documentation/Security/README.md",
+            "/lithosite-Mine-Services/tests/test_runtime.py",
+        ):
+            with pytest.raises(HTTPError) as rejected:
+                urlopen(base + denied_path)
+            assert rejected.value.code == 404, denied_path
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
