@@ -110,3 +110,23 @@ def test_marker_backup_preflights_encoded_size_before_base64_decode(monkeypatch,
     monkeypatch.setattr(backup_module.base64, "b64decode", fail_decode)
     with pytest.raises(ValueError, match="Marker Location package"):
         manager.save(oversized_encoded, filename="oversized")
+
+
+def test_marker_backup_write_failure_preserves_existing_backups(tmp_path, monkeypatch):
+    manager = MarkerLocationBackupManager(tmp_path / "marker-location")
+    existing = manager.directory / "existing.ltmarker"
+    original_payload = base64.b64decode(package([marker("ML-EXISTING")]))
+    existing.write_bytes(original_payload)
+    original_write_bytes = Path.write_bytes
+
+    def fail_new_backup(path, data):
+        if path.name.startswith("new-backup-"):
+            raise OSError("simulated disk write failure")
+        return original_write_bytes(path, data)
+
+    monkeypatch.setattr(Path, "write_bytes", fail_new_backup)
+    with pytest.raises(OSError, match="simulated disk write failure"):
+        manager.save(package([marker("ML-NEW")]), filename="new-backup")
+
+    assert existing.read_bytes() == original_payload
+    assert sorted(path.name for path in manager.directory.iterdir()) == ["existing.ltmarker"]
