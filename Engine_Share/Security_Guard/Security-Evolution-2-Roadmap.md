@@ -332,3 +332,10 @@ The UI source trace was extended beyond Operations:
 - Source review of `TopographyBackupManager.read()` and `MarkerLocationBackupManager.read()` confirms both validate the requested basename/extension, resolve the path under the configured backup directory, reject missing files, read with a size bound, and validate package structure before returning base64 content. The RuntimeInterface LOAD methods only decorate the returned payload with `status=READY`; they do not apply it to live runtime state.
 - Added isolated tests for repeated LOAD calls preserving read-only state and for retrying the same request ID after a first missing-backup failure. CI is **PENDING** for test commit `702d3d5`; do not mark PASS until Full Pytest succeeds.
 - Next after CI: check package corruption/oversize/path traversal failure contracts at adapter boundary and verify errors are translated to stable responses; then continue remaining operation inventory and cache-lifetime risk decision. `main` remains locked.
+
+
+### EVO2-02 LOAD replay red-phase correction — 2026-10-14
+
+- Full Pytest #709 exposed two incorrect test assumptions (642 passed, 2 failed): successful LOAD requests are included in the adapter replay cache, so identical same-ID requests must call the backup reader once and return the cached detached response; adapter runtime exceptions are normalized to `REJECTED` / `ADP-005`, not raised to the caller.
+- Corrected the tests to preserve the existing replay contract: success is cached; `REJECTED` responses are not cached, allowing the same request ID to retry. No production behavior was changed.
+- Corrected regression tests committed as `8387be1`; Full Pytest and docs CI are **PENDING**. Do not mark the LOAD gate PASS until CI succeeds.
