@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- Import staging now copies the active store's controlled vocabulary before validation, so imports honor the authoritative workbook `_Lists` values instead of staging-store defaults; coverage verifies custom values are accepted and retired defaults are rejected.
+
+
 - Snapshot `MERGE_RUNTIME` now deduplicates identical audit events by `audit_id` and rejects conflicting payloads for a reused audit ID before mutating runtime data; tests cover both outcomes.
 
 

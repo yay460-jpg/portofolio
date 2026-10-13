@@ -114,6 +114,13 @@ class ImportCoordinator:
     def import_dataset(self, rows):
         staged = PersistenceStore(schema_module=self.schema)
         staged.replace(self.store.snapshot())
+        # The active workbook's _Lists sheet is authoritative. The staging
+        # store must use the same vocabulary as the live store during import
+        # validation instead of falling back to in-memory defaults.
+        staged.controlled_lists = {
+            name: set(values)
+            for name, values in self.store.controlled_lists.items()
+        }
 
         duplicate_errors = []
         seen = {}

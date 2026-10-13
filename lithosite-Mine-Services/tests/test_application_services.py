@@ -73,6 +73,26 @@ def test_import_commits_valid_dataset():
     assert store.exists("Equipment", "EQ-01")
 
 
+def test_import_uses_active_store_controlled_lists():
+    store = PersistenceStore()
+    store.controlled_lists["equipment_category"] = {"Custom Mining Equipment"}
+    imp = ImportCoordinator(store)
+
+    custom_row = {
+        **valid_equipment("EQ-CUSTOM-LIST"),
+        "category": "Custom Mining Equipment",
+    }
+    accepted = imp.import_dataset({"Equipment": [custom_row]})
+    assert accepted["status"] == "COMMITTED"
+    assert store.exists("Equipment", "EQ-CUSTOM-LIST")
+
+    default_row = valid_equipment("EQ-STALE-LIST")
+    rejected = imp.import_dataset({"Equipment": [default_row]})
+    assert rejected["status"] == "REJECTED"
+    assert rejected["errors"][0]["code"] == "E010"
+    assert not store.exists("Equipment", "EQ-STALE-LIST")
+
+
 def test_snapshot_checksum_and_restore():
     app = seed()
     snap = SnapshotManager(app.store).capture()
