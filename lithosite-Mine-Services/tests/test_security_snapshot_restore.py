@@ -63,3 +63,62 @@ def test_dataset_load_rejects_unrecognized_entity_keys_without_mutating_runtime(
 
     assert result["status"] == "REJECTED"
     assert store.all("UnexpectedEntity") == []
+
+
+def _create_security_test_equipment(app):
+    row = {
+        "equipment_id": "EQ-SEC-001",
+        "unit_no": "DT-SEC-001",
+        "category": "Heavy Equipment",
+        "type": "Dump Truck",
+        "owner_type": "Owner",
+        "status": "Active",
+    }
+    result = app.create("Equipment", row, "security-seed-equipment")
+    assert result["status"] == "COMMITTED"
+
+
+def test_restore_rejects_unrecognized_row_fields_without_mutating_runtime():
+    # In-memory store only; do not open a workbook.
+    store = PersistenceStore()
+    app = ApplicationService(store=store)
+    _create_security_test_equipment(app)
+    manager = SnapshotManager(store)
+    adapter = RuntimeAdapter(RuntimeInterface(application=app))
+    snapshot = manager.capture(source="security-extra-field-test")
+    snapshot["payload"]["data"]["Equipment"]["EQ-SEC-001"]["unexpected_field"] = "not-in-a3-schema"
+    snapshot["checksum"] = manager._hash_payload(snapshot["payload"])
+
+    result = adapter.handle({
+        "request_id": "security-unknown-row-field-restore",
+        "operation": "RESTORE",
+        "mode": "REPLACE_RUNTIME",
+        "snapshot": snapshot,
+    })
+
+    assert result["status"] == "REJECTED"
+    assert store.get("Equipment", "EQ-SEC-001").get("unexpected_field") is None
+
+
+def test_dataset_load_rejects_unrecognized_row_fields_without_mutating_runtime(tmp_path):
+    # Dataset contents live in pytest's temporary directory; store stays in memory.
+    store = PersistenceStore()
+    app = ApplicationService(store=store)
+    _create_security_test_equipment(app)
+    runtime = RuntimeInterface(application=app)
+    runtime._datasets.directory = tmp_path
+    adapter = RuntimeAdapter(runtime)
+    saved = runtime.save_dataset(name="security-extra-field-dataset")
+    dataset_path = tmp_path / saved["filename"]
+    document = json.loads(dataset_path.read_text(encoding="utf-8"))
+    document["payload"]["data"]["Equipment"]["EQ-SEC-001"]["unexpected_field"] = "not-in-a3-schema"
+    dataset_path.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+
+    result = adapter.handle({
+        "request_id": "security-unknown-row-field-dataset",
+        "operation": "LOAD_DATASET",
+        "name": saved["dataset_name"],
+    })
+
+    assert result["status"] == "REJECTED"
+    assert store.get("Equipment", "EQ-SEC-001").get("unexpected_field") is None
