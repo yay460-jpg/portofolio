@@ -2,44 +2,51 @@
 
 ## Status
 
-**Initial inventory — hypotheses to test, not confirmed vulnerabilities.** Matrix ini dibuat dari struktur kode pada baseline V41 terkunci. Setiap gap harus direproduksi dalam tes terisolasi sebelum diberi status temuan.
+Initial inventory of candidate risks. **No row is a confirmed vulnerability until an isolated test reproduces unsafe behavior.** The source-level endpoint and RuntimeAdapter inventory is recorded in [Endpoint & Operation Inventory](Endpoint-Operations-Inventory.md).
 
-## Batas keselamatan pengujian
+## Safe testing boundary
 
-- Gunakan fixture database A.3 sementara dan folder Evidence sementara.
-- Jangan menguji mutation, import, restore, upload, atau delete terhadap workbook operasional.
-- Jangan mengubah baseline terkunci atau menambahkan endpoint produksi untuk keperluan tes.
-- Catat request, respons yang diharapkan, respons aktual, dan regresi yang relevan.
+- Use temporary A3 fixtures and temporary Evidence roots.
+- Never use the operational A3 workbook as a test fixture.
+- Do not test mutation, import, restore, upload, or delete against the operational database or Evidence.
+- Record exact request/input, expected response, actual response, affected owner, and regression proof.
+- Keep `main` unchanged; Evo 2 work takes place in `v41-workspace` until explicitly promoted.
 
-## Matrix awal
+## Prioritized candidate matrix
 
-| ID | Permukaan | Risiko yang diuji | Kontrol yang terlihat saat inventaris | Validasi yang dibutuhkan | Prioritas awal |
-|---|---|---|---|---|---|
-| SG-01 | Origin untuk endpoint host | Browser/page asing mencoba mengirim request ke loopback host | Host bind ke 127.0.0.1; ada `is_allowed_origin`; aturan saat ini menerima Origin kosong/`null` serta HTTP localhost/127.0.0.1 pada port apa pun | Uji origin yang diharapkan, Origin asing, null/absent, dan kompatibilitas launcher/dev server; tentukan policy sebelum mengetatkan | Tinggi |
-| SG-02 | `POST /runtime` | JSON malformed, ukuran body berlebihan, operasi tidak dikenal, request tanpa field wajib, detail error bocor | Batas ukuran body, JSON object check, Origin check, RuntimeAdapter | Uji ukuran tepi, Content-Type, body parsial, request_id/operation, response sanitization, request ke operasi READ dan mutasi dalam fixture | Tinggi |
-| SG-03 | Import/restore/dataset operations | Path keluar dari area yang diizinkan atau perubahan dataset yang tidak disengaja | Operasi diteruskan ke RuntimeAdapter; contract mengharuskan validasi aplikasi dan atomicity | Petakan allowlist path, mode restore, traversal, symlink/junction, rollback dan audit dengan fixture sementara | Tinggi |
-| SG-04 | `/evidence/upload` | Nama file/path crafted, file terlalu besar, race/symlink, jenis file palsu, upload ke record yang tidak ada | Allowlist modul, validasi record ID/nama file, ekstensi, limit per file, owner record via adapter, create-exclusive | Uji separator, nama OS-reserved, ukuran batas, payload file tidak cocok, symlink/junction, duplikasi, kegagalan tulis; jangan menulis ke Evidence operasional | Tinggi |
-| SG-05 | `/evidence/file`, `/evidence/preview`, `/evidence/list`, `/evidence/status` | Path traversal, akses file di luar Evidence, file terlalu besar, MIME/Content-Disposition tidak tepat | Allowlist module, validasi path/name, containment check, batas ukuran dan sebagian security headers | Uji path traversal encoded, symlink/junction, nama case-variant, ukuran, MIME, header dan error sanitization | Tinggi |
-| SG-06 | `POST /report-pdf` | Body malformed/berlebihan dan error detail internal terungkap | Batas body 10 MB; parser JSON; generator PDF | Uji object/list/field ekstrem, ukuran batas, karakter tak terduga, error response tanpa stack/path internal | Menengah |
-| SG-07 | Static file serving | Path traversal atau pembacaan database/config/private files | Root containment dan blokir direktori Database serta ekstensi XLSX/XLS/CSV | Uji traversal ter-encode, separator Windows, ekstensi/case variasi, symlink/junction, file di luar root | Tinggi |
-| SG-08 | RuntimeAdapter | Envelope malformed, dispatch operasi, exception sanitization, response tidak sengaja mengekspos object internal | Pemeriksaan object/request_id/operation, operation-specific required fields, generic ADP-005 untuk exception | Audit setiap operasi yang bisa mutasi atau akses file; pastikan required fields, allowlist entitas, sanitasi, idempotensi | Tinggi |
-| SG-09 | Geo Engine input | NaN/infinity, CRS/zone/hemisphere tidak valid, angka ekstrem, payload spasial rusak | Engine menghitung inverse UTM dan bearing/distance; aturan geospasial merupakan pemilik domain | Petakan semua pemanggil lalu tambahkan uji domain-range tanpa mengubah rumus valid yang sudah PASS | Menengah |
-| SG-10 | Topo3D input | File DTM/paket/mesh oversized, jumlah geometri ekstrem, nilai numerik invalid, kehabisan memori/GPU | Topo3D memiliki batas file/paket, vertex, dan triangle | Verifikasi semua parser/import path menggunakan batas itu; uji NaN/infinity, ukuran, count, malformed/truncated input dan cleanup GPU | Tinggi |
-| SG-11 | Existing map security | Payload package/tile/image berbahaya atau tidak konsisten | `map-security.js` memeriksa image data URL, tile key, koordinat tile, dan payload | Petakan pemanggil/urutan script; uji payload invalid dan pastikan import ditolak sebelum storage/render | Menengah |
-| SG-12 | Error/logging dan resource controls | Informasi lokal sensitif bocor; request berulang menyebabkan resource pressure | Beberapa endpoint mempunyai error code dan size limit; host mencetak request log | Inventaris detail error/log, ukuran seluruh endpoint, concurrent requests; rate limiting perlu disesuaikan untuk host single-user lokal | Menengah |
+| ID | Surface | Candidate risk / hypothesis | Existing control observed | Owning layer | Validation needed | Priority |
+|---|---|---|---|---|---|---|
+| SG-01 | Origin and loopback caller | Untrusted local browser origin may be accepted; absent/`null` Origin is permitted by policy | Host binds `127.0.0.1`; exact loopback origin list plus broader local-host rule | Host Guard / launcher contract | Test allowed, disallowed, absent, `null`, arbitrary localhost ports and official launcher origins; decide policy before patch | High |
+| SG-02 | `POST /runtime` | Malformed, partial, oversized or wrong-content-type request; error detail leakage | JSON object check, 180,000,000-byte declared-length bound, origin check, RuntimeAdapter envelope checks | Host Guard + RuntimeAdapter | Boundary sizes, invalid JSON/types, required fields, all operations, sanitization | High |
+| SG-03 | Import, restore, datasets, backups | Path/name escape, unsafe file package, destructive replacement, replay or non-atomic behavior | Dispatch through RuntimeAdapter and downstream services | RuntimeAdapter / owning service / persistence | Trace each operation; test temp roots, checksum/schema, rollback and audit | High |
+| SG-04 | Evidence upload | Crafted filename, unsupported content, oversized/partial body, link/race, duplicate overwrite | Allowlisted module, constrained record/name, extension allowlist, 100 MB limit, owner-record check and exclusive create | Host Guard | MIME/content policy and boundary/path failures via temporary root | High |
+| SG-05 | Evidence status/list/preview/file | Path traversal, unintended read, link/junction escape, response metadata/header issues | Allowlist, containment, direct-file checks, file size limits and some security headers | Host Guard / filesystem | Encoded and Windows path cases, links, size bounds and sanitized responses | High |
+| SG-06 | Report PDF | Oversized/deep/extreme model uses excessive CPU/memory or errors expose internals | 10 MB declared-length limit and JSON parser | Host Guard / PDF builder | Bound model depth/collections, malformed types, limits and response sanitization | Medium |
+| SG-07 | Static-file fallback | Repository-root serving may expose paths that are not intended as browser assets | Resolved path is contained under repository root; blocks Database path segment and XLSX/XLS/CSV suffixes | Host Guard / static asset ownership | Test hidden/private paths and define allowed asset roots before changing behavior | High |
+| SG-08 | RuntimeAdapter | Unsupported operation, weak operation-specific envelope or response object exposure | Required request ID/operation, operation name allowlist, operation-specific field checks, generic runtime failure envelope | RuntimeAdapter + services | Per-operation contract tests; trace validation, idempotency, audit, transaction and error boundaries | High |
+| SG-09 | Geo input | Non-finite/extreme coordinates or invalid CRS parameters reach numeric calculations | Domain calculation functions exist; two source copies currently have identical blobs | Geo Engine | Enumerate all callers and accepted ranges; isolated finite/range tests without altering validated formulas | Medium |
+| SG-10 | Topo3D input | Oversized/malformed DTM/STR/package stresses memory or GPU; malformed counts/indices reach allocations | 64 MiB DTM/STR, 128 MiB package, 300k vertex, 600k triangle limits observed | Topo3D owner | Verify all loaders enforce bounds before expensive allocation; the package loader's pre-check order is a test hypothesis | High |
+| SG-11 | Map package/import/rendering | Integrity-valid package still contains unsafe or malformed content; helper/call-site drift | Existing `map-security.js`, package contract, validation before import; script order observed | Browser Guard / Map Library | Test the real call chain, compatibility export, safe DOM and reject-before-storage behavior | Medium |
+| SG-12 | Logging and resource controls | Local paths/details disclosed or repeated/concurrent requests consume resources | Coded errors and several size caps; request logging exists | Host Guard | Trace errors/logs and concurrent load; set local-host limits based on actual single-user usage | Medium |
 
-## Aturan keputusan
+## Tracking checklist
 
-1. Status awal semua item adalah **TO VERIFY**.
-2. Item berubah menjadi **CONFIRMED** hanya jika ada tes terisolasi yang mereproduksi hasil tidak aman.
-3. Patch harus minimal, owner-nya jelas, dan memiliki regression test.
-4. Jangan membuat middleware generik yang diam-diam mengubah kontrak payload/hasil engine.
-5. Browser Guard menyediakan defense-in-depth; Host Guard, RuntimeAdapter, dan layanan domain tetap otoritatif sesuai batasnya.
-6. Setelah setiap patch: jalankan tes terkait, full Pytest, pemeriksaan file ownership/dependency, dan cek bahwa data operasional tidak disentuh.
+- [x] Host HTTP routes and method groups inventoried.
+- [x] RuntimeAdapter's 19 named operations inventoried.
+- [x] Existing host/Evidence tests identified.
+- [x] Browser security script order and observed call-sites identified.
+- [ ] Complete per-operation downstream validation/atomicity/audit tracing.
+- [ ] Complete static-file access policy and isolated negative-path tests.
+- [ ] Complete Geo caller/range inventory.
+- [ ] Complete Topo3D loader/caller comparison and isolated limit tests.
+- [ ] Create adversarial tests for prioritized rows, still using temporary data only.
+- [ ] Mark any vulnerability CONFIRMED only after reproduction; otherwise record PASS/NOT REPRODUCED or unresolved hypothesis.
 
-## Exit gate tahap inventaris
+## Change rule
 
-- [ ] Semua endpoint/operasi di host didaftar.
-- [ ] Pemilik tiap validasi/path/data dicatat.
-- [ ] Tes adversarial untuk SG-01 sampai SG-12 diprioritaskan berdasarkan bukti, bukan asumsi.
-- [ ] Runtime, import/restore, Evidence, dan UI existing tidak diubah selama tahap inventaris.
+1. Establish the expected behavior before changing implementation.
+2. Add an isolated failing test for a reproducible gap.
+3. Patch only the owning layer and preserve current contracts.
+4. Run targeted tests and full suite.
+5. Review diffs for unrelated UI/engine changes, unintended writes, and data leakage.
+6. Never promote to `main` or call Evo 2 LOCKED from a documentation update or green suite alone.

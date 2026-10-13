@@ -7,8 +7,9 @@ Evo 2 is the global, cross-product Lithosite security track. Evo 1 remains the h
 ## Current workspace and safety boundary
 
 - Work branch: `v41-workspace`.
-- Locked base commit before this documentation-only update: `698469057aa588de2c3d17a1327ef4892863994d`.
-- This stage changes documentation/architecture scaffolding only; it does not change runtime behavior.
+- Locked base before Evo 2 work: `698469057aa588de2c3d17a1327ef4892863994d`.
+- Latest documentation-only scaffold commit before this inventory update: `7d13d2046467621a2cb942e2faae103e4d9025b3`.
+- The current stage is source inventory and documentation; it does not change runtime behavior.
 - Do not change `main` during this track until the owner explicitly promotes a tested and reviewed change.
 - Use temporary A3 fixtures and temporary Evidence paths for adversarial tests.
 - Never use the operational A3 workbook as a test fixture.
@@ -18,12 +19,12 @@ Evo 2 is the global, cross-product Lithosite security track. Evo 1 remains the h
 
 | ID | Stage | Exit criteria | Status |
 |---|---|---|---|
-| EVO2-01 | Confirm nomenclature and ownership | Evo 1 / Evo 2 definitions and responsibility boundaries documented | PASS — decision accepted |
-| EVO2-02 | Complete attack-surface inventory | Endpoints, operations, input types, file paths, trust boundaries, owners, and existing controls mapped | IN PROGRESS — initial matrix exists; inventory still requires verification |
-| EVO2-03 | Design isolated adversarial tests | Tests cover each prioritized boundary using temporary database and file fixtures | BLOCKED — wait for EVO2-02 prioritization |
+| EVO2-01 | Confirm nomenclature and ownership | Evo 1 / Evo 2 definitions and responsibility boundaries documented | PASS — accepted and recorded |
+| EVO2-02 | Complete attack-surface inventory | Endpoints, operations, input types, file paths, trust boundaries, owners, and existing controls mapped | IN PROGRESS — host routes, all 19 adapter operations, host/Evidence tests, Browser Guard call-sites recorded; adapter downstream trace, static policy, Geo ranges, and full Topo3D path comparison remain |
+| EVO2-03 | Design isolated adversarial tests | Tests cover each prioritized boundary using temporary database and file fixtures | BLOCKED — wait for remaining EVO2-02 tracing and test prioritization |
 | EVO2-04 | Implement Host Guard gaps | Only confirmed gaps patched behind regression tests; Host Guard does not bypass RuntimeAdapter | BLOCKED — wait for reproducing tests |
-| EVO2-05 | Audit Browser Guard integration | Existing map-security.js call-sites, script order, export names, and tests mapped before reuse/refactor | BLOCKED — after host priority and call-site inventory |
-| EVO2-06 | Record Geo and Topo3D responsibilities | Domain rules and resource boundaries mapped; no engine migration yet | IN PROGRESS — existing controls discovered; integration audit remains |
+| EVO2-05 | Audit Browser Guard integration | Existing map-security.js call-sites, script order, export names, and tests mapped before reuse/refactor | IN PROGRESS — script order and two call-site paths observed; export compatibility and coverage remain to be verified |
+| EVO2-06 | Record Geo and Topo3D responsibilities | Domain rules and resource boundaries mapped; no engine migration yet | IN PROGRESS — Geo files have identical blobs; Topo3D copies differ; size/count bounds found and full call-path audit remains |
 | EVO2-07 | Full regression and security gate | Targeted adversarial tests, full pytest, UI/static regression, console checks, and documented PASS/HOLD | BLOCKED — requires prior stages |
 
 ## Attack surface priority
@@ -36,7 +37,7 @@ Evo 2 is the global, cross-product Lithosite security track. Evo 1 remains the h
 6. Browser package/import/rendering, including the existing map security module.
 7. Geo numeric/CRS ranges and Topo3D DTM/mesh/resource limits.
 
-Priorities are an ordering for audit and test design, not findings of confirmed vulnerabilities.
+Priorities are an ordering for audit and test design, not findings of confirmed vulnerabilities. Detailed routes, size limits, operations, existing tests, and remaining questions are in [Endpoint & Operation Inventory](Endpoint-Operations-Inventory.md).
 
 ## Security guard responsibilities
 

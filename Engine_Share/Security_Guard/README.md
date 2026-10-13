@@ -35,7 +35,7 @@ Evo 1 adalah track hardening historis yang sudah mencatat audit batas keamanan, 
 4. Jalankan tes terarah dan seluruh regression suite.
 5. Audit efek samping dan dokumentasikan PASS atau HOLD.
 
-Roadmap terperinci: [Security Evolution 2 Roadmap](Security-Evolution-2-Roadmap.md). Daftar permukaan awal: [Attack-Surface Matrix](Attack-Surface-Matrix.md).
+Roadmap: [Security Evolution 2 Roadmap](Security-Evolution-2-Roadmap.md). Matrix: [Attack-Surface Matrix](Attack-Surface-Matrix.md). Rute dan operasi terverifikasi: [Endpoint & Operation Inventory](Endpoint-Operations-Inventory.md).
 
 ## Bukan tujuan
 
