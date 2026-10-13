@@ -124,3 +124,11 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - First full-suite run after public READ allowlist failed because `tests/test_stage5.py` still asserted generic READ of `AuditLog` returned all events. This is an obsolete expectation under the new contract and is now changed to assert `REJECTED` with `ADP-007`.
 - The new `_Lists` test also assumed a wrapped `status/data` response. It now validates the established flattened controlled-list shape without changing runtime response compatibility.
 - The allowlist implementation is unchanged. Validation remains pending until the follow-up Full Pytest run passes.
+
+
+### Public READ allowlist validation result — 2026-10-14
+
+- Full Pytest #683 PASS: **631 passed in 58.18s**. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38478693120.
+- #682 failed on the earlier test commit and stale `AuditLog` expectation; #683 is the subsequent green full-suite run. Documentation runs #684 and #685 also passed.
+- Contract under test: `DOMAIN_ENTITIES` plus `_Lists` allowed; generic public READ of `AuditLog`, unknown entities and dunder-style names rejected with `ADP-007`. Dedicated KPI snapshot reads remain separate.
+- Status: adapter-level CI **PASS**; full shipped-script, bridge and host consumer compatibility audit **OPEN**. Do not mark the entire security item complete or promote the branch until that inventory and boundary validation are finished.
