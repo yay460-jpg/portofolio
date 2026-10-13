@@ -339,3 +339,10 @@ The UI source trace was extended beyond Operations:
 - Full Pytest #709 exposed two incorrect test assumptions (642 passed, 2 failed): successful LOAD requests are included in the adapter replay cache, so identical same-ID requests must call the backup reader once and return the cached detached response; adapter runtime exceptions are normalized to `REJECTED` / `ADP-005`, not raised to the caller.
 - Corrected the tests to preserve the existing replay contract: success is cached; `REJECTED` responses are not cached, allowing the same request ID to retry. No production behavior was changed.
 - Corrected regression tests committed as `8387be1`; Full Pytest and docs CI are **PENDING**. Do not mark the LOAD gate PASS until CI succeeds.
+
+
+### EVO2-02 backup LOAD rejection-boundary gate — 2026-10-14
+
+- Full Pytest #712 PASS after correcting the LOAD replay tests to the established adapter contract (successful identical requests are cached; normalized `REJECTED`/`ADP-005` failures are not cached). Documentation workflows #713 and #714 PASS.
+- Added isolated adapter-boundary regression coverage for missing files, traversal-style filenames, corrupt package contents, and oversized files for both Topography and Marker Location LOAD operations. Expected public response is a generic `REJECTED` / `ADP-005` without leaking internal exception details.
+- Test commit `b4361d7`; Full Pytest and documentation CI are **PENDING**. If green, next audit the complete operation matrix for remaining persistence/replay/error-normalization gaps. `main` remains locked.
