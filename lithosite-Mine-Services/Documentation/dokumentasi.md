@@ -5,8 +5,8 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 ## Baseline saat ini
 
 - Branch utama: `main`
-- Commit pemeriksaan terbaru: `4c706c7f122adc99dff1a5272c18aef601314882` (Pytest dan Pages Build/Deploy PASS).
-- Branch workspace: `v41-workspace`; telah tersinkron ke commit `4c706c7f122adc99dff1a5272c18aef601314882` tanpa force push.
+- Commit pemeriksaan terakhir yang lulus CI: `4c706c7f122adc99dff1a5272c18aef601314882` (Pytest dan Pages Build/Deploy PASS). Dokumentasi roadmap diperbarui pada `d1d5c33b0e2f702558c320762d0e0d7d48632eb4`; CI untuk commit dokumentasi tersebut harus diverifikasi terpisah.
+- Branch workspace: `v41-workspace`; telah disinkronkan secara fast-forward tanpa force push ke commit dokumentasi `d1d5c33b0e2f702558c320762d0e0d7d48632eb4`.
 - Status validasi commit `4c706c7f122adc99dff1a5272c18aef601314882`: Full Pytest PASS pada `main` dan `v41-workspace`; GitHub Pages Build/Deploy PASS pada `main`.
 - Status rilis: CI terbaru lulus dan workspace tersinkron. Audit seluruh referensi Markdown masih belum terbukti selesai; baseline final tetap belum di-lock.
 - Runtime aktif: `Artifacts/Mine-Services-Operations.html`
@@ -59,7 +59,7 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 | 3 | Normalisasi encoding dokumen Stage 16 yang menggagalkan Jekyll | PASS — kedua dokumen dikomit ulang sebagai UTF-8; isi teks dipertahankan |
 | 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS — commit `4c706c7f122adc99dff1a5272c18aef601314882`; Pytest `main` #569, workspace #570; Pages #2113 |
 | 5 | Audit referensi Markdown relatif pada dokumen prioritas | PARTIAL PASS — 90 dokumen diperiksa; 2 tautan lama ditemukan dan diperbaiki; 0 tautan lokal rusak pada kelompok lainnya; beberapa dokumen Markdown masih belum diperiksa |
-| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PASS — `main` dan `v41-workspace` berada pada commit `4c706c7f122adc99dff1a5272c18aef601314882` |
+| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PASS — `main` dan `v41-workspace` disinkronkan pada commit dokumentasi `d1d5c33b0e2f702558c320762d0e0d7d48632eb4` |
 | 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — audit seluruh tautan Markdown belum selesai; lakukan setelah gate audit tuntas dan CI pada commit dokumentasi final lulus |
 
 ## Status dan batasan
