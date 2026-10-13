@@ -276,3 +276,90 @@ def test_import_xlsx_rejected_attempt_is_not_cached_as_success(tmp_path):
     assert first["status"] == "REJECTED"
     assert retry["status"] == "COMMITTED"
     assert calls == ["retry.xlsx", "retry.xlsx"]
+
+
+def valid_equipment(equipment_id):
+    return {
+        "equipment_id": equipment_id,
+        "unit_no": f"DT-{equipment_id}",
+        "category": "Heavy Equipment",
+        "type": "Dump Truck",
+        "owner_type": "Owner",
+        "status": "Active",
+    }
+
+
+def test_create_replay_preserves_application_duplicate_request_contract(tmp_path):
+    adapter = make_adapter(tmp_path)
+    request = {
+        "request_id": "crud-create-replay-001",
+        "operation": "CREATE",
+        "entity": "Equipment",
+        "row": valid_equipment("EQ-CREATE-REPLAY"),
+    }
+
+    first = adapter.handle(dict(request))
+    audit_after_first = adapter._runtime._application.store.audit()
+    conflict = adapter.handle({
+        **request,
+        "row": valid_equipment("EQ-CREATE-REPLAY-SECOND"),
+    })
+
+    assert first["status"] == "COMMITTED"
+    assert conflict == {"request_id": request["request_id"], "status": "DUPLICATE_REQUEST"}
+    assert adapter._runtime._application.store.exists("Equipment", "EQ-CREATE-REPLAY")
+    assert not adapter._runtime._application.store.exists("Equipment", "EQ-CREATE-REPLAY-SECOND")
+    assert adapter._runtime._application.store.audit() == audit_after_first
+
+
+def test_update_replay_preserves_application_duplicate_request_contract(tmp_path):
+    adapter = make_adapter(tmp_path)
+    seed = adapter.handle({
+        "request_id": "crud-update-seed-001",
+        "operation": "CREATE",
+        "entity": "Equipment",
+        "row": valid_equipment("EQ-UPDATE-REPLAY"),
+    })
+    assert seed["status"] == "COMMITTED"
+    request = {
+        "request_id": "crud-update-replay-001",
+        "operation": "UPDATE",
+        "entity": "Equipment",
+        "entity_id": "EQ-UPDATE-REPLAY",
+        "patch": {"status": "Inactive"},
+    }
+
+    first = adapter.handle(dict(request))
+    audit_after_first = adapter._runtime._application.store.audit()
+    conflict = adapter.handle({**request, "patch": {"status": "Retired"}})
+
+    assert first["status"] == "COMMITTED"
+    assert conflict == {"request_id": request["request_id"], "status": "DUPLICATE_REQUEST"}
+    assert adapter._runtime._application.store.get("Equipment", "EQ-UPDATE-REPLAY")["status"] == "Inactive"
+    assert adapter._runtime._application.store.audit() == audit_after_first
+
+
+def test_delete_replay_preserves_application_duplicate_request_contract(tmp_path):
+    adapter = make_adapter(tmp_path)
+    seed = adapter.handle({
+        "request_id": "crud-delete-seed-001",
+        "operation": "CREATE",
+        "entity": "Equipment",
+        "row": valid_equipment("EQ-DELETE-REPLAY"),
+    })
+    assert seed["status"] == "COMMITTED"
+    request = {
+        "request_id": "crud-delete-replay-001",
+        "operation": "DELETE",
+        "entity": "Equipment",
+        "entity_id": "EQ-DELETE-REPLAY",
+    }
+
+    first = adapter.handle(dict(request))
+    audit_after_first = adapter._runtime._application.store.audit()
+    replay = adapter.handle(dict(request))
+
+    assert first["status"] == "COMMITTED"
+    assert replay == {"request_id": request["request_id"], "status": "DUPLICATE_REQUEST"}
+    assert not adapter._runtime._application.store.exists("Equipment", "EQ-DELETE-REPLAY")
+    assert adapter._runtime._application.store.audit() == audit_after_first
