@@ -6,6 +6,7 @@ Checker sheets, appends capacity fields, adds an empty MapMarker sheet,
 updates _System.schema_version to A.3, and validates the resulting structure.
 """
 
+import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -253,7 +254,11 @@ def migrate_a2_to_a3(source_path, target_path):
 
     try:
         workbook.save(temp_path)
-        temp_path.replace(target)
+        # Publish a complete workbook without replacing a target created by
+        # another process after the initial existence check. The temp file is
+        # in the same directory, so the hard-link install is atomic and fails
+        # with FileExistsError if the destination has appeared meanwhile.
+        os.link(temp_path, target)
     finally:
         if temp_path.exists():
             temp_path.unlink()

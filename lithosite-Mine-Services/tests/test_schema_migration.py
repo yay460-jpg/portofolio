@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -7,6 +8,7 @@ from openpyxl import Workbook, load_workbook
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from mine_services.schema import HEADERS as A3_HEADERS
+from mine_services import schema_migration as schema_migration_module
 from mine_services.schema_migration import SchemaMigrationError, migrate_a2_to_a3
 from mine_services.schema_migration_contract import A2_HEADERS, A2_SHEETS, A3_SHEETS
 
@@ -131,3 +133,25 @@ def test_stage20_migration_rejects_in_place_source_target(tmp_path):
 
     with pytest.raises(SchemaMigrationError, match="SOURCE_TARGET_MUST_DIFFER"):
         migrate_a2_to_a3(source, source)
+
+
+def test_migration_does_not_overwrite_target_created_during_commit(tmp_path, monkeypatch):
+    source = tmp_path / "source-a2.xlsx"
+    target = tmp_path / "target-a3.xlsx"
+    make_a2_workbook(source)
+    source_before = source.read_bytes()
+    target_bytes = b"created by another process"
+    real_link = os.link
+
+    def create_target_then_link(src, dst, *args, **kwargs):
+        Path(dst).write_bytes(target_bytes)
+        return real_link(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(schema_migration_module.os, "link", create_target_then_link)
+
+    with pytest.raises(FileExistsError):
+        migrate_a2_to_a3(source, target)
+
+    assert source.read_bytes() == source_before
+    assert target.read_bytes() == target_bytes
+    assert not list(tmp_path.glob("target-a3.*.xlsx"))

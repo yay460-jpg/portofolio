@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- A.2-to-A.3 migration publishes the validated temporary workbook with an atomic no-overwrite install; if a target appears after the initial check, migration fails without replacing it or mutating the source.
+
+
 - Backup listing and retention discovery now skip symlinks, non-regular entries, and paths whose metadata cannot be read, so one stale/unreadable directory entry does not break listing or save retention; targeted tests inject a stat failure for each package type.
 
 
