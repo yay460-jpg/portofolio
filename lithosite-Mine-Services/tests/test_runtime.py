@@ -2,6 +2,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from mine_services import (
@@ -225,6 +227,43 @@ def test_runtime_dataset_load_replaces_runtime_data(tmp_path):
     assert app.store.exists("Equipment", "E-ORIGINAL")
     assert not app.store.exists("Equipment", "E-SECOND")
     assert runtime.list_datasets()["active"]["dataset_name"] == "Original State"
+
+
+def test_runtime_dataset_load_failure_restores_data_lists_audit_and_active_state(tmp_path):
+    app = ApplicationService(PersistenceStore())
+    runtime = RuntimeInterface(application=app)
+    runtime._datasets.directory = tmp_path
+
+    assert app.create("Equipment", valid_equipment("E-ORIGINAL"), "dataset-load-original")["status"] == "COMMITTED"
+    app.store.controlled_lists["equipment_category"] = {"Heavy Equipment", "Stored Category"}
+    stored = runtime.save_dataset("Stored State")
+
+    assert app.create("Equipment", valid_equipment("E-SECOND"), "dataset-load-second")["status"] == "COMMITTED"
+    app.store.controlled_lists["equipment_category"] = {"Heavy Equipment", "Current Category"}
+    runtime.save_dataset_as("Current State")
+
+    before_data_and_audit = app.store.snapshot()
+    before_lists = {
+        key: set(values) for key, values in app.store.controlled_lists.items()
+    }
+    before_active = runtime._datasets.active_info()
+    original_save = app.store.save
+
+    def fail_save():
+        raise OSError("simulated audit persistence failure")
+
+    app.store.save = fail_save
+    try:
+        with pytest.raises(OSError, match="simulated audit persistence failure"):
+            runtime.load_dataset(stored["dataset_name"])
+    finally:
+        app.store.save = original_save
+
+    assert app.store.snapshot() == before_data_and_audit
+    assert app.store.controlled_lists == before_lists
+    assert runtime._datasets.active_info() == before_active
+    assert app.store.exists("Equipment", "E-ORIGINAL")
+    assert app.store.exists("Equipment", "E-SECOND")
 
 
 def valid_kpi_snapshot():

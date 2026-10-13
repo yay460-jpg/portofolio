@@ -134,6 +134,11 @@ class RuntimeInterface:
 
     def load_dataset(self, name):
         before = self._application.store.snapshot()
+        controlled_lists_before = {
+            key: set(values)
+            for key, values in self._application.store.controlled_lists.items()
+        }
+        active_dataset_before = self._datasets.active_info()
         try:
             result = self._datasets.load(name=name)
             self._application.audit_repository.append(
@@ -149,6 +154,8 @@ class RuntimeInterface:
             return result
         except Exception:
             self._application.store.replace(before)
+            self._application.store.controlled_lists = controlled_lists_before
+            self._datasets.active = active_dataset_before
             raise
 
     def finalize_kpi(self, snapshot, source="runtime"):
