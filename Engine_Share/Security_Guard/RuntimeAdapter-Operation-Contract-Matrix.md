@@ -83,3 +83,8 @@ No workbook A.3 fixtures should be used; use isolated temporary stores/files for
 - Observed Operations UI READ dependencies: `Operations`, `Checker`, `WorkFront`, `Equipment`, `_Lists`, `GlobalCapacity`, and `Maintenance`. The Operations module does not call `AuditLog`; other UI modules remain to be inventoried before deciding whether that target should be exposed.
 - Desktop host Origin checks protect browser-origin access on the runtime endpoint, but do not authenticate a local process or a request with no Origin. Current evidence is insufficient to classify the generic READ behavior as a confirmed remote vulnerability. The public entity allowlist, audit-log availability and any field-level filtering need an explicit compatibility contract before enforcement changes.
 - Status: inventory finding / policy decision pending; no code patch authorized from this evidence alone.
+
+
+### Caller inventory extension — 2026-10-14
+
+Observed UI dependencies in the modules traced: `Plans`, `Equipment`, `WorkFront`, `Operations`, `Issues`, `Maintenance`, `Checker`, `HSE`, `_Lists`, and `GlobalCapacity`. KPI history uses the separate `READ_KPI_SNAPSHOTS` operation from `ui/modules/reports/kpi-foundation.js`. No `AuditLog` read was found in the inspected operational/KPI UI modules. The all-repository consumer scan is not yet complete, so this is not authorization to remove or block AuditLog. The next step is a full call-site scan, then a tested explicit public READ allowlist if the contract supports it.
