@@ -216,3 +216,13 @@ Source inspection performed on workspace code at HEAD `30ff61b8a693aec691ab03119
 - Finding classification: **exposure boundary requires a contract decision; no confirmed remote unauthorized-read vulnerability from this trace alone.** The adapter can return audit data to callers accepted by the local-host boundary, and no role/scope authorization layer was observed. Do not patch by blocking AuditLog or filtering domain fields until all UI/report consumers and intended local trust model are inventoried.
 - Next actions: finish the all-module READ call-site inventory; identify whether AuditLog is intentionally available to the UI; define the exact public READ entity allowlist and any sensitive-field policy; then add focused positive/negative adapter/host tests before a narrowly scoped enforcement patch. Keep all tests on temporary fixtures; do not use or alter the operational A.3 workbook.
 - `main` remains locked at the V41 baseline. No production guard restriction or promotion was made in this audit slice.
+
+
+### READ caller inventory extension — 2026-10-14
+
+The UI source trace was extended beyond Operations:
+
+- Domain UI reads observed: `Plans`, `Equipment`, `WorkFront`, `Operations`, `Issues`, `Maintenance`, `Checker`, and `HSE`; several modules also read `_Lists` and `GlobalCapacity`. This supports retaining these entity/list reads for current workflows, subject to the final full-repository scan.
+- KPI UI reads snapshots through `READ_KPI_SNAPSHOTS` from `ui/modules/reports/kpi-foundation.js`; this is a separate explicit adapter operation rather than generic `READ`.
+- In the modules inspected (Operations, Dashboard, Checker, Equipment, WorkFront, Maintenance, Issues, Plans, HSE, KPI Foundation, and report history/report entry modules), no `AuditLog` UI read was found. This is strong evidence that the generic public `READ AuditLog` target may be unnecessary for these UI flows, but it is not yet proof that no other script/integration consumes it.
+- Decision remains HOLD on restriction patch until a complete caller scan and contract review. Next test design should establish the approved public READ entity set, test unknown/disallowed entities at the adapter boundary, and test any AuditLog restriction only after consumer compatibility is verified. Existing Origin 403 test is a host-boundary regression, not a substitute for entity authorization.
