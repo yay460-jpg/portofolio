@@ -106,31 +106,48 @@ class RuntimeInterface:
     def list_datasets(self):
         return {"status": "READY", "datasets": self._datasets.list(), "active": self._datasets.active_info()}
 
+    def _save_dataset_transactionally(self, save_operation, target_name, action):
+        store = self._application.store
+        before_store = store.snapshot()
+        before_active = self._datasets.active_info()
+        target_path = self._datasets._path(target_name)
+        previous_file = target_path.read_bytes() if target_path.is_file() else None
+
+        try:
+            result = save_operation()
+            self._application.audit_repository.append(
+                entity="_System",
+                entity_id=result["dataset_id"],
+                action=action,
+                request_id=result["dataset_id"],
+                new_value=json.dumps(result, default=str, sort_keys=True),
+                source="DatasetManager",
+            )
+            store.save()
+            return result
+        except Exception:
+            store.replace(before_store)
+            self._datasets.active = before_active
+            if previous_file is None:
+                target_path.unlink(missing_ok=True)
+            else:
+                target_path.write_bytes(previous_file)
+            raise
+
     def save_dataset(self, name=None):
-        result = self._datasets.save(name=name)
-        self._application.audit_repository.append(
-            entity="_System",
-            entity_id=result["dataset_id"],
-            action="DATASET_SAVE",
-            request_id=result["dataset_id"],
-            new_value=json.dumps(result, default=str, sort_keys=True),
-            source="DatasetManager",
+        target_name = name or (self._datasets.active or {}).get("dataset_name") or self._datasets.DEFAULT_NAME
+        return self._save_dataset_transactionally(
+            lambda: self._datasets.save(name=name),
+            target_name,
+            "DATASET_SAVE",
         )
-        self._application.store.save()
-        return result
 
     def save_dataset_as(self, name):
-        result = self._datasets.save_as(name=name)
-        self._application.audit_repository.append(
-            entity="_System",
-            entity_id=result["dataset_id"],
-            action="DATASET_SAVE_AS",
-            request_id=result["dataset_id"],
-            new_value=json.dumps(result, default=str, sort_keys=True),
-            source="DatasetManager",
+        return self._save_dataset_transactionally(
+            lambda: self._datasets.save_as(name=name),
+            name,
+            "DATASET_SAVE_AS",
         )
-        self._application.store.save()
-        return result
 
     def load_dataset(self, name):
         before = self._application.store.snapshot()
