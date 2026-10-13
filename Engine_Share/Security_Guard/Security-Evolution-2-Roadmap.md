@@ -316,3 +316,11 @@ The UI source trace was extended beyond Operations:
 - Full Pytest #701 PASS on Python 3.13 for commit `40bbb36`; detached cached response, caller-mutation isolation, one KPI history record, and one audit event all validated. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38483042457. Documentation workflows #702 and #703 also passed: https://github.com/yay460-jpg/portofolio/actions/runs/38483057327 and https://github.com/yay460-jpg/portofolio/actions/runs/38483062606.
 - Result: **FINALIZE_KPI identical replay gate PASS**.
 - Initial operation-set review found that adapter replay caching is intentionally applied only to selected operations (`IMPORT_XLSX`, `RESTORE`, dataset save/load, backup save/load, and `FINALIZE_KPI`), while `BACKUP` and LIST operations bypass the cache. This is not automatically a defect: classify each operation by side effects and repeatability before changing the guard. Next: trace `BACKUP`, all LIST operations, `LOAD_TOPOGRAPHY_BACKUP`, and `LOAD_MARKER_LOCATION_BACKUP` for state changes, audit writes, and retry safety. Add tests only where the expected contract is established. `main` remains locked.
+
+
+### EVO2-02 BACKUP and LIST operation contract gate — 2026-10-14
+
+- Source review confirmed `BACKUP` calls `SnapshotManager.capture()` and does not write audit or mutate the store; each call intentionally creates a fresh snapshot ID, so it should not be forced into the idempotent response cache.
+- `LIST_DATASETS`, `LIST_TOPOGRAPHY_BACKUPS`, and `LIST_MARKER_LOCATION_BACKUPS` call their respective list/read paths and are expected to be observational reads. Caching these responses would risk stale results as files change, so repeated same-ID calls are intentionally expected to execute again.
+- Added isolated regression tests: repeated `BACKUP` calls return fresh sealed snapshots without store/audit mutation; repeated LIST requests call the underlying list provider again and reflect changed data without changing store/audit state. CI is **PENDING** for test commit `f7fe053`; do not mark PASS until Full Pytest succeeds.
+- Next after CI: inspect `LOAD_TOPOGRAPHY_BACKUP` and `LOAD_MARKER_LOCATION_BACKUP` source contracts (read-only file parsing versus runtime mutation), then test retry behavior and file tampering/error handling. `main` remains locked.
