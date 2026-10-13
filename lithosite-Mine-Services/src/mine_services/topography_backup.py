@@ -1,5 +1,6 @@
 import base64
 import binascii
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -41,13 +42,41 @@ class TopographyBackupManager:
         if version != cls.SUPPORTED_VERSION:
             raise ValueError(f"Unsupported LITHODTM package version: {version}.")
 
-    def save(self, package_base64, filename=None, source="runtime"):
+    @classmethod
+    def _decode_base64(cls, package_base64):
         if not package_base64:
             raise ValueError("LT-DTM package data is required.")
+        if not isinstance(package_base64, (str, bytes, bytearray)):
+            raise ValueError("Invalid LT-DTM package encoding.")
+        max_encoded_length = 4 * ((cls.MAX_PACKAGE_BYTES + 2) // 3)
+        if len(package_base64) > max_encoded_length:
+            raise ValueError("LT-DTM package exceeds the 128 MB limit.")
         try:
-            payload = base64.b64decode(package_base64, validate=True)
+            return base64.b64decode(package_base64, validate=True)
         except (binascii.Error, ValueError) as exc:
             raise ValueError("Invalid LT-DTM package encoding.") from exc
+
+    @staticmethod
+    def _atomic_write(target, payload):
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="wb",
+                prefix="." + target.name + ".",
+                suffix=".tmp",
+                dir=target.parent,
+                delete=False,
+            ) as handle:
+                temp_path = Path(handle.name)
+                handle.write(payload)
+                handle.flush()
+            temp_path.replace(target)
+        finally:
+            if temp_path is not None and temp_path.exists():
+                temp_path.unlink()
+
+    def save(self, package_base64, filename=None, source="runtime"):
+        payload = self._decode_base64(package_base64)
         self._validate_bytes(payload)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")[:-3]
         stem = self._safe_name(filename or "topography")
@@ -56,7 +85,7 @@ class TopographyBackupManager:
         while target.exists():
             target = self.directory / f"{stem}-{stamp}-{suffix}.ltdtm"
             suffix += 1
-        target.write_bytes(payload)
+        self._atomic_write(target, payload)
         files = self._files()
         removed = []
         # Never evict the package just written. If filesystem timestamps tie,

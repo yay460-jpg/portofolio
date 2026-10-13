@@ -63,3 +63,34 @@ def test_ltdtm_backup_rejects_path_traversal(tmp_path):
     manager = TopographyBackupManager(tmp_path / "topography")
     with pytest.raises(ValueError, match="Invalid LT-DTM backup name"):
         manager.read("../outside.ltdtm")
+
+
+def test_ltdtm_backup_atomic_write_does_not_leave_partial_package(tmp_path, monkeypatch):
+    directory = tmp_path / "topography"
+    manager = TopographyBackupManager(directory)
+    payload = ltdtm_payload(body=b"must-not-be-partially-committed")
+    original_replace = Path.replace
+
+    def fail_temp_replace(path, target):
+        if path.parent == directory and path.suffix == ".tmp":
+            raise OSError("simulated backup commit failure")
+        return original_replace(path, target)
+
+    monkeypatch.setattr(Path, "replace", fail_temp_replace)
+    with pytest.raises(OSError, match="simulated backup commit failure"):
+        manager.save(base64.b64encode(payload).decode("ascii"), filename="terrain")
+
+    assert list(directory.iterdir()) == []
+
+
+def test_ltdtm_backup_rejects_oversized_base64_before_decode(tmp_path, monkeypatch):
+    manager = TopographyBackupManager(tmp_path / "topography")
+    monkeypatch.setattr(TopographyBackupManager, "MAX_PACKAGE_BYTES", 12)
+
+    def decoding_must_not_run(*args, **kwargs):
+        raise AssertionError("base64 payload should be size-checked before decoding")
+
+    monkeypatch.setattr("mine_services.topography_backup.base64.b64decode", decoding_must_not_run)
+    oversized = "A" * (4 * ((12 + 2) // 3) + 1)
+    with pytest.raises(ValueError, match="exceeds"):
+        manager.save(oversized)

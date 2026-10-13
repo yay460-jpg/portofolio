@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- Topography and Marker Location backup writes now use a same-directory temporary file and atomic replacement; base64 length is checked against the package-size limit before decoding, and fault-injection tests verify failed replacement leaves no partial backup.
+
+
 - Dataset load failure rollback restores controlled-list vocabulary and active-dataset metadata as well as entity data and AuditLog. Dataset save/save-as now compensate the JSON file, temp file, active-dataset pointer, and AuditLog state if workbook audit persistence fails.
 
 

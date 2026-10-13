@@ -2,6 +2,7 @@ import base64
 import binascii
 import json
 import math
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -130,6 +131,11 @@ class MarkerLocationBackupManager:
     def _decode(cls, package_base64):
         if not package_base64:
             raise ValueError("Marker Location package data is required.")
+        if not isinstance(package_base64, (str, bytes, bytearray)):
+            raise ValueError("Invalid Marker Location package encoding.")
+        max_encoded_length = 4 * ((cls.MAX_PACKAGE_BYTES + 2) // 3)
+        if len(package_base64) > max_encoded_length:
+            raise ValueError("Marker Location package exceeds the 16 MB limit.")
         try:
             payload = base64.b64decode(package_base64, validate=True)
         except (binascii.Error, ValueError) as exc:
@@ -156,6 +162,25 @@ class MarkerLocationBackupManager:
         cls._validate_markers(document.get("markers"))
         return payload, document
 
+    @staticmethod
+    def _atomic_write(target, payload):
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="wb",
+                prefix="." + target.name + ".",
+                suffix=".tmp",
+                dir=target.parent,
+                delete=False,
+            ) as handle:
+                temp_path = Path(handle.name)
+                handle.write(payload)
+                handle.flush()
+            temp_path.replace(target)
+        finally:
+            if temp_path is not None and temp_path.exists():
+                temp_path.unlink()
+
     def save(self, package_base64, filename=None, source="runtime"):
         payload, document = self._decode(package_base64)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")[:-3]
@@ -166,7 +191,7 @@ class MarkerLocationBackupManager:
             target = self.directory / f"{stem}-{stamp}-{suffix}.ltmarker"
             suffix += 1
 
-        target.write_bytes(payload)
+        self._atomic_write(target, payload)
         files = self._files()
         candidates = [path for path in files if path != target]
         removed = []

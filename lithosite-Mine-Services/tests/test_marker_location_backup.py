@@ -1,4 +1,5 @@
 import base64
+from pathlib import Path
 
 import pytest
 
@@ -80,3 +81,34 @@ def test_marker_backup_rejects_invalid_package_version(tmp_path):
 
     with pytest.raises(ValueError, match="Unsupported LT-MARKER"):
         manager.save(package([marker("ML-0001")], version=99))
+
+
+def test_marker_backup_atomic_write_does_not_leave_partial_package(tmp_path, monkeypatch):
+    directory = tmp_path / "marker-location"
+    manager = MarkerLocationBackupManager(directory)
+    package_data = package([marker("ML-ATOMIC-001")])
+    original_replace = Path.replace
+
+    def fail_temp_replace(path, target):
+        if path.parent == directory and path.suffix == ".tmp":
+            raise OSError("simulated backup commit failure")
+        return original_replace(path, target)
+
+    monkeypatch.setattr(Path, "replace", fail_temp_replace)
+    with pytest.raises(OSError, match="simulated backup commit failure"):
+        manager.save(package_data, filename="markers")
+
+    assert list(directory.iterdir()) == []
+
+
+def test_marker_backup_rejects_oversized_base64_before_decode(tmp_path, monkeypatch):
+    manager = MarkerLocationBackupManager(tmp_path / "marker-location")
+    monkeypatch.setattr(MarkerLocationBackupManager, "MAX_PACKAGE_BYTES", 12)
+
+    def decoding_must_not_run(*args, **kwargs):
+        raise AssertionError("base64 payload should be size-checked before decoding")
+
+    monkeypatch.setattr("mine_services.marker_location_backup.base64.b64decode", decoding_must_not_run)
+    oversized = "A" * (4 * ((12 + 2) // 3) + 1)
+    with pytest.raises(ValueError, match="exceeds"):
+        manager.save(oversized)
