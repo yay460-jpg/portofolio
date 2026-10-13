@@ -58,3 +58,36 @@ def test_finalize_kpi_rejects_reused_request_id_before_new_revision(tmp_path):
     history = adapter._runtime.read_kpi_snapshots("FLEET:ALL", "2026-10-04")
     assert len(history) == 1
     assert len(adapter._runtime._application.store.audit()) == 1
+
+
+def test_load_dataset_rejects_reused_request_id_for_different_dataset(tmp_path):
+    adapter = make_adapter(tmp_path)
+
+    first_save = adapter.handle({
+        "request_id": "replay-load-seed-001",
+        "operation": "SAVE_AS_DATASET",
+        "name": "Dataset One",
+    })
+    second_save = adapter.handle({
+        "request_id": "replay-load-seed-002",
+        "operation": "SAVE_AS_DATASET",
+        "name": "Dataset Two",
+    })
+    assert first_save["status"] == "SAVED_AS"
+    assert second_save["status"] == "SAVED_AS"
+
+    first_load = adapter.handle({
+        "request_id": "replay-load-001",
+        "operation": "LOAD_DATASET",
+        "name": "Dataset One",
+    })
+    assert first_load["status"] not in {"REJECTED", "ERROR"}
+
+    replay_with_changed_payload = adapter.handle({
+        "request_id": "replay-load-001",
+        "operation": "LOAD_DATASET",
+        "name": "Dataset Two",
+    })
+
+    assert replay_with_changed_payload["status"] == "REJECTED"
+    assert replay_with_changed_payload["errors"][0]["code"] == "ADP-006"
