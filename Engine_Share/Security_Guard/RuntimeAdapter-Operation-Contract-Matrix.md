@@ -175,3 +175,11 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - `LIST_DATASETS`, `LIST_TOPOGRAPHY_BACKUPS`, and `LIST_MARKER_LOCATION_BACKUPS` are observational reads. Their responses can legitimately change as files change; same request ID does not mean a stale cached list should be returned.
 - Added isolated tests for fresh read-only backup captures and uncached LIST behavior, including assertions that store snapshot and audit history remain unchanged. Full Pytest is **PENDING** for commit `f7fe053`; do not mark PASS before CI.
 - Next: trace `LOAD_TOPOGRAPHY_BACKUP` and `LOAD_MARKER_LOCATION_BACKUP` to verify they parse and return backup content without mutating runtime state or audit, then cover malformed/missing-file retry contracts.
+
+
+### Backup LOAD operations — 2026-10-14
+
+- `LOAD_TOPOGRAPHY_BACKUP` and `LOAD_MARKER_LOCATION_BACKUP` are read operations: manager code validates basename and extension, confines resolved path to the manager directory, checks file existence, uses bounded reads, validates package format/version (and Marker Location document contents), then returns base64 content. Runtime methods only set response status to `READY`; they do not restore/apply the package to live runtime state.
+- Full Pytest #706 PASS validates BACKUP fresh capture and LIST observational-read contracts. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38483752068; docs #707–#708 passed.
+- Added isolated tests that repeated same-ID LOAD requests are executed again without store/audit mutation and that a failed first attempt can be retried with the same request ID. Full Pytest is **PENDING** for commit `702d3d5`.
+- Next: validate adapter-level error normalization for malformed, oversized, traversal, and missing backup inputs; do not alter replay cache membership unless tests demonstrate a contract failure.
