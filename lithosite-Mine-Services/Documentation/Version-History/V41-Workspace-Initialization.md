@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- Remaining in-place A.3 header/list repairs in `PersistenceStore.load()` now write and verify a sibling workbook before atomic replacement; temporary validation checks both canonical entity headers and required controlled-list headers, with fault-injection tests proving the active XLSX bytes remain unchanged on validation/replace failures.
+
+
 - Evidence status/list/file/preview reads now share the host adapter lifecycle lock with record creation/deletion and uploads. File bytes are read while the lock is held, then responses are sent after releasing it, preventing false not-found/partial-read races without holding the runtime lock during network writes.
 
 

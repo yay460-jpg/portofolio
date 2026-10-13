@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+import pytest
 from openpyxl import load_workbook, Workbook
 from openpyxl.worksheet.table import Table
 
@@ -213,3 +214,50 @@ def test_stage20_a3_persistence_updates_plans_excel_table_after_removing_target_
     assert table.ref == "A1:J2"
     assert len(table.tableColumns) == len(HEADERS["Plans"])
     assert all(column.name != "target_hours" for column in table.tableColumns)
+
+
+def _make_a3_workbook_needing_equipment_header_migration(path):
+    make_a3_workbook(path)
+    workbook = load_workbook(path)
+    try:
+        equipment = workbook["Equipment"]
+        assert equipment.cell(row=1, column=equipment.max_column).value == HEADERS["Equipment"][-1]
+        equipment.delete_cols(equipment.max_column, 1)
+        workbook.save(path)
+    finally:
+        workbook.close()
+
+
+def test_a3_header_migration_preserves_original_if_temp_validation_fails(tmp_path, monkeypatch):
+    target = tmp_path / "a3-migration-validation-failure.xlsx"
+    _make_a3_workbook_needing_equipment_header_migration(target)
+    original = target.read_bytes()
+
+    def fail_validation(self, candidate):
+        raise ValueError("simulated migrated workbook verification failure")
+
+    monkeypatch.setattr(PersistenceStore, "_validate_workbook_contract", fail_validation)
+    with pytest.raises(ValueError, match="simulated migrated workbook verification failure"):
+        PersistenceStore(target)
+
+    assert target.read_bytes() == original
+    assert list(tmp_path.glob("a3-migration-validation-failure.*.xlsx")) == []
+
+
+def test_a3_header_migration_preserves_original_if_atomic_replace_fails(tmp_path, monkeypatch):
+    target = tmp_path / "a3-migration-replace-failure.xlsx"
+    _make_a3_workbook_needing_equipment_header_migration(target)
+    original = target.read_bytes()
+    real_replace = Path.replace
+
+    def fail_target_replace(source, destination):
+        if Path(destination) == target and Path(source) != target:
+            raise OSError("simulated active workbook replacement failure")
+        return real_replace(source, destination)
+
+    monkeypatch.setattr(Path, "replace", fail_target_replace)
+    with pytest.raises(OSError, match="simulated active workbook replacement failure"):
+        PersistenceStore(target)
+
+    assert target.read_bytes() == original
+    assert list(tmp_path.glob("a3-migration-replace-failure.*.xlsx")) == []

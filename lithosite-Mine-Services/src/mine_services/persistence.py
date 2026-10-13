@@ -289,7 +289,47 @@ class PersistenceStore:
         top_soil_migrated = self._migrate_a3_top_soil_material(wb)
         plan_hours_migrated = self._migrate_a3_remove_plans_target_hours(wb)
         if migrated or top_soil_migrated or plan_hours_migrated:
-            wb.save(self.path)
+            temp_path = None
+            try:
+                with NamedTemporaryFile(
+                    prefix=self.path.stem + ".",
+                    suffix=self.path.suffix,
+                    dir=self.path.parent,
+                    delete=False,
+                ) as handle:
+                    temp_path = Path(handle.name)
+
+                wb.save(temp_path)
+                wb.close()
+
+                candidate = load_workbook(temp_path, data_only=False)
+                try:
+                    self._validate_workbook_contract(candidate)
+                    list_rows = list(candidate["_Lists"].values)
+                    if list_rows:
+                        list_headers = {
+                            header for header in list_rows[0]
+                            if header not in (None, "")
+                        }
+                        required_lists = set(self.schema.CONTROLLED.values())
+                        missing_lists = sorted(required_lists - list_headers)
+                        if missing_lists:
+                            raise ValueError(
+                                f"CONTROLLED_LIST_MISSING:{missing_lists}"
+                            )
+                finally:
+                    candidate.close()
+
+                # Only publish the migrated workbook after its serialized form
+                # passes the same schema and controlled-list checks used by load.
+                temp_path.replace(self.path)
+            finally:
+                wb.close()
+                if temp_path is not None and temp_path.exists():
+                    temp_path.unlink()
+        else:
+            wb.close()
+
         wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)
 
