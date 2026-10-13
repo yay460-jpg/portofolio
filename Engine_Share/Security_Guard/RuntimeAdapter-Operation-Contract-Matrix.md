@@ -96,3 +96,11 @@ Observed UI dependencies in the modules traced: `Plans`, `Equipment`, `WorkFront
 - `RuntimeAdapter` has no explicit entity allowlist for generic `READ`; `RuntimeInterface.read()` returns all audit events for `AuditLog`, controlled-list values for `_Lists`, and delegates other names to the application store. Unknown entity handling currently depends on downstream behavior rather than a declared adapter contract.
 - Although the inspected UI modules do not call `AuditLog`, the full shipped-script and integration inventory is still incomplete. Do not deny AuditLog or add an entity allowlist until compatibility is established.
 - Next gate: complete caller/consumer scan, define allowed entity and field exposure, add adapter and host tests for allowed, unknown and restricted targets, then implement the smallest compatible guard. No code patch made; `main` remains locked.
+
+
+### Schema-backed READ contract proposal — 2026-10-14
+
+- The schema's ten domain entities are `Equipment`, `WorkFront`, `GlobalCapacity`, `Checker`, `Operations`, `Maintenance`, `Issues`, `Plans`, `HSE`, and `MapMarker`. `AuditLog` is a separate system/audit sheet, not a member of `DOMAIN_ENTITIES`; `_Lists` is a special controlled-list target.
+- Confirmed UI reads include Dashboard's Plans/Equipment/WorkFront/Operations/Issues/Maintenance and marker-location's MapMarker plus linked domain entities. KPI history is exposed through `READ_KPI_SNAPSHOTS`, not generic READ. Data Management uses dedicated operations for dataset and backup flows.
+- Candidate public READ allowlist: schema domain entities plus `_Lists`; default-deny generic `AuditLog` unless a real shipped integration dependency is found. Unknown entity names should be rejected explicitly at the adapter boundary rather than relying on downstream behavior.
+- This remains a proposal pending the complete shipped-script/integration scan and tests. No code changes yet; preserve compatibility and test each allowed entity before enforcement.
