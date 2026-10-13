@@ -58,7 +58,7 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 | 2 | Perbaiki indeks sejarah dan tautan yang diketahui terdampak rename | PASS — indeks diperbarui; pencarian nama lama yang diperiksa tidak menemukan hasil |
 | 3 | Normalisasi encoding dokumen Stage 16 yang menggagalkan Jekyll | PASS — kedua dokumen dikomit ulang sebagai UTF-8; isi teks dipertahankan |
 | 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS — `d8d8e205cdebcee84d8256ae1db176e5ad9d1000` |
-| 5 | Audit referensi Markdown relatif pada dokumen prioritas | PARTIAL PASS — 60 dokumen diperiksa; 2 tautan lama ditemukan dan diperbaiki; pemeriksaan tidak mencakup setiap Markdown dalam proyek |
+| 5 | Audit referensi Markdown relatif pada dokumen prioritas | PARTIAL PASS — 90 dokumen diperiksa; 2 tautan lama ditemukan dan diperbaiki; 0 tautan lokal rusak pada kelompok lainnya; beberapa dokumen Markdown masih belum diperiksa |
 | 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PENDING — lakukan setelah commit dokumentasi final dan CI-nya lulus |
 | 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — jangan nyatakan lock sebelum audit menyeluruh dan CI final selesai |
 
