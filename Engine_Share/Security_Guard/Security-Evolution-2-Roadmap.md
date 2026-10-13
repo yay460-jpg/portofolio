@@ -92,6 +92,15 @@ Evo 2 is not LOCKED by the creation of this folder or by a green suite alone. Ea
 
 All Evo 2 code patches above exist on `v41-workspace` only. `main` remains the locked V41 baseline. Each result validates the current full regression suite, but does not lock Security Evolution 2 as a whole.
 
+## Workflow #625 — RuntimeAdapter mutation atomicity tests — 2026-10-14
+
+- Test commit: `48aad9d4c776d33e3b467a7546fe861c8de58df7`.
+- Full Pytest workflow #625 completed with conclusion `success`: https://github.com/yay460-jpg/portofolio/actions/runs/38452202355.
+- Added isolated tests in `lithosite-Mine-Services/tests/test_security_runtime_atomicity.py` for CREATE, UPDATE, and DELETE when `AuditRepository.append()` raises.
+- The tests assert the expected rejected adapter response, restored entity state, and unchanged audit log. This validates the existing rollback behavior for these injected audit-append failures under the in-memory test store.
+- No production code changed in this commit. Do not interpret these three cases as complete coverage of persistence failures, dataset lifecycle, or KPI cross-store atomicity.
+- Next EVO2-02 slice: add isolated tests for dataset file creation/update followed by audit or workbook-save failure; then reproduce the observed `FINALIZE_KPI` ordering using a temporary KPI history file and forced audit/store-save failure. Determine expected recovery contract before proposing any production patch.
+
 ## Workflow #623 synchronization — 2026-10-14
 
 - Latest workspace HEAD verified: `30ff61b8a693aec691ab03119f6906f171029173` (`v41-workspace`).
