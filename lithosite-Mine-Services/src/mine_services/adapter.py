@@ -50,7 +50,7 @@ class RuntimeAdapter:
 
     def handle(self, request):
         operations = {
-            "CREATE", "UPDATE", "DELETE", "IMPORT_XLSX", "RESTORE",
+            "IMPORT_XLSX", "RESTORE",
             "SAVE_DATASET", "SAVE_AS_DATASET", "LOAD_DATASET",
             "SAVE_TOPOGRAPHY_BACKUP", "LOAD_TOPOGRAPHY_BACKUP",
             "SAVE_MARKER_LOCATION_BACKUP", "LOAD_MARKER_LOCATION_BACKUP",
