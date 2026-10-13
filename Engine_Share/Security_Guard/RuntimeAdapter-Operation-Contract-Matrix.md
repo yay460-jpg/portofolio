@@ -202,3 +202,10 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Full Pytest #715 PASS validates missing, traversal-style, corrupt, and oversized backup LOAD rejection paths. Documentation workflows #716–#717 PASS.
 - Added manager-level tests for both backup types: simulate failure writing a new backup and assert existing backup bytes/files remain unchanged. Commits `c61d472` and `b832870`; CI pending.
 - Scope is limited to a failure during creation of the new file, before retention eviction. Retention cleanup failure/partial eviction remains a distinct contract question and must not be assumed atomic without evidence.
+
+
+### Backup SAVE retention cleanup failure — 2026-10-14
+
+- Red-phase Full Pytest #722/#723 reproduced that a new backup remained after the first old-file unlink failed (647 passed, 2 failed). Documentation workflow #724 also failed because the red-phase test suite was intentionally red.
+- Both managers now remove the just-created backup when retention raises `OSError`, then re-raise (`2d2bb66`, `75c9143`). Full Pytest and docs CI pending.
+- Boundary: rollback of the new file is covered; restoration of previously deleted old files after a later unlink failure is not yet guaranteed. Separate partial-eviction test/design remains open.
