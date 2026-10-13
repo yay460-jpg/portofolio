@@ -297,3 +297,12 @@ The UI source trace was extended beyond Operations:
 - Result: **public generic READ allowlist and inspected in-repository UI/host caller compatibility PASS**. Internal tests that call `RuntimeInterface.read("AuditLog")` are intentionally testing the internal interface and must not be changed to reopen the public adapter contract. External integrations remain outside repository evidence.
 - Roadmap sync: the READ caller/compatibility subtask is closed for inspected in-repository callers. **EVO2-02 remains IN PROGRESS**; this does not complete the global security release gate.
 - Next slice (per existing EVO2-02 plan): complete the per-operation contract trace for `CREATE/UPDATE/DELETE`, `FINALIZE_KPI`, and remaining read/list operations—side effects, audit writes, replay/idempotency behavior, response contract and rollback tests. Then continue the separately open Geo, Browser Guard and Topo3D validation work. Do not promote to `main`.
+
+
+### EVO2-02 operation contract slice — CRUD replay contract — 2026-10-14
+
+- Reviewed `RuntimeAdapter.handle()`, `ApplicationService.create/update/delete`, and `TransactionManager`. CRUD is intentionally excluded from the adapter-level process-local replay cache; `ApplicationService._request_guard` owns duplicate request IDs and preserves the established `DUPLICATE_REQUEST` response. Mutations run inside the transaction manager; audit append or store-save failure should roll back store state.
+- Existing isolated atomicity tests cover CREATE/UPDATE/DELETE rollback when audit append fails, and separate tests cover KPI finalize and dataset save rollback on audit/persistence failure. These are existing evidence and were not rerun as part of this documentation update.
+- Added three isolated replay regression tests to `tests/test_security_request_replay.py` for CREATE, UPDATE and DELETE: reuse a successful request ID with a changed payload or repeat a delete, assert the exact `DUPLICATE_REQUEST` contract, no second mutation, and no additional audit entry. Test fixtures use a fresh in-memory store and temporary runtime directories.
+- Validation status: **PENDING CI** for commit `cbcd8c0`; do not count the new tests as PASS until the full suite is green.
+- Next after CI: inspect any failure; if green, continue operation inventory for READ/LIST and file operations, then document the process-local replay cache's unbounded lifetime and restart limitation as a design gap. Do not implement durable idempotency without a defined storage/ownership/recovery contract. `main` remains locked.
