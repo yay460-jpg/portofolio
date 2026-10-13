@@ -40,3 +40,11 @@ Before implementing a generic replay cache, define:
 5. How operation-specific IDs (dataset names, backup filenames, KPI snapshot IDs) interact with the envelope request ID.
 
 No workbook A.3 fixtures should be used; use isolated temporary stores/files for adversarial tests.
+
+
+## Workflow #641 — request ID replay reproduction — 2026-10-14
+
+- Full Pytest #641 failed as intended: 602 passed, 2 failed. `SAVE_AS_DATASET` accepted a second request using the same `request_id` with a different dataset name (`SAVED_AS`); `FINALIZE_KPI` accepted the same ID with a changed snapshot and returned `COMMITTED`. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38456045507.
+- A process-local adapter guard was added on `v41-workspace`: successful side-effecting requests cache their canonical request fingerprint and response; the same ID and same payload returns a detached copy of the original response, while the same ID with a different payload is rejected with `ADP-006`.
+- This is process-local protection only. It does not survive process restart and is not a durable exactly-once guarantee. The cache's lifetime/size and durable replay semantics remain open design items; do not claim cross-process idempotency.
+- Patch validation is pending in Full Pytest #643: https://github.com/yay460-jpg/portofolio/actions/runs/38456354989. Do not mark replay protection PASS until CI succeeds.
