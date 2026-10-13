@@ -475,7 +475,8 @@ def test_load_backup_operations_are_read_only_and_retryable(tmp_path):
         assert second["status"] == "READY"
         assert first["format"] == expected_format
         assert second["format"] == expected_format
-        assert calls[key] == 2
+        # Successful LOAD requests are idempotently replayed from the adapter cache.
+        assert calls[key] == 1
 
     assert adapter._runtime._application.store.snapshot() == before_store
     assert adapter._runtime._application.store.audit() == before_audit
@@ -503,12 +504,10 @@ def test_load_backup_failed_attempt_can_retry_same_request_id(tmp_path):
             "operation": operation,
             "filename": filename,
         }
-        try:
-            adapter.handle(dict(request))
-        except FileNotFoundError:
-            pass
-        else:
-            raise AssertionError("first load attempt should fail")
+        first = adapter.handle(dict(request))
+        assert first["status"] == "REJECTED"
+        assert first["errors"][0]["code"] == "ADP-005"
+        # Rejected/error responses must not be cached; same request ID can retry.
         retry = adapter.handle(dict(request))
         assert retry["status"] == "READY"
         assert calls[key] == 2
