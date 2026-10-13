@@ -48,3 +48,11 @@ No workbook A.3 fixtures should be used; use isolated temporary stores/files for
 - A process-local adapter guard was added on `v41-workspace`: successful side-effecting requests cache their canonical request fingerprint and response; the same ID and same payload returns a detached copy of the original response, while the same ID with a different payload is rejected with `ADP-006`.
 - This is process-local protection only. It does not survive process restart and is not a durable exactly-once guarantee. The cache's lifetime/size and durable replay semantics remain open design items; do not claim cross-process idempotency.
 - Full Pytest #642 and #643 exposed a regression: the initial guard intercepted CRUD duplicate requests and returned `REJECTED` instead of the established `DUPLICATE_REQUEST` contract. This was corrected by excluding CRUD from the adapter-level cache and preserving ApplicationService ownership. The corrected patch is committed as `6c68b1e582e95469a2bc76a4447fc26cec6ccc7d`; its Full Pytest validation is pending. Do not mark replay protection PASS until CI succeeds.
+
+
+
+## Workflow #651–#652 — backup replay and identical-request semantics — 2026-10-14
+
+- Full Pytest #651 PASS: Marker Location backup rejects a reused request ID with a different package and does not create a second backup file: https://github.com/yay460-jpg/portofolio/actions/runs/38458423985.
+- Full Pytest #652 PASS: identical `SAVE_AS_DATASET` request replay returns a detached cached response and does not create a second dataset or audit entry: https://github.com/yay460-jpg/portofolio/actions/runs/38458690154.
+- Next isolated tests cover `IMPORT_XLSX` request-ID payload conflicts and detached cached responses. These use a stubbed import call to test adapter replay behavior without requiring an operational workbook. Validation is pending.
