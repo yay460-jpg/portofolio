@@ -36,7 +36,55 @@ class RuntimeAdapter:
     }
 
     def __init__(self, runtime=None):
+        from threading import RLock
         self._runtime = runtime or RuntimeInterface()
+        self._request_lock = RLock()
+        self._request_results = {}
+
+    @staticmethod
+    def _request_fingerprint(request):
+        import hashlib
+        import json
+        payload = json.dumps(request, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str)
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+    def handle(self, request):
+        operations = {
+            "CREATE", "UPDATE", "DELETE", "IMPORT_XLSX", "RESTORE",
+            "SAVE_DATASET", "SAVE_AS_DATASET", "LOAD_DATASET",
+            "SAVE_TOPOGRAPHY_BACKUP", "LOAD_TOPOGRAPHY_BACKUP",
+            "SAVE_MARKER_LOCATION_BACKUP", "LOAD_MARKER_LOCATION_BACKUP",
+            "FINALIZE_KPI",
+        }
+        if not isinstance(request, dict):
+            return self._handle_request(request)
+        request_id = request.get("request_id")
+        if request.get("operation") not in operations or request_id in (None, ""):
+            return self._handle_request(request)
+        fingerprint = self._request_fingerprint(request)
+        with self._request_lock:
+            prior = self._request_results.get(request_id)
+            if prior:
+                prior_fingerprint, prior_response = prior
+                if prior_fingerprint != fingerprint:
+                    return {
+                        "request_id": request_id,
+                        "status": "REJECTED",
+                        "errors": [{
+                            "code": "ADP-006",
+                            "field": "request_id",
+                            "message": "request_id already used with a different payload",
+                        }],
+                    }
+                from copy import deepcopy
+                return deepcopy(prior_response)
+            response = self._handle_request(request)
+            if response.get("status") not in {"REJECTED", "ERROR"} and not response.get("errors"):
+                from copy import deepcopy
+                self._request_results[request_id] = (fingerprint, deepcopy(response))
+            return response
+
+    def _handle_request(self, request):
 
     @staticmethod
     def _required(request, field):
