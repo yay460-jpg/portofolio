@@ -104,3 +104,16 @@ Observed UI dependencies in the modules traced: `Plans`, `Equipment`, `WorkFront
 - Confirmed UI reads include Dashboard's Plans/Equipment/WorkFront/Operations/Issues/Maintenance and marker-location's MapMarker plus linked domain entities. KPI history is exposed through `READ_KPI_SNAPSHOTS`, not generic READ. Data Management uses dedicated operations for dataset and backup flows.
 - Candidate public READ allowlist: schema domain entities plus `_Lists`; default-deny generic `AuditLog` unless a real shipped integration dependency is found. Unknown entity names should be rejected explicitly at the adapter boundary rather than relying on downstream behavior.
 - This remains a proposal pending the complete shipped-script/integration scan and tests. No code changes yet; preserve compatibility and test each allowed entity before enforcement.
+
+
+### Public generic READ enforcement — 2026-10-14
+
+| Request target | Adapter contract | Evidence |
+|---|---|---|
+| Ten schema domain entities | Allow generic READ | Parameterized adapter regression test |
+| `_Lists` | Allow generic READ | Parameterized adapter regression test |
+| `AuditLog` | Reject generic READ with `ADP-007` | Parameterized negative test |
+| Unknown / dunder-style entity | Reject generic READ with `ADP-007` | Parameterized negative test |
+| KPI history | Separate `READ_KPI_SNAPSHOTS` operation; not part of generic READ allowlist | Existing operation contract |
+
+Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface.read("AuditLog")` remains an internal API and is not covered by the public adapter allowlist; broader authorization requires a separate internal-call-path review. Full Pytest validation is pending after the implementation commits.
