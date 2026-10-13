@@ -13,6 +13,8 @@ def make_adapter(tmp_path):
     runtime = RuntimeInterface(application=ApplicationService(PersistenceStore()))
     runtime._datasets.directory = tmp_path / "datasets"
     runtime._datasets.directory.mkdir(parents=True, exist_ok=True)
+    runtime._topography.directory = tmp_path / "topography"
+    runtime._marker_location.directory = tmp_path / "marker-location"
     runtime._kpi_history = KPIHistoryStore(tmp_path / "KPI-History.json")
     return RuntimeAdapter(runtime)
 
