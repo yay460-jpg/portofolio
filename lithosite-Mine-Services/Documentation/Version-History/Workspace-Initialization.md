@@ -97,4 +97,4 @@ The global Target vs Actual decision reminder in `Documentation/README.md` is au
 
 ## Desktop Runtime acceptance procedure
 
-The local operational workbook acceptance procedure is maintained in [V40 Desktop Runtime Acceptance — Operational A3](../Testing/V40-Desktop-Runtime-A3-Acceptance.md). This gate remains **OPEN / NOT EVIDENCED** until Gates A–C have recorded local evidence. CI uses a temporary fixture and does not establish the state of the operational workbook. No workbook reset, replacement, or mutation is authorized by this checklist; write testing requires a verified backup and explicit approval.
+The local operational workbook acceptance procedure is maintained in [V40 Desktop Runtime Acceptance — Operational A3](../Testing/Desktop-Runtime-A3-Acceptance.md). This gate remains **OPEN / NOT EVIDENCED** until Gates A–C have recorded local evidence. CI uses a temporary fixture and does not establish the state of the operational workbook. No workbook reset, replacement, or mutation is authorized by this checklist; write testing requires a verified backup and explicit approval.
