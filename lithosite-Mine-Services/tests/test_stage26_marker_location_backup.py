@@ -1,4 +1,5 @@
 import base64
+from pathlib import Path
 
 import pytest
 
@@ -80,3 +81,32 @@ def test_marker_backup_rejects_invalid_package_version(tmp_path):
 
     with pytest.raises(ValueError, match="Unsupported LT-MARKER"):
         manager.save(package([marker("ML-0001")], version=99))
+
+
+def test_marker_backup_preflights_file_size_before_reading(tmp_path, monkeypatch):
+    manager = MarkerLocationBackupManager(tmp_path / "marker-location")
+    monkeypatch.setattr(MarkerLocationBackupManager, "MAX_PACKAGE_BYTES", 32)
+    target = manager.directory / "oversized.ltmarker"
+    target.write_bytes(b"x" * 64)
+
+    def fail_read_bytes(_self):
+        raise AssertionError("backup read allocated file bytes before size preflight")
+
+    monkeypatch.setattr(Path, "read_bytes", fail_read_bytes)
+    with pytest.raises(ValueError, match="Marker Location package"):
+        manager.read(target.name)
+
+
+def test_marker_backup_preflights_encoded_size_before_base64_decode(monkeypatch, tmp_path):
+    import mine_services.marker_location_backup as backup_module
+
+    manager = MarkerLocationBackupManager(tmp_path / "marker-location")
+    monkeypatch.setattr(MarkerLocationBackupManager, "MAX_PACKAGE_BYTES", 32)
+    oversized_encoded = "A" * 48
+
+    def fail_decode(*_args, **_kwargs):
+        raise AssertionError("base64 decode ran before encoded-size preflight")
+
+    monkeypatch.setattr(backup_module.base64, "b64decode", fail_decode)
+    with pytest.raises(ValueError, match="Marker Location package"):
+        manager.save(oversized_encoded, filename="oversized")

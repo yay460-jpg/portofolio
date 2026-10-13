@@ -63,3 +63,32 @@ def test_ltdtm_backup_rejects_path_traversal(tmp_path):
     manager = TopographyBackupManager(tmp_path / "topography")
     with pytest.raises(ValueError, match="Invalid LT-DTM backup name"):
         manager.read("../outside.ltdtm")
+
+
+def test_ltdtm_backup_preflights_file_size_before_reading(tmp_path, monkeypatch):
+    manager = TopographyBackupManager(tmp_path / "topography")
+    monkeypatch.setattr(TopographyBackupManager, "MAX_PACKAGE_BYTES", 32)
+    target = manager.directory / "oversized.ltdtm"
+    target.write_bytes(ltdtm_payload(body=b"x" * 64))
+
+    def fail_read_bytes(_self):
+        raise AssertionError("backup read allocated file bytes before size preflight")
+
+    monkeypatch.setattr(Path, "read_bytes", fail_read_bytes)
+    with pytest.raises(ValueError, match="LT-DTM package"):
+        manager.read(target.name)
+
+
+def test_ltdtm_backup_preflights_encoded_size_before_base64_decode(tmp_path, monkeypatch):
+    import mine_services.topography_backup as backup_module
+
+    manager = TopographyBackupManager(tmp_path / "topography")
+    monkeypatch.setattr(TopographyBackupManager, "MAX_PACKAGE_BYTES", 32)
+    oversized_encoded = "A" * 48
+
+    def fail_decode(*_args, **_kwargs):
+        raise AssertionError("base64 decode ran before encoded-size preflight")
+
+    monkeypatch.setattr(backup_module.base64, "b64decode", fail_decode)
+    with pytest.raises(ValueError, match="LT-DTM package"):
+        manager.save(oversized_encoded, filename="oversized")
