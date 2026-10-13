@@ -141,3 +141,12 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Shared runtime client intentionally forwards the request; entity authorization is enforced server-side in `RuntimeAdapter`. KPI snapshot history uses dedicated `READ_KPI_SNAPSHOTS`, not generic READ.
 - No generic public `READ AuditLog` call was found in the inspected shipped UI/host paths. Internal `RuntimeInterface.read("AuditLog")` remains a separate API and is not covered by the public adapter guard.
 - Result: **inspected in-repository caller compatibility PASS**. Broader assurance for external integrations and direct internal Python consumers remains OPEN. Regression gate: exercise Marker Location's dynamic source entities and Desktop Evidence owner checks through the adapter/host before declaring the overall READ item complete.
+
+
+### READ caller compatibility gate — CI verified — 2026-10-14
+
+- Full Pytest #690 and #691 both completed successfully on Python 3.13, including the complete test-suite step. Documentation workflows #688, #689, and #692 also completed successfully.
+- Regression tests cover Marker Location's dynamic READ source entity set (`Equipment`, `WorkFront`, `HSE`) and Desktop Evidence owner mapping (`TargetPlan -> Plans`, `HSE -> HSE`, `Maintenance -> Maintenance`). Unsupported Evidence modules are rejected before dispatch.
+- Internal source review found no production direct generic READ caller for `AuditLog` under `src/mine_services`: the only generic `RuntimeInterface.read()` dispatch is the guarded `RuntimeAdapter`; direct `runtime.read("AuditLog")` uses are internal tests. Internal audit production behavior uses the audit repository/store API. External Python imports and out-of-repository consumers cannot be established from this repository scan.
+- **Status: inspected in-repository public READ compatibility PASS.** The internal RuntimeInterface remains a separate internal API; this matrix does not claim universal authorization for arbitrary Python code.
+- Next contract-matrix slice: finish per-operation side-effect/audit/replay/rollback mapping for `CREATE`, `UPDATE`, `DELETE`, `FINALIZE_KPI`, and remaining list/read operations. EVO2-02 remains IN PROGRESS; no `main` promotion.
