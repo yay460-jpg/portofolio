@@ -88,3 +88,11 @@ No workbook A.3 fixtures should be used; use isolated temporary stores/files for
 ### Caller inventory extension — 2026-10-14
 
 Observed UI dependencies in the modules traced: `Plans`, `Equipment`, `WorkFront`, `Operations`, `Issues`, `Maintenance`, `Checker`, `HSE`, `_Lists`, and `GlobalCapacity`. KPI history uses the separate `READ_KPI_SNAPSHOTS` operation from `ui/modules/reports/kpi-foundation.js`. No `AuditLog` read was found in the inspected operational/KPI UI modules. The all-repository consumer scan is not yet complete, so this is not authorization to remove or block AuditLog. The next step is a full call-site scan, then a tested explicit public READ allowlist if the contract supports it.
+
+
+### Adapter READ policy decision gate — 2026-10-14
+
+- Latest green documentation Full Pytest workflows #669–#673 confirm the READ caller-trace records are synchronized; they are not evidence of a completed authorization fix.
+- `RuntimeAdapter` has no explicit entity allowlist for generic `READ`; `RuntimeInterface.read()` returns all audit events for `AuditLog`, controlled-list values for `_Lists`, and delegates other names to the application store. Unknown entity handling currently depends on downstream behavior rather than a declared adapter contract.
+- Although the inspected UI modules do not call `AuditLog`, the full shipped-script and integration inventory is still incomplete. Do not deny AuditLog or add an entity allowlist until compatibility is established.
+- Next gate: complete caller/consumer scan, define allowed entity and field exposure, add adapter and host tests for allowed, unknown and restricted targets, then implement the smallest compatible guard. No code patch made; `main` remains locked.
