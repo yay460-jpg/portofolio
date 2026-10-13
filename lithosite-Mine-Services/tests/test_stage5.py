@@ -128,13 +128,10 @@ def test_adapter_read_backup_and_dry_run_restore():
         "operation": "READ",
         "entity": "AuditLog",
     })
-    assert audit["status"] == "OK"
-    assert any(
-        event["entity"] == "Equipment"
-        and event["entity_id"] == "EQ-DATA"
-        and event["action"] == "CREATE"
-        for event in audit["data"]
-    )
+    # Public generic READ must not expose the complete audit log.
+    assert audit["status"] == "REJECTED"
+    assert audit["errors"][0]["code"] == "ADP-007"
+    assert audit["errors"][0]["field"] == "entity"
 
     backup = adapter.handle({
         "request_id": "adapter-backup",
