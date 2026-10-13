@@ -207,3 +207,11 @@ Focused tests lowered each backup manager's maximum to 32 bytes and used small t
 ### Remaining scope
 
 These checks close only size preflight/bounded-read behavior for these two backup managers. Package structure validation, concurrent file replacement, complete adapter-level request memory limits, and other input surfaces remain in EVO2-02/EVO2-03 scope.
+
+
+## EVO2 READ exposure boundary — 2026-10-14
+
+- `POST /runtime` dispatches READ through the RuntimeAdapter. The host rejects a present Origin outside the allowlist; existing host tests exercise a disallowed-origin READ and expect HTTP 403. Missing Origin is intentionally allowed for local non-browser clients, so Origin validation is not authentication.
+- The adapter/runtime read surface returns full domain rows, all AuditLog events, and controlled-list values. Existing isolation tests verify that mutating detached results does not mutate stored state; they do not restrict which callers may read them.
+- Operations UI source confirms the need for `Operations`, `Checker`, `WorkFront`, `Equipment`, `_Lists`, `GlobalCapacity`, and `Maintenance`. AuditLog was not observed in that module; the full UI call-site inventory is still open.
+- No guard restriction was applied. Next: complete cross-module caller inventory and agree the public READ entity/field contract, then write focused regression tests. Treat this as a local trust-boundary/design question until a reproducible unauthorized path is demonstrated.
