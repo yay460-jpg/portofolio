@@ -75,3 +75,11 @@ No workbook A.3 fixtures should be used; use isolated temporary stores/files for
 - Full Pytest #659 PASS: rollback evidence and replay retry findings synchronized in the roadmap. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38468756229.
 - Remaining replay design limitation: RuntimeAdapter keeps _request_results as an unbounded process-local dictionary. It is cleared on process restart, has no explicit expiry/capacity, and cannot guarantee cross-process idempotency. The lock currently spans the downstream operation, so the implications for throughput should be reviewed before changing it.
 - Next inventory slice: assess READ exposure for AuditLog and controlled lists and map the actual caller/authentication boundary before proposing restrictions. Do not assume this adapter is internet-facing or that the read is unauthorized without tracing the host/call-sites.
+
+
+## EVO2 READ exposure trace — 2026-10-14
+
+- `RuntimeAdapter` accepts `READ` and forwards the entity name to `RuntimeInterface.read()`; the domain path returns all rows or the requested primary-key row. `AuditLog` and `_Lists` are special read targets. Detached-copy tests cover audit events, controlled lists and nested KPI snapshots, but are integrity/isolation tests rather than authorization tests.
+- Observed Operations UI READ dependencies: `Operations`, `Checker`, `WorkFront`, `Equipment`, `_Lists`, `GlobalCapacity`, and `Maintenance`. The Operations module does not call `AuditLog`; other UI modules remain to be inventoried before deciding whether that target should be exposed.
+- Desktop host Origin checks protect browser-origin access on the runtime endpoint, but do not authenticate a local process or a request with no Origin. Current evidence is insufficient to classify the generic READ behavior as a confirmed remote vulnerability. The public entity allowlist, audit-log availability and any field-level filtering need an explicit compatibility contract before enforcement changes.
+- Status: inventory finding / policy decision pending; no code patch authorized from this evidence alone.
