@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- The host now keeps record mutation and Plan/HSE/Maintenance Evidence-folder lifecycle in the same adapter critical section. Evidence uploads re-check the owner record and commit the file under that same lock, preventing DELETE/CREATE from racing between record verification and upload.
+
+
 - RuntimeAdapter now serializes complete requests with a re-entrant lock because the desktop host shares one adapter across ThreadingHTTPServer workers. A deterministic concurrency test verifies a read cannot enter the shared runtime while a write transaction is blocked.
 
 

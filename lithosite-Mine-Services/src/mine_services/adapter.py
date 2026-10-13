@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from threading import RLock
 
 from .runtime import RuntimeInterface
@@ -101,6 +102,18 @@ class RuntimeAdapter:
                 "message": str(error),
             }],
         }
+
+    @contextmanager
+    def exclusive(self):
+        """Serialize a host-side effect with all operations on this adapter."""
+        with self._lock:
+            yield
+
+    def handle_with_postprocess(self, request, postprocess):
+        """Keep request handling and its dependent side effect in one critical section."""
+        with self._lock:
+            result = self._handle(request)
+            return postprocess(request, result)
 
     def handle(self, request):
         with self._lock:

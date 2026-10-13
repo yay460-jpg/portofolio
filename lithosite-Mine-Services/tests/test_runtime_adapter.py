@@ -227,3 +227,65 @@ def test_adapter_serializes_shared_runtime_requests_across_threads():
     assert read_entered.is_set()
     assert results["create"]["status"] == "COMMITTED"
     assert results["read"]["status"] == "OK"
+
+
+def test_adapter_holds_runtime_lock_through_dependent_postprocess():
+    create_entered = Event()
+    release_postprocess = Event()
+    second_started = Event()
+    read_entered = Event()
+
+    class BlockingRuntime:
+        def create(self, entity, row, request_id):
+            create_entered.set()
+            return {"status": "COMMITTED", "entity_id": row["equipment_id"]}
+
+        def read(self, entity, entity_id=None):
+            read_entered.set()
+            return {"status": "OK", "data": []}
+
+    adapter = RuntimeAdapter(BlockingRuntime())
+    results = {}
+
+    def postprocess(request, result):
+        if request.get("operation") == "CREATE":
+            if not release_postprocess.wait(timeout=3):
+                raise AssertionError("test did not release post-processing")
+        return result
+
+    first = Thread(
+        target=lambda: results.setdefault("create", adapter.handle_with_postprocess({
+            "request_id": "postprocess-create",
+            "operation": "CREATE",
+            "entity": "Equipment",
+            "row": valid_equipment("EQ-POSTPROCESS"),
+        }, postprocess))
+    )
+
+    def run_read():
+        second_started.set()
+        results["read"] = adapter.handle({
+            "request_id": "postprocess-read",
+            "operation": "READ",
+            "entity": "Equipment",
+        })
+
+    second = Thread(target=run_read)
+    first.start()
+    try:
+        assert create_entered.wait(timeout=1), "create request did not enter runtime"
+        second.start()
+        assert second_started.wait(timeout=1), "read request did not start"
+        read_entered_while_postprocessing = read_entered.wait(timeout=0.05)
+    finally:
+        release_postprocess.set()
+        first.join(timeout=3)
+        if second.ident is not None:
+            second.join(timeout=3)
+
+    assert not first.is_alive()
+    assert not second.is_alive()
+    assert not read_entered_while_postprocessing
+    assert read_entered.is_set()
+    assert results["create"]["status"] == "COMMITTED"
+    assert results["read"]["status"] == "OK"

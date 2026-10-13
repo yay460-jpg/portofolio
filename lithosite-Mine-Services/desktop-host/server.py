@@ -1202,50 +1202,53 @@ class Handler(BaseHTTPRequestHandler):
             if length > MAX_EVIDENCE_FILE_BYTES:
                 self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB per-file limit"}]}, origin)
                 return
-            try:
-                record_exists = _evidence_record_exists(module, record_id)
-            except Exception:
-                self._json(503, {"status": "REJECTED", "errors": [{"code": "HOST-013", "message": f"{module} record could not be verified through RuntimeAdapter"}]}, origin)
-                return
-            if not record_exists:
-                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": f"{module} record not found"}]}, origin)
-                return
-
             body = self.rfile.read(length)
             if len(body) != length:
                 self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Evidence upload was incomplete"}]}, origin)
                 return
+            # The request body is buffered before acquiring the runtime lock.
+            # The record existence check and file commit then share one critical
+            # section with CREATE/DELETE plus their Evidence folder lifecycle.
             target_file = None
             created_file = False
-            try:
-                target_dir = ensure_evidence_record_directory(module, record_id)
-                target_file = target_dir / filename
-                if target_file.is_symlink():
+            with ADAPTER.exclusive():
+                try:
+                    record_exists = _evidence_record_exists(module, record_id)
+                except Exception:
+                    self._json(503, {"status": "REJECTED", "errors": [{"code": "HOST-013", "message": f"{module} record could not be verified through RuntimeAdapter"}]}, origin)
+                    return
+                if not record_exists:
+                    self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": f"{module} record not found"}]}, origin)
+                    return
+                try:
+                    target_dir = ensure_evidence_record_directory(module, record_id)
+                    target_file = target_dir / filename
+                    if target_file.is_symlink():
+                        self._json(409, {"status": "REJECTED", "errors": [{"code": "HOST-012", "message": "An Evidence item with this filename already exists"}]}, origin)
+                        return
+                    with target_file.open("xb") as stream:
+                        created_file = True
+                        stream.write(body)
+                except FileExistsError:
                     self._json(409, {"status": "REJECTED", "errors": [{"code": "HOST-012", "message": "An Evidence item with this filename already exists"}]}, origin)
                     return
-                with target_file.open("xb") as stream:
-                    created_file = True
-                    stream.write(body)
-            except FileExistsError:
-                self._json(409, {"status": "REJECTED", "errors": [{"code": "HOST-012", "message": "An Evidence item with this filename already exists"}]}, origin)
-                return
-            except (OSError, ValueError):
-                if created_file and target_file is not None:
-                    try:
-                        target_file.unlink(missing_ok=True)
-                    except OSError:
-                        pass
-                self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be saved"}]}, origin)
-                return
-            self._json(201, {
-                "status": "READY",
-                "module": module,
-                "record_id": record_id,
-                "folder": f"Database/Evidence/{module}/{record_id}",
-                "filename": filename,
-                "size": len(body),
-                "mime_type": guess_type(filename)[0] or "application/octet-stream",
-            }, origin)
+                except (OSError, ValueError):
+                    if created_file and target_file is not None:
+                        try:
+                            target_file.unlink(missing_ok=True)
+                        except OSError:
+                            pass
+                    self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be saved"}]}, origin)
+                    return
+                self._json(201, {
+                    "status": "READY",
+                    "module": module,
+                    "record_id": record_id,
+                    "folder": f"Database/Evidence/{module}/{record_id}",
+                    "filename": filename,
+                    "size": len(body),
+                    "mime_type": guess_type(filename)[0] or "application/octet-stream",
+                }, origin)
             return
 
         if post_path == "/evidence/preview":
@@ -1348,8 +1351,10 @@ class Handler(BaseHTTPRequestHandler):
             self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-003", "message": "Invalid JSON request"}]}, origin)
             return
         try:
-            result = ADAPTER.handle(request)
-            result = apply_plan_evidence_lifecycle(request, result)
+            result = ADAPTER.handle_with_postprocess(
+                request,
+                apply_plan_evidence_lifecycle,
+            )
             self._json(200, result, origin)
         except Exception:
             self._json(500, {
