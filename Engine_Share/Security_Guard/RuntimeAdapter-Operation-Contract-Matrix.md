@@ -160,3 +160,9 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Full Pytest #696 completed successfully on Python 3.13 for commit `cbcd8c0`; full suite PASS. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38482028953. Documentation workflows #697–#698 also passed.
 - Next test gate: identical `FINALIZE_KPI` replay must return a detached cached response and must not create another KPI history revision or audit event. Then continue READ/LIST and file-operation contract inventory.
 - Current cache design limitation remains: selected non-CRUD mutating operations use an unbounded, process-local cache protected by a lock across downstream execution. It has no expiry/capacity and is cleared on restart; it is not durable exactly-once protection. Keep this as a documented design risk pending an explicit idempotency persistence/ownership decision.
+
+
+### FINALIZE_KPI identical replay regression — 2026-10-14
+
+- Added isolated test `test_finalize_kpi_same_request_returns_detached_cached_response`: identical request ID and payload should return the original committed result from the adapter cache as a detached copy, without adding another KPI history record or audit event. It also mutates the first returned object to prove cache isolation.
+- Full Pytest validation is **PENDING** for commit `40bbb36`. Do not claim identical KPI replay PASS until the full suite completes. The existing changed-payload conflict and KPI rollback tests remain separate evidence.
