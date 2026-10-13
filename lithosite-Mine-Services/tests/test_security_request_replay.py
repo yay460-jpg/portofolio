@@ -363,3 +363,25 @@ def test_delete_replay_preserves_application_duplicate_request_contract(tmp_path
     assert replay == {"request_id": request["request_id"], "status": "DUPLICATE_REQUEST"}
     assert not adapter._runtime._application.store.exists("Equipment", "EQ-DELETE-REPLAY")
     assert adapter._runtime._application.store.audit() == audit_after_first
+
+
+def test_finalize_kpi_same_request_returns_detached_cached_response(tmp_path):
+    adapter = make_adapter(tmp_path)
+    request = {
+        "request_id": "replay-kpi-same-001",
+        "operation": "FINALIZE_KPI",
+        "snapshot": snapshot(81.8, 77.7, "V-KPI-REPLAY-SAME"),
+    }
+
+    first = adapter.handle(dict(request))
+    assert first["status"] == "COMMITTED"
+    first["audit_status"] = "MUTATED_BY_CALLER"
+
+    replay = adapter.handle(dict(request))
+    history = adapter._runtime.read_kpi_snapshots("FLEET:ALL", "2026-10-04")
+
+    assert replay["status"] == "COMMITTED"
+    assert replay["audit_status"] == "APPENDED"
+    assert replay is not first
+    assert len(history) == 1
+    assert len(adapter._runtime._application.store.audit()) == 1
