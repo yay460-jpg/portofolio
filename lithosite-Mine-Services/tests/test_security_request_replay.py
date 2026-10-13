@@ -182,3 +182,21 @@ def test_marker_location_backup_rejects_reused_request_id_for_different_package(
     assert replay_with_changed_payload["status"] == "REJECTED"
     assert replay_with_changed_payload["errors"][0]["code"] == "ADP-006"
     assert len(list((tmp_path / "marker-location").glob("*.ltmarker"))) == 1
+
+
+def test_save_as_dataset_same_request_id_and_payload_returns_cached_response(tmp_path):
+    adapter = make_adapter(tmp_path)
+    request = {
+        "request_id": "replay-save-same-001",
+        "operation": "SAVE_AS_DATASET",
+        "name": "Stable Review",
+    }
+
+    first = adapter.handle(dict(request))
+    replay = adapter.handle(dict(request))
+
+    assert first["status"] == "SAVED_AS"
+    assert replay == first
+    assert replay is not first
+    assert len(list((tmp_path / "datasets").glob("*.json"))) == 1
+    assert len(adapter._runtime._application.store.audit()) == 1
