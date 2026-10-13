@@ -47,6 +47,8 @@ class DatasetManager:
         payload = document.get("payload")
         if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
             raise ValueError("DATASET_PAYLOAD_INVALID")
+        if set(payload["data"]) - set(self.store.schema.DOMAIN_ENTITIES):
+            raise ValueError("DATASET_ENTITY_UNSUPPORTED")
 
         candidate = PersistenceStore(schema_module=self.store.schema)
         controlled_lists = document.get("controlled_lists")

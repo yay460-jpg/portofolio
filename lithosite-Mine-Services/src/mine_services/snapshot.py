@@ -73,6 +73,8 @@ class SnapshotManager:
         payload = snapshot.get("payload")
         if not isinstance(payload, dict) or not isinstance(payload.get("data"), dict):
             return False
+        if set(payload["data"]) - set(self.schema.DOMAIN_ENTITIES):
+            return False
 
         for entity in self.schema.DOMAIN_ENTITIES:
             rows = payload["data"].get(entity, {})
