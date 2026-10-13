@@ -20,4 +20,6 @@ Kontrol tersebut harus diuji sebelum dirapikan. Jangan menganggap setiap dugaan 
 
 ## Status
 
-Tahap Evo 2 sekarang adalah audit dan pembuatan attack-surface matrix. Belum ada perubahan pada `server.py` atau konfigurasi operasi.
+Evo 2 Host Guard control #1 implemented in `security_guard.py` and imported by `desktop-host/server.py`: accepts the configured host origin and the documented development origins on ports 5500/5501; rejects literal `null` and unlisted ports/origins; a missing Origin header remains supported for local non-browser clients. Unit tests and endpoint regression tests cover the policy.
+
+This is a CORS/browser-origin boundary, **not authentication** for other processes running as the same local user. The change does not modify endpoint payload contracts, RuntimeAdapter routing, database behavior, or Evidence lifecycle. Remaining host/file risks are still under audit.

@@ -24,7 +24,7 @@ Observed server configuration:
 - No authentication/authorization middleware was found in the inspected `Handler`; this is a local-host design fact to include in the threat model, not by itself a confirmed vulnerability.
 - Core writes are routed through `RuntimeAdapter`; UI is not given a direct persistence object.
 
-### Origin policy as implemented
+### Origin policy at the locked V41 baseline
 
 `is_allowed_origin()` accepts:
 
@@ -158,3 +158,10 @@ The static fallback resolves paths under `STATIC_ROOT`, where the configured roo
 - [ ] Finish Topo3D copy/caller comparison and create isolated resource-boundary tests.
 - [ ] Finish Geo input caller inventory and range/finite-value contract.
 - [ ] Promote only reproduced gaps to confirmed findings.
+
+
+## Current Evo 2 Host Guard change
+
+On the active `v41-workspace`, `Engine_Share/Security_Guard/Host_Guard/security_guard.py` now owns the Origin policy. It permits the configured host origin (default `127.0.0.1:8765` and `localhost:8765`) plus the documented development origins on ports `5500` and `5501`. The literal `null` origin, empty Origin, arbitrary localhost ports, non-loopback hosts and HTTPS variants are rejected on routes that enforce Origin checks. Missing Origin remains allowed for non-browser local clients. Unit and host endpoint regression tests cover accepted origins and rejection of external/`null`/unlisted loopback origins.
+
+This is a narrow hardening change, not authentication. A process already executing as the same local user remains outside the protection provided by browser CORS policy. The host still binds only to loopback; no LAN exposure was added.

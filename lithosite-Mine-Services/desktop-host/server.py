@@ -24,8 +24,13 @@ SRC_ROOT = MODULE_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+HOST_SECURITY_ROOT = REPO_ROOT / "Engine_Share" / "Security_Guard" / "Host_Guard"
+if str(HOST_SECURITY_ROOT) not in sys.path:
+    sys.path.insert(0, str(HOST_SECURITY_ROOT))
+
 from mine_services import PersistenceStore, RuntimeAdapter, RuntimeInterface, ApplicationService  # noqa: E402
 from mine_services import schema  # noqa: E402
+from security_guard import is_allowed_origin  # noqa: E402
 
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("MINE_SERVICES_PORT", "8765"))
@@ -43,26 +48,6 @@ if SCHEMA_NAME != "A3":
         f"Unsupported MINE_SERVICES_SCHEMA: {SCHEMA_NAME}. Mine Services requires A3 as the single active schema."
     )
 SCHEMA_MODULE = schema
-ALLOWED_ORIGINS = {
-    "http://127.0.0.1:5500",
-    "http://localhost:5500",
-    "http://127.0.0.1:5501",
-    "http://localhost:5501",
-}
-
-def is_allowed_origin(origin: str | None) -> bool:
-    if origin in ALLOWED_ORIGINS:
-        return True
-    if not origin or origin == "null":
-        return True
-    try:
-        from urllib.parse import urlparse
-        parsed = urlparse(origin)
-        return parsed.scheme == "http" and parsed.hostname in {"127.0.0.1", "localhost"}
-    except Exception:
-        return False
-
-
 def _is_evidence_link(path: Path) -> bool:
     """Treat symbolic links and Windows junctions as unsafe Evidence paths."""
     junction_check = getattr(path, "is_junction", None)
@@ -971,7 +956,7 @@ class Handler(BaseHTTPRequestHandler):
         path = unquote(self.path.split("?", 1)[0])
 
         if path == "/evidence/status":
-            if origin and not is_allowed_origin(origin):
+            if origin is not None and not is_allowed_origin(origin):
                 self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
                 return
             query = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
@@ -1011,7 +996,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if path in {"/evidence/list", "/evidence/file"}:
-            if origin and not is_allowed_origin(origin):
+            if origin is not None and not is_allowed_origin(origin):
                 self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
                 return
 
@@ -1173,7 +1158,7 @@ class Handler(BaseHTTPRequestHandler):
         post_path = unquote(self.path.split("?", 1)[0])
 
         if post_path == "/evidence/upload":
-            if origin and not is_allowed_origin(origin):
+            if origin is not None and not is_allowed_origin(origin):
                 self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
                 return
             query = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
@@ -1249,7 +1234,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if post_path == "/evidence/preview":
-            if origin and not is_allowed_origin(origin):
+            if origin is not None and not is_allowed_origin(origin):
                 self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
                 return
             try:
@@ -1313,7 +1298,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if self.path == "/report-pdf":
-            if origin and not is_allowed_origin(origin):
+            if origin is not None and not is_allowed_origin(origin):
                 self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
                 return
             try:
@@ -1334,7 +1319,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path != "/runtime":
             self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Endpoint not found"}]}, origin)
             return
-        if origin and not is_allowed_origin(origin):
+        if origin is not None and not is_allowed_origin(origin):
             self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
             return
         try:

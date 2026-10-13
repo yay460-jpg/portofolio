@@ -1,5 +1,6 @@
 import json
 import sys
+import pytest
 from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode
@@ -102,7 +103,8 @@ def test_runtime_endpoint_routes_to_adapter(monkeypatch, tmp_path):
         httpd.server_close()
 
 
-def test_disallowed_origin_is_rejected(monkeypatch, tmp_path):
+@pytest.mark.parametrize("origin", ["http://evil.example", "http://localhost:8766", "http://127.0.0.1:5502", "null"])
+def test_disallowed_origin_is_rejected(monkeypatch, tmp_path, origin):
     db_path = tmp_path / "desktop-host-a3.xlsx"
     _make_test_database(db_path)
     monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
@@ -118,7 +120,7 @@ def test_disallowed_origin_is_rejected(monkeypatch, tmp_path):
         request = Request(
             f"http://{host}:{port}/runtime",
             data=json.dumps({"request_id":"origin-test","operation":"READ","entity":"Equipment"}).encode(),
-            headers={"Content-Type":"application/json","Origin":"http://evil.example"},
+            headers={"Content-Type":"application/json","Origin":origin},
             method="POST",
         )
         try:
