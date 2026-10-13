@@ -61,6 +61,37 @@ class MarkerLocationBackupManager:
         return (safe or "marker-location")[:96]
 
     @classmethod
+    def _preflight_encoded_size(cls, package_base64):
+        if not isinstance(package_base64, (str, bytes, bytearray)):
+            raise ValueError("Invalid Marker Location package encoding.")
+        try:
+            encoded = package_base64.encode("ascii") if isinstance(package_base64, str) else bytes(package_base64)
+        except (UnicodeEncodeError, ValueError, TypeError) as exc:
+            raise ValueError("Invalid Marker Location package encoding.") from exc
+
+        # Reject excessive transport data before allocating the decoded payload.
+        max_encoded_bytes = 4 * ((cls.MAX_PACKAGE_BYTES + 2) // 3)
+        if len(encoded) > max_encoded_bytes:
+            raise ValueError("Marker Location package exceeds the allowed size limit.")
+        padding = 2 if encoded.endswith(b"==") else 1 if encoded.endswith(b"=") else 0
+        estimated_decoded_bytes = (len(encoded) // 4) * 3 - padding
+        if estimated_decoded_bytes > cls.MAX_PACKAGE_BYTES:
+            raise ValueError("Marker Location package exceeds the allowed size limit.")
+        return package_base64
+
+    @classmethod
+    def _read_bounded(cls, target):
+        # Stat first, then read at most limit + 1 to remain safe if the file
+        # changes between stat and open.
+        if target.stat().st_size > cls.MAX_PACKAGE_BYTES:
+            raise ValueError("Marker Location package exceeds the allowed size limit.")
+        with target.open("rb") as stream:
+            payload = stream.read(cls.MAX_PACKAGE_BYTES + 1)
+        if len(payload) > cls.MAX_PACKAGE_BYTES:
+            raise ValueError("Marker Location package exceeds the allowed size limit.")
+        return payload
+
+    @classmethod
     def _validate_markers(cls, markers):
         if not isinstance(markers, list):
             raise ValueError("Marker Location package must contain a marker list.")
@@ -130,6 +161,7 @@ class MarkerLocationBackupManager:
     def _decode(cls, package_base64):
         if not package_base64:
             raise ValueError("Marker Location package data is required.")
+        cls._preflight_encoded_size(package_base64)
         try:
             payload = base64.b64decode(package_base64, validate=True)
         except (binascii.Error, ValueError) as exc:
@@ -200,7 +232,7 @@ class MarkerLocationBackupManager:
         if not target.is_file():
             raise FileNotFoundError("Marker Location backup not found.")
 
-        payload = target.read_bytes()
+        payload = self._read_bounded(target)
         _, document = self._decode(base64.b64encode(payload).decode("ascii"))
         result = self._info(target)
         result["marker_count"] = len(document["markers"])
