@@ -14,7 +14,9 @@ def make_adapter(tmp_path):
     runtime._datasets.directory = tmp_path / "datasets"
     runtime._datasets.directory.mkdir(parents=True, exist_ok=True)
     runtime._topography.directory = tmp_path / "topography"
+    runtime._topography.directory.mkdir(parents=True, exist_ok=True)
     runtime._marker_location.directory = tmp_path / "marker-location"
+    runtime._marker_location.directory.mkdir(parents=True, exist_ok=True)
     runtime._kpi_history = KPIHistoryStore(tmp_path / "KPI-History.json")
     return RuntimeAdapter(runtime)
 
