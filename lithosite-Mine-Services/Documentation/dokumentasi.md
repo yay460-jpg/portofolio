@@ -5,10 +5,10 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 ## Baseline saat ini
 
 - Branch utama: `main`
-- Commit pemeriksaan terakhir yang lulus CI: `4c706c7f122adc99dff1a5272c18aef601314882` (Pytest dan Pages Build/Deploy PASS). Dokumentasi roadmap diperbarui pada `d1d5c33b0e2f702558c320762d0e0d7d48632eb4`; CI untuk commit dokumentasi tersebut harus diverifikasi terpisah.
+- Commit dokumentasi terbaru yang terverifikasi: `273947cb6bf35dd3de28c47f442bcf6199274920`; Full Pytest PASS pada `main` #573 dan `v41-workspace` #574, serta Pages Build/Deploy PASS #2115.
 - Branch workspace: `v41-workspace`; telah disinkronkan secara fast-forward tanpa force push ke commit dokumentasi `d1d5c33b0e2f702558c320762d0e0d7d48632eb4`.
-- Status validasi commit `4c706c7f122adc99dff1a5272c18aef601314882`: Full Pytest PASS pada `main` dan `v41-workspace`; GitHub Pages Build/Deploy PASS pada `main`.
-- Status rilis: CI terbaru lulus dan workspace tersinkron. Audit seluruh referensi Markdown masih belum terbukti selesai; baseline final tetap belum di-lock.
+- Status validasi commit `273947cb6bf35dd3de28c47f442bcf6199274920`: Full Pytest PASS pada `main` dan `v41-workspace`; GitHub Pages Build/Deploy PASS pada `main`.
+- Status rilis: CI terbaru lulus dan workspace tersinkron. Audit tautan prioritas sudah diperluas, tetapi pemeriksaan menyeluruh atas semua referensi Markdown belum dinyatakan selesai; baseline final tetap belum di-lock.
 - Runtime aktif: `Artifacts/Mine-Services-Operations.html`
 - Database runtime: A.3, `Database/Mine-Services-Database-A3.xlsx`
 
@@ -57,14 +57,14 @@ Dokumen ini adalah indeks utama sejarah dan baseline proyek. Nama versi di dalam
 | 1 | Inventaris nama file proyek dan netralisasi identitas versi pada nama file | PASS — 327 file proyek diperiksa; 0 nama file berversi terdeteksi |
 | 2 | Perbaiki indeks sejarah dan tautan yang diketahui terdampak rename | PASS — indeks diperbarui; pencarian nama lama yang diperiksa tidak menemukan hasil |
 | 3 | Normalisasi encoding dokumen Stage 16 yang menggagalkan Jekyll | PASS — kedua dokumen dikomit ulang sebagai UTF-8; isi teks dipertahankan |
-| 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS — commit `4c706c7f122adc99dff1a5272c18aef601314882`; Pytest `main` #569, workspace #570; Pages #2113 |
-| 5 | Audit referensi Markdown relatif pada dokumen prioritas | PARTIAL PASS — 90 dokumen diperiksa; 2 tautan lama ditemukan dan diperbaiki; 0 tautan lokal rusak pada kelompok lainnya; beberapa dokumen Markdown masih belum diperiksa |
-| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PASS — `main` dan `v41-workspace` disinkronkan pada commit dokumentasi `d1d5c33b0e2f702558c320762d0e0d7d48632eb4` |
+| 4 | Full Pytest dan GitHub Pages build/deploy pada commit yang sama | PASS — commit `273947cb6bf35dd3de28c47f442bcf6199274920`; Pytest `main` #573, workspace #574; Pages #2115 |
+| 5 | Audit referensi Markdown relatif pada dokumen prioritas | PARTIAL PASS — 90 dokumen diperiksa sebelumnya; 2 tautan lama diperbaiki; audit tambahan 13 dokumen tidak menemukan tautan lokal rusak; beberapa dokumen masih perlu diperiksa untuk menutup cakupan 98 file |
+| 6 | Sinkronkan `v41-workspace` dari baseline `main` tanpa force push | PASS — `main` dan `v41-workspace` disinkronkan pada commit dokumentasi `273947cb6bf35dd3de28c47f442bcf6199274920` |
 | 7 | Verifikasi final dan catat keputusan lock baseline | PENDING — audit seluruh tautan Markdown belum selesai; lakukan setelah gate audit tuntas dan CI pada commit dokumentasi final lulus |
 
 ## Status dan batasan
 
-Audit tautan pada 60 dokumen prioritas menemukan dua referensi yang masih menunjuk nama file lama. Keduanya telah diperbarui: kontrak Dump Truck Retase pada panduan hauling dan bukti penerimaan Desktop Runtime A.3 pada catatan inisialisasi workspace. Pemeriksaan tersebut adalah audit prioritas, bukan klaim bahwa seluruh tautan dalam semua dokumen telah diaudit.
+Audit tautan pada 90 dokumen prioritas sebelumnya menemukan dua referensi yang masih menunjuk nama file lama. Keduanya telah diperbarui: kontrak Dump Truck Retase pada panduan hauling dan bukti penerimaan Desktop Runtime A.3 pada catatan inisialisasi workspace. Audit tambahan pada 13 dokumen juga tidak menemukan tautan lokal rusak. Pemeriksaan menyeluruh seluruh 98 file Markdown masih menjadi gate sebelum lock final.
 
 Indeks ini tidak menyatakan ulang semua keputusan historis sebagai keputusan aktif. Untuk perilaku aktif, ikuti README proyek dan kontrak bersama yang berlaku.
 
