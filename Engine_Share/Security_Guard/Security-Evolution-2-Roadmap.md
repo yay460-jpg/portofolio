@@ -92,6 +92,12 @@ Evo 2 is not LOCKED by the creation of this folder or by a green suite alone. Ea
 
 All Evo 2 code patches above exist on `v41-workspace` only. `main` remains the locked V41 baseline. Each result validates the current full regression suite, but does not lock Security Evolution 2 as a whole.
 
+## Workflow #630 — KPI cross-store atomicity reproduction — 2026-10-14
+
+- Red-phase workflow #630 failed as intended: 597 passed, 2 failed. Both new tests showed `finalize_kpi()` returned `COMMITTED` after audit append or workbook save failed, while the KPI history had already been committed: https://github.com/yay460-jpg/portofolio/actions/runs/38453697482.
+- Production fix committed as `2fe5eb29b4c16d32d85d801b3537f28dbe400ef2` in `runtime.py`. The flow now snapshots the workbook store, KPI history records, and prior KPI history file bytes; on failure it restores those states and returns `REJECTED` with `KPI_FINALIZATION_FAILED` / `NOT_APPENDED`.
+- Full Pytest #631 is queued/pending at the time of this note: https://github.com/yay460-jpg/portofolio/actions/runs/38454081053. Do not mark this fix PASS until the workflow completes successfully.
+- After #631, inspect the tests for both audit failure and workbook save failure, then continue the RuntimeAdapter operation inventory and READ exposure audit.
 ## Workflow #628 — dataset save atomicity fix — 2026-10-14
 
 - Red-phase workflow #627 reproduced two failures: dataset JSON remained after audit append failed, and after workbook store save failed. The run recorded 595 passed and 2 failed: https://github.com/yay460-jpg/portofolio/actions/runs/38452998298.
