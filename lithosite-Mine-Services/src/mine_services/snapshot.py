@@ -100,6 +100,12 @@ class SnapshotManager:
             for pk, row in rows.items():
                 if not isinstance(row, dict) or row.get(self.schema.PKS[entity]) != pk:
                     return [{"code": "VAL-E003", "field": self.schema.PKS[entity], "message": "Snapshot primary key mismatch"}]
+                if set(row) - set(self.schema.HEADERS[entity]):
+                    return [{
+                        "code": "VAL-E011",
+                        "field": entity,
+                        "message": "Snapshot row contains unsupported fields",
+                    }]
                 candidate.insert(entity, pk, row)
 
         errors = []

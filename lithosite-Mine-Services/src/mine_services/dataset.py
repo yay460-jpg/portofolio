@@ -63,6 +63,8 @@ class DatasetManager:
             for pk, row in rows.items():
                 if not isinstance(row, dict) or row.get(self.store.schema.PKS[entity]) != pk:
                     raise ValueError("DATASET_PRIMARY_KEY_INVALID:" + entity)
+                if set(row) - set(self.store.schema.HEADERS[entity]):
+                    raise ValueError("DATASET_FIELD_UNSUPPORTED:" + entity)
                 candidate.insert(entity, pk, row)
 
         from .validation import ValidationEngine
