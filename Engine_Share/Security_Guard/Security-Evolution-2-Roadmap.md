@@ -252,3 +252,10 @@ The UI source trace was extended beyond Operations:
 - Added parameterized regression coverage in `tests/test_security_runtime_atomicity.py` for all ten domain entities, `_Lists`, `AuditLog`, an unknown entity, and a dunder-style name.
 - Scope is intentionally limited to external `RuntimeAdapter.handle(operation=READ)`. The internal `RuntimeInterface.read("AuditLog")` method remains available for internal tests/services; do not describe this as universal audit-data authorization until all internal call paths and host adapters are reviewed.
 - Validation gate: wait for the Full Pytest run triggered by these commits. No baseline promotion; main remains locked. If CI reveals any legitimate caller of generic READ AuditLog, investigate the caller and add a dedicated scoped operation rather than broadly reopening AuditLog.
+
+
+### READ guard red-phase correction — 2026-10-14
+
+- Full Pytest runs #678–#681 failed after the guard was introduced. Root causes were test-contract mismatches, not an observed failure of the allowlist: (1) an existing Stage 5 test still expected generic READ of `AuditLog` to succeed; (2) the new `_Lists` case incorrectly assumed a `status/data` wrapper, while the established controlled-list response is flattened; (3) the allowed-entity test assumed each empty domain read returns a list, which is not the adapter's current response shape for all targets.
+- Corrected regression expectations: the legacy audit test now asserts `REJECTED / ADP-007`; the `_Lists` test checks the existing flattened controlled-list payload; domain entity cases check their response shape only where stable. Production guard remains unchanged in this correction.
+- Follow-up Full Pytest runs triggered by commits `d6051c0` and `baf3d74` are the next gate. Do not call the public READ guard PASS until a green Full Pytest run and review of all remaining callers.
