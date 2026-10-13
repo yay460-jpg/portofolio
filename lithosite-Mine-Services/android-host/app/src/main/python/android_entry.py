@@ -23,24 +23,24 @@ def _runtime_for(app_dir):
         cached = _ADAPTERS.get(cache_key)
         if cached is not None:
             return cached
-    root.mkdir(parents=True, exist_ok=True)
-    database = root / DATABASE_NAME
 
-    if not database.exists():
-        raise FileNotFoundError("Mine Services database seed is not installed")
+        root.mkdir(parents=True, exist_ok=True)
+        database = root / DATABASE_NAME
 
-    store = PersistenceStore(database)
-    audit = AuditRepository(store)
-    application = ApplicationService(store=store, audit_repository=audit)
-    runtime = RuntimeInterface(
-        application=application,
-        importer=ImportCoordinator(store, audit_repository=audit),
-        snapshots=SnapshotManager(store, audit_repository=audit),
-    )
-    adapter = RuntimeAdapter(runtime)
-    _ADAPTERS[cache_key] = adapter
-    return adapter
+        if not database.exists():
+            raise FileNotFoundError("Mine Services database seed is not installed")
 
+        store = PersistenceStore(database)
+        audit = AuditRepository(store)
+        application = ApplicationService(store=store, audit_repository=audit)
+        runtime = RuntimeInterface(
+            application=application,
+            importer=ImportCoordinator(store, audit_repository=audit),
+            snapshots=SnapshotManager(store, audit_repository=audit),
+        )
+        adapter = RuntimeAdapter(runtime)
+        _ADAPTERS[cache_key] = adapter
+        return adapter
 
 def healthcheck(app_dir):
     adapter = _runtime_for(app_dir)
