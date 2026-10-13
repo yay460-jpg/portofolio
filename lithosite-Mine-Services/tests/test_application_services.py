@@ -240,6 +240,62 @@ def test_snapshot_merge_rejects_primary_key_collision():
     assert result["reason"] == "MERGE_PK_COLLISION"
 
 
+def test_snapshot_merge_deduplicates_identical_audit_events():
+    source_app = ApplicationService(PersistenceStore())
+    assert source_app.create(
+        "Equipment", valid_equipment("EQ-MERGE-SOURCE"), "merge-source-create"
+    )["status"] == "COMMITTED"
+    source_snapshot = SnapshotManager(source_app.store).capture()
+    shared_event = source_snapshot["payload"]["audit"][0]
+
+    target_app = ApplicationService(PersistenceStore())
+    assert target_app.create(
+        "Equipment", valid_equipment("EQ-MERGE-TARGET"), "merge-target-create"
+    )["status"] == "COMMITTED"
+    target_app.store.add_audit(dict(shared_event))
+
+    result = SnapshotManager(target_app.store).restore(
+        source_snapshot, mode="MERGE_RUNTIME"
+    )
+    assert result["status"] == "COMMITTED"
+
+    audit_events = target_app.store.audit()
+    matching = [
+        event for event in audit_events
+        if event.get("audit_id") == shared_event["audit_id"]
+    ]
+    assert matching == [shared_event]
+    assert len({event["audit_id"] for event in audit_events}) == len(audit_events)
+    assert target_app.store.exists("Equipment", "EQ-MERGE-SOURCE")
+    assert target_app.store.exists("Equipment", "EQ-MERGE-TARGET")
+
+
+def test_snapshot_merge_rejects_conflicting_audit_id_without_mutation():
+    source_app = ApplicationService(PersistenceStore())
+    assert source_app.create(
+        "Equipment", valid_equipment("EQ-CONFLICT-SOURCE"), "merge-conflict-source"
+    )["status"] == "COMMITTED"
+    source_snapshot = SnapshotManager(source_app.store).capture()
+    source_event = source_snapshot["payload"]["audit"][0]
+
+    target_app = ApplicationService(PersistenceStore())
+    assert target_app.create(
+        "Equipment", valid_equipment("EQ-CONFLICT-TARGET"), "merge-conflict-target"
+    )["status"] == "COMMITTED"
+    conflicting_event = dict(source_event)
+    conflicting_event["action"] = "CONFLICTING_ACTION"
+    target_app.store.add_audit(conflicting_event)
+    before = target_app.store.snapshot()
+
+    result = SnapshotManager(target_app.store).restore(
+        source_snapshot, mode="MERGE_RUNTIME"
+    )
+    assert result["status"] == "REJECTED"
+    assert result["reason"] == "MERGE_AUDIT_ID_CONFLICT"
+    assert target_app.store.snapshot() == before
+    assert not target_app.store.exists("Equipment", "EQ-CONFLICT-SOURCE")
+
+
 def test_xlsx_persistence_roundtrip(tmp_path):
     from mine_services.schema import DOMAIN_ENTITIES, HEADERS, SCHEMA_VERSION
 

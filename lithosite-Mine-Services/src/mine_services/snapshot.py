@@ -143,8 +143,44 @@ class SnapshotManager:
                         "ids": sorted(collisions),
                     }
                 existing.update(incoming)
-            if snapshot["payload"].get("audit"):
-                merged["audit"].extend(snapshot["payload"]["audit"])
+            incoming_audit = snapshot["payload"].get("audit") or []
+            audit_by_id = {}
+            for event in merged.get("audit", []):
+                if not isinstance(event, dict):
+                    continue
+                audit_id = event.get("audit_id")
+                if audit_id in (None, ""):
+                    continue
+                key = str(audit_id)
+                prior = audit_by_id.get(key)
+                if prior is not None and prior != event:
+                    return {
+                        "status": "REJECTED",
+                        "reason": "MERGE_AUDIT_ID_CONFLICT",
+                        "audit_id": key,
+                    }
+                audit_by_id[key] = event
+
+            for event in incoming_audit:
+                if not isinstance(event, dict):
+                    merged["audit"].append(event)
+                    continue
+                audit_id = event.get("audit_id")
+                if audit_id in (None, ""):
+                    merged["audit"].append(event)
+                    continue
+                key = str(audit_id)
+                prior = audit_by_id.get(key)
+                if prior is not None:
+                    if prior != event:
+                        return {
+                            "status": "REJECTED",
+                            "reason": "MERGE_AUDIT_ID_CONFLICT",
+                            "audit_id": key,
+                        }
+                    continue
+                merged["audit"].append(event)
+                audit_by_id[key] = event
             candidate_payload = merged
         else:
             candidate_payload = snapshot["payload"]
