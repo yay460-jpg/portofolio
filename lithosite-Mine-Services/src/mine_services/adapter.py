@@ -1,4 +1,5 @@
 from .runtime import RuntimeInterface
+from .schema import DOMAIN_ENTITIES
 
 
 class AdapterContractError(ValueError):
@@ -12,6 +13,8 @@ class AdapterContractError(ValueError):
 
 class RuntimeAdapter:
     """External UI/API adapter for the Mine Services RuntimeInterface."""
+
+    READ_ENTITIES = frozenset((*DOMAIN_ENTITIES, "_Lists"))
 
     OPERATIONS = {
         "CREATE",
@@ -162,6 +165,12 @@ class RuntimeAdapter:
                 result = self._runtime.delete(entity, entity_id, request_id)
             elif operation == "READ":
                 entity = self._required(request, "entity")
+                if entity not in self.READ_ENTITIES:
+                    raise AdapterContractError(
+                        "ADP-007",
+                        f"Unsupported READ entity: {entity}",
+                        "entity",
+                    )
                 result = self._runtime.read(entity, request.get("entity_id"))
             elif operation == "IMPORT_XLSX":
                 path = self._required(request, "path")
