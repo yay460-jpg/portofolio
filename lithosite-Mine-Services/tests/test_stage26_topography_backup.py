@@ -92,3 +92,23 @@ def test_ltdtm_backup_preflights_encoded_size_before_base64_decode(tmp_path, mon
     monkeypatch.setattr(backup_module.base64, "b64decode", fail_decode)
     with pytest.raises(ValueError, match="LT-DTM package"):
         manager.save(oversized_encoded, filename="oversized")
+
+
+def test_ltdtm_backup_write_failure_preserves_existing_backups(tmp_path, monkeypatch):
+    manager = TopographyBackupManager(tmp_path / "topography")
+    existing = manager.directory / "existing.ltdtm"
+    original_payload = ltdtm_payload(body=b"stable")
+    existing.write_bytes(original_payload)
+    original_write_bytes = Path.write_bytes
+
+    def fail_new_backup(path, data):
+        if path.name.startswith("new-backup-"):
+            raise OSError("simulated disk write failure")
+        return original_write_bytes(path, data)
+
+    monkeypatch.setattr(Path, "write_bytes", fail_new_backup)
+    with pytest.raises(OSError, match="simulated disk write failure"):
+        manager.save(base64.b64encode(ltdtm_payload(body=b"new")).decode("ascii"), filename="new-backup")
+
+    assert existing.read_bytes() == original_payload
+    assert sorted(path.name for path in manager.directory.iterdir()) == ["existing.ltdtm"]
