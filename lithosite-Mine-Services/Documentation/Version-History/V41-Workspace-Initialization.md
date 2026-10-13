@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- Global Capacity/Checker migration now accepts only canonical header prefixes for the affected A.3 sheets, rejects unknown schemas or populated unnamed columns, verifies the serialized workbook before replacement, and uses an atomic temp-file swap with source-preservation tests.
+
+
 - Equipment capacity migration now writes to a sibling temporary workbook and verifies the final Equipment header plus resolved/preserved/unresolved profile assignments before atomic replacement; injected replace failures preserve the active workbook byte-for-byte.
 
 
