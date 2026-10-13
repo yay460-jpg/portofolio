@@ -91,3 +91,57 @@ def test_load_dataset_rejects_reused_request_id_for_different_dataset(tmp_path):
 
     assert replay_with_changed_payload["status"] == "REJECTED"
     assert replay_with_changed_payload["errors"][0]["code"] == "ADP-006"
+
+
+def test_restore_rejects_reused_request_id_for_different_snapshot(tmp_path):
+    from mine_services import SnapshotManager
+
+    adapter = make_adapter(tmp_path)
+    manager = SnapshotManager(adapter._runtime._application.store)
+    first_snapshot = manager.capture(source="replay-restore-first")
+    second_snapshot = manager.capture(source="replay-restore-second")
+
+    first = adapter.handle({
+        "request_id": "replay-restore-001",
+        "operation": "RESTORE",
+        "mode": "REPLACE_RUNTIME",
+        "snapshot": first_snapshot,
+    })
+    assert first["status"] not in {"REJECTED", "ERROR"}
+
+    replay_with_changed_payload = adapter.handle({
+        "request_id": "replay-restore-001",
+        "operation": "RESTORE",
+        "mode": "REPLACE_RUNTIME",
+        "snapshot": second_snapshot,
+    })
+
+    assert replay_with_changed_payload["status"] == "REJECTED"
+    assert replay_with_changed_payload["errors"][0]["code"] == "ADP-006"
+
+
+def test_topography_backup_rejects_reused_request_id_for_different_filename(tmp_path):
+    import base64
+
+    adapter = make_adapter(tmp_path)
+    first_payload = base64.b64encode(b"LITHODTM" + (2).to_bytes(4, "little") + b"first").decode("ascii")
+    second_payload = base64.b64encode(b"LITHODTM" + (2).to_bytes(4, "little") + b"second").decode("ascii")
+
+    first = adapter.handle({
+        "request_id": "replay-topo-001",
+        "operation": "SAVE_TOPOGRAPHY_BACKUP",
+        "filename": "first.ltdtm",
+        "package_base64": first_payload,
+    })
+    assert first["status"] == "SAVED"
+
+    replay_with_changed_payload = adapter.handle({
+        "request_id": "replay-topo-001",
+        "operation": "SAVE_TOPOGRAPHY_BACKUP",
+        "filename": "second.ltdtm",
+        "package_base64": second_payload,
+    })
+
+    assert replay_with_changed_payload["status"] == "REJECTED"
+    assert replay_with_changed_payload["errors"][0]["code"] == "ADP-006"
+    assert len(list((tmp_path / "topography").glob("*.ltdtm"))) == 1
