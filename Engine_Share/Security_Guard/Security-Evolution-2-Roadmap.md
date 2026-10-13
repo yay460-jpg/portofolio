@@ -324,3 +324,11 @@ The UI source trace was extended beyond Operations:
 - `LIST_DATASETS`, `LIST_TOPOGRAPHY_BACKUPS`, and `LIST_MARKER_LOCATION_BACKUPS` call their respective list/read paths and are expected to be observational reads. Caching these responses would risk stale results as files change, so repeated same-ID calls are intentionally expected to execute again.
 - Added isolated regression tests: repeated `BACKUP` calls return fresh sealed snapshots without store/audit mutation; repeated LIST requests call the underlying list provider again and reflect changed data without changing store/audit state. CI is **PENDING** for test commit `f7fe053`; do not mark PASS until Full Pytest succeeds.
 - Next after CI: inspect `LOAD_TOPOGRAPHY_BACKUP` and `LOAD_MARKER_LOCATION_BACKUP` source contracts (read-only file parsing versus runtime mutation), then test retry behavior and file tampering/error handling. `main` remains locked.
+
+
+### EVO2-02 backup LOAD contract gate — 2026-10-14
+
+- Full Pytest #706 PASS for commit `f7fe053`: repeated `BACKUP` requests create fresh sealed snapshots without store/audit mutation; repeated LIST operations execute underlying readers again and leave runtime store/audit unchanged. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38483752068. Documentation workflows #707 and #708 passed.
+- Source review of `TopographyBackupManager.read()` and `MarkerLocationBackupManager.read()` confirms both validate the requested basename/extension, resolve the path under the configured backup directory, reject missing files, read with a size bound, and validate package structure before returning base64 content. The RuntimeInterface LOAD methods only decorate the returned payload with `status=READY`; they do not apply it to live runtime state.
+- Added isolated tests for repeated LOAD calls preserving read-only state and for retrying the same request ID after a first missing-backup failure. CI is **PENDING** for test commit `702d3d5`; do not mark PASS until Full Pytest succeeds.
+- Next after CI: check package corruption/oversize/path traversal failure contracts at adapter boundary and verify errors are translated to stable responses; then continue remaining operation inventory and cache-lifetime risk decision. `main` remains locked.
