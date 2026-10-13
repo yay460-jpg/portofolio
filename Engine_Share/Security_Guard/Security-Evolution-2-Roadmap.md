@@ -259,3 +259,13 @@ The UI source trace was extended beyond Operations:
 - Full Pytest runs #678–#681 failed after the guard was introduced. Root causes were test-contract mismatches, not an observed failure of the allowlist: (1) an existing Stage 5 test still expected generic READ of `AuditLog` to succeed; (2) the new `_Lists` case incorrectly assumed a `status/data` wrapper, while the established controlled-list response is flattened; (3) the allowed-entity test assumed each empty domain read returns a list, which is not the adapter's current response shape for all targets.
 - Corrected regression expectations: the legacy audit test now asserts `REJECTED / ADP-007`; the `_Lists` test checks the existing flattened controlled-list payload; domain entity cases check their response shape only where stable. Production guard remains unchanged in this correction.
 - Follow-up Full Pytest runs triggered by commits `d6051c0` and `baf3d74` are the next gate. Do not call the public READ guard PASS until a green Full Pytest run and review of all remaining callers.
+
+
+### Follow-up CI result and next roadmap gate — 2026-10-14
+
+- Full Pytest #683 is GREEN: **631 passed in 58.18s**. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38478693120.
+- Workflow #682 is RED on an earlier commit (`d6051c0`) because it still exercised the stale Stage 5 AuditLog expectation. Do not treat that earlier result as the latest code state; #683 ran after the test correction and is the current suite evidence. Documentation-only workflows #684 and #685 are also green.
+- The adapter allowlist implementation is unchanged by the compatibility correction. Current confirmed contract: ten schema-backed `DOMAIN_ENTITIES` plus `_Lists` are allowed; generic public READ of `AuditLog`, unknown names and dunder-style names are rejected with `ADP-007`.
+- Gate status: **adapter-level regression suite PASS; full consumer/host compatibility audit still OPEN**. This is not a release/baseline lock and does not authorize promotion to `main`.
+- Next roadmap task: complete a repository-wide scan of shipped UI scripts, shared runtime clients, bridge/desktop host dispatch, and tests for generic `READ` requests and any dynamic entity values. Record exact paths/call sites; distinguish generic READ from dedicated operations such as `READ_KPI_SNAPSHOTS`. If a legitimate consumer of generic `AuditLog` appears, stop and design a scoped contract rather than weakening the allowlist wholesale.
+- After inventory: add explicit tests for confirmed caller compatibility and host/adapter boundary behavior, rerun Full Pytest, then review whether the Evo 2 READ guard can be marked complete. Keep `main` locked throughout.
