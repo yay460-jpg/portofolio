@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- Host lifecycle locking retains compatibility with handle-only adapter shims through a guarded post-process helper and no-op context fallback; the production RuntimeAdapter still uses the shared re-entrant lock.
+
+
 - The host now keeps record mutation and Plan/HSE/Maintenance Evidence-folder lifecycle in the same adapter critical section. Evidence uploads re-check the owner record and commit the file under that same lock, preventing DELETE/CREATE from racing between record verification and upload.
 
 

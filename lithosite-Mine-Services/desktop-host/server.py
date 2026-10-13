@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import json
+from contextlib import nullcontext
 import os
 import re
 import shutil
@@ -137,6 +138,24 @@ def _evidence_record_exists(module: str, record_id: str) -> bool:
 def _target_plan_exists(plan_id: str) -> bool:
     """Compatibility helper retained for Target Plan lifecycle checks."""
     return _evidence_record_exists("TargetPlan", plan_id)
+
+
+def _handle_runtime_request(request: dict) -> dict:
+    """Run a runtime request and its dependent filesystem lifecycle together."""
+    method = getattr(ADAPTER, "handle_with_postprocess", None)
+    if callable(method):
+        return method(request, apply_plan_evidence_lifecycle)
+    # Preserve compatibility with test adapters and external adapter shims that
+    # implement the original handle-only interface. The production RuntimeAdapter
+    # always supplies the locked post-processing entry point.
+    result = ADAPTER.handle(request)
+    return apply_plan_evidence_lifecycle(request, result)
+
+
+def _adapter_exclusive():
+    """Use the adapter's shared lock when available, otherwise a no-op context."""
+    acquire = getattr(ADAPTER, "exclusive", None)
+    return acquire() if callable(acquire) else nullcontext()
 
 
 def apply_plan_evidence_lifecycle(request: dict, result: dict) -> dict:
@@ -1211,7 +1230,7 @@ class Handler(BaseHTTPRequestHandler):
             # section with CREATE/DELETE plus their Evidence folder lifecycle.
             target_file = None
             created_file = False
-            with ADAPTER.exclusive():
+            with _adapter_exclusive():
                 try:
                     record_exists = _evidence_record_exists(module, record_id)
                 except Exception:
@@ -1351,10 +1370,7 @@ class Handler(BaseHTTPRequestHandler):
             self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-003", "message": "Invalid JSON request"}]}, origin)
             return
         try:
-            result = ADAPTER.handle_with_postprocess(
-                request,
-                apply_plan_evidence_lifecycle,
-            )
+            result = _handle_runtime_request(request)
             self._json(200, result, origin)
         except Exception:
             self._json(500, {
