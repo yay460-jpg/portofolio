@@ -280,3 +280,10 @@ The UI source trace was extended beyond Operations:
 - `READ_KPI_SNAPSHOTS` is used separately by KPI Foundation and is not routed through the generic READ entity allowlist. No generic READ of `AuditLog` was found in the shipped UI modules or the inspected host helper. AuditLog remains available only through the internal RuntimeInterface API and the adapter now rejects it at the public boundary.
 - Remaining scope note: this source inventory covers the shipped UI modules and the inspected Desktop/Android runtime entry points; it does not prove there are no out-of-repository integrations or direct internal Python consumers. The guard compatibility check is **PASS for inspected in-repository public callers**, while broader internal authorization and external-consumer assurance remain OPEN.
 - Next: add or verify explicit regression coverage for the dynamic Marker Location READ set and Desktop Evidence host mapping, run Full Pytest, and review the host-origin tests alongside adapter tests. Do not weaken the allowlist without a demonstrated legitimate caller. `main` remains locked.
+
+
+### Caller compatibility regression tests added — 2026-10-14
+
+- Added Desktop Host tests asserting Evidence owner verification maps `TargetPlan -> Plans`, `HSE -> HSE`, and `Maintenance -> Maintenance`, and that unsupported modules (including `AuditLog`) are rejected before a READ dispatch.
+- Added a Marker Location source-contract test locking its dynamic generic READ to the allowlisted source set `Equipment`, `WorkFront`, and `HSE`.
+- These are regression guards for the inspected caller inventory, not a claim of test success yet. Full Pytest triggered by commits `072672f` and `c24f049` is the next validation gate.
