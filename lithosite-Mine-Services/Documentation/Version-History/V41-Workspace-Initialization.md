@@ -59,6 +59,9 @@ This branch was created directly from the promoted `main` baseline after V40 was
 
 ## Compatibility audit
 
+- Evidence status/list/file/preview reads now share the host adapter lifecycle lock with record creation/deletion and uploads. File bytes are read while the lock is held, then responses are sent after releasing it, preventing false not-found/partial-read races without holding the runtime lock during network writes.
+
+
 - Host lifecycle locking retains compatibility with handle-only adapter shims through a guarded post-process helper and no-op context fallback; the production RuntimeAdapter still uses the shared re-entrant lock.
 
 

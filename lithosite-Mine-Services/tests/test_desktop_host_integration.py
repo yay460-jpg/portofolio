@@ -37,4 +37,12 @@ def test_desktop_host_serializes_evidence_lifecycle_with_runtime_and_upload():
     assert "return method(request, apply_plan_evidence_lifecycle)" in server
     assert "def _adapter_exclusive()" in server
     assert "with _adapter_exclusive():" in server
-    assert server.index("with _adapter_exclusive():") < server.index("_evidence_record_exists(module, record_id)", server.index("with _adapter_exclusive():"))
+    assert server.count("with _adapter_exclusive():") >= 5
+    status_route = server.index('if path == "/evidence/status":')
+    list_route = server.index('if path in {"/evidence/list", "/evidence/file"}:')
+    upload_route = server.index('if post_path == "/evidence/upload":')
+    preview_route = server.index('if post_path == "/evidence/preview":')
+    assert server.index("with _adapter_exclusive():", status_route) < server.index("module_dir.iterdir()", status_route)
+    assert server.index("with _adapter_exclusive():", list_route) < server.index("record_dir.iterdir()", list_route)
+    assert server.index("with _adapter_exclusive():", upload_route) < server.index("_evidence_record_exists(module, record_id)", upload_route)
+    assert server.index("with _adapter_exclusive():", preview_route) < server.index("target.read_bytes()", preview_route)

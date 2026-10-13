@@ -1000,31 +1000,32 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             try:
-                records = []
-                module_dir = EVIDENCE_ROOT / module
-                if module_dir.exists():
-                    if _is_evidence_link(module_dir) or not module_dir.is_dir():
-                        raise OSError("Evidence module directory is not a safe directory")
-                    for record_dir in sorted(module_dir.iterdir(), key=lambda entry: entry.name.casefold()):
-                        if (
-                            _is_evidence_link(record_dir)
-                            or not record_dir.is_dir()
-                            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", record_dir.name)
-                        ):
-                            continue
-                        file_count = 0
-                        for item in record_dir.iterdir():
-                            if _is_evidence_link(item) or not item.is_file():
+                with _adapter_exclusive():
+                    records = []
+                    module_dir = EVIDENCE_ROOT / module
+                    if module_dir.exists():
+                        if _is_evidence_link(module_dir) or not module_dir.is_dir():
+                            raise OSError("Evidence module directory is not a safe directory")
+                        for record_dir in sorted(module_dir.iterdir(), key=lambda entry: entry.name.casefold()):
+                            if (
+                                _is_evidence_link(record_dir)
+                                or not record_dir.is_dir()
+                                or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", record_dir.name)
+                            ):
                                 continue
-                            if item.suffix.lower() in EVIDENCE_EXTENSIONS:
-                                file_count += 1
-                        if file_count:
-                            records.append({"record_id": record_dir.name, "file_count": file_count})
-                self._json(200, {
-                    "status": "READY",
-                    "module": module,
-                    "records": records,
-                }, origin)
+                            file_count = 0
+                            for item in record_dir.iterdir():
+                                if _is_evidence_link(item) or not item.is_file():
+                                    continue
+                                if item.suffix.lower() in EVIDENCE_EXTENSIONS:
+                                    file_count += 1
+                            if file_count:
+                                records.append({"record_id": record_dir.name, "file_count": file_count})
+                    self._json(200, {
+                        "status": "READY",
+                        "module": module,
+                        "records": records,
+                    }, origin)
             except OSError:
                 self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence status could not be read"}]}, origin)
             return
@@ -1045,30 +1046,32 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/evidence/list":
                 try:
-                    files = []
-                    if record_dir.exists():
-                        if not record_dir.is_dir():
-                            raise OSError("Evidence record path is not a directory")
-                        for item in sorted(record_dir.iterdir(), key=lambda entry: entry.name.casefold()):
-                            if item.is_symlink() or not item.is_file() or item.suffix.lower() not in EVIDENCE_EXTENSIONS:
-                                continue
-                            stat = item.stat()
-                            mime_type = guess_type(item.name)[0] or "application/octet-stream"
-                            files.append({
-                                "name": item.name,
-                                "size": stat.st_size,
-                                "modified_at": stat.st_mtime,
-                                "mime_type": mime_type,
-                                "previewable": item.suffix.lower() in {".pdf", ".jpg", ".jpeg", ".png"},
-                                "available": stat.st_size <= MAX_EVIDENCE_FILE_BYTES,
-                            })
-                    self._json(200, {
-                        "status": "READY",
-                        "module": module,
-                        "record_id": record_id,
-                        "folder": f"Database/Evidence/{module}/{record_id}",
-                        "files": files,
-                    }, origin)
+                with _adapter_exclusive():
+                    record_dir = evidence_record_directory(module, record_id)
+                        files = []
+                        if record_dir.exists():
+                            if not record_dir.is_dir():
+                                raise OSError("Evidence record path is not a directory")
+                            for item in sorted(record_dir.iterdir(), key=lambda entry: entry.name.casefold()):
+                                if item.is_symlink() or not item.is_file() or item.suffix.lower() not in EVIDENCE_EXTENSIONS:
+                                    continue
+                                stat = item.stat()
+                                mime_type = guess_type(item.name)[0] or "application/octet-stream"
+                                files.append({
+                                    "name": item.name,
+                                    "size": stat.st_size,
+                                    "modified_at": stat.st_mtime,
+                                    "mime_type": mime_type,
+                                    "previewable": item.suffix.lower() in {".pdf", ".jpg", ".jpeg", ".png"},
+                                    "available": stat.st_size <= MAX_EVIDENCE_FILE_BYTES,
+                                })
+                        self._json(200, {
+                            "status": "READY",
+                            "module": module,
+                            "record_id": record_id,
+                            "folder": f"Database/Evidence/{module}/{record_id}",
+                            "files": files,
+                        }, origin)
                 except OSError:
                     self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence directory could not be read"}]}, origin)
                 return
@@ -1083,28 +1086,30 @@ class Handler(BaseHTTPRequestHandler):
             ):
                 self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid evidence filename"}]}, origin)
                 return
-            candidate = record_dir / filename
-            if candidate.is_symlink():
-                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
-                return
-            target = candidate.resolve()
-            try:
-                target.relative_to(record_dir.resolve())
-            except ValueError:
-                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid evidence file path"}]}, origin)
-                return
-            if not target.is_file() or target.suffix.lower() not in EVIDENCE_EXTENSIONS:
-                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
-                return
-            try:
-                size = target.stat().st_size
-                if size > MAX_EVIDENCE_FILE_BYTES:
-                    self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB preview limit"}]}, origin)
+            with _adapter_exclusive():
+                record_dir = evidence_record_directory(module, record_id)
+                candidate = record_dir / filename
+                if candidate.is_symlink():
+                    self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
                     return
-                body = target.read_bytes()
-            except OSError:
-                self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be read"}]}, origin)
-                return
+                target = candidate.resolve()
+                try:
+                    target.relative_to(record_dir.resolve())
+                except ValueError:
+                    self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid evidence file path"}]}, origin)
+                    return
+                if not target.is_file() or target.suffix.lower() not in EVIDENCE_EXTENSIONS:
+                    self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
+                    return
+                try:
+                    size = target.stat().st_size
+                    if size > MAX_EVIDENCE_FILE_BYTES:
+                        self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB preview limit"}]}, origin)
+                        return
+                    body = target.read_bytes()
+                except OSError:
+                    self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be read"}]}, origin)
+                    return
 
             mime_type = guess_type(target.name)[0] or "application/octet-stream"
             disposition = "inline" if target.suffix.lower() in {".pdf", ".jpg", ".jpeg", ".png"} else "attachment"
@@ -1300,28 +1305,30 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": str(exc)}]}, origin)
                 return
 
-            candidate = record_dir / filename
-            if candidate.is_symlink():
-                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
-                return
-            target = candidate.resolve()
-            try:
-                target.relative_to(record_dir.resolve())
-            except ValueError:
-                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid Evidence file path"}]}, origin)
-                return
-            if not target.is_file() or target.suffix.lower() not in {".pdf", ".jpg", ".jpeg", ".png"}:
-                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
-                return
-            try:
-                size = target.stat().st_size
-                if size > MAX_EVIDENCE_FILE_BYTES:
-                    self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB preview limit"}]}, origin)
+            with _adapter_exclusive():
+                record_dir = evidence_record_directory(module, record_id)
+                candidate = record_dir / filename
+                if candidate.is_symlink():
+                    self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
                     return
-                body = target.read_bytes()
-            except OSError:
-                self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be read"}]}, origin)
-                return
+                target = candidate.resolve()
+                try:
+                    target.relative_to(record_dir.resolve())
+                except ValueError:
+                    self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid Evidence file path"}]}, origin)
+                    return
+                if not target.is_file() or target.suffix.lower() not in {".pdf", ".jpg", ".jpeg", ".png"}:
+                    self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
+                    return
+                try:
+                    size = target.stat().st_size
+                    if size > MAX_EVIDENCE_FILE_BYTES:
+                        self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB preview limit"}]}, origin)
+                        return
+                    body = target.read_bytes()
+                except OSError:
+                    self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be read"}]}, origin)
+                    return
 
             mime_type = guess_type(target.name)[0] or "application/octet-stream"
             self._json(200, {
