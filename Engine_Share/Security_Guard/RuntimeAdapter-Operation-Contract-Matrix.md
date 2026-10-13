@@ -65,3 +65,13 @@ No workbook A.3 fixtures should be used; use isolated temporary stores/files for
 - Full Pytest #654 PASS: documentation synchronization. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38467470045.
 - Additional retry test is now queued: a rejected import attempt must not be cached as a successful response, so the same request can be retried. CI pending.
 - Process-local cache size/lifetime and cross-restart idempotency remain unresolved. No claim of durable exactly-once semantics.
+
+
+## Workflow #655–#659 — retry and persistence rollback — 2026-10-14
+
+- Full Pytest #655 PASS: rejected XLSX import attempts are not cached as success; retry with the same request ID executes again. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38467949013.
+- Full Pytest #657 PASS: if the workbook/store save fails after a KPI finalize attempt, the existing KPI History file bytes and records are restored, and audit state remains unchanged. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38468724314.
+- Full Pytest #658 PASS: if saving an existing dataset fails at store persistence, the original dataset file, active dataset state, and audit state are restored. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38468750357.
+- Full Pytest #659 PASS: rollback evidence and replay retry findings synchronized in the roadmap. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38468756229.
+- Remaining replay design limitation: RuntimeAdapter keeps _request_results as an unbounded process-local dictionary. It is cleared on process restart, has no explicit expiry/capacity, and cannot guarantee cross-process idempotency. The lock currently spans the downstream operation, so the implications for throughput should be reviewed before changing it.
+- Next inventory slice: assess READ exposure for AuditLog and controlled lists and map the actual caller/authentication boundary before proposing restrictions. Do not assume this adapter is internet-facing or that the read is unauthorized without tracing the host/call-sites.
