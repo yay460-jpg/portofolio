@@ -1,5 +1,7 @@
 import base64
 import binascii
+import shutil
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -94,16 +96,25 @@ class TopographyBackupManager:
         # Never evict the package just written. If filesystem timestamps tie,
         # the new target may not sort first, so retain it explicitly.
         candidates = [path for path in files if path != target]
-        try:
-            for old in candidates[self.MAX_BACKUPS - 1:]:
-                old.unlink(missing_ok=True)
-                removed.append(old.name)
-        except OSError:
-            # Do not leave a newly written backup behind when retention fails.
-            # This rolls back the new file; previously removed files cannot be
-            # restored if a later unlink fails after earlier deletions succeeded.
-            target.unlink(missing_ok=True)
-            raise
+        evictions = candidates[self.MAX_BACKUPS - 1:]
+        # Stage evicted files before mutating retention state so a later unlink
+        # failure can restore any older package already removed in this attempt.
+        with tempfile.TemporaryDirectory(prefix=".retention-stage-", dir=self.directory) as stage:
+            staged = {}
+            for old in evictions:
+                snapshot = Path(stage) / old.name
+                shutil.copy2(old, snapshot)
+                staged[old] = snapshot
+            try:
+                for old in evictions:
+                    old.unlink(missing_ok=True)
+                    removed.append(old.name)
+            except OSError:
+                for old in evictions:
+                    if not old.exists() and old in staged:
+                        shutil.copy2(staged[old], old)
+                target.unlink(missing_ok=True)
+                raise
         stored = self._files()[: self.MAX_BACKUPS]
         result = self._info(target, source=source)
         result["removed"] = removed
