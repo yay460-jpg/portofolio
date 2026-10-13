@@ -84,8 +84,6 @@ class RuntimeAdapter:
                 self._request_results[request_id] = (fingerprint, deepcopy(response))
             return response
 
-    def _handle_request(self, request):
-
     @staticmethod
     def _required(request, field):
         value = request.get(field)
@@ -144,7 +142,7 @@ class RuntimeAdapter:
             }],
         }
 
-    def handle(self, request):
+    def _handle_request(self, request):
         request_id = request.get("request_id") if isinstance(request, dict) else None
         try:
             request_id, operation = self._validate_request(request)
