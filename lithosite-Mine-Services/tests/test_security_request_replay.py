@@ -511,3 +511,43 @@ def test_load_backup_failed_attempt_can_retry_same_request_id(tmp_path):
         retry = adapter.handle(dict(request))
         assert retry["status"] == "READY"
         assert calls[key] == 2
+
+
+
+def test_backup_load_rejects_missing_traversal_corrupt_and_oversized_files(tmp_path, monkeypatch):
+    adapter = make_adapter(tmp_path)
+    cases = [
+        ("LOAD_TOPOGRAPHY_BACKUP", adapter._runtime._topography, "missing.ltdtm", None),
+        ("LOAD_TOPOGRAPHY_BACKUP", adapter._runtime._topography, "../escape.ltdtm", None),
+        ("LOAD_TOPOGRAPHY_BACKUP", adapter._runtime._topography, "corrupt.ltdtm", b"not-a-package"),
+        ("LOAD_MARKER_LOCATION_BACKUP", adapter._runtime._marker_location, "missing.ltmarker", None),
+        ("LOAD_MARKER_LOCATION_BACKUP", adapter._runtime._marker_location, "../escape.ltmarker", None),
+        ("LOAD_MARKER_LOCATION_BACKUP", adapter._runtime._marker_location, "corrupt.ltmarker", b"not-a-package"),
+    ]
+
+    for index, (operation, manager, filename, payload) in enumerate(cases):
+        if payload is not None:
+            (manager.directory / filename).write_bytes(payload)
+        response = adapter.handle({
+            "request_id": f"backup-load-invalid-{index}",
+            "operation": operation,
+            "filename": filename,
+        })
+        assert response["status"] == "REJECTED"
+        assert response["errors"][0]["code"] == "ADP-005"
+        assert response["errors"][0]["message"] == "Runtime operation failed"
+
+    for operation, manager, filename in [
+        ("LOAD_TOPOGRAPHY_BACKUP", adapter._runtime._topography, "oversized.ltdtm"),
+        ("LOAD_MARKER_LOCATION_BACKUP", adapter._runtime._marker_location, "oversized.ltmarker"),
+    ]:
+        monkeypatch.setattr(type(manager), "MAX_PACKAGE_BYTES", 4)
+        (manager.directory / filename).write_bytes(b"12345")
+        response = adapter.handle({
+            "request_id": f"backup-load-oversized-{filename}",
+            "operation": operation,
+            "filename": filename,
+        })
+        assert response["status"] == "REJECTED"
+        assert response["errors"][0]["code"] == "ADP-005"
+        assert response["errors"][0]["message"] == "Runtime operation failed"
