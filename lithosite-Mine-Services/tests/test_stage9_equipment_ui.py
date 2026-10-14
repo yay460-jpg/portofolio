@@ -10,7 +10,7 @@ SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation.js")
 def test_stage9_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
-    assert "equipment.js?v=20261015-unit-fleet-no-reference" in TEXT
+    assert "equipment.js?v=20261015-unit-list-reference" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
@@ -150,7 +150,7 @@ def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
     artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     assert 'id="equipmentUnitListButton"' in artifact
     assert 'id="equipmentUnitListModal"' in artifact
-    assert "equipment.js?v=20261015-unit-fleet-no-reference" in artifact
+    assert "equipment.js?v=20261015-unit-list-reference" in artifact
     assert "equipment.css?v=20261015-unit-type-filter" in artifact
 
 def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal_overflow():
@@ -186,3 +186,15 @@ def test_unit_database_uses_existing_a3_equipment_entity_not_parallel_storage():
     assert 'rc.request({operation:"CREATE",entity:"Unit"' not in EQUIPMENT_JS
     assert "indexedDB" not in EQUIPMENT_JS.lower()
     assert "localStorage" not in EQUIPMENT_JS
+
+
+def test_add_equipment_requires_registered_unit_list_reference():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    assert 'id="equipmentUnitReferenceField"' in artifact
+    assert 'id="f_eq_unit_reference"' in artifact
+    assert "function fillUnitReference(selectedId)" in EQUIPMENT_JS
+    assert "function selectRegisteredUnit(id)" in EQUIPMENT_JS
+    assert "addEquipmentRequiresReference&&!editId" in EQUIPMENT_JS
+    assert "Select a registered unit from Unit List before saving Equipment." in EQUIPMENT_JS
+    assert "document.getElementById('f_eq_id').readOnly=true" in EQUIPMENT_JS
+    assert "document.getElementById('f_eq_unit_no').readOnly=true" in EQUIPMENT_JS
