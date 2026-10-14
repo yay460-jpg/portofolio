@@ -151,7 +151,7 @@ def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
     assert 'id="equipmentUnitListButton"' in artifact
     assert 'id="equipmentUnitListModal"' in artifact
     assert "equipment.js?v=20261015-unit-fleet-no-reference" in artifact
-    assert "equipment.css?v=20261015-unit-fleet-no-reference" in artifact
+    assert "equipment.css?v=20261015-unit-type-filter" in artifact
 
 def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal_overflow():
     css = EQUIPMENT_CSS[EQUIPMENT_CSS.index('/* Unit Database layout correction'): ]
