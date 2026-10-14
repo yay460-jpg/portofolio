@@ -433,3 +433,67 @@ def test_report_pdf_rejects_malformed_requests_with_sanitized_error(
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def test_evidence_rejects_symlinked_module_and_file_paths(monkeypatch, tmp_path):
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    evidence_root = tmp_path / "Evidence"
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.pdf").write_bytes(b"%PDF-private")
+    evidence_root.mkdir()
+    try:
+        (evidence_root / "TargetPlan").symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("directory symlinks are not available on this platform")
+
+    monkeypatch.setattr(server, "EVIDENCE_ROOT", evidence_root)
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        base = f"http://{host}:{port}"
+
+        with pytest.raises(HTTPError) as module_rejected:
+            urlopen(
+                f"{base}/evidence/list?"
+                + urlencode({"module": "TargetPlan", "record_id": "PLN-TEST-001"})
+            )
+        assert module_rejected.value.code == 400
+        module_payload = json.loads(module_rejected.value.read().decode("utf-8"))
+        assert module_payload["status"] == "REJECTED"
+        assert "secret.pdf" not in json.dumps(module_payload)
+
+        # Replace the module link with an in-root record and a file link that
+        # points outside Evidence; the file endpoint must refuse to serve it.
+        (evidence_root / "TargetPlan").unlink()
+        record_dir = evidence_root / "TargetPlan" / "PLN-TEST-001"
+        record_dir.mkdir(parents=True)
+        try:
+            (record_dir / "linked.pdf").symlink_to(outside / "secret.pdf")
+        except (OSError, NotImplementedError):
+            pytest.skip("file symlinks are not available on this platform")
+
+        with pytest.raises(HTTPError) as file_rejected:
+            urlopen(
+                f"{base}/evidence/file?"
+                + urlencode({
+                    "module": "TargetPlan",
+                    "record_id": "PLN-TEST-001",
+                    "filename": "linked.pdf",
+                })
+            )
+        assert file_rejected.value.code == 404
+        file_payload = json.loads(file_rejected.value.read().decode("utf-8"))
+        assert file_payload["status"] == "REJECTED"
+        assert "secret.pdf" not in json.dumps(file_payload)
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
