@@ -80,11 +80,20 @@
  box-sizing:border-box;
  align-items:center;
 }
+#equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head){
+ border-bottom:1px solid #223b55;
+}
 #equipmentUnitListModal .equipment-unit-cell{
  min-width:0;
  box-sizing:border-box;
  padding:10px 8px;
+ border-bottom:0;
  overflow-wrap:anywhere;
+}
+#equipmentUnitListModal .equipment-unit-actions{
+ align-self:stretch;
+ box-sizing:border-box;
+ background:transparent;
 }
 #equipmentUnitListModal .equipment-unit-head .equipment-unit-cell{white-space:nowrap}
 #equipmentUnitListModal .equipment-unit-actions{
