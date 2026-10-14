@@ -20,20 +20,21 @@ The Equipment toolbar exposes **Unit List** between **Refresh** and **Global Cap
 |---|---|
 | Date Record | `Equipment.effective_from`; do not invent a creation timestamp |
 | Unique ID | `Equipment.equipment_id`; immutable primary key |
+| Unit / Fleet No. | `Equipment.unit_no`; human-facing registered number, e.g. `DT-TEST-001` |
 | Type | `Equipment.type` |
 | Brand | Resolve `GlobalCapacity.unit_brand` using `Equipment.capacity_profile_id` |
 | Category | `Equipment.category` |
 | Status | `Equipment.status` |
 | Action | Existing Edit and Delete actions, subject to RuntimeAdapter rules |
 
-The modal must provide clear loading, ready, empty, and refresh-failure states. A failed read must not be represented as an empty list.
+The modal must provide clear loading, ready, empty, and refresh-failure states. A failed read must not be represented as an empty list. Render `unit_no` directly from the same persisted row as `equipment_id`; do not generate, infer, or independently edit a display-only copy.
 
 ## 3. Add Unit
 
 The modal must expose an **Add Unit** action.
 
 1. Add Unit opens the existing Equipment form in Unit mode.
-2. The form collects the fields required by the canonical A.3 Equipment contract, including `unit_no`.
+2. The form collects the fields required by the canonical A.3 Equipment contract, including `unit_no`. `equipment_id` and `unit_no` form the linked identity reference that downstream Equipment workflows must use; the Unit List is the user-facing place to verify that mapping.
 3. Client-side checks may improve feedback, but RuntimeAdapter validation remains authoritative.
 4. Creation uses `CREATE` with entity `Equipment` and the row payload.
 5. The UI closes the form and returns to Unit List only after the expected interaction; it reports success only when the runtime returns a committed result.
@@ -79,7 +80,8 @@ Creating a separate `Units` entity requires a separate approved schema migration
 ## 7. Acceptance Gate
 
 The Unit List contract is satisfied when:
-- the modal uses the specified columns and canonical data sources;
+- the modal uses the specified columns and canonical data sources, including Unit / Fleet No. sourced from `Equipment.unit_no`;
+- Equipment ID and Unit / Fleet No. remain visible as a linked identity pair for downstream reference selection;
 - Add Unit creates a persisted Equipment record through RuntimeAdapter;
 - Edit can correct `unit_no` without changing `equipment_id`;
 - Delete requires confirmation and honours runtime reference protection;
