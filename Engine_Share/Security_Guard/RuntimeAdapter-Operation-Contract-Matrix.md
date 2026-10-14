@@ -234,3 +234,15 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38488260830. Documentation workflows #736 and #737 passed: https://github.com/yay460-jpg/portofolio/actions/runs/38488283239 and https://github.com/yay460-jpg/portofolio/actions/runs/38488291682.
 - Status: **backup SAVE retry contract PASS**.
 - Next audit: replay-cache lifecycle and ownership, including operation membership, same-ID collisions across operations, global lock scope, unbounded growth, and restart behavior. Record trade-offs before changing production semantics; do not infer durable idempotency from this process-local cache.
+
+
+### Replay-cache lifecycle and ownership — source audit — 2026-10-14
+
+- Source: `lithosite-Mine-Services/src/mine_services/adapter.py` on `v41-workspace`; no production code changed in this audit.
+- Cache set: `IMPORT_XLSX`, `RESTORE`, `SAVE_DATASET`, `SAVE_AS_DATASET`, `LOAD_DATASET`, `SAVE_TOPOGRAPHY_BACKUP`, `LOAD_TOPOGRAPHY_BACKUP`, `SAVE_MARKER_LOCATION_BACKUP`, `LOAD_MARKER_LOCATION_BACKUP`, and `FINALIZE_KPI`.
+- Concurrency: one adapter-instance `RLock` covers cache lookup, full downstream execution, and successful-result insertion. Same-instance duplicate requests are serialized, but independent requests in this set are also serialized for the duration of each operation.
+- Fingerprint: SHA-256 of the complete canonicalized request. Within the cached set, reusing a request ID for a different payload or operation returns `REJECTED` / `ADP-006`; successful cached responses are deep-copied. Rejected/error responses are not cached.
+- Lifecycle: cache is local to one adapter object, has no TTL/capacity/eviction, and disappears on adapter recreation or process restart. No durable exactly-once guarantee is established.
+- Scope boundary: CRUD uses `ApplicationService`'s separate duplicate-request guard; BACKUP and LIST operations bypass the cache. The current code therefore does not enforce one request-ID namespace across every operation family. This is a contract question, not yet a confirmed defect.
+- Decision gate: add isolated tests for cross-family request-ID reuse and concurrent same-ID dispatch, then decide whether IDs are scoped per operation family or globally before any production change. Any cache bound/TTL or durable idempotency design must specify retention window, restart behavior, collision semantics, and ownership first.
+- Related retry gate: Full Pytest #735 PASS; docs #736–#739 PASS. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38488260830 and https://github.com/yay460-jpg/portofolio/actions/runs/38488669213.
