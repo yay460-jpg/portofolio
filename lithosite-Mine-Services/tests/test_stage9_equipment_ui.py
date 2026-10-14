@@ -208,3 +208,11 @@ def test_unit_database_has_single_close_control():
     assert modal.count('>Close</button>') == 1
     assert '<div class="modalfoot" aria-hidden="true"></div>' in modal
     assert 'equipmentUnitListFooterClose' not in modal
+
+
+def test_unit_database_empty_footer_is_collapsed_by_its_actual_modal_class():
+    css = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.css").read_text(encoding="utf-8")
+    assert "#equipmentUnitListModal > .modal.equipment-unit-modal > .modalfoot:empty{display:none;" in css
+    assert ".modal.modal-shell-valid > .modalfoot:empty" not in css
+    assert "#equipmentUnitListModal .modalfoot{gap:12px}" not in css
+    assert "#equipmentUnitListModal .equipment-unit-toolbar-actions{gap:8px}" not in css
