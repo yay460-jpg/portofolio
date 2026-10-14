@@ -461,3 +461,12 @@ The UI source trace was extended beyond Operations:
 - Added a focused `SAVE_DATASET` retry test for a rejected first response followed by a successful retry using the same request ID and dataset name. CI is pending; do not mark the gate PASS until the workflow concludes.
 - Retryability is now CI-confirmed for `SAVE_AS_DATASET` (#746), `RESTORE` (#748), `LOAD_DATASET` (#751), and `FINALIZE_KPI` (#755), in addition to existing `IMPORT_XLSX` and backup retry coverage. No production replay semantics changed.
 - Next gate: verify `SAVE_DATASET`, then review the operation matrix for remaining retry gaps. Global-vs-family request-ID scope and cache lifecycle remain open decisions; `main` stays locked.
+
+
+## Workflow #758–next gate — Dataset-save retry PASS and replay-scope audit — 2026-10-14
+
+- Full Pytest #758 PASS: a rejected `SAVE_DATASET` response is not cached as a successful replay result; retrying the identical request ID and dataset name dispatches the operation again. https://github.com/yay460-jpg/portofolio/actions/runs/38496637615.
+- Documentation workflows #759 and #760 PASS; the roadmap and RuntimeAdapter operation contract matrix are synchronized. https://github.com/yay460-jpg/portofolio/actions/runs/38496661461 and https://github.com/yay460-jpg/portofolio/actions/runs/38496670924.
+- Audit of the current adapter-cached operation set found retry coverage for import, restore, dataset save/save-as/load, KPI finalize, and topography/marker backup save/load. Observational list/read operations remain uncached by contract; CRUD retains its separate application-level duplicate-request contract.
+- Retryability gate is closed for the reviewed cached operation set. No production replay behavior changed.
+- Next gate: resolve and document request-ID namespace/lifecycle across adapter-cached operations, CRUD, and observational reads; inspect cache lifetime/eviction and compatibility implications before proposing implementation. Do not change semantics until the public contract is agreed. `main` remains locked.
