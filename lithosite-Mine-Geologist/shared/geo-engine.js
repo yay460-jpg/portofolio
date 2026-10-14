@@ -89,8 +89,29 @@ function gridConvergence_(lat, lon, centralMeridian) {
 // 1 situs tambang bedanya biasanya <0.01 arcsec).
 function computeConvergenceForPoint_(easting, northing, zone, hemisphere) {
   try {
-    const geo = inverseUtm_(easting, northing, zone, hemisphere);
+    const e = Number(easting);
+    const n = Number(northing);
+    const z = Number(zone);
+    const h = typeof hemisphere === 'string' ? hemisphere.toUpperCase() : '';
+
+    // Reject malformed/out-of-domain UTM input before projection math can return NaN
+    // while incorrectly reporting ok:true. Bounds are intentionally conservative.
+    if (!Number.isFinite(e) || !Number.isFinite(n)
+        || !Number.isInteger(z) || z < 1 || z > 60
+        || (h !== 'N' && h !== 'S')
+        || e < 100000 || e > 900000
+        || n < 0 || n > 10000000) {
+      return { convergenceDeg: 0, ok: false };
+    }
+
+    const geo = inverseUtm_(e, n, z, h);
+    if (!Number.isFinite(geo.lat) || !Number.isFinite(geo.lon)
+        || geo.lat < -80 || geo.lat > 84
+        || geo.lon < -180 || geo.lon > 180) {
+      return { convergenceDeg: 0, ok: false };
+    }
     const gamma = gridConvergence_(geo.lat, geo.lon, geo.centralMeridian);
+    if (!Number.isFinite(gamma)) return { convergenceDeg: 0, ok: false };
     return { convergenceDeg: gamma, lat: geo.lat, lon: geo.lon, ok: true };
   } catch (e) {
     return { convergenceDeg: 0, ok: false };
