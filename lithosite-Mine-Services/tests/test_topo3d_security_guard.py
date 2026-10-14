@@ -47,7 +47,7 @@ def test_ltdtm_v1_rejects_triangle_indices_outside_vertex_buffer(engine_path):
 const fs = require('node:fs');
 const vm = require('node:vm');
 const window = {};
-vm.runInNewContext(fs.readFileSync(process.env.LITHOSITE_TOPO3D_ENGINE, 'utf8'), { window });
+vm.runInNewContext(fs.readFileSync(process.env.LITHOSITE_TOPO3D_ENGINE, 'utf8'), { window, TextDecoder });
 const engine = window.LithositeTopo3D.create({});
 engine.prepare = async () => engine;
 let buildCalled = false;
@@ -79,8 +79,9 @@ const file = {
 };
 (async () => {
   let rejected = false;
-  try { await engine.loadLTDtm(file); } catch (_) { rejected = true; }
-  process.stdout.write(JSON.stringify({ rejected, buildCalled }));
+  let errorMessage = '';
+  try { await engine.loadLTDtm(file); } catch (error) { rejected = true; errorMessage = error.message; }
+  process.stdout.write(JSON.stringify({ rejected, buildCalled, errorMessage }));
 })().catch(error => { console.error(error); process.exitCode = 1; });
 """
     env = os.environ.copy()
@@ -95,4 +96,4 @@ const file = {
     )
     assert result.returncode == 0, result.stderr or result.stdout
     output = json.loads(result.stdout)
-    assert output == {"rejected": True, "buildCalled": False}, output
+    assert output == {"rejected": True, "buildCalled": False, "errorMessage": "Referensi vertex triangle tidak valid"}, output
