@@ -1,46 +1,52 @@
 # RuntimeAdapter Operation Contract Matrix
 
-Status: EVO2-02 inventory in progress  
-Branch: `v41-workspace`  
-Scope: `lithosite-Mine-Services/src/mine_services/adapter.py`
+Status: EVO2-02 operation inventory and ownership mapping — implementation evidence recorded; CI gate pending for latest rollback fix
+Branch: `v41-workspace`
+Scope: `lithosite-Mine-Services/src/mine_services/adapter.py`, `runtime.py`, operation managers, and the public desktop-host dispatch.
 
-This matrix records the adapter surface and current known replay/idempotency boundaries. It is an audit inventory, not a claim that all operations are secure or production-ready.
+This matrix distinguishes observed code behavior from tested guarantees. A green adapter test does not imply parser, filesystem, browser, or crash-durability coverage.
 
-| Operation | Class | Side effects | Request ID passed downstream? | Current evidence / open question |
-|---|---|---|---|---|
-| CREATE | Mutation | Entity + audit + store commit | Yes | ApplicationService rejects a repeated successful request ID in process memory. Durable replay behavior not established. |
-| UPDATE | Mutation | Entity + audit + store commit | Yes | Same process-local request guard as CREATE. |
-| DELETE | Mutation | Entity removal + audit + store commit | Yes | Same process-local request guard as CREATE. |
-| READ | Read | None intended | No | Entity READ uses PersistenceStore detached copies; AuditLog and controlled lists have targeted isolation tests. Authorization/exposure scope remains to be audited. |
-| IMPORT_XLSX | Import | Dataset/entity import + possible audit | No | Replay and duplicate import semantics need isolated tests. |
-| BACKUP | Export | Snapshot generation | No | Confirm whether backup is pure in-memory output or writes external state at all call sites. |
-| RESTORE | Mutation | Runtime data replacement/merge + audit | No | Restore schema hardening exists; repeated restore semantics and audit atomicity need explicit contract. |
-| LIST_DATASETS | Read | None intended | No | Confirm returned nested metadata cannot mutate manager state. |
-| SAVE_DATASET | Persistence | Dataset file + audit + workbook save | No | Atomic rollback has targeted tests; replay behavior and same-name overwrite semantics need documentation. |
-| SAVE_AS_DATASET | Persistence | New/replaced dataset file + active-state update + audit/store save | No | Atomic rollback has targeted tests; repeated same request ID is not enforced by adapter/runtime. |
-| LOAD_DATASET | Mutation | Runtime replacement + audit + workbook save | No | Rollback on failure and active-state restoration need further tests. |
-| SAVE_TOPOGRAPHY_BACKUP | Persistence | Base64 decode + backup file | No | Size preflight hardening exists; repeated filename behavior and replay contract need tests. |
-| LIST_TOPOGRAPHY_BACKUPS | Read | None intended | No | Verify nested returned backup metadata isolation. |
-| LOAD_TOPOGRAPHY_BACKUP | Read/import | Reads backup package | No | Confirm package payload is validated by domain engine and does not mutate shared state. |
-| SAVE_MARKER_LOCATION_BACKUP | Persistence | Base64 decode + backup file | No | Size preflight hardening exists; repeated filename behavior and replay contract need tests. |
-| LIST_MARKER_LOCATION_BACKUPS | Read | None intended | No | Verify nested returned backup metadata isolation. |
-| LOAD_MARKER_LOCATION_BACKUP | Read/import | Reads backup package | No | Confirm package payload is validated by domain engine and does not mutate shared state. |
-| FINALIZE_KPI | Mutation | KPI history file + audit + workbook save | No | Atomic rollback tested for audit/store-save failures; duplicate snapshot/replay semantics need explicit tests. |
-| READ_KPI_SNAPSHOTS | Read | None intended | No | Nested response isolation test passes after deep-copy fix. |
+## Envelope and request-ID contract
 
-## Known idempotency boundary
+- All public operations require a non-empty string `request_id`; malformed values (non-string or whitespace-only) are rejected with `ADP-003` before replay-cache lookup.
+- CRUD (`CREATE`, `UPDATE`, `DELETE`) remains owned by `ApplicationService._request_guard`: a repeated successfully committed ID returns `DUPLICATE_REQUEST`. Validation/transaction failures do not reserve the ID.
+- The adapter fingerprint cache is used by `IMPORT_XLSX`, `RESTORE`, `SAVE_DATASET`, `SAVE_AS_DATASET`, `LOAD_DATASET`, both backup SAVE operations, both backup LOAD operations, and `FINALIZE_KPI`. A matching successful request returns a detached cached response; a changed payload with the same ID returns `ADP-006`; rejected/error responses are not cached and may be retried.
+- `READ`, `READ_KPI_SNAPSHOTS`, `BACKUP`, and the three LIST operations are not in the adapter replay cache. Repeated observational calls can return fresh data/snapshot IDs.
+- **Namespace decision:** keep CRUD and adapter-cache ownership separate for backward compatibility; do not silently change CRUD's established `DUPLICATE_REQUEST` response into cached replay. This is explicitly **not** a global, cross-family exactly-once guarantee. Callers must generate unique request IDs across all operations. A future unified durable ledger would be a separate compatibility change requiring its own design and consumer tests.
+- Replay state is process-local, unbounded, and cleared at restart. It does not guarantee cross-process or restart-safe idempotency. This is a known design limitation, not a confirmed bypass of the current in-process contract.
 
-The adapter requires a `request_id` for every request envelope. CRUD retains the existing ApplicationService duplicate guard and its established `DUPLICATE_REQUEST` response. Other selected mutating operations now have an adapter-level, process-local fingerprint/response cache under validation. A required envelope field is not equivalent to durable idempotency enforcement.
+## Operation inventory
 
-Before implementing a generic replay cache, define:
-1. Whether a repeated request ID with the same payload returns the original response or a duplicate rejection.
-2. Whether the same request ID with a different payload is rejected as a conflict.
-3. How cache entries survive process restarts and persistence failures.
-4. Which read-only operations can safely be replayed without storage.
-5. How operation-specific IDs (dataset names, backup filenames, KPI snapshot IDs) interact with the envelope request ID.
+| Operation | Owner / effects | Request-ID and failure contract | Evidence / remaining boundary |
+|---|---|---|---|
+| CREATE | ApplicationService + TransactionManager; entity, audit, persistence | CRUD guard; successful duplicate -> `DUPLICATE_REQUEST`; audit/store failure rolls back | Changed-payload duplicate and injected audit failure tests pass. Durable ID registry is not claimed. |
+| UPDATE | ApplicationService + TransactionManager; entity, audit, persistence | Same CRUD guard and rollback contract | Changed-payload duplicate and injected audit failure tests pass. |
+| DELETE | ApplicationService + TransactionManager; entity/cascade effects, audit, persistence | Same CRUD guard and rollback contract | Repeated delete does not create another audit/mutation; injected audit failure rollback tested. Cascade/evidence lifecycle has its own tests. |
+| READ | RuntimeAdapter allowlist + RuntimeInterface / store | No replay cache; `DOMAIN_ENTITIES` and `_Lists` allowed; other generic targets rejected with `ADP-007` | In-repository callers, dynamic Marker Location sources and Desktop Evidence owner mapping tested. Copy isolation has targeted tests; arbitrary external Python consumers/field-level authorization are outside this public adapter contract. |
+| IMPORT_XLSX | ImportCoordinator + ValidationEngine + TransactionManager; workbook parse, staged data, audit/persist | Fingerprint cache on successful result; rejected attempt may retry; path is supplied by caller | Adapter replay uses a stub; domain import has separate tests. No blanket file-root/size policy is claimed; local-path compatibility remains a host-policy question. |
+| BACKUP | SnapshotManager; reads state and builds sealed snapshot in memory | No replay cache; same ID can yield a fresh snapshot | Test confirms new snapshot ID and unchanged store/audit. No external file write by capture path observed. |
+| RESTORE | SnapshotManager + TransactionManager; replace/merge runtime and append audit | Fingerprint cache on success; invalid/rejected result may retry | Schema/entity/row allowlists, checksum and mode checks plus rollback path exist. Tests cover retry/conflict and payload guards; no crash-atomicity across process/power loss is claimed. |
+| LIST_DATASETS | DatasetManager; lists dataset metadata and active marker | No replay cache; fresh listing | Repeated list calls return fresh values and do not mutate store/audit. Malformed files are skipped by manager. |
+| SAVE_DATASET | RuntimeInterface + DatasetManager; writes/replaces dataset file, updates active metadata, audit and workbook store | Fingerprint cache on success; rejected attempt can retry | Same-file and store-save rollback tests cover prior bytes, active metadata and audit for tested failures; filesystem crash durability is not claimed. |
+| SAVE_AS_DATASET | RuntimeInterface + DatasetManager; creates dataset file, updates active metadata, audit and workbook store | Fingerprint cache on success; same payload replays cached result; changed payload -> `ADP-006` | Identical/concurrent/conflicting replay, retry-after-rejection and write rollback gates pass. Retention/overwrite semantics are explicit: existing name is rejected by manager. |
+| LOAD_DATASET | RuntimeInterface + DatasetManager; replaces domain data, controlled lists and active metadata, then audit/workbook persistence | Fingerprint cache on success; rejected/error result may retry | Dataset schema/row validation exists. A failure after load must restore store, controlled lists and active metadata; regression added for this complete rollback contract, latest CI pending. |
+| SAVE_TOPOGRAPHY_BACKUP | TopographyBackupManager; base64 decode, bounded package validation, file write and retention cleanup | Fingerprint cache on success; conflict -> `ADP-006`; failed attempt may retry | Size preflight, bounded reads, invalid package/path/oversize rejection, write-failure and partial retention rollback tests exist. Rollback is for caught exceptions, not crash-atomicity. |
+| LIST_TOPOGRAPHY_BACKUPS | TopographyBackupManager; lists metadata | No replay cache; fresh listing | Read-only listing tests assert store/audit unchanged. Filesystem races/symlink hardening remain separate path audit scope. |
+| LOAD_TOPOGRAPHY_BACKUP | TopographyBackupManager; bounded read and package validation, returns package data; does not apply it to runtime | Fingerprint cache on success; rejected/error result may retry | Same-ID successful response is cached; missing/traversal/corrupt/oversized cases reject; runtime store/audit remain unchanged. |
+| SAVE_MARKER_LOCATION_BACKUP | MarkerLocationBackupManager; base64 decode, schema validation, file write and retention cleanup | Fingerprint cache on success; conflict -> `ADP-006`; failed attempt may retry | Size preflight, package/schema checks, write-failure and partial retention rollback tests exist. Rollback is for caught exceptions, not crash-atomicity. |
+| LIST_MARKER_LOCATION_BACKUPS | MarkerLocationBackupManager; lists metadata | No replay cache; fresh listing | Read-only listing tests assert store/audit unchanged. |
+| LOAD_MARKER_LOCATION_BACKUP | MarkerLocationBackupManager; bounded read and marker schema validation, returns package data; does not apply it to runtime | Fingerprint cache on success; rejected/error result may retry | Same-ID successful response is cached; missing/traversal/corrupt/oversized cases reject; runtime store/audit remain unchanged. |
+| FINALIZE_KPI | RuntimeInterface + KPIHistoryStore + audit/store persistence; appends KPI history and audit | Fingerprint cache on success; same ID/payload returns detached cached result; changed payload -> `ADP-006`; rejected attempt may retry | Tests cover identical replay and rollback when audit append or workbook save fails. Rollback is in-process; two-file crash atomicity is not guaranteed. |
+| READ_KPI_SNAPSHOTS | KPIHistoryStore; filtered history read | No replay cache | Nested response isolation test passes after deep-copy fix; authorization scope is separate from copy isolation. |
 
-No workbook A.3 fixtures should be used; use isolated temporary stores/files for adversarial tests.
+## Cross-operation risks assigned to follow-up gates
 
+1. Replay cache is process-local/unbounded; durable replay, expiry/capacity, and restart behavior require a separate design rather than an undocumented patch.
+2. CRUD and adapter-cache IDs have separate owners; cross-family ID reuse is not a global duplicate guard. Preserve compatibility for this track and make callers' global uniqueness requirement explicit.
+3. Dataset-load rollback must include the store, controlled lists, active dataset metadata and audit/persistence outcome. The newly added injected-save-failure regression is the closure test for this contract.
+4. Domain validation and host transport limits remain owner-specific. Do not interpret adapter envelope validation as full workbook, file path, browser, Geo, or Topo3D security validation.
+
+No operational A3 workbook is used as a test fixture; use isolated stores and temporary files.
 
 ## Workflow #641 — request ID replay reproduction — 2026-10-14
 
