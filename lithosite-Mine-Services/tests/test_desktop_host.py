@@ -3,6 +3,7 @@ import sys
 import pytest
 from pathlib import Path
 from urllib.request import Request, urlopen
+from http.client import HTTPConnection
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 
@@ -105,6 +106,71 @@ def test_runtime_endpoint_routes_to_adapter(monkeypatch, tmp_path):
 
 
 @pytest.mark.parametrize("origin", ["http://evil.example", "http://localhost:8766", "http://127.0.0.1:5502", "null"])
+
+def test_runtime_rejects_invalid_and_over_limit_content_lengths_before_read(monkeypatch, tmp_path):
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+
+        for length in ("0", "-1", "180000001", "not-a-number"):
+            connection = HTTPConnection(host, port, timeout=3)
+            try:
+                connection.putrequest("POST", "/runtime")
+                connection.putheader("Content-Length", length)
+                connection.endheaders()
+                response = connection.getresponse()
+                payload = json.loads(response.read().decode("utf-8"))
+                assert response.status == 400, (length, response.status, payload)
+                assert payload["status"] == "REJECTED"
+                assert payload["errors"][0]["code"] == "HOST-003"
+                assert payload["errors"][0]["message"] == "Invalid JSON request"
+            finally:
+                connection.close()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_user_guide_rejects_encoded_path_traversal(monkeypatch, tmp_path):
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    repo_root = tmp_path / "repo"
+    guide_root = repo_root / "docs" / "lithosite" / "02_Mine-Services" / "10_User-Guides"
+    guide_root.mkdir(parents=True)
+    (tmp_path / "secret.pdf").write_bytes(b"private")
+    monkeypatch.setattr(server, "REPO_ROOT", repo_root)
+
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        query = urlencode({"file": "../../../../../secret.pdf"})
+        with pytest.raises(HTTPError) as rejected:
+            urlopen(f"http://{host}:{port}/user-guide?{query}")
+        assert rejected.value.code == 400
+        payload = json.loads(rejected.value.read().decode("utf-8"))
+        assert payload["status"] == "REJECTED"
+        assert payload["errors"][0]["code"] == "HOST-007"
+        assert "secret.pdf" not in json.dumps(payload)
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
 def test_disallowed_origin_is_rejected(monkeypatch, tmp_path, origin):
     db_path = tmp_path / "desktop-host-a3.xlsx"
     _make_test_database(db_path)
