@@ -110,3 +110,26 @@
   min-width:850px;
  }
 }
+
+
+/* Unit Database master-data actions */
+#equipmentUnitListModal .equipment-unit-toolbar-actions{
+ display:flex;
+ align-items:center;
+ justify-content:flex-end;
+ gap:8px;
+ flex:0 0 auto;
+}
+#equipmentUnitListModal #equipmentUnitListAdd{
+ min-width:86px;
+}
+@media(max-width:520px){
+ #equipmentUnitListModal .equipment-unit-toolbar{
+  align-items:flex-start;
+  flex-direction:column;
+ }
+ #equipmentUnitListModal .equipment-unit-toolbar-actions{
+  width:100%;
+  justify-content:flex-end;
+ }
+}
