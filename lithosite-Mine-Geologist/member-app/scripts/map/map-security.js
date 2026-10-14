@@ -33,7 +33,7 @@
   }
 
   function validatePayload_(entry) {
-    if (!entry || typeof entry !== 'object') return false;
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
     if (entry.imageDataUrl != null && !isSafeImageDataUrl_(entry.imageDataUrl)) return false;
     var pyramid = entry.tilePyramid;
     if (pyramid == null) return true;
