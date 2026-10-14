@@ -466,3 +466,53 @@ function canonicalize(value) {
     assert output["backgroundCollision"]["rejected"] is True, output
     assert output["backgroundCollision"]["code"] == "ID_COLLISION", output
     assert output["writes"] == 0 and output["recoveryStarts"] == 0, output
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is required for Browser Guard size-limit tests")
+def test_map_package_transfer_rejects_oversized_file_before_reading():
+    script = r"""
+const fs = require('node:fs');
+const vm = require('node:vm');
+const crypto = require('node:crypto');
+const window = {
+  navigator: { deviceMemory: 2 },
+  crypto: crypto.webcrypto,
+  MG1MapLibrary: { getAll: async () => [] }
+};
+let reads = 0, writes = 0, recoveryStarts = 0;
+window.dbPutMap_ = async () => { writes++; };
+window.MG1MapRecovery = { beginImport: () => { recoveryStarts++; } };
+const context = vm.createContext({
+  window, TextEncoder, TextDecoder, console: { log() {} }, structuredClone, crypto: crypto.webcrypto
+});
+vm.runInContext(fs.readFileSync(process.env.LITHOSITE_MAP_SECURITY, 'utf8'), context);
+vm.runInContext(fs.readFileSync(process.env.LITHOSITE_MAP_TRANSFER, 'utf8'), context);
+(async () => {
+  let rejected = false, errorCode = '', errorMessage = '';
+  try {
+    await window.MG1MapPackageTransfer.importFile({
+      name: 'oversized.mg1map',
+      size: 64 * 1024 * 1024 + 1,
+      text: async () => { reads++; return '{}'; }
+    });
+  } catch (error) { rejected = true; errorCode = error.code || ''; errorMessage = error.message; }
+  process.stdout.write(JSON.stringify({ rejected, errorCode, errorMessage, reads, writes, recoveryStarts }));
+})().catch(error => { console.error(error); process.exitCode = 1; });
+"""
+    env = os.environ.copy()
+    env["LITHOSITE_MAP_SECURITY"] = str(MEMBER_APP / "scripts" / "map" / "map-security.js")
+    env["LITHOSITE_MAP_TRANSFER"] = str(MEMBER_APP / "scripts" / "map" / "map-package-transfer.js")
+    result = subprocess.run(
+        ["node", "-e", script],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    output = json.loads(result.stdout)
+    assert output["rejected"] is True, output
+    assert output["errorCode"] == "PACKAGE_TOO_LARGE", output
+    assert output["reads"] == 0, output
+    assert output["writes"] == 0 and output["recoveryStarts"] == 0, output
