@@ -383,3 +383,59 @@ async function load(file) {
         }
         for item in output.values()
     ), output
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is required for Topo3D runtime tests")
+@pytest.mark.parametrize("engine_path", TOPO3D_PATHS)
+def test_ltdtm_v1_rejects_vertex_and_triangle_counts_over_limits(engine_path):
+    script = r"""
+const fs = require('node:fs');
+const vm = require('node:vm');
+const window = {};
+vm.runInNewContext(fs.readFileSync(process.env.LITHOSITE_TOPO3D_ENGINE, 'utf8'), { window, TextDecoder, File });
+const encoder = new TextEncoder();
+function makePackage(vertexCount, indexCount) {
+  const meta = encoder.encode(JSON.stringify({ triangles: 1 }));
+  const bytes = new Uint8Array(20 + meta.byteLength);
+  bytes.set(encoder.encode('LITHODTM'), 0);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(8, 1, true);
+  view.setUint32(12, vertexCount, true);
+  view.setUint32(16, indexCount, true);
+  view.setUint32(20, meta.byteLength, true);
+  bytes.set(meta, 24);
+  return { name: 'fixture-v1.ltdtm', size: bytes.byteLength, arrayBuffer: async () => bytes.buffer };
+}
+async function load(file) {
+  const engine = window.LithositeTopo3D.create({});
+  engine.prepare = async () => engine;
+  let built = false, ready = false, rejected = false, errorMessage = '';
+  engine._buildGPU = () => { built = true; };
+  engine.onReady = () => { ready = true; };
+  try { await engine.loadLTDtm(file); }
+  catch (error) { rejected = true; errorMessage = error.message; }
+  return { rejected, built, ready, errorMessage };
+}
+(async () => {
+  const results = {
+    verticesOverLimit: await load(makePackage(300001, 3)),
+    trianglesOverLimit: await load(makePackage(3, 600001)),
+    nonTriangleIndexCount: await load(makePackage(3, 4))
+  };
+  process.stdout.write(JSON.stringify(results));
+})().catch(error => { console.error(error); process.exitCode = 1; });
+"""
+    env = os.environ.copy()
+    env["LITHOSITE_TOPO3D_ENGINE"] = str(engine_path)
+    result = subprocess.run(
+        ["node", "-e", script],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    output = json.loads(result.stdout)
+    assert all(item["rejected"] and not item["built"] and not item["ready"] for item in output.values()), output
+    assert output["nonTriangleIndexCount"]["errorMessage"] == "Ukuran geometry package tidak valid atau melebihi batas Topo3D"
