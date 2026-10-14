@@ -419,3 +419,10 @@ The UI source trace was extended beyond Operations:
 - Current finding: replay-cache guards reject reused IDs with conflicting payloads among cached adapter operations, and identical concurrent cached requests are tested to execute the side effect once. CRUD uses a separate application-level request guard; a characterization test confirms the same ID can currently be used once in the adapter cache family and once in CRUD.
 - Decision still OPEN: whether request IDs are intentionally scoped per guard/family or should be global across all RuntimeAdapter operations. Do not change production code until the public contract and compatibility expectations are decided.
 - Next: inventory each operation's replay owner and persistence lifetime, then add/confirm isolated tests for concurrent conflicting payloads, rejected/failed retry behavior, and cross-family audit/side-effect contracts. Preserve current CRUD duplicate behavior unless a confirmed contract gap justifies a minimal change.
+
+## Workflow #745–#746 — Replay concurrency and retryability — 2026-10-14
+
+- Full Pytest #745 PASS: concurrent identical cached requests execute the side effect once, and conflicting payloads sharing a request ID yield one accepted operation and one `ADP-006` rejection. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38490506418.
+- Added a focused test for `SAVE_AS_DATASET`: a rejected first attempt must not be cached as a successful replay result, allowing the same request ID and payload to retry. Workflow #746 is running; do not record PASS until its conclusion is observed: https://github.com/yay460-jpg/portofolio/actions/runs/38492024542.
+- Current replay behavior is now covered for identical concurrent calls, concurrent conflicting payloads, and retry after rejection for `IMPORT_XLSX` plus the new dataset-save case (pending CI). Other operation-specific failure paths remain to be reviewed against the matrix.
+- Next after #746: inspect results, then extend the replay contract matrix and audit cache scope/lifetime. Do not broaden request-ID scope or alter CRUD duplicate semantics without a documented contract decision.
