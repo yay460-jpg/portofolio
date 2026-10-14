@@ -441,6 +441,14 @@ The UI source trace was extended beyond Operations:
 
 - Full Pytest #748 PASS: a rejected `RESTORE` attempt is not cached as a successful result; retrying the identical request ID and payload invokes the operation again. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38492451181.
 - Documentation workflows #749 and #750 PASS, synchronizing the roadmap and RuntimeAdapter contract matrix: https://github.com/yay460-jpg/portofolio/actions/runs/38492477097 and https://github.com/yay460-jpg/portofolio/actions/runs/38492484773.
-- Added an isolated `LOAD_DATASET` retry test for a rejected first response followed by a successful retry with the same request ID and dataset name. Full Pytest #751 is pending: https://github.com/yay460-jpg/portofolio/actions/runs/38492967531. Do not mark this new gate PASS until its actual run concludes.
-- Replay retry gates now confirmed by CI include `SAVE_AS_DATASET` (#746) and `RESTORE` (#748). The `LOAD_DATASET` test is the next gate. No production replay policy was changed.
+- Added an isolated `LOAD_DATASET` retry test for a rejected first response followed by a successful retry with the same request ID and dataset name. Full Pytest #751 PASS: the rejected `LOAD_DATASET` attempt is not cached as success; retrying with the same request ID and dataset name succeeds. https://github.com/yay460-jpg/portofolio/actions/runs/38492967531.
+- Replay retry gates confirmed by CI include `SAVE_AS_DATASET` (#746), `RESTORE` (#748), and `LOAD_DATASET` (#751). Documentation workflows #752–#754 all PASS and the roadmap/matrix CI references are synchronized. No production replay policy was changed.
 - Open decision remains: request-ID scope across adapter-cached operations, CRUD, and uncached observational operations. Do not change semantics until the public contract and compatibility requirements are explicitly resolved; `main` remains locked.
+
+
+## Workflow #751–next gate — Dataset-load PASS and KPI-finalize retry — 2026-10-14
+
+- Full Pytest #751 PASS: rejected `LOAD_DATASET` response is not cached as a successful replay result; the same request ID and dataset name can retry. https://github.com/yay460-jpg/portofolio/actions/runs/38492967531.
+- Documentation workflows #752, #753, and #754 PASS. #754 corrects the CI reference; all three completed successfully.
+- Added a focused `FINALIZE_KPI` retry test: a rejected first response must not be cached, and an identical request ID/payload must be dispatched again. CI is pending; do not mark this gate PASS until its result is observed.
+- Next: verify the KPI retry CI, then assess remaining cached-operation retry cases and document coverage. Request-ID namespace/lifecycle remains an open contract decision; no production behavior change and `main` remains locked.
