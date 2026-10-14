@@ -381,3 +381,12 @@ The UI source trace was extended beyond Operations:
 - Production fixes: Topography e2b9879; Marker Location a10957a.
 - Validation of these follow-up commits is IN PROGRESS in GitHub Actions #729–#732. Do not mark EVO2-02 complete until both tests and the final full-suite CI pass.
 - Scope note: this is exception rollback, not a claim of crash-atomic filesystem transactions. Recovery itself can still fail under a second filesystem failure; that failure mode must not be represented as guaranteed.
+
+
+### EVO2-02 backup retention rollback — partial-eviction gate PASS — 2026-10-14
+
+- GitHub Actions #729 and #730: Topography and Marker Location production rollback changes passed Full Pytest.
+- GitHub Actions #731 and #732: partial-eviction regression tests passed Full Pytest for both backup managers.
+- Documentation sync workflows #733 and #734 also passed. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38487565450, https://github.com/yay460-jpg/portofolio/actions/runs/38487572665, https://github.com/yay460-jpg/portofolio/actions/runs/38487594633, https://github.com/yay460-jpg/portofolio/actions/runs/38487604828, https://github.com/yay460-jpg/portofolio/actions/runs/38487648336, https://github.com/yay460-jpg/portofolio/actions/runs/38487657212.
+- Result: **partial-eviction exception rollback gate PASS**. Scope remains caught filesystem exceptions; do not claim crash-atomicity or guaranteed recovery if the recovery writes themselves fail.
+- Next gate: verify failed `SAVE_TOPOGRAPHY_BACKUP` and `SAVE_MARKER_LOCATION_BACKUP` attempts are not cached as successful responses and the same request ID can retry after the underlying failure is corrected. Keep the replay cache process-local and unbounded as a documented design risk; do not change cache capacity/TTL or claim durable idempotency without an explicit contract decision.
