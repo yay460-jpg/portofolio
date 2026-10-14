@@ -74,7 +74,7 @@
 }
 #equipmentUnitListModal .equipment-unit-row{
  display:grid;
- grid-template-columns:120px minmax(155px,1.3fr) minmax(100px,.9fr) minmax(90px,.8fr) minmax(130px,1.1fr) 90px 112px;
+ grid-template-columns:120px minmax(155px,1.3fr) minmax(120px,1fr) minmax(100px,.9fr) minmax(90px,.8fr) minmax(130px,1.1fr) 90px 112px;
  width:100%;
  min-width:0;
  box-sizing:border-box;
@@ -106,7 +106,7 @@
 @media(max-width:1000px){
  #equipmentUnitListModal .equipment-unit-modal{width:calc(100vw - 24px);max-width:none}
  #equipmentUnitListModal .equipment-unit-row{
-  grid-template-columns:110px minmax(145px,1.2fr) minmax(95px,.9fr) minmax(85px,.8fr) minmax(120px,1fr) 85px 108px;
+  grid-template-columns:110px minmax(145px,1.2fr) minmax(110px,1fr) minmax(95px,.9fr) minmax(85px,.8fr) minmax(120px,1fr) 85px 108px;
   min-width:850px;
  }
 }
