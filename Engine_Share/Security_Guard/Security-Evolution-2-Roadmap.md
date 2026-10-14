@@ -470,3 +470,14 @@ The UI source trace was extended beyond Operations:
 - Audit of the current adapter-cached operation set found retry coverage for import, restore, dataset save/save-as/load, KPI finalize, and topography/marker backup save/load. Observational list/read operations remain uncached by contract; CRUD retains its separate application-level duplicate-request contract.
 - Retryability gate is closed for the reviewed cached operation set. No production replay behavior changed.
 - Next gate: resolve and document request-ID namespace/lifecycle across adapter-cached operations, CRUD, and observational reads; inspect cache lifetime/eviction and compatibility implications before proposing implementation. Do not change semantics until the public contract is agreed. `main` remains locked.
+
+
+## Workflow #761–next gate — Replay-cache lifecycle findings — 2026-10-14
+
+- Documentation workflows #761 and #762 PASS; the roadmap and RuntimeAdapter operation contract matrix are synchronized. https://github.com/yay460-jpg/portofolio/actions/runs/38496950642 and https://github.com/yay460-jpg/portofolio/actions/runs/38496961799.
+- Source audit confirms `RuntimeAdapter._request_results` is an in-memory dictionary owned by one adapter instance. There is no TTL, capacity bound, eviction, or persistence; entries disappear when the adapter instance/process is replaced. This is process-local replay protection, not durable idempotency.
+- A single adapter `RLock` currently encloses lookup, dispatch, and cache write for all cached operations. This prevents duplicate concurrent dispatch for identical cached requests, but also serializes unrelated cached requests. Existing #745 tests cover identical concurrent requests and conflicting payloads; no lock redesign is proposed in this gate.
+- Cached operations are `IMPORT_XLSX`, `RESTORE`, dataset save/save-as/load, topography/marker backup save/load, and `FINALIZE_KPI`. CRUD delegates duplicate detection to `ApplicationService`; BACKUP and LIST/READ observational operations bypass the adapter cache by contract.
+- Existing characterization proves adapter-cache IDs and CRUD IDs are currently separate namespaces. This behavior is documented, but whether the public contract should be global or family-scoped remains OPEN; do not silently change it.
+- Decision options for the contract review: (A) explicitly retain separate namespaces and document per-family guarantees; (B) introduce a unified request ledger with defined collision behavior across CRUD and cached operations. Either choice must specify retry semantics, response compatibility, lifetime/eviction, restart behavior, concurrency, and ownership. TTL/capacity/durable storage are out of scope until retention requirements are approved.
+- Next gate: contract review of options A/B and consumer compatibility, then isolated tests for the chosen contract. No production code changed; `main` remains locked.
