@@ -10,7 +10,7 @@
 
 Define the canonical Equipment master-data entity and the obligations of the Equipment screen. This contract applies to the active A.3 workspace; it does not change or promote the locked `main` baseline.
 
-Equipment is the canonical source for fleet/unit identity used by Operations, Maintenance, Checker, Issues, and map traceability. The Unit List is a projection/workflow over this entity, not a second database.
+Equipment is the canonical source for fleet/unit identity used by Operations, Maintenance, Checker, Issues, and map traceability. The Unit List exposes the same registered records and must show `equipment_id` together with `unit_no` as the human-facing Unit / Fleet No. reference. Add Equipment must use the registered Unit List identity as its reference and must not generate a second identity for an already registered unit.
 
 ## 2. Canonical A.3 Entity
 
@@ -50,6 +50,8 @@ Every read and mutation uses the canonical `Equipment` entity. UI code must not 
 
 The Equipment screen must support:
 - reading and filtering canonical Equipment records;
+- displaying the linked Equipment ID and Unit / Fleet No. (`unit_no`) identity pair in Unit List;
+- using the Unit List registered identity as the reference when adding Equipment, keeping the selected Equipment ID and Unit / Fleet No. linked;
 - creating records with required-field and controlled-list validation;
 - editing records while keeping `equipment_id` immutable;
 - correcting `unit_no` through the normal UPDATE path;
@@ -93,6 +95,8 @@ The Equipment contract is satisfied when:
 - controlled lists come from RuntimeAdapter / authoritative `_Lists`;
 - CREATE / UPDATE / DELETE use RuntimeAdapter;
 - `equipment_id` is immutable while `unit_no` remains correctable;
+- Unit List renders `unit_no` from the persisted Equipment record;
+- Add Equipment does not invent an identity for a unit that already exists in the Unit List reference;
 - validation and protected-delete failures are surfaced;
 - committed changes persist and create the expected audit event;
 - records survive refresh/reload;
