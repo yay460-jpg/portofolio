@@ -322,3 +322,64 @@ async function load(file) {
         for key, item in output.items()
         if key != "unsupportedVersion"
     ), output
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is required for Topo3D runtime tests")
+@pytest.mark.parametrize("engine_path", TOPO3D_PATHS)
+def test_ltdtm_v2_rejects_declared_segments_over_resource_limits(engine_path):
+    script = r"""
+const fs = require('node:fs');
+const vm = require('node:vm');
+const window = {};
+vm.runInNewContext(fs.readFileSync(process.env.LITHOSITE_TOPO3D_ENGINE, 'utf8'), { window, TextDecoder, File });
+const encoder = new TextEncoder();
+const manifest = encoder.encode(JSON.stringify({ dtmName: 'x.dtm', strName: 'x.str' }));
+function makePackage(dtmLength, strLength) {
+  const bytes = new Uint8Array(24 + manifest.byteLength + 2);
+  bytes.set(encoder.encode('LITHODTM'), 0);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(8, 2, true);
+  view.setUint32(12, manifest.byteLength, true);
+  view.setUint32(16, dtmLength, true);
+  view.setUint32(20, strLength, true);
+  bytes.set(manifest, 24);
+  bytes.set(encoder.encode('DS'), 24 + manifest.byteLength);
+  return { name: 'fixture.ltdtm', size: bytes.byteLength, arrayBuffer: async () => bytes.buffer };
+}
+async function load(file) {
+  const engine = window.LithositeTopo3D.create({});
+  engine.prepare = async () => engine;
+  let called = false, rejected = false, errorMessage = '';
+  engine.loadDTMSTR = async () => { called = true; };
+  try { await engine.loadLTDtm(file); }
+  catch (error) { rejected = true; errorMessage = error.message; }
+  return { rejected, called, errorMessage };
+}
+(async () => {
+  const results = {
+    dtmOverLimit: await load(makePackage(64 * 1024 * 1024 + 1, 1)),
+    strOverLimit: await load(makePackage(1, 64 * 1024 * 1024 + 1))
+  };
+  process.stdout.write(JSON.stringify(results));
+})().catch(error => { console.error(error); process.exitCode = 1; });
+"""
+    env = os.environ.copy()
+    env["LITHOSITE_TOPO3D_ENGINE"] = str(engine_path)
+    result = subprocess.run(
+        ["node", "-e", script],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    output = json.loads(result.stdout)
+    assert all(
+        item == {
+            "rejected": True,
+            "called": False,
+            "errorMessage": "Struktur/ukuran package Topografi tidak valid",
+        }
+        for item in output.values()
+    ), output
