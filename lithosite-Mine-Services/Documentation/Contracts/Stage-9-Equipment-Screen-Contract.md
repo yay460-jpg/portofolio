@@ -118,16 +118,25 @@ Stage 9 can become PASS only when:
 - regression tests are green.
 
 **Next implementation step:** build the Equipment screen against this contract, then add Stage 9 test evidence before baseline.
-## 11. Unit Database Modal
+## 11. Unit Database — Canonical Equipment Master
 
-The Equipment toolbar exposes **Unit List** between **Refresh** and **Global Capacity**. It opens a compact read-only projection of canonical `Equipment` records with columns:
+The Equipment toolbar exposes **Unit List** between **Refresh** and **Global Capacity**. The modal is the compact master-data workspace for the unit records already stored in the canonical A.3 `Equipment` entity. It is not a second persistence layer.
 
-- Date Record — `effective_from` (the existing Equipment record date; do not invent a new creation timestamp).
-- Unique ID — `equipment_id`.
+Columns:
+- Date Record — `effective_from` (existing effective date; do not invent a creation timestamp).
+- Unique ID — `equipment_id` (immutable primary key).
 - Type — `type`.
-- Brand — resolved from the referenced `GlobalCapacity.unit_brand` through `capacity_profile_id`.
+- Brand — resolved from `GlobalCapacity.unit_brand` through `capacity_profile_id`.
 - Category — `category`.
 - Status — `status`.
-- Action — opens the existing Equipment edit modal for that record.
+- Action — `Edit` and `Delete`, both through RuntimeAdapter and existing reference-protection rules.
 
-The modal refreshes Equipment and GlobalCapacity through RuntimeAdapter. It must not introduce a separate Excel worksheet/entity, direct workbook writes, IndexedDB/localStorage, or duplicate persistence. Existing Equipment records and the A.3 workbook remain the source of truth. The modal uses the shared modal-show contract and must expose loading, empty, ready, and refresh-failure states.
+### Add Unit workflow
+
+The modal must provide an **Add Unit** button. It opens the existing Equipment form in Unit mode, validates required fields and creates the row using `CREATE Equipment` through RuntimeAdapter. Editing an existing unit opens the same form using `UPDATE Equipment`; the `equipment_id` primary key remains immutable while `unit_no` can be corrected. After save or cancel, the user returns to the Unit Database list and the list is refreshed after successful mutation.
+
+### Persistence and schema decision
+
+The current A.3 schema already has the canonical `Equipment` worksheet/entity, including `equipment_id`, `unit_no`, category, type, status, dates, and a GlobalCapacity reference. Operational records reference `Equipment.equipment_id`. Therefore this implementation must use that existing source of truth and must not create a parallel `Units` worksheet/entity or browser storage. Introducing a distinct `Units` entity would be a separate schema migration requiring an approved schema-version change and explicit migration/reference plan; it is not part of this A.3 UI change.
+
+The modal reads and mutates only through RuntimeAdapter. It must preserve loading, empty, ready, validation-error, and refresh-failure states, and must never bypass audit, transactions, or delete-reference protections.
