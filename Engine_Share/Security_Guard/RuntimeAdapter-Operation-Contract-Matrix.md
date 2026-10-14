@@ -52,7 +52,7 @@ This matrix distinguishes observed code behavior from tested guarantees. A green
 
 1. Replay cache is process-local/unbounded; durable replay, expiry/capacity, and restart behavior require a separate design rather than an undocumented patch.
 2. CRUD and adapter-cache IDs have separate owners; cross-family ID reuse is not a global duplicate guard. Preserve compatibility for this track and make callers' global uniqueness requirement explicit.
-3. Dataset-load rollback must include the store, controlled lists, active dataset metadata and audit/persistence outcome. The newly added injected-save-failure regression is the closure test for this contract.
+3. Dataset-load rollback now restores the store, controlled lists and active dataset metadata after an injected workbook-save failure; Full Pytest #38499279618 is PASS. Future failure modes beyond the injected audit/store-save boundary remain separate tests.
 4. Domain validation and host transport limits remain owner-specific. Do not interpret adapter envelope validation as full workbook, file path, browser, Geo, or Topo3D security validation.
 
 No operational A3 workbook is used as a test fixture; use isolated stores and temporary files.
