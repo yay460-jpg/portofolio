@@ -115,7 +115,7 @@ function renderUnitList(){
    '<div class="equipment-unit-cell equipment-unit-actions"><button type="button" class="control mini edit-equipment" data-id="'+esc(row.equipment_id)+'">Edit</button><button type="button" class="control mini danger delete-equipment" data-id="'+esc(row.equipment_id)+'">Delete</button></div>'+
   '</div>';
  }).join(''):'<div class="equipment-unit-empty">No equipment units recorded yet.</div>';
- count.textContent=rows.length+' units · Runtime Ready';
+ count.textContent=rows.length+' units · Runtime Ready · Canonical Equipment records';
 }
 async function refreshUnitList(){
  const host=document.getElementById('equipmentUnitListRows');
