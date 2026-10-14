@@ -123,10 +123,26 @@ function computeConvergenceForPoint_(easting, northing, zone, hemisphere) {
 // puluhan-ratusan meter) jauh lebih kecil drpd radius bumi -- kelengkungan diabaikan tanpa
 // kehilangan presisi berarti. Bearing relatif GRID NORTH (0=Utara grid, searah jarum jam).
 function bearingDistanceGrid_(eastingFrom, northingFrom, eastingTo, northingTo) {
+  const inputs = [eastingFrom, northingFrom, eastingTo, northingTo];
+  if (!inputs.every(Number.isFinite)) {
+    return { bearingGridDeg: 0, distanceMeters: 0, ok: false };
+  }
+
   const dE = eastingTo - eastingFrom;
   const dN = northingTo - northingFrom;
-  const distance = Math.sqrt(dE*dE + dN*dN);
+  if (!Number.isFinite(dE) || !Number.isFinite(dN)) {
+    return { bearingGridDeg: 0, distanceMeters: 0, ok: false };
+  }
+
+  const distance = Math.hypot(dE, dN);
+  if (!Number.isFinite(distance)) {
+    return { bearingGridDeg: 0, distanceMeters: 0, ok: false };
+  }
+
   let bearingDeg = Math.atan2(dE, dN) * 180/Math.PI; // atan2(Timur,Utara) -> 0=Utara, 90=Timur
   if (bearingDeg < 0) bearingDeg += 360;
-  return { bearingGridDeg: bearingDeg, distanceMeters: distance };
+  if (!Number.isFinite(bearingDeg)) {
+    return { bearingGridDeg: 0, distanceMeters: 0, ok: false };
+  }
+  return { bearingGridDeg: bearingDeg, distanceMeters: distance, ok: true };
 }
