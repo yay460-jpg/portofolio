@@ -227,3 +227,21 @@ def test_unit_database_body_cells_use_compact_typography():
     assert "#equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head) .equipment-unit-cell{font-size:9.5px}" in EQUIPMENT_CSS
     assert "font-size:12px;line-height:1.35" not in EQUIPMENT_CSS
     assert "equipment.css?v=20261015-unit-shared-table-font" in TEXT
+
+
+def test_global_capacity_modal_has_one_close_button_and_no_footer_action():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    snapshot = (Path(__file__).parents[1] / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html").read_text(encoding="utf-8")
+    js = (Path(__file__).parents[1] / "ui" / "modules" / "workfront" / "global-capacity.js").read_text(encoding="utf-8")
+    css = (Path(__file__).parents[1] / "ui" / "modules" / "workfront" / "global-capacity.css").read_text(encoding="utf-8")
+    for html in (artifact, snapshot):
+        start = html.index('id="capacityModal"')
+        end = html.index('id="capacityEditModal"', start)
+        modal = html[start:end]
+        assert modal.count('>Close</button>') == 1
+        assert '<div class="modalfoot"></div>' in modal
+        assert 'capacityFooterClose' not in modal
+    assert "capacityFooterClose" not in js
+    assert "#capacityModal > .modal.capacity-modal > .modalfoot:empty{display:none;" in css
+    assert "global-capacity.js?v=20261015-single-close" in artifact
+    assert "global-capacity.css?v=20261015-single-close" in artifact
