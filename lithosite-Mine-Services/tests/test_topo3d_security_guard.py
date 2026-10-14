@@ -396,7 +396,7 @@ vm.runInNewContext(fs.readFileSync(process.env.LITHOSITE_TOPO3D_ENGINE, 'utf8'),
 const encoder = new TextEncoder();
 function makePackage(vertexCount, indexCount) {
   const meta = encoder.encode(JSON.stringify({ triangles: 1 }));
-  const bytes = new Uint8Array(20 + meta.byteLength);
+  const bytes = new Uint8Array(24 + meta.byteLength);
   bytes.set(encoder.encode('LITHODTM'), 0);
   const view = new DataView(bytes.buffer);
   view.setUint32(8, 1, true);
