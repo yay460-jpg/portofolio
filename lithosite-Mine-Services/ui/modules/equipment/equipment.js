@@ -364,7 +364,7 @@ function bind(){
  document.getElementById('equipmentRefresh').onclick=load;
  document.getElementById('equipmentUnitListButton').onclick=openUnitList;
  document.getElementById('equipmentUnitListClose').onclick=()=>global.LithositeModalShowContract.close('equipmentUnitListModal');
- document.getElementById('equipmentUnitListFooterClose').onclick=()=>global.LithositeModalShowContract.close('equipmentUnitListModal');
+
  document.getElementById('equipmentUnitListRefresh').onclick=refreshUnitList;
  document.getElementById('equipmentUnitTypeFilter').addEventListener('change',renderUnitList);
  document.getElementById('equipmentUnitListRows').addEventListener('click',function(event){
