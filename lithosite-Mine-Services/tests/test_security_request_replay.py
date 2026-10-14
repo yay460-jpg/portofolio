@@ -727,3 +727,28 @@ def test_concurrent_conflicting_cached_requests_commit_only_one_payload(tmp_path
     assert rejected["errors"][0]["code"] == "ADP-006"
     assert len(list((tmp_path / "datasets").glob("*.json"))) == 1
     assert len(adapter._runtime._application.store.audit()) == 1
+
+
+def test_save_as_dataset_rejected_attempt_can_retry_same_request_id(tmp_path):
+    adapter = make_adapter(tmp_path)
+    calls = []
+
+    def flaky_save(name):
+        calls.append(name)
+        if len(calls) == 1:
+            return {"status": "REJECTED", "errors": [{"code": "DATASET-TEST"}]}
+        return {"status": "SAVED_AS", "name": name}
+
+    adapter._runtime.save_dataset_as = flaky_save
+    request = {
+        "request_id": "replay-save-as-retry-001",
+        "operation": "SAVE_AS_DATASET",
+        "name": "Retryable Review",
+    }
+
+    first = adapter.handle(dict(request))
+    retry = adapter.handle(dict(request))
+
+    assert first["status"] == "REJECTED"
+    assert retry["status"] == "SAVED_AS"
+    assert calls == ["Retryable Review", "Retryable Review"]
