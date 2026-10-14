@@ -693,3 +693,37 @@ def test_concurrent_identical_cached_requests_execute_side_effect_once(tmp_path)
     assert responses[0]["status"] == "SAVED_AS"
     assert len(list((tmp_path / "datasets").glob("*.json"))) == 1
     assert len(adapter._runtime._application.store.audit()) == 1
+
+
+def test_concurrent_conflicting_cached_requests_commit_only_one_payload(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    adapter = make_adapter(tmp_path)
+    request_id = "replay-concurrent-conflict-001"
+    requests = [
+        {
+            "request_id": request_id,
+            "operation": "SAVE_AS_DATASET",
+            "name": "Concurrent Candidate A",
+        },
+        {
+            "request_id": request_id,
+            "operation": "SAVE_AS_DATASET",
+            "name": "Concurrent Candidate B",
+        },
+    ]
+    barrier = Barrier(len(requests))
+
+    def submit_request(request):
+        barrier.wait(timeout=5)
+        return adapter.handle(dict(request))
+
+    with ThreadPoolExecutor(max_workers=len(requests)) as executor:
+        responses = list(executor.map(submit_request, requests))
+
+    assert sorted(response["status"] for response in responses) == ["REJECTED", "SAVED_AS"]
+    rejected = next(response for response in responses if response["status"] == "REJECTED")
+    assert rejected["errors"][0]["code"] == "ADP-006"
+    assert len(list((tmp_path / "datasets").glob("*.json"))) == 1
+    assert len(adapter._runtime._application.store.audit()) == 1
