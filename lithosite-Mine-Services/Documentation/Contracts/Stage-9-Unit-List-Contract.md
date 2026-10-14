@@ -34,7 +34,7 @@ The modal must provide clear loading, ready, empty, and refresh-failure states. 
 The modal must expose an **Add Unit** action.
 
 1. Add Unit opens the existing Equipment form in Unit mode.
-2. The form collects the fields required by the canonical A.3 Equipment contract, including `unit_no`. `equipment_id` and `unit_no` form the linked identity reference that downstream Equipment workflows must use; the Unit List is the user-facing place to verify that mapping.
+2. The Add Unit form collects the fields required by the canonical A.3 Equipment contract, including `unit_no`, and creates a new canonical Equipment record. By contrast, the page-level Add Equipment action must select an existing Unit List record; it must not create another master identity. The selector binds `equipment_id` and `unit_no` from the same persisted record.
 3. Client-side checks may improve feedback, but RuntimeAdapter validation remains authoritative.
 4. Creation uses `CREATE` with entity `Equipment` and the row payload.
 5. The UI closes the form and returns to Unit List only after the expected interaction; it reports success only when the runtime returns a committed result.
@@ -82,7 +82,9 @@ Creating a separate `Units` entity requires a separate approved schema migration
 The Unit List contract is satisfied when:
 - the modal uses the specified columns and canonical data sources, including Unit / Fleet No. sourced from `Equipment.unit_no`;
 - Equipment ID and Unit / Fleet No. remain visible as a linked identity pair for downstream reference selection;
-- Add Unit creates a persisted Equipment record through RuntimeAdapter;
+- Add Unit creates a new persisted Equipment record through RuntimeAdapter;
+- Add Equipment selects a registered Unit List record and resolves its Equipment ID and Unit / Fleet No. as one linked identity;
+- saving Add Equipment updates the selected canonical record through RuntimeAdapter and does not create a duplicate Equipment ID;
 - Edit can correct `unit_no` without changing `equipment_id`;
 - Delete requires confirmation and honours runtime reference protection;
 - committed mutations refresh the modal from persisted records;
