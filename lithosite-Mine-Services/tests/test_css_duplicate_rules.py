@@ -131,7 +131,7 @@ def test_reports_preview_reuses_single_shared_kpi_card_and_note_rules():
 def test_active_artifact_refreshes_only_affected_css_cache_keys():
     html = ARTIFACT.read_text(encoding="utf-8")
     assert "../ui/modules/operations/operations.css?v=20261011-css-dedupe" in html
-    assert "../ui/modules/equipment/equipment.css?v=20261014-unit-list-layout" in html
+    assert "../ui/modules/equipment/equipment.css?v=20261015-unit-database-master" in html
     assert "../ui/modules/maintenance/maintenance.css?v=20261012-compact-view" in html
     assert "../ui/modules/hse/hse.css?v=20261011-ptitle-dedupe" in html
     assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in html
