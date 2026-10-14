@@ -230,3 +230,59 @@ function canonicalize(value) {
         "writes": 1,
         "recoveryStarts": 1,
     }, output
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is required for Browser Guard integrity tests")
+def test_map_package_transfer_rejects_tampered_integrity_before_side_effects():
+    script = r"""
+const fs = require('node:fs');
+const vm = require('node:vm');
+const crypto = require('node:crypto');
+const window = {
+  navigator: { deviceMemory: 8 },
+  crypto: crypto.webcrypto,
+  MG1MapLibrary: { getAll: async () => [] }
+};
+let writes = 0, recoveryStarts = 0;
+window.dbPutMap_ = async () => { writes++; };
+window.MG1MapRecovery = { beginImport: () => { recoveryStarts++; } };
+const context = vm.createContext({
+  window, TextEncoder, TextDecoder, console: { log() {} }, structuredClone, crypto: crypto.webcrypto
+});
+vm.runInContext(fs.readFileSync(process.env.LITHOSITE_MAP_SECURITY, 'utf8'), context);
+vm.runInContext(fs.readFileSync(process.env.LITHOSITE_MAP_TRANSFER, 'utf8'), context);
+(async () => {
+  const payload = {
+    format: 'MG1-LITHOSITE-MAP-PACKAGE',
+    schemaVersion: 1,
+    exportedAt: '2026-10-14T00:00:00.000Z',
+    maps: [{ id: 'tampered-map', name: 'Tampered', imageDataUrl: 'data:image/png;base64,QUJD' }]
+  };
+  const raw = JSON.stringify({
+    ...payload,
+    integrity: { algorithm: 'SHA-256', scope: 'payload', value: '0'.repeat(64) }
+  });
+  let rejected = false, errorMessage = '';
+  try {
+    await window.MG1MapPackageTransfer.importFile({
+      name: 'tampered.mg1map', size: Buffer.byteLength(raw), text: async () => raw
+    });
+  } catch (error) { rejected = true; errorMessage = error.message; }
+  process.stdout.write(JSON.stringify({ rejected, errorMessage, writes, recoveryStarts }));
+})().catch(error => { console.error(error); process.exitCode = 1; });
+"""
+    env = os.environ.copy()
+    env["LITHOSITE_MAP_SECURITY"] = str(MEMBER_APP / "scripts" / "map" / "map-security.js")
+    env["LITHOSITE_MAP_TRANSFER"] = str(MEMBER_APP / "scripts" / "map" / "map-package-transfer.js")
+    result = subprocess.run(
+        ["node", "-e", script],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    output = json.loads(result.stdout)
+    assert output["rejected"] is True, output
+    assert output["writes"] == 0 and output["recoveryStarts"] == 0, output
