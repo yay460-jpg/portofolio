@@ -781,3 +781,28 @@ def test_restore_rejected_attempt_can_retry_same_request_id(tmp_path):
         ({"entities": []}, "REPLACE_RUNTIME"),
         ({"entities": []}, "REPLACE_RUNTIME"),
     ]
+
+
+def test_load_dataset_rejected_attempt_can_retry_same_request_id(tmp_path):
+    adapter = make_adapter(tmp_path)
+    calls = []
+
+    def flaky_load(name):
+        calls.append(name)
+        if len(calls) == 1:
+            return {"status": "REJECTED", "errors": [{"code": "LOAD-DATASET-TEST"}]}
+        return {"status": "LOADED", "name": name}
+
+    adapter._runtime.load_dataset = flaky_load
+    request = {
+        "request_id": "replay-load-dataset-retry-001",
+        "operation": "LOAD_DATASET",
+        "name": "Retryable Review",
+    }
+
+    first = adapter.handle(dict(request))
+    retry = adapter.handle(dict(request))
+
+    assert first["status"] == "REJECTED"
+    assert retry["status"] == "LOADED"
+    assert calls == ["Retryable Review", "Retryable Review"]
