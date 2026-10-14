@@ -280,3 +280,12 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Added a focused rejected-first-attempt retry test for `SAVE_DATASET`; CI pending. Do not mark PASS before the workflow concludes.
 - Retry gates confirmed include `SAVE_AS_DATASET` (#746), `RESTORE` (#748), `LOAD_DATASET` (#751), and `FINALIZE_KPI` (#755), alongside existing import/backup retry tests.
 - No production behavior changed. Request-ID scope across operation families and cache lifecycle remain explicit open contract decisions.
+
+
+### RuntimeAdapter retry gate — SAVE_DATASET PASS; advance request-ID scope audit — 2026-10-14
+
+- Full Pytest #758 PASS: rejected `SAVE_DATASET` attempts are not cached as successful replay responses; identical request ID and dataset name can retry. https://github.com/yay460-jpg/portofolio/actions/runs/38496637615.
+- Documentation workflows #759 and #760 PASS; roadmap and matrix synchronized. https://github.com/yay460-jpg/portofolio/actions/runs/38496661461 and https://github.com/yay460-jpg/portofolio/actions/runs/38496670924.
+- Current retry test inventory covers adapter-cached import, restore, dataset save/save-as/load, KPI finalize, and topography/marker backup save/load. Observational list/read operations are intentionally uncached; CRUD follows its separate application-level duplicate-request contract.
+- Retryability review gate closed for the current cached operation set. No production behavior changed.
+- Next: contract decision on request-ID namespace and lifecycle across adapter cache, CRUD, and observational reads, including cache lifetime/eviction and compatibility. Keep implementation unchanged pending explicit contract resolution.
