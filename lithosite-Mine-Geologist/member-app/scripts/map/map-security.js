@@ -59,50 +59,53 @@
   });
 })(window);
 
-
+  
   /**
-   * Global import security gate.
-   * Extension is treated only as compatibility metadata; package content remains untrusted
-   * until parsed and validated.
+   * Compatibility validator for legacy import packages.
+   * Keep this API inside the same immutable namespace as the canonical helpers.
    */
-  function validateImportPackage(pkg) {
+  function validateImportPackage_(pkg) {
     try {
       if (!pkg || typeof pkg !== 'object' || Array.isArray(pkg)) {
-        return { ok:false, reason:'invalid-package' };
+        return { ok: false, reason: 'invalid-package' };
       }
-      const maps = Array.isArray(pkg.maps) ? pkg.maps : null;
-      if (!maps || maps.length < 1) return { ok:false, reason:'invalid-maps' };
+      var maps = Array.isArray(pkg.maps) ? pkg.maps : null;
+      if (!maps || maps.length < 1) return { ok: false, reason: 'invalid-maps' };
 
-      for (const map of maps) {
-        if (!map || typeof map !== 'object') return { ok:false, reason:'invalid-map' };
-
-        if (typeof map.imageDataUrl === 'string' && map.imageDataUrl) {
-          if (typeof isSafeImageDataUrl === 'function' && !isSafeImageDataUrl(map.imageDataUrl)) {
-            return { ok:false, reason:'unsafe-image-data' };
-          }
+      for (var i = 0; i < maps.length; i++) {
+        var map = maps[i];
+        if (!map || typeof map !== 'object' || Array.isArray(map)) {
+          return { ok: false, reason: 'invalid-map' };
+        }
+        if (map.imageDataUrl != null && !isSafeImageDataUrl_(map.imageDataUrl)) {
+          return { ok: false, reason: 'unsafe-image-data' };
         }
 
-        const tiles = Array.isArray(map.tiles) ? map.tiles : [];
-        for (const tile of tiles) {
-          if (!tile || typeof tile !== 'object') return { ok:false, reason:'invalid-tile' };
-          if (typeof tile.dataUrl === 'string' && tile.dataUrl) {
-            if (typeof isSafeImageDataUrl === 'function' && !isSafeImageDataUrl(tile.dataUrl)) {
-              return { ok:false, reason:'unsafe-tile-data' };
-            }
+        var tiles = Array.isArray(map.tiles) ? map.tiles : [];
+        for (var j = 0; j < tiles.length; j++) {
+          var tile = tiles[j];
+          if (!tile || typeof tile !== 'object' || Array.isArray(tile)) {
+            return { ok: false, reason: 'invalid-tile' };
           }
-          if (typeof tile.tileKey === 'string' && tile.tileKey) {
-            if (typeof isSafeTileKey === 'function' && !isSafeTileKey(tile.tileKey)) {
-              return { ok:false, reason:'unsafe-tile-key' };
-            }
+          if (tile.dataUrl != null && !isSafeImageDataUrl_(tile.dataUrl)) {
+            return { ok: false, reason: 'unsafe-tile-data' };
+          }
+          if (tile.tileKey != null && !isSafeTileKey_(tile.tileKey)) {
+            return { ok: false, reason: 'unsafe-tile-key' };
           }
         }
       }
-      return { ok:true };
+      return { ok: true };
     } catch (e) {
-      return { ok:false, reason:'security-validation-error' };
+      return { ok: false, reason: 'security-validation-error' };
     }
   }
 
-  window.MG1LithositeSecurity = Object.assign(window.MG1LithositeSecurity || {}, {
-    validateImportPackage: validateImportPackage
+  global.MG1LithositeSecurity = Object.freeze({
+    isSafeImageDataUrl: isSafeImageDataUrl_,
+    isSafeTileKey: isSafeTileKey_,
+    validateTile: validateTile_,
+    validatePayload: validatePayload_,
+    validateImportPackage: validateImportPackage_
   });
+})(window);
