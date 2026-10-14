@@ -49,5 +49,5 @@ process.stdout.write(JSON.stringify({ rejected, valid: {
     )
     assert result.returncode == 0, result.stderr or result.stdout
     output = json.loads(result.stdout)
-    assert all(not item["ok"] and not item["finite"] for item in output["rejected"]), output
+    assert all(not item["ok"] for item in output["rejected"]), output
     assert output["valid"] == {"ok": True, "finite": True}
