@@ -435,3 +435,12 @@ The UI source trace was extended beyond Operations:
 - Added a focused `RESTORE` rejected-attempt retry test. It injects a rejected first result followed by a successful result for the identical request. Full Pytest #748 is pending; do not mark this gate PASS before CI completes: https://github.com/yay460-jpg/portofolio/actions/runs/38492451181.
 - Local user validation after pulling commit `b11dd569`: `python -m pytest -q` reported `657 passed in 60.20s`. This validates the pulled tree at that commit; it does not include the newer #748 test commit.
 - Current scope remains unchanged: no production replay policy changes. Next, verify #748 and continue failure/retry coverage for selected cached operations, then reconcile operation contract matrix and roadmap. Global-vs-family request-ID scope remains an explicit open decision; `main` remains locked.
+
+
+## Workflow #748–#751 — Restore and dataset-load retryability — 2026-10-14
+
+- Full Pytest #748 PASS: a rejected `RESTORE` attempt is not cached as a successful result; retrying the identical request ID and payload invokes the operation again. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38492451181.
+- Documentation workflows #749 and #750 PASS, synchronizing the roadmap and RuntimeAdapter contract matrix: https://github.com/yay460-jpg/portofolio/actions/runs/38492477097 and https://github.com/yay460-jpg/portofolio/actions/runs/38492484773.
+- Added an isolated `LOAD_DATASET` retry test for a rejected first response followed by a successful retry with the same request ID and dataset name. Full Pytest #751 is pending: https://github.com/yay460-jpg/portofolio/actions/runs/38492500000. Do not mark this new gate PASS until its actual run concludes.
+- Replay retry gates now confirmed by CI include `SAVE_AS_DATASET` (#746) and `RESTORE` (#748). The `LOAD_DATASET` test is the next gate. No production replay policy was changed.
+- Open decision remains: request-ID scope across adapter-cached operations, CRUD, and uncached observational operations. Do not change semantics until the public contract and compatibility requirements are explicitly resolved; `main` remains locked.
