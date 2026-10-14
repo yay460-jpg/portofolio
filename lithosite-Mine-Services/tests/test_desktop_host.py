@@ -394,7 +394,16 @@ def test_evidence_owner_verification_rejects_unknown_module_before_read(monkeypa
         server._evidence_record_exists("AuditLog", "record-1")
 
 
-def test_report_pdf_rejects_non_object_with_sanitized_error(monkeypatch, tmp_path):
+@pytest.mark.parametrize(
+    ("body", "internal_detail"),
+    [
+        (json.dumps([]).encode("utf-8"), "Report model must be an object"),
+        (b'{"broken":', "Expecting value"),
+    ],
+)
+def test_report_pdf_rejects_malformed_requests_with_sanitized_error(
+    monkeypatch, tmp_path, body, internal_detail
+):
     db_path = tmp_path / "desktop-host-a3.xlsx"
     _make_test_database(db_path)
     monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
@@ -409,7 +418,7 @@ def test_report_pdf_rejects_non_object_with_sanitized_error(monkeypatch, tmp_pat
         host, port = httpd.server_address
         request = Request(
             f"http://{host}:{port}/report-pdf",
-            data=json.dumps([]).encode("utf-8"),
+            data=body,
             headers={"Content-Type": "application/json"},
             method="POST",
         )
@@ -420,7 +429,7 @@ def test_report_pdf_rejects_non_object_with_sanitized_error(monkeypatch, tmp_pat
         assert payload["status"] == "REJECTED"
         assert payload["errors"][0]["code"] == "HOST-008"
         assert payload["errors"][0]["message"] == "Invalid report request"
-        assert "Report model must be an object" not in json.dumps(payload)
+        assert internal_detail not in json.dumps(payload)
     finally:
         httpd.shutdown()
         httpd.server_close()
