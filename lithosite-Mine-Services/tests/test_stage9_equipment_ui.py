@@ -125,7 +125,9 @@ def test_equipment_unit_database_reads_canonical_runtime_records_only():
     assert "rc.request({operation:'READ',entity:'GlobalCapacity'})" in EQUIPMENT_JS
     assert "esc(row.effective_from||'—')" in EQUIPMENT_JS
     assert "esc(equipmentBrand(row))" in EQUIPMENT_JS
-    assert "equipment-unit-open" in EQUIPMENT_JS
+    assert 'class="control mini edit-equipment"' in EQUIPMENT_JS
+    assert 'class="control mini danger delete-equipment"' in EQUIPMENT_JS
+    assert "equipment-unit-open" not in EQUIPMENT_JS
     assert "equipmentUnitListModal" in (Path(__file__).parents[1] / "ui" / "shared" / "modal-show-contract.js").read_text(encoding="utf-8")
 
 
