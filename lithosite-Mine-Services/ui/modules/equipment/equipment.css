@@ -42,3 +42,7 @@
 #equipmentUnitListModal .equipment-unit-modal-body{grid-template-columns:minmax(0,1fr)}
 #equipmentUnitListModal .modal-runtime-status{font-size:10px}
 @media(max-width:900px){.equipment-unit-modal{width:96vw}#equipmentUnitListModal .equipment-unit-row{min-width:800px}}
+
+#equipmentUnitListModal .equipment-unit-actions{display:flex;align-items:center;gap:5px;white-space:nowrap}
+#equipmentUnitListModal .equipment-unit-actions .mini{min-width:40px}
+#equipmentUnitListModal .equipment-unit-actions .delete-equipment{border-color:#ef4444;color:#fecaca;background:#401c25}
