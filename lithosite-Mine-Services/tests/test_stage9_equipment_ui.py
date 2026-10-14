@@ -151,7 +151,7 @@ def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
     assert 'id="equipmentUnitListButton"' in artifact
     assert 'id="equipmentUnitListModal"' in artifact
     assert "equipment.js?v=20261015-unit-compact-status" in artifact
-    assert "equipment.css?v=20261015-unit-compact-typography" in artifact
+    assert "equipment.css?v=20261015-unit-shared-table-font" in artifact
 
 def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal_overflow():
     css = EQUIPMENT_CSS[EQUIPMENT_CSS.index('/* Unit Database layout correction'): ]
@@ -220,10 +220,10 @@ def test_unit_database_empty_footer_is_collapsed_by_its_actual_modal_class():
 
 def test_unit_database_action_styles_have_single_owner_rule():
     assert EQUIPMENT_CSS.count("#equipmentUnitListModal .equipment-unit-actions{") == 1
-    assert "equipment.css?v=20261015-unit-compact-typography" in TEXT
+    assert "equipment.css?v=20261015-unit-shared-table-font" in TEXT
 
 
 def test_unit_database_body_cells_use_compact_typography():
     assert "#equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head) .equipment-unit-cell{font-size:9.5px}" in EQUIPMENT_CSS
     assert "font-size:12px;line-height:1.35" not in EQUIPMENT_CSS
-    assert "equipment.css?v=20261015-unit-compact-typography" in TEXT
+    assert "equipment.css?v=20261015-unit-shared-table-font" in TEXT
