@@ -206,4 +206,5 @@ def test_unit_database_has_single_close_control():
     end = artifact.index('<section id="workfrontScreen"', start)
     modal = artifact[start:end]
     assert modal.count('>Close</button>') == 1
+    assert '<div class="modalfoot" aria-hidden="true"></div>' in modal
     assert 'equipmentUnitListFooterClose' not in modal
