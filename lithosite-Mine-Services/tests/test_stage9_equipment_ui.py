@@ -132,9 +132,10 @@ def test_equipment_unit_database_reads_canonical_runtime_records_only():
 
 
 def test_equipment_unit_list_modal_has_scrollable_compact_layout():
-    assert ".equipment-unit-modal{width:min(1080px,94vw)" in EQUIPMENT_CSS
-    assert "max-height:min(56vh,560px)" in EQUIPMENT_CSS
-    assert "grid-template-columns:125px minmax(150px,1.35fr)" in EQUIPMENT_CSS
+    assert "width:min(1240px,calc(100vw - 40px))" in EQUIPMENT_CSS
+    assert "grid-template-columns:120px minmax(155px,1.3fr)" in EQUIPMENT_CSS
+    assert "max-height:min(58vh,560px)" in EQUIPMENT_CSS
+    assert "equipment-unit-actions .mini" in EQUIPMENT_CSS
 
 
 def test_equipment_unit_list_uses_existing_edit_and_delete_actions():
@@ -150,4 +151,12 @@ def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
     assert 'id="equipmentUnitListButton"' in artifact
     assert 'id="equipmentUnitListModal"' in artifact
     assert "equipment.js?v=20261014-unit-list" in artifact
-    assert "equipment.css?v=20261014-unit-list" in artifact
+    assert "equipment.css?v=20261014-unit-list-layout" in artifact
+
+def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal_overflow():
+    css = EQUIPMENT_CSS[EQUIPMENT_CSS.index('/* Unit Database layout correction'): ]
+    assert 'width:100%;\n min-width:0;' in css
+    assert 'grid-template-columns:120px minmax(155px,1.3fr)' in css
+    assert 'min-width:850px' in css  # narrow-screen media override only
+    assert 'white-space:nowrap' in css
+    assert 'min-width:0;\n height:28px' in css
