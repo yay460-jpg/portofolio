@@ -7,7 +7,7 @@ Source inventory performed against the locked V41 source baseline `698469057aa58
 Primary source owners:
 
 - `lithosite-Mine-Services/desktop-host/server.py` — HTTP transport, static resources, Evidence file endpoints, PDF generation, and RuntimeAdapter invocation.
-- `lithosite-Mine-Services/src/mine_services/adapter.py` — 19 supported runtime operation names and operation dispatch.
+- `lithosite-Mine-Services/src/mine_services/adapter.py` — 20 supported runtime operation names and operation dispatch.
 - `lithosite-Mine-Services/src/mine_services/validation.py` and service/store/transaction layers — domain validation and authoritative data mutation.
 - `lithosite-Mine-Geologist/member-app/scripts/map/map-security.js` — browser package/tile/image security helper.
 - `lithosite-Mine-Geologist/shared/topo3d/topo3d-engine.js` and `lithosite-Mine-Services/shared/topo3d/topo3d-engine.js` — Topo3D import parsing and resource limits.
@@ -69,7 +69,7 @@ Unsupported methods rely on the standard `BaseHTTPRequestHandler` behavior; expl
 
 ## RuntimeAdapter operation inventory
 
-`RuntimeAdapter.OPERATIONS` currently lists 19 operations:
+`RuntimeAdapter.OPERATIONS` currently lists 20 operations:
 
 | Operation | Route class | Ownership/security questions |
 |---|---|---|
@@ -150,7 +150,7 @@ The static fallback still uses the repository as its resolution root, but access
 ## EVO2-02 remaining work
 
 - [x] Record the host's HTTP routes and per-route high-level controls.
-- [x] Enumerate all 19 RuntimeAdapter operation names.
+- [x] Enumerate all 20 RuntimeAdapter operation names.
 - [x] Record existing host/Evidence test coverage by test function name.
 - [x] Record Browser Guard script order and its presently observed call-sites.
 - [ ] Complete per-operation trace for CREATE/UPDATE/DELETE/READ and KPI operations; first-pass import/restore/dataset/backup trace recorded above.
