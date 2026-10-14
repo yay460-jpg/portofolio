@@ -248,3 +248,77 @@ async function load(value) {
     output = json.loads(result.stdout)
     assert all(item["rejected"] and not item["called"] for item in output["invalid"]), output
     assert output["valid"] == {"rejected": False, "called": True, "errorMessage": ""}
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is required for Topo3D runtime tests")
+@pytest.mark.parametrize("engine_path", TOPO3D_PATHS)
+def test_ltdtm_rejects_unsupported_version_and_invalid_v2_segment_lengths(engine_path):
+    script = r"""
+const fs = require('node:fs');
+const vm = require('node:vm');
+const window = {};
+vm.runInNewContext(fs.readFileSync(process.env.LITHOSITE_TOPO3D_ENGINE, 'utf8'), { window, TextDecoder, File });
+const encoder = new TextEncoder();
+const manifest = encoder.encode(JSON.stringify({ dtmName: 'x.dtm', strName: 'x.str' }));
+const dtm = encoder.encode('DTM');
+const str = encoder.encode('STR');
+function makePackage(version, manifestLength, dtmLength, strLength, includePayload = true) {
+  const payloadLength = includePayload ? manifest.byteLength + dtm.byteLength + str.byteLength : 0;
+  const bytes = new Uint8Array(24 + payloadLength);
+  bytes.set(encoder.encode('LITHODTM'), 0);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(8, version, true);
+  view.setUint32(12, manifestLength, true);
+  view.setUint32(16, dtmLength, true);
+  view.setUint32(20, strLength, true);
+  if (includePayload) {
+    let offset = 24;
+    bytes.set(manifest, offset); offset += manifest.byteLength;
+    bytes.set(dtm, offset); offset += dtm.byteLength;
+    bytes.set(str, offset);
+  }
+  return { name: 'fixture.ltdtm', size: bytes.byteLength, arrayBuffer: async () => bytes.buffer };
+}
+async function load(file) {
+  const engine = window.LithositeTopo3D.create({});
+  engine.prepare = async () => engine;
+  let called = false;
+  engine.loadDTMSTR = async () => { called = true; return { loaded: true }; };
+  let rejected = false, errorMessage = '';
+  try { await engine.loadLTDtm(file); }
+  catch (error) { rejected = true; errorMessage = error.message; }
+  return { rejected, called, errorMessage };
+}
+(async () => {
+  const results = {
+    unsupportedVersion: await load(makePackage(99, 0, 0, 0, false)),
+    zeroManifest: await load(makePackage(2, 0, 3, 3)),
+    zeroDtm: await load(makePackage(2, manifest.byteLength, 0, 3)),
+    zeroStr: await load(makePackage(2, manifest.byteLength, 3, 0)),
+    declaredPayloadPastEnd: await load(makePackage(2, manifest.byteLength, 3, 300))
+  };
+  process.stdout.write(JSON.stringify(results));
+})().catch(error => { console.error(error); process.exitCode = 1; });
+"""
+    env = os.environ.copy()
+    env["LITHOSITE_TOPO3D_ENGINE"] = str(engine_path)
+    result = subprocess.run(
+        ["node", "-e", script],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    output = json.loads(result.stdout)
+    assert all(
+        item["rejected"] and not item["called"]
+        for item in output.values()
+    ), output
+    assert output["unsupportedVersion"]["errorMessage"] == "Versi DTM package tidak didukung"
+    assert all(
+        item["errorMessage"] == "Struktur/ukuran package Topografi tidak valid"
+        for key, item in output.items()
+        if key != "unsupportedVersion"
+    ), output
