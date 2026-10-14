@@ -5,6 +5,7 @@ if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 9 Equip
 const state={rows:[],capacities:[],status:'loading'};
 let editId=null;
 let runtimeReady=false;
+let returnToUnitList=false;
 
 /* A.1 controlled vocabulary is supplied by the RuntimeAdapter from the authoritative _Lists contract. */
 const LISTS={category:[],type:[],owner_type:[],status:[]};
@@ -247,14 +248,18 @@ function resetForm(){
  document.getElementById('f_eq_from').value=d;
  document.getElementById('f_eq_to').value='';
 }
-function openAdd(){
- editId=null;document.getElementById('equipmentModalTitle').textContent='Add Equipment';
+function openAdd(fromUnitList){
+ returnToUnitList=!!fromUnitList;
+ if(returnToUnitList)global.LithositeModalShowContract.close('equipmentUnitListModal');
+ editId=null;document.getElementById('equipmentModalTitle').textContent=returnToUnitList?'Add Unit':'Add Equipment';
  document.getElementById('equipmentSave').textContent='Save via RuntimeAdapter';resetForm();
  global.LithositeModalShowContract.show('equipmentModal');
 }
-function openEdit(id){
+function openEdit(id,fromUnitList){
  const row=state.rows.find(x=>String(x.equipment_id)===String(id));if(!row)return;
- editId=id;document.getElementById('equipmentModalTitle').textContent='Edit Equipment';
+ returnToUnitList=!!fromUnitList;
+ if(returnToUnitList)global.LithositeModalShowContract.close('equipmentUnitListModal');
+ editId=id;document.getElementById('equipmentModalTitle').textContent=returnToUnitList?'Edit Unit':'Edit Equipment';
  document.getElementById('equipmentSave').textContent='Update via RuntimeAdapter';
  const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_owner_name:row.owner_name,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
@@ -277,14 +282,19 @@ function payload(){
 }
 async function save(){
  if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}
+ const wasEdit=Boolean(editId);
  const row=payload();
  if(!row.unit_no||!row.category||!row.type||!row.owner_type||!row.status){setMsg('Unit / Fleet No., Category, Type, Owner Type and Status are required.',true);return;}
  if(String(row.type||'').trim().toLowerCase()==='dump truck'&&!row.capacity_profile_id){setMsg('Global Capacity Profile is required for Dump Truck.',true);return;}
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Equipment',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the equipment');
+  const reopenUnitList=returnToUnitList;
+  returnToUnitList=false;
   global.LithositeModalShowContract.close('equipmentModal');
-  await refreshData();renderUnitList();setMsg(editId?'Equipment updated and audited.':'Equipment created and audited.');
+  await refreshData();renderUnitList();
+  setMsg(wasEdit?'Equipment unit updated and audited.':'Equipment unit created and audited.');
+  if(reopenUnitList){global.LithositeModalShowContract.show('equipmentUnitListModal');await refreshUnitList();}
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
 async function remove(id){
@@ -295,8 +305,15 @@ async function remove(id){
   await refreshData();renderUnitList();setMsg('Equipment deleted and audited.');
  }catch(e){setMsg('Delete failed: '+e.message,true);}
 }
+function closeEquipmentForm(){
+ const reopenUnitList=returnToUnitList;
+ returnToUnitList=false;
+ global.LithositeModalShowContract.close('equipmentModal');
+ if(reopenUnitList){global.LithositeModalShowContract.show('equipmentUnitListModal');refreshUnitList();}
+}
 function bind(){
- document.getElementById('equipmentAdd').onclick=openAdd;
+ document.getElementById('equipmentAdd').onclick=()=>openAdd(false);
+ document.getElementById('equipmentUnitListAdd').onclick=()=>openAdd(true);
  document.getElementById('equipmentRefresh').onclick=load;
  document.getElementById('equipmentUnitListButton').onclick=openUnitList;
  document.getElementById('equipmentUnitListClose').onclick=()=>global.LithositeModalShowContract.close('equipmentUnitListModal');
@@ -304,14 +321,14 @@ function bind(){
  document.getElementById('equipmentUnitListRefresh').onclick=refreshUnitList;
  document.getElementById('equipmentUnitListRows').addEventListener('click',function(event){
   const edit=event.target.closest('.edit-equipment');
-  if(edit){openEdit(edit.dataset.id);return;}
+  if(edit){openEdit(edit.dataset.id,true);return;}
   const del=event.target.closest('.delete-equipment');
   if(del)remove(del.dataset.id);
  });
  document.getElementById('equipmentSave').onclick=save;
  document.getElementById('f_eq_capacity_profile').addEventListener('change',updateCapacitySummary);
- document.getElementById('equipmentClose').onclick=()=>global.LithositeModalShowContract.close('equipmentModal');
- document.getElementById('equipmentCancel').onclick=()=>global.LithositeModalShowContract.close('equipmentModal');
+ document.getElementById('equipmentClose').onclick=closeEquipmentForm;
+ document.getElementById('equipmentCancel').onclick=closeEquipmentForm;
  document.getElementById('equipmentClear').onclick=()=>{['equipmentIdFilter','equipmentMasterGroupFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
  ['equipmentIdFilter','equipmentMasterGroupFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
  document.getElementById('equipmentRows').addEventListener('click',e=>{
