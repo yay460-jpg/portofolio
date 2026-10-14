@@ -255,3 +255,11 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Docs workflow #747 PASS synchronizes the roadmap. https://github.com/yay460-jpg/portofolio/actions/runs/38492092421.
 - A rejected-attempt retry test for `RESTORE` has been added; CI #748 is pending, so this operation remains PENDING VALIDATION until the run completes. https://github.com/yay460-jpg/portofolio/actions/runs/38492451181.
 - No production replay behavior changed in these steps. Request-ID scope across the adapter cache, CRUD, and uncached observational operations remains undecided.
+
+
+### RuntimeAdapter retry gate update — RESTORE PASS, LOAD_DATASET pending — 2026-10-14
+
+- Full Pytest #748 PASS: rejected `RESTORE` attempts are not cached as successful replay responses; identical request ID and payload can retry. https://github.com/yay460-jpg/portofolio/actions/runs/38492451181.
+- Documentation workflows #749 and #750 PASS: roadmap and contract matrix synchronized. https://github.com/yay460-jpg/portofolio/actions/runs/38492477097 and https://github.com/yay460-jpg/portofolio/actions/runs/38492484773.
+- Added a rejected-first-attempt retry test for `LOAD_DATASET`; CI is pending and must be checked before marking the contract PASS.
+- No production replay semantics changed. Global-vs-family request-ID scope remains an explicit contract decision.
