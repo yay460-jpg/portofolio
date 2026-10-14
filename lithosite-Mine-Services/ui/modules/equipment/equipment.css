@@ -142,3 +142,9 @@
   justify-content:flex-end;
  }
 }
+
+
+/* Unit Database type filter: align with toolbar controls. */
+#equipmentUnitListModal .equipment-unit-type-filter{min-width:150px;max-width:210px;padding-right:26px}
+#equipmentUnitListModal .equipment-unit-toolbar-actions{gap:8px}
+@media(max-width:520px){#equipmentUnitListModal .equipment-unit-type-filter{flex:1;min-width:0;max-width:none}}
