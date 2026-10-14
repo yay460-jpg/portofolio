@@ -46,3 +46,67 @@
 #equipmentUnitListModal .equipment-unit-actions{display:flex;align-items:center;gap:5px;white-space:nowrap}
 #equipmentUnitListModal .equipment-unit-actions .mini{min-width:40px}
 #equipmentUnitListModal .equipment-unit-actions .delete-equipment{border-color:#ef4444;color:#fecaca;background:#401c25}
+
+
+/* Unit Database layout correction: keep all seven columns and both actions
+   visible without a horizontal scrollbar at normal desktop widths. */
+#equipmentUnitListModal .equipment-unit-modal{
+ width:min(1240px,calc(100vw - 40px));
+ max-width:1240px;
+}
+#equipmentUnitListModal .modalbody.equipment-unit-modal-body{
+ display:flex;
+ flex-direction:column;
+ align-items:stretch;
+ gap:10px;
+ min-width:0;
+ min-height:0;
+ overflow:hidden;
+}
+#equipmentUnitListModal .equipment-unit-table{
+ display:block;
+ width:100%;
+ min-width:0;
+ max-width:100%;
+ max-height:min(58vh,560px);
+ overflow:auto;
+ overscroll-behavior:contain;
+}
+#equipmentUnitListModal .equipment-unit-row{
+ display:grid;
+ grid-template-columns:120px minmax(155px,1.3fr) minmax(100px,.9fr) minmax(90px,.8fr) minmax(130px,1.1fr) 90px 112px;
+ width:100%;
+ min-width:0;
+ box-sizing:border-box;
+ align-items:center;
+}
+#equipmentUnitListModal .equipment-unit-cell{
+ min-width:0;
+ box-sizing:border-box;
+ padding:10px 8px;
+ overflow-wrap:anywhere;
+}
+#equipmentUnitListModal .equipment-unit-head .equipment-unit-cell{white-space:nowrap}
+#equipmentUnitListModal .equipment-unit-actions{
+ display:flex;
+ justify-content:flex-start;
+ align-items:center;
+ gap:4px;
+ min-width:0;
+ white-space:nowrap;
+}
+#equipmentUnitListModal .equipment-unit-actions .mini{
+ min-width:0;
+ height:28px;
+ padding:4px 8px;
+ font-size:10px;
+ flex:0 0 auto;
+}
+#equipmentUnitListModal .modalfoot{gap:12px}
+@media(max-width:1000px){
+ #equipmentUnitListModal .equipment-unit-modal{width:calc(100vw - 24px);max-width:none}
+ #equipmentUnitListModal .equipment-unit-row{
+  grid-template-columns:110px minmax(145px,1.2fr) minmax(95px,.9fr) minmax(85px,.8fr) minmax(120px,1fr) 85px 108px;
+  min-width:850px;
+ }
+}
