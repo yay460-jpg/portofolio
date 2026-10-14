@@ -31,6 +31,7 @@
 #equipmentUnitListModal .equipment-unit-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px}
 #equipmentUnitListModal .equipment-unit-head{position:sticky;top:0;z-index:1;background:#14263b;color:#8fa5bb;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.025em}
 #equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head):hover{background:#12273d}
+#equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head) .equipment-unit-cell{font-size:12px;line-height:1.35}
 #equipmentUnitListModal .equipment-unit-row .unit-id{font-variant-numeric:tabular-nums;color:#dbeafe}
 #equipmentUnitListModal .equipment-unit-empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:12px}
 #equipmentUnitListModal .equipment-unit-empty.error{color:#fca5a5}
