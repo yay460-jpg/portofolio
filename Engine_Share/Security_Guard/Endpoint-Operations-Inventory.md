@@ -253,7 +253,9 @@ The previous note above that the full UI call-site inventory remained open is su
 - Resource limits in both copies: DTM 64 MiB, STR 64 MiB, package 128 MiB, 300,000 vertices, and 600,000 triangles. `loadDTMSTR` checks file sizes before reading text; `loadLTDtm` checks package size before allocating its ArrayBuffer. Node runtime tests exposed/fixed the v1 parser's undeclared `icount` assignment and verify that out-of-range triangle indices are rejected before GPU build while valid v1 fixtures are accepted. V2 runtime tests verify truncation rejection and valid package flow. Both copies pass the latest Full Pytest #38502385771 (676 passed). Version-2 manifest semantics, broader malformed versions, and count/resource boundaries remain open.
 - Ownership decision: each engine copy owns its parser/resource limits; the consumer owns file selection and engine lifecycle. EVO2-03 should add isolated tests for the preflight order, malformed headers/versions, truncated records, invalid references, and vertex/triangle limits. EVO2-05 should verify Browser Guard integration and console cleanliness independently.
 
-### EVO2-02 inventory exit assessment
+#- **Evidence symlink boundary test added:** commit [28a9846](https://github.com/yay460-jpg/portofolio/commit/28a9846fd29b805fa7423730cc11acad9369a666) adds an isolated test for a symlinked module directory and an Evidence file symlink targeting a file outside the Evidence root. It asserts rejection and no filename disclosure. CI is pending; do not mark this test PASS until workflow evidence is available.
+
+## EVO2-02 inventory exit assessment
 
 - The 20 RuntimeAdapter operations are mapped in `RuntimeAdapter-Operation-Contract-Matrix.md`, including side effects, owner, request-ID behavior, retry/error contract, and evidence/remaining limitations.
 - HTTP host routes, body/path limits, trust boundaries, and evidence/file ownership are inventoried above.
