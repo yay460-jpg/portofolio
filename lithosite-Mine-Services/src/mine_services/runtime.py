@@ -150,7 +150,12 @@ class RuntimeInterface:
         )
 
     def load_dataset(self, name):
-        before = self._application.store.snapshot()
+        store = self._application.store
+        before = store.snapshot()
+        before_controlled_lists = {
+            key: set(values) for key, values in store.controlled_lists.items()
+        }
+        before_active = self._datasets.active_info()
         try:
             result = self._datasets.load(name=name)
             self._application.audit_repository.append(
@@ -162,10 +167,15 @@ class RuntimeInterface:
                 new_value=json.dumps(result, default=str, sort_keys=True),
                 source="DatasetManager",
             )
-            self._application.store.save()
+            store.save()
             return result
         except Exception:
-            self._application.store.replace(before)
+            # Dataset load also changes controlled lists and active-dataset
+            # metadata, neither of which is included in PersistenceStore.snapshot().
+            # Restore all three state groups if audit or workbook persistence fails.
+            store.replace(before)
+            store.controlled_lists = before_controlled_lists
+            self._datasets.active = before_active
             raise
 
     def finalize_kpi(self, snapshot, source="runtime"):
