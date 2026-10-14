@@ -76,6 +76,13 @@ function equipmentBrand(row){
  return profile?String(profile.unit_brand||'—'):'—';
 }
 function renderUnitList(){
+ const typeFilter=document.getElementById('equipmentUnitTypeFilter');
+ if(typeFilter){
+  const selected=typeFilter.value;
+  const types=Array.from(new Set(state.rows.map(function(row){return String(row.type||'').trim();}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b);});
+  typeFilter.innerHTML='<option value="">All types</option>'+types.map(function(type){return '<option value="'+esc(type)+'">'+esc(type)+'</option>';}).join('');
+  if(types.includes(selected))typeFilter.value=selected;
+ }
  const host=document.getElementById('equipmentUnitListRows');
  const count=document.getElementById('equipmentUnitListCount');
  if(!host||!count)return;
@@ -89,7 +96,8 @@ function renderUnitList(){
   count.textContent='Unavailable';
   return;
  }
- const rows=state.rows.slice().sort(function(a,b){
+ const selectedType=typeFilter?typeFilter.value:'';
+ const rows=state.rows.filter(function(row){return !selectedType||String(row.type||'')===selectedType;}).slice().sort(function(a,b){
   return String(b.effective_from||'').localeCompare(String(a.effective_from||''))||
    String(a.equipment_id||'').localeCompare(String(b.equipment_id||''));
  });
@@ -320,6 +328,7 @@ function bind(){
  document.getElementById('equipmentUnitListClose').onclick=()=>global.LithositeModalShowContract.close('equipmentUnitListModal');
  document.getElementById('equipmentUnitListFooterClose').onclick=()=>global.LithositeModalShowContract.close('equipmentUnitListModal');
  document.getElementById('equipmentUnitListRefresh').onclick=refreshUnitList;
+ document.getElementById('equipmentUnitTypeFilter').addEventListener('change',renderUnitList);
  document.getElementById('equipmentUnitListRows').addEventListener('click',function(event){
   const edit=event.target.closest('.edit-equipment');
   if(edit){openEdit(edit.dataset.id,true);return;}
