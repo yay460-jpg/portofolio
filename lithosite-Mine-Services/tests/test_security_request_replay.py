@@ -663,9 +663,10 @@ def test_request_id_scope_is_currently_separate_between_adapter_cache_and_crud(t
     assert crud_operation["status"] == "COMMITTED"
     assert adapter._runtime._application.store.exists("Equipment", "EQ-CROSS-FAMILY")
     assert len(list((tmp_path / "datasets").glob("*.json"))) == 1
+    # SAVE_AS_DATASET writes a system audit record and CREATE writes its own record.
     # Characterization only: this proves the current ID namespaces are separate;
     # it does not decide whether the public contract should make them global.
-    assert len(adapter._runtime._application.store.audit()) == 1
+    assert len(adapter._runtime._application.store.audit()) == 2
 
 
 def test_concurrent_identical_cached_requests_execute_side_effect_once(tmp_path):
