@@ -209,3 +209,12 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Red-phase Full Pytest #722/#723 reproduced that a new backup remained after the first old-file unlink failed (647 passed, 2 failed). Documentation workflow #724 also failed because the red-phase test suite was intentionally red.
 - Both managers now remove the just-created backup when retention raises `OSError`, then re-raise (`2d2bb66`, `75c9143`). Full Pytest and docs CI pending.
 - Boundary: rollback of the new file is covered; restoration of previously deleted old files after a later unlink failure is not yet guaranteed. Separate partial-eviction test/design remains open.
+
+
+### Backup SAVE retention rollback — partial eviction failure — 2026-10-14
+
+- Extended the earlier new-file cleanup fix: managers stage copies of selected eviction candidates before unlinking. If a later unlink raises, missing old files are restored from the staged copies, the newly written target is removed, and the error is re-raised.
+- Added partial-eviction regression cases that fail the second unlink, after one deletion has succeeded (Topography test commit b4a9bca; Marker Location test commit 0c2b9b3).
+- Implementation commits: Topography e2b9879; Marker Location a10957a.
+- CI #729–#732 is still running at the time of this update. Contract status remains PENDING VALIDATION until final full-suite CI is green.
+- This is rollback on a caught filesystem exception, not crash-atomicity; restoration may itself fail under a second filesystem failure.
