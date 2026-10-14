@@ -10,7 +10,7 @@ SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation.js")
 def test_stage9_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
-    assert "equipment.js?v=20261014-unit-list" in TEXT
+    assert "equipment.js?v=20261015-unit-database-master" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
@@ -150,8 +150,8 @@ def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
     artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     assert 'id="equipmentUnitListButton"' in artifact
     assert 'id="equipmentUnitListModal"' in artifact
-    assert "equipment.js?v=20261014-unit-list" in artifact
-    assert "equipment.css?v=20261014-unit-list-layout" in artifact
+    assert "equipment.js?v=20261015-unit-database-master" in artifact
+    assert "equipment.css?v=20261015-unit-database-master" in artifact
 
 def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal_overflow():
     css = EQUIPMENT_CSS[EQUIPMENT_CSS.index('/* Unit Database layout correction'): ]
@@ -160,3 +160,29 @@ def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal
     assert 'min-width:850px' in css  # narrow-screen media override only
     assert 'white-space:nowrap' in css
     assert 'min-width:0;\n height:28px' in css
+
+
+def test_unit_database_can_add_and_edit_canonical_unit_records():
+    modal = TEXT[TEXT.index('id="equipmentUnitListModal"'):TEXT.index('id="workfrontScreen"')]
+    assert 'id="equipmentUnitListAdd">Add Unit</button>' in modal
+    assert 'id="equipmentUnitListRefresh">Refresh List</button>' in modal
+    assert "document.getElementById('equipmentUnitListAdd').onclick=()=>openAdd(true);" in EQUIPMENT_JS
+    assert "function openAdd(fromUnitList)" in EQUIPMENT_JS
+    assert "returnToUnitList=!!fromUnitList" in EQUIPMENT_JS
+    assert "returnToUnitList?'Add Unit':'Add Equipment'" in EQUIPMENT_JS
+    assert "operation:'CREATE',entity:'Equipment',row" in EQUIPMENT_JS
+    assert "operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row" in EQUIPMENT_JS
+
+
+def test_unit_database_form_returns_to_list_after_save_or_cancel():
+    assert "function closeEquipmentForm()" in EQUIPMENT_JS
+    assert "if(reopenUnitList){global.LithositeModalShowContract.show('equipmentUnitListModal');refreshUnitList();}" in EQUIPMENT_JS
+    assert "if(reopenUnitList){global.LithositeModalShowContract.show('equipmentUnitListModal');await refreshUnitList();}" in EQUIPMENT_JS
+
+
+def test_unit_database_uses_existing_a3_equipment_entity_not_parallel_storage():
+    schema = (Path(__file__).parents[1] / "src" / "mine_services" / "schema.py").read_text(encoding="utf-8")
+    assert '"Equipment"' in schema
+    assert 'rc.request({operation:"CREATE",entity:"Unit"' not in EQUIPMENT_JS
+    assert "indexedDB" not in EQUIPMENT_JS.lower()
+    assert "localStorage" not in EQUIPMENT_JS
