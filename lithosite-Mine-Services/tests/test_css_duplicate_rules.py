@@ -304,7 +304,7 @@ def test_capacity_modal_title_typography_is_owned_by_shared_modal_shell():
     assert "'capacityModal'" in contract
 
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/modules/workfront/global-capacity.css?v=20261011-capacity-layout-owner" in html
+    assert "../ui/modules/workfront/global-capacity.css?v=20261015-single-close" in html
 
 
 def test_capacity_controls_and_tablehead_have_single_rule_owners():
@@ -320,7 +320,7 @@ def test_capacity_controls_and_tablehead_have_single_rule_owners():
         assert token in tablehead[0]
 
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "../ui/modules/workfront/global-capacity.css?v=20261011-capacity-layout-owner" in html
+    assert "../ui/modules/workfront/global-capacity.css?v=20261015-single-close" in html
 
 def test_mini_button_variant_only_overrides_font_size():
     button = (ROOT / "ui" / "shared" / "button.css").read_text(encoding="utf-8")
