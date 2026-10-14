@@ -186,3 +186,65 @@ async function load(file) {
         "errorMessage": "",
         "value": {"dtm": "DTM", "str": "STR"},
     }, output
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is required for Topo3D runtime tests")
+@pytest.mark.parametrize("engine_path", TOPO3D_PATHS)
+def test_ltdtm_v2_rejects_non_object_manifest_and_accepts_object(engine_path):
+    script = r"""
+const fs = require('node:fs');
+const vm = require('node:vm');
+const window = {};
+class MockFile {
+  constructor(parts, name) { this.bytes = parts[0]; this.name = name; this.size = this.bytes.byteLength; }
+  async text() { return new TextDecoder().decode(this.bytes); }
+}
+vm.runInNewContext(fs.readFileSync(process.env.LITHOSITE_TOPO3D_ENGINE, 'utf8'), { window, TextDecoder, File: MockFile });
+const encoder = new TextEncoder();
+const dtm = encoder.encode('DTM');
+const str = encoder.encode('STR');
+function makePackage(manifestValue) {
+  const manifest = encoder.encode(JSON.stringify(manifestValue));
+  const bytes = new Uint8Array(24 + manifest.byteLength + dtm.byteLength + str.byteLength);
+  bytes.set(encoder.encode('LITHODTM'), 0);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(8, 2, true);
+  view.setUint32(12, manifest.byteLength, true);
+  view.setUint32(16, dtm.byteLength, true);
+  view.setUint32(20, str.byteLength, true);
+  let offset = 24;
+  bytes.set(manifest, offset); offset += manifest.byteLength;
+  bytes.set(dtm, offset); offset += dtm.byteLength;
+  bytes.set(str, offset);
+  return { name: 'fixture.ltdtm', size: bytes.byteLength, arrayBuffer: async () => bytes.buffer };
+}
+async function load(value) {
+  const engine = window.LithositeTopo3D.create({});
+  engine.prepare = async () => engine;
+  engine._sha256Hex = async () => 'digest';
+  let called = false, rejected = false, errorMessage = '';
+  engine.loadDTMSTR = async () => { called = true; return { loaded: true }; };
+  try { await engine.loadLTDtm(makePackage(value)); }
+  catch (error) { rejected = true; errorMessage = error.message; }
+  return { rejected, called, errorMessage };
+}
+(async () => {
+  const invalid = await Promise.all([[], 'manifest', 42, null].map(load));
+  const valid = await load({ dtmSha256: 'digest', strSha256: 'digest', dtmName: 'fixture.dtm', strName: 'fixture.str' });
+  process.stdout.write(JSON.stringify({ invalid, valid }));
+})().catch(error => { console.error(error); process.exitCode = 1; });
+"""
+    env = os.environ.copy()
+    env["LITHOSITE_TOPO3D_ENGINE"] = str(engine_path)
+    result = subprocess.run(
+        ["node", "-e", script],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    output = json.loads(result.stdout)
+    assert all(item["rejected"] and not item["called"] for item in output["invalid"]), output
+    assert output["valid"] == {"rejected": False, "called": True, "errorMessage": ""}
