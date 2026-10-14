@@ -10,6 +10,7 @@
   const DATA_MODAL_IDS = new Set([
     'modal',
     'equipmentModal',
+    'equipmentUnitListModal',
     'workfrontModal',
     'capacityModal',
     'capacityEditModal',
