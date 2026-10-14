@@ -111,7 +111,7 @@ def test_equipment_unit_list_button_is_between_refresh_and_global_capacity():
 
 def test_equipment_unit_database_modal_has_requested_compact_columns():
     modal = TEXT[TEXT.index('id="equipmentUnitListModal"'):TEXT.index('id="workfrontScreen"')]
-    for label in ("Date Record", "Unique ID", "Type", "Brand", "Category", "Status", "Action"):
+    for label in ("Date Record", "Unique ID", "Unit / Fleet No.", "Type", "Brand", "Category", "Status", "Action"):
         assert label in modal
     assert 'id="equipmentUnitListRows"' in modal
     assert 'id="equipmentUnitListRefresh"' in modal
@@ -133,7 +133,7 @@ def test_equipment_unit_database_reads_canonical_runtime_records_only():
 
 def test_equipment_unit_list_modal_has_scrollable_compact_layout():
     assert "width:min(1240px,calc(100vw - 40px))" in EQUIPMENT_CSS
-    assert "grid-template-columns:120px minmax(155px,1.3fr)" in EQUIPMENT_CSS
+    assert "grid-template-columns:120px minmax(155px,1.3fr) minmax(120px,1fr)" in EQUIPMENT_CSS
     assert "max-height:min(58vh,560px)" in EQUIPMENT_CSS
     assert "equipment-unit-actions .mini" in EQUIPMENT_CSS
 
