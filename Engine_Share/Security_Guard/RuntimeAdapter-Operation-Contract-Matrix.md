@@ -289,3 +289,14 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Current retry test inventory covers adapter-cached import, restore, dataset save/save-as/load, KPI finalize, and topography/marker backup save/load. Observational list/read operations are intentionally uncached; CRUD follows its separate application-level duplicate-request contract.
 - Retryability review gate closed for the current cached operation set. No production behavior changed.
 - Next: contract decision on request-ID namespace and lifecycle across adapter cache, CRUD, and observational reads, including cache lifetime/eviction and compatibility. Keep implementation unchanged pending explicit contract resolution.
+
+
+### Replay-cache lifecycle audit — source findings and contract decision gate — 2026-10-14
+
+- Documentation workflows #761 and #762 PASS; roadmap and matrix synchronized. https://github.com/yay460-jpg/portofolio/actions/runs/38496950642 and https://github.com/yay460-jpg/portofolio/actions/runs/38496961799.
+- `_request_results` is an adapter-instance in-memory dictionary with no TTL, capacity limit, eviction, or persistence. Cache state is lost when the adapter instance/process is replaced; this must not be represented as durable idempotency.
+- One adapter `RLock` currently protects cache lookup, dispatch, and cache write for all cached operations. It prevents duplicate concurrent dispatch for identical requests, but serializes unrelated cached requests. Existing concurrency tests cover identical and conflicting same-ID requests.
+- Cached operations: `IMPORT_XLSX`, `RESTORE`, `SAVE_DATASET`, `SAVE_AS_DATASET`, `LOAD_DATASET`, Topography/Marker Location backup save/load, and `FINALIZE_KPI`. CRUD duplicate detection belongs to `ApplicationService`; `BACKUP`, LIST and READ observational operations bypass the adapter cache.
+- Request-ID namespace across cache and CRUD is currently separate, proven by `test_request_id_scope_is_currently_separate_between_adapter_cache_and_crud`. Keep this as characterized behavior until contract owners decide otherwise.
+- Decision options: retain explicitly separate scopes (simpler compatibility, weaker cross-family collision protection), or introduce a unified ledger (stronger cross-family consistency, requires migration/compatibility contract). Either requires explicit semantics for conflicts, retries, concurrency, lifetime, restart, and owner. No TTL/capacity/durable-store patch until retention requirements are approved.
+- Gate remains OPEN for public contract decision; no production code changed.
