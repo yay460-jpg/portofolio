@@ -218,3 +218,11 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Implementation commits: Topography e2b9879; Marker Location a10957a.
 - CI #729–#732 is still running at the time of this update. Contract status remains PENDING VALIDATION until final full-suite CI is green.
 - This is rollback on a caught filesystem exception, not crash-atomicity; restoration may itself fail under a second filesystem failure.
+
+
+### Backup SAVE retention rollback — CI result and next retry gate — 2026-10-14
+
+- Partial-eviction rollback is validated: Full Pytest #729–#732 passed for Topography and Marker Location production fixes and their failure-on-second-unlink regression tests; docs #733–#734 passed.
+- Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38487565450, https://github.com/yay460-jpg/portofolio/actions/runs/38487572665, https://github.com/yay460-jpg/portofolio/actions/runs/38487594633, https://github.com/yay460-jpg/portofolio/actions/runs/38487604828, https://github.com/yay460-jpg/portofolio/actions/runs/38487648336, https://github.com/yay460-jpg/portofolio/actions/runs/38487657212.
+- New next gate adds retry coverage for a failed first SAVE attempt with the same request ID for both backup types. Expected contract: adapter returns generic `REJECTED` / `ADP-005` for the first failure, does not cache that failure, and permits the retry to succeed. Test commit `ea9b43b`; CI pending.
+- Replay cache remains process-local and unbounded, and is cleared on adapter recreation/restart. This is an open design risk, not a change authorized by this contract audit. Do not implement TTL/capacity or durable idempotency until ownership, retention window, collision handling and restart recovery semantics are explicitly specified.
