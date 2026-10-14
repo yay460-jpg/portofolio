@@ -111,7 +111,6 @@
  font-size:10px;
  flex:0 0 auto;
 }
-#equipmentUnitListModal .modalfoot{gap:12px}
 @media(max-width:1000px){
  #equipmentUnitListModal .equipment-unit-modal{width:calc(100vw - 24px);max-width:none}
  #equipmentUnitListModal .equipment-unit-row{
@@ -146,8 +145,7 @@
 
 /* Unit Database type filter: align with toolbar controls. */
 #equipmentUnitListModal .equipment-unit-type-filter{min-width:150px;max-width:210px;padding-right:26px}
-#equipmentUnitListModal .equipment-unit-toolbar-actions{gap:8px}
 @media(max-width:520px){#equipmentUnitListModal .equipment-unit-type-filter{flex:1;min-width:0;max-width:none}}
 
 /* Unit Database keeps the shared shell footer node for contract validation, but has no footer content. Collapse the empty slot instead of reserving blank space. */
-#equipmentUnitListModal > .modal.modal-shell-valid > .modalfoot:empty{display:none;flex:0 0 0;min-height:0;height:0;padding:0;border:0;margin:0}
+#equipmentUnitListModal > .modal.equipment-unit-modal > .modalfoot:empty{display:none;flex:0 0 0;min-height:0;height:0;padding:0;border:0;margin:0}
