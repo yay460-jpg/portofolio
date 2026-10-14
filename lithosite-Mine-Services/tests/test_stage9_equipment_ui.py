@@ -98,3 +98,38 @@ def test_stage9_equipment_master_brand_column_resolves_from_global_capacity():
     assert "esc(equipmentBrand(r))" in EQUIPMENT_JS
     assert "grid-template-columns:150px 115px 125px 100px 115px" in EQUIPMENT_CSS
     assert "min-width:1300px" in EQUIPMENT_CSS
+
+
+def test_equipment_unit_list_button_is_between_refresh_and_global_capacity():
+    controls = TEXT[TEXT.index('id="equipmentScreen"'):TEXT.index('id="equipmentScreen"') + 1800]
+    refresh = controls.index('id="equipmentRefresh"')
+    unit_list = controls.index('id="equipmentUnitListButton"')
+    capacity = controls.index('id="globalCapacityButton"')
+    assert refresh < unit_list < capacity
+    assert 'aria-controls="equipmentUnitListModal"' in controls
+
+
+def test_equipment_unit_database_modal_has_requested_compact_columns():
+    modal = TEXT[TEXT.index('id="equipmentUnitListModal"'):TEXT.index('id="workfrontScreen"')]
+    for label in ("Date Record", "Unique ID", "Type", "Brand", "Category", "Status", "Action"):
+        assert label in modal
+    assert 'id="equipmentUnitListRows"' in modal
+    assert 'id="equipmentUnitListRefresh"' in modal
+
+
+def test_equipment_unit_database_reads_canonical_runtime_records_only():
+    assert "function renderUnitList()" in EQUIPMENT_JS
+    assert "function openUnitList()" in EQUIPMENT_JS
+    assert "async function refreshUnitList()" in EQUIPMENT_JS
+    assert "rc.request({operation:'READ',entity:'Equipment'})" in EQUIPMENT_JS
+    assert "rc.request({operation:'READ',entity:'GlobalCapacity'})" in EQUIPMENT_JS
+    assert "esc(row.effective_from||'—')" in EQUIPMENT_JS
+    assert "esc(equipmentBrand(row))" in EQUIPMENT_JS
+    assert "equipment-unit-open" in EQUIPMENT_JS
+    assert "equipmentUnitListModal" in (Path(__file__).parents[1] / "ui" / "shared" / "modal-show-contract.js").read_text(encoding="utf-8")
+
+
+def test_equipment_unit_list_modal_has_scrollable_compact_layout():
+    assert ".equipment-unit-modal{width:min(1080px,94vw)" in EQUIPMENT_CSS
+    assert "max-height:min(56vh,560px)" in EQUIPMENT_CSS
+    assert "grid-template-columns:125px minmax(150px,1.35fr)" in EQUIPMENT_CSS
