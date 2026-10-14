@@ -149,3 +149,27 @@ def test_marker_retention_failure_rolls_back_new_backup(tmp_path, monkeypatch):
         manager.save(package([marker("ML-NEW")]), filename="new-package")
 
     assert {path.name: path.read_bytes() for path in manager.directory.glob("*.ltmarker")} == before
+
+
+def test_marker_partial_retention_failure_restores_evicted_backups(tmp_path, monkeypatch):
+    manager = MarkerLocationBackupManager(tmp_path / "marker-location")
+    for index in range(manager.MAX_BACKUPS + 1):
+        (manager.directory / f"stable-{index}.ltmarker").write_bytes(
+            base64.b64decode(package([marker(f"ML-STABLE-{index}")]))
+        )
+    before = {path.name: path.read_bytes() for path in manager.directory.glob("*.ltmarker")}
+    original_unlink = Path.unlink
+    removed_once = []
+
+    def fail_second_retention_unlink(path, *args, **kwargs):
+        if path.suffix == ".ltmarker" and path.name in before:
+            if removed_once:
+                raise OSError("simulated second retention cleanup failure")
+            removed_once.append(path.name)
+        return original_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", fail_second_retention_unlink)
+    with pytest.raises(OSError, match="simulated second retention cleanup failure"):
+        manager.save(package([marker("ML-NEW")]), filename="new-package")
+
+    assert {path.name: path.read_bytes() for path in manager.directory.glob("*.ltmarker")} == before
