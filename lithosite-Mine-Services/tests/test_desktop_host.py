@@ -105,7 +105,6 @@ def test_runtime_endpoint_routes_to_adapter(monkeypatch, tmp_path):
         httpd.server_close()
 
 
-@pytest.mark.parametrize("origin", ["http://evil.example", "http://localhost:8766", "http://127.0.0.1:5502", "null"])
 
 def test_runtime_rejects_invalid_and_over_limit_content_lengths_before_read(monkeypatch, tmp_path):
     db_path = tmp_path / "desktop-host-a3.xlsx"
@@ -171,6 +170,7 @@ def test_user_guide_rejects_encoded_path_traversal(monkeypatch, tmp_path):
         httpd.shutdown()
         httpd.server_close()
 
+@pytest.mark.parametrize("origin", ["http://evil.example", "http://localhost:8766", "http://127.0.0.1:5502", "null"])
 def test_disallowed_origin_is_rejected(monkeypatch, tmp_path, origin):
     db_path = tmp_path / "desktop-host-a3.xlsx"
     _make_test_database(db_path)
