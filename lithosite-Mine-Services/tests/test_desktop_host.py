@@ -392,3 +392,35 @@ def test_evidence_owner_verification_rejects_unknown_module_before_read(monkeypa
     monkeypatch.setattr(server, "ADAPTER", NeverCalledAdapter())
     with pytest.raises(ValueError, match="Unsupported evidence module"):
         server._evidence_record_exists("AuditLog", "record-1")
+
+
+def test_report_pdf_rejects_non_object_with_sanitized_error(monkeypatch, tmp_path):
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        request = Request(
+            f"http://{host}:{port}/report-pdf",
+            data=json.dumps([]).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with pytest.raises(HTTPError) as rejected:
+            urlopen(request)
+        assert rejected.value.code == 400
+        payload = json.loads(rejected.value.read().decode("utf-8"))
+        assert payload["status"] == "REJECTED"
+        assert payload["errors"][0]["code"] == "HOST-008"
+        assert payload["errors"][0]["message"] == "Invalid report request"
+        assert "Report model must be an object" not in json.dumps(payload)
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
