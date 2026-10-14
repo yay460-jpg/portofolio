@@ -262,7 +262,7 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Full Pytest #748 PASS: rejected `RESTORE` attempts are not cached as successful replay responses; identical request ID and payload can retry. https://github.com/yay460-jpg/portofolio/actions/runs/38492451181.
 - Documentation workflows #749 and #750 PASS: roadmap and contract matrix synchronized. https://github.com/yay460-jpg/portofolio/actions/runs/38492477097 and https://github.com/yay460-jpg/portofolio/actions/runs/38492484773.
 - Full Pytest #751 PASS: rejected `LOAD_DATASET` attempts are not cached as successful responses and can retry with the same request ID and payload. https://github.com/yay460-jpg/portofolio/actions/runs/38492967531.
-- Added a focused rejected-first-attempt retry test for `FINALIZE_KPI`; CI is pending. No production replay semantics changed. Global-vs-family request-ID scope remains an explicit contract decision.
+- Full Pytest #755 PASS: rejected `FINALIZE_KPI` attempts are not cached as successful responses and can retry with the same request ID and payload. https://github.com/yay460-jpg/portofolio/actions/runs/38496213644. No production replay semantics changed. Global-vs-family request-ID scope remains an explicit contract decision.
 
 
 ### RuntimeAdapter retry gate — LOAD_DATASET PASS, FINALIZE_KPI pending — 2026-10-14
@@ -271,3 +271,12 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Documentation workflows #752–#754 PASS, including correction of the dataset-load CI reference.
 - Added a focused retry test for `FINALIZE_KPI`; pending CI. Do not mark it PASS until the run concludes.
 - No production behavior changed. Global-vs-family request-ID scope remains an explicit contract decision.
+
+
+### RuntimeAdapter retry gate — FINALIZE_KPI PASS, SAVE_DATASET pending — 2026-10-14
+
+- Full Pytest #755 PASS: rejected `FINALIZE_KPI` responses are not cached as successful replay results; identical request ID and payload can retry. https://github.com/yay460-jpg/portofolio/actions/runs/38496213644.
+- Documentation workflows #756 and #757 PASS. Roadmap and contract matrix are synchronized.
+- Added a focused rejected-first-attempt retry test for `SAVE_DATASET`; CI pending. Do not mark PASS before the workflow concludes.
+- Retry gates confirmed include `SAVE_AS_DATASET` (#746), `RESTORE` (#748), `LOAD_DATASET` (#751), and `FINALIZE_KPI` (#755), alongside existing import/backup retry tests.
+- No production behavior changed. Request-ID scope across operation families and cache lifecycle remain explicit open contract decisions.
