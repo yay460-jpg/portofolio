@@ -98,6 +98,7 @@ function renderUnitList(){
   return '<div class="equipment-unit-row">'+
    '<div class="equipment-unit-cell">'+esc(row.effective_from||'—')+'</div>'+
    '<div class="equipment-unit-cell unit-id">'+esc(row.equipment_id||'—')+'</div>'+
+   '<div class="equipment-unit-cell unit-no">'+esc(row.unit_no||'—')+'</div>'+
    '<div class="equipment-unit-cell">'+esc(row.type||'—')+'</div>'+
    '<div class="equipment-unit-cell">'+esc(equipmentBrand(row))+'</div>'+
    '<div class="equipment-unit-cell">'+esc(row.category||'—')+'</div>'+
