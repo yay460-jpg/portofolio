@@ -369,3 +369,15 @@ The UI source trace was extended beyond Operations:
 - Applied a scoped production fix in both Topography and Marker Location managers: if retention cleanup raises `OSError`, remove the newly created target and re-raise. Commits Topography `2d2bb66`, Marker Location `75c9143`.
 - Explicit limitation: this protects against the tested cleanup failure before any old file has been removed. It does **not** guarantee rollback of old files already deleted if a later unlink fails part-way through multi-file eviction. Do not describe retention as fully atomic until that partial-eviction case is separately designed and tested.
 - Full Pytest and roadmap/matrix documentation CI for the fix are **PENDING**. `main` remains locked.
+
+
+### EVO2-02 backup retention rollback — partial-eviction hardening — 2026-10-14
+
+- Follow-up review found the first fix removed the new package but did not restore an older package if a later retention unlink failed after an earlier unlink had succeeded.
+- Both Topography and Marker Location managers now stage copies of all files selected for eviction before deleting any. On an OSError during eviction, the manager restores any staged old file that is missing, removes the new package, and re-raises the original failure.
+- Added regression tests for failure on the second eviction, after one old file has already been removed:
+  - Topography: commit b4a9bca
+  - Marker Location: commit 0c2b9b3
+- Production fixes: Topography e2b9879; Marker Location a10957a.
+- Validation of these follow-up commits is IN PROGRESS in GitHub Actions #729–#732. Do not mark EVO2-02 complete until both tests and the final full-suite CI pass.
+- Scope note: this is exception rollback, not a claim of crash-atomic filesystem transactions. Recovery itself can still fail under a second filesystem failure; that failure mode must not be represented as guaranteed.
