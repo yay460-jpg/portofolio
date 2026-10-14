@@ -138,3 +138,6 @@
 @media(max-width:600px){
   #capacityEditModal .modalbody{grid-template-columns:1fr}
   }
+
+/* Global Capacity has a single header Close action; preserve the shell node without reserving footer space. */
+#capacityModal > .modal.capacity-modal > .modalfoot:empty{display:none;flex:0 0 0;min-height:0;height:0;padding:0;border:0;margin:0}
