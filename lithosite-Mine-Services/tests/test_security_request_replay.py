@@ -551,3 +551,71 @@ def test_backup_load_rejects_missing_traversal_corrupt_and_oversized_files(tmp_p
         assert response["status"] == "REJECTED"
         assert response["errors"][0]["code"] == "ADP-005"
         assert response["errors"][0]["message"] == "Runtime operation failed"
+
+
+def test_backup_save_failed_attempt_can_retry_same_request_id(tmp_path, monkeypatch):
+    import base64
+    import json
+
+    adapter = make_adapter(tmp_path)
+    topography = adapter._runtime._topography
+    marker_location = adapter._runtime._marker_location
+    original_topography_save = topography.save
+    original_marker_save = marker_location.save
+    calls = {"topography": 0, "marker": 0}
+
+    def flaky_topography_save(*args, **kwargs):
+        calls["topography"] += 1
+        if calls["topography"] == 1:
+            raise OSError("simulated topography write failure")
+        return original_topography_save(*args, **kwargs)
+
+    def flaky_marker_save(*args, **kwargs):
+        calls["marker"] += 1
+        if calls["marker"] == 1:
+            raise OSError("simulated marker write failure")
+        return original_marker_save(*args, **kwargs)
+
+    monkeypatch.setattr(topography, "save", flaky_topography_save)
+    monkeypatch.setattr(marker_location, "save", flaky_marker_save)
+
+    topography_payload = base64.b64encode(
+        b"LITHODTM" + (2).to_bytes(4, "little") + b"retry-package"
+    ).decode("ascii")
+    marker_document = {
+        "format": "LT-MARKER",
+        "version": 1,
+        "markers": [{
+            "marker_id": "ML-RETRY-001",
+            "marker_type": "HSE",
+            "label": "ML-RETRY-001",
+            "easting": 500000.0,
+            "northing": 9600000.0,
+            "elevation": 100.0,
+            "source_entity": "HSE",
+            "source_id": "HSE-RETRY-001",
+            "status": "ACTIVE",
+        }],
+    }
+    marker_payload = base64.b64encode(
+        b"LITMARKR" + (1).to_bytes(4, "little") + json.dumps(marker_document).encode()
+    ).decode("ascii")
+
+    cases = [
+        ("SAVE_TOPOGRAPHY_BACKUP", "topography", topography_payload, "retry-topography.ltdtm"),
+        ("SAVE_MARKER_LOCATION_BACKUP", "marker", marker_payload, "retry-marker.ltmarker"),
+    ]
+    for operation, key, payload, filename in cases:
+        request = {
+            "request_id": f"backup-save-retry-{key}",
+            "operation": operation,
+            "filename": filename,
+            "package_base64": payload,
+        }
+        first = adapter.handle(dict(request))
+        assert first["status"] == "REJECTED"
+        assert first["errors"][0]["code"] == "ADP-005"
+
+        retry = adapter.handle(dict(request))
+        assert retry["status"] == "SAVED"
+        assert calls[key] == 2
