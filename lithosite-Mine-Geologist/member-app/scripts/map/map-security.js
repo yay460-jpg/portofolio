@@ -51,15 +51,6 @@
     return true;
   }
 
-  global.MG1LithositeSecurity = Object.freeze({
-    isSafeImageDataUrl: isSafeImageDataUrl_,
-    isSafeTileKey: isSafeTileKey_,
-    validateTile: validateTile_,
-    validatePayload: validatePayload_
-  });
-})(window);
-
-  
   /**
    * Compatibility validator for legacy import packages.
    * Keep this API inside the same immutable namespace as the canonical helpers.
