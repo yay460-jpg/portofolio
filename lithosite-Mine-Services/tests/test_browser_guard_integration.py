@@ -166,3 +166,67 @@ function canonicalize(value) {
         "writes": 0,
         "recoveryStarts": 0,
     }, output
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is required for Browser Guard consumer runtime tests")
+def test_map_package_transfer_commits_valid_payload_after_guard_and_integrity_checks():
+    script = r"""
+const fs = require('node:fs');
+const vm = require('node:vm');
+const crypto = require('node:crypto');
+const window = {
+  navigator: { deviceMemory: 8 },
+  crypto: crypto.webcrypto,
+  MG1MapLibrary: { getAll: async () => [] }
+};
+let writes = 0, recoveryStarts = 0;
+window.dbPutMap_ = async entry => { writes++; if (entry.id !== 'safe-map') throw new Error('unexpected map'); };
+window.MG1MapRecovery = { beginImport: ids => { recoveryStarts++; if (ids[0] !== 'safe-map') throw new Error('unexpected recovery ID'); } };
+const context = vm.createContext({
+  window, TextEncoder, TextDecoder, console: { log() {} }, structuredClone, crypto: crypto.webcrypto
+});
+vm.runInContext(fs.readFileSync(process.env.LITHOSITE_MAP_SECURITY, 'utf8'), context);
+vm.runInContext(fs.readFileSync(process.env.LITHOSITE_MAP_TRANSFER, 'utf8'), context);
+function canonicalize(value) {
+  if (Array.isArray(value)) return '[' + value.map(canonicalize).join(',') + ']';
+  if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonicalize(value[key])).join(',') + '}';
+  return JSON.stringify(value);
+}
+(async () => {
+  const payload = {
+    format: 'MG1-LITHOSITE-MAP-PACKAGE',
+    schemaVersion: 1,
+    exportedAt: '2026-10-14T00:00:00.000Z',
+    maps: [{ id: 'safe-map', name: 'Safe map', imageDataUrl: 'data:image/png;base64,QUJD' }]
+  };
+  const integrity = crypto.createHash('sha256').update(canonicalize(payload)).digest('hex');
+  const raw = JSON.stringify({ ...payload, integrity: { algorithm: 'SHA-256', scope: 'payload', value: integrity } });
+  let errorMessage = '', result = null;
+  try {
+    result = await window.MG1MapPackageTransfer.importFile({
+      name: 'safe.mg1map', size: Buffer.byteLength(raw), text: async () => raw
+    });
+  } catch (error) { errorMessage = error.message; }
+  process.stdout.write(JSON.stringify({ ok: !!(result && result.ok), count: result && result.count, errorMessage, writes, recoveryStarts }));
+})().catch(error => { console.error(error); process.exitCode = 1; });
+"""
+    env = os.environ.copy()
+    env["LITHOSITE_MAP_SECURITY"] = str(MEMBER_APP / "scripts" / "map" / "map-security.js")
+    env["LITHOSITE_MAP_TRANSFER"] = str(MEMBER_APP / "scripts" / "map" / "map-package-transfer.js")
+    result = subprocess.run(
+        ["node", "-e", script],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    output = json.loads(result.stdout)
+    assert output == {
+        "ok": True,
+        "count": 1,
+        "errorMessage": "",
+        "writes": 1,
+        "recoveryStarts": 1,
+    }, output
