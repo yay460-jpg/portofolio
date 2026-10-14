@@ -806,3 +806,30 @@ def test_load_dataset_rejected_attempt_can_retry_same_request_id(tmp_path):
     assert first["status"] == "REJECTED"
     assert retry["status"] == "LOADED"
     assert calls == ["Retryable Review", "Retryable Review"]
+
+
+def test_finalize_kpi_rejected_attempt_can_retry_same_request_id(tmp_path):
+    adapter = make_adapter(tmp_path)
+    calls = []
+
+    def flaky_finalize(snapshot_payload, source="runtime"):
+        calls.append((snapshot_payload, source))
+        if len(calls) == 1:
+            return {"status": "REJECTED", "errors": [{"code": "KPI-TEST"}]}
+        return {"status": "COMMITTED", "audit_status": "APPENDED"}
+
+    adapter._runtime.finalize_kpi = flaky_finalize
+    request = {
+        "request_id": "replay-finalize-kpi-retry-001",
+        "operation": "FINALIZE_KPI",
+        "snapshot": snapshot(81.8, 77.7, "V-KPI-RETRY"),
+        "source": "runtime",
+    }
+
+    first = adapter.handle(dict(request))
+    retry = adapter.handle(dict(request))
+
+    assert first["status"] == "REJECTED"
+    assert retry["status"] == "COMMITTED"
+    assert len(calls) == 2
+    assert calls[0] == calls[1]
