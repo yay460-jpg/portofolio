@@ -28,20 +28,14 @@
 
 
 /* Compact unit database modal: read-only projection of canonical Equipment records. */
-.equipment-unit-modal{width:min(1080px,94vw);max-width:1080px}
-#equipmentUnitListModal .equipment-unit-modal-body{display:flex;flex-direction:column;gap:10px;min-height:0;padding:14px}
 #equipmentUnitListModal .equipment-unit-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px}
-#equipmentUnitListModal .equipment-unit-table{width:100%;max-height:min(56vh,560px);overflow:auto;border:1px solid #28425c;border-radius:8px;background:#0c1b2c}
-#equipmentUnitListModal .equipment-unit-row{display:grid;grid-template-columns:125px minmax(150px,1.35fr) minmax(115px,1fr) minmax(110px,1fr) minmax(140px,1.2fr) 100px 84px;min-width:850px;align-items:center}
 #equipmentUnitListModal .equipment-unit-head{position:sticky;top:0;z-index:1;background:#14263b;color:#8fa5bb;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.025em}
 #equipmentUnitListModal .equipment-unit-cell{min-width:0;padding:11px 10px;border-bottom:1px solid #223b55;font-size:11px;overflow-wrap:anywhere}
 #equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head):hover{background:#12273d}
 #equipmentUnitListModal .equipment-unit-row .unit-id{font-variant-numeric:tabular-nums;color:#dbeafe}
 #equipmentUnitListModal .equipment-unit-empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:12px}
 #equipmentUnitListModal .equipment-unit-empty.error{color:#fca5a5}
-#equipmentUnitListModal .equipment-unit-modal-body{grid-template-columns:minmax(0,1fr)}
 #equipmentUnitListModal .modal-runtime-status{font-size:10px}
-@media(max-width:900px){.equipment-unit-modal{width:96vw}#equipmentUnitListModal .equipment-unit-row{min-width:800px}}
 
 #equipmentUnitListModal .equipment-unit-actions{display:flex;align-items:center;gap:5px;white-space:nowrap}
 #equipmentUnitListModal .equipment-unit-actions .mini{min-width:40px}
@@ -59,12 +53,16 @@
  flex-direction:column;
  align-items:stretch;
  gap:10px;
+ padding:14px;
  min-width:0;
  min-height:0;
  overflow:hidden;
 }
 #equipmentUnitListModal .equipment-unit-table{
  display:block;
+ border:1px solid #28425c;
+ border-radius:8px;
+ background:#0c1b2c;
  width:100%;
  min-width:0;
  max-width:100%;
