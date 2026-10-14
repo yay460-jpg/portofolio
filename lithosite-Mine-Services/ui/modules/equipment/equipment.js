@@ -101,7 +101,7 @@ function renderUnitList(){
    '<div class="equipment-unit-cell">'+esc(equipmentBrand(row))+'</div>'+
    '<div class="equipment-unit-cell">'+esc(row.category||'—')+'</div>'+
    '<div class="equipment-unit-cell"><span class="statuspill '+cls+'-status">'+esc(row.status||'—')+'</span></div>'+
-   '<div class="equipment-unit-cell"><button type="button" class="control mini equipment-unit-open" data-id="'+esc(row.equipment_id)+'">Open</button></div>'+
+   '<div class="equipment-unit-cell equipment-unit-actions"><button type="button" class="control mini edit-equipment" data-id="'+esc(row.equipment_id)+'">Edit</button><button type="button" class="control mini danger delete-equipment" data-id="'+esc(row.equipment_id)+'">Delete</button></div>'+
   '</div>';
  }).join(''):'<div class="equipment-unit-empty">No equipment units recorded yet.</div>';
  count.textContent=rows.length+' units · Runtime Ready';
@@ -284,7 +284,7 @@ async function save(){
   const result=editId?await rc.request({operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Equipment',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the equipment');
   global.LithositeModalShowContract.close('equipmentModal');
-  await refreshData();setMsg(editId?'Equipment updated and audited.':'Equipment created and audited.');
+  await refreshData();renderUnitList();setMsg(editId?'Equipment updated and audited.':'Equipment created and audited.');
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
 async function remove(id){
@@ -292,7 +292,7 @@ async function remove(id){
  try{
   const result=await rc.request({operation:'DELETE',entity:'Equipment',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
-  await refreshData();setMsg('Equipment deleted and audited.');
+  await refreshData();renderUnitList();setMsg('Equipment deleted and audited.');
  }catch(e){setMsg('Delete failed: '+e.message,true);}
 }
 function bind(){
@@ -303,8 +303,10 @@ function bind(){
  document.getElementById('equipmentUnitListFooterClose').onclick=()=>global.LithositeModalShowContract.close('equipmentUnitListModal');
  document.getElementById('equipmentUnitListRefresh').onclick=refreshUnitList;
  document.getElementById('equipmentUnitListRows').addEventListener('click',function(event){
-  const button=event.target.closest('.equipment-unit-open');
-  if(button)openEdit(button.dataset.id);
+  const edit=event.target.closest('.edit-equipment');
+  if(edit){openEdit(edit.dataset.id);return;}
+  const del=event.target.closest('.delete-equipment');
+  if(del)remove(del.dataset.id);
  });
  document.getElementById('equipmentSave').onclick=save;
  document.getElementById('f_eq_capacity_profile').addEventListener('change',updateCapacitySummary);
