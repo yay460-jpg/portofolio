@@ -450,5 +450,14 @@ The UI source trace was extended beyond Operations:
 
 - Full Pytest #751 PASS: rejected `LOAD_DATASET` response is not cached as a successful replay result; the same request ID and dataset name can retry. https://github.com/yay460-jpg/portofolio/actions/runs/38492967531.
 - Documentation workflows #752, #753, and #754 PASS. #754 corrects the CI reference; all three completed successfully.
-- Added a focused `FINALIZE_KPI` retry test: a rejected first response must not be cached, and an identical request ID/payload must be dispatched again. CI is pending; do not mark this gate PASS until its result is observed.
+- Full Pytest #755 PASS: the rejected `FINALIZE_KPI` response is not cached as success; the identical request ID and payload can retry. https://github.com/yay460-jpg/portofolio/actions/runs/38496213644.
 - Next: verify the KPI retry CI, then assess remaining cached-operation retry cases and document coverage. Request-ID namespace/lifecycle remains an open contract decision; no production behavior change and `main` remains locked.
+
+
+## Workflow #755–next gate — KPI retry PASS and dataset-save retry — 2026-10-14
+
+- Full Pytest #755 PASS: rejected `FINALIZE_KPI` attempts are not cached as successful replay results; retrying the identical request ID and payload dispatches the operation again. https://github.com/yay460-jpg/portofolio/actions/runs/38496213644.
+- Documentation workflows #756 and #757 PASS; the roadmap and operation contract matrix are synchronized. https://github.com/yay460-jpg/portofolio/actions/runs/38496231704 and https://github.com/yay460-jpg/portofolio/actions/runs/38496239546.
+- Added a focused `SAVE_DATASET` retry test for a rejected first response followed by a successful retry using the same request ID and dataset name. CI is pending; do not mark the gate PASS until the workflow concludes.
+- Retryability is now CI-confirmed for `SAVE_AS_DATASET` (#746), `RESTORE` (#748), `LOAD_DATASET` (#751), and `FINALIZE_KPI` (#755), in addition to existing `IMPORT_XLSX` and backup retry coverage. No production replay semantics changed.
+- Next gate: verify `SAVE_DATASET`, then review the operation matrix for remaining retry gaps. Global-vs-family request-ID scope and cache lifecycle remain open decisions; `main` stays locked.
