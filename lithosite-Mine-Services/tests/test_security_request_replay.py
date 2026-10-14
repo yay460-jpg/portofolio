@@ -752,3 +752,32 @@ def test_save_as_dataset_rejected_attempt_can_retry_same_request_id(tmp_path):
     assert first["status"] == "REJECTED"
     assert retry["status"] == "SAVED_AS"
     assert calls == ["Retryable Review", "Retryable Review"]
+
+
+def test_restore_rejected_attempt_can_retry_same_request_id(tmp_path):
+    adapter = make_adapter(tmp_path)
+    calls = []
+
+    def flaky_restore(snapshot, mode="REPLACE_RUNTIME"):
+        calls.append((snapshot, mode))
+        if len(calls) == 1:
+            return {"status": "REJECTED", "errors": [{"code": "RESTORE-TEST"}]}
+        return {"status": "RESTORED", "mode": mode}
+
+    adapter._runtime.restore = flaky_restore
+    request = {
+        "request_id": "replay-restore-retry-001",
+        "operation": "RESTORE",
+        "snapshot": {"entities": []},
+        "mode": "REPLACE_RUNTIME",
+    }
+
+    first = adapter.handle(dict(request))
+    retry = adapter.handle(dict(request))
+
+    assert first["status"] == "REJECTED"
+    assert retry["status"] == "RESTORED"
+    assert calls == [
+        ({"entities": []}, "REPLACE_RUNTIME"),
+        ({"entities": []}, "REPLACE_RUNTIME"),
+    ]
