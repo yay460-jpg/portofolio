@@ -51,3 +51,64 @@ process.stdout.write(JSON.stringify({ rejected, valid: {
     output = json.loads(result.stdout)
     assert all(not item["ok"] for item in output["rejected"]), output
     assert output["valid"] == {"ok": True, "finite": True}
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is required for Geo Engine runtime tests")
+def test_bearing_distance_rejects_non_finite_and_overflowing_coordinates():
+    script = r"""
+const fs = require('node:fs');
+const vm = require('node:vm');
+const source = fs.readFileSync(process.env.LITHOSITE_GEO_ENGINE, 'utf8');
+const context = {};
+vm.runInNewContext(source, context);
+const invalid = [
+  ['nan-origin', NaN, 0, 1, 1],
+  ['infinite-target', 0, 0, Infinity, 1],
+  ['overflow-distance', -Number.MAX_VALUE, 0, Number.MAX_VALUE, 1]
+];
+const rejected = invalid.map(([name, e1, n1, e2, n2]) => {
+  const result = context.bearingDistanceGrid_(e1, n1, e2, n2);
+  return {
+    name,
+    ok: result.ok,
+    finiteBearing: Number.isFinite(result.bearingGridDeg),
+    finiteDistance: Number.isFinite(result.distanceMeters)
+  };
+});
+const valid = [
+  context.bearingDistanceGrid_(0, 0, 0, 10),
+  context.bearingDistanceGrid_(0, 0, 10, 0),
+  context.bearingDistanceGrid_(5, 5, 5, 5)
+];
+process.stdout.write(JSON.stringify({
+  rejected,
+  valid: valid.map(result => ({
+    bearingGridDeg: result.bearingGridDeg,
+    distanceMeters: result.distanceMeters,
+    ok: result.ok
+  }))
+}));
+"""
+    env = os.environ.copy()
+    env["LITHOSITE_GEO_ENGINE"] = str(GEO_ENGINE)
+    result = subprocess.run(
+        ["node", "-e", script],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    output = json.loads(result.stdout)
+    assert all(
+        item["ok"] is False
+        and item["finiteBearing"]
+        and item["finiteDistance"]
+        for item in output["rejected"]
+    ), output
+    assert output["valid"] == [
+        {"bearingGridDeg": 0, "distanceMeters": 10, "ok": True},
+        {"bearingGridDeg": 90, "distanceMeters": 10, "ok": True},
+        {"bearingGridDeg": 0, "distanceMeters": 0, "ok": True},
+    ]
