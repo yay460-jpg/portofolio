@@ -51,7 +51,9 @@ Every read and mutation uses the canonical `Equipment` entity. UI code must not 
 The Equipment screen must support:
 - reading and filtering canonical Equipment records;
 - displaying the linked Equipment ID and Unit / Fleet No. (`unit_no`) identity pair in Unit List;
-- using the Unit List registered identity as the reference when adding Equipment, keeping the selected Equipment ID and Unit / Fleet No. linked;
+- requiring Add Equipment to select a registered unit from the Unit List reference selector;
+- resolving the selected record's `equipment_id` and `unit_no` together, keeping both identity fields read-only in Add Equipment;
+- updating the selected canonical Equipment record through RuntimeAdapter instead of creating a duplicate identity; new identities are created only through Add Unit;
 - creating records with required-field and controlled-list validation;
 - editing records while keeping `equipment_id` immutable;
 - correcting `unit_no` through the normal UPDATE path;
@@ -96,7 +98,8 @@ The Equipment contract is satisfied when:
 - CREATE / UPDATE / DELETE use RuntimeAdapter;
 - `equipment_id` is immutable while `unit_no` remains correctable;
 - Unit List renders `unit_no` from the persisted Equipment record;
-- Add Equipment does not invent an identity for a unit that already exists in the Unit List reference;
+- Add Equipment requires a registered Unit List selection, fills the linked `equipment_id` and `unit_no`, and uses UPDATE for that selected canonical record;
+- Add Equipment cannot CREATE a duplicate identity; Add Unit remains the workflow for creating a new canonical Equipment record;
 - validation and protected-delete failures are surfaced;
 - committed changes persist and create the expected audit event;
 - records survive refresh/reload;
