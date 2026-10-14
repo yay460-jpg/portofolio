@@ -62,7 +62,14 @@ class RuntimeAdapter:
         if not isinstance(request, dict):
             return self._handle_request(request)
         request_id = request.get("request_id")
-        if request.get("operation") not in operations or request_id in (None, ""):
+        # Validate the identifier before using it as a dictionary key in the
+        # replay cache. JSON arrays/objects are unhashable and must be rejected
+        # through the normal adapter contract, not escape as TypeError.
+        if (
+            not isinstance(request_id, str)
+            or not request_id.strip()
+            or request.get("operation") not in operations
+        ):
             return self._handle_request(request)
         fingerprint = self._request_fingerprint(request)
         with self._request_lock:
@@ -103,6 +110,12 @@ class RuntimeAdapter:
         if not isinstance(request, dict):
             raise AdapterContractError("ADP-001", "Request must be an object")
         request_id = cls._required(request, "request_id")
+        if not isinstance(request_id, str) or not request_id.strip():
+            raise AdapterContractError(
+                "ADP-003",
+                "request_id must be a non-empty string",
+                "request_id",
+            )
         operation = cls._required(request, "operation")
         if operation not in cls.OPERATIONS:
             raise AdapterContractError(
