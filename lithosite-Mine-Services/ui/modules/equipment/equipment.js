@@ -74,6 +74,65 @@ function equipmentBrand(row){
  });
  return profile?String(profile.unit_brand||'—'):'—';
 }
+function renderUnitList(){
+ const host=document.getElementById('equipmentUnitListRows');
+ const count=document.getElementById('equipmentUnitListCount');
+ if(!host||!count)return;
+ if(state.status==='loading'){
+  host.innerHTML='<div class="equipment-unit-empty">Loading unit database from RuntimeAdapter…</div>';
+  count.textContent='Loading…';
+  return;
+ }
+ if(state.status==='error'){
+  host.innerHTML='<div class="equipment-unit-empty">Unit database unavailable. Check RuntimeAdapter and refresh.</div>';
+  count.textContent='Unavailable';
+  return;
+ }
+ const rows=state.rows.slice().sort(function(a,b){
+  return String(b.effective_from||'').localeCompare(String(a.effective_from||''))||
+   String(a.equipment_id||'').localeCompare(String(b.equipment_id||''));
+ });
+ host.innerHTML=rows.length?rows.map(function(row){
+  const cls=String(row.status||'').toLowerCase().replace(/[^a-z]/g,'')||'inactive';
+  return '<div class="equipment-unit-row">'+
+   '<div class="equipment-unit-cell">'+esc(row.effective_from||'—')+'</div>'+
+   '<div class="equipment-unit-cell unit-id">'+esc(row.equipment_id||'—')+'</div>'+
+   '<div class="equipment-unit-cell">'+esc(row.type||'—')+'</div>'+
+   '<div class="equipment-unit-cell">'+esc(equipmentBrand(row))+'</div>'+
+   '<div class="equipment-unit-cell">'+esc(row.category||'—')+'</div>'+
+   '<div class="equipment-unit-cell"><span class="statuspill '+cls+'-status">'+esc(row.status||'—')+'</span></div>'+
+   '<div class="equipment-unit-cell"><button type="button" class="control mini equipment-unit-open" data-id="'+esc(row.equipment_id)+'">Open</button></div>'+
+  '</div>';
+ }).join(''):'<div class="equipment-unit-empty">No equipment units recorded yet.</div>';
+ count.textContent=rows.length+' units · Runtime Ready';
+}
+async function refreshUnitList(){
+ const host=document.getElementById('equipmentUnitListRows');
+ const count=document.getElementById('equipmentUnitListCount');
+ if(host)host.innerHTML='<div class="equipment-unit-empty">Refreshing unit database…</div>';
+ if(count)count.textContent='Refreshing…';
+ try{
+  const results=await Promise.all([
+   rc.request({operation:'READ',entity:'Equipment'}),
+   rc.request({operation:'READ',entity:'GlobalCapacity'})
+  ]);
+  state.rows=Array.isArray(results[0].data)?results[0].data:[];
+  state.capacities=Array.isArray(results[1].data)?results[1].data:[];
+  state.status='ready';
+  fillCapacityProfiles();
+  render();
+  renderUnitList();
+ }catch(e){
+  if(host)host.innerHTML='<div class="equipment-unit-empty error">Unit database refresh failed. Use the Equipment Refresh button and check RuntimeAdapter.</div>';
+  if(count)count.textContent='Refresh failed';
+  setMsg('Unit database refresh failed: '+e.message,true);
+ }
+}
+function openUnitList(){
+ renderUnitList();
+ global.LithositeModalShowContract.show('equipmentUnitListModal');
+ refreshUnitList();
+}
 function render(){
  const host=document.getElementById('equipmentRows');
  if(!host)return;
@@ -239,6 +298,14 @@ async function remove(id){
 function bind(){
  document.getElementById('equipmentAdd').onclick=openAdd;
  document.getElementById('equipmentRefresh').onclick=load;
+ document.getElementById('equipmentUnitListButton').onclick=openUnitList;
+ document.getElementById('equipmentUnitListClose').onclick=()=>global.LithositeModalShowContract.close('equipmentUnitListModal');
+ document.getElementById('equipmentUnitListFooterClose').onclick=()=>global.LithositeModalShowContract.close('equipmentUnitListModal');
+ document.getElementById('equipmentUnitListRefresh').onclick=refreshUnitList;
+ document.getElementById('equipmentUnitListRows').addEventListener('click',function(event){
+  const button=event.target.closest('.equipment-unit-open');
+  if(button)openEdit(button.dataset.id);
+ });
  document.getElementById('equipmentSave').onclick=save;
  document.getElementById('f_eq_capacity_profile').addEventListener('change',updateCapacitySummary);
  document.getElementById('equipmentClose').onclick=()=>global.LithositeModalShowContract.close('equipmentModal');
