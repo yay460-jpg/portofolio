@@ -390,3 +390,11 @@ The UI source trace was extended beyond Operations:
 - Documentation sync workflows #733 and #734 also passed. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38487565450, https://github.com/yay460-jpg/portofolio/actions/runs/38487572665, https://github.com/yay460-jpg/portofolio/actions/runs/38487594633, https://github.com/yay460-jpg/portofolio/actions/runs/38487604828, https://github.com/yay460-jpg/portofolio/actions/runs/38487648336, https://github.com/yay460-jpg/portofolio/actions/runs/38487657212.
 - Result: **partial-eviction exception rollback gate PASS**. Scope remains caught filesystem exceptions; do not claim crash-atomicity or guaranteed recovery if the recovery writes themselves fail.
 - Next gate: verify failed `SAVE_TOPOGRAPHY_BACKUP` and `SAVE_MARKER_LOCATION_BACKUP` attempts are not cached as successful responses and the same request ID can retry after the underlying failure is corrected. Keep the replay cache process-local and unbounded as a documented design risk; do not change cache capacity/TTL or claim durable idempotency without an explicit contract decision.
+
+
+### EVO2-02 backup SAVE retry contract — CI PASS — 2026-10-14
+
+- Full Pytest #735 PASS for commit `ea9b43b`: injected first-attempt write failures for both Topography and Marker Location SAVE paths return `REJECTED` / `ADP-005`; the same request ID then retries successfully after the injected failure is removed. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38488260830.
+- Documentation workflows #736 and #737 PASS and synchronize the roadmap and operation contract matrix: https://github.com/yay460-jpg/portofolio/actions/runs/38488283239 and https://github.com/yay460-jpg/portofolio/actions/runs/38488291682.
+- Result: **backup SAVE retry gate PASS**. The test does not claim that every filesystem failure is recoverable, nor that the retention rollback is crash-atomic.
+- Next: finish the RuntimeAdapter replay-cache lifecycle/ownership audit: selected operation coverage, request-ID collision behavior across operations, serialization under the global lock, unbounded growth, and process restart semantics. Document findings and an explicit decision gate before changing cache policy. No TTL, capacity limit, or durable idempotency is authorized by current evidence. `main` remains locked.
