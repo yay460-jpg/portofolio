@@ -42,46 +42,49 @@ def test_ltdtm_resource_limit_is_declared_in_both_engine_copies():
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is required for Topo3D runtime tests")
 @pytest.mark.parametrize("engine_path", TOPO3D_PATHS)
-def test_ltdtm_v1_rejects_triangle_indices_outside_vertex_buffer(engine_path):
+def test_ltdtm_v1_rejects_triangle_indices_outside_vertex_buffer_and_accepts_valid_mesh(engine_path):
     script = r"""
 const fs = require('node:fs');
 const vm = require('node:vm');
 const window = {};
 vm.runInNewContext(fs.readFileSync(process.env.LITHOSITE_TOPO3D_ENGINE, 'utf8'), { window, TextDecoder });
-const engine = window.LithositeTopo3D.create({});
-engine.prepare = async () => engine;
-let buildCalled = false;
-engine._buildGPU = () => { buildCalled = true; };
 const encoder = new TextEncoder();
-const meta = encoder.encode(JSON.stringify({
-  version: 1,
-  name: 'invalid-index-fixture',
-  triangles: 1,
-  bounds: { minX: 0, maxX: 1, minY: 0, maxY: 1, minZ: 0, maxZ: 0 }
-}));
-const xyz = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
-const indices = new Uint32Array([0, 1, 99]);
-const bytes = new Uint8Array(24 + meta.byteLength + xyz.byteLength + indices.byteLength);
-bytes.set(encoder.encode('LITHODTM'), 0);
-const view = new DataView(bytes.buffer);
-view.setUint32(8, 1, true);
-view.setUint32(12, 3, true);
-view.setUint32(16, 3, true);
-view.setUint32(20, meta.byteLength, true);
-let offset = 24;
-bytes.set(meta, offset); offset += meta.byteLength;
-bytes.set(new Uint8Array(xyz.buffer), offset); offset += xyz.byteLength;
-bytes.set(new Uint8Array(indices.buffer), offset);
-const file = {
-  name: 'invalid-index.ltdtm',
-  size: bytes.byteLength,
-  arrayBuffer: async () => bytes.buffer
-};
+function makeFile(indices) {
+  const meta = encoder.encode(JSON.stringify({
+    version: 1,
+    name: 'geometry-fixture',
+    triangles: 1,
+    bounds: { minX: 0, maxX: 1, minY: 0, maxY: 1, minZ: 0, maxZ: 0 }
+  }));
+  const xyz = new Float64Array([0, 0, 0, 1, 0, 0, 0, 1, 0]);
+  const idx = new Uint32Array(indices);
+  const bytes = new Uint8Array(24 + meta.byteLength + xyz.byteLength + idx.byteLength);
+  bytes.set(encoder.encode('LITHODTM'), 0);
+  const view = new DataView(bytes.buffer);
+  view.setUint32(8, 1, true);
+  view.setUint32(12, 3, true);
+  view.setUint32(16, idx.length, true);
+  view.setUint32(20, meta.byteLength, true);
+  let offset = 24;
+  bytes.set(meta, offset); offset += meta.byteLength;
+  bytes.set(new Uint8Array(xyz.buffer), offset); offset += xyz.byteLength;
+  bytes.set(new Uint8Array(idx.buffer), offset);
+  return { name: 'fixture.ltdtm', size: bytes.byteLength, arrayBuffer: async () => bytes.buffer };
+}
+async function load(indices) {
+  const engine = window.LithositeTopo3D.create({});
+  engine.prepare = async () => engine;
+  let buildCalled = false;
+  engine._buildGPU = () => { buildCalled = true; };
+  let rejected = false, errorMessage = '';
+  try { await engine.loadLTDtm(makeFile(indices)); }
+  catch (error) { rejected = true; errorMessage = error.message; }
+  return { rejected, buildCalled, errorMessage };
+}
 (async () => {
-  let rejected = false;
-  let errorMessage = '';
-  try { await engine.loadLTDtm(file); } catch (error) { rejected = true; errorMessage = error.message; }
-  process.stdout.write(JSON.stringify({ rejected, buildCalled, errorMessage }));
+  const invalid = await load([0, 1, 99]);
+  const valid = await load([0, 1, 2]);
+  process.stdout.write(JSON.stringify({ invalid, valid }));
 })().catch(error => { console.error(error); process.exitCode = 1; });
 """
     env = os.environ.copy()
@@ -96,4 +99,13 @@ const file = {
     )
     assert result.returncode == 0, result.stderr or result.stdout
     output = json.loads(result.stdout)
-    assert output == {"rejected": True, "buildCalled": False, "errorMessage": "Referensi vertex triangle tidak valid"}, output
+    assert output["invalid"] == {
+        "rejected": True,
+        "buildCalled": False,
+        "errorMessage": "Referensi vertex triangle tidak valid",
+    }, output
+    assert output["valid"] == {
+        "rejected": False,
+        "buildCalled": True,
+        "errorMessage": "",
+    }, output
