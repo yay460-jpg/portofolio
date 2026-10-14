@@ -394,3 +394,75 @@ function canonicalize(value) {
     assert output["rejected"] is True, output
     assert output["errorCode"] == "PACKAGE_ID_DUPLICATE", output
     assert output["writes"] == 0 and output["recoveryStarts"] == 0, output
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is required for Browser Guard collision preflight tests")
+def test_map_package_transfer_rejects_existing_ids_before_side_effects():
+    script = r"""
+const fs = require('node:fs');
+const vm = require('node:vm');
+const crypto = require('node:crypto');
+let libraryMaps = [{ id: 'collision-map', name: 'Existing library map' }];
+const window = {
+  navigator: { deviceMemory: 8 },
+  crypto: crypto.webcrypto,
+  MG1MapLibrary: { getAll: async () => libraryMaps },
+  backgroundMapsList: []
+};
+let writes = 0, recoveryStarts = 0;
+window.dbPutMap_ = async () => { writes++; };
+window.MG1MapRecovery = { beginImport: () => { recoveryStarts++; } };
+const context = vm.createContext({
+  window, TextEncoder, TextDecoder, console: { log() {} }, structuredClone, crypto: crypto.webcrypto
+});
+vm.runInContext(fs.readFileSync(process.env.LITHOSITE_MAP_SECURITY, 'utf8'), context);
+vm.runInContext(fs.readFileSync(process.env.LITHOSITE_MAP_TRANSFER, 'utf8'), context);
+function canonicalize(value) {
+  if (Array.isArray(value)) return '[' + value.map(canonicalize).join(',') + ']';
+  if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(key => JSON.stringify(key) + ':' + canonicalize(value[key])).join(',') + '}';
+  return JSON.stringify(value);
+}
+(async () => {
+  const payload = {
+    format: 'MG1-LITHOSITE-MAP-PACKAGE',
+    schemaVersion: 1,
+    exportedAt: '2026-10-14T00:00:00.000Z',
+    maps: [{ id: 'collision-map', name: 'Incoming map', imageDataUrl: 'data:image/png;base64,QUJD' }]
+  };
+  const integrity = crypto.createHash('sha256').update(canonicalize(payload)).digest('hex');
+  const raw = JSON.stringify({ ...payload, integrity: { algorithm: 'SHA-256', scope: 'payload', value: integrity } });
+  async function attempt() {
+    try {
+      await window.MG1MapPackageTransfer.importFile({
+        name: 'collision.mg1map', size: Buffer.byteLength(raw), text: async () => raw
+      });
+      return { rejected: false, code: '' };
+    } catch (error) {
+      return { rejected: true, code: error.code || '', message: error.message };
+    }
+  }
+  const libraryCollision = await attempt();
+  libraryMaps = [];
+  window.backgroundMapsList = [{ id: 'collision-map', name: 'Existing background map' }];
+  const backgroundCollision = await attempt();
+  process.stdout.write(JSON.stringify({ libraryCollision, backgroundCollision, writes, recoveryStarts }));
+})().catch(error => { console.error(error); process.exitCode = 1; });
+"""
+    env = os.environ.copy()
+    env["LITHOSITE_MAP_SECURITY"] = str(MEMBER_APP / "scripts" / "map" / "map-security.js")
+    env["LITHOSITE_MAP_TRANSFER"] = str(MEMBER_APP / "scripts" / "map" / "map-package-transfer.js")
+    result = subprocess.run(
+        ["node", "-e", script],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    output = json.loads(result.stdout)
+    assert output["libraryCollision"]["rejected"] is True, output
+    assert output["libraryCollision"]["code"] == "ID_COLLISION", output
+    assert output["backgroundCollision"]["rejected"] is True, output
+    assert output["backgroundCollision"]["code"] == "ID_COLLISION", output
+    assert output["writes"] == 0 and output["recoveryStarts"] == 0, output
