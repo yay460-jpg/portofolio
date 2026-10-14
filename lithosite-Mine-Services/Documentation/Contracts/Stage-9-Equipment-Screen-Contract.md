@@ -118,3 +118,16 @@ Stage 9 can become PASS only when:
 - regression tests are green.
 
 **Next implementation step:** build the Equipment screen against this contract, then add Stage 9 test evidence before baseline.
+## 11. Unit Database Modal
+
+The Equipment toolbar exposes **Unit List** between **Refresh** and **Global Capacity**. It opens a compact read-only projection of canonical `Equipment` records with columns:
+
+- Date Record — `effective_from` (the existing Equipment record date; do not invent a new creation timestamp).
+- Unique ID — `equipment_id`.
+- Type — `type`.
+- Brand — resolved from the referenced `GlobalCapacity.unit_brand` through `capacity_profile_id`.
+- Category — `category`.
+- Status — `status`.
+- Action — opens the existing Equipment edit modal for that record.
+
+The modal refreshes Equipment and GlobalCapacity through RuntimeAdapter. It must not introduce a separate Excel worksheet/entity, direct workbook writes, IndexedDB/localStorage, or duplicate persistence. Existing Equipment records and the A.3 workbook remain the source of truth. The modal uses the shared modal-show contract and must expose loading, empty, ready, and refresh-failure states.
