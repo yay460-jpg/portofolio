@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from mine_services import ApplicationService, PersistenceStore, RuntimeInterface
@@ -858,3 +860,19 @@ def test_save_dataset_rejected_attempt_can_retry_same_request_id(tmp_path):
     assert first["status"] == "REJECTED"
     assert retry["status"] == "SAVED"
     assert calls == ["Retryable Current Dataset", "Retryable Current Dataset"]
+
+
+
+@pytest.mark.parametrize("request_id", [[], {}, 42, 3.14, "   ", None])
+def test_adapter_rejects_invalid_request_id_without_raising(request_id, tmp_path):
+    adapter = make_adapter(tmp_path)
+
+    response = adapter.handle({
+        "request_id": request_id,
+        "operation": "SAVE_AS_DATASET",
+        "name": "Invalid Request ID",
+    })
+
+    assert response["status"] == "REJECTED"
+    assert response["errors"][0]["code"] == "ADP-003"
+    assert response["errors"][0]["field"] == "request_id"
