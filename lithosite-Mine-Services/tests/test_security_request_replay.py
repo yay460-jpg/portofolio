@@ -619,3 +619,76 @@ def test_backup_save_failed_attempt_can_retry_same_request_id(tmp_path, monkeypa
         retry = adapter.handle(dict(request))
         assert retry["status"] == "SAVED"
         assert calls[key] == 2
+
+
+def test_replay_cache_rejects_same_request_id_across_cached_operation_types(tmp_path):
+    adapter = make_adapter(tmp_path)
+    request_id = "replay-cross-cached-op-001"
+
+    saved = adapter.handle({
+        "request_id": request_id,
+        "operation": "SAVE_AS_DATASET",
+        "name": "Replay Source",
+    })
+    conflicting = adapter.handle({
+        "request_id": request_id,
+        "operation": "LOAD_DATASET",
+        "name": "Replay Source",
+    })
+
+    assert saved["status"] == "SAVED_AS"
+    assert conflicting["status"] == "REJECTED"
+    assert conflicting["errors"][0]["code"] == "ADP-006"
+    assert len(list((tmp_path / "datasets").glob("*.json"))) == 1
+    assert len(adapter._runtime._application.store.audit()) == 1
+
+
+def test_request_id_scope_is_currently_separate_between_adapter_cache_and_crud(tmp_path):
+    adapter = make_adapter(tmp_path)
+    request_id = "replay-cross-family-001"
+
+    cached_operation = adapter.handle({
+        "request_id": request_id,
+        "operation": "SAVE_AS_DATASET",
+        "name": "Cross Family Dataset",
+    })
+    crud_operation = adapter.handle({
+        "request_id": request_id,
+        "operation": "CREATE",
+        "entity": "Equipment",
+        "row": valid_equipment("EQ-CROSS-FAMILY"),
+    })
+
+    assert cached_operation["status"] == "SAVED_AS"
+    assert crud_operation["status"] == "COMMITTED"
+    assert adapter._runtime._application.store.exists("Equipment", "EQ-CROSS-FAMILY")
+    assert len(list((tmp_path / "datasets").glob("*.json"))) == 1
+    # Characterization only: this proves the current ID namespaces are separate;
+    # it does not decide whether the public contract should make them global.
+    assert len(adapter._runtime._application.store.audit()) == 1
+
+
+def test_concurrent_identical_cached_requests_execute_side_effect_once(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    adapter = make_adapter(tmp_path)
+    request = {
+        "request_id": "replay-concurrent-save-as-001",
+        "operation": "SAVE_AS_DATASET",
+        "name": "Concurrent Review",
+    }
+    workers = 8
+    barrier = Barrier(workers)
+
+    def submit_request():
+        barrier.wait(timeout=5)
+        return adapter.handle(dict(request))
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        responses = list(executor.map(lambda _: submit_request(), range(workers)))
+
+    assert all(response == responses[0] for response in responses)
+    assert responses[0]["status"] == "SAVED_AS"
+    assert len(list((tmp_path / "datasets").glob("*.json"))) == 1
+    assert len(adapter._runtime._application.store.audit()) == 1
