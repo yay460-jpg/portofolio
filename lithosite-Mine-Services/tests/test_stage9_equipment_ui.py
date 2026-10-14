@@ -10,7 +10,7 @@ SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation.js")
 def test_stage9_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
-    assert "equipment.js?v=20261015-unit-reference-selector" in TEXT
+    assert "equipment.js?v=20261015-unit-close-dedup" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
@@ -150,7 +150,7 @@ def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
     artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     assert 'id="equipmentUnitListButton"' in artifact
     assert 'id="equipmentUnitListModal"' in artifact
-    assert "equipment.js?v=20261015-unit-reference-selector" in artifact
+    assert "equipment.js?v=20261015-unit-close-dedup" in artifact
     assert "equipment.css?v=20261015-unit-type-filter" in artifact
 
 def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal_overflow():
