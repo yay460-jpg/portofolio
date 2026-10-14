@@ -833,3 +833,28 @@ def test_finalize_kpi_rejected_attempt_can_retry_same_request_id(tmp_path):
     assert retry["status"] == "COMMITTED"
     assert len(calls) == 2
     assert calls[0] == calls[1]
+
+
+def test_save_dataset_rejected_attempt_can_retry_same_request_id(tmp_path):
+    adapter = make_adapter(tmp_path)
+    calls = []
+
+    def flaky_save(name=None):
+        calls.append(name)
+        if len(calls) == 1:
+            return {"status": "REJECTED", "errors": [{"code": "SAVE-DATASET-TEST"}]}
+        return {"status": "SAVED", "name": name}
+
+    adapter._runtime.save_dataset = flaky_save
+    request = {
+        "request_id": "replay-save-dataset-retry-001",
+        "operation": "SAVE_DATASET",
+        "name": "Retryable Current Dataset",
+    }
+
+    first = adapter.handle(dict(request))
+    retry = adapter.handle(dict(request))
+
+    assert first["status"] == "REJECTED"
+    assert retry["status"] == "SAVED"
+    assert calls == ["Retryable Current Dataset", "Retryable Current Dataset"]
