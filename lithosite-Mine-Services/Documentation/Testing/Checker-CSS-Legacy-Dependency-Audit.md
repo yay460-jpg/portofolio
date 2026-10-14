@@ -10,6 +10,7 @@
 
 - The active artifact `Artifacts/Mine-Services-Operations.html` has no reference to `checker.css`, `checkerScreen`, or `checkerModal`.
 - The shared table stylesheet `ui/shared/table.css` has no Checker screen selectors.
+- Cross-cutting cleanup caution: `ui/shared/app-info.css` is intentionally retained. Although the main artifact does not link it as a normal stylesheet, `ui/shared/shell-navigation.js` loads it dynamically when opening the About modal; deleting it causes `test_app_info_fade_animation.py` to fail. This stylesheet is not Checker CSS and is outside this audit's deletion scope.
 - The seven shared CSS contract tests below contain no Checker stylesheet or screen-selector references:
   - `test_shared_field_control_css.py`
   - `test_shared_field_label_css.py`
