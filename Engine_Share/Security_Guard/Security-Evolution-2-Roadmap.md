@@ -8,7 +8,7 @@ Evo 2 is the global, cross-product Lithosite security track. Evo 1 remains the h
 
 - Work branch: `v41-workspace`.
 - Locked base before Evo 2 work: `698469057aa588de2c3d17a1327ef4892863994d`.
-- Latest validated workspace HEAD: `30ff61b8a693aec691ab03119f6906f171029173` (Full Pytest #623 PASS; workflow conclusion `success`). Earlier evidence #620 (590 passed) remains in the historical record below.
+- Latest validated workspace HEAD: `cf8083b1f8e7f43485b5978627021b1d6efcc363` (Full Pytest #743 PASS; workflow conclusion `success`). The V41 locked `main` baseline remains unchanged. Earlier evidence #620 (590 passed) remains in the historical record below.
 - Current work includes narrow, tested runtime hardening in the owning layers: explicit local Origin policy, static asset allowlist, Topo3D package-size preflight, sanitized unreadable-workbook import errors, strict snapshot/dataset schema keys, and backup size preflight before decode/read. This is not a broad refactor; full coverage remains incomplete.
 - Do not change `main` during this track until the owner explicitly promotes a tested and reviewed change.
 - Use temporary A3 fixtures and temporary Evidence paths for adversarial tests.
@@ -408,3 +408,14 @@ The UI source trace was extended beyond Operations:
 - The cache is in-memory, instance-local, unbounded, and lost on adapter recreation/process restart. There is no TTL or eviction policy. These are observed implementation properties, not proof of a current production exploit.
 - Ownership boundary: CRUD (`CREATE`, `UPDATE`, `DELETE`) bypasses the adapter cache and delegates duplicate-ID behavior to `ApplicationService`; observational `BACKUP` and LIST operations also bypass it. Therefore the adapter cache does not provide a universal request-ID namespace across all 20 operations. Whether IDs must be globally unique across operation families is an unresolved contract decision; do not patch by assumption.
 - Next gate: add isolated contract tests for cross-family request-ID reuse and concurrency/serialization behavior, review expected semantics with the operation owners, then choose explicitly between per-operation-family ID scope and a unified adapter-wide request ledger. Do not add TTL/capacity or durable storage until retention and restart semantics are approved. `main` remains locked; EVO2-02 remains IN PROGRESS.
+
+## Workflow #740–#743 — RuntimeAdapter replay contract and cross-family scope — 2026-10-14
+
+- #740 records the replay-cache lifecycle inventory and the decision questions for request-ID scope: https://github.com/yay460-jpg/portofolio/actions/runs/38489432674.
+- #741 records cache ownership/lifecycle findings: https://github.com/yay460-jpg/portofolio/actions/runs/38489439711.
+- #742 was a characterization run but failed at one assertion (654 passed, 1 failed). The test observed two audit entries after `SAVE_AS_DATASET` followed by `CREATE` using the same request ID. This is consistent with the two separate successful side effects; the test's expected count of one was incorrect. Run: https://github.com/yay460-jpg/portofolio/actions/runs/38489717343.
+- Test-only correction: commit `cf8083b1f8e7f43485b5978627021b1d6efcc363` changes the expected audit count to two and explains the two audit sources. No production behavior was changed.
+- Full Pytest #743 PASS: https://github.com/yay460-jpg/portofolio/actions/runs/38489990780.
+- Current finding: replay-cache guards reject reused IDs with conflicting payloads among cached adapter operations, and identical concurrent cached requests are tested to execute the side effect once. CRUD uses a separate application-level request guard; a characterization test confirms the same ID can currently be used once in the adapter cache family and once in CRUD.
+- Decision still OPEN: whether request IDs are intentionally scoped per guard/family or should be global across all RuntimeAdapter operations. Do not change production code until the public contract and compatibility expectations are decided.
+- Next: inventory each operation's replay owner and persistence lifetime, then add/confirm isolated tests for concurrent conflicting payloads, rejected/failed retry behavior, and cross-family audit/side-effect contracts. Preserve current CRUD duplicate behavior unless a confirmed contract gap justifies a minimal change.
