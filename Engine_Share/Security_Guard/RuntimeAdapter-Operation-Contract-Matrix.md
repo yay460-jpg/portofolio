@@ -1,6 +1,6 @@
 # RuntimeAdapter Operation Contract Matrix
 
-Status: EVO2-02 operation inventory and ownership mapping — implementation evidence recorded; CI gate pending for latest rollback fix
+Status: EVO2-02 operation inventory and ownership mapping — COMPLETE; malformed request-ID and dataset-load rollback full-suite gates PASS
 Branch: `v41-workspace`
 Scope: `lithosite-Mine-Services/src/mine_services/adapter.py`, `runtime.py`, operation managers, and the public desktop-host dispatch.
 
@@ -29,7 +29,7 @@ This matrix distinguishes observed code behavior from tested guarantees. A green
 | LIST_DATASETS | DatasetManager; lists dataset metadata and active marker | No replay cache; fresh listing | Repeated list calls return fresh values and do not mutate store/audit. Malformed files are skipped by manager. |
 | SAVE_DATASET | RuntimeInterface + DatasetManager; writes/replaces dataset file, updates active metadata, audit and workbook store | Fingerprint cache on success; rejected attempt can retry | Same-file and store-save rollback tests cover prior bytes, active metadata and audit for tested failures; filesystem crash durability is not claimed. |
 | SAVE_AS_DATASET | RuntimeInterface + DatasetManager; creates dataset file, updates active metadata, audit and workbook store | Fingerprint cache on success; same payload replays cached result; changed payload -> `ADP-006` | Identical/concurrent/conflicting replay, retry-after-rejection and write rollback gates pass. Retention/overwrite semantics are explicit: existing name is rejected by manager. |
-| LOAD_DATASET | RuntimeInterface + DatasetManager; replaces domain data, controlled lists and active metadata, then audit/workbook persistence | Fingerprint cache on success; rejected/error result may retry | Dataset schema/row validation exists. A failure after load must restore store, controlled lists and active metadata; regression added for this complete rollback contract, latest CI pending. |
+| LOAD_DATASET | RuntimeInterface + DatasetManager; replaces domain data, controlled lists and active metadata, then audit/workbook persistence | Fingerprint cache on success; rejected/error result may retry | Dataset schema/row validation exists. Regression verifies that a failed workbook save restores store, controlled lists, active metadata and audit state. Full Pytest #38499279618 PASS. |
 | SAVE_TOPOGRAPHY_BACKUP | TopographyBackupManager; base64 decode, bounded package validation, file write and retention cleanup | Fingerprint cache on success; conflict -> `ADP-006`; failed attempt may retry | Size preflight, bounded reads, invalid package/path/oversize rejection, write-failure and partial retention rollback tests exist. Rollback is for caught exceptions, not crash-atomicity. |
 | LIST_TOPOGRAPHY_BACKUPS | TopographyBackupManager; lists metadata | No replay cache; fresh listing | Read-only listing tests assert store/audit unchanged. Filesystem races/symlink hardening remain separate path audit scope. |
 | LOAD_TOPOGRAPHY_BACKUP | TopographyBackupManager; bounded read and package validation, returns package data; does not apply it to runtime | Fingerprint cache on success; rejected/error result may retry | Same-ID successful response is cached; missing/traversal/corrupt/oversized cases reject; runtime store/audit remain unchanged. |
@@ -38,6 +38,15 @@ This matrix distinguishes observed code behavior from tested guarantees. A green
 | LOAD_MARKER_LOCATION_BACKUP | MarkerLocationBackupManager; bounded read and marker schema validation, returns package data; does not apply it to runtime | Fingerprint cache on success; rejected/error result may retry | Same-ID successful response is cached; missing/traversal/corrupt/oversized cases reject; runtime store/audit remain unchanged. |
 | FINALIZE_KPI | RuntimeInterface + KPIHistoryStore + audit/store persistence; appends KPI history and audit | Fingerprint cache on success; same ID/payload returns detached cached result; changed payload -> `ADP-006`; rejected attempt may retry | Tests cover identical replay and rollback when audit append or workbook save fails. Rollback is in-process; two-file crash atomicity is not guaranteed. |
 | READ_KPI_SNAPSHOTS | KPIHistoryStore; filtered history read | No replay cache | Nested response isolation test passes after deep-copy fix; authorization scope is separate from copy isolation. |
+
+## Latest EVO2-02 code evidence — 2026-10-14
+
+- Malformed request-ID red phase: Full Pytest workflow [#38499134404](https://github.com/yay460-jpg/portofolio/actions/runs/38499134404) failed on the new regression as intended; non-string/whitespace IDs could reach cache lookup or be accepted inconsistently.
+- Adapter fix: commit `9601ac80b836243789250906b33c18ab480ac45c`; Full Pytest [#38499151045](https://github.com/yay460-jpg/portofolio/actions/runs/38499151045) PASS.
+- Dataset-load rollback red phase: Full Pytest [#38499262056](https://github.com/yay460-jpg/portofolio/actions/runs/38499262056) failed as intended when an injected store-save error left active dataset metadata and controlled lists changed.
+- Runtime fix: commit `c9e168b86d0b99275eb76f0d5289fd9c2f179082`; Full Pytest [#38499279618](https://github.com/yay460-jpg/portofolio/actions/runs/38499279618) PASS.
+- Contract matrix sync: [#38499332965](https://github.com/yay460-jpg/portofolio/actions/runs/38499332965) PASS. Operation count correction: [#38499350686](https://github.com/yay460-jpg/portofolio/actions/runs/38499350686) PASS.
+- These are real production-code fixes with isolated regression coverage. The replay cache remains process-local/unbounded by explicit scope decision; Browser Guard, Geo numeric-boundary and Topo3D malformed-input hypotheses are transferred to EVO2-03/EVO2-05 and are not called fixed by this matrix.
 
 ## Cross-operation risks assigned to follow-up gates
 
