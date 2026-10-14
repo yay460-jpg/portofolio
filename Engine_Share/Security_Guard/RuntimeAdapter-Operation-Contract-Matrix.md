@@ -246,3 +246,12 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Scope boundary: CRUD uses `ApplicationService`'s separate duplicate-request guard; BACKUP and LIST operations bypass the cache. The current code therefore does not enforce one request-ID namespace across every operation family. This is a contract question, not yet a confirmed defect.
 - Decision gate: add isolated tests for cross-family request-ID reuse and concurrent same-ID dispatch, then decide whether IDs are scoped per operation family or globally before any production change. Any cache bound/TTL or durable idempotency design must specify retention window, restart behavior, collision semantics, and ownership first.
 - Related retry gate: Full Pytest #735 PASS; docs #736–#739 PASS. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38488260830 and https://github.com/yay460-jpg/portofolio/actions/runs/38488669213.
+
+
+### RuntimeAdapter replay retry gates — 2026-10-14
+
+- Full Pytest #745 PASS validates identical concurrent replay and concurrent conflicting payloads: one accepted side effect, one `ADP-006` rejection. https://github.com/yay460-jpg/portofolio/actions/runs/38490506418.
+- Full Pytest #746 PASS validates retry after a rejected `SAVE_AS_DATASET` response using the same request ID and payload. https://github.com/yay460-jpg/portofolio/actions/runs/38492024542.
+- Docs workflow #747 PASS synchronizes the roadmap. https://github.com/yay460-jpg/portofolio/actions/runs/38492092421.
+- A rejected-attempt retry test for `RESTORE` has been added; CI #748 is pending, so this operation remains PENDING VALIDATION until the run completes. https://github.com/yay460-jpg/portofolio/actions/runs/38492451181.
+- No production replay behavior changed in these steps. Request-ID scope across the adapter cache, CRUD, and uncached observational operations remains undecided.
