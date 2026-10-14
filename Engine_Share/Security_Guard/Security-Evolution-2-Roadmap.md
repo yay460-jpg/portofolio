@@ -426,3 +426,12 @@ The UI source trace was extended beyond Operations:
 - Added a focused test for `SAVE_AS_DATASET`: a rejected first attempt must not be cached as a successful replay result, allowing the same request ID and payload to retry. Workflow #746 is running; do not record PASS until its conclusion is observed: https://github.com/yay460-jpg/portofolio/actions/runs/38492024542.
 - Current replay behavior is now covered for identical concurrent calls, concurrent conflicting payloads, and retry after rejection for `IMPORT_XLSX` plus the new dataset-save case (pending CI). Other operation-specific failure paths remain to be reviewed against the matrix.
 - Next after #746: inspect results, then extend the replay contract matrix and audit cache scope/lifetime. Do not broaden request-ID scope or alter CRUD duplicate semantics without a documented contract decision.
+
+## Workflow #745–#748 — Replay concurrency and retryability — 2026-10-14
+
+- Full Pytest #745 PASS: concurrent identical cached requests execute the side effect once, and conflicting payloads sharing a request ID yield one accepted operation and one `ADP-006` rejection. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38490506418.
+- Full Pytest #746 PASS: `SAVE_AS_DATASET` does not cache a rejected response as a successful replay result; the same request ID and payload can retry successfully. Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38492024542.
+- Documentation workflow #747 PASS and records the concurrency/retry gate: https://github.com/yay460-jpg/portofolio/actions/runs/38492092421.
+- Added a focused `RESTORE` rejected-attempt retry test. It injects a rejected first result followed by a successful result for the identical request. Full Pytest #748 is pending; do not mark this gate PASS before CI completes: https://github.com/yay460-jpg/portofolio/actions/runs/38492451181.
+- Local user validation after pulling commit `b11dd569`: `python -m pytest -q` reported `657 passed in 60.20s`. This validates the pulled tree at that commit; it does not include the newer #748 test commit.
+- Current scope remains unchanged: no production replay policy changes. Next, verify #748 and continue failure/retry coverage for selected cached operations, then reconcile operation contract matrix and roadmap. Global-vs-family request-ID scope remains an explicit open decision; `main` remains locked.
