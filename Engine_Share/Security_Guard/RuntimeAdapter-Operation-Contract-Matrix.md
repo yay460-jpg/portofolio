@@ -261,5 +261,13 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 
 - Full Pytest #748 PASS: rejected `RESTORE` attempts are not cached as successful replay responses; identical request ID and payload can retry. https://github.com/yay460-jpg/portofolio/actions/runs/38492451181.
 - Documentation workflows #749 and #750 PASS: roadmap and contract matrix synchronized. https://github.com/yay460-jpg/portofolio/actions/runs/38492477097 and https://github.com/yay460-jpg/portofolio/actions/runs/38492484773.
-- Added a rejected-first-attempt retry test for `LOAD_DATASET`; CI is pending and must be checked before marking the contract PASS.
-- No production replay semantics changed. Global-vs-family request-ID scope remains an explicit contract decision.
+- Full Pytest #751 PASS: rejected `LOAD_DATASET` attempts are not cached as successful responses and can retry with the same request ID and payload. https://github.com/yay460-jpg/portofolio/actions/runs/38492967531.
+- Added a focused rejected-first-attempt retry test for `FINALIZE_KPI`; CI is pending. No production replay semantics changed. Global-vs-family request-ID scope remains an explicit contract decision.
+
+
+### RuntimeAdapter retry gate — LOAD_DATASET PASS, FINALIZE_KPI pending — 2026-10-14
+
+- Full Pytest #751 PASS: `LOAD_DATASET` rejected responses are not cached as successful replay results; identical request ID and payload can retry. https://github.com/yay460-jpg/portofolio/actions/runs/38492967531.
+- Documentation workflows #752–#754 PASS, including correction of the dataset-load CI reference.
+- Added a focused retry test for `FINALIZE_KPI`; pending CI. Do not mark it PASS until the run concludes.
+- No production behavior changed. Global-vs-family request-ID scope remains an explicit contract decision.
