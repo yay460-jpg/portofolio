@@ -133,3 +133,19 @@ def test_equipment_unit_list_modal_has_scrollable_compact_layout():
     assert ".equipment-unit-modal{width:min(1080px,94vw)" in EQUIPMENT_CSS
     assert "max-height:min(56vh,560px)" in EQUIPMENT_CSS
     assert "grid-template-columns:125px minmax(150px,1.35fr)" in EQUIPMENT_CSS
+
+
+def test_equipment_unit_list_uses_existing_edit_and_delete_actions():
+    assert 'class="control mini edit-equipment"' in EQUIPMENT_JS
+    assert 'class="control mini danger delete-equipment"' in EQUIPMENT_JS
+    assert "const edit=event.target.closest('.edit-equipment')" in EQUIPMENT_JS
+    assert "const del=event.target.closest('.delete-equipment')" in EQUIPMENT_JS
+    assert "if(del)remove(del.dataset.id)" in EQUIPMENT_JS
+    assert "equipment-unit-open" not in EQUIPMENT_JS
+
+def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    assert 'id="equipmentUnitListButton"' in artifact
+    assert 'id="equipmentUnitListModal"' in artifact
+    assert "equipment.js?v=20261014-unit-list" in artifact
+    assert "equipment.css?v=20261014-unit-list" in artifact
