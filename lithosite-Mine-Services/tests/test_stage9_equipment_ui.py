@@ -242,6 +242,14 @@ def test_global_capacity_modal_has_one_close_button_and_no_footer_action():
         assert '<div class="modalfoot"></div>' in modal
         assert 'capacityFooterClose' not in modal
     assert "capacityFooterClose" not in js
-    assert "#capacityModal > .modal.capacity-modal > .modalfoot:empty{display:none;" in css
+    # The empty footer is retained only as the shared-shell boundary; the
+    # ID-scoped rule must override the shared shell's fixed-height footer.
+    assert "#capacityModal > .modal.capacity-modal > .modalfoot:empty{display:none;flex:0 0 0;min-height:0;height:0;padding:0;border:0;margin:0}" in css
+    shell_css = (Path(__file__).parents[1] / "ui" / "shared" / "modal-shell-contract.css").read_text(encoding="utf-8")
+    assert ".modalback > .modal.modal-shell-valid > .modalfoot{" in shell_css
+    assert "capacityFooterClose" not in js
+    assert js.count("getElementById('capacityClose').onclick") == 1
     assert "global-capacity.js?v=20261015-single-close" in artifact
     assert "global-capacity.css?v=20261015-single-close" in artifact
+    assert "global-capacity.js?v=20261015-single-close" in snapshot
+    assert "global-capacity.css?v=20261015-single-close" in snapshot
