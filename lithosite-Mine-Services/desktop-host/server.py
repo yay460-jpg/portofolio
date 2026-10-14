@@ -1339,8 +1339,10 @@ class Handler(BaseHTTPRequestHandler):
                     "mime": "application/pdf",
                     "data": base64.b64encode(payload).decode("ascii"),
                 }, origin)
-            except Exception as exc:
-                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-008", "message": str(exc)}]}, origin)
+            except Exception:
+                # Do not reflect parser, report-builder, filesystem, or internal
+                # exception details to the browser caller.
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-008", "message": "Invalid report request"}]}, origin)
             return
         if self.path != "/runtime":
             self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Endpoint not found"}]}, origin)
