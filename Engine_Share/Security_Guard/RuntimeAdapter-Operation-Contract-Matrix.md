@@ -226,3 +226,11 @@ Guard is enforced in `RuntimeAdapter`, not the browser client. `RuntimeInterface
 - Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38487565450, https://github.com/yay460-jpg/portofolio/actions/runs/38487572665, https://github.com/yay460-jpg/portofolio/actions/runs/38487594633, https://github.com/yay460-jpg/portofolio/actions/runs/38487604828, https://github.com/yay460-jpg/portofolio/actions/runs/38487648336, https://github.com/yay460-jpg/portofolio/actions/runs/38487657212.
 - New next gate adds retry coverage for a failed first SAVE attempt with the same request ID for both backup types. Expected contract: adapter returns generic `REJECTED` / `ADP-005` for the first failure, does not cache that failure, and permits the retry to succeed. Test commit `ea9b43b`; CI pending.
 - Replay cache remains process-local and unbounded, and is cleared on adapter recreation/restart. This is an open design risk, not a change authorized by this contract audit. Do not implement TTL/capacity or durable idempotency until ownership, retention window, collision handling and restart recovery semantics are explicitly specified.
+
+
+### Backup SAVE retry contract — CI verified — 2026-10-14
+
+- Full Pytest #735 PASS validates retry after injected initial write failure for both Topography and Marker Location SAVE operations. The first attempt returns generic `REJECTED` / `ADP-005`; because rejected responses are not cached, the same request ID can succeed after the underlying failure is corrected.
+- Evidence: https://github.com/yay460-jpg/portofolio/actions/runs/38488260830. Documentation workflows #736 and #737 passed: https://github.com/yay460-jpg/portofolio/actions/runs/38488283239 and https://github.com/yay460-jpg/portofolio/actions/runs/38488291682.
+- Status: **backup SAVE retry contract PASS**.
+- Next audit: replay-cache lifecycle and ownership, including operation membership, same-ID collisions across operations, global lock scope, unbounded growth, and restart behavior. Record trade-offs before changing production semantics; do not infer durable idempotency from this process-local cache.
