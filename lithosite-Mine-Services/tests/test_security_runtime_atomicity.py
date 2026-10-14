@@ -123,3 +123,50 @@ def test_adapter_read_rejects_system_and_unknown_entities(entity):
     assert result["status"] == "REJECTED"
     assert result["errors"][0]["code"] == "ADP-007"
     assert result["errors"][0]["field"] == "entity"
+
+
+
+def test_load_dataset_rolls_back_active_metadata_and_controlled_lists_when_store_save_fails(tmp_path, monkeypatch):
+    store = PersistenceStore()
+    app = ApplicationService(store=store)
+    runtime = RuntimeInterface(application=app)
+    runtime._datasets.directory = tmp_path / "datasets"
+    runtime._datasets.directory.mkdir(parents=True, exist_ok=True)
+    adapter = RuntimeAdapter(runtime)
+
+    first = adapter.handle({
+        "request_id": "load-atomic-save-target",
+        "operation": "SAVE_AS_DATASET",
+        "name": "Target Dataset",
+    })
+    assert first["status"] == "SAVED_AS"
+
+    store.controlled_lists["equipment_status"] = {"Custom Before Load"}
+    second = adapter.handle({
+        "request_id": "load-atomic-save-other",
+        "operation": "SAVE_AS_DATASET",
+        "name": "Other Dataset",
+    })
+    assert second["status"] == "SAVED_AS"
+
+    active_before = runtime._datasets.active_info()
+    controlled_lists_before = {name: set(values) for name, values in store.controlled_lists.items()}
+    store_before = store.snapshot()
+    audit_before = store.audit()
+
+    def fail_save():
+        raise OSError("simulated workbook persistence failure")
+
+    monkeypatch.setattr(store, "save", fail_save)
+    result = adapter.handle({
+        "request_id": "load-atomic-load-target",
+        "operation": "LOAD_DATASET",
+        "name": "Target Dataset",
+    })
+
+    assert result["status"] == "REJECTED"
+    assert result["errors"][0]["code"] == "ADP-005"
+    assert store.snapshot() == store_before
+    assert store.audit() == audit_before
+    assert runtime._datasets.active_info() == active_before
+    assert store.controlled_lists == controlled_lists_before
