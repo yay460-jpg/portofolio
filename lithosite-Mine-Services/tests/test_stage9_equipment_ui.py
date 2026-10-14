@@ -216,3 +216,8 @@ def test_unit_database_empty_footer_is_collapsed_by_its_actual_modal_class():
     assert ".modal.modal-shell-valid > .modalfoot:empty" not in css
     assert "#equipmentUnitListModal .modalfoot{gap:12px}" not in css
     assert "#equipmentUnitListModal .equipment-unit-toolbar-actions{gap:8px}" not in css
+
+
+def test_unit_database_action_styles_have_single_owner_rule():
+    assert EQUIPMENT_CSS.count("#equipmentUnitListModal .equipment-unit-actions{") == 1
+    assert "equipment.css?v=20261015-unit-actions-merge" in TEXT
