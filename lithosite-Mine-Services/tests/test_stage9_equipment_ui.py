@@ -198,3 +198,12 @@ def test_add_equipment_requires_registered_unit_list_reference():
     assert "Select a registered unit from Unit List before saving Equipment." in EQUIPMENT_JS
     assert "document.getElementById('f_eq_id').readOnly=true" in EQUIPMENT_JS
     assert "document.getElementById('f_eq_unit_no').readOnly=true" in EQUIPMENT_JS
+
+
+def test_unit_database_has_single_close_control():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    start = artifact.index('id="equipmentUnitListModal"')
+    end = artifact.index('<section id="workfrontScreen"', start)
+    modal = artifact[start:end]
+    assert modal.count('>Close</button>') == 1
+    assert 'equipmentUnitListFooterClose' not in modal
