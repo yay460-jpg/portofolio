@@ -224,5 +224,6 @@ def test_unit_database_action_styles_have_single_owner_rule():
 
 
 def test_unit_database_body_cells_use_compact_typography():
-    assert "#equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head) .equipment-unit-cell{font-size:12px;line-height:1.35}" in EQUIPMENT_CSS
+    assert "#equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head) .equipment-unit-cell{font-size:9.5px}" in EQUIPMENT_CSS
+    assert "font-size:12px;line-height:1.35" not in EQUIPMENT_CSS
     assert "equipment.css?v=20261015-unit-compact-typography" in TEXT
