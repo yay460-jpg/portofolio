@@ -145,7 +145,7 @@ The static fallback still uses the repository as its resolution root, but access
 
 - The Geo Engine files in Mine Geologist and Mine Services have the same Git blob in the inspected baseline; their bytes are identical, but caller and load-order contracts still need documenting.
 - The two Topo3D Engine copies have different Git blobs. Their current limit constants include 64 MiB DTM, 64 MiB STR, 128 MiB package, 300,000 vertices and 600,000 triangles.
-- `loadDTMSTR()` checks file sizes before parsing and checks vertex/triangle counts during parsing. `loadLTDtm()` calls `file.arrayBuffer()` before validating package length against the 128 MiB limit, so the ordering is a test hypothesis for memory pressure. No Topo3D changes are authorized from this observation alone.
+- `loadDTMSTR()` checks file sizes before parsing and checks vertex/triangle counts during parsing. `loadLTDtm()` checks `file.size` against the 128 MiB package ceiling before `file.arrayBuffer()` in the current workspace source. Keep a regression test for this order and test malformed package/count boundaries. No Topo3D changes are authorized from this observation alone.
 
 ## EVO2-02 remaining work
 
@@ -220,3 +220,40 @@ These checks close only size preflight/bounded-read behavior for these two backu
 ### READ exposure boundary — compatibility gate result — 2026-10-14
 
 The previous note above that the full UI call-site inventory remained open is superseded for the inspected in-repository public callers by the follow-up inventory and regression gate. Full Pytest #690 and #691 completed successfully; documentation workflows #688, #689, and #692 also completed successfully. The public adapter permits the ten schema domain entities plus `_Lists`, rejects generic `AuditLog` and unknown targets with `ADP-007`, and has passing caller-compatibility regression coverage for Marker Location's dynamic source entity set and Desktop Evidence owner mapping. Within `src/mine_services`, generic `RuntimeInterface.read()` dispatch is through `RuntimeAdapter`; direct `RuntimeInterface.read("AuditLog")` usages found are internal tests. This closes the inspected in-repository public READ caller-compatibility gate, not external integration assurance or authorization of arbitrary Python callers. EVO2-02 remains in progress; the next operation inventory covers mutation/KPI side effects, audit, replay, and rollback contracts. 
+
+
+
+## EVO2-02 — consumer and domain-owner inventory completion pass (2026-10-14)
+
+### Browser Map Security Guard — source and call-site map
+
+- Script order in `lithosite-Mine-Geologist/member-app/index.html`: shared `geo-engine.js`, shared `topo3d-engine.js`, then `scripts/map/map-security.js`; the map tile store and map UI scripts load after the security helper, `scripts/peta.js` loads before `map-package-transfer.js`. This order makes the security namespace available before inspected consumers execute.
+- Confirmed call sites in the workspace:
+  - `scripts/map/map-package-transfer.js:82` — `MG1LithositeSecurity.validatePayload(entry)` before map package export/import processing.
+  - `scripts/map/map-tile-store.js:32` — `isSafeImageDataUrl` before retaining a persisted tile data URL.
+  - `scripts/map/map-ui.js:127-129` — image data URL validation before preview.
+  - `scripts/map/map-management-compat.js:1031` — image data URL validation before compatibility preview.
+  - `scripts/peta.js:2811` — image data URL validation before embedding a map image into generated SVG.
+- `map-security.js` exports `isSafeImageDataUrl`, `isSafeTileKey`, `validateTile`, and `validatePayload` on a frozen `MG1LithositeSecurity` object. It then declares a second `validateImportPackage` compatibility block and calls `Object.assign` against that already frozen object at the end of the file. Static source inspection indicates this attempted extension can throw a `TypeError`; no shipped call site for `validateImportPackage` was found in the scanned member-app scripts. Treat this as a high-priority runtime reproduction/console test for EVO2-03/EVO2-05, not as a claimed CI-confirmed exploit or as permission to patch out of sequence.
+- The exported `validatePayload` currently bounds image URL size, tile key syntax, tile coordinates/dimensions, pyramid level count, factor/dimensions, and tile count. It does not itself verify a package's cryptographic integrity; `map-package-transfer.js` separately checks package format/schema/timestamp/integrity and calls the payload validator. These are layered responsibilities, not interchangeable checks.
+
+### Geo Engine — callers, inputs, and boundary ownership
+
+- The shared engine source is `lithosite-Mine-Geologist/shared/geo-engine.js` (workspace blob `bd17331317ba6f5aa2dd5ae9136acea053f39b03`). It defines `inverseUtm_`, `gridConvergence_`, `computeConvergenceForPoint_`, and `bearingDistanceGrid_`; no second shared Geo engine copy was found in the workspace tree.
+- Inspected caller files: `lithosite-Mine-Geologist/member-app/scripts/peta.js` calls `computeConvergenceForPoint_` at line 3116 and `bearingDistanceGrid_` plus convergence at lines 3179–3182. The parallel `lithosite-Mine-Geologist/scripts/peta.js` contains corresponding calls at lines 2875 and 2938–2941, but the root `index.html` currently loads its main/module scripts rather than this `scripts/peta.js` file; do not count it as a verified active page path without a runtime load trace. The member-app index explicitly loads the shared engine and member `peta.js`.
+- The engine functions currently perform mathematical calculations without an explicit finite/range guard for Easting, Northing, UTM zone, hemisphere, or bearing-distance coordinates. `computeConvergenceForPoint_` catches thrown exceptions but NaN/Infinity can propagate without throwing, so `ok: true` with non-finite outputs is a test hypothesis to characterize. Caller parsing/validation must be traced before a production guard is designed.
+- Ownership decision: CRS/numeric/spatial invariants belong to the Geo Engine; UI coordinate parsing and CRS configuration belong to the calling app. EVO2-03 should test finite inputs, supported UTM zone/hemisphere, plausible coordinate ranges, and zero/negative/huge deltas without changing valid site behavior.
+
+### Topo3D — loaded surfaces, owners, and known differences
+
+- `member-app/index.html:36` loads `../shared/topo3d/topo3d-engine.js`. A scan of the shipped member-app script files and both peta files found no direct call to `LithositeTopo3D.create`, `Topo3DEngine`, `loadDTMSTR`, or `loadLTDtm`; the engine is loaded but a shipped invocation path was not established in the scanned files. Confirm whether the UI uses another indirect entry point before declaring a dead-code or coverage conclusion.
+- Both engine copies expose `window.LithositeTopo3D.create(options)` and implement the same `loadDTMSTR`, `loadLTDtm`, size preflight and count checks. The Geologist copy and Mine Services copy are **not byte-identical**: the Services copy has a render callback/top-view state and a `clear()` method that are absent/different in the Geologist copy. Do not consolidate or overwrite either copy as a cleanup.
+- Resource limits in both copies: DTM 64 MiB, STR 64 MiB, package 128 MiB, 300,000 vertices, and 600,000 triangles. `loadDTMSTR` checks file sizes before reading text; `loadLTDtm` checks the package file size before allocating its ArrayBuffer. Parsing count guards remain important because size bounds alone do not prove structural validity.
+- Ownership decision: each engine copy owns its parser/resource limits; the consumer owns file selection and engine lifecycle. EVO2-03 should add isolated tests for the preflight order, malformed headers/versions, truncated records, invalid references, and vertex/triangle limits. EVO2-05 should verify Browser Guard integration and console cleanliness independently.
+
+### EVO2-02 inventory exit assessment
+
+- The 20 RuntimeAdapter operations are mapped in `RuntimeAdapter-Operation-Contract-Matrix.md`, including side effects, owner, request-ID behavior, retry/error contract, and evidence/remaining limitations.
+- HTTP host routes, body/path limits, trust boundaries, and evidence/file ownership are inventoried above.
+- Browser Guard, Geo and Topo3D call sites and owner boundaries have now been source-traced; unresolved runtime hypotheses are explicitly handed to EVO2-03/EVO2-05 rather than represented as confirmed vulnerabilities.
+- No production change to `main`; all code and documentation changes remain on `v41-workspace`. EVO2-02 can be marked PASS only after the malformed request-ID fix and complete dataset-load rollback regression pass the full workflow gate. Remaining unbounded replay-cache lifecycle, Geo adversarial tests, Browser Guard runtime test, and broader Topo3D tests are separately tracked for later stages.
