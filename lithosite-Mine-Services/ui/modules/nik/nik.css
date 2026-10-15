@@ -131,7 +131,7 @@
 #equipmentNIKProfileModal .equipment-nik-profile-modal{
  width:min(900px,calc(100vw - 40px));
  max-width:900px;
- height:min(700px,calc(100dvh - 64px));
+ height:min(600px,calc(100dvh - 64px));
  max-height:calc(100dvh - 48px);
  display:flex;
  flex-direction:column;
