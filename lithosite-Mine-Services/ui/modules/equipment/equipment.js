@@ -345,7 +345,6 @@ async function save(){
   }
   if(reopenUnitList){
    global.LithositeModalShowContract.show('equipmentUnitListModal');
-   renderUnitList();
   }
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
