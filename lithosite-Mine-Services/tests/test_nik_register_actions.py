@@ -53,3 +53,9 @@ def test_nik_information_field_is_editable_and_form_values_use_normal_weight():
     assert "readonly" not in modal[modal.index('name="Information"') - 30:modal.index('name="Information"') + 100]
     assert "font-weight:400" in NIK_CSS
     assert "font-weight:600;text-transform:uppercase" in NIK_CSS
+
+
+def test_nik_hides_temporary_test_information_and_compacts_edit_heading():
+    assert "TEMPORARY_TEST_INFORMATION='TEMPORARY TEST DATA — remove after validation'" in NIK_JS
+    assert "if(String(clean.Information||'').trim()===TEMPORARY_TEST_INFORMATION)clean.Information='';" in NIK_JS
+    assert "#equipmentNIKListModal .equipment-nik-form-title{font-size:13px;font-weight:600;line-height:1.25;margin:0 0 4px}" in NIK_CSS
