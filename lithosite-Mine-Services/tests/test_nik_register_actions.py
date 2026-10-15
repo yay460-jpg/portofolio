@@ -11,7 +11,7 @@ RUNTIME = (ROOT / "src" / "mine_services" / "runtime.py").read_text(encoding="ut
 def test_nik_register_has_action_column_and_form_title():
     start = ARTIFACT.index('id="equipmentNIKListModal"')
     modal = ARTIFACT[start:ARTIFACT.index('</body>', start)]
-    assert '<div class="equipment-nik-cell">Information</div><div class="equipment-nik-cell">Action</div>' in modal
+    assert '<div class="equipment-nik-cell">Information</div><div class="equipment-nik-cell">Profile</div><div class="equipment-nik-cell">Action</div>' in modal
     assert 'id="equipmentNIKFormTitle">Add NIK</div>' in modal
 
 
@@ -26,7 +26,7 @@ def test_nik_register_renders_edit_and_delete_actions():
 
 
 def test_nik_register_action_column_has_room_for_controls():
-    assert "minmax(160px,1.4fr) 140px" in NIK_CSS
+    assert "minmax(160px,1.4fr) 90px 140px" in NIK_CSS
     assert ".equipment-nik-actions" in NIK_CSS
 
 
@@ -69,3 +69,17 @@ def test_nik_register_uses_employee_icon_and_wheel_scroll_without_visible_scroll
     assert "#equipmentNIKListModal .equipment-nik-table{overflow:auto;scrollbar-width:none;-ms-overflow-style:none}" in NIK_CSS
     assert "#equipmentNIKListModal .equipment-nik-table::-webkit-scrollbar{display:none;width:0;height:0}" in NIK_CSS
     assert "nik.css?v=20261015-nik-wheel-scroll-user-icon" in ARTIFACT
+
+
+def test_nik_profile_column_and_preview_modal_are_wired():
+    modal_start = ARTIFACT.index('id="equipmentNIKListModal"')
+    modal = ARTIFACT[modal_start:ARTIFACT.index("</body>", modal_start)]
+    assert '<div class="equipment-nik-cell">Profile</div>' in modal
+    assert 'class="control mini view-nik-profile"' in NIK_JS
+    assert "closest('.view-nik-profile')" in NIK_JS
+    assert "modal.show('equipmentNIKProfileModal')" in NIK_JS
+    assert 'id="equipmentNIKProfileModal"' in ARTIFACT
+    assert 'id="equipmentNIKProfileImage"' in ARTIFACT
+    assert 'id="equipmentNIKProfileClose"' in ARTIFACT
+    assert "nik.js?v=20261015-nik-profile-view" in ARTIFACT
+    assert "nik.css?v=20261015-nik-profile-view" in ARTIFACT
