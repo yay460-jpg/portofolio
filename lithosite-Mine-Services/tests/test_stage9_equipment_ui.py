@@ -179,7 +179,10 @@ def test_unit_database_can_add_and_edit_canonical_unit_records():
 def test_unit_database_form_returns_to_list_after_save_or_cancel():
     assert "function closeEquipmentForm()" in EQUIPMENT_JS
     assert "if(reopenUnitList){global.LithositeModalShowContract.show('equipmentUnitListModal');refreshUnitList();}" in EQUIPMENT_JS
-    assert "if(reopenUnitList){global.LithositeModalShowContract.show('equipmentUnitListModal');await refreshUnitList();}" in EQUIPMENT_JS
+    save = EQUIPMENT_JS[EQUIPMENT_JS.index("async function save()"):EQUIPMENT_JS.index("\nasync function remove(")]
+    assert "const refreshed=await refreshData();" in save
+    assert "if(reopenUnitList){global.LithositeModalShowContract.show('equipmentUnitListModal');}" in save
+    assert "await refreshUnitList()" not in save
 
 
 def test_unit_database_uses_existing_a3_equipment_entity_not_parallel_storage():
