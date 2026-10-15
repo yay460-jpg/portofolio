@@ -6,7 +6,6 @@ const state={rows:[],capacities:[],status:'loading'};
 let editId=null;
 let runtimeReady=false;
 let returnToUnitList=false;
-let addEquipmentRequiresReference=false;
 
 /* A.1 controlled vocabulary is supplied by the RuntimeAdapter from the authoritative _Lists contract. */
 const LISTS={category:[],type:[],owner_type:[],status:[]};
@@ -122,21 +121,10 @@ async function refreshUnitList(){
  const count=document.getElementById('equipmentUnitListCount');
  if(host)host.innerHTML='<div class="equipment-unit-empty">Refreshing unit database…</div>';
  if(count)count.textContent='Refreshing…';
- try{
-  const results=await Promise.all([
-   rc.request({operation:'READ',entity:'Equipment'}),
-   rc.request({operation:'READ',entity:'GlobalCapacity'})
-  ]);
-  state.rows=Array.isArray(results[0].data)?results[0].data:[];
-  state.capacities=Array.isArray(results[1].data)?results[1].data:[];
-  state.status='ready';
-  fillCapacityProfiles();
-  render();
-  renderUnitList();
- }catch(e){
-  if(host)host.innerHTML='<div class="equipment-unit-empty error">Unit database refresh failed. Use the Equipment Refresh button and check RuntimeAdapter.</div>';
-  if(count)count.textContent='Refresh failed';
-  setMsg('Unit database refresh failed: '+e.message,true);
+ await refreshData();
+ if(state.status==='error'){
+  if(host)host.innerHTML='<div class="equipment-unit-empty error">Unit database unavailable. Check RuntimeAdapter and refresh.</div>';
+  if(count)count.textContent='Unavailable';
  }
 }
 function openUnitList(){
@@ -182,39 +170,41 @@ function render(){
  if(state.status==='loading')document.getElementById('equipmentCount').textContent='Loading · Runtime Connecting';
  if(state.status==='error')document.getElementById('equipmentCount').textContent='Unavailable · Runtime Error';
 }
+async function readCanonicalRecords(){
+ const results=await Promise.all([
+  rc.request({operation:'READ',entity:'Equipment'}),
+  rc.request({operation:'READ',entity:'GlobalCapacity'})
+ ]);
+ state.rows=Array.isArray(results[0].data)?results[0].data:[];
+ state.capacities=Array.isArray(results[1].data)?results[1].data:[];
+ fillCapacityProfiles();
+ state.status='ready';
+}
 async function load(){
- if(!state.rows.length){state.status='loading';render();}
+ if(!state.rows.length){state.status='loading';render();renderUnitList();}
  try{
-   const health=await rc.health();
-   runtimeReady=health.status==='READY';
-   if(!runtimeReady) throw new Error('Runtime health is not READY');
-   await loadLists();
-   const results=await Promise.all([
-     rc.request({operation:'READ',entity:'Equipment'}),
-     rc.request({operation:'READ',entity:'GlobalCapacity'})
-   ]);
-   state.rows=Array.isArray(results[0].data)?results[0].data:[];
-   state.capacities=Array.isArray(results[1].data)?results[1].data:[];
-   fillCapacityProfiles();
-   state.status='ready';
-   render();
-   setMsg('RuntimeAdapter connected — offline local persistence active.');
+  const health=await rc.health();
+  runtimeReady=health.status==='READY';
+  if(!runtimeReady)throw new Error('Runtime health is not READY');
+  await loadLists();
+  await readCanonicalRecords();
+  render();
+  renderUnitList();
+  setMsg('RuntimeAdapter connected — offline local persistence active.');
  }catch(e){
-   runtimeReady=false;state.status='error';render();
-   setMsg('Runtime unavailable: '+e.message+'. Start desktop-host/server.py.',true);
+  runtimeReady=false;state.status='error';render();renderUnitList();
+  setMsg('Runtime unavailable: '+e.message+'. Start desktop-host/server.py.',true);
  }
 }
 async function refreshData(){
  try{
-  const results=await Promise.all([
-   rc.request({operation:'READ',entity:'Equipment'}),
-   rc.request({operation:'READ',entity:'GlobalCapacity'})
-  ]);
-  state.rows=Array.isArray(results[0].data)?results[0].data:[];
-  state.capacities=Array.isArray(results[1].data)?results[1].data:[];
-  fillCapacityProfiles();
-  state.status='ready';render();
- }catch(e){setMsg('Refresh failed: '+e.message,true);}
+  await readCanonicalRecords();
+  render();
+  renderUnitList();
+ }catch(e){
+  state.status='error';render();renderUnitList();
+  setMsg('Refresh failed: '+e.message,true);
+ }
 }
 function fillCapacityProfiles(selectedId){
  const select=document.getElementById('f_eq_capacity_profile');
@@ -281,32 +271,6 @@ function updateCapacitySummary(){
  brand.value=profile?String(profile.unit_brand||'—'):'';
  capacity.value=profile?String(profile.capacity_value??'')+' '+String(profile.measurement||'ton'):'';
 }
-function fillUnitReference(selectedId){
- const select=document.getElementById('f_eq_unit_reference');
- if(!select)return;
- const current=String(selectedId??select.value??'');
- const units=state.rows.slice().sort(function(a,b){
-  return String(a.unit_no||'').localeCompare(String(b.unit_no||''))||String(a.equipment_id||'').localeCompare(String(b.equipment_id||''));
- });
- select.innerHTML='<option value="">Select registered unit from Unit List</option>'+units.map(function(row){
-  const label=String(row.unit_no||'—')+' — '+String(row.equipment_id||'')+' — '+String(row.type||'');
-  return '<option value="'+esc(row.equipment_id)+'">'+esc(label)+'</option>';
- }).join('');
- if(current&&units.some(function(row){return String(row.equipment_id)===current;}))select.value=current;
-}
-function selectRegisteredUnit(id){
- const row=state.rows.find(function(item){return String(item.equipment_id||'')===String(id||'');});
- if(!row)return;
- editId=String(row.equipment_id);
- const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
- Object.entries(map).forEach(function(entry){const el=document.getElementById(entry[0]);if(el)el.value=entry[1]??'';});
- populateOwnerNameOptions(row.owner_name);
- fillCapacityProfiles(row.capacity_profile_id||'');
- document.getElementById('f_eq_id').readOnly=true;
- document.getElementById('f_eq_unit_no').readOnly=true;
- document.getElementById('equipmentSave').textContent='Update via RuntimeAdapter';
- setMsg('Registered unit selected. Equipment ID and Unit / Fleet No. are linked to the Unit List record.');
-}
 function resetForm(){
  const now=new Date();
  const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
@@ -314,7 +278,6 @@ function resetForm(){
  document.getElementById('f_eq_unit_no').value='';
  document.getElementById('f_eq_id').readOnly=true;
  document.getElementById('f_eq_unit_no').readOnly=false;
- const unitReference=document.getElementById('f_eq_unit_reference');if(unitReference)unitReference.value='';
  document.getElementById('f_eq_category').value='';
  document.getElementById('f_eq_type').value='';
  document.getElementById('f_eq_owner_type').value='';
@@ -326,22 +289,18 @@ function resetForm(){
 }
 function openAdd(fromUnitList){
  returnToUnitList=!!fromUnitList;
- addEquipmentRequiresReference=!fromUnitList;
  if(returnToUnitList)global.LithositeModalShowContract.close('equipmentUnitListModal');
- editId=null;document.getElementById('equipmentModalTitle').textContent=returnToUnitList?'Add Unit':'Add Equipment';
- document.getElementById('equipmentSave').textContent='Save via RuntimeAdapter';resetForm();
- const referenceField=document.getElementById('equipmentUnitReferenceField');
- if(referenceField){referenceField.hidden=returnToUnitList;}
- fillUnitReference('');
- if(!returnToUnitList){document.getElementById('f_eq_id').value='';document.getElementById('f_eq_unit_no').value='';document.getElementById('f_eq_unit_no').readOnly=true;document.getElementById('equipmentSave').textContent='Select Unit First';setMsg('Select a registered unit from Unit List. New unit identities are created with Add Unit.');}
+ editId=null;
+ document.getElementById('equipmentModalTitle').textContent=returnToUnitList?'Add Unit':'Add Equipment';
+ document.getElementById('equipmentSave').textContent='Save via RuntimeAdapter';
+ resetForm();
  global.LithositeModalShowContract.show('equipmentModal');
 }
 function openEdit(id,fromUnitList){
  const row=state.rows.find(x=>String(x.equipment_id)===String(id));if(!row)return;
  returnToUnitList=!!fromUnitList;
  if(returnToUnitList)global.LithositeModalShowContract.close('equipmentUnitListModal');
- editId=id;addEquipmentRequiresReference=false;
- const referenceField=document.getElementById('equipmentUnitReferenceField');if(referenceField)referenceField.hidden=true;
+ editId=id;
  document.getElementById('equipmentModalTitle').textContent=returnToUnitList?'Edit Unit':'Edit Equipment';
  document.getElementById('equipmentSave').textContent='Update via RuntimeAdapter';
  const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
@@ -367,7 +326,6 @@ function payload(){
 async function save(){
  if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}
  const wasEdit=Boolean(editId);
- if(addEquipmentRequiresReference&&!editId){setMsg('Select a registered unit from Unit List before saving Equipment.',true);return;}
  const row=payload();
  if(!row.unit_no||!row.category||!row.type||!row.owner_type||!row.owner_name||!row.status){setMsg('Unit / Fleet No., Category, Type, Owner Type, registered Owner Name and Status are required.',true);return;}
  if(String(row.type||'').trim().toLowerCase()==='dump truck'&&!row.capacity_profile_id){setMsg('Global Capacity Profile is required for Dump Truck.',true);return;}
@@ -387,13 +345,12 @@ async function remove(id){
  try{
   const result=await rc.request({operation:'DELETE',entity:'Equipment',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
-  await refreshData();renderUnitList();setMsg('Equipment deleted and audited.');
+  await refreshData();setMsg('Equipment deleted and audited.');
  }catch(e){setMsg('Delete failed: '+e.message,true);}
 }
 function closeEquipmentForm(){
  const reopenUnitList=returnToUnitList;
  returnToUnitList=false;
- addEquipmentRequiresReference=false;
  global.LithositeModalShowContract.close('equipmentModal');
  if(reopenUnitList){global.LithositeModalShowContract.show('equipmentUnitListModal');refreshUnitList();}
 }
@@ -413,7 +370,6 @@ function bind(){
   const del=event.target.closest('.delete-equipment');
   if(del)remove(del.dataset.id);
  });
- document.getElementById('f_eq_unit_reference').addEventListener('change',function(event){if(event.target.value)selectRegisteredUnit(event.target.value);else{editId=null;document.getElementById('f_eq_id').value='';document.getElementById('f_eq_unit_no').value='';document.getElementById('equipmentSave').textContent='Select Unit First';setMsg('Select a registered unit from Unit List.');}});
  document.getElementById('equipmentSave').onclick=save;
  document.getElementById('f_eq_capacity_profile').addEventListener('change',updateCapacitySummary);
  document.getElementById('equipmentClose').onclick=closeEquipmentForm;
