@@ -190,7 +190,7 @@ async function load(){
   await readCanonicalRecords();
   render();
   renderUnitList();
-  setMsg('RuntimeAdapter connected — offline local persistence active.');
+  setMsg('RuntimeAdapter connected — canonical records loaded.');
  }catch(e){
   runtimeReady=false;state.status='error';render();renderUnitList();
   setMsg('Runtime unavailable: '+e.message+'. Start desktop-host/server.py.',true);
@@ -337,9 +337,16 @@ async function save(){
   const reopenUnitList=returnToUnitList;
   returnToUnitList=false;
   global.LithositeModalShowContract.close('equipmentModal');
-  await refreshData();renderUnitList();
-  setMsg(wasEdit?'Equipment unit updated and audited.':'Equipment unit created and audited.');
-  if(reopenUnitList){global.LithositeModalShowContract.show('equipmentUnitListModal');await refreshUnitList();}
+  const refreshed=await refreshData();
+  if(refreshed){
+   setMsg(wasEdit?'Equipment unit updated and list refreshed.':'Equipment unit created and list refreshed.');
+  }else{
+   setMsg(wasEdit?'Equipment update committed, but the list could not refresh. Use Refresh to reload.':'Equipment creation committed, but the list could not refresh. Use Refresh to reload.',true);
+  }
+  if(reopenUnitList){
+   global.LithositeModalShowContract.show('equipmentUnitListModal');
+   renderUnitList();
+  }
  }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
 }
 async function remove(id){
