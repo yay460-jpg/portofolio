@@ -157,11 +157,11 @@ def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
 
 def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal_overflow():
     css = EQUIPMENT_CSS[EQUIPMENT_CSS.index('/* Unit List is a view over the canonical Equipment records'): ]
-    assert 'width:100%;\n min-width:0;' in css
+    assert 'width:100%;min-width:0;' in css
     assert 'grid-template-columns:120px minmax(155px,1.3fr)' in css
     assert 'min-width:850px' in css  # narrow-screen media override only
     assert 'white-space:nowrap' in css
-    assert 'min-width:0;\n height:28px' in css
+    assert 'min-width:0;height:28px' in css
 
 
 def test_unit_database_can_add_and_edit_canonical_unit_records():
