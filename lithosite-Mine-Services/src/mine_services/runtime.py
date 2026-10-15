@@ -40,9 +40,15 @@ class RuntimeInterface:
         return self._application.create(entity, row, request_id)
 
     def update(self, entity, entity_id, patch, request_id):
+        if entity == "NIK":
+            record = self._application.store.update_nik_record(entity_id, patch)
+            return {"status": "COMMITTED", "entity_id": record["Id No (NIK)"]}
         return self._application.update(entity, entity_id, patch, request_id)
 
     def delete(self, entity, entity_id, request_id):
+        if entity == "NIK":
+            record = self._application.store.delete_nik_record(entity_id)
+            return {"status": "COMMITTED", "entity_id": record["Id No (NIK)"]}
         return self._application.delete(entity, entity_id, request_id)
 
     def read(self, entity, entity_id=None):
