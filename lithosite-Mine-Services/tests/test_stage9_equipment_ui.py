@@ -276,7 +276,7 @@ def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
     for html in (artifact, snapshot):
         assert 'id="equipmentNIKListButton" aria-haspopup="dialog" aria-controls="equipmentNIKListModal">List NIK</button>' in html
         start = html.index('id="equipmentNIKListModal"')
-        end = html.index('<section id="workfrontScreen"', start)
+        end = html.index('<script src="../ui/shared/runtime-client.js', start)
         modal = html[start:end]
         assert modal.count('>Close</button>') == 1
         for header in expected_headers:
