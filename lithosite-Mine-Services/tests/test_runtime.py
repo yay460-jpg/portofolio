@@ -230,7 +230,7 @@ def test_runtime_dataset_load_replaces_runtime_data(tmp_path):
 def test_equipment_delete_is_rejected_when_referenced_by_maintenance():
     app = ApplicationService(PersistenceStore())
     equipment = valid_equipment("EQ-MAINT-REF")
-    assert app.create("Equipment", equipment, "equipment-create-ref")[ "status"] == "COMMITTED"
+    assert app.create("Equipment", equipment, "equipment-create-ref")["status"] == "COMMITTED"
 
     maintenance = {
         "maintenance_id": "M-EQ-REF",
