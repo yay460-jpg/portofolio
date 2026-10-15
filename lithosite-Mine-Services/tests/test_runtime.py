@@ -238,7 +238,7 @@ def test_equipment_delete_is_rejected_when_referenced_by_maintenance():
         "event_date": "2026-10-16",
         "event_type": "Preventive",
         "failure_code": "",
-        "action": "Scheduled inspection",
+        "action": "Inspection",
         "status": "Open",
         "source": "Equipment reference regression",
     }
