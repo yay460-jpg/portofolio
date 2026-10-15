@@ -319,7 +319,14 @@ function bind(){
   if(del){
    const id=del.dataset.id;
    const row=state.rows.find(function(item){return String(item['Id No (NIK)'])===id;});
-   if(!row||!global.confirm('Delete NIK record for '+String(row['Name Employment']||id)+'? This removes the row from the A3 NIK sheet.'))return;
+   if(!row)return;
+   const confirmed=await global.LithositeDeleteConfirmContract.confirm({
+    entity:'NIK',
+    id:id,
+    message:'Delete the NIK record for '+String(row['Name Employment']||id)+'? This removes the row from the A3 NIK sheet.',
+    warning:'This action cannot be undone. Only this NIK row is deleted; other employee records and profile photos are not intentionally changed.'
+   });
+   if(!confirmed)return;
    del.disabled=true;
    try{
     const result=await rc.request({operation:'DELETE',entity:'NIK',entity_id:id,request_id:requestId('delete')});
