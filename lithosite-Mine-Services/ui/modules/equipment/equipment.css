@@ -143,3 +143,4 @@
 
 /* Unit Database keeps the shared shell footer node for contract validation, but has no footer content. Collapse the empty slot instead of reserving blank space. */
 #equipmentUnitListModal > .modal.equipment-unit-modal > .modalfoot:empty{display:none;flex:0 0 0;min-height:0;height:0;padding:0;border:0;margin:0}
+#equipmentModal .equipment-unit-reference-hint{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.35}
