@@ -218,36 +218,6 @@ def test_stage20_a3_persistence_updates_plans_excel_table_after_removing_target_
     assert all(column.name != "target_hours" for column in table.tableColumns)
 
 
-def test_stage20_a3_persistence_adds_blank_nik_sheet_idempotently_and_preserves_records(tmp_path):
-    target = tmp_path / "a3-without-nik.xlsx"
-    make_a3_workbook(target)
-
-    workbook = load_workbook(target)
-    workbook.remove(workbook["NIK"])
-    workbook["Equipment"].append([
-        "EQ-NIK-PRESERVE", "DT-NIK-PRESERVE", "Heavy Equipment", "Dump Truck",
-        "Owner", "Preserve Existing", "Active", "2026-10-15", None, None,
-    ])
-    workbook.save(target)
-
-    first_store = PersistenceStore(target)
-    assert first_store.get("Equipment", "EQ-NIK-PRESERVE")["unit_no"] == "DT-NIK-PRESERVE"
-
-    migrated = load_workbook(target, data_only=True)
-    assert "NIK" in migrated.sheetnames
-    assert migrated.sheetnames.index("NIK") == migrated.sheetnames.index("Equipment") + 1
-    assert migrated["NIK"].max_row == 1
-    assert migrated["NIK"]["A1"].value is None
-    assert migrated["Equipment"]["A2"].value == "EQ-NIK-PRESERVE"
-
-    # Reopening must not add another sheet or populate guessed columns.
-    PersistenceStore(target)
-    reopened = load_workbook(target, data_only=True)
-    assert reopened.sheetnames.count("NIK") == 1
-    assert reopened["NIK"].max_row == 1
-    assert reopened["NIK"]["A1"].value is None
-
-
 
 
 def test_stage20_a3_persistence_adds_nik_headers_idempotently_and_preserves_records(tmp_path):
