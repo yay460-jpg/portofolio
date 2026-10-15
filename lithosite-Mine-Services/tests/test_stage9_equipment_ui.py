@@ -328,13 +328,21 @@ def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
     for html in (artifact, snapshot):
         assert 'id="equipmentNIKListButton" aria-haspopup="dialog" aria-controls="equipmentNIKListModal">List NIK</button>' in html
         start = html.index('id="equipmentNIKListModal"')
-        end = html.index('</body>', start)
+        # The profile preview is a separate sibling modal after List NIK.
+        # Bound this assertion to the List NIK modal only, rather than counting
+        # the independent profile modal's Close control as a duplicate.
+        end = html.index('id="equipmentNIKProfileModal"', start)
         modal = html[start:end]
         assert modal.count('>Close</button>') == 1
         for header in expected_headers:
             assert f'<div class="equipment-nik-cell">{header}</div>' in modal
         assert 'id="equipmentNIKListRefresh"' in modal
         assert 'id="equipmentNIKListRows"' in modal
+        profile_start = end
+        profile_end = html.index('</body>', profile_start)
+        profile_modal = html[profile_start:profile_end]
+        assert profile_modal.count('>Close</button>') == 1
+        assert '</div></div><div class="modalback" id="equipmentNIKProfileModal"' in html
     for html in (artifact, snapshot):
         assert 'nik.css?v=20261015-nik-profile-view' in html
         assert 'nik.js?v=20261015-nik-profile-view' in html
