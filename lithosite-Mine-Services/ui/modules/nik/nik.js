@@ -6,6 +6,8 @@ if(!rc)throw new Error('LithositeRuntimeClient is required before the NIK module
 if(!modal)throw new Error('LithositeModalShowContract is required before the NIK module');
 
 const state={rows:[],status:'loading',error:'',saving:false};
+let editingId=null;
+function requestId(action){return 'nik-'+action+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);}
 let visibleRows=[];
 const FIELDS=['Effective From','Effective To','Id No (NIK)','Origin','Name Employment','Information'];
 
@@ -58,7 +60,7 @@ function render(){
   return '<div class="equipment-nik-row">'+FIELDS.map(function(field){
    const value=row[field];
    return '<div class="equipment-nik-cell">'+esc(value===null||value===undefined||value===''?'—':value)+'</div>';
-  }).join('')+'</div>';
+  }).join('')+'<div class="equipment-nik-cell equipment-nik-actions"><button type="button" class="control mini edit-nik" data-id="'+esc(row['Id No (NIK)'])+'">Edit</button> <button type="button" class="control mini danger delete-nik" data-id="'+esc(row['Id No (NIK)'] )+'">Delete</button></div></div>';
  }).join(''):'<div class="equipment-nik-empty">'+(state.rows.length?'No employees match the current filters.':'No employee records found in the NIK sheet.')+'</div>';
  count.textContent=visibleRows.length+' of '+state.rows.length+' employees · RuntimeAdapter';
 }
@@ -68,7 +70,7 @@ async function refresh(){
  render();
  notifyConsumers();
  try{
-  const result=await rc.request({operation:'READ',entity:'NIK'});
+  const result=await rc.request({operation:'READ',entity:'NIK',request_id:requestId('read')});
   if(result.status==='REJECTED'||result.status==='ERROR'||result.errors?.length){
    throw new Error((result.errors||[]).map(function(item){return item.message;}).join('; ')||('Runtime returned '+result.status));
   }
@@ -109,10 +111,44 @@ function bind(){
  if(refreshButton)refreshButton.addEventListener('click',refresh);
  if(addButton)addButton.addEventListener('click',function(){
   if(!form)return;
+  if(!form.hidden){form.reset();editingId=null;form.querySelector('[name="Id No (NIK)"]').readOnly=false;}
   form.hidden=!form.hidden;
-  if(!form.hidden){message.textContent='';form.querySelector('[name="Id No (NIK)"]').focus();}
+  if(!form.hidden){message.textContent='';document.getElementById('equipmentNIKFormTitle').textContent='Add NIK';document.getElementById('equipmentNIKSave').textContent='Save NIK';form.querySelector('[name="Id No (NIK)"]').focus();}
  });
- if(cancelButton)cancelButton.addEventListener('click',function(){form.reset();form.hidden=true;message.textContent='';});
+ if(cancelButton)cancelButton.addEventListener('click',function(){form.reset();form.hidden=true;editingId=null;form.querySelector('[name="Id No (NIK)"]').readOnly=false;message.textContent='';document.getElementById('equipmentNIKFormTitle').textContent='Add NIK';document.getElementById('equipmentNIKSave').textContent='Save NIK';});
+ const listRows=document.getElementById('equipmentNIKListRows');
+ if(listRows)listRows.addEventListener('click',async function(event){
+  const edit=event.target.closest('.edit-nik');
+  const del=event.target.closest('.delete-nik');
+  if(edit){
+   const row=state.rows.find(function(item){return String(item['Id No (NIK)'])===edit.dataset.id;});
+   if(!row||!form)return;
+   editingId=String(row['Id No (NIK)']);
+   FIELDS.forEach(function(field){const input=form.elements.namedItem(field);if(input)input.value=row[field]??'';});
+   form.querySelector('[name="Id No (NIK)"]').readOnly=true;
+   form.hidden=false;
+   document.getElementById('equipmentNIKFormTitle').textContent='Edit NIK';
+   document.getElementById('equipmentNIKSave').textContent='Update NIK';
+   message.textContent='NIK ID is locked to preserve the employee reference.';
+   form.querySelector('[name="Name Employment"]').focus();
+   return;
+  }
+  if(del){
+   const id=del.dataset.id;
+   const row=state.rows.find(function(item){return String(item['Id No (NIK)'])===id;});
+   if(!row||!global.confirm('Delete NIK record for '+String(row['Name Employment']||id)+'? This removes the row from the A3 NIK sheet.'))return;
+   del.disabled=true;
+   try{
+    const result=await rc.request({operation:'DELETE',entity:'NIK',entity_id:id,request_id:requestId('delete')});
+    if(result.status!=='COMMITTED'||result.errors?.length)throw new Error((result.errors||[]).map(function(item){return item.message;}).join('; ')||'RuntimeAdapter did not delete the NIK record');
+    await refresh();
+    const runtimeMessage=document.getElementById('equipmentRuntimeMsg');
+    if(runtimeMessage){runtimeMessage.textContent='NIK record deleted from A3.';runtimeMessage.classList.remove('error');}
+   }catch(error){
+    message.textContent='Delete failed: '+String(error&&error.message||error);
+   }finally{del.disabled=false;}
+  }
+ });
  const search=document.getElementById('equipmentNIKSearch');
  const origin=document.getElementById('equipmentNIKOriginFilter');
  if(search)search.addEventListener('input',render);
@@ -132,12 +168,18 @@ function bind(){
   if(save)save.disabled=true;
   message.textContent='Saving employee to A3…';
   try{
-   const result=await rc.request({operation:'CREATE',entity:'NIK',row:row});
+   const result=editingId
+    ?await rc.request({operation:'UPDATE',entity:'NIK',entity_id:editingId,patch:row,request_id:requestId('update')})
+    :await rc.request({operation:'CREATE',entity:'NIK',row:row,request_id:requestId('create')});
    if(result.status!=='COMMITTED'||result.errors?.length){
     throw new Error((result.errors||[]).map(function(item){return item.message;}).join('; ')||'RuntimeAdapter did not commit the NIK record');
    }
    form.reset();
    form.hidden=true;
+   editingId=null;
+   form.querySelector('[name="Id No (NIK)"]').readOnly=false;
+   document.getElementById('equipmentNIKFormTitle').textContent='Add NIK';
+   document.getElementById('equipmentNIKSave').textContent='Save NIK';
    message.textContent='';
    await refresh();
    const runtimeMessage=document.getElementById('equipmentRuntimeMsg');
