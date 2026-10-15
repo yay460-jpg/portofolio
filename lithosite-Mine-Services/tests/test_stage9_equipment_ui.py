@@ -346,7 +346,7 @@ def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
     assert "equipmentNIKOriginFilter" in NIK_JS
     assert "Id No (NIK) and Name Employment are required." in NIK_JS
     assert "equipmentNIKListButton" not in EQUIPMENT_JS
-    assert "NIK employee register: read-only view of the canonical A.3 worksheet." in NIK_CSS
+    assert "NIK employee register backed by the canonical A.3 worksheet." in NIK_CSS
     assert "#equipmentNIKListModal .equipment-nik-row{" in NIK_CSS
     assert "equipmentNIKListModal" not in EQUIPMENT_CSS
 
