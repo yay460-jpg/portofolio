@@ -43,6 +43,14 @@ class RuntimeInterface:
         return self._application.delete(entity, entity_id, request_id)
 
     def read(self, entity, entity_id=None):
+        if entity == "NIK":
+            records = self._application.store.all_nik_records()
+            if entity_id is None:
+                return records
+            return next(
+                (record for record in records if record.get("Id No (NIK)") == entity_id),
+                None,
+            )
         if entity == "_Lists":
             if entity_id:
                 return sorted(self._application.store.controlled_lists.get(entity_id, set()))
