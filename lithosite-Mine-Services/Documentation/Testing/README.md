@@ -7,3 +7,4 @@ Mine Services test strategy, matrices, audits, and verification records.
 - `test_dashboard_plan_actual.py` — initial dialog contract and regression guards.
 
 - [V40 Desktop Runtime Acceptance — Operational A3](./Desktop-Runtime-A3-Acceptance.md) — local-only read-only acceptance steps for the operational A3 workbook; explicitly separate from the isolated CI fixture.
+- [Equipment Modal Contract Audit](./Equipment-Modal-Contract-Audit.md) — canonical data ownership, modal responsibilities, cleanup findings, and regression verification.
