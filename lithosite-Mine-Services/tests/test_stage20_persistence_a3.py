@@ -360,3 +360,64 @@ def test_stage20_nik_list_reads_canonical_rows_through_runtime_adapter(tmp_path)
     assert "NIK" not in store.schema.DOMAIN_ENTITIES
     assert "NIK" in RuntimeAdapter.READ_ENTITIES
 
+def _valid_nik_record(nik_id="NIK-EVO2-01"):
+    return {
+        "Effective From": "2026-01-01",
+        "Effective To": "2026-12-31",
+        "Id No (NIK)": nik_id,
+        "Origin": "Indonesia",
+        "Name Employment": "EVO2 Regression Employee",
+        "Information": "EVO2 test",
+    }
+
+
+def test_runtime_nik_crud_enforces_request_guard_and_writes_audit(tmp_path):
+    target = tmp_path / "nik-runtime-contract.xlsx"
+    make_a3_workbook(target)
+    app = ApplicationService(PersistenceStore(target))
+    runtime = RuntimeInterface(application=app)
+
+    created = runtime.create("NIK", _valid_nik_record(), "nik-evo2-create")
+    assert created == {"status": "COMMITTED", "entity_id": "NIK-EVO2-01"}
+    duplicate = runtime.create("NIK", _valid_nik_record("NIK-EVO2-02"), "nik-evo2-create")
+    assert duplicate == {"status": "DUPLICATE_REQUEST"}
+    assert [row["Id No (NIK)"] for row in runtime.read("NIK")] == ["NIK-EVO2-01"]
+
+    updated_record = _valid_nik_record()
+    updated_record["Information"] = "updated"
+    updated = runtime.update("NIK", "NIK-EVO2-01", updated_record, "nik-evo2-update")
+    assert updated == {"status": "COMMITTED", "entity_id": "NIK-EVO2-01"}
+    deleted = runtime.delete("NIK", "NIK-EVO2-01", "nik-evo2-delete")
+    assert deleted == {"status": "COMMITTED", "entity_id": "NIK-EVO2-01"}
+
+    audit = app.store.audit()
+    assert [(event["entity"], event["action"], event["source"]) for event in audit] == [
+        ("NIK", "CREATE", "nik-evo2-create"),
+        ("NIK", "UPDATE", "nik-evo2-update"),
+        ("NIK", "DELETE", "nik-evo2-delete"),
+    ]
+    saved = load_workbook(target, data_only=True)
+    assert [row[2] for row in saved["NIK"].iter_rows(min_row=2, values_only=True)] == []
+    assert saved["AuditLog"].max_row == 4
+    saved.close()
+
+
+def test_runtime_nik_audit_failure_rolls_back_workbook_and_audit(tmp_path, monkeypatch):
+    target = tmp_path / "nik-runtime-rollback.xlsx"
+    make_a3_workbook(target)
+    app = ApplicationService(PersistenceStore(target))
+    runtime = RuntimeInterface(application=app)
+    original_bytes = target.read_bytes()
+
+    def fail_audit(**kwargs):
+        raise RuntimeError("injected audit failure")
+
+    monkeypatch.setattr(app.audit_repository, "append", fail_audit)
+    result = runtime.create("NIK", _valid_nik_record(), "nik-evo2-audit-fail")
+
+    assert result["status"] == "REJECTED"
+    assert "injected audit failure" in result["errors"][0]["message"]
+    assert runtime.read("NIK") == []
+    assert app.store.audit() == []
+    assert target.read_bytes() == original_bytes
+
