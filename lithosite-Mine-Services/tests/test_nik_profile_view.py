@@ -20,18 +20,17 @@ def test_nik_profile_column_and_preview_modal_are_synchronized():
         assert 'id="equipmentNIKProfileClose"' in html
         assert 'id="equipmentNIKProfileUpload"' in html
         assert 'id="equipmentNIKProfileClear"' in html
-        assert 'id="nikProfileClearConfirmModal"' in html
-        assert 'id="nikProfileClearConfirmAction"' in html
-        assert 'Only the photo will be removed.' in html
-        assert 'id="equipmentNIKProfileFile" accept="image/*"></div></div></div><div class="modalback nik-profile-clear-confirm-modal"' in html
+        assert 'id="nikProfileClearConfirmModal"' not in html
+        assert 'Only the photo will be removed.' not in html
+        assert 'id="equipmentNIKProfileFile" accept="image/*"' in html
         assert html.rstrip().endswith("</body></html>")
         assert 'class="modalfoot equipment-nik-profile-footer"' in html
         assert 'class="equipment-nik-profile-actions-tools"' in html
         assert 'class="equipment-nik-profile-actions-help">Original image max 2 MB' in html
         assert 'id="equipmentNIKProfileFile" accept="image/*"' in html
         assert "automatically compressed to 100 KB or less" in html
-        assert "nik.js?v=20261015-nik-profile-delete-confirm" in html
-        assert "nik.css?v=20261015-nik-profile-delete-confirm" in html
+        assert "nik.js?v=20261015-shared-clear-confirm" in html
+        assert "nik.css?v=20261015-shared-clear-confirm" in html
     assert "'equipmentNIKProfileModal'," in MODAL_CONTRACT
     assert 'class="control mini view-nik-profile"' in NIK_JS
     assert "closest('.view-nik-profile')" in NIK_JS
@@ -40,6 +39,19 @@ def test_nik_profile_column_and_preview_modal_are_synchronized():
     assert "file.size>2_000_000" in NIK_JS
     assert "blob.size<=100_000" in NIK_JS
     assert "'/nik/upload?nik_id='" in NIK_JS
+
+
+def test_clear_photo_uses_shared_lithosite_confirmation_contract():
+    contract = (ROOT / "ui" / "shared" / "delete-confirm-contract.js").read_text(encoding="utf-8")
+    assert "global.LithositeDeleteConfirmContract.confirm({" in NIK_JS
+    assert "actionLabel:'Clear Photo'" in NIK_JS
+    assert "title:'Clear Profile Photo'" in NIK_JS
+    assert "warningTitle:'Only the photo will be removed.'" in NIK_JS
+    assert 'id="globalDeleteWarningTitle"' in contract
+    assert 'id="globalDeleteFootnote"' in contract
+    assert "requestClearPhotoConfirmation" not in NIK_JS
+    assert "nikProfileClearConfirmModal" not in ARTIFACT
+    assert "nikProfileClearConfirmModal" not in SNAPSHOT
 
 
 def test_nik_profile_photo_uses_safe_dedicated_host_endpoint():
