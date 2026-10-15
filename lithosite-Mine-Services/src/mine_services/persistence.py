@@ -118,6 +118,80 @@ class PersistenceStore:
         finally:
             workbook.close()
 
+    def update_nik_record(self, entity_id, patch):
+        """Update a NIK row by its immutable Id No (NIK), preserving worksheet headers."""
+        if not self.path or not self.path.is_file():
+            raise ValueError("NIK workbook is unavailable")
+        if not isinstance(patch, dict):
+            raise ValueError("NIK patch must be an object")
+        record = {header: str(patch.get(header) or "").strip() for header in self.schema.NIK_HEADERS}
+        if not record["Id No (NIK)"] or not record["Name Employment"]:
+            raise ValueError("Id No (NIK) and Name Employment are required")
+        if str(record["Id No (NIK)"]).casefold() != str(entity_id).casefold():
+            raise ValueError("Id No (NIK) cannot be changed while editing a record")
+        workbook = load_workbook(self.path)
+        try:
+            if "NIK" not in workbook.sheetnames:
+                raise ValueError("SHEET_MISSING:NIK")
+            worksheet = workbook["NIK"]
+            if [cell.value for cell in worksheet[1]] != self.schema.NIK_HEADERS:
+                raise ValueError("HEADER_MISMATCH:NIK")
+            target_row = None
+            for row_index in range(2, worksheet.max_row + 1):
+                value = str(worksheet.cell(row=row_index, column=3).value or "").strip()
+                if value.casefold() == str(entity_id).strip().casefold():
+                    target_row = row_index
+                    break
+            if target_row is None:
+                raise ValueError("NIK record not found")
+            for column, header in enumerate(self.schema.NIK_HEADERS, start=1):
+                worksheet.cell(row=target_row, column=column, value=record[header] or None)
+            with NamedTemporaryFile(prefix=self.path.stem + ".", suffix=self.path.suffix,
+                                    dir=self.path.parent, delete=False) as file:
+                temp_path = Path(file.name)
+            try:
+                workbook.save(temp_path)
+                temp_path.replace(self.path)
+            finally:
+                if temp_path.exists():
+                    temp_path.unlink()
+            return record
+        finally:
+            workbook.close()
+
+    def delete_nik_record(self, entity_id):
+        """Delete one NIK row by Id No (NIK) using an atomic workbook replacement."""
+        if not self.path or not self.path.is_file():
+            raise ValueError("NIK workbook is unavailable")
+        workbook = load_workbook(self.path)
+        try:
+            if "NIK" not in workbook.sheetnames:
+                raise ValueError("SHEET_MISSING:NIK")
+            worksheet = workbook["NIK"]
+            if [cell.value for cell in worksheet[1]] != self.schema.NIK_HEADERS:
+                raise ValueError("HEADER_MISMATCH:NIK")
+            target_row = None
+            for row_index in range(2, worksheet.max_row + 1):
+                value = str(worksheet.cell(row=row_index, column=3).value or "").strip()
+                if value.casefold() == str(entity_id).strip().casefold():
+                    target_row = row_index
+                    break
+            if target_row is None:
+                raise ValueError("NIK record not found")
+            worksheet.delete_rows(target_row, 1)
+            with NamedTemporaryFile(prefix=self.path.stem + ".", suffix=self.path.suffix,
+                                    dir=self.path.parent, delete=False) as file:
+                temp_path = Path(file.name)
+            try:
+                workbook.save(temp_path)
+                temp_path.replace(self.path)
+            finally:
+                if temp_path.exists():
+                    temp_path.unlink()
+            return {"Id No (NIK)": str(entity_id)}
+        finally:
+            workbook.close()
+
     def insert(self, entity, pk, row):
         self._data.setdefault(entity, {})[pk] = deepcopy(dict(row))
 
