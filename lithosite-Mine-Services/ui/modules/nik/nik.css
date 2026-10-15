@@ -1,4 +1,4 @@
-/* NIK employee register: read-only view of the canonical A.3 worksheet. */
+/* NIK employee register backed by the canonical A.3 worksheet. */
 #equipmentNIKListModal .equipment-nik-modal{
  width:min(1120px,calc(100vw - 40px));
  max-width:1120px;
