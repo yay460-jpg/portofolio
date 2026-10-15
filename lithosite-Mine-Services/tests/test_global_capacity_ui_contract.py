@@ -12,9 +12,37 @@ def test_global_capacity_delete_uses_shared_lithosite_confirmation():
     assert "actionLabel:'Delete Global Capacity'" in GLOBAL_CAPACITY_JS
     assert "entity:'Global Capacity'" in GLOBAL_CAPACITY_JS
     assert "if(!confirm(" not in GLOBAL_CAPACITY_JS
-    assert "if(!confirm(" not in GLOBAL_CAPACITY_JS
     assert "global.LithositeDeleteConfirmContract=Object.freeze" in DELETE_CONFIRM_CONTRACT
     assert 'id="globalDeleteConfirmModal"' not in ARTIFACT
     assert 'id="globalDeleteConfirmModal"' not in SNAPSHOT
     for html in (ARTIFACT, SNAPSHOT):
         assert "global-capacity.js?v=20261015-lithosite-delete-confirm" in html
+
+
+def test_global_capacity_list_and_editor_have_independent_single_close_controls():
+    import re
+
+    for html in (ARTIFACT, SNAPSHOT):
+        for modal_id, close_id in (
+            ("capacityModal", "capacityClose"),
+            ("capacityEditModal", "capacityEditClose"),
+        ):
+            root = re.search(
+                rf'<div class="modalback" id="{modal_id}"[^>]*>(.*?)</div></div>',
+                html,
+                flags=re.S,
+            )
+            assert root, f"Missing modal root: {modal_id}"
+            assert root.group(1).count(f'id="{close_id}"') == 1
+            assert root.group(1).count(">Close</button>") == 1
+
+
+def test_global_capacity_cache_keys_match_between_served_artifact_and_snapshot():
+    import re
+
+    pattern = r'\.\./ui/modules/workfront/global-capacity\.css\?v=([^"\']+)'
+    for asset in (pattern, r'\.\./ui/modules/workfront/global-capacity\.js\?v=([^"\']+)'):
+        served = re.search(asset, ARTIFACT)
+        snapshot = re.search(asset, SNAPSHOT)
+        assert served and snapshot
+        assert served.group(1) == snapshot.group(1)
