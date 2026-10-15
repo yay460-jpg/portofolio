@@ -224,6 +224,14 @@ function fillCapacityProfiles(selectedId){
    option.textContent=String(row.capacity_name||row.capacity_profile_id||'')+' — '+String(row.unit_brand||'—')+' — '+String(row.capacity_value??'')+' '+String(row.measurement||'ton');
    select.appendChild(option);
  });
+ if(current&&!state.capacities.some(function(row){return String(row.capacity_profile_id||'')===current;})){
+   const missing=document.createElement('option');
+   missing.value=current;
+   missing.textContent='Unavailable Global Capacity profile — '+current;
+   missing.disabled=true;
+   missing.dataset.missingProfile='true';
+   select.appendChild(missing);
+ }
  if(current)select.value=current;
  updateCapacitySummary();
 }
@@ -270,8 +278,13 @@ function updateCapacitySummary(){
  const capacity=document.getElementById('f_eq_capacity');
  if(!select||!brand||!capacity)return;
  const profile=state.capacities.find(function(row){return String(row.capacity_profile_id||'')===String(select.value||'');});
+ const type=String(document.getElementById('f_eq_type')?.value||'').trim().toLowerCase();
+ const required=type==='dump truck';
  brand.value=profile?String(profile.unit_brand||'—'):'';
  capacity.value=profile?String(profile.capacity_value??'')+' '+String(profile.measurement||'ton'):'';
+ brand.placeholder=profile?'':'Select a valid Global Capacity profile';
+ capacity.placeholder=profile?'':'Select a valid Global Capacity profile';
+ select.title=required?'Global Capacity profile is required for Dump Truck.':'Global Capacity profile is optional for this equipment type.';
 }
 function resetForm(){
  setMsg('');
@@ -333,6 +346,7 @@ async function save(){
  const row=payload();
  if(!row.unit_no||!row.category||!row.type||!row.owner_type||!row.owner_name||!row.status){setMsg('Unit / Fleet No., Category, Type, Owner Type, registered Owner Name and Status are required.',true);return;}
  if(String(row.type||'').trim().toLowerCase()==='dump truck'&&!row.capacity_profile_id){setMsg('Global Capacity Profile is required for Dump Truck.',true);return;}
+ if(row.capacity_profile_id&&!state.capacities.some(function(profile){return String(profile.capacity_profile_id||'')===String(row.capacity_profile_id);})){setMsg('The selected Global Capacity profile is unavailable. Choose a valid profile or clear the optional profile before saving.',true);return;}
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Equipment',row});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the equipment');
