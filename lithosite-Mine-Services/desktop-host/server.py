@@ -44,6 +44,9 @@ STATIC_ALLOWED_ROOTS = (
 )
 STATIC_ENTRY = os.environ.get("MINE_SERVICES_ENTRY", "/lithosite-Mine-Services/Artifacts/Mine-Services-Operations.html")
 DB_PATH = Path(os.environ.get("MINE_SERVICES_DB", str(MODULE_ROOT / "Database" / "Mine-Services-Database-A3.xlsx"))).resolve()
+NIK_PROFILE_ROOT = (DB_PATH.parent / "NIK").resolve()
+NIK_PROFILE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
+MAX_NIK_PROFILE_BYTES = 15_000_000
 EVIDENCE_ROOT = (DB_PATH.parent / "Evidence").resolve()
 EVIDENCE_MODULES = frozenset({"TargetPlan", "HSE", "Maintenance"})
 EVIDENCE_EXTENSIONS = frozenset({".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx"})
@@ -73,6 +76,32 @@ def _is_evidence_link(path: Path) -> bool:
     """Treat symbolic links and Windows junctions as unsafe Evidence paths."""
     junction_check = getattr(path, "is_junction", None)
     return path.is_symlink() or (callable(junction_check) and junction_check())
+
+
+def nik_profile_file(nik_id: str) -> Path | None:
+    """Find an employee profile image by canonical NIK without allowing path traversal."""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", nik_id or ""):
+        raise ValueError("Invalid NIK ID")
+    root = DB_PATH.parent / "NIK"
+    if _is_evidence_link(root):
+        raise ValueError("Invalid NIK profile directory")
+    if not root.exists():
+        return None
+    if not root.is_dir():
+        raise ValueError("NIK profile path is not a directory")
+    resolved_root = root.resolve()
+    for extension in NIK_PROFILE_EXTENSIONS:
+        candidate = root / f"{nik_id}{extension}"
+        if _is_evidence_link(candidate):
+            raise ValueError("Invalid NIK profile image path")
+        target = candidate.resolve()
+        try:
+            target.relative_to(resolved_root)
+        except ValueError as exc:
+            raise ValueError("Invalid NIK profile image path") from exc
+        if target.is_file() and target.suffix.lower() in NIK_PROFILE_EXTENSIONS:
+            return target
+    return None
 
 
 def evidence_record_directory(module: str, record_id: str) -> Path:
@@ -975,6 +1004,42 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         origin = self.headers.get("Origin")
         path = unquote(self.path.split("?", 1)[0])
+
+        if path == "/nik/profile":
+            if origin is not None and not is_allowed_origin(origin):
+                self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
+                return
+            query = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            nik_id = query.get("nik_id", [""])[0]
+            try:
+                target = nik_profile_file(nik_id)
+            except ValueError:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid NIK profile request"}]}, origin)
+                return
+            if target is None:
+                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "NIK profile photo not found"}]}, origin)
+                return
+            try:
+                size = target.stat().st_size
+                if size <= 0:
+                    self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "NIK profile photo not found"}]}, origin)
+                    return
+                if size > MAX_NIK_PROFILE_BYTES:
+                    self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "NIK profile photo exceeds the 15 MB limit"}]}, origin)
+                    return
+                body = target.read_bytes()
+            except OSError:
+                self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "NIK profile photo could not be read"}]}, origin)
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", guess_type(target.name)[0] or "application/octet-stream")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Content-Disposition", "inline")
+            self.end_headers()
+            self.wfile.write(body)
+            return
 
         if path == "/evidence/status":
             if origin is not None and not is_allowed_origin(origin):
