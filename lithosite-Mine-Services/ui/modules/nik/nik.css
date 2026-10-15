@@ -128,11 +128,45 @@
 /* Employee profile photo preview and dedicated Profile column. */
 #equipmentNIKListModal .equipment-nik-profile-action{display:flex;align-items:center;justify-content:flex-start}
 #equipmentNIKListModal .equipment-nik-profile-action .control{padding:5px 10px;min-width:0}
-#equipmentNIKProfileModal .equipment-nik-profile-modal{width:min(760px,calc(100vw - 40px));max-width:760px}
-#equipmentNIKProfileModal .equipment-nik-profile-body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:180px;padding:18px;overflow:auto}
-#equipmentNIKProfileModal .equipment-nik-profile-image{display:block;max-width:100%;max-height:70vh;object-fit:contain;border:1px solid #28425c;border-radius:8px;background:#0c1b2c}
+#equipmentNIKProfileModal .equipment-nik-profile-modal{
+ width:min(900px,calc(100vw - 40px));
+ max-width:900px;
+ height:min(780px,calc(100dvh - 64px));
+ max-height:calc(100dvh - 48px);
+ display:flex;
+ flex-direction:column;
+ overflow:hidden;
+}
+#equipmentNIKProfileModal .equipment-nik-profile-modal>.modalhead,
+#equipmentNIKProfileModal .equipment-nik-profile-modal>.modalfoot{flex:0 0 auto}
+#equipmentNIKProfileModal .equipment-nik-profile-body{
+ display:flex;
+ flex:1 1 auto;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ gap:8px;
+ min-width:0;
+ min-height:0;
+ padding:10px 14px;
+ overflow:hidden;
+}
+#equipmentNIKProfileModal .equipment-nik-profile-image{
+ display:block;
+ flex:1 1 auto;
+ min-width:0;
+ min-height:0;
+ width:auto;
+ height:auto;
+ max-width:100%;
+ max-height:calc(100dvh - 230px);
+ object-fit:contain;
+ border:1px solid #28425c;
+ border-radius:8px;
+ background:#0c1b2c;
+}
 #equipmentNIKProfileModal .equipment-nik-profile-image[hidden]{display:none}
-#equipmentNIKProfileModal .equipment-nik-profile-message{margin:0;color:var(--muted);font-size:11px;text-align:center;overflow-wrap:anywhere}
+#equipmentNIKProfileModal .equipment-nik-profile-message{flex:0 0 auto;margin:0;color:var(--muted);font-size:11px;text-align:center;overflow-wrap:anywhere}
 
 
 /* NIK profile upload controls and size guidance. */
