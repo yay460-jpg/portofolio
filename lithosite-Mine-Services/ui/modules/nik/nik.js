@@ -61,7 +61,7 @@ function render(){
   return '<div class="equipment-nik-row">'+FIELDS.map(function(field){
    const value=row[field];
    return '<div class="equipment-nik-cell">'+esc(value===null||value===undefined||value===''?'—':value)+'</div>';
-  }).join('')+'<div class="equipment-nik-cell equipment-nik-actions"><button type="button" class="control mini edit-nik" data-id="'+esc(row['Id No (NIK)'])+'">Edit</button> <button type="button" class="control mini danger delete-nik" data-id="'+esc(row['Id No (NIK)'] )+'">Delete</button></div></div>';
+  }).join('')+'<div class="equipment-nik-cell equipment-nik-profile-action"><button type="button" class="control mini view-nik-profile" data-id="'+esc(row['Id No (NIK)'])+'">View</button></div><div class="equipment-nik-cell equipment-nik-actions"><button type="button" class="control mini edit-nik" data-id="'+esc(row['Id No (NIK)'])+'">Edit</button> <button type="button" class="control mini danger delete-nik" data-id="'+esc(row['Id No (NIK)'] )+'">Delete</button></div></div>';
  }).join(''):'<div class="equipment-nik-empty">'+(state.rows.length?'No employees match the current filters.':'No employee records found in the NIK sheet.')+'</div>';
  count.textContent=visibleRows.length+' of '+state.rows.length+' employees · RuntimeAdapter';
 }
@@ -123,8 +123,36 @@ function bind(){
  if(cancelButton)cancelButton.addEventListener('click',function(){form.reset();form.hidden=true;editingId=null;form.querySelector('[name="Id No (NIK)"]').readOnly=false;message.textContent='';document.getElementById('equipmentNIKFormTitle').textContent='Add NIK';document.getElementById('equipmentNIKSave').textContent='Save NIK';});
  const listRows=document.getElementById('equipmentNIKListRows');
  if(listRows)listRows.addEventListener('click',async function(event){
+  const profile=event.target.closest('.view-nik-profile');
   const edit=event.target.closest('.edit-nik');
   const del=event.target.closest('.delete-nik');
+  if(profile){
+   const id=profile.dataset.id;
+   const row=state.rows.find(function(item){return String(item['Id No (NIK)'])===id;});
+   if(!row)return;
+   const profileImage=document.getElementById('equipmentNIKProfileImage');
+   const profileMessage=document.getElementById('equipmentNIKProfileMessage');
+   const profileTitle=document.getElementById('equipmentNIKProfileTitle');
+   if(!profileImage||!profileMessage||!profileTitle)return;
+   profileImage.hidden=true;
+   profileImage.alt='Profile photo for '+String(row['Name Employment']||id);
+   profileImage.dataset.nikId=id;
+   profileTitle.textContent='Employee Profile — '+String(row['Name Employment']||id);
+   profileMessage.textContent='Loading profile photo…';
+   profileImage.onload=function(){
+    if(profileImage.dataset.nikId!==id)return;
+    profileImage.hidden=false;
+    profileMessage.textContent='';
+   };
+   profileImage.onerror=function(){
+    if(profileImage.dataset.nikId!==id)return;
+    profileImage.hidden=true;
+    profileMessage.textContent='No profile photo found. Place the image in Database/NIK as '+id+'.jpg, .jpeg, .png, or .webp.';
+   };
+   profileImage.src='/nik/profile?nik_id='+encodeURIComponent(id)+'&v='+Date.now();
+   modal.show('equipmentNIKProfileModal');
+   return;
+  }
   if(edit){
    const row=state.rows.find(function(item){return String(item['Id No (NIK)'])===edit.dataset.id;});
    if(!row||!form)return;
