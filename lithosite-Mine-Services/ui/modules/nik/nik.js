@@ -5,13 +5,20 @@ const modal=global.LithositeModalShowContract;
 if(!rc)throw new Error('LithositeRuntimeClient is required before the NIK module');
 if(!modal)throw new Error('LithositeModalShowContract is required before the NIK module');
 
-const state={rows:[],status:'loading'};
+const state={rows:[],status:'loading',error:''};
 const FIELDS=['Effective From','Effective To','Id No (NIK)','Origin','Name Employment','Information'];
 
 function esc(value){
  return String(value??'').replace(/[&<>"']/g,function(character){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character];
  });
+}
+function notifyConsumers(){
+ document.dispatchEvent(new CustomEvent('lithosite:nik-records-updated',{detail:{
+  status:state.status,
+  rows:state.rows.map(function(row){return Object.assign({},row);}),
+  error:state.error
+ }}));
 }
 function render(){
  const host=document.getElementById('equipmentNIKListRows');
@@ -23,7 +30,7 @@ function render(){
   return;
  }
  if(state.status==='error'){
-  host.innerHTML='<div class="equipment-nik-empty error">NIK list unavailable. Check RuntimeAdapter and refresh.</div>';
+  host.innerHTML='<div class="equipment-nik-empty error">NIK list unavailable: '+esc(state.error||'RuntimeAdapter read failed')+'. Check the desktop host and refresh.</div>';
   count.textContent='Unavailable';
   return;
  }
@@ -37,23 +44,31 @@ function render(){
 }
 async function refresh(){
  state.status='loading';
+ state.error='';
  render();
+ notifyConsumers();
  try{
   const result=await rc.request({operation:'READ',entity:'NIK'});
   if(result.status==='REJECTED'||result.status==='ERROR'||result.errors?.length){
-   throw new Error((result.errors||[]).map(function(item){return item.message;}).join('; ')||'Runtime rejected NIK read');
+   throw new Error((result.errors||[]).map(function(item){return item.message;}).join('; ')||('Runtime returned '+result.status));
   }
-  state.rows=Array.isArray(result.data)?result.data:[];
+  if(!Array.isArray(result.data))throw new Error('RuntimeAdapter returned no NIK data array');
+  state.rows=result.data.filter(function(row){
+   return row&&FIELDS.some(function(field){return row[field]!==null&&row[field]!==undefined&&row[field]!=='';});
+  });
   state.status='ready';
  }catch(error){
   state.status='error';
+  state.error=String(error&&error.message||error);
   const message=document.getElementById('equipmentRuntimeMsg');
   if(message){
-   message.textContent='NIK list refresh failed: '+error.message;
+   message.textContent='NIK list refresh failed: '+state.error;
    message.classList.add('error');
   }
  }
  render();
+ notifyConsumers();
+ return state.rows.map(function(row){return Object.assign({},row);});
 }
 function open(){
  render();
@@ -70,7 +85,13 @@ function bind(){
 }
 function init(){
  bind();
+ refresh();
 }
+global.LithositeNIK={
+ getRecords:function(){return state.rows.map(function(row){return Object.assign({},row);});},
+ getStatus:function(){return state.status;},
+ refresh:refresh
+};
 if(document.readyState==='loading'){
  document.addEventListener('DOMContentLoaded',init,{once:true});
 }else{
