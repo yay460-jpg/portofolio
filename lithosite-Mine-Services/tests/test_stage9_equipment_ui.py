@@ -12,7 +12,7 @@ SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation.js")
 def test_stage9_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
-    assert "equipment.js?v=20261015-unit-compact-status" in TEXT
+    assert "equipment.js?v=20261015-nik-owner-selector" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
@@ -152,7 +152,7 @@ def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
     artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     assert 'id="equipmentUnitListButton"' in artifact
     assert 'id="equipmentUnitListModal"' in artifact
-    assert "equipment.js?v=20261015-unit-compact-status" in artifact
+    assert "equipment.js?v=20261015-nik-owner-selector" in artifact
     assert "equipment.css?v=20261015-unit-reference-hint" in artifact
 
 def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal_overflow():
@@ -284,6 +284,23 @@ def test_equipment_controls_order_and_nik_modal_initializes_after_dom_ready():
     assert "'equipmentNIKListModal'," in modal_contract
 
 
+def test_equipment_owner_name_is_selected_from_canonical_nik_register():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    for html in (TEXT, artifact):
+        assert '<label>Owner Name</label><select id="f_eq_owner_name"' in html
+        assert 'id="f_eq_owner_name" placeholder="Owner / contractor name"' not in html
+        assert 'Names are not entered manually.' in html
+    assert "function populateOwnerNameOptions(selectedName)" in EQUIPMENT_JS
+    assert "employee['Id No (NIK)']" in EQUIPMENT_JS
+    assert "employee['Name Employment']" in EQUIPMENT_JS
+    assert "owner_name:selectedOwnerName()" in EQUIPMENT_JS
+    assert "registered Owner Name and Status are required." in EQUIPMENT_JS
+    assert "lithosite:nik-records-updated" in EQUIPMENT_JS
+    assert "global.LithositeNIK={" in NIK_JS
+    assert "document.dispatchEvent(new CustomEvent('lithosite:nik-records-updated'" in NIK_JS
+    assert "NIK list unavailable: '+esc(state.error" in NIK_JS
+
+
 def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
     artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     snapshot = ARTIFACT.read_text(encoding="utf-8")
@@ -303,7 +320,7 @@ def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
         assert 'id="equipmentNIKListRows"' in modal
     for html in (artifact, snapshot):
         assert 'nik.css?v=20261015-nik-module-split' in html
-        assert 'nik.js?v=20261015-nik-module-split' in html
+        assert 'nik.js?v=20261015-nik-owner-selector' in html
     assert "rc.request({operation:'READ',entity:'NIK'})" in NIK_JS
     assert "function refresh()" in NIK_JS
     assert "function render()" in NIK_JS
