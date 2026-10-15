@@ -30,7 +30,7 @@ def test_equipment_save_reports_refresh_failure_without_claiming_refresh_success
 def test_equipment_served_artifact_and_snapshot_load_current_contract_asset():
     artifact = ARTIFACT.read_text(encoding="utf-8")
     snapshot = SNAPSHOT.read_text(encoding="utf-8")
-    marker = "equipment.js?v=20261015-equipment-contract-audit2"
+    marker = "equipment.js?v=20261016-capacity-profile-guard"
 
     assert marker in artifact
     assert marker in snapshot
@@ -56,3 +56,27 @@ def test_equipment_cancel_closes_form_without_runtime_mutation_and_restores_unit
     assert "refreshUnitList()" in close
     assert "rc.request" not in close
     assert "document.getElementById('equipmentCancel').onclick=closeEquipmentForm;" in bind
+
+
+def test_equipment_edit_preserves_unavailable_capacity_reference_until_user_resolves_it():
+    js = EQUIPMENT_JS.read_text(encoding="utf-8")
+    fill = js[js.index("function fillCapacityProfiles("):js.index("\nfunction populateOwnerNameOptions(")]
+    summary = js[js.index("function updateCapacitySummary("):js.index("\nfunction resetForm()")]
+    save = js[js.index("async function save()"):js.index("\nasync function remove(")]
+
+    assert "Unavailable Global Capacity profile — " in fill
+    assert "missing.disabled=true;" in fill
+    assert "Global Capacity profile is optional for this equipment type." in summary
+    assert "Global Capacity profile is required for Dump Truck." in summary
+    assert "The selected Global Capacity profile is unavailable." in save
+    assert "f_eq_type').addEventListener('change',updateCapacitySummary)" in js
+
+
+def test_equipment_capacity_profile_placeholders_explain_unresolved_values():
+    artifact = ARTIFACT.read_text(encoding="utf-8")
+    snapshot = SNAPSHOT.read_text(encoding="utf-8")
+
+    assert 'placeholder="Select a valid Global Capacity profile"' in artifact
+    assert 'placeholder="Select a valid Global Capacity profile"' in snapshot
+    assert "equipment.js?v=20261016-capacity-profile-guard" in artifact
+    assert "equipment.js?v=20261016-capacity-profile-guard" in snapshot
