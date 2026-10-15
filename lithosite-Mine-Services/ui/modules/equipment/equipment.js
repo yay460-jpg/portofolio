@@ -235,6 +235,43 @@ function fillCapacityProfiles(selectedId){
  if(current)select.value=current;
  updateCapacitySummary();
 }
+function populateOwnerNameOptions(selectedName){
+ const select=document.getElementById('f_eq_owner_name');
+ if(!select)return;
+ const previous=String(selectedName??select.selectedOptions?.[0]?.textContent??'').trim();
+ const api=global.LithositeNIK;
+ const status=api&&typeof api.getStatus==='function'?api.getStatus():'loading';
+ const employees=api&&typeof api.getRecords==='function'?api.getRecords():[];
+ select.replaceChildren();
+ const placeholder=document.createElement('option');
+ placeholder.value='';
+ placeholder.textContent=status==='error'?'NIK list unavailable — open List NIK to refresh':status!=='ready'?'Loading registered employees…':employees.length?'Select registered employee':'No employees registered in NIK';
+ select.appendChild(placeholder);
+ if(status==='ready'){
+  employees.forEach(function(employee){
+   const nik=String(employee['Id No (NIK)']||'').trim();
+   const name=String(employee['Name Employment']||'').trim();
+   if(!nik||!name)return;
+   const option=document.createElement('option');
+   option.value=nik;
+   option.textContent=name;
+   option.dataset.employeeName=name;
+   select.appendChild(option);
+  });
+  const matching=Array.from(select.options).find(function(option){
+   return option.value&&option.dataset.employeeName===previous;
+  });
+  if(matching)select.value=matching.value;
+ }
+ select.disabled=status!=='ready'||!employees.some(function(employee){
+  return String(employee['Id No (NIK)']||'').trim()&&String(employee['Name Employment']||'').trim();
+ });
+}
+function selectedOwnerName(){
+ const select=document.getElementById('f_eq_owner_name');
+ const option=select&&select.selectedOptions&&select.selectedOptions[0];
+ return option&&option.value?String(option.dataset.employeeName||option.textContent||'').trim():'';
+}
 function updateCapacitySummary(){
  const select=document.getElementById('f_eq_capacity_profile');
  const brand=document.getElementById('f_eq_brand');
@@ -261,8 +298,9 @@ function selectRegisteredUnit(id){
  const row=state.rows.find(function(item){return String(item.equipment_id||'')===String(id||'');});
  if(!row)return;
  editId=String(row.equipment_id);
- const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_owner_name:row.owner_name,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
+ const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
  Object.entries(map).forEach(function(entry){const el=document.getElementById(entry[0]);if(el)el.value=entry[1]??'';});
+ populateOwnerNameOptions(row.owner_name);
  fillCapacityProfiles(row.capacity_profile_id||'');
  document.getElementById('f_eq_id').readOnly=true;
  document.getElementById('f_eq_unit_no').readOnly=true;
@@ -280,7 +318,7 @@ function resetForm(){
  document.getElementById('f_eq_category').value='';
  document.getElementById('f_eq_type').value='';
  document.getElementById('f_eq_owner_type').value='';
- document.getElementById('f_eq_owner_name').value='';
+ populateOwnerNameOptions('');
  document.getElementById('f_eq_status').value='Active';
  fillCapacityProfiles('');
  document.getElementById('f_eq_from').value=d;
@@ -308,6 +346,7 @@ function openEdit(id,fromUnitList){
  document.getElementById('equipmentSave').textContent='Update via RuntimeAdapter';
  const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_owner_name:row.owner_name,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
+ populateOwnerNameOptions(row.owner_name);
  fillCapacityProfiles(row.capacity_profile_id||'');
  global.LithositeModalShowContract.show('equipmentModal');
 }
@@ -318,7 +357,7 @@ function payload(){
   category:document.getElementById('f_eq_category').value,
   type:document.getElementById('f_eq_type').value,
   owner_type:document.getElementById('f_eq_owner_type').value,
-  owner_name:document.getElementById('f_eq_owner_name').value,
+  owner_name:selectedOwnerName(),
   status:document.getElementById('f_eq_status').value,
   effective_from:document.getElementById('f_eq_from').value||null,
   effective_to:document.getElementById('f_eq_to').value||null,
@@ -330,7 +369,7 @@ async function save(){
  const wasEdit=Boolean(editId);
  if(addEquipmentRequiresReference&&!editId){setMsg('Select a registered unit from Unit List before saving Equipment.',true);return;}
  const row=payload();
- if(!row.unit_no||!row.category||!row.type||!row.owner_type||!row.status){setMsg('Unit / Fleet No., Category, Type, Owner Type and Status are required.',true);return;}
+ if(!row.unit_no||!row.category||!row.type||!row.owner_type||!row.owner_name||!row.status){setMsg('Unit / Fleet No., Category, Type, Owner Type, registered Owner Name and Status are required.',true);return;}
  if(String(row.type||'').trim().toLowerCase()==='dump truck'&&!row.capacity_profile_id){setMsg('Global Capacity Profile is required for Dump Truck.',true);return;}
  try{
   const result=editId?await rc.request({operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Equipment',row});
@@ -362,6 +401,7 @@ function bind(){
  document.getElementById('equipmentAdd').onclick=()=>openAdd(false);
  document.getElementById('equipmentUnitListAdd').onclick=()=>openAdd(true);
  document.getElementById('equipmentRefresh').onclick=load;
+ document.addEventListener('lithosite:nik-records-updated',function(){populateOwnerNameOptions(selectedOwnerName());});
  document.getElementById('equipmentUnitListButton').onclick=openUnitList;
  document.getElementById('equipmentUnitListClose').onclick=()=>global.LithositeModalShowContract.close('equipmentUnitListModal');
 
