@@ -107,6 +107,8 @@ function bind(){
  const openButton=document.getElementById('equipmentNIKListButton');
  const closeButton=document.getElementById('equipmentNIKListClose');
  const profileCloseButton=document.getElementById('equipmentNIKProfileClose');
+ const profileUploadButton=document.getElementById('equipmentNIKProfileUpload');
+ const profileUploadInput=document.getElementById('equipmentNIKProfileFile');
  const refreshButton=document.getElementById('equipmentNIKListRefresh');
  const addButton=document.getElementById('equipmentNIKAdd');
  const cancelButton=document.getElementById('equipmentNIKCancel');
@@ -115,6 +117,73 @@ function bind(){
  if(openButton)openButton.addEventListener('click',open);
  if(closeButton)closeButton.addEventListener('click',function(){modal.close('equipmentNIKListModal');});
  if(profileCloseButton)profileCloseButton.addEventListener('click',function(){modal.close('equipmentNIKProfileModal');modal.show('equipmentNIKListModal');});
+ if(profileUploadButton&&profileUploadInput){
+  profileUploadButton.addEventListener('click',function(){
+   if(!profileUploadButton.disabled)profileUploadInput.click();
+  });
+  profileUploadInput.addEventListener('change',async function(){
+   const file=profileUploadInput.files&&profileUploadInput.files[0];
+   const id=profileUploadInput.dataset.nikId||profileUploadButton.dataset.nikId;
+   const profileMessage=document.getElementById('equipmentNIKProfileMessage');
+   const profileImage=document.getElementById('equipmentNIKProfileImage');
+   if(!file||!id||!profileMessage||!profileImage)return;
+   if(file.size>1_000_000){
+    profileMessage.textContent='Photo exceeds the 1 MB upload limit. Choose a smaller image.';
+    profileUploadInput.value='';
+    return;
+   }
+   if(!file.type.startsWith('image/')){
+    profileMessage.textContent='Choose an image file (JPG, PNG, WEBP, or another browser-supported image).';
+    profileUploadInput.value='';
+    return;
+   }
+   profileUploadButton.disabled=true;
+   profileMessage.textContent='Compressing photo to 100 KB or less…';
+   try{
+    if(typeof global.createImageBitmap!=='function')throw new Error('This browser does not support image compression.');
+    const bitmap=await global.createImageBitmap(file);
+    let width=bitmap.width;
+    let height=bitmap.height;
+    const longest=Math.max(width,height);
+    if(longest>640){const scale=640/longest;width=Math.max(1,Math.round(width*scale));height=Math.max(1,Math.round(height*scale));}
+    const canvas=document.createElement('canvas');
+    const context=canvas.getContext('2d');
+    if(!context)throw new Error('Image compression is not available.');
+    let blob=null;
+    for(let attempt=0;attempt<18;attempt++){
+     canvas.width=width;canvas.height=height;
+     context.clearRect(0,0,width,height);
+     context.fillStyle='#ffffff';
+     context.fillRect(0,0,width,height);
+     context.drawImage(bitmap,0,0,width,height);
+     const quality=Math.max(0.35,0.86-(attempt%6)*0.1);
+     blob=await new Promise(function(resolve){canvas.toBlob(resolve,'image/jpeg',quality);});
+     if(blob&&blob.size<=100_000)break;
+     if(attempt%3===2){width=Math.max(96,Math.round(width*0.82));height=Math.max(96,Math.round(height*0.82));}
+    }
+    bitmap.close();
+    if(!blob||blob.size>100_000)throw new Error('Could not compress this photo to 100 KB. Try a simpler or smaller image.');
+    profileMessage.textContent='Uploading compressed photo…';
+    const response=await fetch('/nik/upload?nik_id='+encodeURIComponent(id),{
+     method:'POST',
+     headers:{'Content-Type':'image/jpeg'},
+     body:blob
+    });
+    const result=await response.json();
+    if(!response.ok||result.status!=='READY'){
+     throw new Error((result.errors||[]).map(function(item){return item.message;}).join('; ')||'Profile upload failed.');
+    }
+    profileImage.hidden=true;
+    profileImage.src='/nik/profile?nik_id='+encodeURIComponent(id)+'&v='+Date.now();
+    profileMessage.textContent='Photo saved · '+Math.round(result.size/1024*10)/10+' KB';
+   }catch(error){
+    profileMessage.textContent=String(error&&error.message||error);
+   }finally{
+    profileUploadButton.disabled=false;
+    profileUploadInput.value='';
+   }
+  });
+ }
  if(refreshButton)refreshButton.addEventListener('click',refresh);
  if(addButton)addButton.addEventListener('click',function(){
   if(!form)return;
@@ -152,6 +221,10 @@ function bind(){
     profileMessage.textContent='No profile photo found. Place the image in Database/NIK as '+id+'.jpg, .jpeg, .png, or .webp.';
    };
    profileImage.src='/nik/profile?nik_id='+encodeURIComponent(id)+'&v='+Date.now();
+   const uploadButton=document.getElementById('equipmentNIKProfileUpload');
+   if(uploadButton){uploadButton.dataset.nikId=id;uploadButton.disabled=false;}
+   const uploadInput=document.getElementById('equipmentNIKProfileFile');
+   if(uploadInput){uploadInput.value='';uploadInput.dataset.nikId=id;}
    modal.show('equipmentNIKProfileModal');
    return;
   }
