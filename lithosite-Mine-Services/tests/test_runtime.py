@@ -224,3 +224,28 @@ def test_runtime_dataset_load_replaces_runtime_data(tmp_path):
     assert app.store.exists("Equipment", "E-ORIGINAL")
     assert not app.store.exists("Equipment", "E-SECOND")
     assert runtime.list_datasets()["active"]["dataset_name"] == "Original State"
+
+
+
+def test_equipment_delete_is_rejected_when_referenced_by_maintenance():
+    app = ApplicationService(PersistenceStore())
+    equipment = valid_equipment("EQ-MAINT-REF")
+    assert app.create("Equipment", equipment, "equipment-create-ref")[ "status"] == "COMMITTED"
+
+    maintenance = {
+        "maintenance_id": "M-EQ-REF",
+        "equipment_id": "EQ-MAINT-REF",
+        "event_type": "Preventive",
+        "failure_code": "",
+        "action": "Scheduled inspection",
+        "status": "Open",
+        "source": "Equipment reference regression",
+    }
+    assert app.create("Maintenance", maintenance, "maintenance-create-ref")["status"] == "COMMITTED"
+
+    result = app.delete("Equipment", "EQ-MAINT-REF", "equipment-delete-ref")
+
+    assert result["status"] == "REJECTED"
+    assert any(error["code"] == "APP-004" for error in result["errors"])
+    assert app.store.exists("Equipment", "EQ-MAINT-REF")
+    assert len([event for event in app.store.audit() if event["entity"] == "Equipment" and event["entity_id"] == "EQ-MAINT-REF" and event["action"] == "DELETE"]) == 0
