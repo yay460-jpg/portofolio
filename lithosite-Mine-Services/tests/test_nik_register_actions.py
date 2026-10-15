@@ -86,3 +86,10 @@ def test_nik_profile_column_and_preview_modal_are_wired():
     assert 'id="equipmentNIKProfileClose"' in ARTIFACT
     assert "nik.js?v=20261015-nik-profile-delete-confirm" in ARTIFACT
     assert "nik.css?v=20261015-nik-profile-delete-confirm" in ARTIFACT
+
+
+def test_equipment_owner_name_helper_text_uses_compact_hint_typography():
+    equipment_css = (ROOT / "ui" / "modules" / "equipment" / "equipment.css").read_text(encoding="utf-8")
+    assert "#equipmentModal #f_eq_owner_name_help" in equipment_css
+    assert "font-size:9px;line-height:1.35;font-weight:400" in equipment_css
+    assert "equipment.css?v=20261015-owner-name-hint-compact" in ARTIFACT
