@@ -84,6 +84,40 @@ class PersistenceStore:
         finally:
             workbook.close()
 
+    def create_nik_record(self, row):
+        """Append one validated employee to the canonical NIK worksheet atomically."""
+        if not self.path or not self.path.is_file():
+            raise ValueError("NIK workbook is unavailable")
+        if not isinstance(row, dict):
+            raise ValueError("NIK record must be an object")
+        record = {header: str(row.get(header) or "").strip() for header in self.schema.NIK_HEADERS}
+        if not record["Id No (NIK)"] or not record["Name Employment"]:
+            raise ValueError("Id No (NIK) and Name Employment are required")
+        workbook = load_workbook(self.path)
+        try:
+            if "NIK" not in workbook.sheetnames:
+                raise ValueError("SHEET_MISSING:NIK")
+            worksheet = workbook["NIK"]
+            if [cell.value for cell in worksheet[1]] != self.schema.NIK_HEADERS:
+                raise ValueError("HEADER_MISMATCH:NIK")
+            nik = record["Id No (NIK)"].casefold()
+            for values in worksheet.iter_rows(min_row=2, values_only=True):
+                if len(values) > 2 and str(values[2] or "").strip().casefold() == nik:
+                    raise ValueError("DUPLICATE_NIK:Id No (NIK) already exists")
+            worksheet.append([record[header] or None for header in self.schema.NIK_HEADERS])
+            with NamedTemporaryFile(prefix=self.path.stem + ".", suffix=self.path.suffix,
+                                    dir=self.path.parent, delete=False) as file:
+                temp_path = Path(file.name)
+            try:
+                workbook.save(temp_path)
+                temp_path.replace(self.path)
+            finally:
+                if temp_path.exists():
+                    temp_path.unlink()
+            return record
+        finally:
+            workbook.close()
+
     def insert(self, entity, pk, row):
         self._data.setdefault(entity, {})[pk] = deepcopy(dict(row))
 
