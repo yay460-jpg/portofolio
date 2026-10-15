@@ -108,6 +108,7 @@ function bind(){
  const closeButton=document.getElementById('equipmentNIKListClose');
  const profileCloseButton=document.getElementById('equipmentNIKProfileClose');
  const profileUploadButton=document.getElementById('equipmentNIKProfileUpload');
+ const profileClearButton=document.getElementById('equipmentNIKProfileClear');
  const profileUploadInput=document.getElementById('equipmentNIKProfileFile');
  const refreshButton=document.getElementById('equipmentNIKListRefresh');
  const addButton=document.getElementById('equipmentNIKAdd');
@@ -184,6 +185,35 @@ function bind(){
    }
   });
  }
+ if(profileClearButton){
+  profileClearButton.addEventListener('click',async function(){
+   const id=profileClearButton.dataset.nikId;
+   const profileMessage=document.getElementById('equipmentNIKProfileMessage');
+   const profileImage=document.getElementById('equipmentNIKProfileImage');
+   if(!id||!profileMessage||!profileImage)return;
+   if(!global.confirm('Clear the profile photo for this NIK? The employee biodata will not be deleted.'))return;
+   profileClearButton.disabled=true;
+   if(profileUploadButton)profileUploadButton.disabled=true;
+   profileMessage.textContent='Clearing profile photo…';
+   try{
+    const response=await fetch('/nik/clear?nik_id='+encodeURIComponent(id),{method:'POST'});
+    const result=await response.json();
+    if(!response.ok||result.status!=='READY'){
+     throw new Error((result.errors||[]).map(function(item){return item.message;}).join('; ')||'Could not clear profile photo.');
+    }
+    profileImage.hidden=true;
+    profileImage.onload=null;
+    profileImage.onerror=null;
+    profileImage.removeAttribute('src');
+    profileMessage.textContent=result.removed?'Profile photo cleared.':'No profile photo was stored for this NIK.';
+   }catch(error){
+    profileMessage.textContent=String(error&&error.message||error);
+   }finally{
+    profileClearButton.disabled=false;
+    if(profileUploadButton)profileUploadButton.disabled=false;
+   }
+  });
+ }
  if(refreshButton)refreshButton.addEventListener('click',refresh);
  if(addButton)addButton.addEventListener('click',function(){
   if(!form)return;
@@ -218,11 +248,13 @@ function bind(){
    profileImage.onerror=function(){
     if(profileImage.dataset.nikId!==id)return;
     profileImage.hidden=true;
-    profileMessage.textContent='No profile photo found. Place the image in Database/NIK as '+id+'.jpg, .jpeg, .png, or .webp.';
+    profileMessage.textContent='No profile photo found. Use Upload Photo to add one.';
    };
    profileImage.src='/nik/profile?nik_id='+encodeURIComponent(id)+'&v='+Date.now();
    const uploadButton=document.getElementById('equipmentNIKProfileUpload');
    if(uploadButton){uploadButton.dataset.nikId=id;uploadButton.disabled=false;}
+   const clearButton=document.getElementById('equipmentNIKProfileClear');
+   if(clearButton){clearButton.dataset.nikId=id;clearButton.disabled=false;}
    const uploadInput=document.getElementById('equipmentNIKProfileFile');
    if(uploadInput){uploadInput.value='';uploadInput.dataset.nikId=id;}
    modal.show('equipmentNIKProfileModal');
