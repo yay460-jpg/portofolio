@@ -301,6 +301,23 @@ def test_equipment_owner_name_is_selected_from_canonical_nik_register():
     assert "NIK list unavailable: '+esc(state.error" in NIK_JS
 
 
+def test_nik_list_has_add_form_search_and_origin_filter_in_artifact_and_snapshot():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    for html in (TEXT, artifact):
+        assert 'id="equipmentNIKAdd">Add NIK</button>' in html
+        assert 'id="equipmentNIKSearch"' in html
+        assert 'id="equipmentNIKOriginFilter"' in html
+        assert 'id="equipmentNIKForm"' in html
+        assert 'name="Id No (NIK)" required' in html
+        assert 'name="Name Employment" required' in html
+        assert 'id="equipmentNIKSave">Save NIK</button>' in html
+        assert "nik.js?v=20261015-nik-crud-filter" in html
+        assert "nik.css?v=20261015-nik-crud-filter" in html
+    assert "operation:'CREATE',entity:'NIK',row:row" in NIK_JS
+    assert "function filteredRows()" in NIK_JS
+    assert "function syncOriginFilter()" in NIK_JS
+
+
 def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
     artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     snapshot = ARTIFACT.read_text(encoding="utf-8")
@@ -319,14 +336,15 @@ def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
         assert 'id="equipmentNIKListRefresh"' in modal
         assert 'id="equipmentNIKListRows"' in modal
     for html in (artifact, snapshot):
-        assert 'nik.css?v=20261015-nik-module-split' in html
-        assert 'nik.js?v=20261015-nik-owner-selector' in html
+        assert 'nik.css?v=20261015-nik-crud-filter' in html
+        assert 'nik.js?v=20261015-nik-crud-filter' in html
     assert "rc.request({operation:'READ',entity:'NIK'})" in NIK_JS
     assert "function refresh()" in NIK_JS
     assert "function render()" in NIK_JS
-    assert "operation:'CREATE',entity:'NIK'" not in NIK_JS
-    assert "operation:'UPDATE',entity:'NIK'" not in NIK_JS
-    assert "operation:'DELETE',entity:'NIK'" not in NIK_JS
+    assert "operation:'CREATE',entity:'NIK'" in NIK_JS
+    assert "equipmentNIKSearch" in NIK_JS
+    assert "equipmentNIKOriginFilter" in NIK_JS
+    assert "Id No (NIK) and Name Employment are required." in NIK_JS
     assert "equipmentNIKListButton" not in EQUIPMENT_JS
     assert "NIK employee register: read-only view of the canonical A.3 worksheet." in NIK_CSS
     assert "#equipmentNIKListModal .equipment-nik-row{" in NIK_CSS
