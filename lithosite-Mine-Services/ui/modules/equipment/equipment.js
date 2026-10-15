@@ -344,7 +344,7 @@ function openEdit(id,fromUnitList){
  const referenceField=document.getElementById('equipmentUnitReferenceField');if(referenceField)referenceField.hidden=true;
  document.getElementById('equipmentModalTitle').textContent=returnToUnitList?'Edit Unit':'Edit Equipment';
  document.getElementById('equipmentSave').textContent='Update via RuntimeAdapter';
- const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_owner_name:row.owner_name,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
+ const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
  populateOwnerNameOptions(row.owner_name);
  fillCapacityProfiles(row.capacity_profile_id||'');
