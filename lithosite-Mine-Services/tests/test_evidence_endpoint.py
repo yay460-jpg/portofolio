@@ -594,6 +594,7 @@ def test_nik_profile_upload_saves_compressed_jpeg_and_replaces_previous_photo(ev
     assert result["folder"] == "Database/NIK"
     assert result["filename"] == "TEST-NIK-001.jpg"
     assert result["size"] == len(jpeg)
+    assert result["replaced"] is False
     saved = server.DB_PATH.parent / "NIK" / "TEST-NIK-001.jpg"
     assert saved.read_bytes() == jpeg
 
@@ -602,6 +603,7 @@ def test_nik_profile_upload_saves_compressed_jpeg_and_replaces_previous_photo(ev
     replacement = b"\xff\xd8\xffreplacement-photo\xff\xd9"
     status, _headers, body = _post_raw(base_url, "/nik/upload", params, replacement, "image/jpeg")
     assert status == 201
+    assert _payload(body)["replaced"] is True
     assert saved.read_bytes() == replacement
     assert not (saved.parent / "TEST-NIK-001.png").exists()
 
