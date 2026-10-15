@@ -42,7 +42,16 @@ async function save(){
  try{const r=editId?await rc.request({operation:'UPDATE',entity:'GlobalCapacity',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'GlobalCapacity',row});if(r.status!=='COMMITTED')throw new Error((r.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected Global Capacity');global.LithositeModalShowContract.close('capacityEditModal');await load();msg(editId?'Global Capacity updated and audited.':'Global Capacity created and audited.')}catch(e){msg('Validation/runtime error: '+e.message,true)}
 }
 async function remove(id){
- if(!confirm('Delete Global Capacity '+id+'? Runtime will reject deletion if it is referenced by Equipment, legacy Work Front, or Operation.'))return;
+ const confirmed=await global.LithositeDeleteConfirmContract.confirm({
+  entity:'Global Capacity',
+  id:id,
+  message:'Delete this Global Capacity profile? Runtime will reject deletion if it is referenced by Equipment, legacy Work Front, or Operation.',
+  warningTitle:'This action cannot be undone.',
+  warning:'The RuntimeAdapter validates references before deletion and retains the audit record.',
+  footnote:'Permanent action · Runtime reference validation applies',
+  actionLabel:'Delete Global Capacity'
+ });
+ if(!confirmed)return;
  try{const r=await rc.request({operation:'DELETE',entity:'GlobalCapacity',entity_id:id});if(r.status!=='COMMITTED')throw new Error((r.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');await load();msg('Global Capacity deleted and audited.')}catch(e){msg('Delete failed: '+e.message,true)}
 }
 function bind(){
