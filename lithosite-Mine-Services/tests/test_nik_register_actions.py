@@ -44,3 +44,12 @@ def test_nik_edit_delete_keep_the_canonical_six_headers_and_validate_required_fi
     assert 'if not record["Id No (NIK)"] or not record["Name Employment"]:' in PERSISTENCE
     assert 'Id No (NIK) cannot be changed while editing a record' in PERSISTENCE
     assert 'worksheet.delete_rows(target_row, 1)' in PERSISTENCE
+
+
+def test_nik_information_field_is_editable_and_form_values_use_normal_weight():
+    modal_start = ARTIFACT.index('id="equipmentNIKListModal"')
+    modal = ARTIFACT[modal_start:ARTIFACT.index("</body>", modal_start)]
+    assert '<input name="Information" type="text" maxlength="500" autocomplete="off">' in modal
+    assert "readonly" not in modal[modal.index('name="Information"') - 30:modal.index('name="Information"') + 100]
+    assert "font-weight:400" in NIK_CSS
+    assert "font-weight:600;text-transform:uppercase" in NIK_CSS
