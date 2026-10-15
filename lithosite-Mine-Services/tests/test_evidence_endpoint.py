@@ -654,6 +654,14 @@ def test_nik_profile_clear_rejects_unknown_employee(evidence_host, monkeypatch):
         ({"nik_id": "TEST-NIK-001"}, b"x" * 100_001, "image/jpeg", True, 413),
         ({"nik_id": "TEST-NIK-001"}, b"", "image/jpeg", True, 400),
     ],
+    ids=[
+        "reject-path-traversal",
+        "reject-unknown-employee",
+        "reject-wrong-content-type",
+        "reject-invalid-jpeg",
+        "reject-oversized-jpeg",
+        "reject-empty-upload",
+    ],
 )
 def test_nik_profile_upload_rejects_invalid_or_oversized_payloads(
     evidence_host, monkeypatch, params, body, content_type, record_exists, expected_status
