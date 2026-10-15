@@ -35,9 +35,9 @@
 }
 #equipmentNIKListModal .equipment-nik-row{
  display:grid;
- grid-template-columns:120px 120px 145px minmax(110px,1fr) minmax(145px,1.2fr) minmax(160px,1.4fr) 140px;
+ grid-template-columns:120px 120px 145px minmax(110px,1fr) minmax(145px,1.2fr) minmax(160px,1.4fr) 90px 140px;
  width:100%;
- min-width:900px;
+ min-width:990px;
  box-sizing:border-box;
  align-items:center;
 }
@@ -123,3 +123,13 @@
 #equipmentNIKListModal .equipment-nik-table{overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
 #equipmentNIKListModal .equipment-nik-table::-webkit-scrollbar{display:none;width:0;height:0}
 #equipmentNIKListModal .equipment-nik-title-icon{fill:none;stroke:currentColor}
+
+
+/* Employee profile photo preview and dedicated Profile column. */
+#equipmentNIKListModal .equipment-nik-profile-action{display:flex;align-items:center;justify-content:flex-start}
+#equipmentNIKListModal .equipment-nik-profile-action .control{padding:5px 10px;min-width:0}
+#equipmentNIKProfileModal .equipment-nik-profile-modal{width:min(760px,calc(100vw - 40px));max-width:760px}
+#equipmentNIKProfileModal .equipment-nik-profile-body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:180px;padding:18px;overflow:auto}
+#equipmentNIKProfileModal .equipment-nik-profile-image{display:block;max-width:100%;max-height:70vh;object-fit:contain;border:1px solid #28425c;border-radius:8px;background:#0c1b2c}
+#equipmentNIKProfileModal .equipment-nik-profile-image[hidden]{display:none}
+#equipmentNIKProfileModal .equipment-nik-profile-message{margin:0;color:var(--muted);font-size:11px;text-align:center;overflow-wrap:anywhere}
