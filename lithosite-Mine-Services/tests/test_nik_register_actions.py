@@ -1,0 +1,45 @@
+from pathlib import Path
+
+ROOT = Path(__file__).parents[1]
+ARTIFACT = (ROOT / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+NIK_JS = (ROOT / "ui" / "modules" / "nik" / "nik.js").read_text(encoding="utf-8")
+NIK_CSS = (ROOT / "ui" / "modules" / "nik" / "nik.css").read_text(encoding="utf-8")
+PERSISTENCE = (ROOT / "src" / "mine_services" / "persistence.py").read_text(encoding="utf-8")
+RUNTIME = (ROOT / "src" / "mine_services" / "runtime.py").read_text(encoding="utf-8")
+
+
+def test_nik_register_has_action_column_and_form_title():
+    modal = ARTIFACT[ARTIFACT.index('id="equipmentNIKListModal"'):ARTIFACT.index('id="equipmentUnitListModal"')]
+    assert '<div class="equipment-nik-cell">Information</div><div class="equipment-nik-cell">Action</div>' in modal
+    assert 'id="equipmentNIKFormTitle">Add NIK</span>' in modal
+
+
+def test_nik_register_renders_edit_and_delete_actions():
+    assert 'class="control mini edit-nik"' in NIK_JS
+    assert 'class="control mini danger delete-nik"' in NIK_JS
+    assert "closest('.edit-nik')" in NIK_JS
+    assert "closest('.delete-nik')" in NIK_JS
+    assert "operation:'UPDATE',entity:'NIK',entity_id:editingId,patch:row" in NIK_JS
+    assert "operation:'DELETE',entity:'NIK',entity_id:id" in NIK_JS
+    assert "NIK ID is locked to preserve the employee reference." in NIK_JS
+
+
+def test_nik_register_action_column_has_room_for_controls():
+    assert "minmax(160px,1.4fr) 140px" in NIK_CSS
+    assert ".equipment-nik-actions" in NIK_CSS
+
+
+def test_nik_runtime_routes_update_and_delete_to_canonical_workbook():
+    assert 'if entity == "NIK":' in RUNTIME
+    assert "self._application.store.update_nik_record(entity_id, patch)" in RUNTIME
+    assert "self._application.store.delete_nik_record(entity_id)" in RUNTIME
+    assert "def update_nik_record(self, entity_id, patch):" in PERSISTENCE
+    assert "def delete_nik_record(self, entity_id):" in PERSISTENCE
+    assert "temp_path.replace(self.path)" in PERSISTENCE
+
+
+def test_nik_edit_delete_keep_the_canonical_six_headers_and_validate_required_fields():
+    assert 'record = {header: str(patch.get(header) or "").strip() for header in self.schema.NIK_HEADERS}' in PERSISTENCE
+    assert 'if not record["Id No (NIK)"] or not record["Name Employment"]:' in PERSISTENCE
+    assert 'NIK ID cannot be changed while editing a record' in PERSISTENCE
+    assert 'worksheet.delete_rows(target_row, 1)' in PERSISTENCE
