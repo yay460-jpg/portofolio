@@ -144,6 +144,51 @@ function openUnitList(){
  global.LithositeModalShowContract.show('equipmentUnitListModal');
  refreshUnitList();
 }
+let nikStatus='loading';
+let nikRows=[];
+function renderNIKList(){
+ const host=document.getElementById('equipmentNIKListRows');
+ const count=document.getElementById('equipmentNIKListCount');
+ if(!host||!count)return;
+ if(nikStatus==='loading'){
+  host.innerHTML='<div class="equipment-nik-empty">Loading NIK records from RuntimeAdapter…</div>';
+  count.textContent='Loading…';
+  return;
+ }
+ if(nikStatus==='error'){
+  host.innerHTML='<div class="equipment-nik-empty error">NIK list unavailable. Check RuntimeAdapter and refresh.</div>';
+  count.textContent='Unavailable';
+  return;
+ }
+ const fields=['Effective From','Effective To','Id No (NIK)','Origin','Name Employment','Information'];
+ host.innerHTML=nikRows.length?nikRows.map(function(row){
+  return '<div class="equipment-nik-row">'+fields.map(function(field){
+   const value=row[field];
+   return '<div class="equipment-nik-cell">'+esc(value===null||value===undefined||value===''?'—':value)+'</div>';
+  }).join('')+'</div>';
+ }).join(''):'<div class="equipment-nik-empty">No employee records found in the NIK sheet.</div>';
+ count.textContent=nikRows.length+' employees · RuntimeAdapter · Read-only';
+}
+async function refreshNIKList(){
+ nikStatus='loading';
+ renderNIKList();
+ try{
+  const result=await rc.request({operation:'READ',entity:'NIK'});
+  if(result.status==='REJECTED'||result.status==='ERROR'||result.errors?.length)throw new Error((result.errors||[]).map(function(item){return item.message;}).join('; ')||'Runtime rejected NIK read');
+  nikRows=Array.isArray(result.data)?result.data:[];
+  nikStatus='ready';
+  renderNIKList();
+ }catch(error){
+  nikStatus='error';
+  renderNIKList();
+  setMsg('NIK list refresh failed: '+error.message,true);
+ }
+}
+function openNIKList(){
+ renderNIKList();
+ global.LithositeModalShowContract.show('equipmentNIKListModal');
+ refreshNIKList();
+}
 function render(){
  const host=document.getElementById('equipmentRows');
  if(!host)return;
@@ -364,6 +409,9 @@ function bind(){
  document.getElementById('equipmentRefresh').onclick=load;
  document.getElementById('equipmentUnitListButton').onclick=openUnitList;
  document.getElementById('equipmentUnitListClose').onclick=()=>global.LithositeModalShowContract.close('equipmentUnitListModal');
+ document.getElementById('equipmentNIKListButton').onclick=openNIKList;
+ document.getElementById('equipmentNIKListClose').onclick=()=>global.LithositeModalShowContract.close('equipmentNIKListModal');
+ document.getElementById('equipmentNIKListRefresh').onclick=refreshNIKList;
 
  document.getElementById('equipmentUnitListRefresh').onclick=refreshUnitList;
  document.getElementById('equipmentUnitTypeFilter').addEventListener('change',renderUnitList);
