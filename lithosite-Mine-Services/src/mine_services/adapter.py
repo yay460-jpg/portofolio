@@ -14,7 +14,7 @@ class AdapterContractError(ValueError):
 class RuntimeAdapter:
     """External UI/API adapter for the Mine Services RuntimeInterface."""
 
-    READ_ENTITIES = frozenset((*DOMAIN_ENTITIES, "_Lists"))
+    READ_ENTITIES = frozenset((*DOMAIN_ENTITIES, "_Lists", "NIK"))
 
     OPERATIONS = {
         "CREATE",
