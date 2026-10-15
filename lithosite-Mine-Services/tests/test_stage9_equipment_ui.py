@@ -4,13 +4,15 @@ ARTIFACT = Path(__file__).parents[1] / "Documentation" / "Version-History" / "Ar
 TEXT = ARTIFACT.read_text(encoding="utf-8")
 EQUIPMENT_JS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.js").read_text(encoding="utf-8")
 EQUIPMENT_CSS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.css").read_text(encoding="utf-8")
+NIK_JS = (Path(__file__).parents[1] / "ui" / "modules" / "nik" / "nik.js").read_text(encoding="utf-8")
+NIK_CSS = (Path(__file__).parents[1] / "ui" / "modules" / "nik" / "nik.css").read_text(encoding="utf-8")
 SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
 
 
 def test_stage9_equipment_screen_exists():
     assert 'id="equipmentScreen"' in TEXT
     assert ">Equipment<" in TEXT
-    assert "equipment.js?v=20261015-nik-list-modal" in TEXT
+    assert "equipment.js?v=20261015-unit-compact-status" in TEXT
     assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
 
 
@@ -150,8 +152,8 @@ def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
     artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     assert 'id="equipmentUnitListButton"' in artifact
     assert 'id="equipmentUnitListModal"' in artifact
-    assert "equipment.js?v=20261015-nik-list-modal" in artifact
-    assert "equipment.css?v=20261015-nik-list-modal" in artifact
+    assert "equipment.js?v=20261015-unit-compact-status" in artifact
+    assert "equipment.css?v=20261015-unit-reference-hint" in artifact
 
 def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal_overflow():
     css = EQUIPMENT_CSS[EQUIPMENT_CSS.index('/* Unit Database layout correction'): ]
@@ -220,13 +222,13 @@ def test_unit_database_empty_footer_is_collapsed_by_its_actual_modal_class():
 
 def test_unit_database_action_styles_have_single_owner_rule():
     assert EQUIPMENT_CSS.count("#equipmentUnitListModal .equipment-unit-actions{") == 1
-    assert "equipment.css?v=20261015-nik-list-modal" in TEXT
+    assert "equipment.css?v=20261015-unit-reference-hint" in TEXT
 
 
 def test_unit_database_body_cells_use_compact_typography():
     assert "#equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head) .equipment-unit-cell{font-size:9.5px}" in EQUIPMENT_CSS
     assert "font-size:12px;line-height:1.35" not in EQUIPMENT_CSS
-    assert "equipment.css?v=20261015-nik-list-modal" in TEXT
+    assert "equipment.css?v=20261015-unit-reference-hint" in TEXT
 
 
 def test_global_capacity_modal_has_one_close_button_and_no_footer_action():
@@ -260,7 +262,7 @@ def test_add_equipment_unit_reference_hint_uses_compact_module_typography():
     snapshot = ARTIFACT.read_text(encoding="utf-8")
     for html in (artifact, snapshot):
         assert '<small class="equipment-unit-reference-hint">Select a registered unit to keep Equipment ID and Unit / Fleet No. linked.</small>' in html
-        assert "equipment.css?v=20261015-nik-list-modal" in html
+        assert "equipment.css?v=20261015-unit-reference-hint" in html
     assert "#equipmentModal .equipment-unit-reference-hint{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.35}" in EQUIPMENT_CSS
     assert ".equipment-unit-reference-hint" not in (Path(__file__).parents[1] / "ui" / "shared" / "form-field.css").read_text(encoding="utf-8")
 
@@ -281,12 +283,17 @@ def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
             assert f'<div class="equipment-nik-cell">{header}</div>' in modal
         assert 'id="equipmentNIKListRefresh"' in modal
         assert 'id="equipmentNIKListRows"' in modal
-    assert "rc.request({operation:'READ',entity:'NIK'})" in EQUIPMENT_JS
-    assert "function refreshNIKList()" in EQUIPMENT_JS
-    assert "function renderNIKList()" in EQUIPMENT_JS
-    assert "operation:'CREATE',entity:'NIK'" not in EQUIPMENT_JS
-    assert "operation:'UPDATE',entity:'NIK'" not in EQUIPMENT_JS
-    assert "operation:'DELETE',entity:'NIK'" not in EQUIPMENT_JS
-    assert "NIK employee register: read-only view of the canonical A.3 worksheet." in EQUIPMENT_CSS
-    assert "#equipmentNIKListModal .equipment-nik-row{" in EQUIPMENT_CSS
+    for html in (artifact, snapshot):
+        assert 'nik.css?v=20261015-nik-module-split' in html
+        assert 'nik.js?v=20261015-nik-module-split' in html
+    assert "rc.request({operation:'READ',entity:'NIK'})" in NIK_JS
+    assert "function refresh()" in NIK_JS
+    assert "function render()" in NIK_JS
+    assert "operation:'CREATE',entity:'NIK'" not in NIK_JS
+    assert "operation:'UPDATE',entity:'NIK'" not in NIK_JS
+    assert "operation:'DELETE',entity:'NIK'" not in NIK_JS
+    assert "equipmentNIKListButton" not in EQUIPMENT_JS
+    assert "NIK employee register: read-only view of the canonical A.3 worksheet." in NIK_CSS
+    assert "#equipmentNIKListModal .equipment-nik-row{" in NIK_CSS
+    assert "equipmentNIKListModal" not in EQUIPMENT_CSS
 
