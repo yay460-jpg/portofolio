@@ -1,33 +1,28 @@
+/* Equipment master screen */
 #equipmentScreen{position:relative;flex:1 1 auto;display:none;flex-direction:column;width:100%;height:auto;min-width:0;min-height:0}
 #equipmentScreen.active{display:flex}
 #equipmentScreen .boundary{flex:1 1 auto;height:auto;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;position:relative;overflow:hidden}
 #equipmentScreen .head{height:48px;min-height:48px;flex:0 0 48px}
-
-
-#equipmentScreen .panel{background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}#equipmentScreen .filters{grid-template-columns:1.15fr 1.15fr 1.15fr 1fr 1fr 1fr auto}
-#equipmentScreen .field input:focus,#equipmentScreen .field select:focus{border-color:#4d8dff}
+#equipmentScreen .panel{background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}
+#equipmentScreen .filters{grid-template-columns:1.15fr 1.15fr 1.15fr 1fr 1fr 1fr auto}
+#equipmentScreen .field input:focus,#equipmentScreen .field select:focus,#equipmentModal .field input:focus,#equipmentModal .field select:focus{border-color:#4d8dff}
 #equipmentScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 #equipmentScreen .tablemeta{font-size:9px;color:var(--muted)}
 #equipmentScreen .equipment-map-meta{display:flex;align-items:center;gap:12px;min-width:0}
 #equipmentScreen #equipmentMapMsg{color:#8fa5bb}
 #equipmentScreen #equipmentMapMsg.error{color:#fca5a5}
-#equipmentScreen .tr{display:grid;grid-template-columns:150px 115px 125px 100px 115px 90px minmax(140px,1fr) 80px 100px 100px 185px;min-width:1300px;align-items:center}#equipmentScreen .row-actions{display:flex;align-items:center;justify-content:flex-start;gap:4px;white-space:nowrap;overflow:visible}
-#equipmentScreen .td{min-height:40px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}#equipmentScreen .cell{padding:0 9px}
-
+#equipmentScreen .tr{display:grid;grid-template-columns:150px 115px 125px 100px 115px 90px minmax(140px,1fr) 80px 100px 100px 185px;min-width:1300px;align-items:center}
+#equipmentScreen .row-actions{display:flex;align-items:center;justify-content:flex-start;gap:4px;white-space:nowrap;overflow:visible}
+#equipmentScreen .td{min-height:40px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}
+#equipmentScreen .cell{padding:0 9px}
 #equipmentScreen .active-status{background:#123d2b;color:#4ade80}
 #equipmentScreen .inactive-status{background:#493715;color:#fbbf24}
 #equipmentScreen .retired-status{background:#27364a;color:#a9b8c9}
 #equipmentScreen .mini{height:24px;padding:3px 7px;font-size:8px}
 #equipmentScreen .runtime-msg{font-size:9px;color:#8fa5bb;background:#0c1b2c;border:1px solid #29435d;padding:8px;border-radius:7px;grid-column:1/-1}
 #equipmentModal .modalbody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-#equipmentModal .field input:focus,#equipmentModal .field select:focus{border-color:#4d8dff}
-@media(max-width:1400px){#equipmentScreen .boundary{padding:18px}#equipmentScreen .filters{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}}
-@media(prefers-reduced-motion:reduce){#equipmentScreen *{scroll-behavior:auto}}
 
-
-
-
-/* Compact unit database modal: read-only projection of canonical Equipment records. */
+/* Unit List is a view over the canonical Equipment records, not a second database. */
 #equipmentUnitListModal .equipment-unit-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px}
 #equipmentUnitListModal .equipment-unit-head{position:sticky;top:0;z-index:1;background:#14263b;color:#8fa5bb;font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.025em}
 #equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head):hover{background:#12273d}
@@ -36,112 +31,33 @@
 #equipmentUnitListModal .equipment-unit-empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:12px}
 #equipmentUnitListModal .equipment-unit-empty.error{color:#fca5a5}
 #equipmentUnitListModal .modal-runtime-status{font-size:10px}
-
 #equipmentUnitListModal .equipment-unit-actions .delete-equipment{border-color:#ef4444;color:#fecaca;background:#401c25}
-
-
-/* Unit Database layout correction: keep all seven columns and both actions
-   visible without a horizontal scrollbar at normal desktop widths. */
-#equipmentUnitListModal .equipment-unit-modal{
- width:min(1240px,calc(100vw - 40px));
- max-width:1240px;
-}
-#equipmentUnitListModal .modalbody.equipment-unit-modal-body{
- display:flex;
- flex-direction:column;
- align-items:stretch;
- gap:10px;
- padding:14px;
- min-width:0;
- min-height:0;
- overflow:hidden;
-}
-#equipmentUnitListModal .equipment-unit-table{
- display:block;
- border:1px solid #28425c;
- border-radius:8px;
- background:#0c1b2c;
- width:100%;
- min-width:0;
- max-width:100%;
- max-height:min(58vh,560px);
- overflow:auto;
- overscroll-behavior:contain;
-}
-#equipmentUnitListModal .equipment-unit-row{
- display:grid;
- grid-template-columns:120px minmax(155px,1.3fr) minmax(120px,1fr) minmax(100px,.9fr) minmax(90px,.8fr) minmax(130px,1.1fr) 90px 112px;
- width:100%;
- min-width:0;
- box-sizing:border-box;
- align-items:center;
-}
-#equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head){
- border-bottom:1px solid #223b55;
-}
-#equipmentUnitListModal .equipment-unit-cell{
- min-width:0;
- box-sizing:border-box;
- padding:10px 8px;
- border-bottom:0;
- overflow-wrap:anywhere;
-}
-#equipmentUnitListModal .equipment-unit-actions{
- display:flex;
- justify-content:flex-start;
- align-items:center;
- align-self:stretch;
- gap:4px;
- min-width:0;
- box-sizing:border-box;
- background:transparent;
- white-space:nowrap;
-}
+#equipmentUnitListModal .equipment-unit-modal{width:min(1240px,calc(100vw - 40px));max-width:1240px}
+#equipmentUnitListModal .modalbody.equipment-unit-modal-body{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:14px;min-width:0;min-height:0;overflow:hidden}
+#equipmentUnitListModal .equipment-unit-table{display:block;border:1px solid #28425c;border-radius:8px;background:#0c1b2c;width:100%;min-width:0;max-width:100%;max-height:min(58vh,560px);overflow:auto;overscroll-behavior:contain}
+#equipmentUnitListModal .equipment-unit-row{display:grid;grid-template-columns:120px minmax(155px,1.3fr) minmax(120px,1fr) minmax(100px,.9fr) minmax(90px,.8fr) minmax(130px,1.1fr) 90px 112px;width:100%;min-width:0;box-sizing:border-box;align-items:center}
+#equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head){border-bottom:1px solid #223b55}
+#equipmentUnitListModal .equipment-unit-cell{min-width:0;box-sizing:border-box;padding:10px 8px;border-bottom:0;overflow-wrap:anywhere}
+#equipmentUnitListModal .equipment-unit-actions{display:flex;justify-content:flex-start;align-items:center;align-self:stretch;gap:4px;min-width:0;box-sizing:border-box;background:transparent;white-space:nowrap}
 #equipmentUnitListModal .equipment-unit-head .equipment-unit-cell{white-space:nowrap}
-#equipmentUnitListModal .equipment-unit-actions .mini{
- min-width:0;
- height:28px;
- padding:4px 8px;
- font-size:10px;
- flex:0 0 auto;
+#equipmentUnitListModal .equipment-unit-actions .mini{min-width:0;height:28px;padding:4px 8px;font-size:10px;flex:0 0 auto}
+#equipmentUnitListModal .equipment-unit-toolbar-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex:0 0 auto}
+#equipmentUnitListModal #equipmentUnitListAdd{min-width:86px}
+#equipmentUnitListModal .equipment-unit-type-filter{min-width:150px;max-width:210px;padding-right:26px}
+#equipmentUnitListModal > .modal.equipment-unit-modal > .modalfoot:empty{display:none;flex:0 0 0;min-height:0;height:0;padding:0;border:0;margin:0}
+#equipmentModal #f_eq_owner_name_help{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.35;font-weight:400}
+
+@media(max-width:1400px){
+ #equipmentScreen .boundary{padding:18px}
+ #equipmentScreen .filters{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}
 }
 @media(max-width:1000px){
  #equipmentUnitListModal .equipment-unit-modal{width:calc(100vw - 24px);max-width:none}
- #equipmentUnitListModal .equipment-unit-row{
-  grid-template-columns:110px minmax(145px,1.2fr) minmax(110px,1fr) minmax(95px,.9fr) minmax(85px,.8fr) minmax(120px,1fr) 85px 108px;
-  min-width:850px;
- }
-}
-
-
-/* Unit Database master-data actions */
-#equipmentUnitListModal .equipment-unit-toolbar-actions{
- display:flex;
- align-items:center;
- justify-content:flex-end;
- gap:8px;
- flex:0 0 auto;
-}
-#equipmentUnitListModal #equipmentUnitListAdd{
- min-width:86px;
+ #equipmentUnitListModal .equipment-unit-row{grid-template-columns:110px minmax(145px,1.2fr) minmax(110px,1fr) minmax(95px,.9fr) minmax(85px,.8fr) minmax(120px,1fr) 85px 108px;min-width:850px}
 }
 @media(max-width:520px){
- #equipmentUnitListModal .equipment-unit-toolbar{
-  align-items:flex-start;
-  flex-direction:column;
- }
- #equipmentUnitListModal .equipment-unit-toolbar-actions{
-  width:100%;
-  justify-content:flex-end;
- }
+ #equipmentUnitListModal .equipment-unit-toolbar{align-items:flex-start;flex-direction:column}
+ #equipmentUnitListModal .equipment-unit-toolbar-actions{width:100%;justify-content:flex-end}
+ #equipmentUnitListModal .equipment-unit-type-filter{flex:1;min-width:0;max-width:none}
 }
-
-
-/* Unit Database type filter: align with toolbar controls. */
-#equipmentUnitListModal .equipment-unit-type-filter{min-width:150px;max-width:210px;padding-right:26px}
-@media(max-width:520px){#equipmentUnitListModal .equipment-unit-type-filter{flex:1;min-width:0;max-width:none}}
-
-/* Unit Database keeps the shared shell footer node for contract validation, but has no footer content. Collapse the empty slot instead of reserving blank space. */
-#equipmentUnitListModal > .modal.equipment-unit-modal > .modalfoot:empty{display:none;flex:0 0 0;min-height:0;height:0;padding:0;border:0;margin:0}
-#equipmentModal .equipment-unit-reference-hint{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.35}
-#equipmentModal #f_eq_owner_name_help{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.35;font-weight:400}
+@media(prefers-reduced-motion:reduce){#equipmentScreen *{scroll-behavior:auto}}
