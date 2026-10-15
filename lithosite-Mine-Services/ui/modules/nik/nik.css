@@ -95,8 +95,8 @@
 #equipmentNIKListModal .equipment-nik-form{border:1px solid #28425c;border-radius:8px;background:#102136;padding:12px}
 #equipmentNIKListModal .equipment-nik-form[hidden]{display:none}
 #equipmentNIKListModal .equipment-nik-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-#equipmentNIKListModal .equipment-nik-form-grid label{display:flex;flex-direction:column;gap:5px;color:#8fa5bb;font-size:10px;font-weight:700;text-transform:uppercase}
-#equipmentNIKListModal .equipment-nik-form-grid input{width:100%;min-width:0;box-sizing:border-box;height:32px;border:1px solid #28425c;border-radius:6px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:11px;text-transform:none}
+#equipmentNIKListModal .equipment-nik-form-grid label{display:flex;flex-direction:column;gap:5px;color:#8fa5bb;font-size:10px;font-weight:600;text-transform:uppercase}
+#equipmentNIKListModal .equipment-nik-form-grid input{width:100%;min-width:0;box-sizing:border-box;height:32px;border:1px solid #28425c;border-radius:6px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font-family:inherit;font-size:11px;font-weight:400;line-height:normal;text-transform:none}
 #equipmentNIKListModal .equipment-nik-form-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px}
 #equipmentNIKListModal #equipmentNIKFormMessage{margin-right:auto;color:#9fb3c8;font-size:10px}
 #equipmentNIKListModal #equipmentNIKFormMessage:not(:empty){max-width:70%;overflow-wrap:anywhere}
