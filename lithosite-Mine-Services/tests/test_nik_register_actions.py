@@ -35,8 +35,13 @@ def test_nik_register_action_column_has_room_for_controls():
 
 def test_nik_runtime_routes_update_and_delete_to_canonical_workbook():
     assert 'if entity == "NIK":' in RUNTIME
-    assert "self._application.store.update_nik_record(entity_id, patch)" in RUNTIME
-    assert "self._application.store.delete_nik_record(entity_id)" in RUNTIME
+    assert 'return self._mutate_nik("UPDATE", entity_id, patch, request_id)' in RUNTIME
+    assert 'return self._mutate_nik("DELETE", entity_id, None, request_id)' in RUNTIME
+    assert "store.update_nik_record(entity_id, payload)" in RUNTIME
+    assert "store.delete_nik_record(entity_id)" in RUNTIME
+    assert "self._application._request_guard(request_id)" in RUNTIME
+    assert "self._application.audit_repository.append(" in RUNTIME
+    assert "store.replace(before_store)" in RUNTIME
     assert "def update_nik_record(self, entity_id, patch):" in PERSISTENCE
     assert "def delete_nik_record(self, entity_id):" in PERSISTENCE
     assert "temp_path.replace(self.path)" in PERSISTENCE
