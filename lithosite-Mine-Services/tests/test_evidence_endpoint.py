@@ -578,3 +578,62 @@ def test_evidence_file_endpoint_returns_not_found_for_missing_file(evidence_host
     payload = _payload(body)
     assert payload["status"] == "REJECTED"
     assert payload["errors"][0]["code"] == "HOST-001"
+
+
+def test_nik_profile_upload_saves_compressed_jpeg_and_replaces_previous_photo(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda nik_id: nik_id == "TEST-NIK-001")
+    params = {"nik_id": "TEST-NIK-001"}
+    jpeg = b"\xff\xd8\xfffirst-compressed-photo\xff\xd9"
+
+    status, _headers, body = _post_raw(base_url, "/nik/upload", params, jpeg, "image/jpeg")
+
+    assert status == 201
+    result = _payload(body)
+    assert result["status"] == "READY"
+    assert result["folder"] == "Database/NIK"
+    assert result["filename"] == "TEST-NIK-001.jpg"
+    assert result["size"] == len(jpeg)
+    saved = server.DB_PATH.parent / "NIK" / "TEST-NIK-001.jpg"
+    assert saved.read_bytes() == jpeg
+
+    # A later upload replaces the canonical JPEG and removes a stale alternate format.
+    (saved.parent / "TEST-NIK-001.png").write_bytes(b"old alternate")
+    replacement = b"\xff\xd8\xffreplacement-photo\xff\xd9"
+    status, _headers, body = _post_raw(base_url, "/nik/upload", params, replacement, "image/jpeg")
+    assert status == 201
+    assert saved.read_bytes() == replacement
+    assert not (saved.parent / "TEST-NIK-001.png").exists()
+
+    status, headers, body = _get(base_url, "/nik/profile", params)
+    assert status == 200
+    assert headers.get_content_type() == "image/jpeg"
+    assert headers.get("Cache-Control") == "no-store"
+    assert body == replacement
+
+
+@pytest.mark.parametrize(
+    ("params", "body", "content_type", "record_exists", "expected_status"),
+    [
+        ({"nik_id": "../outside"}, b"\xff\xd8\xffx\xff\xd9", "image/jpeg", True, 400),
+        ({"nik_id": "TEST-NIK-002"}, b"\xff\xd8\xffx\xff\xd9", "image/jpeg", False, 404),
+        ({"nik_id": "TEST-NIK-001"}, b"\xff\xd8\xffx\xff\xd9", "image/png", True, 415),
+        ({"nik_id": "TEST-NIK-001"}, b"not-a-jpeg", "image/jpeg", True, 415),
+        ({"nik_id": "TEST-NIK-001"}, b"x" * 100_001, "image/jpeg", True, 413),
+        ({"nik_id": "TEST-NIK-001"}, b"", "image/jpeg", True, 400),
+    ],
+)
+def test_nik_profile_upload_rejects_invalid_or_oversized_payloads(
+    evidence_host, monkeypatch, params, body, content_type, record_exists, expected_status
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda _nik_id: record_exists)
+
+    status, _headers, response_body = _post_raw(
+        base_url, "/nik/upload", params, body, content_type
+    )
+
+    assert status == expected_status
+    payload = _payload(response_body)
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"]
