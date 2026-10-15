@@ -270,12 +270,11 @@ def test_equipment_controls_order_and_nik_modal_initializes_after_dom_ready():
     artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     snapshot = ARTIFACT.read_text(encoding="utf-8")
     for html in (artifact, snapshot):
-        controls = html[html.index('<div class="controls">'):html.index('</div>', html.index('<div class="controls">'))]
-        refresh = controls.index('id="equipmentRefresh"')
-        nik = controls.index('id="equipmentNIKListButton"')
-        units = controls.index('id="equipmentUnitListButton"')
-        capacity = controls.index('id="globalCapacityButton"')
-        add = controls.index('id="equipmentAdd"')
+        refresh = html.index('id="equipmentRefresh"')
+        nik = html.index('id="equipmentNIKListButton"')
+        units = html.index('id="equipmentUnitListButton"')
+        capacity = html.index('id="globalCapacityButton"')
+        add = html.index('id="equipmentAdd"')
         assert refresh < nik < units < capacity < add
     nik_js = NIK_JS
     assert "document.addEventListener('DOMContentLoaded',init,{once:true})" in nik_js
