@@ -7,36 +7,6 @@ if(!modal)throw new Error('LithositeModalShowContract is required before the NIK
 
 const state={rows:[],status:'loading',error:'',saving:false};
 let editingId=null;
-let clearPhotoConfirmResolve=null;
-let clearPhotoConfirmReturnFocus=null;
-function settleClearPhotoConfirmation(confirmed){
- const resolve=clearPhotoConfirmResolve;
- if(!resolve)return;
- const previousFocus=clearPhotoConfirmReturnFocus;
- clearPhotoConfirmResolve=null;
- clearPhotoConfirmReturnFocus=null;
- const confirmModal=document.getElementById('nikProfileClearConfirmModal');
- if(confirmModal){
-  confirmModal.classList.remove('show','open');
-  confirmModal.hidden=true;
-  confirmModal.setAttribute('aria-hidden','true');
- }
- if(previousFocus&&document.contains(previousFocus)&&typeof previousFocus.focus==='function')previousFocus.focus();
- resolve(confirmed===true);
-}
-function requestClearPhotoConfirmation(id){
- const confirmModal=document.getElementById('nikProfileClearConfirmModal');
- const confirmId=document.getElementById('nikProfileClearConfirmId');
- const confirmAction=document.getElementById('nikProfileClearConfirmAction');
- if(!confirmModal||!confirmId||!confirmAction)return Promise.resolve(false);
- confirmId.textContent=String(id||'—');
- clearPhotoConfirmReturnFocus=document.activeElement;
- confirmModal.hidden=false;
- confirmModal.setAttribute('aria-hidden','false');
- confirmModal.classList.add('show','open');
- confirmAction.focus();
- return new Promise(function(resolve){clearPhotoConfirmResolve=resolve;});
-}
 function requestId(action){return 'nik-'+action+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);}
 let visibleRows=[];
 const FIELDS=['Effective From','Effective To','Id No (NIK)','Origin','Name Employment','Information'];
@@ -217,24 +187,24 @@ function bind(){
    }
   });
  }
- const clearConfirmClose=document.getElementById('nikProfileClearConfirmClose');
- const clearConfirmCancel=document.getElementById('nikProfileClearConfirmCancel');
- const clearConfirmAction=document.getElementById('nikProfileClearConfirmAction');
- const clearConfirmModal=document.getElementById('nikProfileClearConfirmModal');
- if(clearConfirmClose)clearConfirmClose.addEventListener('click',function(){settleClearPhotoConfirmation(false);});
- if(clearConfirmCancel)clearConfirmCancel.addEventListener('click',function(){settleClearPhotoConfirmation(false);});
- if(clearConfirmAction)clearConfirmAction.addEventListener('click',function(){settleClearPhotoConfirmation(true);});
- if(clearConfirmModal)clearConfirmModal.addEventListener('click',function(event){if(event.target===clearConfirmModal)settleClearPhotoConfirmation(false);});
- document.addEventListener('keydown',function(event){
-  if(event.key==='Escape'&&clearPhotoConfirmResolve){event.preventDefault();settleClearPhotoConfirmation(false);}
- });
  if(profileClearButton){
   profileClearButton.addEventListener('click',async function(){
    const id=profileClearButton.dataset.nikId;
    const profileMessage=document.getElementById('equipmentNIKProfileMessage');
    const profileImage=document.getElementById('equipmentNIKProfileImage');
    if(!id||!profileMessage||!profileImage)return;
-   if(!await requestClearPhotoConfirmation(id))return;
+   const confirmed=await global.LithositeDeleteConfirmContract.confirm({
+    entity:'Profile Photo',
+    title:'Clear Profile Photo',
+    id:id,
+    idLabel:'NIK ID',
+    message:'Clear the profile photo for this employee?',
+    warningTitle:'Only the photo will be removed.',
+    warning:'The employee biodata and NIK record will remain unchanged.',
+    footnote:'Photo deletion only · Biodata retained',
+    actionLabel:'Clear Photo'
+   });
+   if(!confirmed)return;
    profileClearButton.disabled=true;
    if(profileUploadButton)profileUploadButton.disabled=true;
    profileMessage.textContent='Clearing profile photo…';
