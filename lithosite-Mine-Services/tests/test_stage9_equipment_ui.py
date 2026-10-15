@@ -156,7 +156,7 @@ def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
     assert "equipment.css?v=20261015-equipment-contract-audit" in artifact
 
 def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal_overflow():
-    css = EQUIPMENT_CSS[EQUIPMENT_CSS.index('/* Unit Database layout correction'): ]
+    css = EQUIPMENT_CSS[EQUIPMENT_CSS.index('/* Unit List is a view over the canonical Equipment records'): ]
     assert 'width:100%;\n min-width:0;' in css
     assert 'grid-template-columns:120px minmax(155px,1.3fr)' in css
     assert 'min-width:850px' in css  # narrow-screen media override only
@@ -262,14 +262,41 @@ def test_global_capacity_modal_has_one_close_button_and_no_footer_action():
     assert "global-capacity.css?v=20261015-single-close" in snapshot
 
 
-def test_add_equipment_unit_reference_hint_uses_compact_module_typography():
+def test_equipment_owner_name_hint_has_compact_module_typography():
     artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     snapshot = ARTIFACT.read_text(encoding="utf-8")
     for html in (artifact, snapshot):
-        assert '<small class="equipment-unit-reference-hint">Select a registered unit to keep Equipment ID and Unit / Fleet No. linked.</small>' in html
+        assert 'id="f_eq_owner_name_help"' in html
         assert "equipment.css?v=20261015-equipment-contract-audit" in html
-    assert "#equipmentModal .equipment-unit-reference-hint{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.35}" in EQUIPMENT_CSS
-    assert ".equipment-unit-reference-hint" not in (Path(__file__).parents[1] / "ui" / "shared" / "form-field.css").read_text(encoding="utf-8")
+        assert 'id="f_eq_unit_reference"' not in html
+    assert "#equipmentModal #f_eq_owner_name_help{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.35;font-weight:400}" in EQUIPMENT_CSS
+    assert ".equipment-unit-reference-hint" not in EQUIPMENT_CSS
+
+def test_equipment_reads_canonical_records_through_one_shared_refresh_function():
+    assert "async function readCanonicalRecords()" in EQUIPMENT_JS
+    assert EQUIPMENT_JS.count("rc.request({operation:'READ',entity:'Equipment'})") == 1
+    assert EQUIPMENT_JS.count("rc.request({operation:'READ',entity:'GlobalCapacity'})") == 1
+    assert "await readCanonicalRecords();" in EQUIPMENT_JS
+    assert "await refreshData();" in EQUIPMENT_JS
+    assert "state.status='error';render();renderUnitList();" in EQUIPMENT_JS
+
+def test_equipment_modals_have_distinct_responsibilities_and_shared_shell_contract():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    shell = (Path(__file__).parents[1] / "ui" / "shared" / "modal-show-contract.js").read_text(encoding="utf-8")
+    for html in (artifact, TEXT):
+        equipment_start = html.index('id="equipmentModal"')
+        unit_start = html.index('id="equipmentUnitListModal"')
+        assert equipment_start < unit_start
+        assert 'aria-labelledby="equipmentModalTitle"' in html
+        assert 'aria-labelledby="equipmentUnitListTitle"' in html
+        assert html.count('id="equipmentModal"') == 1
+        assert html.count('id="equipmentUnitListModal"') == 1
+    assert "'equipmentModal'" in shell
+    assert "'equipmentUnitListModal'" in shell
+    assert "global.LithositeModalShowContract.show('equipmentModal')" in EQUIPMENT_JS
+    assert "global.LithositeModalShowContract.show('equipmentUnitListModal')" in EQUIPMENT_JS
+    assert "global.LithositeDeleteConfirmContract.confirm({" in EQUIPMENT_JS
+    assert "if(!confirm(" not in EQUIPMENT_JS
 
 def test_equipment_controls_order_and_nik_modal_initializes_after_dom_ready():
     artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
