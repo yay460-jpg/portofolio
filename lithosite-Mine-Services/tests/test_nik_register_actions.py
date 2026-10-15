@@ -11,7 +11,7 @@ RUNTIME = (ROOT / "src" / "mine_services" / "runtime.py").read_text(encoding="ut
 def test_nik_register_has_action_column_and_form_title():
     modal = ARTIFACT[ARTIFACT.index('id="equipmentNIKListModal"'):ARTIFACT.index('id="equipmentUnitListModal"')]
     assert '<div class="equipment-nik-cell">Information</div><div class="equipment-nik-cell">Action</div>' in modal
-    assert 'id="equipmentNIKFormTitle">Add NIK</span>' in modal
+    assert 'id="equipmentNIKFormTitle">Add NIK</div>' in modal
 
 
 def test_nik_register_renders_edit_and_delete_actions():
@@ -41,5 +41,5 @@ def test_nik_runtime_routes_update_and_delete_to_canonical_workbook():
 def test_nik_edit_delete_keep_the_canonical_six_headers_and_validate_required_fields():
     assert 'record = {header: str(patch.get(header) or "").strip() for header in self.schema.NIK_HEADERS}' in PERSISTENCE
     assert 'if not record["Id No (NIK)"] or not record["Name Employment"]:' in PERSISTENCE
-    assert 'NIK ID cannot be changed while editing a record' in PERSISTENCE
+    assert 'Id No (NIK) cannot be changed while editing a record' in PERSISTENCE
     assert 'worksheet.delete_rows(target_row, 1)' in PERSISTENCE
