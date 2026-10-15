@@ -139,6 +139,7 @@ function bind(){
     return;
    }
    profileUploadButton.disabled=true;
+   if(profileClearButton)profileClearButton.disabled=true;
    profileMessage.textContent='Compressing photo to 100 KB or less…';
    try{
     if(typeof global.createImageBitmap!=='function')throw new Error('This browser does not support image compression.');
@@ -181,6 +182,7 @@ function bind(){
     profileMessage.textContent=String(error&&error.message||error);
    }finally{
     profileUploadButton.disabled=false;
+    if(profileClearButton)profileClearButton.disabled=false;
     profileUploadInput.value='';
    }
   });
