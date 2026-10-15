@@ -86,3 +86,26 @@
  #equipmentNIKListModal .equipment-nik-row{min-width:900px}
  #equipmentNIKListModal .equipment-nik-toolbar{align-items:flex-start}
 }
+
+/* NIK register controls: compact create form and client-side list filters. */
+#equipmentNIKListModal .equipment-nik-tools{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+#equipmentNIKListModal .equipment-nik-tools input,
+#equipmentNIKListModal .equipment-nik-tools select{height:30px;min-width:135px;max-width:220px;box-sizing:border-box;border:1px solid #28425c;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px}
+#equipmentNIKListModal .equipment-nik-tools input{width:190px}
+#equipmentNIKListModal .equipment-nik-form{border:1px solid #28425c;border-radius:8px;background:#102136;padding:12px}
+#equipmentNIKListModal .equipment-nik-form[hidden]{display:none}
+#equipmentNIKListModal .equipment-nik-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#equipmentNIKListModal .equipment-nik-form-grid label{display:flex;flex-direction:column;gap:5px;color:#8fa5bb;font-size:10px;font-weight:700;text-transform:uppercase}
+#equipmentNIKListModal .equipment-nik-form-grid input{width:100%;min-width:0;box-sizing:border-box;height:32px;border:1px solid #28425c;border-radius:6px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:11px;text-transform:none}
+#equipmentNIKListModal .equipment-nik-form-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px}
+#equipmentNIKListModal #equipmentNIKFormMessage{margin-right:auto;color:#9fb3c8;font-size:10px}
+#equipmentNIKListModal #equipmentNIKFormMessage:not(:empty){max-width:70%;overflow-wrap:anywhere}
+#equipmentNIKListModal #equipmentNIKFormMessage.error{color:#fca5a5}
+#equipmentNIKListModal .equipment-nik-tools button:disabled,
+#equipmentNIKListModal .equipment-nik-form-actions button:disabled{opacity:.55;cursor:wait}
+@media(max-width:760px){
+ #equipmentNIKListModal .equipment-nik-toolbar{align-items:stretch;flex-direction:column}
+ #equipmentNIKListModal .equipment-nik-tools{justify-content:flex-start}
+ #equipmentNIKListModal .equipment-nik-tools input{width:100%;max-width:none;flex:1 1 100%}
+ #equipmentNIKListModal .equipment-nik-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
