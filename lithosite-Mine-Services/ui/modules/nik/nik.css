@@ -169,8 +169,30 @@
 #equipmentNIKProfileModal .equipment-nik-profile-message{flex:0 0 auto;margin:0;color:var(--muted);font-size:11px;text-align:center;overflow-wrap:anywhere}
 
 
-/* NIK profile upload controls and size guidance. */
-#equipmentNIKProfileModal .equipment-nik-profile-upload-tools{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
-#equipmentNIKProfileModal .equipment-nik-profile-upload-help{margin:0;color:var(--muted);font-size:10px;text-align:center}
-#equipmentNIKProfileModal #equipmentNIKProfileUpload:disabled{opacity:.6;cursor:wait}
+/* Keep profile actions together in the modal footer, below the photo area. */
+#equipmentNIKProfileModal .modalfoot.equipment-nik-profile-footer{
+ display:flex;
+ flex:0 0 auto;
+ align-items:center;
+ justify-content:center;
+ min-height:70px;
+ padding:10px 14px;
+}
+#equipmentNIKProfileModal .equipment-nik-profile-upload-tools{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:8px;
+ flex-wrap:wrap;
+}
+#equipmentNIKProfileModal .equipment-nik-profile-upload-help{
+ flex:1 1 100%;
+ margin:0;
+ color:var(--muted);
+ font-size:10px;
+ text-align:center;
+}
+#equipmentNIKProfileModal #equipmentNIKProfileUpload:disabled,
+#equipmentNIKProfileModal #equipmentNIKProfileClear:disabled{opacity:.6;cursor:wait}
+#equipmentNIKProfileModal #equipmentNIKProfileClear{border-color:#8b3944;color:#fecaca}
 #equipmentNIKProfileModal #equipmentNIKProfileFile{display:none}
