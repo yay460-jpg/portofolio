@@ -27,14 +27,16 @@ def test_global_capacity_list_and_editor_have_independent_single_close_controls(
             ("capacityModal", "capacityClose"),
             ("capacityEditModal", "capacityEditClose"),
         ):
-            root = re.search(
-                rf'<div class="modalback" id="{modal_id}"[^>]*>(.*?)</div></div>',
-                html,
-                flags=re.S,
-            )
-            assert root, f"Missing modal root: {modal_id}"
-            assert root.group(1).count(f'id="{close_id}"') == 1
-            assert root.group(1).count(">Close</button>") == 1
+            start = html.find(f'<div class="modalback" id="{modal_id}"')
+            assert start >= 0, f"Missing modal root: {modal_id}"
+            if modal_id == "capacityModal":
+                end = html.find('<div class="modalback" id="capacityEditModal"', start)
+            else:
+                end = html.find('<section id="maintenanceScreen"', start)
+            assert end > start, f"Could not bound modal markup: {modal_id}"
+            root = html[start:end]
+            assert root.count(f'id="{close_id}"') == 1
+            assert root.count(">Close</button>") == 1
 
 
 def test_global_capacity_cache_keys_match_between_served_artifact_and_snapshot():
