@@ -35,7 +35,7 @@
 }
 #equipmentNIKListModal .equipment-nik-row{
  display:grid;
- grid-template-columns:120px 120px 145px minmax(110px,1fr) minmax(145px,1.2fr) minmax(160px,1.4fr);
+ grid-template-columns:120px 120px 145px minmax(110px,1fr) minmax(145px,1.2fr) minmax(160px,1.4fr) 140px;
  width:100%;
  min-width:900px;
  box-sizing:border-box;
@@ -109,3 +109,7 @@
  #equipmentNIKListModal .equipment-nik-tools input{width:100%;max-width:none;flex:1 1 100%}
  #equipmentNIKListModal .equipment-nik-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+#equipmentNIKListModal .equipment-nik-actions{display:flex;align-items:center;gap:5px;white-space:nowrap}
+#equipmentNIKListModal .equipment-nik-actions .control{padding:5px 8px;min-width:0}
+#equipmentNIKListModal .equipment-nik-actions .danger{border-color:#8b3944;color:#fecaca}
