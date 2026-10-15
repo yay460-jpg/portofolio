@@ -129,9 +129,9 @@
 #equipmentNIKListModal .equipment-nik-profile-action{display:flex;align-items:center;justify-content:flex-start}
 #equipmentNIKListModal .equipment-nik-profile-action .control{padding:5px 10px;min-width:0}
 #equipmentNIKProfileModal .equipment-nik-profile-modal{
- width:min(750px,calc(100vw - 40px));
- max-width:750px;
- height:min(550px,calc(100dvh - 64px));
+ width:min(700px,calc(100vw - 40px));
+ max-width:700px;
+ height:min(500px,calc(100dvh - 64px));
  max-height:calc(100dvh - 48px);
  display:flex;
  flex-direction:column;
