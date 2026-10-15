@@ -71,7 +71,7 @@ def test_nik_register_uses_employee_icon_and_wheel_scroll_without_visible_scroll
     assert "circle cx=\"12\" cy=\"8\" r=\"3.4\"" in modal
     assert "#equipmentNIKListModal .equipment-nik-table{overflow:auto;scrollbar-width:none;-ms-overflow-style:none}" in NIK_CSS
     assert "#equipmentNIKListModal .equipment-nik-table::-webkit-scrollbar{display:none;width:0;height:0}" in NIK_CSS
-    assert "nik.css?v=20261015-nik-profile-delete-confirm" in ARTIFACT
+    assert "nik.css?v=20261015-shared-clear-confirm" in ARTIFACT
 
 
 def test_nik_profile_column_and_preview_modal_are_wired():
@@ -84,12 +84,12 @@ def test_nik_profile_column_and_preview_modal_are_wired():
     assert 'id="equipmentNIKProfileModal"' in ARTIFACT
     assert 'id="equipmentNIKProfileImage"' in ARTIFACT
     assert 'id="equipmentNIKProfileClose"' in ARTIFACT
-    assert "nik.js?v=20261015-nik-profile-delete-confirm" in ARTIFACT
-    assert "nik.css?v=20261015-nik-profile-delete-confirm" in ARTIFACT
+    assert "nik.js?v=20261015-shared-clear-confirm" in ARTIFACT
+    assert "nik.css?v=20261015-shared-clear-confirm" in ARTIFACT
 
 
 def test_equipment_owner_name_helper_text_uses_compact_hint_typography():
     equipment_css = (ROOT / "ui" / "modules" / "equipment" / "equipment.css").read_text(encoding="utf-8")
     assert "#equipmentModal #f_eq_owner_name_help" in equipment_css
     assert "font-size:9px;line-height:1.35;font-weight:400" in equipment_css
-    assert "equipment.css?v=20261015-owner-name-hint-compact" in ARTIFACT
+    assert "equipment.css?v=20261015-equipment-contract-audit" in ARTIFACT
