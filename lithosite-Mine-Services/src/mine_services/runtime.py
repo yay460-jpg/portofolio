@@ -34,6 +34,9 @@ class RuntimeInterface:
         self._marker_location = MarkerLocationBackupManager(marker_location_dir)
 
     def create(self, entity, row, request_id):
+        if entity == "NIK":
+            record = self._application.store.create_nik_record(row)
+            return {"status": "COMMITTED", "entity_id": record["Id No (NIK)"]}
         return self._application.create(entity, row, request_id)
 
     def update(self, entity, entity_id, patch, request_id):
