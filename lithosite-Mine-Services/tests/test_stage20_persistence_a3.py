@@ -7,7 +7,10 @@ from openpyxl.worksheet.table import Table
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from mine_services.persistence import PersistenceStore
-from mine_services.schema import SCHEMA_VERSION, SHEETS, HEADERS, CONTROLLED
+from mine_services.schema import SCHEMA_VERSION, SHEETS, HEADERS, CONTROLLED, NIK_HEADERS
+from mine_services.application import ApplicationService
+from mine_services.runtime import RuntimeInterface
+from mine_services.adapter import RuntimeAdapter
 
 
 def make_a3_workbook(path: Path):
@@ -264,3 +267,36 @@ def test_stage20_a3_persistence_upgrades_empty_nik_placeholder_in_place(tmp_path
     from mine_services.schema import NIK_HEADERS
     assert list(migrated["NIK"].values) == [tuple(NIK_HEADERS)]
     assert migrated.sheetnames.count("NIK") == 1
+
+def test_stage20_nik_list_reads_canonical_rows_through_runtime_adapter(tmp_path):
+    target = tmp_path / "a3-nik-list.xlsx"
+    make_a3_workbook(target)
+    workbook = load_workbook(target)
+    workbook["NIK"].append([
+        "2026-01-12", "2026-12-31", "NIK-001", "Sulawesi",
+        "Mine Services", "Permanent staff",
+    ])
+    workbook["NIK"].append([None, None, None, None, None, None])
+    workbook.save(target)
+
+    store = PersistenceStore(target)
+    runtime = RuntimeInterface(application=ApplicationService(store=store))
+    adapter = RuntimeAdapter(runtime)
+    response = adapter.handle({
+        "request_id": "read-nik-list-001",
+        "operation": "READ",
+        "entity": "NIK",
+    })
+
+    assert response["status"] == "OK"
+    assert response["data"] == [{
+        NIK_HEADERS[0]: "2026-01-12",
+        NIK_HEADERS[1]: "2026-12-31",
+        NIK_HEADERS[2]: "NIK-001",
+        NIK_HEADERS[3]: "Sulawesi",
+        NIK_HEADERS[4]: "Mine Services",
+        NIK_HEADERS[5]: "Permanent staff",
+    }]
+    assert "NIK" not in store.schema.DOMAIN_ENTITIES
+    assert "NIK" in RuntimeAdapter.READ_ENTITIES
+
