@@ -19,10 +19,12 @@ def test_nik_profile_column_and_preview_modal_are_synchronized():
         assert 'id="equipmentNIKProfileImage"' in html
         assert 'id="equipmentNIKProfileClose"' in html
         assert 'id="equipmentNIKProfileUpload"' in html
+        assert 'id="equipmentNIKProfileClear"' in html
+        assert 'class="modalfoot equipment-nik-profile-footer"' in html
         assert 'id="equipmentNIKProfileFile" accept="image/*"' in html
         assert "automatically compressed to 100 KB or less" in html
-        assert "nik.js?v=20261015-nik-profile-upload" in html
-        assert "nik.css?v=20261015-nik-profile-upload" in html
+        assert "nik.js?v=20261015-nik-profile-actions" in html
+        assert "nik.css?v=20261015-nik-profile-actions" in html
     assert "'equipmentNIKProfileModal'," in MODAL_CONTRACT
     assert 'class="control mini view-nik-profile"' in NIK_JS
     assert "closest('.view-nik-profile')" in NIK_JS
@@ -43,7 +45,10 @@ def test_nik_profile_photo_uses_safe_dedicated_host_endpoint():
     assert "MAX_NIK_PROFILE_UPLOAD_BYTES = 2_000_000" in SERVER
     assert "MAX_NIK_PROFILE_BYTES = 100_000" in SERVER
     assert 'if post_path == "/nik/upload":' in SERVER
+    assert 'if post_path == "/nik/clear":' in SERVER
     assert "def _nik_record_exists(nik_id: str) -> bool:" in SERVER
+    assert "fetch('/nik/clear?nik_id='" in NIK_JS
+    assert "Use Upload Photo to add one." in NIK_JS
 
 
 def test_nik_profile_column_has_dedicated_compact_layout():
