@@ -117,3 +117,9 @@
 
 /* Keep the edit heading compact and visually aligned with the register controls. */
 #equipmentNIKListModal .equipment-nik-form-title{font-size:13px;font-weight:600;line-height:1.25;margin:0 0 4px}
+
+
+/* Keep native wheel scrolling while hiding the visual scrollbar in the NIK register. */
+#equipmentNIKListModal .equipment-nik-table{overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
+#equipmentNIKListModal .equipment-nik-table::-webkit-scrollbar{display:none;width:0;height:0}
+#equipmentNIKListModal .equipment-nik-title-icon{fill:none;stroke:currentColor}
