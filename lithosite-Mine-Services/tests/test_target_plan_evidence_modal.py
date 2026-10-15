@@ -165,9 +165,9 @@ def test_shared_evidence_assets_use_current_cache_keys_and_load_before_plans():
     assert HTML.index("evidence.js?v=20261018") < HTML.index("maintenance.js?v=20261012")
     assert HTML.index("evidence.js?v=20261018") < HTML.index("hse.js?v=20261006")
     assert "evidence.css?v=20261012" in HTML
-    assert "modal-show-contract.js?v=20261028" in HTML
+    assert "modal-show-contract.js?v=20261015-nik-modal" in HTML
     assert HTML.index("runtime-client.js") < HTML.index("evidence.js?v=20261018")
-    assert HTML.index("modal-show-contract.js?v=20261028") < HTML.index("evidence.js?v=20261018")
+    assert HTML.index("modal-show-contract.js?v=20261015-nik-modal") < HTML.index("evidence.js?v=20261018")
     assert HTML.index("evidence.js?v=20261018") < HTML.index("plans.js?v=20261030")
     assert HTML.index("evidence.css?v=20261012") < HTML.index("</head>")
     assert "#evidenceModal .evidence-layout" in EVIDENCE_CSS
