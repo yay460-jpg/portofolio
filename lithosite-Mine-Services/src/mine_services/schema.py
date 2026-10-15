@@ -6,7 +6,7 @@ module with the next active schema version.
 """
 
 SCHEMA_VERSION = "A.3"
-NIK_HEADERS = ["effective_from", "effective_to", "id_no", "origin", "name_employment", "information"]
+NIK_HEADERS = ["Effective From", "Effective To", "Id No (NIK)", "Origin", "Name Employment", "Information"]
 SHEETS = ["_Baseline","_System","_Lists","Equipment","NIK","WorkFront","GlobalCapacity","Checker","Operations","Maintenance","Issues","Plans","HSE","MapMarker","AuditLog"]
 DOMAIN_ENTITIES = ["Equipment","WorkFront","GlobalCapacity","Checker","Operations","Maintenance","Issues","Plans","HSE","MapMarker"]
 
