@@ -17,7 +17,7 @@ from mine_services import (
 def valid_equipment(equipment_id="EQ-01"):
     return {
         "equipment_id": equipment_id,
-        "unit_no": "DT-001",
+        "unit_no": f"DT-{str(equipment_id).replace('EQ-', '').replace('E-', '')}",
         "category": "Heavy Equipment",
         "type": "Dump Truck",
         "owner_type": "Owner",
