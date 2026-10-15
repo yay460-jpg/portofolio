@@ -5,7 +5,8 @@ const modal=global.LithositeModalShowContract;
 if(!rc)throw new Error('LithositeRuntimeClient is required before the NIK module');
 if(!modal)throw new Error('LithositeModalShowContract is required before the NIK module');
 
-const state={rows:[],status:'loading',error:''};
+const state={rows:[],status:'loading',error:'',saving:false};
+let visibleRows=[];
 const FIELDS=['Effective From','Effective To','Id No (NIK)','Origin','Name Employment','Information'];
 
 function esc(value){
@@ -19,6 +20,24 @@ function notifyConsumers(){
   rows:state.rows.map(function(row){return Object.assign({},row);}),
   error:state.error
  }}));
+}
+function filteredRows(){
+ const search=String(document.getElementById('equipmentNIKSearch')?.value||'').trim().toLocaleLowerCase();
+ const origin=String(document.getElementById('equipmentNIKOriginFilter')?.value||'');
+ return state.rows.filter(function(row){
+  const matchesOrigin=!origin||String(row.Origin||'')===origin;
+  const matchesSearch=!search||FIELDS.some(function(field){return String(row[field]??'').toLocaleLowerCase().includes(search);});
+  return matchesOrigin&&matchesSearch;
+ });
+}
+function syncOriginFilter(){
+ const select=document.getElementById('equipmentNIKOriginFilter');
+ if(!select)return;
+ const current=select.value;
+ const origins=Array.from(new Set(state.rows.map(function(row){return String(row.Origin||'').trim();}).filter(Boolean))).sort();
+ select.replaceChildren(new Option('All origins',''));
+ origins.forEach(function(origin){select.add(new Option(origin,origin));});
+ if(origins.includes(current))select.value=current;
 }
 function render(){
  const host=document.getElementById('equipmentNIKListRows');
@@ -34,13 +53,14 @@ function render(){
   count.textContent='Unavailable';
   return;
  }
- host.innerHTML=state.rows.length?state.rows.map(function(row){
+ visibleRows=filteredRows();
+ host.innerHTML=visibleRows.length?visibleRows.map(function(row){
   return '<div class="equipment-nik-row">'+FIELDS.map(function(field){
    const value=row[field];
    return '<div class="equipment-nik-cell">'+esc(value===null||value===undefined||value===''?'—':value)+'</div>';
   }).join('')+'</div>';
- }).join(''):'<div class="equipment-nik-empty">No employee records found in the NIK sheet.</div>';
- count.textContent=state.rows.length+' employees · RuntimeAdapter · Read-only';
+ }).join(''):'<div class="equipment-nik-empty">'+(state.rows.length?'No employees match the current filters.':'No employee records found in the NIK sheet.')+'</div>';
+ count.textContent=visibleRows.length+' of '+state.rows.length+' employees · RuntimeAdapter';
 }
 async function refresh(){
  state.status='loading';
@@ -57,6 +77,7 @@ async function refresh(){
    return row&&FIELDS.some(function(field){return row[field]!==null&&row[field]!==undefined&&row[field]!=='';});
   });
   state.status='ready';
+  syncOriginFilter();
  }catch(error){
   state.status='error';
   state.error=String(error&&error.message||error);
@@ -79,9 +100,55 @@ function bind(){
  const openButton=document.getElementById('equipmentNIKListButton');
  const closeButton=document.getElementById('equipmentNIKListClose');
  const refreshButton=document.getElementById('equipmentNIKListRefresh');
+ const addButton=document.getElementById('equipmentNIKAdd');
+ const cancelButton=document.getElementById('equipmentNIKCancel');
+ const form=document.getElementById('equipmentNIKForm');
+ const message=document.getElementById('equipmentNIKFormMessage');
  if(openButton)openButton.addEventListener('click',open);
  if(closeButton)closeButton.addEventListener('click',function(){modal.close('equipmentNIKListModal');});
  if(refreshButton)refreshButton.addEventListener('click',refresh);
+ if(addButton)addButton.addEventListener('click',function(){
+  if(!form)return;
+  form.hidden=!form.hidden;
+  if(!form.hidden){message.textContent='';form.querySelector('[name="Id No (NIK)"]').focus();}
+ });
+ if(cancelButton)cancelButton.addEventListener('click',function(){form.reset();form.hidden=true;message.textContent='';});
+ const search=document.getElementById('equipmentNIKSearch');
+ const origin=document.getElementById('equipmentNIKOriginFilter');
+ if(search)search.addEventListener('input',render);
+ if(origin)origin.addEventListener('change',render);
+ if(form)form.addEventListener('submit',async function(event){
+  event.preventDefault();
+  if(state.saving)return;
+  const values=new FormData(form);
+  const row={};
+  FIELDS.forEach(function(field){row[field]=String(values.get(field)||'').trim();});
+  if(!row['Id No (NIK)']||!row['Name Employment']){
+   message.textContent='Id No (NIK) and Name Employment are required.';
+   return;
+  }
+  state.saving=true;
+  const save=document.getElementById('equipmentNIKSave');
+  if(save)save.disabled=true;
+  message.textContent='Saving employee to A3…';
+  try{
+   const result=await rc.request({operation:'CREATE',entity:'NIK',row:row});
+   if(result.status!=='COMMITTED'||result.errors?.length){
+    throw new Error((result.errors||[]).map(function(item){return item.message;}).join('; ')||'RuntimeAdapter did not commit the NIK record');
+   }
+   form.reset();
+   form.hidden=true;
+   message.textContent='';
+   await refresh();
+   const runtimeMessage=document.getElementById('equipmentRuntimeMsg');
+   if(runtimeMessage){runtimeMessage.textContent='NIK employee saved to A3.';runtimeMessage.classList.remove('error');}
+  }catch(error){
+   message.textContent=String(error&&error.message||error);
+  }finally{
+   state.saving=false;
+   if(save)save.disabled=false;
+  }
+ });
 }
 function init(){
  bind();
