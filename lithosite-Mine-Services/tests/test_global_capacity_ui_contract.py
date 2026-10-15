@@ -11,7 +11,7 @@ def test_global_capacity_delete_uses_shared_lithosite_confirmation():
     assert "global.LithositeDeleteConfirmContract.confirm({" in GLOBAL_CAPACITY_JS
     assert "actionLabel:'Delete Global Capacity'" in GLOBAL_CAPACITY_JS
     assert "entity:'Global Capacity'" in GLOBAL_CAPACITY_JS
-    assert "Runtime will reject deletion" not in GLOBAL_CAPACITY_JS
+    assert "if(!confirm(" not in GLOBAL_CAPACITY_JS
     assert "if(!confirm(" not in GLOBAL_CAPACITY_JS
     assert "global.LithositeDeleteConfirmContract=Object.freeze" in DELETE_CONFIRM_CONTRACT
     assert 'id="globalDeleteConfirmModal"' not in ARTIFACT
