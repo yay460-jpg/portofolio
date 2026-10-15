@@ -398,6 +398,7 @@ function bind(){
  });
  document.getElementById('equipmentSave').onclick=save;
  document.getElementById('f_eq_capacity_profile').addEventListener('change',updateCapacitySummary);
+ document.getElementById('f_eq_type').addEventListener('change',updateCapacitySummary);
  document.getElementById('equipmentClose').onclick=closeEquipmentForm;
  document.getElementById('equipmentCancel').onclick=closeEquipmentForm;
  document.getElementById('equipmentClear').onclick=()=>{['equipmentIdFilter','equipmentMasterGroupFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
