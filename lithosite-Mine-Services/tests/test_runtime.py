@@ -235,6 +235,7 @@ def test_equipment_delete_is_rejected_when_referenced_by_maintenance():
     maintenance = {
         "maintenance_id": "M-EQ-REF",
         "equipment_id": "EQ-MAINT-REF",
+        "event_date": "2026-10-16",
         "event_type": "Preventive",
         "failure_code": "",
         "action": "Scheduled inspection",
