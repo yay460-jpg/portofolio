@@ -9,7 +9,7 @@ from mine_services import ApplicationService
 def valid_equipment(equipment_id="EQ-01"):
     return {
         "equipment_id": equipment_id,
-        "unit_no": "DT-001",
+        "unit_no": f"DT-{str(equipment_id).replace('EQ-', '').replace('E-', '')}",
         "category": "Heavy Equipment",
         "type": "Dump Truck",
         "owner_type": "Owner",
@@ -236,7 +236,7 @@ def test_equipment_unit_number_must_be_unique_case_insensitively():
 
 
 def test_equipment_unit_number_update_allows_same_record_but_rejects_other_record_duplicate():
-    app = ApplicationService(PersistenceStore())
+    app = ApplicationService()
     first = valid_equipment("EQ-UNIT-UPDATE-1")
     first["unit_no"] = "DT-UNIQUE-101"
     second = valid_equipment("EQ-UNIT-UPDATE-2")
