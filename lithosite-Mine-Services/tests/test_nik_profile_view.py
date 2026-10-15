@@ -28,8 +28,8 @@ def test_nik_profile_column_and_preview_modal_are_synchronized():
         assert 'class="equipment-nik-profile-actions-help">Original image max 2 MB' in html
         assert 'id="equipmentNIKProfileFile" accept="image/*"' in html
         assert "automatically compressed to 100 KB or less" in html
-        assert "nik.js?v=20261015-nik-profile-confirm" in html
-        assert "nik.css?v=20261015-nik-profile-confirm" in html
+        assert "nik.js?v=20261015-nik-profile-delete-confirm" in html
+        assert "nik.css?v=20261015-nik-profile-delete-confirm" in html
     assert "'equipmentNIKProfileModal'," in MODAL_CONTRACT
     assert 'class="control mini view-nik-profile"' in NIK_JS
     assert "closest('.view-nik-profile')" in NIK_JS
