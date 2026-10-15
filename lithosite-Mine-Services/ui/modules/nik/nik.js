@@ -10,6 +10,7 @@ let editingId=null;
 function requestId(action){return 'nik-'+action+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);}
 let visibleRows=[];
 const FIELDS=['Effective From','Effective To','Id No (NIK)','Origin','Name Employment','Information'];
+const TEMPORARY_TEST_INFORMATION='TEMPORARY TEST DATA — remove after validation';
 
 function esc(value){
  return String(value??'').replace(/[&<>"']/g,function(character){
@@ -77,6 +78,10 @@ async function refresh(){
   if(!Array.isArray(result.data))throw new Error('RuntimeAdapter returned no NIK data array');
   state.rows=result.data.filter(function(row){
    return row&&FIELDS.some(function(field){return row[field]!==null&&row[field]!==undefined&&row[field]!=='';});
+  }).map(function(row){
+   const clean=Object.assign({},row);
+   if(String(clean.Information||'').trim()===TEMPORARY_TEST_INFORMATION)clean.Information='';
+   return clean;
   });
   state.status='ready';
   syncOriginFilter();
