@@ -21,6 +21,8 @@ def test_nik_profile_column_and_preview_modal_are_synchronized():
         assert 'id="equipmentNIKProfileUpload"' in html
         assert 'id="equipmentNIKProfileClear"' in html
         assert 'class="modalfoot equipment-nik-profile-footer"' in html
+        assert 'class="equipment-nik-profile-actions-tools"' in html
+        assert 'class="equipment-nik-profile-actions-help">Original image max 2 MB' in html
         assert 'id="equipmentNIKProfileFile" accept="image/*"' in html
         assert "automatically compressed to 100 KB or less" in html
         assert "nik.js?v=20261015-nik-profile-actions" in html
