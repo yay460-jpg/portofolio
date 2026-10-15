@@ -1318,6 +1318,11 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 target_dir = ensure_nik_profile_directory()
                 target_file = target_dir / f"{nik_id}.jpg"
+                replaced = any(
+                    (target_dir / f"{nik_id}{extension}").is_file()
+                    for extension in NIK_PROFILE_EXTENSIONS
+                    if not _is_evidence_link(target_dir / f"{nik_id}{extension}")
+                )
                 if _is_evidence_link(target_file):
                     raise ValueError("Invalid NIK profile image path")
                 with tempfile.NamedTemporaryFile(prefix=f".{nik_id}-", suffix=".tmp", dir=target_dir, delete=False) as stream:
@@ -1349,7 +1354,7 @@ class Handler(BaseHTTPRequestHandler):
                 "filename": f"{nik_id}.jpg",
                 "size": len(body),
                 "mime_type": "image/jpeg",
-                "replaced": True,
+                "replaced": replaced,
             }, origin)
             return
 
