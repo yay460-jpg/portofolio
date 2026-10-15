@@ -1277,6 +1277,49 @@ class Handler(BaseHTTPRequestHandler):
         origin = self.headers.get("Origin")
         post_path = unquote(self.path.split("?", 1)[0])
 
+        if post_path == "/nik/clear":
+            if origin is not None and not is_allowed_origin(origin):
+                self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
+                return
+            query = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            nik_id = query.get("nik_id", [""])[0]
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", nik_id or ""):
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid NIK ID"}]}, origin)
+                return
+            try:
+                record_exists = _nik_record_exists(nik_id)
+            except Exception:
+                self._json(503, {"status": "REJECTED", "errors": [{"code": "HOST-013", "message": "NIK record could not be verified through RuntimeAdapter"}]}, origin)
+                return
+            if not record_exists:
+                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "NIK record not found"}]}, origin)
+                return
+            try:
+                root = DB_PATH.parent / "NIK"
+                if _is_evidence_link(root):
+                    raise ValueError("Invalid NIK profile directory")
+                removed = False
+                if root.exists():
+                    if not root.is_dir():
+                        raise ValueError("NIK profile path is not a directory")
+                    resolved_root = root.resolve()
+                    for extension in NIK_PROFILE_EXTENSIONS:
+                        candidate = root / f"{nik_id}{extension}"
+                        if _is_evidence_link(candidate):
+                            raise ValueError("Invalid NIK profile image path")
+                        target = candidate.resolve()
+                        try:
+                            target.relative_to(resolved_root)
+                        except ValueError as exc:
+                            raise ValueError("Invalid NIK profile image path") from exc
+                        if target.is_file():
+                            target.unlink()
+                            removed = True
+                self._json(200, {"status": "READY", "nik_id": nik_id, "removed": removed}, origin)
+            except (OSError, ValueError):
+                self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "NIK profile photo could not be cleared safely"}]}, origin)
+            return
+
         if post_path == "/nik/upload":
             if origin is not None and not is_allowed_origin(origin):
                 self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
