@@ -114,7 +114,7 @@ function bind(){
  const message=document.getElementById('equipmentNIKFormMessage');
  if(openButton)openButton.addEventListener('click',open);
  if(closeButton)closeButton.addEventListener('click',function(){modal.close('equipmentNIKListModal');});
- if(profileCloseButton)profileCloseButton.addEventListener('click',function(){modal.close('equipmentNIKProfileModal');});
+ if(profileCloseButton)profileCloseButton.addEventListener('click',function(){modal.close('equipmentNIKProfileModal');modal.show('equipmentNIKListModal');});
  if(refreshButton)refreshButton.addEventListener('click',refresh);
  if(addButton)addButton.addEventListener('click',function(){
   if(!form)return;
