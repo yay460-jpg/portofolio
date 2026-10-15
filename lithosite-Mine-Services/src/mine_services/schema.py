@@ -6,7 +6,7 @@ module with the next active schema version.
 """
 
 SCHEMA_VERSION = "A.3"
-SHEETS = ["_Baseline","_System","_Lists","Equipment","WorkFront","GlobalCapacity","Checker","Operations","Maintenance","Issues","Plans","HSE","MapMarker","AuditLog"]
+SHEETS = ["_Baseline","_System","_Lists","Equipment","NIK","WorkFront","GlobalCapacity","Checker","Operations","Maintenance","Issues","Plans","HSE","MapMarker","AuditLog"]
 DOMAIN_ENTITIES = ["Equipment","WorkFront","GlobalCapacity","Checker","Operations","Maintenance","Issues","Plans","HSE","MapMarker"]
 
 HEADERS = {

@@ -157,6 +157,16 @@ class PersistenceStore:
 
         return changed
 
+    def _migrate_a3_nik_sheet(self, workbook):
+        """Create the intentionally blank NIK worksheet for the A.3 workbook."""
+        if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
+            return False
+        if "NIK" in workbook.sheetnames:
+            return False
+        insert_at = workbook.sheetnames.index("Equipment") + 1
+        workbook.create_sheet("NIK", index=insert_at)
+        return True
+
     def _migrate_a3_top_soil_material(self, workbook):
         """Add Top Soil to the A.3 controlled material list without changing existing entries."""
         if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
@@ -286,9 +296,10 @@ class PersistenceStore:
             if missing:
                 raise ValueError(f"SHEET_MISSING:{sorted(missing)}")
         migrated = self._migrate_a3_checker_support_headers(wb)
+        nik_sheet_migrated = self._migrate_a3_nik_sheet(wb)
         top_soil_migrated = self._migrate_a3_top_soil_material(wb)
         plan_hours_migrated = self._migrate_a3_remove_plans_target_hours(wb)
-        if migrated or top_soil_migrated or plan_hours_migrated:
+        if migrated or nik_sheet_migrated or top_soil_migrated or plan_hours_migrated:
             wb.save(self.path)
         wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)

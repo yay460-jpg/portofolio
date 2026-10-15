@@ -144,6 +144,9 @@ def migrate_a2_to_a3(source_path, target_path):
     workbook = load_workbook(source)
     _validate_a2_source(workbook)
 
+    # NIK is an intentionally blank A.3 worksheet; its fields are defined separately.
+    workbook.create_sheet("NIK", index=workbook.sheetnames.index("Equipment") + 1)
+
     # Add V38 A.3 sheets and append the new headers to existing A2 sheets.
     for entity in ("GlobalCapacity", "Checker"):
         ws = workbook.create_sheet(entity, index=workbook.sheetnames.index("Operations"))
