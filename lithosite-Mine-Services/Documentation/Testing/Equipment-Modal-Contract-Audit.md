@@ -56,3 +56,16 @@ The served artifact and version-history UI snapshot both use the refreshed Equip
 - The NIK photo upload parametrized cases now use explicit short pytest IDs. This keeps the oversized payload test intact while preventing pytest from deriving an environment/worker identifier from the full 100,001-byte parameter on Windows.
 - The workflow verifies repository tests on its Linux runner. It does **not** by itself prove the user's local Windows environment is clean; rerun the suite on the same commit locally to confirm the environment-variable error is gone.
 - Manual Desktop Host smoke testing remains outstanding: Add Equipment, Add Unit, Edit, Delete/reference rejection, filtering, RuntimeAdapter failure, and return-to-Unit-List behavior after save/cancel.
+
+## Global Capacity edit integrity follow-up (16 October 2026)
+
+The Desktop Host recording exposed an Equipment record whose `capacity_profile_id` was empty while editing an Excavator. The schema treats `Equipment.capacity_profile_id` as an optional reference, and the UI already requires a profile for Dump Truck. Therefore, an empty profile is valid for non-Dump-Truck equipment; the form must not imply that every equipment type has a resolved profile.
+
+- Brand and Capacity now show an explicit prompt when no valid profile is selected, instead of the ambiguous "Resolved from Global Capacity" placeholder.
+- Profile guidance changes when Equipment Type changes: required for Dump Truck, optional for other types under the current contract.
+- If an existing record points to a profile ID not present in the current Global Capacity list, Edit preserves that ID as a visible unavailable option instead of silently turning it into an empty value.
+- Save rejects an unresolved non-empty profile reference with a clear message. The user must choose a valid profile or explicitly clear the optional profile; Dump Truck still cannot be saved without a valid profile.
+- The served artifact and version-history UI snapshot use the matching cache key `20261016-capacity-profile-guard`.
+- Regression tests cover unavailable-reference preservation, type-specific guidance, save rejection, placeholders, and asset/snapshot cache-key parity.
+
+**Verification boundary:** Changes are committed on `v41-workspace`; run full Pytest and confirm CI for the final commit. Then manually verify Edit for a non-Dump-Truck with no profile, a stale profile reference, Dump Truck with no profile, Cancel without mutation, and Delete rejection for a referenced Equipment record. Do not promote to `main` without explicit approval.
