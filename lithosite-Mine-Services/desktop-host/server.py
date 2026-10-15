@@ -1311,7 +1311,7 @@ class Handler(BaseHTTPRequestHandler):
             if len(body) != length:
                 self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Profile upload was incomplete"}]}, origin)
                 return
-            if not body.startswith(b"\\xff\\xd8\\xff") or not body.endswith(b"\\xff\\xd9"):
+            if not body.startswith(b"\xff\xd8\xff") or not body.endswith(b"\xff\xd9"):
                 self._json(415, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Uploaded file is not a valid JPEG payload"}]}, origin)
                 return
             temp_path = None
