@@ -226,6 +226,15 @@ class ValidationEngine:
             elif end < start:
                 errors.append(ValidationError("VAL-E008", "effective_to", "effective_to must be >= effective_from"))
 
+        if entity == "Equipment" and row.get("unit_no") not in (None, "") and store:
+            candidate = str(row["unit_no"]).strip().casefold()
+            for stored in store.all("Equipment"):
+                if str(stored.get("equipment_id") or "") == str(row.get("equipment_id") or ""):
+                    continue
+                if str(stored.get("unit_no") or "").strip().casefold() == candidate:
+                    errors.append(ValidationError("VAL-E004", "unit_no", "Unit / Fleet No. must be unique"))
+                    break
+
         if context == "CREATE" and store and store.exists(entity, row.get(pk)):
             errors.append(ValidationError("VAL-E004", pk, "Primary key duplicate"))
 
