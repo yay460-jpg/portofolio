@@ -33,22 +33,85 @@ class RuntimeInterface:
         marker_location_dir = Path(store_path).with_name("marker-location") if store_path else Path("marker-location")
         self._marker_location = MarkerLocationBackupManager(marker_location_dir)
 
+    def _mutate_nik(self, action, entity_id, payload, request_id):
+        """Apply NIK workbook writes with the same request and audit contract as CRUD."""
+        guard = self._application._request_guard(request_id)
+        if guard:
+            return guard
+
+        store = self._application.store
+        workbook_path = getattr(store, "path", None)
+        if not workbook_path or not Path(workbook_path).is_file():
+            return {"status": "REJECTED", "errors": [
+                self._application._app_error("APP-006", "NIK workbook is unavailable")
+            ]}
+
+        workbook_path = Path(workbook_path)
+        before_workbook = workbook_path.read_bytes()
+        before_store = store.snapshot()
+        existing = None
+        try:
+            if action != "CREATE":
+                existing = next(
+                    (item for item in store.all_nik_records()
+                     if str(item.get("Id No (NIK)") or "").strip().casefold()
+                     == str(entity_id or "").strip().casefold()),
+                    None,
+                )
+                if existing is None:
+                    return {"status": "REJECTED", "errors": [
+                        self._application._app_error("APP-002", "Entity not found", "Id No (NIK)")
+                    ]}
+
+            if action == "CREATE":
+                record = store.create_nik_record(payload)
+                record_id = record["Id No (NIK)"]
+                old_value, new_value = None, record
+            elif action == "UPDATE":
+                record = store.update_nik_record(entity_id, payload)
+                record_id = record["Id No (NIK)"]
+                old_value, new_value = existing, record
+            else:
+                record = store.delete_nik_record(entity_id)
+                record_id = record["Id No (NIK)"]
+                old_value, new_value = existing, None
+
+            self._application.audit_repository.append(
+                entity="NIK", entity_id=record_id, action=action,
+                request_id=request_id, old_value=old_value, new_value=new_value,
+                source=request_id,
+            )
+            store.save()
+            self._application._requests.add(request_id)
+            return {"status": "COMMITTED", "entity_id": record_id}
+        except Exception as exc:
+            store.replace(before_store)
+            try:
+                workbook_path.write_bytes(before_workbook)
+            except OSError:
+                return {"status": "REJECTED", "errors": [
+                    self._application._app_error(
+                        "APP-006", "NIK mutation failed; workbook rollback could not be confirmed"
+                    )
+                ]}
+            code = "APP-005" if exc.__class__.__name__ == "AuditError" else "APP-006"
+            return {"status": "REJECTED", "errors": [
+                self._application._app_error(code, str(exc) or "NIK mutation failed")
+            ]}
+
     def create(self, entity, row, request_id):
         if entity == "NIK":
-            record = self._application.store.create_nik_record(row)
-            return {"status": "COMMITTED", "entity_id": record["Id No (NIK)"]}
+            return self._mutate_nik("CREATE", None, row, request_id)
         return self._application.create(entity, row, request_id)
 
     def update(self, entity, entity_id, patch, request_id):
         if entity == "NIK":
-            record = self._application.store.update_nik_record(entity_id, patch)
-            return {"status": "COMMITTED", "entity_id": record["Id No (NIK)"]}
+            return self._mutate_nik("UPDATE", entity_id, patch, request_id)
         return self._application.update(entity, entity_id, patch, request_id)
 
     def delete(self, entity, entity_id, request_id):
         if entity == "NIK":
-            record = self._application.store.delete_nik_record(entity_id)
-            return {"status": "COMMITTED", "entity_id": record["Id No (NIK)"]}
+            return self._mutate_nik("DELETE", entity_id, None, request_id)
         return self._application.delete(entity, entity_id, request_id)
 
     def read(self, entity, entity_id=None):
