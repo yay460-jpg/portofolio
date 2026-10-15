@@ -34,3 +34,25 @@ def test_equipment_served_artifact_and_snapshot_load_current_contract_asset():
 
     assert marker in artifact
     assert marker in snapshot
+
+
+
+def test_equipment_add_and_edit_clear_stale_operation_message():
+    js = EQUIPMENT_JS.read_text(encoding="utf-8")
+    reset = js[js.index("function resetForm()"):js.index("\nfunction openAdd(")]
+    edit = js[js.index("function openEdit("):js.index("\nfunction payload()")]
+
+    assert "setMsg('');" in reset
+    assert "setMsg('');" in edit
+
+
+def test_equipment_cancel_closes_form_without_runtime_mutation_and_restores_unit_list():
+    js = EQUIPMENT_JS.read_text(encoding="utf-8")
+    close = js[js.index("function closeEquipmentForm()"):js.index("\nfunction bind()")]
+    bind = js[js.index("function bind()"):js.index("\ndocument.addEventListener('mine-services:open-domain-record'")]
+
+    assert "global.LithositeModalShowContract.close('equipmentModal')" in close
+    assert "global.LithositeModalShowContract.show('equipmentUnitListModal')" in close
+    assert "refreshUnitList()" in close
+    assert "rc.request" not in close
+    assert "document.getElementById('equipmentCancel').onclick=closeEquipmentForm;" in bind
