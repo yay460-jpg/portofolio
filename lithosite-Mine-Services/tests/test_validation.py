@@ -221,7 +221,7 @@ def test_plan_end_date_cannot_precede_start_date():
 
 
 def test_equipment_unit_number_must_be_unique_case_insensitively():
-    app = ApplicationService(PersistenceStore())
+    app = ApplicationService()
     first = valid_equipment("EQ-UNIT-1")
     first["unit_no"] = "DT-UNIQUE-001"
     assert app.create("Equipment", first, "unit-unique-create-1")["status"] == "COMMITTED"
