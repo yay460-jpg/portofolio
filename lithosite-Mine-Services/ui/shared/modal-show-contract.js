@@ -12,6 +12,7 @@
     'equipmentModal',
     'equipmentUnitListModal',
     'equipmentNIKListModal',
+    'equipmentNIKProfileModal',
     'workfrontModal',
     'capacityModal',
     'capacityEditModal',
