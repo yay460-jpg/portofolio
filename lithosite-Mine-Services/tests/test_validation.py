@@ -217,3 +217,37 @@ def test_plan_end_date_cannot_precede_start_date():
     )
     assert result["status"] == "REJECTED"
     assert any(error.code == "VAL-E008" and error.field == "end_date" for error in result["errors"])
+
+
+
+def test_equipment_unit_number_must_be_unique_case_insensitively():
+    app = ApplicationService(PersistenceStore())
+    first = valid_equipment("EQ-UNIT-1")
+    first["unit_no"] = "DT-UNIQUE-001"
+    assert app.create("Equipment", first, "unit-unique-create-1")["status"] == "COMMITTED"
+
+    duplicate = valid_equipment("EQ-UNIT-2")
+    duplicate["unit_no"] = "  dt-unique-001  "
+    result = app.create("Equipment", duplicate, "unit-unique-create-2")
+
+    assert result["status"] == "REJECTED"
+    assert any(error.field == "unit_no" and error.code == "VAL-E004" for error in result["errors"])
+    assert not app.store.exists("Equipment", "EQ-UNIT-2")
+
+
+def test_equipment_unit_number_update_allows_same_record_but_rejects_other_record_duplicate():
+    app = ApplicationService(PersistenceStore())
+    first = valid_equipment("EQ-UNIT-UPDATE-1")
+    first["unit_no"] = "DT-UNIQUE-101"
+    second = valid_equipment("EQ-UNIT-UPDATE-2")
+    second["unit_no"] = "DT-UNIQUE-102"
+    assert app.create("Equipment", first, "unit-update-create-1")["status"] == "COMMITTED"
+    assert app.create("Equipment", second, "unit-update-create-2")["status"] == "COMMITTED"
+
+    same_record = app.update("Equipment", "EQ-UNIT-UPDATE-1", {"unit_no": "DT-UNIQUE-101"}, "unit-update-same")
+    assert same_record["status"] == "COMMITTED"
+
+    duplicate = app.update("Equipment", "EQ-UNIT-UPDATE-2", {"unit_no": "dt-unique-101"}, "unit-update-duplicate")
+    assert duplicate["status"] == "REJECTED"
+    assert any(error.field == "unit_no" and error.code == "VAL-E004" for error in duplicate["errors"])
+    assert app.store.get("Equipment", "EQ-UNIT-UPDATE-2")["unit_no"] == "DT-UNIQUE-102"
