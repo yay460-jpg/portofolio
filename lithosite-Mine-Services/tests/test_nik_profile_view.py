@@ -23,6 +23,8 @@ def test_nik_profile_column_and_preview_modal_are_synchronized():
         assert 'id="nikProfileClearConfirmModal"' in html
         assert 'id="nikProfileClearConfirmAction"' in html
         assert 'Only the photo will be removed.' in html
+        assert 'id="equipmentNIKProfileFile" accept="image/*"></div></div></div><div class="modalback nik-profile-clear-confirm-modal"' in html
+        assert html.rstrip().endswith("</body></html>")
         assert 'class="modalfoot equipment-nik-profile-footer"' in html
         assert 'class="equipment-nik-profile-actions-tools"' in html
         assert 'class="equipment-nik-profile-actions-help">Original image max 2 MB' in html
