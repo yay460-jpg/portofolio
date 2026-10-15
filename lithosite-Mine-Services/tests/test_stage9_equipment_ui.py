@@ -338,7 +338,7 @@ def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
     for html in (artifact, snapshot):
         assert 'nik.css?v=20261015-nik-crud-filter' in html
         assert 'nik.js?v=20261015-nik-crud-filter' in html
-    assert "rc.request({operation:'READ',entity:'NIK'})" in NIK_JS
+    assert "rc.request({operation:'READ',entity:'NIK',request_id:requestId('read')})" in NIK_JS
     assert "function refresh()" in NIK_JS
     assert "function render()" in NIK_JS
     assert "operation:'CREATE',entity:'NIK'" in NIK_JS
