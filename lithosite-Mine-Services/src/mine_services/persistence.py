@@ -158,14 +158,26 @@ class PersistenceStore:
         return changed
 
     def _migrate_a3_nik_sheet(self, workbook):
-        """Create the intentionally blank NIK worksheet for the A.3 workbook."""
+        """Create or upgrade the NIK worksheet to the canonical employee-register headers."""
         if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
             return False
-        if "NIK" in workbook.sheetnames:
+        if "NIK" not in workbook.sheetnames:
+            insert_at = workbook.sheetnames.index("Equipment") + 1
+            worksheet = workbook.create_sheet("NIK", index=insert_at)
+            for column, header in enumerate(self.schema.NIK_HEADERS, start=1):
+                worksheet.cell(row=1, column=column, value=header)
+            return True
+
+        worksheet = workbook["NIK"]
+        current_headers = [cell.value for cell in worksheet[1]]
+        if current_headers == self.schema.NIK_HEADERS:
             return False
-        insert_at = workbook.sheetnames.index("Equipment") + 1
-        workbook.create_sheet("NIK", index=insert_at)
-        return True
+        # Upgrade only the earlier empty placeholder. Never overwrite existing content.
+        if worksheet.max_row == 1 and all(value is None for value in current_headers):
+            for column, header in enumerate(self.schema.NIK_HEADERS, start=1):
+                worksheet.cell(row=1, column=column, value=header)
+            return True
+        raise ValueError("HEADER_MISMATCH:NIK")
 
     def _migrate_a3_top_soil_material(self, workbook):
         """Add Top Soil to the A.3 controlled material list without changing existing entries."""
@@ -303,6 +315,8 @@ class PersistenceStore:
             wb.save(self.path)
         wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)
+        if [cell.value for cell in wb["NIK"][1]] != self.schema.NIK_HEADERS:
+            raise ValueError("HEADER_MISMATCH:NIK")
 
         for entity in self.schema.DOMAIN_ENTITIES:
             rows = list(wb[entity].values)

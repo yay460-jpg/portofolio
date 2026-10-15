@@ -24,6 +24,10 @@ def main() -> None:
     lists.append(["service_domain", "measurement", "equipment_category", "equipment_type"])
     lists.append(["Mining", "cycle", "Heavy Equipment", "Dump Truck"])
 
+    nik = workbook.create_sheet("NIK")
+    from mine_services.schema import NIK_HEADERS
+    nik.append(NIK_HEADERS)
+
     equipment = workbook.create_sheet("Equipment")
     equipment.append([
         "equipment_id", "unit_no", "category", "type", "owner_type", "owner_name",

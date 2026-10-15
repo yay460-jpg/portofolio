@@ -18,6 +18,9 @@ def make_a3_workbook(path: Path):
         ws = wb.create_sheet(sheet)
         if sheet in HEADERS:
             ws.append(HEADERS[sheet])
+        elif sheet == "NIK":
+            from mine_services.schema import NIK_HEADERS
+            ws.append(NIK_HEADERS)
         elif sheet == "_System":
             ws.append(["schema_version", "A.3"])
         elif sheet == "_Lists":
@@ -244,3 +247,50 @@ def test_stage20_a3_persistence_adds_blank_nik_sheet_idempotently_and_preserves_
     assert reopened["NIK"].max_row == 1
     assert reopened["NIK"]["A1"].value is None
 
+
+
+
+def test_stage20_a3_persistence_adds_nik_headers_idempotently_and_preserves_records(tmp_path):
+    target = tmp_path / "a3-without-nik.xlsx"
+    make_a3_workbook(target)
+
+    workbook = load_workbook(target)
+    workbook.remove(workbook["NIK"])
+    workbook["Equipment"].append([
+        "EQ-NIK-PRESERVE", "DT-NIK-PRESERVE", "Heavy Equipment", "Dump Truck",
+        "Owner", "Preserve Existing", "Active", "2026-10-15", None, None,
+    ])
+    workbook.save(target)
+
+    first_store = PersistenceStore(target)
+    assert first_store.get("Equipment", "EQ-NIK-PRESERVE")["unit_no"] == "DT-NIK-PRESERVE"
+
+    migrated = load_workbook(target, data_only=True)
+    from mine_services.schema import NIK_HEADERS
+    assert "NIK" in migrated.sheetnames
+    assert migrated.sheetnames.index("NIK") == migrated.sheetnames.index("Equipment") + 1
+    assert list(migrated["NIK"].values) == [tuple(NIK_HEADERS)]
+    assert migrated["Equipment"]["A2"].value == "EQ-NIK-PRESERVE"
+
+    # Reopening must not add another sheet or duplicate the headers.
+    PersistenceStore(target)
+    reopened = load_workbook(target, data_only=True)
+    assert reopened.sheetnames.count("NIK") == 1
+    assert list(reopened["NIK"].values) == [tuple(NIK_HEADERS)]
+
+
+def test_stage20_a3_persistence_upgrades_empty_nik_placeholder_in_place(tmp_path):
+    target = tmp_path / "a3-empty-nik-placeholder.xlsx"
+    make_a3_workbook(target)
+
+    workbook = load_workbook(target)
+    nik = workbook["NIK"]
+    for column in range(1, 6):
+        nik.cell(row=1, column=column, value=None)
+    workbook.save(target)
+
+    PersistenceStore(target)
+    migrated = load_workbook(target, data_only=True)
+    from mine_services.schema import NIK_HEADERS
+    assert list(migrated["NIK"].values) == [tuple(NIK_HEADERS)]
+    assert migrated.sheetnames.count("NIK") == 1
