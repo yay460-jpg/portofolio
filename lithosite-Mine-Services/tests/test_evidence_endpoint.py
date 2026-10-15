@@ -614,6 +614,36 @@ def test_nik_profile_upload_saves_compressed_jpeg_and_replaces_previous_photo(ev
     assert body == replacement
 
 
+def test_nik_profile_clear_removes_only_the_selected_employees_photo(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda nik_id: nik_id in {"TEST-NIK-001", "TEST-NIK-002"})
+    root = server.DB_PATH.parent / "NIK"
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "TEST-NIK-001.jpg").write_bytes(b"selected photo")
+    (root / "TEST-NIK-001.png").write_bytes(b"stale selected photo")
+    (root / "TEST-NIK-002.jpg").write_bytes(b"other employee photo")
+
+    status, _headers, body = _post_raw(base_url, "/nik/clear", {"nik_id": "TEST-NIK-001"}, b"")
+    payload = _payload(body)
+
+    assert status == 200
+    assert payload["status"] == "READY"
+    assert payload["removed"] is True
+    assert not (root / "TEST-NIK-001.jpg").exists()
+    assert not (root / "TEST-NIK-001.png").exists()
+    assert (root / "TEST-NIK-002.jpg").read_bytes() == b"other employee photo"
+
+
+def test_nik_profile_clear_rejects_unknown_employee(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda _nik_id: False)
+
+    status, _headers, body = _post_raw(base_url, "/nik/clear", {"nik_id": "TEST-NIK-404"}, b"")
+
+    assert status == 404
+    assert _payload(body)["status"] == "REJECTED"
+
+
 @pytest.mark.parametrize(
     ("params", "body", "content_type", "record_exists", "expected_status"),
     [
