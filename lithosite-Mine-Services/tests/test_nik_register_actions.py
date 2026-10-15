@@ -9,7 +9,8 @@ RUNTIME = (ROOT / "src" / "mine_services" / "runtime.py").read_text(encoding="ut
 
 
 def test_nik_register_has_action_column_and_form_title():
-    modal = ARTIFACT[ARTIFACT.index('id="equipmentNIKListModal"'):ARTIFACT.index('id="equipmentUnitListModal"')]
+    start = ARTIFACT.index('id="equipmentNIKListModal"')
+    modal = ARTIFACT[start:ARTIFACT.index('</body>', start)]
     assert '<div class="equipment-nik-cell">Information</div><div class="equipment-nik-cell">Action</div>' in modal
     assert 'id="equipmentNIKFormTitle">Add NIK</div>' in modal
 
