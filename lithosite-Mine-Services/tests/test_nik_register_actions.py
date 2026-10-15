@@ -68,7 +68,7 @@ def test_nik_register_uses_employee_icon_and_wheel_scroll_without_visible_scroll
     assert "circle cx=\"12\" cy=\"8\" r=\"3.4\"" in modal
     assert "#equipmentNIKListModal .equipment-nik-table{overflow:auto;scrollbar-width:none;-ms-overflow-style:none}" in NIK_CSS
     assert "#equipmentNIKListModal .equipment-nik-table::-webkit-scrollbar{display:none;width:0;height:0}" in NIK_CSS
-    assert "nik.css?v=20261015-nik-profile-view" in ARTIFACT
+    assert "nik.css?v=20261015-nik-profile-upload" in ARTIFACT
 
 
 def test_nik_profile_column_and_preview_modal_are_wired():
@@ -81,5 +81,5 @@ def test_nik_profile_column_and_preview_modal_are_wired():
     assert 'id="equipmentNIKProfileModal"' in ARTIFACT
     assert 'id="equipmentNIKProfileImage"' in ARTIFACT
     assert 'id="equipmentNIKProfileClose"' in ARTIFACT
-    assert "nik.js?v=20261015-nik-profile-view" in ARTIFACT
-    assert "nik.css?v=20261015-nik-profile-view" in ARTIFACT
+    assert "nik.js?v=20261015-nik-profile-upload" in ARTIFACT
+    assert "nik.css?v=20261015-nik-profile-upload" in ARTIFACT
