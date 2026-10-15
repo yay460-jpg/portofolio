@@ -28,7 +28,7 @@ def test_nik_profile_column_and_preview_modal_are_synchronized():
     assert "closest('.view-nik-profile')" in NIK_JS
     assert "modal.show('equipmentNIKProfileModal')" in NIK_JS
     assert "modal.show('equipmentNIKListModal')" in NIK_JS
-    assert "file.size>1_000_000" in NIK_JS
+    assert "file.size>2_000_000" in NIK_JS
     assert "blob.size<=100_000" in NIK_JS
     assert "'/nik/upload?nik_id='" in NIK_JS
 
@@ -40,7 +40,7 @@ def test_nik_profile_photo_uses_safe_dedicated_host_endpoint():
     assert "def nik_profile_file(nik_id: str) -> Path | None:" in SERVER
     assert 'r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}"' in SERVER
     assert 'self.send_header("X-Content-Type-Options", "nosniff")' in SERVER
-    assert "MAX_NIK_PROFILE_UPLOAD_BYTES = 1_000_000" in SERVER
+    assert "MAX_NIK_PROFILE_UPLOAD_BYTES = 2_000_000" in SERVER
     assert "MAX_NIK_PROFILE_BYTES = 100_000" in SERVER
     assert 'if post_path == "/nik/upload":' in SERVER
     assert "def _nik_record_exists(nik_id: str) -> bool:" in SERVER
