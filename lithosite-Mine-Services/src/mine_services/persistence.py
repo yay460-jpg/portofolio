@@ -56,6 +56,34 @@ class PersistenceStore:
     def all(self, entity):
         return deepcopy(list(self._data.get(entity, {}).values()))
 
+    def all_nik_records(self):
+        """Read the canonical NIK worksheet as read-only records."""
+        if not self.path or not self.path.is_file():
+            return []
+        workbook = load_workbook(self.path, read_only=True, data_only=True)
+        try:
+            if "NIK" not in workbook.sheetnames:
+                raise ValueError("SHEET_MISSING:NIK")
+            worksheet = workbook["NIK"]
+            rows = worksheet.iter_rows(values_only=True)
+            headers = list(next(rows, ()))
+            if headers != self.schema.NIK_HEADERS:
+                raise ValueError("HEADER_MISMATCH:NIK")
+
+            records = []
+            for values in rows:
+                if not any(value not in (None, "") for value in values):
+                    continue
+                record = {}
+                for header, value in zip(headers, values):
+                    if hasattr(value, "isoformat"):
+                        value = value.isoformat()
+                    record[header] = value
+                records.append(record)
+            return records
+        finally:
+            workbook.close()
+
     def insert(self, entity, pk, row):
         self._data.setdefault(entity, {})[pk] = deepcopy(dict(row))
 
