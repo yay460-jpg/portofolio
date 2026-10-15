@@ -274,6 +274,7 @@ function updateCapacitySummary(){
  capacity.value=profile?String(profile.capacity_value??'')+' '+String(profile.measurement||'ton'):'';
 }
 function resetForm(){
+ setMsg('');
  const now=new Date();
  const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
  document.getElementById('f_eq_id').value='EQ-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
@@ -299,6 +300,7 @@ function openAdd(fromUnitList){
  global.LithositeModalShowContract.show('equipmentModal');
 }
 function openEdit(id,fromUnitList){
+ setMsg('');
  const row=state.rows.find(x=>String(x.equipment_id)===String(id));if(!row)return;
  returnToUnitList=!!fromUnitList;
  if(returnToUnitList)global.LithositeModalShowContract.close('equipmentUnitListModal');
