@@ -113,3 +113,7 @@
 #equipmentNIKListModal .equipment-nik-actions{display:flex;align-items:center;gap:5px;white-space:nowrap}
 #equipmentNIKListModal .equipment-nik-actions .control{padding:5px 8px;min-width:0}
 #equipmentNIKListModal .equipment-nik-actions .danger{border-color:#8b3944;color:#fecaca}
+
+
+/* Keep the edit heading compact and visually aligned with the register controls. */
+#equipmentNIKListModal .equipment-nik-form-title{font-size:13px;font-weight:600;line-height:1.25;margin:0 0 4px}
