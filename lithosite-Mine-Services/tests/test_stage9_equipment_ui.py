@@ -266,6 +266,25 @@ def test_add_equipment_unit_reference_hint_uses_compact_module_typography():
     assert "#equipmentModal .equipment-unit-reference-hint{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.35}" in EQUIPMENT_CSS
     assert ".equipment-unit-reference-hint" not in (Path(__file__).parents[1] / "ui" / "shared" / "form-field.css").read_text(encoding="utf-8")
 
+def test_equipment_controls_order_and_nik_modal_initializes_after_dom_ready():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    snapshot = ARTIFACT.read_text(encoding="utf-8")
+    for html in (artifact, snapshot):
+        controls = html[html.index('<div class="controls">'):html.index('</div>', html.index('<div class="controls">'))]
+        refresh = controls.index('id="equipmentRefresh"')
+        nik = controls.index('id="equipmentNIKListButton"')
+        units = controls.index('id="equipmentUnitListButton"')
+        capacity = controls.index('id="globalCapacityButton"')
+        add = controls.index('id="equipmentAdd"')
+        assert refresh < nik < units < capacity < add
+    nik_js = NIK_JS
+    assert "document.addEventListener('DOMContentLoaded',init,{once:true})" in nik_js
+    assert "bind();" in nik_js
+    modal_contract = (Path(__file__).parents[1] / "ui" / "shared" / "modal-show-contract.js").read_text(encoding="utf-8")
+    assert "'equipmentNIKListModal'" in modal_contract
+    assert "'equipmentNIKListModal'," in modal_contract
+
+
 def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
     artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
     snapshot = ARTIFACT.read_text(encoding="utf-8")
