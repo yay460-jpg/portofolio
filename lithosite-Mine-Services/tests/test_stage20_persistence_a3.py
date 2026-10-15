@@ -268,6 +268,66 @@ def test_stage20_a3_persistence_upgrades_empty_nik_placeholder_in_place(tmp_path
     assert list(migrated["NIK"].values) == [tuple(NIK_HEADERS)]
     assert migrated.sheetnames.count("NIK") == 1
 
+def test_stage20_nik_create_appends_to_canonical_sheet_and_is_readable(tmp_path):
+    target = tmp_path / "a3-nik-create.xlsx"
+    make_a3_workbook(target)
+    store = PersistenceStore(target)
+    runtime = RuntimeInterface(application=ApplicationService(store=store))
+    adapter = RuntimeAdapter(runtime)
+    response = adapter.handle({
+        "request_id": "create-nik-001",
+        "operation": "CREATE",
+        "entity": "NIK",
+        "row": {
+            "Effective From": "2026-10-15",
+            "Effective To": "",
+            "Id No (NIK)": "320101001",
+            "Origin": "Makassar",
+            "Name Employment": "Test Employee",
+            "Information": "Mine Services",
+        },
+    })
+    assert response["status"] == "COMMITTED"
+    assert response["entity_id"] == "320101001"
+    records = store.all_nik_records()
+    assert len(records) == 1
+    assert records[0]["Id No (NIK)"] == "320101001"
+    assert records[0]["Name Employment"] == "Test Employee"
+    reopened = load_workbook(target, data_only=True)
+    assert reopened["NIK"].max_row == 2
+    assert reopened["Equipment"].max_row == 1
+
+
+def test_stage20_nik_create_rejects_missing_identity_fields(tmp_path):
+    target = tmp_path / "a3-nik-required.xlsx"
+    make_a3_workbook(target)
+    store = PersistenceStore(target)
+    try:
+        store.create_nik_record({"Name Employment": "Missing NIK"})
+    except ValueError as error:
+        assert "Id No (NIK) and Name Employment are required" in str(error)
+    else:
+        raise AssertionError("NIK identity fields must be required")
+
+
+def test_stage20_nik_create_rejects_duplicate_nik_without_overwriting_existing_record(tmp_path):
+    target = tmp_path / "a3-nik-duplicate.xlsx"
+    make_a3_workbook(target)
+    workbook = load_workbook(target)
+    workbook["NIK"].append(["2026-01-01", None, "320101001", "Makassar", "Existing Employee", ""])
+    workbook.save(target)
+    store = PersistenceStore(target)
+    try:
+        store.create_nik_record({"Id No (NIK)": "320101001", "Name Employment": "Duplicate Employee"})
+    except ValueError as error:
+        assert "DUPLICATE_NIK" in str(error)
+    else:
+        raise AssertionError("Duplicate NIK must be rejected")
+    records = store.all_nik_records()
+    assert len(records) == 1
+    assert records[0]["Name Employment"] == "Existing Employee"
+
+
 def test_stage20_nik_list_reads_canonical_rows_through_runtime_adapter(tmp_path):
     target = tmp_path / "a3-nik-list.xlsx"
     make_a3_workbook(target)
