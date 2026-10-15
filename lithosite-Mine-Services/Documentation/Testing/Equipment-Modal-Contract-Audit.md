@@ -49,3 +49,10 @@ A source re-check found two lifecycle inconsistencies after the initial audit:
 The served artifact and version-history UI snapshot both use the refreshed Equipment asset key `20261015-equipment-contract-audit2`.
 
 **Verification boundary:** These changes have been committed to `v41-workspace`. The regression assertions have not yet been executed in a local full Pytest run, and the Desktop Host manual smoke test remains outstanding. Do not interpret this documentation update as a PASS claim.
+
+## Verification update (15 October 2026, CI #1198)
+
+- Full Pytest completed on commit `22c71cc8bb2f8801ffdf0270bef075bf277e2e51`: **753 passed in 73.40s** on Python 3.13.
+- The NIK photo upload parametrized cases now use explicit short pytest IDs. This keeps the oversized payload test intact while preventing pytest from deriving an environment/worker identifier from the full 100,001-byte parameter on Windows.
+- The workflow verifies repository tests on its Linux runner. It does **not** by itself prove the user's local Windows environment is clean; rerun the suite on the same commit locally to confirm the environment-variable error is gone.
+- Manual Desktop Host smoke testing remains outstanding: Add Equipment, Add Unit, Edit, Delete/reference rejection, filtering, RuntimeAdapter failure, and return-to-Unit-List behavior after save/cancel.
