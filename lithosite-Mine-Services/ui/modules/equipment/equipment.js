@@ -201,9 +201,11 @@ async function refreshData(){
   await readCanonicalRecords();
   render();
   renderUnitList();
+  return true;
  }catch(e){
   state.status='error';render();renderUnitList();
   setMsg('Refresh failed: '+e.message,true);
+  return false;
  }
 }
 function fillCapacityProfiles(selectedId){
@@ -345,7 +347,9 @@ async function remove(id){
  try{
   const result=await rc.request({operation:'DELETE',entity:'Equipment',entity_id:id});
   if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
-  await refreshData();setMsg('Equipment deleted and audited.');
+  const refreshed=await refreshData();
+  if(refreshed)setMsg('Equipment deleted and audited.');
+  else setMsg('Equipment deleted and audited, but the list could not refresh. Use Refresh to reload.',true);
  }catch(e){setMsg('Delete failed: '+e.message,true);}
 }
 function closeEquipmentForm(){
