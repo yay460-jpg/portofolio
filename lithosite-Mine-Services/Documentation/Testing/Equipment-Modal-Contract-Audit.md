@@ -37,3 +37,15 @@ The full Pytest workflow completed successfully on the audited code at commit
 `5df272ee99ab8620cac6aa1b66676a56bc07ea50`: **750 passed in 52.81s**.
 
 This records code/test verification. A separate manual Desktop Host smoke test should still exercise Add Equipment, Add Unit, Edit, Delete, filtering, RuntimeAdapter failure, and returning to Unit List after save/cancel.
+
+## Follow-up regression fixes (15 October 2026)
+
+A source re-check found two lifecycle inconsistencies after the initial audit:
+
+1. The Equipment ready message claimed "offline local persistence" despite the RuntimeAdapter-only mutation contract. It now states that canonical records were loaded.
+2. After a successful CREATE/UPDATE, the save path did not inspect the boolean result of the canonical refresh and could report a normal success even when the list refresh failed. It also issued a redundant Unit List refresh and duplicate render. Save now reports committed-but-refresh-failed explicitly, performs one canonical refresh, and reopens Unit List without issuing a second read.
+3. Added `tests/test_equipment_modal_contract_regressions.py` to guard the status message, save/refresh outcome, and matching served-artifact/snapshot cache key.
+
+The served artifact and version-history UI snapshot both use the refreshed Equipment asset key `20261015-equipment-contract-audit2`.
+
+**Verification boundary:** These changes have been committed to `v41-workspace`. The regression assertions have not yet been executed in a local full Pytest run, and the Desktop Host manual smoke test remains outstanding. Do not interpret this documentation update as a PASS claim.
