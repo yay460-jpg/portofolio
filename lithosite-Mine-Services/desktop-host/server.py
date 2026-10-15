@@ -12,6 +12,7 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from mimetypes import guess_type
@@ -46,7 +47,8 @@ STATIC_ENTRY = os.environ.get("MINE_SERVICES_ENTRY", "/lithosite-Mine-Services/A
 DB_PATH = Path(os.environ.get("MINE_SERVICES_DB", str(MODULE_ROOT / "Database" / "Mine-Services-Database-A3.xlsx"))).resolve()
 NIK_PROFILE_ROOT = (DB_PATH.parent / "NIK").resolve()
 NIK_PROFILE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
-MAX_NIK_PROFILE_BYTES = 15_000_000
+MAX_NIK_PROFILE_UPLOAD_BYTES = 1_000_000
+MAX_NIK_PROFILE_BYTES = 100_000
 EVIDENCE_ROOT = (DB_PATH.parent / "Evidence").resolve()
 EVIDENCE_MODULES = frozenset({"TargetPlan", "HSE", "Maintenance"})
 EVIDENCE_EXTENSIONS = frozenset({".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx"})
@@ -102,6 +104,33 @@ def nik_profile_file(nik_id: str) -> Path | None:
         if target.is_file() and target.suffix.lower() in NIK_PROFILE_EXTENSIONS:
             return target
     return None
+
+
+def ensure_nik_profile_directory() -> Path:
+    """Create the dedicated NIK profile folder without following linked paths."""
+    root = DB_PATH.parent / "NIK"
+    if _is_evidence_link(root):
+        raise ValueError("Invalid NIK profile directory")
+    root.mkdir(parents=True, exist_ok=True)
+    if not root.is_dir() or _is_evidence_link(root):
+        raise ValueError("NIK profile path is not a safe directory")
+    return root.resolve()
+
+
+def _nik_record_exists(nik_id: str) -> bool:
+    """Verify the target employee exists in the canonical NIK worksheet."""
+    result = ADAPTER.handle({
+        "request_id": f"host-nik-profile-exists-{nik_id}",
+        "operation": "READ",
+        "entity": "NIK",
+    })
+    if not isinstance(result, dict) or result.get("status") == "REJECTED":
+        raise RuntimeError("NIK records could not be verified through RuntimeAdapter")
+    records = result.get("data")
+    return isinstance(records, list) and any(
+        isinstance(row, dict) and str(row.get("Id No (NIK)", "")) == nik_id
+        for row in records
+    )
 
 
 def evidence_record_directory(module: str, record_id: str) -> Path:
@@ -1247,6 +1276,82 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         origin = self.headers.get("Origin")
         post_path = unquote(self.path.split("?", 1)[0])
+
+        if post_path == "/nik/upload":
+            if origin is not None and not is_allowed_origin(origin):
+                self._json(403, {"status": "REJECTED", "errors": [{"code": "HOST-002", "message": "Origin not allowed"}]}, None)
+                return
+            query = parse_qs(self.path.split("?", 1)[1] if "?" in self.path else "")
+            nik_id = query.get("nik_id", [""])[0]
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", nik_id or ""):
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid NIK ID"}]}, origin)
+                return
+            if self.headers.get_content_type() != "image/jpeg":
+                self._json(415, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Profile upload must be a compressed JPEG image"}]}, origin)
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except (TypeError, ValueError):
+                length = 0
+            if length <= 0:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Profile image is empty"}]}, origin)
+                return
+            if length > MAX_NIK_PROFILE_BYTES:
+                self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Compressed profile image must be 100 KB or smaller"}]}, origin)
+                return
+            try:
+                record_exists = _nik_record_exists(nik_id)
+            except Exception:
+                self._json(503, {"status": "REJECTED", "errors": [{"code": "HOST-013", "message": "NIK record could not be verified through RuntimeAdapter"}]}, origin)
+                return
+            if not record_exists:
+                self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "NIK record not found"}]}, origin)
+                return
+            body = self.rfile.read(length)
+            if len(body) != length:
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Profile upload was incomplete"}]}, origin)
+                return
+            if not body.startswith(b"\\xff\\xd8\\xff") or not body.endswith(b"\\xff\\xd9"):
+                self._json(415, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Uploaded file is not a valid JPEG payload"}]}, origin)
+                return
+            temp_path = None
+            try:
+                target_dir = ensure_nik_profile_directory()
+                target_file = target_dir / f"{nik_id}.jpg"
+                if _is_evidence_link(target_file):
+                    raise ValueError("Invalid NIK profile image path")
+                with tempfile.NamedTemporaryFile(prefix=f".{nik_id}-", suffix=".tmp", dir=target_dir, delete=False) as stream:
+                    temp_path = Path(stream.name)
+                    stream.write(body)
+                os.replace(temp_path, target_file)
+                temp_path = None
+                # Remove stale alternate formats so a previous image cannot shadow the new JPEG.
+                for extension in NIK_PROFILE_EXTENSIONS:
+                    alternate = target_dir / f"{nik_id}{extension}"
+                    if alternate == target_file:
+                        continue
+                    if _is_evidence_link(alternate):
+                        continue
+                    if alternate.is_file():
+                        alternate.unlink()
+            except (OSError, ValueError):
+                if temp_path is not None:
+                    try:
+                        temp_path.unlink(missing_ok=True)
+                    except OSError:
+                        pass
+                self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Profile photo could not be saved"}]}, origin)
+                return
+            self._json(201, {
+                "status": "READY",
+                "nik_id": nik_id,
+                "folder": "Database/NIK",
+                "filename": f"{nik_id}.jpg",
+                "size": len(body),
+                "mime_type": "image/jpeg",
+                "replaced": True,
+            }, origin)
+            return
 
         if post_path == "/evidence/upload":
             if origin is not None and not is_allowed_origin(origin):
