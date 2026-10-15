@@ -78,7 +78,9 @@ class RuntimeInterface:
 
             self._application.audit_repository.append(
                 entity="NIK", entity_id=record_id, action=action,
-                request_id=request_id, old_value=old_value, new_value=new_value,
+                request_id=request_id,
+                old_value=json.dumps(old_value, default=str, sort_keys=True) if old_value is not None else None,
+                new_value=json.dumps(new_value, default=str, sort_keys=True) if new_value is not None else None,
                 source=request_id,
             )
             store.save()
