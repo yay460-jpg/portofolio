@@ -68,5 +68,12 @@ function bind(){
  if(closeButton)closeButton.addEventListener('click',function(){modal.close('equipmentNIKListModal');});
  if(refreshButton)refreshButton.addEventListener('click',refresh);
 }
-bind();
+function init(){
+ bind();
+}
+if(document.readyState==='loading'){
+ document.addEventListener('DOMContentLoaded',init,{once:true});
+}else{
+ init();
+}
 })(window);
