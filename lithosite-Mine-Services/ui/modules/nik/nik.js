@@ -127,8 +127,8 @@ function bind(){
    const profileMessage=document.getElementById('equipmentNIKProfileMessage');
    const profileImage=document.getElementById('equipmentNIKProfileImage');
    if(!file||!id||!profileMessage||!profileImage)return;
-   if(file.size>1_000_000){
-    profileMessage.textContent='Photo exceeds the 1 MB upload limit. Choose a smaller image.';
+   if(file.size>2_000_000){
+    profileMessage.textContent='Photo exceeds the 2 MB upload limit. Choose a smaller image.';
     profileUploadInput.value='';
     return;
    }
