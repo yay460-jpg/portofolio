@@ -256,9 +256,9 @@ def test_global_capacity_modal_has_one_close_button_and_no_footer_action():
     assert ".modalback > .modal.modal-shell-valid > .modalfoot{" in shell_css
     assert "capacityFooterClose" not in js
     assert js.count("getElementById('capacityClose').onclick") == 1
-    assert "global-capacity.js?v=20261015-single-close" in artifact
+    assert "global-capacity.js?v=20261015-lithosite-delete-confirm" in artifact
     assert "global-capacity.css?v=20261015-single-close" in artifact
-    assert "global-capacity.js?v=20261015-single-close" in snapshot
+    assert "global-capacity.js?v=20261015-lithosite-delete-confirm" in snapshot
     assert "global-capacity.css?v=20261015-single-close" in snapshot
 
 
@@ -343,8 +343,8 @@ def test_nik_list_has_add_form_search_and_origin_filter_in_artifact_and_snapshot
         assert 'name="Id No (NIK)" required' in html
         assert 'name="Name Employment" required' in html
         assert 'id="equipmentNIKSave">Save NIK</button>' in html
-        assert "nik.js?v=20261015-nik-profile-upload" in html
-        assert "nik.css?v=20261015-nik-profile-upload" in html
+        assert "nik.js?v=20261015-shared-clear-confirm" in html
+        assert "nik.css?v=20261015-shared-clear-confirm" in html
     assert "operation:'CREATE',entity:'NIK',row:row" in NIK_JS
     assert "function filteredRows()" in NIK_JS
     assert "function syncOriginFilter()" in NIK_JS
@@ -376,8 +376,8 @@ def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
         assert profile_modal.count('>Close</button>') == 1
         assert '</div></div><div class="modalback" id="equipmentNIKProfileModal"' in html
     for html in (artifact, snapshot):
-        assert 'nik.css?v=20261015-nik-profile-upload' in html
-        assert 'nik.js?v=20261015-nik-profile-upload' in html
+        assert 'nik.css?v=20261015-shared-clear-confirm' in html
+        assert 'nik.js?v=20261015-shared-clear-confirm' in html
     assert "rc.request({operation:'READ',entity:'NIK',request_id:requestId('read')})" in NIK_JS
     assert "function refresh()" in NIK_JS
     assert "function render()" in NIK_JS
