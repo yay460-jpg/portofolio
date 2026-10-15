@@ -59,3 +59,13 @@ def test_nik_hides_temporary_test_information_and_compacts_edit_heading():
     assert "TEMPORARY_TEST_INFORMATION='TEMPORARY TEST DATA — remove after validation'" in NIK_JS
     assert "if(String(clean.Information||'').trim()===TEMPORARY_TEST_INFORMATION)clean.Information='';" in NIK_JS
     assert "#equipmentNIKListModal .equipment-nik-form-title{font-size:13px;font-weight:600;line-height:1.25;margin:0 0 4px}" in NIK_CSS
+
+
+def test_nik_register_uses_employee_icon_and_wheel_scroll_without_visible_scrollbar():
+    modal_start = ARTIFACT.index('id="equipmentNIKListModal"')
+    modal = ARTIFACT[modal_start:ARTIFACT.index("</body>", modal_start)]
+    assert 'class="icon equipment-nik-title-icon" viewBox="0 0 24 24"' in modal
+    assert "circle cx=\"12\" cy=\"8\" r=\"3.4\"" in modal
+    assert "#equipmentNIKListModal .equipment-nik-table{overflow:auto;scrollbar-width:none;-ms-overflow-style:none}" in NIK_CSS
+    assert "#equipmentNIKListModal .equipment-nik-table::-webkit-scrollbar{display:none;width:0;height:0}" in NIK_CSS
+    assert "nik.css?v=20261015-nik-wheel-scroll-user-icon" in ARTIFACT
