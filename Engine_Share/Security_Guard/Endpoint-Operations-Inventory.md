@@ -261,3 +261,10 @@ Full Pytest #830 passed after test-only fixture correction [9fce230](https://git
 - HTTP host routes, body/path limits, trust boundaries, and evidence/file ownership are inventoried above.
 - Browser Guard, Geo and Topo3D call sites and owner boundaries have now been source-traced; unresolved runtime hypotheses are explicitly handed to EVO2-03/EVO2-05 rather than represented as confirmed vulnerabilities.
 Pre-read size-limit test [adcd187](https://github.com/yay460-jpg/portofolio/commit/adcd1876c74e60f1b3284c209481043e3b111596) passed in screenshot-confirmed Full Pytest #863: under `deviceMemory=2`, a file one byte above 64 MiB is rejected before `file.text()`, storage writes, or recovery start. With this gate, the current prioritized EVO2-03 adversarial matrix is closed; the owner screenshot shows subsequent Full Pytest/documentation workflows #864/#865 green. **EVO2-03 is PASS/CLOSED.** Real-browser Console/runtime verification is tracked under EVO2-05. EVO2-04 through EVO2-07 are paused by owner direction; do not continue until explicitly resumed.
+
+
+### Import XLSX — malformed-file regression evidence — 2026-10-16
+
+- Added test `test_runtime_import_invalid_xlsx_is_rejected_without_mutation` using a temporary non-empty file with an `.xlsx` suffix that is not a valid ZIP/OOXML workbook.
+- The contract under test is rejection with `E001`, generic parser message, zero committed rows, unchanged canonical workbook bytes/store snapshot, and no new audit rows.
+- The test does not claim a resource ceiling: no explicit XLSX size limit or path-root allowlist was found in the inspected import layer. Those are policy decisions requiring a supported import-size/location contract before production enforcement.
