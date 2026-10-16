@@ -120,6 +120,47 @@ def _post_raw(base_url, endpoint, params, body, content_type="application/octet-
         return error.code, error.headers, error.read()
 
 
+def test_evidence_upload_preserves_incomplete_body_contract(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_evidence_record_exists", lambda module, record_id: True)
+    monkeypatch.setattr(
+        server, "_read_exact_request_body",
+        lambda stream, length: (_ for _ in ()).throw(ValueError("incomplete")),
+    )
+    status, _headers, response_body = _post_raw(
+        base_url,
+        "/evidence/upload",
+        {"module": "TargetPlan", "record_id": "PLAN-1", "filename": "evidence.pdf"},
+        b"%PDF-1.7",
+    )
+    payload = _payload(response_body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"][0]["code"] == "HOST-009"
+    assert payload["errors"][0]["message"] == "Evidence upload was incomplete"
+
+
+def test_nik_upload_preserves_incomplete_body_contract(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda nik_id: True)
+    monkeypatch.setattr(
+        server, "_read_exact_request_body",
+        lambda stream, length: (_ for _ in ()).throw(ValueError("incomplete")),
+    )
+    status, _headers, response_body = _post_raw(
+        base_url,
+        "/nik/upload",
+        {"nik_id": "NIK-1"},
+        b"\xff\xd8\xffpayload\xff\xd9",
+        "image/jpeg",
+    )
+    payload = _payload(response_body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"][0]["code"] == "HOST-009"
+    assert payload["errors"][0]["message"] == "Profile upload was incomplete"
+
+
 def test_evidence_upload_saves_to_the_plan_folder_and_never_overwrites(evidence_host, monkeypatch):
     base_url, server = evidence_host
     monkeypatch.setattr(server, "_evidence_record_exists", lambda module, record_id: module == "TargetPlan" and record_id == "PLN-UPLOAD-01")
