@@ -1059,7 +1059,7 @@ class Handler(BaseHTTPRequestHandler):
                     self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "NIK profile photo not found"}]}, origin)
                     return
                 if size > MAX_NIK_PROFILE_BYTES:
-                    self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "NIK profile photo exceeds the 15 MB limit"}]}, origin)
+                    self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "NIK profile photo exceeds the 100 KB limit"}]}, origin)
                     return
                 body = target.read_bytes()
             except OSError:
