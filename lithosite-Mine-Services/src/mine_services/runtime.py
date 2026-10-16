@@ -47,10 +47,14 @@ class RuntimeInterface:
             ]}
 
         workbook_path = Path(workbook_path)
-        before_workbook = workbook_path.read_bytes()
-        before_store = store.snapshot()
+        before_workbook = None
+        before_store = None
         existing = None
         try:
+            # Snapshot acquisition can fail (permissions, transient I/O, locked file).
+            # Treat it as a rejected mutation before touching store/workbook state.
+            before_workbook = workbook_path.read_bytes()
+            before_store = store.snapshot()
             if action != "CREATE":
                 existing = next(
                     (item for item in store.all_nik_records()
@@ -87,15 +91,17 @@ class RuntimeInterface:
             self._application._requests.add(request_id)
             return {"status": "COMMITTED", "entity_id": record_id}
         except Exception as exc:
-            store.replace(before_store)
-            try:
-                workbook_path.write_bytes(before_workbook)
-            except OSError:
-                return {"status": "REJECTED", "errors": [
-                    self._application._app_error(
-                        "APP-006", "NIK mutation failed; workbook rollback could not be confirmed"
-                    )
-                ]}
+            if before_store is not None:
+                store.replace(before_store)
+            if before_workbook is not None:
+                try:
+                    workbook_path.write_bytes(before_workbook)
+                except OSError:
+                    return {"status": "REJECTED", "errors": [
+                        self._application._app_error(
+                            "APP-006", "NIK mutation failed; workbook rollback could not be confirmed"
+                        )
+                    ]}
             code = "APP-005" if exc.__class__.__name__ == "AuditError" else "APP-006"
             return {"status": "REJECTED", "errors": [
                 self._application._app_error(code, str(exc) or "NIK mutation failed")
