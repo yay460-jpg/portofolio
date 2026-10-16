@@ -831,3 +831,43 @@ def test_runtime_delete_refuses_symlinked_evidence_record_without_touching_exter
     assert record_link.is_symlink()
     assert str(outside) not in body.decode("utf-8")
     assert "keep-private.pdf" not in body.decode("utf-8")
+
+
+def test_evidence_upload_rejects_symlinked_record_directory_without_writing_outside(
+    evidence_host, monkeypatch, tmp_path
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(
+        server,
+        "_evidence_record_exists",
+        lambda module, record_id: (module, record_id) == ("TargetPlan", "PLN-UPLOAD-SYMLINK"),
+    )
+    module_dir = server.EVIDENCE_ROOT / "TargetPlan"
+    module_dir.mkdir(parents=True, exist_ok=True)
+    outside = tmp_path / "outside-upload-record"
+    outside.mkdir()
+    protected = outside / "keep.txt"
+    protected.write_bytes(b"protected")
+    record_link = module_dir / "PLN-UPLOAD-SYMLINK"
+    try:
+        record_link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+
+    status, _headers, body = _post_raw(
+        base_url,
+        "/evidence/upload",
+        {
+            "module": "TargetPlan",
+            "record_id": "PLN-UPLOAD-SYMLINK",
+            "filename": "new-evidence.pdf",
+        },
+        b"%PDF-1.7 upload payload",
+    )
+
+    payload = _payload(body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert protected.read_bytes() == b"protected"
+    assert not (outside / "new-evidence.pdf").exists()
+    assert str(outside) not in body.decode("utf-8")
