@@ -75,6 +75,16 @@ def is_allowed_static_target(path: Path) -> bool:
     )
 
 
+def _read_bounded_file(path: Path, max_bytes: int) -> bytes:
+    """Read at most max_bytes plus one sentinel byte to enforce a hard cap."""
+    if max_bytes < 0:
+        raise ValueError("Invalid file read limit")
+    with path.open("rb") as stream:
+        body = stream.read(max_bytes + 1)
+    if len(body) > max_bytes:
+        raise OverflowError("File exceeds read limit")
+    return body
+
 def _is_evidence_link(path: Path) -> bool:
     """Treat symbolic links and Windows junctions as unsafe Evidence paths."""
     junction_check = getattr(path, "is_junction", None)
@@ -1054,14 +1064,13 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "NIK profile photo not found"}]}, origin)
                 return
             try:
-                size = target.stat().st_size
-                if size <= 0:
+                body = _read_bounded_file(target, MAX_NIK_PROFILE_BYTES)
+                if not body:
                     self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "NIK profile photo not found"}]}, origin)
                     return
-                if size > MAX_NIK_PROFILE_BYTES:
-                    self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "NIK profile photo exceeds the 100 KB limit"}]}, origin)
-                    return
-                body = target.read_bytes()
+            except OverflowError:
+                self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "NIK profile photo exceeds the 100 KB limit"}]}, origin)
+                return
             except OSError:
                 self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "NIK profile photo could not be read"}]}, origin)
                 return
@@ -1185,11 +1194,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
                 return
             try:
-                size = target.stat().st_size
-                if size > MAX_EVIDENCE_FILE_BYTES:
-                    self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB preview limit"}]}, origin)
-                    return
-                body = target.read_bytes()
+                body = _read_bounded_file(target, MAX_EVIDENCE_FILE_BYTES)
+            except OverflowError:
+                self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB preview limit"}]}, origin)
+                return
             except OSError:
                 self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be read"}]}, origin)
                 return
