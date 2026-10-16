@@ -554,3 +554,9 @@ The UI source trace was extended beyond Operations:
 - Source review confirms `build_report_pdf()` rejects non-dictionary top-level models. These tests cover the identified malformed request shapes; they do not prove all report-builder inputs or resource-exhaustion scenarios are safe.
 - Latest owner-reported local Full Pytest after pulling `v41-workspace`: 781 passed in 87.11 seconds at commit `013c081e`. Commit `f05b1b82` has separate CI PASS #1254.
 - **Disposition:** report request validation regressions are covered and CI-confirmed. EVO2-04 remains IN PROGRESS pending review of remaining confirmed guard gaps; no advancement to EVO2-05 and no changes to `main`.
+### Desktop Host `/report-pdf` model processing limit — 2026-10-16
+
+- Full Pytest CI #1256 PASS: `/report-pdf` now rejects serialized JSON models larger than 1,000,000 bytes after parsing, in addition to the 10,000,000-byte transport request ceiling.
+- Full Pytest CI #1257 initially failed because the new valid-PDF regression test omitted its `base64` import (786 passed, 1 failed); the failure was in test setup, not evidence of a production guard regression.
+- Full Pytest CI #1258 PASS after adding the missing test import. The new regression coverage checks oversized-model rejection and that a small object model still returns `READY` with a `%PDF-` signature.
+- **Disposition:** the PDF model-size guard and these regression checks are CI-confirmed. The 1 MB serialized-model limit is a new compatibility boundary; production-sized representative reports should be exercised before treating that limit as fully validated against all legitimate workloads. EVO2-04 remains IN PROGRESS.
