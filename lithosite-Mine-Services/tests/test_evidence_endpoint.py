@@ -789,3 +789,45 @@ def test_evidence_status_rejects_symlinked_evidence_root(evidence_host, tmp_path
     assert payload["status"] == "REJECTED"
     assert str(outside) not in body.decode("utf-8")
     assert "PLN-STATUS-ROOT-LINK" not in body.decode("utf-8")
+
+
+def test_runtime_delete_refuses_symlinked_evidence_record_without_touching_external_files(
+    evidence_host, monkeypatch, tmp_path
+):
+    base_url, server = evidence_host
+    module_dir = server.EVIDENCE_ROOT / "TargetPlan"
+    module_dir.mkdir(parents=True, exist_ok=True)
+    outside = tmp_path / "outside-delete-target"
+    outside.mkdir()
+    protected_file = outside / "keep-private.pdf"
+    protected_file.write_bytes(b"must remain untouched")
+    record_link = module_dir / "PLN-DELETE-SYMLINK"
+    try:
+        record_link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+
+    class CommittingAdapter:
+        def handle(self, request):
+            return {"request_id": request.get("request_id"), "status": "COMMITTED"}
+
+    monkeypatch.setattr(server, "ADAPTER", CommittingAdapter())
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": "test-plan-delete-symlink",
+            "operation": "DELETE",
+            "entity": "Plans",
+            "entity_id": "PLN-DELETE-SYMLINK",
+        },
+    )
+
+    payload = _payload(body)
+    assert status == 200
+    assert payload["status"] == "COMMITTED"
+    assert payload["evidence_cleanup_status"] == "FAILED"
+    assert protected_file.read_bytes() == b"must remain untouched"
+    assert record_link.is_symlink()
+    assert str(outside) not in body.decode("utf-8")
+    assert "keep-private.pdf" not in body.decode("utf-8")
