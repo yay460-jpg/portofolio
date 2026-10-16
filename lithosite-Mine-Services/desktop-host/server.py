@@ -1225,7 +1225,6 @@ class Handler(BaseHTTPRequestHandler):
                 "offline": True,
                 "schema": "A.3",
                 "runtime": "RuntimeAdapter",
-                "database": str(DB_PATH),
             }, origin)
             return
 
