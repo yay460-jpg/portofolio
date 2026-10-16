@@ -328,6 +328,14 @@ def _report_lines(value: object, width: int = 92) -> list[str]:
     return [line for raw in str(value).splitlines() for line in (textwrap.wrap(raw, width=width) or [""])]
 
 
+def _read_exact_request_body(stream, length: int) -> bytes:
+    """Read a declared HTTP body completely or reject a truncated request."""
+    body = stream.read(length)
+    if len(body) != length:
+        raise ValueError("Incomplete request body")
+    return body
+
+
 def build_report_pdf(model: dict) -> bytes:
     """Build a clean, compact management-grade A4 PDF using only the Python stdlib."""
     if not isinstance(model, dict):
@@ -1516,7 +1524,7 @@ class Handler(BaseHTTPRequestHandler):
                 length = int(self.headers.get("Content-Length", "0"))
                 if length <= 0 or length > 8192:
                     raise ValueError("Invalid Evidence preview request size")
-                request = json.loads(self.rfile.read(length).decode("utf-8"))
+                request = json.loads(_read_exact_request_body(self.rfile, length).decode("utf-8"))
                 if not isinstance(request, dict):
                     raise ValueError("Evidence preview request must be an object")
                 module = request.get("module")
@@ -1579,7 +1587,7 @@ class Handler(BaseHTTPRequestHandler):
                 length = int(self.headers.get("Content-Length", "0"))
                 if length <= 0 or length > 10_000_000:
                     raise ValueError("Invalid report request size")
-                model = json.loads(self.rfile.read(length).decode("utf-8"))
+                model = json.loads(_read_exact_request_body(self.rfile, length).decode("utf-8"))
                 # Bound report-builder work even when the request body is below
                 # the transport ceiling but contains deeply/verbosely nested data.
                 if not isinstance(model, dict):
