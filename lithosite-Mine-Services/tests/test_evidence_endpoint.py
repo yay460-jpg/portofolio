@@ -138,7 +138,6 @@ def _post_with_content_length(base_url, endpoint, params, length):
         connection.close()
 
 
-@pytest.mark.parametrize("length", ["-1", "100001", "not-a-number"])
 @pytest.mark.parametrize("endpoint,params", [
     ("/nik/upload", {"nik_id": "NIK-NO-LENGTH"}),
     ("/evidence/upload", {"module": "TargetPlan", "record_id": "PLN-NO-LENGTH", "filename": "no-length.pdf"}),
@@ -185,6 +184,7 @@ def test_upload_rejects_zero_content_length_without_creating_files(
         assert not (server.EVIDENCE_ROOT / "TargetPlan" / "PLN-ZERO-LENGTH" / "zero-length.pdf").exists()
 
 
+@pytest.mark.parametrize("length", ["-1", "100001", "not-a-number"])
 def test_nik_upload_rejects_invalid_content_length_before_writing(
     evidence_host, monkeypatch, length
 ):
