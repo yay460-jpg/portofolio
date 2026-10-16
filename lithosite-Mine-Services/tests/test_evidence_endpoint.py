@@ -785,7 +785,7 @@ def test_evidence_status_rejects_symlinked_evidence_root(evidence_host, tmp_path
     )
 
     payload = _payload(body)
-    assert status == 500
+    assert status == 400
     assert payload["status"] == "REJECTED"
     assert str(outside) not in body.decode("utf-8")
     assert "PLN-STATUS-ROOT-LINK" not in body.decode("utf-8")
