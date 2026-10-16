@@ -51,6 +51,15 @@ def _make_test_database(path):
     wb.save(path)
 
 
+def test_json_body_reader_rejects_truncated_content(monkeypatch, tmp_path):
+    import io
+    import server
+
+    assert server._read_exact_request_body(io.BytesIO(b'{"ok": true}'), 12) == b'{"ok": true}'
+    with pytest.raises(ValueError, match="Incomplete request body"):
+        server._read_exact_request_body(io.BytesIO(b'{"ok": true}'), 20)
+
+
 def test_health_endpoint_is_offline_ready(monkeypatch, tmp_path):
     db_path = tmp_path / "desktop-host-a3.xlsx"
     _make_test_database(db_path)
