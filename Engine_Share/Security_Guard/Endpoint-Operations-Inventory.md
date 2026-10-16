@@ -268,3 +268,11 @@ Pre-read size-limit test [adcd187](https://github.com/yay460-jpg/portofolio/comm
 - Added test `test_runtime_import_invalid_xlsx_is_rejected_without_mutation` using a temporary non-empty file with an `.xlsx` suffix that is not a valid ZIP/OOXML workbook.
 - The contract under test is rejection with `E001`, generic parser message, zero committed rows, unchanged canonical workbook bytes/store snapshot, and no new audit rows.
 - The test does not claim a resource ceiling: no explicit XLSX size limit or path-root allowlist was found in the inspected import layer. Those are policy decisions requiring a supported import-size/location contract before production enforcement.
+
+
+### Runtime JSON request body limit — 2026-10-16
+
+- `/runtime` accepts a JSON object request body up to 10,000,000 bytes. The previous 180,000,000-byte ceiling was reduced after tracing the shared RuntimeClient: requests are JSON operation envelopes, while Evidence and NIK binary uploads use dedicated endpoints with separate limits.
+- Regression test `test_runtime_rejects_invalid_and_over_limit_content_lengths_before_read` now checks rejection at 10,000,001 bytes, as well as zero, negative and nonnumeric Content-Length values. Existing valid runtime tests cover normal operation envelopes; no synthetic 10 MB accepted-body test is used because it would not represent a valid domain operation.
+- Compatibility note: 10 MB is a transport ceiling for the entire serialized runtime request, not a per-field or file upload limit. Any future operation requiring larger data must define and validate its own dedicated transfer contract rather than increasing this shared ceiling implicitly.
+- CI verification pending; do not mark the change PASS until Full Pytest is green.
