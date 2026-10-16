@@ -152,6 +152,44 @@ def test_runtime_rejects_invalid_and_over_limit_content_lengths_before_read(monk
         httpd.server_close()
 
 
+def test_runtime_rejects_truncated_json_body_without_adapter_dispatch(monkeypatch, tmp_path):
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    def unexpected_dispatch(request):
+        raise AssertionError("truncated body must not reach RuntimeAdapter")
+
+    monkeypatch.setattr(server.ADAPTER, "handle", unexpected_dispatch)
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        connection = HTTPConnection(host, port, timeout=3)
+        try:
+            connection.putrequest("POST", "/runtime")
+            connection.putheader("Content-Type", "application/json")
+            connection.putheader("Content-Length", "100")
+            connection.endheaders()
+            connection.send(b'{"request_id":"truncated","operation":"READ"}')
+            connection.sock.shutdown(1)
+            response = connection.getresponse()
+            payload = json.loads(response.read().decode("utf-8"))
+            assert response.status == 400
+            assert payload["status"] == "REJECTED"
+            assert payload["errors"][0]["code"] == "HOST-003"
+            assert payload["errors"][0]["message"] == "Invalid JSON request"
+        finally:
+            connection.close()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
 def test_user_guide_rejects_encoded_path_traversal(monkeypatch, tmp_path):
     db_path = tmp_path / "desktop-host-a3.xlsx"
     _make_test_database(db_path)
