@@ -164,7 +164,7 @@ def ensure_evidence_record_directory(module: str, record_id: str) -> Path:
     root = EVIDENCE_ROOT.resolve()
     root.mkdir(parents=True, exist_ok=True)
     module_dir = root / module
-    if module_dir.is_symlink():
+    if _is_evidence_link(module_dir):
         raise ValueError("Invalid evidence module path")
     module_dir.mkdir(exist_ok=True)
     if not module_dir.is_dir():
@@ -1137,7 +1137,7 @@ class Handler(BaseHTTPRequestHandler):
                         if not record_dir.is_dir():
                             raise OSError("Evidence record path is not a directory")
                         for item in sorted(record_dir.iterdir(), key=lambda entry: entry.name.casefold()):
-                            if item.is_symlink() or not item.is_file() or item.suffix.lower() not in EVIDENCE_EXTENSIONS:
+                            if _is_evidence_link(item) or not item.is_file() or item.suffix.lower() not in EVIDENCE_EXTENSIONS:
                                 continue
                             stat = item.stat()
                             mime_type = guess_type(item.name)[0] or "application/octet-stream"
@@ -1171,7 +1171,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid evidence filename"}]}, origin)
                 return
             candidate = record_dir / filename
-            if candidate.is_symlink():
+            if _is_evidence_link(candidate):
                 self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
                 return
             target = candidate.resolve()
@@ -1455,7 +1455,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 target_dir = ensure_evidence_record_directory(module, record_id)
                 target_file = target_dir / filename
-                if target_file.is_symlink():
+                if _is_evidence_link(target_file):
                     self._json(409, {"status": "REJECTED", "errors": [{"code": "HOST-012", "message": "An Evidence item with this filename already exists"}]}, origin)
                     return
                 with target_file.open("xb") as stream:
