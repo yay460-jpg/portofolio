@@ -1127,7 +1127,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 record_dir = evidence_record_directory(module, record_id)
             except ValueError as exc:
-                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": str(exc)}]}, origin)
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid or unsafe Evidence path"}]}, origin)
                 return
 
             if path == "/evidence/list":
@@ -1421,7 +1421,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 record_dir = evidence_record_directory(module, record_id)
             except ValueError as exc:
-                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": str(exc)}]}, origin)
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid or unsafe Evidence path"}]}, origin)
                 return
             filename_error = _evidence_filename_error(filename, EVIDENCE_EXTENSIONS)
             if filename_error:
@@ -1510,7 +1510,7 @@ class Handler(BaseHTTPRequestHandler):
                 ):
                     raise ValueError("Invalid Evidence preview filename")
             except (ValueError, TypeError, json.JSONDecodeError) as exc:
-                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": str(exc)}]}, origin)
+                self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Invalid or unsafe Evidence path"}]}, origin)
                 return
 
             candidate = record_dir / filename
