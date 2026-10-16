@@ -902,3 +902,16 @@ def test_evidence_preview_rejects_symlinked_file_without_disclosing_target(
     assert payload["status"] == "REJECTED"
     assert str(outside) not in body.decode("utf-8")
     assert "private-preview-target.pdf" not in body.decode("utf-8")
+
+
+def test_evidence_link_guard_recognizes_junctions(evidence_host):
+    _base_url, server = evidence_host
+
+    class JunctionLikePath:
+        def is_symlink(self):
+            return False
+
+        def is_junction(self):
+            return True
+
+    assert server._is_evidence_link(JunctionLikePath())
