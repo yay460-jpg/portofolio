@@ -26,13 +26,7 @@ Observed server configuration:
 
 ### Origin policy at the locked V41 baseline
 
-`is_allowed_origin()` accepts:
-
-1. four explicitly listed HTTP loopback origins on ports 5500 and 5501;
-2. missing Origin and the literal `null` Origin;
-3. any HTTP Origin whose host is `localhost` or `127.0.0.1`, regardless of port.
-
-Most data endpoints explicitly return 403 when a present Origin is not accepted; `/health`, root redirect, user-guide, and generic static-file paths do not use the same explicit reject branch. The shared CORS helper only emits `Access-Control-Allow-Origin` for accepted origins. OPTIONS replies with the configured method/header list.
+**Current workspace policy (supersedes the locked-baseline description below):** `Host_Guard/security_guard.py` permits configured host origins (default `127.0.0.1:8765` and `localhost:8765`) plus documented development origins on ports `5500` and `5501`. It rejects `null`, non-loopback hosts, HTTPS variants, and unlisted localhost ports on routes that enforce Origin checks. Missing Origin remains allowed for local non-browser clients. This is Origin/CORS policy, not authentication. Route-level enforcement remains distinct: `/health`, root redirect, user-guide and static-file GETs do not all use the same explicit 403 branch; verify response exposure and CORS behavior rather than assuming they reject all external Origin values.
 
 **Test question, not a finding:** which local origins must be supported by the official launcher and development workflow, and can an untrusted local browser origin read or invoke any sensitive response? Do not tighten this policy until allowed-origin compatibility is specified and tested.
 
@@ -48,7 +42,7 @@ Most data endpoints explicitly return 403 when a present Origin is not accepted;
 
 | Path | Inputs | Observed controls | Next test |
 |---|---|---|---|
-| `/health` | None | Reports READY/offline/schema/runtime and the resolved local database path | Verify which fields should be visible to the browser/caller; preserve existing health contract unless decision changes |
+| `/health` | None | Returns only READY/offline/schema/runtime; no database path is included in the current response | Regression test asserts database path is absent |
 | `/` | None | Redirects to configured `STATIC_ENTRY` | Verify redirect target comes from trusted configuration |
 | `/user-guide`, `/lithosite-Mine-Services/user-guide` | Query `file` | Resolves under the guide root, checks containment, and requires a PDF file | Traversal/encoded-path and error-response cases |
 | `/evidence/status` | Query `module` | Allowlisted modules; filters unsafe linked paths and supported direct-child files | Encoded IDs, junction/symlink edge cases, and error leakage |
@@ -60,7 +54,7 @@ Most data endpoints explicitly return 403 when a present Origin is not accepted;
 
 | Path | Inputs / current bound | Observed controls | Next test |
 |---|---|---|---|
-| `/runtime` | JSON object; Content-Length must be 1..180,000,000 bytes | Origin rejection for present unaccepted origins; catches malformed request; dispatches via RuntimeAdapter; applies Evidence lifecycle after committed operations; generic host error for unexpected exception | Boundary sizes, content-type, malformed/partial body, all operation envelopes, internal-error sanitization, request correlation and repeated operations |
+| `/runtime` | JSON object; Content-Length must be 1..10,000,000 bytes | Origin rejection for present unaccepted origins; exact body read; JSON object required; dispatches via RuntimeAdapter; applies Evidence lifecycle after committed operations; generic host error for unexpected exception | Boundary sizes, malformed/partial body, operation envelopes, internal-error sanitization, request correlation and repeated operations |
 | `/evidence/upload` | Query module/record_id/filename; body 1..100,000,000 bytes | Allowlisted module; constrained path/name and extension; verifies owning record through adapter; exclusive-create prevents overwrite; cleans partial file after write error | MIME/content inspection policy, content-length/body edge cases, link/race cases, duplicates, rejected owner record |
 | `/evidence/preview` | JSON object; body 1..8,192 bytes | Allowlisted Evidence path; allowed preview extensions PDF/JPEG/PNG; containment and 100,000,000-byte file limit | Schema strictness, encoded traversal, content mismatch and response headers |
 | `/report-pdf` | JSON body 1..10,000,000 bytes | Size check, JSON decoding, PDF builder; `HOST-008` now uses a generic `Invalid report request` message rather than reflecting exception text (commit `b5c264c`, validation pending) | Regression tests cover non-object and malformed JSON (latest test commit `799deb4`); verify CI, nested/extreme values, content-type, CPU/memory bounds and generic error response |
@@ -279,3 +273,10 @@ Pre-read size-limit test [adcd187](https://github.com/yay460-jpg/portofolio/comm
 
 - **CI PASS:** Full Pytest #1260 (guard), #1261 (size-boundary regression), and #1262 (contract documentation) all completed successfully. The runtime limit change is verified for the tested invalid/over-limit header cases; no claim is made that a 10 MB domain operation is valid or required.
 - Additional handler review confirmed NIK profile upload, Evidence upload, Evidence preview and report PDF each use their own route-specific size validation; their limits are not inherited from `/runtime`. NIK profile upload is capped at 100 KB, Evidence upload at 100 MB per file, Evidence preview JSON at 8,192 bytes, and report PDF requests at 10 MB transport / 1 MB serialized model.
+
+### Current Desktop Host route audit — 2026-10-17
+
+- Re-read current `Handler.do_GET` and `Handler.do_POST` routing after the EVO2-04 body-guard fixes. The active `/health` response contains only `status`, `offline`, `schema`, and `runtime`; it does not disclose the configured workbook path. The earlier baseline row has been corrected.
+- Updated the `/runtime` route inventory to its current 10,000,000-byte transport ceiling. Dedicated limits remain independent: NIK JPEG upload 100 KB, Evidence upload/file preview 100 MB, Evidence preview request 8,192 bytes, report-PDF transport 10 MB with a 1 MB serialized model limit, user-guide/static reads 25 MB.
+- Route review confirms `POST /nik/upload`, `POST /evidence/upload`, `POST /evidence/preview`, `POST /report-pdf`, and `POST /runtime` each have bounded request-body checks. `/nik/clear` is query-driven and performs no request-body read. Unsupported paths are rejected; unsupported HTTP verbs remain handled by `BaseHTTPRequestHandler` defaults.
+- No additional production-code change was justified by this source pass alone. Follow-up testing should focus on unsupported HTTP methods and route-specific Origin/CORS response contracts for `/health`, user-guide, and static GET routes. EVO2-04 remains open until the remaining endpoint tests and final CI/roadmap reconciliation are complete.
