@@ -577,3 +577,10 @@ The UI source trace was extended beyond Operations:
 - Full Pytest CI #1275 PASS for /runtime using the exact-read helper. CI #1276 PASS for the endpoint-level regression confirming a truncated /runtime request is rejected with HTTP 400 / HOST-003 / Invalid JSON request and never reaches RuntimeAdapter.
 - Remaining audit finding: /nik/upload and /evidence/upload have explicit post-read length checks and reject incomplete bodies, but still use direct rfile.read(length); their behavior is guarded but not yet normalized to the shared helper. Review whether to unify these paths with targeted tests.
 - Disposition: truncated JSON body handling for /runtime and /report-pdf is CI-confirmed. EVO2-04 remains IN PROGRESS; continue the endpoint-by-endpoint contract and resource-limit audit. No changes to main; EVO2-05/06/07 remain pending.
+
+### Upload body contract normalization — 2026-10-17
+
+- CI #1278 PASS: `/nik/upload` and `/evidence/upload` now use `_read_exact_request_body()` after validating their existing per-operation byte limits.
+- CI #1279 PASS: regression tests preserve each upload route's HTTP 400 / HOST-009 incomplete-body response contract.
+- Existing operation-specific limits remain unchanged: NIK profile upload 100,000 bytes (compressed payload), Evidence upload 100,000,000 bytes, runtime/report JSON 10,000,000 bytes, and bounded static/user-guide reads 25,000,000 bytes. No global 180 MB request limit was introduced by this change.
+- Remaining Desktop Host audit focus: verify malformed/negative/oversized Content-Length and method/path contract coverage across every POST route, and ensure static/Evidence read failures consistently return sanitized responses. Keep EVO2-04 IN PROGRESS until these checks and the full-suite CI evidence are reconciled.
