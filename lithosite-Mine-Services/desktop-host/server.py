@@ -49,7 +49,7 @@ NIK_PROFILE_ROOT = (DB_PATH.parent / "NIK").resolve()
 NIK_PROFILE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
 MAX_NIK_PROFILE_UPLOAD_BYTES = 2_000_000
 MAX_NIK_PROFILE_BYTES = 100_000
-EVIDENCE_ROOT = (DB_PATH.parent / "Evidence").resolve()
+EVIDENCE_ROOT = DB_PATH.parent / "Evidence"
 EVIDENCE_MODULES = frozenset({"TargetPlan", "HSE", "Maintenance"})
 EVIDENCE_EXTENSIONS = frozenset({".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx"})
 MAX_EVIDENCE_FILE_BYTES = 100_000_000
@@ -139,6 +139,8 @@ def evidence_record_directory(module: str, record_id: str) -> Path:
         raise ValueError("Unsupported evidence module")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", record_id or ""):
         raise ValueError("Invalid evidence record ID")
+    if _is_evidence_link(EVIDENCE_ROOT):
+        raise ValueError("Invalid Evidence root path")
     root = EVIDENCE_ROOT.resolve()
     module_dir = root / module
     if _is_evidence_link(module_dir):
@@ -157,6 +159,8 @@ def evidence_record_directory(module: str, record_id: str) -> Path:
 def ensure_evidence_record_directory(module: str, record_id: str) -> Path:
     """Create a record folder under the fixed Evidence root."""
     target = evidence_record_directory(module, record_id)
+    if _is_evidence_link(EVIDENCE_ROOT):
+        raise ValueError("Invalid Evidence root path")
     root = EVIDENCE_ROOT.resolve()
     root.mkdir(parents=True, exist_ok=True)
     module_dir = root / module
