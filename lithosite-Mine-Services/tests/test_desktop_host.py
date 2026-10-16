@@ -828,7 +828,6 @@ def test_untrusted_origin_cannot_read_any_remaining_get_route(monkeypatch, tmp_p
         thread = threading.Thread(target=httpd.serve_forever, daemon=True)
         thread.start()
         host, port = httpd.server_address
-        connection = HTTPConnection(host, port, timeout=3)
         cases = [
             ("/", 302),
             ("/health", 200),
@@ -839,8 +838,11 @@ def test_untrusted_origin_cannot_read_any_remaining_get_route(monkeypatch, tmp_p
             ("/evidence/file?module=TargetPlan&record_id=PLN-TEST-001&filename=proof.pdf", 403),
             ("/assets/lithosite-icons.svg", 200),
         ]
-        try:
-            for route, expected_status in cases:
+        # Use a fresh connection per route because the host uses HTTP/1.0
+        # connection-close semantics for several response paths.
+        for route, expected_status in cases:
+            connection = HTTPConnection(host, port, timeout=3)
+            try:
                 connection.request(
                     "GET",
                     route,
@@ -852,8 +854,8 @@ def test_untrusted_origin_cannot_read_any_remaining_get_route(monkeypatch, tmp_p
                 assert response.getheader("Access-Control-Allow-Origin") is None, route
                 if expected_status == 200:
                     assert body, route
-        finally:
-            connection.close()
+            finally:
+                connection.close()
     finally:
         httpd.shutdown()
         httpd.server_close()
