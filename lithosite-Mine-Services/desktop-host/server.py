@@ -1556,6 +1556,12 @@ class Handler(BaseHTTPRequestHandler):
                 if length <= 0 or length > 10_000_000:
                     raise ValueError("Invalid report request size")
                 model = json.loads(self.rfile.read(length).decode("utf-8"))
+                # Bound report-builder work even when the request body is below
+                # the transport ceiling but contains deeply/verbosely nested data.
+                if not isinstance(model, dict):
+                    raise ValueError("Invalid report model")
+                if len(json.dumps(model, ensure_ascii=False).encode("utf-8")) > 1_000_000:
+                    raise ValueError("Report model exceeds processing limit")
                 payload = build_report_pdf(model)
                 self._json(200, {
                     "status": "READY",
