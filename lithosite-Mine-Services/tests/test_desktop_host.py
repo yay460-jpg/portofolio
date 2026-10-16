@@ -69,6 +69,9 @@ def test_health_endpoint_is_offline_ready(monkeypatch, tmp_path):
         assert payload["status"] == "READY"
         assert payload["offline"] is True
         assert payload["schema"] == "A.3"
+        assert payload["runtime"] == "RuntimeAdapter"
+        assert "database" not in payload
+        assert str(db_path) not in json.dumps(payload)
     finally:
         httpd.shutdown()
         httpd.server_close()
