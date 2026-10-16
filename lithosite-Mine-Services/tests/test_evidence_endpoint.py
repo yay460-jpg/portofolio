@@ -1,4 +1,5 @@
 import base64
+from http.client import HTTPConnection
 import importlib.util
 import json
 import sys
@@ -118,6 +119,55 @@ def _post_raw(base_url, endpoint, params, body, content_type="application/octet-
             return response.status, response.headers, response.read()
     except HTTPError as error:
         return error.code, error.headers, error.read()
+
+
+def _post_with_content_length(base_url, endpoint, params, length):
+    from urllib.parse import urlencode
+    host_port = base_url.removeprefix("http://")
+    host, port = host_port.rsplit(":", 1)
+    connection = HTTPConnection(host, int(port), timeout=5)
+    try:
+        connection.putrequest("POST", f"{endpoint}?{urlencode(params)}")
+        connection.putheader("Content-Type", "image/jpeg" if endpoint == "/nik/upload" else "application/pdf")
+        connection.putheader("Content-Length", length)
+        connection.endheaders()
+        response = connection.getresponse()
+        return response.status, response.read()
+    finally:
+        connection.close()
+
+
+@pytest.mark.parametrize("length", ["-1", "100001", "not-a-number"])
+def test_nik_upload_rejects_invalid_content_length_before_writing(
+    evidence_host, monkeypatch, length
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda _nik_id: True)
+    status, body = _post_with_content_length(
+        base_url, "/nik/upload", {"nik_id": "NIK-LENGTH-01"}, length
+    )
+    payload = _payload(body)
+    assert status in {400, 413}
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"]
+
+
+@pytest.mark.parametrize("length", ["-1", "100000001", "not-a-number"])
+def test_evidence_upload_rejects_invalid_content_length_before_writing(
+    evidence_host, monkeypatch, length
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_evidence_record_exists", lambda _module, _record_id: True)
+    status, body = _post_with_content_length(
+        base_url,
+        "/evidence/upload",
+        {"module": "TargetPlan", "record_id": "PLAN-LENGTH-01", "filename": "evidence.pdf"},
+        length,
+    )
+    payload = _payload(body)
+    assert status in {400, 413}
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"]
 
 
 def test_evidence_upload_preserves_incomplete_body_contract(evidence_host, monkeypatch):
