@@ -764,3 +764,28 @@ def test_evidence_endpoint_rejects_symlinked_evidence_root(evidence_host, tmp_pa
     assert status == 400
     assert payload["status"] == "REJECTED"
     assert str(outside) not in body.decode("utf-8")
+
+
+def test_evidence_status_rejects_symlinked_evidence_root(evidence_host, tmp_path, monkeypatch):
+    base_url, server = evidence_host
+    outside = tmp_path / "outside-evidence-status-root"
+    module_dir = outside / "Plans"
+    record_dir = module_dir / "PLN-STATUS-ROOT-LINK"
+    record_dir.mkdir(parents=True)
+    (record_dir / "private.pdf").write_bytes(b"outside evidence")
+    root_link = tmp_path / "Evidence-status-root-link"
+    try:
+        root_link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+    monkeypatch.setattr(server, "EVIDENCE_ROOT", root_link)
+
+    status, _headers, body = _get(
+        base_url, "/evidence/status", {"module": "Plans"}
+    )
+
+    payload = _payload(body)
+    assert status == 500
+    assert payload["status"] == "REJECTED"
+    assert str(outside) not in body.decode("utf-8")
+    assert "PLN-STATUS-ROOT-LINK" not in body.decode("utf-8")
