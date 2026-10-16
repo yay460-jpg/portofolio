@@ -804,3 +804,56 @@ def test_untrusted_origin_gets_no_cors_read_permission_on_public_get_routes(
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def test_untrusted_origin_cannot_read_any_remaining_get_route(monkeypatch, tmp_path):
+    """Exercise GET Origin/CORS behavior across route-specific handler branches."""
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    # Use a harmless fixture for the successful user-guide path.
+    guide_root = tmp_path / "docs" / "lithosite" / "02_Mine-Services" / "10_User-Guides"
+    guide_root.mkdir(parents=True)
+    (guide_root / "sample.pdf").write_bytes(b"%PDF-test")
+    monkeypatch.setattr(server, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(server, "STATIC_ROOT", Path(__file__).parents[2].resolve())
+    monkeypatch.setattr(server, "EVIDENCE_ROOT", tmp_path / "Evidence")
+
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        connection = HTTPConnection(host, port, timeout=3)
+        cases = [
+            ("/", 302),
+            ("/health", 200),
+            ("/user-guide?file=sample.pdf", 200),
+            ("/nik/profile?nik_id=NIK-TEST-001", 403),
+            ("/evidence/status?module=TargetPlan", 403),
+            ("/evidence/list?module=TargetPlan&record_id=PLN-TEST-001", 403),
+            ("/evidence/file?module=TargetPlan&record_id=PLN-TEST-001&filename=proof.pdf", 403),
+            ("/assets/lithosite-icons.svg", 200),
+        ]
+        try:
+            for route, expected_status in cases:
+                connection.request(
+                    "GET",
+                    route,
+                    headers={"Origin": "http://evil.example"},
+                )
+                response = connection.getresponse()
+                body = response.read()
+                assert response.status == expected_status, route
+                assert response.getheader("Access-Control-Allow-Origin") is None, route
+                if expected_status == 200:
+                    assert body, route
+        finally:
+            connection.close()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
