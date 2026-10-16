@@ -615,6 +615,34 @@ def test_nik_profile_upload_saves_compressed_jpeg_and_replaces_previous_photo(ev
 
 
 
+
+def test_bounded_file_reader_rejects_growth_beyond_limit(evidence_host, monkeypatch):
+    _base_url, server = evidence_host
+    target = server.DB_PATH.parent / "bounded-read-test.bin"
+    target.write_bytes(b"small")
+    original_open = Path.open
+
+    class GrowingStream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self, amount=-1):
+            assert amount == 5
+            return b"12345"
+
+    def growing_open(path, *args, **kwargs):
+        if path == target:
+            return GrowingStream()
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", growing_open)
+    with pytest.raises(OverflowError):
+        server._read_bounded_file(target, 4)
+
+
 def test_nik_profile_read_rejects_oversized_file_with_matching_limit_message(evidence_host):
     base_url, server = evidence_host
     root = server.DB_PATH.parent / "NIK"
