@@ -677,3 +677,66 @@ def test_nik_profile_upload_rejects_invalid_or_oversized_payloads(
     payload = _payload(response_body)
     assert payload["status"] == "REJECTED"
     assert payload["errors"]
+
+
+def test_evidence_endpoint_rejects_symlinked_module_directory_without_disclosure(
+    evidence_host, tmp_path
+):
+    base_url, server = evidence_host
+    outside = tmp_path / "outside-evidence-module"
+    outside.mkdir()
+    (outside / "PLN-SYMLINK-01").mkdir()
+    (outside / "PLN-SYMLINK-01" / "secret.pdf").write_bytes(b"outside secret")
+    server.EVIDENCE_ROOT.mkdir(parents=True, exist_ok=True)
+    module_link = server.EVIDENCE_ROOT / "TargetPlan"
+    try:
+        module_link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+
+    status, _headers, body = _get(
+        base_url,
+        "/evidence/file",
+        {
+            "module": "TargetPlan",
+            "record_id": "PLN-SYMLINK-01",
+            "filename": "secret.pdf",
+        },
+    )
+
+    payload = _payload(body)
+    assert status in {400, 404}
+    assert payload["status"] == "REJECTED"
+    assert str(outside) not in body.decode("utf-8")
+    assert "secret.pdf" not in body.decode("utf-8")
+
+
+def test_evidence_endpoint_rejects_symlinked_file_outside_evidence_root(
+    evidence_host, tmp_path
+):
+    base_url, server = evidence_host
+    record_dir = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-SYMLINK-02"
+    record_dir.mkdir(parents=True)
+    outside = tmp_path / "private-outside-evidence.pdf"
+    outside.write_bytes(b"outside secret")
+    file_link = record_dir / "linked.pdf"
+    try:
+        file_link.symlink_to(outside)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+
+    status, _headers, body = _get(
+        base_url,
+        "/evidence/file",
+        {
+            "module": "TargetPlan",
+            "record_id": "PLN-SYMLINK-02",
+            "filename": "linked.pdf",
+        },
+    )
+
+    payload = _payload(body)
+    assert status in {400, 404}
+    assert payload["status"] == "REJECTED"
+    assert str(outside) not in body.decode("utf-8")
+    assert "private-outside-evidence.pdf" not in body.decode("utf-8")
