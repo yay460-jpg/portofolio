@@ -560,3 +560,12 @@ The UI source trace was extended beyond Operations:
 - Full Pytest CI #1257 initially failed because the new valid-PDF regression test omitted its `base64` import (786 passed, 1 failed); the failure was in test setup, not evidence of a production guard regression.
 - Full Pytest CI #1258 PASS after adding the missing test import. The new regression coverage checks oversized-model rejection and that a small object model still returns `READY` with a `%PDF-` signature.
 - **Disposition:** the PDF model-size guard and these regression checks are CI-confirmed. The 1 MB serialized-model limit is a new compatibility boundary; production-sized representative reports should be exercised before treating that limit as fully validated against all legitimate workloads. EVO2-04 remains IN PROGRESS.
+
+### Desktop Host bounded file-read guards — 2026-10-16
+
+- Added a shared bounded binary reader that reads at most the configured limit plus one sentinel byte, rejecting overflow without first loading the entire file into memory.
+- Applied bounded reads to NIK profile photos, Evidence file preview and JSON preview, the user-guide PDF response, and static assets. The user-guide PDF and static-resource caps are each 25,000,000 bytes; NIK and Evidence retain their operation-specific limits.
+- Oversized files return a sanitized HTTP 413 response; read failures return a sanitized HTTP 500 response. These are per-operation limits and do not change the /runtime request-body ceiling or Evidence upload limit.
+- Regression coverage added for the bounded-reader overflow behavior.
+- **Full Pytest CI PASS:** #1266 (NIK/Evidence hard-cap implementation), #1267 (bounded-read regression test), #1268 (Evidence JSON preview), and #1269 (user-guide/static reads).
+- **Disposition:** the identified unbounded whole-file read paths in these operations are now guarded and CI-confirmed. The 25 MB limits are new compatibility boundaries and still need confirmation against representative legitimate user-guide and static-asset sizes. This does not prove every Desktop Host endpoint or every resource-exhaustion case safe; continue the remaining endpoint-by-endpoint audit before closing EVO2-04. No changes to main; EVO2-05/06/07 remain pending.
