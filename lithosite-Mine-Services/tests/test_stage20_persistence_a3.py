@@ -447,3 +447,25 @@ def test_runtime_nik_snapshot_read_failure_returns_rejected_without_mutation(tmp
     assert runtime.read("NIK") == []
     assert app.store.audit() == []
     assert original_read_bytes(target) == original_bytes
+
+
+def test_runtime_import_xlsx_unreadable_path_is_sanitized_and_non_mutating(tmp_path):
+    target = tmp_path / "import-canonical.xlsx"
+    make_a3_workbook(target)
+    app = ApplicationService(PersistenceStore(target))
+    runtime = RuntimeInterface(application=app)
+    before_bytes = target.read_bytes()
+    before_store = app.store.snapshot()
+    missing = tmp_path / "private-path-that-must-not-leak.xlsx"
+
+    result = runtime.import_xlsx(missing)
+
+    assert result["status"] == "REJECTED"
+    assert result["lifecycle"] == "REJECTED"
+    assert result["rows_committed"] == 0
+    assert result["errors"][0]["code"] == "E001"
+    assert str(missing) not in result["errors"][0]["message"]
+    assert "could not be opened" in result["errors"][0]["message"].lower()
+    assert app.store.snapshot() == before_store
+    assert app.store.audit() == []
+    assert target.read_bytes() == before_bytes
