@@ -859,3 +859,48 @@ def test_untrusted_origin_cannot_read_any_remaining_get_route(monkeypatch, tmp_p
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+@pytest.mark.parametrize(
+    ("route", "body"),
+    [
+        ("/nik/clear?nik_id=NIK-TEST-001", None),
+        ("/nik/upload?nik_id=NIK-TEST-001", b"not-an-image"),
+        ("/evidence/upload?module=TargetPlan&record_id=PLN-TEST-001&filename=proof.pdf", b"proof"),
+        ("/evidence/preview", b"{}"),
+        ("/report-pdf", b"{}"),
+    ],
+)
+def test_untrusted_origin_is_rejected_before_post_route_processing(
+    monkeypatch, tmp_path, route, body
+):
+    """Every dedicated POST route must reject untrusted Origin before side effects."""
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        connection = HTTPConnection(host, port, timeout=3)
+        headers = {"Origin": "http://evil.example"}
+        if body is not None:
+            headers["Content-Type"] = "application/json" if route == "/evidence/preview" or route == "/report-pdf" else "image/jpeg"
+        try:
+            connection.request("POST", route, body=body, headers=headers)
+            response = connection.getresponse()
+            response_body = response.read().decode("utf-8", errors="replace")
+            assert response.status == 403, route
+            assert response.getheader("Access-Control-Allow-Origin") is None, route
+            assert "Traceback" not in response_body, route
+            assert str(db_path) not in response_body, route
+        finally:
+            connection.close()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
