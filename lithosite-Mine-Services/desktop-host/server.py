@@ -234,7 +234,7 @@ def apply_plan_evidence_lifecycle(request: dict, result: dict) -> dict:
             result["evidence_folder_status"] = "READY"
         except (OSError, ValueError, TypeError) as exc:
             result["evidence_folder_status"] = "FAILED"
-            result["evidence_folder_message"] = str(exc)
+            result["evidence_folder_message"] = "Evidence folder could not be prepared"
     elif operation == "DELETE":
         record_id = request.get("entity_id")
         try:
@@ -246,7 +246,7 @@ def apply_plan_evidence_lifecycle(request: dict, result: dict) -> dict:
             result["evidence_cleanup_status"] = "CLEANED"
         except (OSError, ValueError, TypeError) as exc:
             result["evidence_cleanup_status"] = "FAILED"
-            result["evidence_cleanup_message"] = str(exc)
+            result["evidence_cleanup_message"] = "Evidence cleanup could not be completed"
     return result
 
 
@@ -1514,7 +1514,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             candidate = record_dir / filename
-            if candidate.is_symlink():
+            if _is_evidence_link(candidate):
                 self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
                 return
             target = candidate.resolve()
