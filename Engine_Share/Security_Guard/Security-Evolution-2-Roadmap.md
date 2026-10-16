@@ -569,3 +569,11 @@ The UI source trace was extended beyond Operations:
 - Regression coverage added for the bounded-reader overflow behavior.
 - **Full Pytest CI PASS:** #1266 (NIK/Evidence hard-cap implementation), #1267 (bounded-read regression test), #1268 (Evidence JSON preview), and #1269 (user-guide/static reads).
 - **Disposition:** the identified unbounded whole-file read paths in these operations are now guarded and CI-confirmed. The 25 MB limits are new compatibility boundaries and still need confirmation against representative legitimate user-guide and static-asset sizes. This does not prove every Desktop Host endpoint or every resource-exhaustion case safe; continue the remaining endpoint-by-endpoint audit before closing EVO2-04. No changes to main; EVO2-05/06/07 remain pending.
+
+### Desktop Host exact request-body reads — 2026-10-17
+
+- Added _read_exact_request_body() and applied it to /report-pdf and /runtime, so parsing proceeds only when the declared Content-Length bytes were actually received.
+- Full Pytest CI #1273 PASS for the shared helper and #1274 PASS for its direct truncated-body regression.
+- Full Pytest CI #1275 PASS for /runtime using the exact-read helper. CI #1276 PASS for the endpoint-level regression confirming a truncated /runtime request is rejected with HTTP 400 / HOST-003 / Invalid JSON request and never reaches RuntimeAdapter.
+- Remaining audit finding: /nik/upload and /evidence/upload have explicit post-read length checks and reject incomplete bodies, but still use direct rfile.read(length); their behavior is guarded but not yet normalized to the shared helper. Review whether to unify these paths with targeted tests.
+- Disposition: truncated JSON body handling for /runtime and /report-pdf is CI-confirmed. EVO2-04 remains IN PROGRESS; continue the endpoint-by-endpoint contract and resource-limit audit. No changes to main; EVO2-05/06/07 remain pending.
