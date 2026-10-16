@@ -546,3 +546,11 @@ The UI source trace was extended beyond Operations:
 - Full Pytest CI PASS: #1238–#1240 (initial root/module/file guard coverage), #1243 (status rejection contract), #1244 (cleanup), #1245 (upload), #1246 (preview), #1247–#1248 (unified link guard), #1249–#1250 (error-message sanitization). #1242 failed because its test expected HTTP 500 instead of the established 400 rejection contract; #1243 corrected the assertion and passed.
 - Final source scan on `v41-workspace` found no Evidence-related handler lines that directly reflect raw exception strings or call `.is_symlink()` instead of the unified helper.
 - **Disposition:** these specific Evidence guard regressions are covered and CI-confirmed. This is not a claim that every filesystem race or every Windows junction behavior is proven safe; a real Windows junction endpoint integration test remains optional follow-up if the Windows CI environment can create junctions reliably. EVO2-04 remains IN PROGRESS until other confirmed guard gaps are resolved. No changes to `main`.
+### Desktop Host `/report-pdf` request guard regression evidence — 2026-10-16
+
+- Full Pytest CI #1252 PASS: malformed JSON, JSON array, and JSON `null` receive the established HTTP 400 / `HOST-008` / `Invalid report request` contract without traceback or local workbook path disclosure.
+- Full Pytest CI #1253 PASS: invalid negative, nonnumeric, and over-limit `Content-Length` values are rejected before request-body parsing; request body ceiling is 10,000,000 bytes.
+- Full Pytest CI #1254 PASS: JSON objects with wrongly typed nested `period`, `kpi`, `source_counts`, or `section_data` are rejected with the same sanitized response contract.
+- Source review confirms `build_report_pdf()` rejects non-dictionary top-level models. These tests cover the identified malformed request shapes; they do not prove all report-builder inputs or resource-exhaustion scenarios are safe.
+- Latest owner-reported local Full Pytest after pulling `v41-workspace`: 781 passed in 87.11 seconds at commit `013c081e`. Commit `f05b1b82` has separate CI PASS #1254.
+- **Disposition:** report request validation regressions are covered and CI-confirmed. EVO2-04 remains IN PROGRESS pending review of remaining confirmed guard gaps; no advancement to EVO2-05 and no changes to `main`.
