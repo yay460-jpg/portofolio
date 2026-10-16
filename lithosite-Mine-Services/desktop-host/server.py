@@ -1536,11 +1536,10 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "Evidence file not found"}]}, origin)
                 return
             try:
-                size = target.stat().st_size
-                if size > MAX_EVIDENCE_FILE_BYTES:
-                    self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB preview limit"}]}, origin)
-                    return
-                body = target.read_bytes()
+                body = _read_bounded_file(target, MAX_EVIDENCE_FILE_BYTES)
+            except OverflowError:
+                self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Evidence file exceeds the 100 MB preview limit"}]}, origin)
+                return
             except OSError:
                 self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Evidence file could not be read"}]}, origin)
                 return
