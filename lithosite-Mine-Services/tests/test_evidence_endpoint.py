@@ -614,6 +614,24 @@ def test_nik_profile_upload_saves_compressed_jpeg_and_replaces_previous_photo(ev
     assert body == replacement
 
 
+
+def test_nik_profile_read_rejects_oversized_file_with_matching_limit_message(evidence_host):
+    base_url, server = evidence_host
+    root = server.DB_PATH.parent / "NIK"
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "TEST-NIK-001.jpg").write_bytes(b"x" * 100_001)
+
+    status, _headers, body = _get(base_url, "/nik/profile", {"nik_id": "TEST-NIK-001"})
+
+    payload = _payload(body)
+    assert status == 413
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"][0]["code"] == "HOST-011"
+    assert "100 KB" in payload["errors"][0]["message"]
+    assert "15 MB" not in body.decode("utf-8")
+
+
+
 def test_nik_profile_clear_removes_only_the_selected_employees_photo(evidence_host, monkeypatch):
     base_url, server = evidence_host
     monkeypatch.setattr(server, "_nik_record_exists", lambda nik_id: nik_id in {"TEST-NIK-001", "TEST-NIK-002"})
