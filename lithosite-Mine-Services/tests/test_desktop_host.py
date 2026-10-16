@@ -629,3 +629,61 @@ def test_report_pdf_rejects_wrongly_typed_nested_payload_without_details(
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+
+def test_report_pdf_rejects_model_over_processing_limit(monkeypatch, tmp_path):
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    body = json.dumps({"large": "x" * 1_000_001}).encode("utf-8")
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        request = Request(f"http://{host}:{port}/report-pdf", data=body,
+                          headers={"Content-Type": "application/json"}, method="POST")
+        with pytest.raises(HTTPError) as rejected:
+            urlopen(request, timeout=5)
+        assert rejected.value.code == 400
+        response = rejected.value.read().decode("utf-8")
+        payload = json.loads(response)
+        assert payload["status"] == "REJECTED"
+        assert payload["errors"][0]["code"] == "HOST-008"
+        assert payload["errors"][0]["message"] == "Invalid report request"
+        assert "Traceback" not in response
+        assert str(db_path) not in response
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_report_pdf_accepts_small_valid_object_model(monkeypatch, tmp_path):
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    body = json.dumps({"title": "Operations Report"}).encode("utf-8")
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        request = Request(f"http://{host}:{port}/report-pdf", data=body,
+                          headers={"Content-Type": "application/json"}, method="POST")
+        with urlopen(request, timeout=5) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        assert payload["status"] == "READY"
+        assert payload["mime"] == "application/pdf"
+        assert base64.b64decode(payload["data"]).startswith(b"%PDF-")
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
