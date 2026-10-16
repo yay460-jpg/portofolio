@@ -53,6 +53,7 @@ EVIDENCE_ROOT = DB_PATH.parent / "Evidence"
 EVIDENCE_MODULES = frozenset({"TargetPlan", "HSE", "Maintenance"})
 EVIDENCE_EXTENSIONS = frozenset({".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx"})
 MAX_EVIDENCE_FILE_BYTES = 100_000_000
+MAX_RUNTIME_REQUEST_BYTES = 10_000_000
 
 SCHEMA_NAME = os.environ.get("MINE_SERVICES_SCHEMA", "A3").upper()
 if SCHEMA_NAME != "A3":
@@ -1582,7 +1583,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > 180_000_000:
+            if length <= 0 or length > MAX_RUNTIME_REQUEST_BYTES:
                 raise ValueError("Invalid request size")
             request = json.loads(self.rfile.read(length).decode("utf-8"))
             if not isinstance(request, dict):
