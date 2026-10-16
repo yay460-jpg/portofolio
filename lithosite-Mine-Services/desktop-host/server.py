@@ -54,6 +54,8 @@ EVIDENCE_MODULES = frozenset({"TargetPlan", "HSE", "Maintenance"})
 EVIDENCE_EXTENSIONS = frozenset({".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx"})
 MAX_EVIDENCE_FILE_BYTES = 100_000_000
 MAX_RUNTIME_REQUEST_BYTES = 10_000_000
+MAX_STATIC_FILE_BYTES = 25_000_000
+MAX_USER_GUIDE_PDF_BYTES = 25_000_000
 
 SCHEMA_NAME = os.environ.get("MINE_SERVICES_SCHEMA", "A3").upper()
 if SCHEMA_NAME != "A3":
@@ -1245,11 +1247,19 @@ class Handler(BaseHTTPRequestHandler):
             if target.suffix.lower() != ".pdf" or not target.is_file():
                 self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "User guide not found"}]}, origin)
                 return
+            try:
+                guide_bytes = _read_bounded_file(target, MAX_USER_GUIDE_PDF_BYTES)
+            except OverflowError:
+                self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "User guide PDF exceeds the 25 MB limit"}]}, origin)
+                return
+            except OSError:
+                self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "User guide PDF could not be read"}]}, origin)
+                return
             payload = {
                 "status": "READY",
                 "filename": target.name,
                 "mime": "application/pdf",
-                "data": base64.b64encode(target.read_bytes()).decode("ascii"),
+                "data": base64.b64encode(guide_bytes).decode("ascii"),
             }
             self._json(200, payload, origin)
             return
@@ -1278,7 +1288,14 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         content_type = guess_type(str(target))[0] or "application/octet-stream"
-        body = target.read_bytes()
+        try:
+            body = _read_bounded_file(target, MAX_STATIC_FILE_BYTES)
+        except OverflowError:
+            self._json(413, {"status": "REJECTED", "errors": [{"code": "HOST-011", "message": "Static resource exceeds the 25 MB limit"}]}, origin)
+            return
+        except OSError:
+            self._json(500, {"status": "REJECTED", "errors": [{"code": "HOST-010", "message": "Static resource could not be read"}]}, origin)
+            return
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
