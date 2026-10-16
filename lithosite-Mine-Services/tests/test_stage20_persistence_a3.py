@@ -421,3 +421,29 @@ def test_runtime_nik_audit_failure_rolls_back_workbook_and_audit(tmp_path, monke
     assert app.store.audit() == []
     assert target.read_bytes() == original_bytes
 
+
+
+def test_runtime_nik_snapshot_read_failure_returns_rejected_without_mutation(tmp_path, monkeypatch):
+    target = tmp_path / "nik-runtime-snapshot-read-failure.xlsx"
+    make_a3_workbook(target)
+    app = ApplicationService(PersistenceStore(target))
+    runtime = RuntimeInterface(application=app)
+    original_bytes = target.read_bytes()
+    original_store = app.store.snapshot()
+    original_read_bytes = Path.read_bytes
+
+    def fail_target_read(path_obj):
+        if path_obj == target:
+            raise OSError("injected workbook snapshot read failure")
+        return original_read_bytes(path_obj)
+
+    monkeypatch.setattr(Path, "read_bytes", fail_target_read)
+    result = runtime.create("NIK", _valid_nik_record(), "nik-evo2-snapshot-read-fail")
+
+    assert result["status"] == "REJECTED"
+    assert result["errors"][0]["code"] == "APP-006"
+    assert "injected workbook snapshot read failure" in result["errors"][0]["message"]
+    assert app.store.snapshot() == original_store
+    assert runtime.read("NIK") == []
+    assert app.store.audit() == []
+    assert original_read_bytes(target) == original_bytes
