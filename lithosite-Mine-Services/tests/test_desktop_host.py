@@ -581,3 +581,51 @@ def test_report_pdf_rejects_invalid_or_over_limit_content_length_before_read(
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        {"period": ["unexpected-list"]},
+        {"kpi": ["unexpected-list"]},
+        {"source_counts": ["unexpected-list"]},
+        {"section_data": ["unexpected-list"], "sections": ["Executive Summary"]},
+    ],
+)
+def test_report_pdf_rejects_wrongly_typed_nested_payload_without_details(
+    monkeypatch, tmp_path, model
+):
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    body = json.dumps(model).encode("utf-8")
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        connection = HTTPConnection(host, port, timeout=3)
+        try:
+            connection.putrequest("POST", "/report-pdf")
+            connection.putheader("Content-Type", "application/json")
+            connection.putheader("Content-Length", str(len(body)))
+            connection.endheaders()
+            connection.send(body)
+            response = connection.getresponse()
+            response_body = response.read().decode("utf-8")
+            payload = json.loads(response_body)
+            assert response.status == 400
+            assert payload["status"] == "REJECTED"
+            assert payload["errors"][0]["code"] == "HOST-008"
+            assert payload["errors"][0]["message"] == "Invalid report request"
+            assert "Traceback" not in response_body
+            assert str(db_path) not in response_body
+        finally:
+            connection.close()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
