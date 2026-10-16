@@ -121,7 +121,7 @@ def test_runtime_rejects_invalid_and_over_limit_content_lengths_before_read(monk
         thread.start()
         host, port = httpd.server_address
 
-        for length in ("0", "-1", "180000001", "not-a-number"):
+        for length in ("0", "-1", "10000001", "not-a-number"):
             connection = HTTPConnection(host, port, timeout=3)
             try:
                 connection.putrequest("POST", "/runtime")
