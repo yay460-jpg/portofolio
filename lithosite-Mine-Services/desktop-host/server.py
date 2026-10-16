@@ -1389,8 +1389,9 @@ class Handler(BaseHTTPRequestHandler):
             if not record_exists:
                 self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": "NIK record not found"}]}, origin)
                 return
-            body = self.rfile.read(length)
-            if len(body) != length:
+            try:
+                body = _read_exact_request_body(self.rfile, length)
+            except ValueError:
                 self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Profile upload was incomplete"}]}, origin)
                 return
             if not body.startswith(b"\xff\xd8\xff") or not body.endswith(b"\xff\xd9"):
@@ -1479,8 +1480,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(404, {"status": "REJECTED", "errors": [{"code": "HOST-001", "message": f"{module} record not found"}]}, origin)
                 return
 
-            body = self.rfile.read(length)
-            if len(body) != length:
+            try:
+                body = _read_exact_request_body(self.rfile, length)
+            except ValueError:
                 self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-009", "message": "Evidence upload was incomplete"}]}, origin)
                 return
             target_file = None
