@@ -1616,7 +1616,7 @@ class Handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
             if length <= 0 or length > MAX_RUNTIME_REQUEST_BYTES:
                 raise ValueError("Invalid request size")
-            request = json.loads(self.rfile.read(length).decode("utf-8"))
+            request = json.loads(_read_exact_request_body(self.rfile, length).decode("utf-8"))
             if not isinstance(request, dict):
                 raise ValueError("Request must be an object")
         except Exception:
