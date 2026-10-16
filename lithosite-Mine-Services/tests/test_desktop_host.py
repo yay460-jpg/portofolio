@@ -51,6 +51,28 @@ def _make_test_database(path):
     wb.save(path)
 
 
+def test_bounded_file_reader_enforces_exact_limit_and_sentinel(tmp_path):
+    import server
+
+    exact = tmp_path / "exact.bin"
+    exact.write_bytes(b"12345")
+    assert server._read_bounded_file(exact, 5) == b"12345"
+
+    oversized = tmp_path / "oversized.bin"
+    oversized.write_bytes(b"123456")
+    with pytest.raises(OverflowError, match="File exceeds read limit"):
+        server._read_bounded_file(oversized, 5)
+
+
+def test_bounded_file_reader_rejects_negative_limit(tmp_path):
+    import server
+
+    sample = tmp_path / "sample.bin"
+    sample.write_bytes(b"x")
+    with pytest.raises(ValueError, match="Invalid file read limit"):
+        server._read_bounded_file(sample, -1)
+
+
 def test_json_body_reader_rejects_truncated_content(monkeypatch, tmp_path):
     import io
     import server
