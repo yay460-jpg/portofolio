@@ -469,3 +469,27 @@ def test_runtime_import_xlsx_unreadable_path_is_sanitized_and_non_mutating(tmp_p
     assert app.store.snapshot() == before_store
     assert app.store.audit() == []
     assert target.read_bytes() == before_bytes
+
+
+def test_runtime_import_invalid_xlsx_is_rejected_without_mutation(tmp_path):
+    target = tmp_path / "import-canonical-invalid-xlsx.xlsx"
+    make_a3_workbook(target)
+    app = ApplicationService(PersistenceStore(target))
+    runtime = RuntimeInterface(application=app)
+    before_bytes = target.read_bytes()
+    before_store = app.store.snapshot()
+    invalid = tmp_path / "malformed-input.xlsx"
+    # A non-empty file with an XLSX extension is not a valid OOXML workbook.
+    invalid.write_bytes(b"not-a-zip-or-xlsx-workbook")
+
+    result = runtime.import_xlsx(invalid)
+
+    assert result["status"] == "REJECTED"
+    assert result["lifecycle"] == "REJECTED"
+    assert result["rows_committed"] == 0
+    assert result["errors"][0]["code"] == "E001"
+    assert str(invalid) not in result["errors"][0]["message"]
+    assert "could not be opened" in result["errors"][0]["message"].lower()
+    assert app.store.snapshot() == before_store
+    assert app.store.audit() == []
+    assert target.read_bytes() == before_bytes
