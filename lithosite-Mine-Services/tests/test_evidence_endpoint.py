@@ -129,7 +129,8 @@ def _post_with_content_length(base_url, endpoint, params, length):
     try:
         connection.putrequest("POST", f"{endpoint}?{urlencode(params)}")
         connection.putheader("Content-Type", "image/jpeg" if endpoint == "/nik/upload" else "application/pdf")
-        connection.putheader("Content-Length", length)
+        if length is not None:
+            connection.putheader("Content-Length", length)
         connection.endheaders()
         response = connection.getresponse()
         return response.status, response.read()
@@ -138,6 +139,52 @@ def _post_with_content_length(base_url, endpoint, params, length):
 
 
 @pytest.mark.parametrize("length", ["-1", "100001", "not-a-number"])
+@pytest.mark.parametrize("endpoint,params", [
+    ("/nik/upload", {"nik_id": "NIK-NO-LENGTH"}),
+    ("/evidence/upload", {"module": "TargetPlan", "record_id": "PLN-NO-LENGTH", "filename": "no-length.pdf"}),
+])
+def test_upload_rejects_missing_content_length_without_creating_files(
+    evidence_host, monkeypatch, endpoint, params
+):
+    base_url, server = evidence_host
+    if endpoint == "/nik/upload":
+        monkeypatch.setattr(server, "_nik_record_exists", lambda _nik_id: True)
+    else:
+        monkeypatch.setattr(server, "_evidence_record_exists", lambda module, record_id: (module, record_id) == ("TargetPlan", "PLN-NO-LENGTH"))
+    status, body = _post_with_content_length(base_url, endpoint, params, None)
+    payload = _payload(body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"]
+    if endpoint == "/nik/upload":
+        assert not (server.DB_PATH.parent / "NIK" / "NIK-NO-LENGTH.jpg").exists()
+    else:
+        assert not (server.EVIDENCE_ROOT / "TargetPlan" / "PLN-NO-LENGTH" / "no-length.pdf").exists()
+
+
+@pytest.mark.parametrize("endpoint,params", [
+    ("/nik/upload", {"nik_id": "NIK-ZERO-LENGTH"}),
+    ("/evidence/upload", {"module": "TargetPlan", "record_id": "PLN-ZERO-LENGTH", "filename": "zero-length.pdf"}),
+])
+def test_upload_rejects_zero_content_length_without_creating_files(
+    evidence_host, monkeypatch, endpoint, params
+):
+    base_url, server = evidence_host
+    if endpoint == "/nik/upload":
+        monkeypatch.setattr(server, "_nik_record_exists", lambda _nik_id: True)
+    else:
+        monkeypatch.setattr(server, "_evidence_record_exists", lambda module, record_id: (module, record_id) == ("TargetPlan", "PLN-ZERO-LENGTH"))
+    status, body = _post_with_content_length(base_url, endpoint, params, "0")
+    payload = _payload(body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"]
+    if endpoint == "/nik/upload":
+        assert not (server.DB_PATH.parent / "NIK" / "NIK-ZERO-LENGTH.jpg").exists()
+    else:
+        assert not (server.EVIDENCE_ROOT / "TargetPlan" / "PLN-ZERO-LENGTH" / "zero-length.pdf").exists()
+
+
 def test_nik_upload_rejects_invalid_content_length_before_writing(
     evidence_host, monkeypatch, length
 ):
