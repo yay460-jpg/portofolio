@@ -1086,6 +1086,8 @@ class Handler(BaseHTTPRequestHandler):
 
             try:
                 records = []
+                if _is_evidence_link(EVIDENCE_ROOT):
+                    raise OSError("Evidence root is not a safe directory")
                 module_dir = EVIDENCE_ROOT / module
                 if module_dir.exists():
                     if _is_evidence_link(module_dir) or not module_dir.is_dir():
