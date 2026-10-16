@@ -871,3 +871,34 @@ def test_evidence_upload_rejects_symlinked_record_directory_without_writing_outs
     assert protected.read_bytes() == b"protected"
     assert not (outside / "new-evidence.pdf").exists()
     assert str(outside) not in body.decode("utf-8")
+
+
+def test_evidence_preview_rejects_symlinked_file_without_disclosing_target(
+    evidence_host, tmp_path
+):
+    base_url, server = evidence_host
+    record_dir = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-PREVIEW-SYMLINK"
+    record_dir.mkdir(parents=True)
+    outside = tmp_path / "private-preview-target.pdf"
+    outside.write_bytes(b"%PDF-1.7 private evidence")
+    link = record_dir / "linked.pdf"
+    try:
+        link.symlink_to(outside)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+
+    status, _headers, body = _post_json(
+        base_url,
+        "/evidence/preview",
+        {
+            "module": "TargetPlan",
+            "record_id": "PLN-PREVIEW-SYMLINK",
+            "filename": "linked.pdf",
+        },
+    )
+
+    payload = _payload(body)
+    assert status == 404
+    assert payload["status"] == "REJECTED"
+    assert str(outside) not in body.decode("utf-8")
+    assert "private-preview-target.pdf" not in body.decode("utf-8")
