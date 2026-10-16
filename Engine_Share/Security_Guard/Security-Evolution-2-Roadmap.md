@@ -528,3 +528,12 @@ The UI source trace was extended beyond Operations:
 - Decision for the current compatibility boundary: retain separate request-ID namespaces for RuntimeAdapter-cached operations and ApplicationService CRUD. Cross-family reuse is permitted by current behavior and is covered by the existing characterization test `test_request_id_scope_is_currently_separate_between_adapter_cache_and_crud`.
 - This does not provide global exactly-once protection. Adapter replay results are process-local, unbounded, have no TTL/eviction/persistence, and disappear on adapter recreation or process restart. The single adapter lock also serializes unrelated cached operations.
 - No production behavior changed. Unified ledger, cache TTL/capacity, durable persistence, cross-restart idempotency, and lock redesign remain out of scope pending a separately approved contract. EVO2-04 remains IN PROGRESS for other confirmed guard gaps; this decision alone does not close the stage. `main` remains locked.
+
+
+## EVO2-04 — AuditLog READ exposure review — 2026-10-16
+
+- Reviewed `lithosite-Mine-Services/desktop-host/server.py`: the Desktop Host declares `HOST = "127.0.0.1"` and starts `ThreadingHTTPServer((HOST, PORT), Handler)`. The documented deployment is local/offline and binds loopback only; no LAN interface is configured by default.
+- `POST /runtime` forwards valid JSON requests to `ADAPTER.handle(request)`. It rejects a supplied disallowed `Origin`, but permits a missing Origin for local non-browser clients. Origin policy is therefore a browser-origin control, not caller authentication.
+- RuntimeInterface `READ AuditLog` can return the full audit collection. Given the loopback-only deployment and existing local-client compatibility contract, this review did not establish a remote-network exposure or a confirmed authorization bypass. Do not add a speculative READ restriction without an explicit consumer/authorization contract.
+- **Disposition:** document as a local trust-boundary limitation, not a confirmed exploitable vulnerability. Local processes and browser-accessible local clients are within the current trust boundary; Origin checks alone must not be represented as authentication. Any future remote-bind mode must introduce and test an explicit authentication/authorization mechanism before release.
+- No production code changed in this review. EVO2-04 remains IN PROGRESS for any other independently confirmed guard gaps. `main` remains locked.
