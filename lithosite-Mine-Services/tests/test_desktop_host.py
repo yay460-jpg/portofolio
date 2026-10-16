@@ -1,3 +1,4 @@
+import base64
 import json
 import sys
 import pytest
