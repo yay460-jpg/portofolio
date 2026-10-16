@@ -738,3 +738,69 @@ def test_report_pdf_accepts_small_valid_object_model(monkeypatch, tmp_path):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+@pytest.mark.parametrize("method", ["PUT", "PATCH", "DELETE"])
+def test_unsupported_http_methods_do_not_dispatch_runtime_operations(
+    monkeypatch, tmp_path, method
+):
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        connection = HTTPConnection(host, port, timeout=3)
+        try:
+            connection.request(method, "/runtime")
+            response = connection.getresponse()
+            response_body = response.read().decode("utf-8", errors="replace")
+            assert response.status == 501
+            assert "Traceback" not in response_body
+            assert str(db_path) not in response_body
+        finally:
+            connection.close()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+@pytest.mark.parametrize("path", ["/health", "/assets/lithosite-icons.svg"])
+def test_untrusted_origin_gets_no_cors_read_permission_on_public_get_routes(
+    monkeypatch, tmp_path, path
+):
+    db_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(db_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(db_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+    import server
+
+    repo_root = Path(__file__).parents[2].resolve()
+    monkeypatch.setattr(server, "STATIC_ROOT", repo_root)
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    try:
+        import threading
+        thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+        thread.start()
+        host, port = httpd.server_address
+        request = Request(
+            f"http://{host}:{port}{path}",
+            headers={"Origin": "http://evil.example"},
+        )
+        with urlopen(request, timeout=3) as response:
+            body = response.read()
+            assert response.status == 200
+            assert response.headers.get("Access-Control-Allow-Origin") is None
+            if path == "/health":
+                payload = json.loads(body.decode("utf-8"))
+                assert set(payload) == {"status", "offline", "schema", "runtime"}
+            else:
+                assert body
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
