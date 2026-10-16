@@ -926,3 +926,48 @@ def test_untrusted_origin_is_rejected_before_post_route_processing(
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+@pytest.mark.parametrize(
+    ("origin", "expected_allow_origin"),
+    [
+        ("http://127.0.0.1:8765", "http://127.0.0.1:8765"),
+        ("http://localhost:8765", "http://localhost:8765"),
+        ("http://evil.example", None),
+        ("null", None),
+        (None, None),
+    ],
+)
+def test_options_preflight_only_grants_allowlisted_origin(
+    monkeypatch, tmp_path, origin, expected_allow_origin
+):
+    """OPTIONS advertises CORS read permission only to allowlisted browser origins."""
+    import threading
+    import server
+
+    monkeypatch.setenv("MINE_SERVICES_PORT", "8765")
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    host, port = httpd.server_address
+    try:
+        connection = HTTPConnection(host, port, timeout=5)
+        headers = {"Access-Control-Request-Method": "POST"}
+        if origin is not None:
+            headers["Origin"] = origin
+        connection.request("OPTIONS", "/runtime", headers=headers)
+        response = connection.getresponse()
+        response.read()
+        assert response.status == 204
+        assert response.getheader("Access-Control-Allow-Origin") == expected_allow_origin
+        if expected_allow_origin is None:
+            assert response.getheader("Vary") is None
+        else:
+            assert response.getheader("Vary") == "Origin"
+        assert response.getheader("Access-Control-Allow-Methods") == "GET, POST, OPTIONS"
+        assert response.getheader("Access-Control-Allow-Headers") == "Content-Type"
+        connection.close()
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=3)
+
