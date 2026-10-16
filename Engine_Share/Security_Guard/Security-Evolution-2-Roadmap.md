@@ -584,3 +584,10 @@ The UI source trace was extended beyond Operations:
 - CI #1279 PASS: regression tests preserve each upload route's HTTP 400 / HOST-009 incomplete-body response contract.
 - Existing operation-specific limits remain unchanged: NIK profile upload 100,000 bytes (compressed payload), Evidence upload 100,000,000 bytes, runtime/report JSON 10,000,000 bytes, and bounded static/user-guide reads 25,000,000 bytes. No global 180 MB request limit was introduced by this change.
 - Remaining Desktop Host audit focus: verify malformed/negative/oversized Content-Length and method/path contract coverage across every POST route, and ensure static/Evidence read failures consistently return sanitized responses. Keep EVO2-04 IN PROGRESS until these checks and the full-suite CI evidence are reconciled.
+
+### Upload Content-Length presence and zero-length contract — 2026-10-17
+
+- Added parameterized regressions for missing and zero `Content-Length` on both `/nik/upload` and `/evidence/upload`. The tests assert HTTP 400, the established `REJECTED` envelope with an error, and no destination file creation.
+- Full Pytest #1282 failed during test collection because the invalid-length parametrization decorator was accidentally attached to the new missing-header test, which does not accept a `length` argument. This was a test wiring failure, not a production behavior failure.
+- Commit [9835a1d](https://github.com/yay460-jpg/portofolio/commit/9835a1d159515e9f92c898311369201a164b7cf5) moved the decorator to the intended invalid-length test. Full Pytest #1283 PASS: [workflow evidence](https://github.com/yay460-jpg/portofolio/actions/runs/38964872535), job `Full test suite (Python 3.13)` succeeded.
+- **Disposition:** missing/zero upload Content-Length rejection and no-file-side-effect assertions are CI-confirmed. Continue the remaining Desktop Host POST method/path/response-contract audit; this does not close EVO2-04. EVO2-05/06/07 remain pending, and `main` remains unchanged.
