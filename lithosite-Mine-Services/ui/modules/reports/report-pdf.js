@@ -193,10 +193,19 @@ async function renderInline(model,iframe){
   // Use the same proven transport pattern as the User Guide reader:
   // POST the model, receive a JSON PDF payload, decode it to a Blob, then
   // hand the PDF to the browser's native PDF viewer through the iframe.
+  const reportJson=JSON.stringify(model);
+  const reportBytes=new TextEncoder().encode(reportJson).byteLength;
+  console.info('[EVO2-04] PDF report model size',{
+    type:model?.report_type??model?.type??'unknown',
+    bytes:reportBytes,
+    limitBytes:1_000_000,
+    withinLimit:reportBytes<=1_000_000
+  });
+
   const response=await fetch(endpoint,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(model),
+    body:reportJson,
     cache:'no-store'
   });
   if(!response.ok)throw new Error('HTTP '+response.status);
