@@ -203,7 +203,9 @@ def test_shell_restores_last_screen_before_first_paint():
     assert 0 < bootstrap < body
     assert "sessionStorage.getItem('lithosite-active-screen')" in artifact
     assert "lithosite-initial-screen-guard" in artifact
-    assert "name === selected ? 'flex' : 'none'" in artifact
+    assert "name !== selected" in artifact
+    assert "display:none!important" in artifact
+    assert "name === selected ? 'flex' : 'none'" not in artifact
     assert "setScreen(readInitialScreen(), false);" in navigation
     assert "initialScreenGuard.remove();" in navigation
     assert "removeAttribute('data-lithosite-initial-screen')" in navigation
