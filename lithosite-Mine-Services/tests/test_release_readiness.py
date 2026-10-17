@@ -202,3 +202,19 @@ def test_closed_modals_are_hidden_before_modal_contract_initializes():
     assert ".modalback:not(.show):not(.open)" in modal_css
     assert "display:none!important" in modal_css
 
+def test_active_artifact_restores_saved_screen_before_first_paint():
+    html = read(ARTIFACT)
+    navigation = read(BASE / "ui/shared/shell-navigation.js")
+    bootstrap = html.index('id="lithosite-initial-screen-bootstrap"')
+    body = html.index("<body>")
+    assert 0 < bootstrap < body
+    assert "sessionStorage.getItem('lithosite-active-screen')" in html
+    assert "lithosite-initial-screen-guard" in html
+    assert "name !== selected" in html
+    assert "display:none!important" in html
+    assert "rules.push('#' + screens[selected] + '{display:flex!important}')" in html
+    assert "data-lithosite-initial-screen" in html
+    assert "setScreen(readInitialScreen(), false);" in navigation
+    assert "initialScreenGuard.remove();" in navigation
+    assert "removeAttribute('data-lithosite-initial-screen')" in navigation
+

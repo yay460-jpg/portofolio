@@ -8,3 +8,8 @@ Mine Services test strategy, matrices, audits, and verification records.
 
 - [V40 Desktop Runtime Acceptance — Operational A3](./Desktop-Runtime-A3-Acceptance.md) — local-only read-only acceptance steps for the operational A3 workbook; explicitly separate from the isolated CI fixture.
 - [Equipment Modal Contract Audit](./Equipment-Modal-Contract-Audit.md) — canonical data ownership, modal responsibilities, cleanup findings, and regression verification.
+
+## Refresh and First-Paint Visibility Contract
+
+See [Refresh-First-Paint-Visibility-Contract.md](../Contracts/Refresh-First-Paint-Visibility-Contract.md) for the five-piece refresh regression guard and required validation sequence.
+
