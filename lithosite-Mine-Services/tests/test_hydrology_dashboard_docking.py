@@ -82,3 +82,12 @@ def test_rainfall_records_chart_reads_saved_a3_history_and_slides_in():
     assert ".hydrology-records" in styles
     assert "translateX(102%)" in styles
     assert "prefers-reduced-motion:reduce" in styles
+
+
+def test_rainfall_and_wind_visuals_are_suppressed_in_top_view():
+    overlay = read(BASE / "shared/hydrology/hydrology-overlay.js")
+    assert "function syncView(frame)" in overlay
+    assert "view==='top'||view==='2d'||view==='plan'" in overlay
+    assert "if(!visible||!rainfallEnabled||topView)return;" in overlay
+    assert "rainCanvas.hidden=!visible||!rainfallEnabled||!analysis||topView;" in overlay
+    assert "if(rainfallEnabled&&!topView)drawRain();" in overlay
