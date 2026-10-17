@@ -55,7 +55,8 @@
 }
 
 #dashboardSiteMap.map-topo3d canvas.hydrology-flow-overlay,
-#dashboardSiteMap.map-topo3d canvas.hydrology-flow-particles{
+#dashboardSiteMap.map-topo3d canvas.hydrology-flow-particles,
+#dashboardSiteMap.map-topo3d canvas.hydrology-rain-drops{
   position:absolute;
   inset:0;
   display:block;
@@ -65,8 +66,10 @@
 }
 #dashboardSiteMap.map-topo3d canvas.hydrology-flow-overlay{z-index:3}
 #dashboardSiteMap.map-topo3d canvas.hydrology-flow-particles{z-index:4}
+#dashboardSiteMap.map-topo3d canvas.hydrology-rain-drops{z-index:5}
 #dashboardSiteMap .hydrology-flow-overlay[hidden],
-#dashboardSiteMap .hydrology-flow-particles[hidden]{display:none!important}
+#dashboardSiteMap .hydrology-flow-particles[hidden],
+#dashboardSiteMap .hydrology-rain-drops[hidden]{display:none!important}
 .hydrology-panel__overlay-toggle{grid-column:1/-1}
 
 
