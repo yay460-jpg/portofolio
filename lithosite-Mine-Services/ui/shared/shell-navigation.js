@@ -494,10 +494,6 @@
     }
 
     setScreen(readInitialScreen(), false);
-    // Keep the pre-paint guard until the native shell state is restored, then remove it.
-    const initialScreenGuard = document.getElementById('lithosite-initial-screen-guard');
-    if (initialScreenGuard) initialScreenGuard.remove();
-    document.documentElement.removeAttribute('data-lithosite-initial-screen');
     return true;
   }
 
