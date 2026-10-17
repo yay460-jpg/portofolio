@@ -283,8 +283,10 @@
       if(animationEnabled&&visible&&analysis&&particleTracks.length){
         particleCanvas.hidden=false;animationStart=null;startAnimationLoop();
       }else{
-        stopAnimationLoop();particleCanvas.hidden=true;
+        particleCanvas.hidden=true;
         var size=ensureCanvasSize();particleCtx.clearRect(0,0,size.width,size.height);
+        if(rainfallEnabled&&visible&&analysis)startAnimationLoop();
+        else stopAnimationLoop();
       }
       return animationEnabled;
     }
