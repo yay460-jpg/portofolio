@@ -22,11 +22,12 @@
       '<div class="hydrology-result"><span>Analyzed grid</span><strong id="hydrologyGridSize">—</strong></div>'+
       '<div class="hydrology-result"><span>Max flow accumulation</span><strong id="hydrologyMaxAccumulation">—</strong></div>'+
       '<div class="hydrology-result"><span>Outlets / sinks</span><strong id="hydrologyOutletsSinks">—</strong></div>'+
-      '<div id="hydrologyWarnings" class="hydrology-panel__warning" hidden></div></div>';
+      '<div id="hydrologyWarnings" class="hydrology-panel__warning" hidden></div><button type="button" class="hydrology-action hydrology-panel__overlay-toggle" id="hydrologyToggleOverlay" hidden>Hide Flow Paths</button></div>';
     host.appendChild(panel);
     var runButton=panel.querySelector('#hydrologyRun'),saveButton=panel.querySelector('#hydrologySave');
     var status=panel.querySelector('#hydrologyStatus'),results=panel.querySelector('#hydrologyResults');
-    var lastRun=null,saved=false;
+    var overlayToggle=panel.querySelector('#hydrologyToggleOverlay');
+    var lastRun=null,saved=false,flowOverlay=null;
     function panelStatus(message,kind){
       status.textContent=message;status.classList.remove('is-error','is-success');
       if(kind==='error')status.classList.add('is-error');if(kind==='success')status.classList.add('is-success');
@@ -40,7 +41,7 @@
       if(!Number.isFinite(value)||value<=0)throw new Error(label+' must be greater than zero.');
       return value;
     }
-    function renderResult(run){
+    function renderResult(run,overlayWarning){
       var result=run.result,rain=result.rainfall,stats=result.stats;
       panel.querySelector('#hydrologyTotalRainfall').textContent=rain.totalRainfallMm.toFixed(2)+' mm';
       panel.querySelector('#hydrologyRunoffVolume').textContent=rain.estimatedRunoffVolumeM3.toLocaleString('id-ID',{maximumFractionDigits:2})+' m³';
@@ -49,10 +50,12 @@
       panel.querySelector('#hydrologyOutletsSinks').textContent=stats.outletCount.toLocaleString('id-ID')+' / '+stats.sinkCount.toLocaleString('id-ID');
       var warning=panel.querySelector('#hydrologyWarnings'),messages=(result.warnings||[]).slice();
       messages.push('Catchment area is estimated from valid grid cells unless a catchment boundary is supplied.');
+      if(overlayWarning)messages.push(overlayWarning);
       warning.textContent=messages.join(' ');warning.hidden=messages.length===0;results.hidden=false;
     }
     async function runAnalysis(){
-      runButton.disabled=true;saveButton.disabled=true;lastRun=null;saved=false;results.hidden=true;
+      runButton.disabled=true;saveButton.disabled=true;lastRun=null;saved=false;results.hidden=true;overlayToggle.hidden=true;
+      if(flowOverlay)flowOverlay.clear();
       panelStatus('Preparing terrain grid and routing D8 flow…');
       try{
         await new Promise(function(resolve){global.requestAnimationFrame(resolve);});
@@ -79,8 +82,15 @@
           settings:{intensity:intensity,duration:duration,coefficient:coefficient,resolution:resolution,treatment:treatment},
           result:result
         };
-        renderResult(lastRun);saveButton.disabled=false;
-        panelStatus('Analysis complete · indicative D8 results are ready to save.','success');
+        var overlayWarning='';
+        try{
+          if(!global.LithositeHydrologyOverlay||typeof global.LithositeHydrologyOverlay.create!=='function')throw new Error('Flow overlay module is unavailable.');
+          if(!flowOverlay)flowOverlay=global.LithositeHydrologyOverlay.create({host:host,topo:global.MineServicesTopo3D});
+          flowOverlay.setAnalysis(result);flowOverlay.setVisible(true);
+          overlayToggle.textContent='Hide Flow Paths';overlayToggle.hidden=false;
+        }catch(overlayError){overlayWarning='Flow overlay could not be drawn: '+(overlayError&&overlayError.message?overlayError.message:'unknown overlay error');}
+        renderResult(lastRun,overlayWarning);saveButton.disabled=false;
+        panelStatus(overlayWarning?'Analysis complete; summary is available, but flow overlay needs attention.':'Analysis complete · D8 flow paths are shown on the terrain.','success');
         mapStatus('Rainfall analysis complete · '+result.stats.validCellCount.toLocaleString('id-ID')+' cells analyzed.','ready');
       }catch(error){
         panelStatus(error&&error.message?error.message:'Rainfall analysis failed.','error');
@@ -126,6 +136,12 @@
       }
     }
     runButton.addEventListener('click',runAnalysis);saveButton.addEventListener('click',saveRecord);
+    overlayToggle.addEventListener('click',function(){
+      if(!flowOverlay)return;
+      var show=!flowOverlay.isVisible();
+      flowOverlay.setVisible(show);
+      overlayToggle.textContent=show?'Hide Flow Paths':'Show Flow Paths';
+    });
     panel.querySelector('#hydrologyClose').addEventListener('click',function(){
       panel.hidden=true;toggleButton.setAttribute('aria-expanded','false');toggleButton.focus();
     });

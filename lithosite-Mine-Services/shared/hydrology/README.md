@@ -1,6 +1,6 @@
 # Hydrology Engine — Mine Services
 
-**Status:** Hydrology core v1.0.0 and initial Rainfall analysis/A3 record workflow added. Flow overlay remains pending.  
+**Status:** Hydrology core v1.0.0, D8 flow-path overlay, and A3 record workflow implemented. Animated water particles remain future work.  
 **Branch scope:** `v41-workspace`. Do not modify `main` without explicit approval.
 
 ## Ownership rule
@@ -22,7 +22,7 @@ Do not scatter Hydrology implementation across `ui/modules/map-engine/`, `shared
 
 ### Planned
 
-- `hydrology-overlay.js` — draw/update simulation results over the existing Site Map terrain without modifying the source DTM.
+- `hydrology-overlay.js` — draws bounded D8 flow segments and direction arrows over the existing Site Map terrain without modifying the source DTM (implemented; animated particles remain future work).
 - `hydrology.css` — isolated Hydrology panel, legend, and simulation UI styles (implemented).
 - Optional `hydrology-core.py` — only if a justified server-side or batch-computation requirement is identified. The current computation core runs in the browser and does not require Python.
 
@@ -37,7 +37,7 @@ Do not scatter Hydrology implementation across `ui/modules/map-engine/`, `shared
 - Topo3D exposes a bounded `getAnalysisMesh()` copy-out API; Hydrology consumes copied arrays through the `MineServicesTopo3D` facade, not the renderer's private model object.
 - Current engine limits are 300,000 grid cells / TIN vertices, 600,000 triangles, and 5,000,000 default raster sampling candidates. The engine v1 supports `FILL` and `PRESERVE`; `BREACH` is explicitly not implemented yet.
 - D8 reports indicative one-direction-per-cell flow paths and accumulation. It does not compute water depth, velocity, flood extents, or an engineering-grade drainage design.
-- The engine consumes an explicit grid or packed triangle mesh. Active Topo3D integration must wait for a reviewed, bounded, read-only mesh access contract; never reach into private engine state.
+- The engine consumes an explicit grid or packed triangle mesh. Active Topo3D integration uses the bounded read-only `getAnalysisMesh()` copy-out facade; it does not mutate the renderer mesh.
 
 ## A3 simulation record
 
@@ -51,4 +51,4 @@ Follow repository conventions for cross-cutting assets:
 - The approved calculation, input/output, unit, and limitations contract belongs under `lithosite-Mine-Services/Documentation/Contracts/`.
 - Link this folder from the relevant architecture documentation once the design contract is approved.
 
-Automated runtime coverage lives in `tests/test_hydrology_engine.py`; integration contracts live in `tests/test_release_readiness.py`. The current panel computes and saves aggregate metrics but does not yet draw flow paths on the 3D terrain.
+Automated runtime coverage lives in `tests/test_hydrology_engine.py`; integration contracts live in `tests/test_release_readiness.py`. The current panel computes and saves aggregate metrics and draws a bounded D8 flow-path overlay. The overlay is a directional visualization, not an animated hydraulic flow or flood-depth simulation.

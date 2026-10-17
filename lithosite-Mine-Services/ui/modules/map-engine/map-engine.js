@@ -10,6 +10,7 @@
     var status=host.querySelector('#dashboardTopo3DStatus');
     var engine=null;
     var geo=null;
+    var renderSubscribers=[];
     var autoRotate=false;
     var autoRotateRaf=null;
     var northConvergence=0;
@@ -372,7 +373,11 @@
       engine=global.LithositeTopo3D.create({
         canvas:canvas,
         onStatus:function(message){setStatus(message);},
-        onRender:function(){syncPickedMarkers();if(global.MineServicesMarkerLocation)global.MineServicesMarkerLocation.renderMarkers(engine,host);},
+        onRender:function(frame){
+          syncPickedMarkers();
+          if(global.MineServicesMarkerLocation)global.MineServicesMarkerLocation.renderMarkers(engine,host);
+          renderSubscribers.slice().forEach(function(listener){try{listener(frame||null);}catch(error){}});
+        },
         onReady:function(payload){setStatus('Topo3D siap. Menunggu data topografi…');if(payload&&payload.meta)updateCoordinateInfo(payload.meta);},
         onError:function(error){setStatus(error&&error.message?error.message:'Topo3D error','error');}
       });
@@ -480,7 +485,21 @@
         }
       });
     }catch(error){setStatus(error&&error.message?error.message:'Topo3D initialization failed','error');}
-    global.MineServicesTopo3D={getEngine:function(){return engine;},getGeo:function(){return geo;},getAnalysisMesh:function(options){if(!engine||!engine.getState().ready)throw new Error('Belum ada terrain Topo3D yang siap dianalisis.');return engine.getAnalysisMesh(options||{});}};
+    global.MineServicesTopo3D={
+      getEngine:function(){return engine;},
+      getGeo:function(){return geo;},
+      getAnalysisMesh:function(options){if(!engine||!engine.getState().ready)throw new Error('Belum ada terrain Topo3D yang siap dianalisis.');return engine.getAnalysisMesh(options||{});},
+      projectCoordinate:function(easting,northing,elevation){
+        if(!engine||!engine.getState().ready)return null;
+        var point=engine.projectCoordinate(easting,northing,elevation);
+        return point?{x:point.x,y:point.y,depth:point.depth,inside:!!point.inside}:null;
+      },
+      subscribeRender:function(listener){
+        if(typeof listener!=='function')throw new Error('Render subscriber must be a function.');
+        renderSubscribers.push(listener);
+        return function(){var index=renderSubscribers.indexOf(listener);if(index>=0)renderSubscribers.splice(index,1);};
+      }
+    };
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })(window);

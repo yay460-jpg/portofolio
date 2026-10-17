@@ -46,3 +46,15 @@
 @media(max-width:700px){
   .hydrology-panel{top:8px;right:8px;width:calc(100% - 16px);max-height:calc(100% - 16px)}
 }
+
+#dashboardSiteMap .hydrology-flow-overlay{
+  position:absolute;
+  inset:0;
+  z-index:3;
+  display:block;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
+#dashboardSiteMap .hydrology-flow-overlay[hidden]{display:none!important}
+.hydrology-panel__overlay-toggle{grid-column:1/-1}
