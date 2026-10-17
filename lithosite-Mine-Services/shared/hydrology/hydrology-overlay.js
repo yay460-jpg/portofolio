@@ -7,7 +7,7 @@
   'use strict';
 
   var MAX_SEGMENTS=850;
-  var MAX_PARTICLES=32;
+  var MAX_PARTICLES=30;
   var PARTICLE_PERIOD_MS=2400;
 
   function fail(message){throw new Error(message);}
