@@ -297,3 +297,14 @@ Pre-read size-limit test [adcd187](https://github.com/yay460-jpg/portofolio/comm
 - The regression asserts the existing HTTP 204 response, `Access-Control-Allow-Origin` only for allowlisted origins, matching `Vary: Origin` behavior, and the exact advertised method/header allowlists. It tests the shared `do_OPTIONS` policy; it does not claim endpoint-specific authorization or authentication.
 - Owner-provided GitHub Actions screenshot confirms Mine Services Full Pytest #1301 is green for commit `8dd6d50`. The screenshot shows run status and duration (1m 35s), not a detailed assertion count.
 - Method coverage remains deliberately scoped: PUT/PATCH/DELETE rejection is directly asserted on `/runtime`; `BaseHTTPRequestHandler` supplies the default 501 for unimplemented verbs. Do not generalize the focused regression into exhaustive proof for every method/path pair without additional route-matrix tests.
+
+
+### EVO2-04 final validation evidence — 2026-10-17
+
+- Final owner-provided local validation at commit `742670dc`: `python -m pytest -q tests/test_evidence_endpoint.py` → **63 passed in 41.71s**; `python -m pytest -q` → **821 passed in 108.19s**.
+- Owner-provided GitHub Actions screenshot confirms Full Pytest workflow **#1304** is green for [`742670dc`](https://github.com/yay460-jpg/portofolio/commit/742670dc9a618acb64289529b93dafccaa483ca9). The screenshot confirms success status but does not expose an exact test count.
+- The truncated-upload regression now sends a genuinely truncated request body and asserts the endpoint rejection contract, rather than mocking `_read_exact_request_body()` to raise. The targeted Evidence/NIK endpoint file and full suite both pass in the owner-provided local run.
+- Report payload observations after the Daily Report syntax correction: Daily 20,835 bytes; Weekly 29,259 bytes; Monthly 46,743 bytes. All are below the 1,000,000-byte compact JSON model limit and all three PDFs rendered in the provided browser screenshots. These are representative examples, not a maximum-workload guarantee.
+- Tracked-file inventory: 76 files under the inspected static allowlist roots; largest listed source `ui/modules/reports/reports.js` 66,266 bytes; Operations artifact 81,472 bytes. Three tracked user-guide PDFs: 29,297, 34,094 and 33,774 bytes. Each is below the 25,000,000-byte bounded-read cap. Untracked/future files are not covered by this inventory.
+- Scope caveats: explicit unsupported PUT/PATCH/DELETE coverage is on `/runtime`; other unsupported verbs rely on `BaseHTTPRequestHandler` defaults. OPTIONS tests cover shared CORS preflight behavior, not authentication. Origin is not authentication.
+- **Disposition: EVO2-04 PASS/CLOSED** for the confirmed guard gaps and documented route/resource scope. `main` is unchanged. EVO2-05, EVO2-06 and EVO2-07 remain **PENDING** by owner direction.
