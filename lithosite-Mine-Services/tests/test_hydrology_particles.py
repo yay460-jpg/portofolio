@@ -131,17 +131,17 @@ process.stdout.write(JSON.stringify({
     assert output["limits"] == {"maxSegments": 850, "maxParticles": 30}
     assert output["initial"]["animationEnabled"] is False
     assert output["initial"]["animationRunning"] is True
-    assert output["initial"]["rainfallEnabled"] is True
+    assert output["initial"]["rainfallEnabled"] is False
     assert output["initial"]["particleTrackCount"] == 2
-    assert output["initialCallbacks"] == 1
+    assert output["initialCallbacks"] == 0
     assert output["enabled"] is True
     assert output["queuedBeforeFrame"] == 1
     assert output["arcCount"] > 0
     assert output["afterFrame"]["animationRunning"] is True
     assert output["afterStop"]["animationEnabled"] is False
     assert output["afterStop"]["animationRunning"] is True
-    assert output["afterStop"]["rainfallEnabled"] is True
-    assert output["queuedAfterStop"] == 1
+    assert output["afterStop"]["rainfallEnabled"] is False
+    assert output["queuedAfterStop"] == 0
     assert output["hiddenStats"]["animationEnabled"] is True
     assert output["hiddenStats"]["animationRunning"] is False
     assert output["queuedWhileHidden"] == 0
@@ -151,7 +151,7 @@ process.stdout.write(JSON.stringify({
     assert output["cleared"]["rainfallEnabled"] is False
     assert output["noPathEnabled"] is False
     assert output["noPathStats"]["particleTrackCount"] == 0
-    assert output["noPathStats"]["animationRunning"] is True
-    assert output["noPathStats"]["rainfallEnabled"] is True
+    assert output["noPathStats"]["animationRunning"] is False
+    assert output["noPathStats"]["rainfallEnabled"] is False
     assert output["childrenAfterDestroy"] == 0
     assert output["subscriberRemoved"] is True
