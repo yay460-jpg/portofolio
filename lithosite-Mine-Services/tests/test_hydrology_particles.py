@@ -128,7 +128,7 @@ process.stdout.write(JSON.stringify({
     )
     assert result.returncode == 0, result.stderr or result.stdout
     output = json.loads(result.stdout)
-    assert output["limits"] == {"maxSegments": 850, "maxParticles": 32}
+    assert output["limits"] == {"maxSegments": 850, "maxParticles": 30}
     assert output["initial"]["animationEnabled"] is False
     assert output["initial"]["animationRunning"] is False
     assert output["initial"]["particleTrackCount"] == 2
