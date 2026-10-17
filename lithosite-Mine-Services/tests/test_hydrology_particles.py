@@ -130,7 +130,7 @@ process.stdout.write(JSON.stringify({
     output = json.loads(result.stdout)
     assert output["limits"] == {"maxSegments": 850, "maxParticles": 30}
     assert output["initial"]["animationEnabled"] is False
-    assert output["initial"]["animationRunning"] is True
+    assert output["initial"]["animationRunning"] is False
     assert output["initial"]["rainfallEnabled"] is False
     assert output["initial"]["particleTrackCount"] == 2
     assert output["initialCallbacks"] == 0
@@ -139,7 +139,7 @@ process.stdout.write(JSON.stringify({
     assert output["arcCount"] > 0
     assert output["afterFrame"]["animationRunning"] is True
     assert output["afterStop"]["animationEnabled"] is False
-    assert output["afterStop"]["animationRunning"] is True
+    assert output["afterStop"]["animationRunning"] is False
     assert output["afterStop"]["rainfallEnabled"] is False
     assert output["queuedAfterStop"] == 0
     assert output["hiddenStats"]["animationEnabled"] is True
