@@ -19,9 +19,11 @@
   } catch (_) {}
   var style = document.createElement('style');
   style.id = 'lithosite-initial-screen-guard';
-  style.textContent = Object.keys(screens).map(function (name) {
-    return '#' + screens[name] + '{display:' + (name === selected ? 'flex' : 'none') + '!important}';
-  }).join('\n');
+  style.textContent = Object.keys(screens).filter(function (name) {
+    return name !== selected;
+  }).map(function (name) {
+    return '#' + screens[name] + '{display:none!important}';
+  }).join('\\n');
   document.head.appendChild(style);
   document.documentElement.setAttribute('data-lithosite-initial-screen', selected);
 })();
