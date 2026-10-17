@@ -253,5 +253,5 @@ def test_hydrology_rainfall_entry_loads_engine_and_saves_a3_record():
     assert ".hydrology-flow-overlay" in css
     assert "flowTo" in hydrology_overlay
     assert "MAX_SEGMENTS=850" in hydrology_overlay
-    assert "MAX_PARTICLES=32" in hydrology_overlay
+    assert "MAX_PARTICLES=30" in hydrology_overlay
 
