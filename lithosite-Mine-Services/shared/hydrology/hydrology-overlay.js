@@ -83,7 +83,7 @@
     }
 
     function windVector(){
-      var angles={N:-90,NE:-45,E:0,SE:45,S:90,SW:135,W:180,NW:225};
+      var angles={N:90,NE:135,E:180,SE:225,S:270,SW:315,W:0,NW:45};
       var angle=(angles[windDirection]===undefined?225:angles[windDirection])*Math.PI/180;
       var strength=windSpeedKmh/35;
       return {x:Math.cos(angle)*strength,y:Math.sin(angle)*strength};
