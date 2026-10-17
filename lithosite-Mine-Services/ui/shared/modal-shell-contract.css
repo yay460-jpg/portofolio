@@ -1,3 +1,8 @@
+/* Prevent closed modal DOM from flashing before modal-show-contract.js initializes. */
+.modalback:not(.show):not(.open){
+  display:none!important;
+}
+
 
 /* Shared runtime status accessory — owned by the modal shell contract. */
 .modal-runtime-status{
