@@ -5,7 +5,7 @@
     var panel=document.createElement('section');
     panel.id='dashboardHydrologyPanel';panel.className='hydrology-panel hydrology-panel--docked';panel.hidden=true;
     panel.setAttribute('role','region');panel.setAttribute('aria-labelledby','hydrologyPanelTitle');panel.setAttribute('aria-hidden','true');
-    panel.innerHTML='<header class="hydrology-panel__header"><div><div class="hydrology-panel__eyebrow">SITE MAP ANALYSIS</div><h2 id="hydrologyPanelTitle">Rainfall Simulation</h2></div><button type="button" class="hydrology-panel__close" id="hydrologyClose" aria-label="Close Rainfall Simulation">×</button></header>'+
+    panel.innerHTML='<header class="hydrology-panel__header"><div><div class="hydrology-panel__eyebrow">SITE MAP ANALYSIS</div><h2 id="hydrologyPanelTitle">Rainfall Simulation</h2></div><div class="hydrology-panel__header-actions"><button type="button" class="hydrology-panel__guide" id="hydrologyGuide" aria-label="Open Rainfall Simulation guide (PDF)" title="Rainfall Simulation Guide (PDF)">?</button><button type="button" class="hydrology-panel__close" id="hydrologyClose" aria-label="Close Rainfall Simulation" title="Close panel">×</button></div></header>'+
       '<div class="hydrology-panel__form">'+
       '<label class="hydrology-field hydrology-field--wide"><span>Scenario name</span><input id="hydrologyScenarioName" type="text" maxlength="120" value="Rainfall Scenario"></label>'+
       '<label class="hydrology-field"><span>Intensity (mm/hour)</span><input id="hydrologyIntensity" type="number" min="0.1" step="any" value="50"></label>'+
@@ -155,6 +155,11 @@
       if(enable&&!enabled)panelStatus('Animation is unavailable in this browser.','error');
       else if(enabled)panelStatus('Directional particle animation enabled; this is not a physical water model.','success');
       else panelStatus('Directional particle animation stopped.');
+    });
+    panel.querySelector('#hydrologyGuide').addEventListener('click',function(){
+      var guideUrl='https://raw.githubusercontent.com/yay460-jpg/portofolio/v41-workspace/docs/lithosite/02_Mine-Services/10_User-Guides/Guide_Panel_Rainfall_Simulation.pdf';
+      var guideWindow=global.open(guideUrl,'_blank','noopener,noreferrer');
+      if(guideWindow)guideWindow.opener=null;
     });
     panel.querySelector('#hydrologyClose').addEventListener('click',function(){
       if(typeof onClose==='function')onClose();
