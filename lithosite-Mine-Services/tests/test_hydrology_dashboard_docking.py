@@ -64,7 +64,7 @@ def test_rainfall_dock_has_reduced_motion_and_restores_dashboard_cards():
 def test_artifact_cache_keys_reference_the_docked_rainfall_assets():
     artifact = read(ARTIFACT)
     assert "../shared/hydrology/hydrology.css?v=20261018-rainfall-records-circular-icon" in artifact
-    assert "border-radius:50%" in read(BASE / "shared/hydrology/hydrology.css")
+    assert "border-radius:50%" in read(STYLES)
     assert "../shared/hydrology/hydrology-panel.js?v=20261018-rainfall-records-chart" in artifact
 
 
@@ -85,7 +85,7 @@ def test_rainfall_records_chart_reads_saved_a3_history_and_slides_in():
 
 
 def test_rainfall_and_wind_visuals_are_suppressed_in_top_view():
-    overlay = read(BASE / "shared/hydrology/hydrology-overlay.js")
+    overlay = read(ROOT / "shared" / "hydrology" / "hydrology-overlay.js")
     assert "function syncView(frame)" in overlay
     assert "view==='top'||view==='2d'||view==='plan'" in overlay
     assert "if(!visible||!rainfallEnabled||topView)return;" in overlay
