@@ -99,12 +99,15 @@
       return {segmentCount:segments.length,threshold:segmentThreshold,maxAccumulationCells:maxAccum};
     }
 
-    function cellPoint(index){
+    function cellPoint(index,cache){
+      if(cache&&cache.has(index))return cache.get(index);
       var grid=analysis.grid;
       var row=Math.floor(index/grid.cols),col=index%grid.cols;
       var x=grid.originX+col*grid.cellSizeX;
       var y=grid.originY+row*grid.cellSizeY;
-      return topo.projectCoordinate(x,y,analysis.elevations[index]);
+      var point=topo.projectCoordinate(x,y,analysis.elevations[index]);
+      if(cache)cache.set(index,point);
+      return point;
     }
 
     function signature(frame,size){
@@ -133,11 +136,14 @@
       if(typeof topo.projectCoordinate!=='function')return;
       var maxAccum=Number(analysis.stats.maxFlowAccumulationCells)||1;
       ctx.lineCap='round';ctx.lineJoin='round';
+      /* Adjacent D8 segments share cells. Project each unique cell once per map frame,
+         instead of repeating the same CPU projection for every segment endpoint. */
+      var projectedCells=new Map();
       var arrowStride=Math.max(1,Math.ceil(segments.length/150));
       var drawn=0;
       for(var i=0;i<segments.length;i++){
         var segment=segments[i];
-        var a=cellPoint(segment.from),b=cellPoint(segment.to);
+        var a=cellPoint(segment.from,projectedCells),b=cellPoint(segment.to,projectedCells);
         if(!a||!b||!finite(a.x)||!finite(a.y)||!finite(b.x)||!finite(b.y))continue;
         if(!a.inside&&!b.inside)continue;
         var ratio=Math.max(0,Math.min(1,Math.log1p(segment.accumulation)/Math.log1p(maxAccum)));
