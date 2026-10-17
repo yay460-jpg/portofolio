@@ -164,13 +164,31 @@
     var guideClose=document.getElementById('reportPdfReaderClose');
     var guideUrl='../../docs/lithosite/02_Mine-Services/10_User-Guides/Guide_Panel_Rainfall_Simulation.pdf';
     if(guideButton&&guideModal&&guideFrame&&guideTitle&&guideMeta&&guideClose){
-      guideButton.addEventListener('click',function(){
+      guideButton.addEventListener('click',async function(){
         guideTitle.textContent='Rainfall Simulation Guide';
         guideMeta.textContent='PDF User Guide · Fit Width';
         guideModal.classList.remove('is-closing');
         guideModal.classList.add('show');
         guideModal.setAttribute('aria-hidden','false');
-        guideFrame.src=guideUrl;
+        guideFrame.src='about:blank';
+        guideMeta.textContent='Loading PDF guide…';
+        try{
+          var response=await global.fetch(guideUrl,{credentials:'same-origin'});
+          if(!response.ok)throw new Error('Guide PDF request failed ('+response.status+').');
+          var pdfBlob=await response.blob();
+          if(!pdfBlob.type||pdfBlob.type==='application/octet-stream'){
+            pdfBlob=new Blob([pdfBlob],{type:'application/pdf'});
+          }
+          var objectUrl=global.URL.createObjectURL(pdfBlob);
+          var previousUrl=guideFrame.dataset.reportPdfObjectUrl;
+          if(previousUrl)global.URL.revokeObjectURL(previousUrl);
+          guideFrame.dataset.reportPdfObjectUrl=objectUrl;
+          guideFrame.src=objectUrl;
+          guideMeta.textContent='PDF User Guide · Fit Width';
+        }catch(error){
+          guideMeta.textContent='Unable to load PDF guide';
+          panelStatus(error.message||'Rainfall guide could not be loaded.','error');
+        }
       });
     }else if(guideButton){
       guideButton.addEventListener('click',function(){
