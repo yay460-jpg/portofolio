@@ -594,12 +594,12 @@ def test_rainfall_simulation_validation_rejects_bad_model_parameters():
     invalid = rainfall_simulation_fixture("RS-BAD-001", runoff_coefficient=1.4)
     response = app.create("RainfallSimulation", invalid, "rainfall-invalid-001")
     assert response["status"] == "REJECTED"
-    assert any(error["field"] == "runoff_coefficient" for error in response["errors"])
+    assert any(error.field == "runoff_coefficient" for error in response["errors"])
 
     invalid_json = rainfall_simulation_fixture("RS-BAD-002", result_summary_json='[1,2,3]')
     response = app.create("RainfallSimulation", invalid_json, "rainfall-invalid-002")
     assert response["status"] == "REJECTED"
-    assert any(error["field"] == "result_summary_json" for error in response["errors"])
+    assert any(error.field == "result_summary_json" for error in response["errors"])
 
 
 def test_legacy_a3_snapshot_missing_rainfall_entity_remains_verifiable():
