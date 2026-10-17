@@ -124,6 +124,9 @@ html.reduced-motion *,html.reduced-motion *::before,html.reduced-motion *::after
   }).map(function (name) {
     return '#' + screens[name] + '{display:none!important}';
   });
+  // Some modules default to display:none until the shell adds .active; force the
+  // saved screen's native flex layout during first paint, before shell JS runs.
+  rules.push('#' + screens[selected] + '{display:flex!important}');
   Object.keys(screens).forEach(function (name) {
     var active = name === selected;
     rules.push('html[data-lithosite-initial-screen="' + selected + '"] .sidebar .nav-item[data-screen="' + name + '"]{background:' + (active ? '#2563eb' : 'transparent') + '!important;color:' + (active ? '#fff' : '#dce8f5') + '!important}');
