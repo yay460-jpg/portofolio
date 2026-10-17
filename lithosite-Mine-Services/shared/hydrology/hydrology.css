@@ -123,3 +123,36 @@
     transform:none!important;
   }
 }
+
+
+/* Rainfall user guide uses an in-dashboard PDF reader instead of a download link. */
+.hydrology-guide-modal{
+  position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
+  padding:18px;background:rgba(2,8,18,.82);backdrop-filter:blur(3px);
+}
+.hydrology-guide-modal[hidden]{display:none!important}
+.hydrology-guide-dialog{
+  display:flex;flex-direction:column;width:min(920px,calc(100vw - 36px));height:min(90vh,900px);
+  min-height:240px;overflow:hidden;background:#101f31;border:1px solid #31506d;border-radius:12px;
+  box-shadow:0 20px 80px rgba(0,0,0,.7);
+}
+.hydrology-guide-head{
+  flex:0 0 50px;min-height:50px;padding:0 14px 0 16px;border-bottom:1px solid #29435d;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.hydrology-guide-head>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hydrology-guide-head strong{font-size:12px;color:#e8f0fa}
+.hydrology-guide-head span{font-size:9px;color:#8fa5bb}
+.hydrology-guide-close{
+  display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;border:1px solid #34516e;
+  border-radius:7px;background:#10263c;color:#d6e6f7;font-size:19px;line-height:1;cursor:pointer;
+}
+.hydrology-guide-close:hover{background:#1b3855;border-color:#5798fa}
+.hydrology-guide-close:focus-visible{outline:2px solid #5798fa;outline-offset:2px}
+.hydrology-guide-body{flex:1 1 auto;min-height:0;background:#fff}
+.hydrology-guide-body iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+@media(max-width:700px){
+  .hydrology-guide-modal{padding:8px}
+  .hydrology-guide-dialog{width:100%;height:calc(100vh - 16px)}
+}
+@media(prefers-reduced-motion:reduce){.hydrology-guide-modal{scroll-behavior:auto}}
