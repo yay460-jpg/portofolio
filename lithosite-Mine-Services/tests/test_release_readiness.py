@@ -209,3 +209,11 @@ def test_active_artifact_restores_saved_screen_before_first_paint():
     assert "setScreen(readInitialScreen(), false);" in navigation
     assert "initialScreenGuard.remove();" in navigation
     assert "removeAttribute('data-lithosite-initial-screen')" in navigation
+
+def test_closed_modals_are_hidden_before_modal_contract_initializes():
+    html = read(ARTIFACT)
+    modal_css = read(BASE / "ui/shared/modal-shell-contract.css")
+    assert "modal-shell-contract.css?v=20261017-closed-modal-first-paint" in html
+    assert ".modalback:not(.show):not(.open)" in modal_css
+    assert "display:none!important" in modal_css
+
