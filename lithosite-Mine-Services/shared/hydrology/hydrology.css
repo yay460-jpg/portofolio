@@ -126,3 +126,7 @@
     transform:none!important;
   }
 }
+
+/* Compact paired controls for rainfall effect and wind forcing. */
+.hydrology-wind-controls{display:grid;grid-template-columns:1fr .72fr;gap:5px;min-width:0}
+.hydrology-wind-controls select{min-width:0;padding:0 5px}
