@@ -121,6 +121,24 @@ def _post_raw(base_url, endpoint, params, body, content_type="application/octet-
         return error.code, error.headers, error.read()
 
 
+def _post_incomplete_raw(base_url, endpoint, params, body, content_type):
+    host_port = base_url.removeprefix("http://")
+    host, port = host_port.rsplit(":", 1)
+    connection = HTTPConnection(host, int(port), timeout=5)
+    try:
+        connection.putrequest("POST", f"{endpoint}?{urlencode(params)}")
+        connection.putheader("Content-Type", content_type)
+        connection.putheader("Content-Length", str(len(body) + 1))
+        connection.endheaders()
+        connection.send(body)
+        # Exercise the real short-body path and avoid leaving unread request bytes.
+        connection.sock.shutdown(1)
+        response = connection.getresponse()
+        return response.status, response.read()
+    finally:
+        connection.close()
+
+
 def _post_with_content_length(base_url, endpoint, params, length):
     from urllib.parse import urlencode
     host_port = base_url.removeprefix("http://")
@@ -220,15 +238,12 @@ def test_evidence_upload_rejects_invalid_content_length_before_writing(
 def test_evidence_upload_preserves_incomplete_body_contract(evidence_host, monkeypatch):
     base_url, server = evidence_host
     monkeypatch.setattr(server, "_evidence_record_exists", lambda module, record_id: True)
-    monkeypatch.setattr(
-        server, "_read_exact_request_body",
-        lambda stream, length: (_ for _ in ()).throw(ValueError("incomplete")),
-    )
-    status, _headers, response_body = _post_raw(
+    status, response_body = _post_incomplete_raw(
         base_url,
         "/evidence/upload",
         {"module": "TargetPlan", "record_id": "PLAN-1", "filename": "evidence.pdf"},
         b"%PDF-1.7",
+        "application/pdf",
     )
     payload = _payload(response_body)
     assert status == 400
@@ -240,15 +255,11 @@ def test_evidence_upload_preserves_incomplete_body_contract(evidence_host, monke
 def test_nik_upload_preserves_incomplete_body_contract(evidence_host, monkeypatch):
     base_url, server = evidence_host
     monkeypatch.setattr(server, "_nik_record_exists", lambda nik_id: True)
-    monkeypatch.setattr(
-        server, "_read_exact_request_body",
-        lambda stream, length: (_ for _ in ()).throw(ValueError("incomplete")),
-    )
-    status, _headers, response_body = _post_raw(
+    status, response_body = _post_incomplete_raw(
         base_url,
         "/nik/upload",
         {"nik_id": "NIK-1"},
-        b"\xff\xd8\xffpayload\xff\xd9",
+        b"\\xff\\xd8\\xffpayload\\xff\\xd9",
         "image/jpeg",
     )
     payload = _payload(response_body)
