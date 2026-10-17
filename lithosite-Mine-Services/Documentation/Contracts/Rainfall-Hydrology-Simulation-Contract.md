@@ -25,7 +25,7 @@ The original `.ltdtm` / DTM / STR source remains unchanged. Grid-by-grid flow va
 | `runoff_coefficient` | Fraction of rainfall assumed to become surface runoff | Required; range 0–1 |
 | `grid_resolution_m` | Analysis grid cell size in metres | Required; finite and greater than zero |
 | `flow_algorithm` | Flow-direction method identifier | Required; initial supported value: `D8` |
-| `depression_treatment` | Handling of depressions/flats in the terrain model | Required: `FILL`, `BREACH`, or `PRESERVE` |
+| `depression_treatment` | Handling of depressions/flats in the terrain model | Record schema accepts `FILL`, `BREACH`, or `PRESERVE`; Hydrology Engine v1 currently computes `FILL` and `PRESERVE` only. `BREACH` must not be marked completed until an implementation is validated. |
 | `catchment_area_m2` | Analyzed catchment area in square metres | Optional until a catchment boundary is defined; if supplied, greater than zero |
 | `total_rainfall_mm` | Total rainfall depth over the scenario | Optional output; mm |
 | `estimated_runoff_volume_m3` | Estimated surface-runoff volume | Optional output; m³ |
@@ -48,4 +48,4 @@ The original `.ltdtm` / DTM / STR source remains unchanged. Grid-by-grid flow va
 
 ## Scope boundary
 
-This worksheet is a record schema, not proof that a hydrology model or flood-depth calculation exists. The initial planned simulation is indicative terrain-derived flow direction / accumulation with an explicitly stated runoff estimate. Flood depth, velocity, inundation boundaries, and engineering-grade drainage design require separate model methods, input data, and validation evidence.
+This worksheet is a record schema, not proof that a hydrology model or flood-depth calculation exists. Hydrology Engine v1 now implements bounded TIN-to-grid sampling, D8 flow direction, flow accumulation, priority-flood depression filling, preserve-depression mode, and a constant-intensity rainfall/runoff-volume estimate. The engine is not yet connected to the loaded Topo3D mesh or the Rainfall toolbar. Flood depth, velocity, inundation boundaries, and engineering-grade drainage design require separate model methods, input data, and validation evidence.
