@@ -176,6 +176,26 @@
     }
     return best;
   };
+  Topo3DEngine.prototype.getAnalysisMesh=function(options){
+    options=options||{};
+    if(!this.model||!this.model.rawXYZ||!this.model.indices)throw new Error('Belum ada terrain Topo3D yang siap dianalisis.');
+    var raw=this.model.rawXYZ,idx=this.model.indices;
+    var vertexCount=raw.length/3,triangleCount=idx.length/3;
+    var maxVertices=options.maxVertices===undefined?TOPO3D_RESOURCE_LIMITS.maxVertices:Number(options.maxVertices);
+    var maxTriangles=options.maxTriangles===undefined?TOPO3D_RESOURCE_LIMITS.maxTriangles:Number(options.maxTriangles);
+    if(!Number.isInteger(maxVertices)||maxVertices<3||maxVertices>TOPO3D_RESOURCE_LIMITS.maxVertices)throw new Error('Batas vertex analisis tidak valid.');
+    if(!Number.isInteger(maxTriangles)||maxTriangles<1||maxTriangles>TOPO3D_RESOURCE_LIMITS.maxTriangles)throw new Error('Batas triangle analisis tidak valid.');
+    if(vertexCount>maxVertices)throw new Error('Mesh terlalu besar untuk analisis Hydrology ('+vertexCount.toLocaleString('id-ID')+' vertices).');
+    if(triangleCount>maxTriangles)throw new Error('Mesh terlalu besar untuk analisis Hydrology ('+triangleCount.toLocaleString('id-ID')+' triangles).');
+    var bounds=this.model.meta&&this.model.meta.bounds;
+    if(!bounds||![bounds.minX,bounds.minY,bounds.maxX,bounds.maxY].every(Number.isFinite))throw new Error('Bounds terrain tidak valid untuk analisis Hydrology.');
+    // Owned copies prevent Hydrology from mutating Topo3D's render mesh or source data.
+    return {rawXYZ:new Float64Array(raw),indices:new Uint32Array(idx),
+      bounds:{minX:bounds.minX,minY:bounds.minY,maxX:bounds.maxX,maxY:bounds.maxY,minZ:bounds.minZ,maxZ:bounds.maxZ},
+      name:String(this.model.meta.name||'Loaded Topography'),
+      sourceFormat:this._sourcePackage&&this._sourcePackage.format?this._sourcePackage.format:'LITHODTM_GEOMETRY',
+      vertexCount:vertexCount,triangleCount:triangleCount};
+  };
   Topo3DEngine.prototype.getState=function(){return {prepared:this.prepared,ready:!!this.model,view:this.view,mode:this.mode,meta:this.model?this.model.meta:null};};
   Topo3DEngine.prototype._pointerDown=function(e){this.activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});this.canvas.setPointerCapture(e.pointerId);if(this.activePointers.size===1){this.dragging=true;this.lastX=e.clientX;this.lastY=e.clientY;}if(this.activePointers.size===2){var a=Array.from(this.activePointers.values());this.pinchStart=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);this.pinchZoom=this.zoom;}};
   Topo3DEngine.prototype._pointerMove=function(e){if(!this.activePointers.has(e.pointerId))return;this.activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(this.activePointers.size===2){var a=Array.from(this.activePointers.values()),d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(this.pinchStart>0)this.zoom=Math.max(.45,Math.min(4,this.pinchZoom*(d/this.pinchStart)));return;}if(!this.dragging)return;var dx=e.clientX-this.lastX,dy=e.clientY-this.lastY;this.lastX=e.clientX;this.lastY=e.clientY;if(e.shiftKey){this.panX+=dx*.0025;this.panY-=dy*.0025;}else{this.angleY+=dx*.006;this.angleX+=dy*.006;this.angleX=Math.max(-1.50,Math.min(1.50,this.angleX));}};

@@ -1,6 +1,6 @@
 # Hydrology Engine — Mine Services
 
-**Status:** Hydrology core v1.0.0 added; the active Site Map terrain is not wired to the engine yet.  
+**Status:** Hydrology core v1.0.0 and initial Rainfall analysis/A3 record workflow added. Flow overlay remains pending.  
 **Branch scope:** `v41-workspace`. Do not modify `main` without explicit approval.
 
 ## Ownership rule
@@ -18,12 +18,12 @@ Do not scatter Hydrology implementation across `ui/modules/map-engine/`, `shared
 ### Implemented
 
 - `hydrology-engine.js` — UI-independent D8 flow-direction and flow-accumulation analysis, bounded TIN-to-grid interpolation, optional constant-rainfall/runoff-volume estimate, and validation/resource guards.
-- `hydrology-panel.js` — currently creates the Site Map Rainfall toolbar entry only; it does not yet run the model.
+- `hydrology-panel.js` — opens Rainfall controls, runs the core against a bounded Topo3D mesh copy, displays summary metrics, and saves one run via RuntimeAdapter to `RainfallSimulation`.
 
 ### Planned
 
 - `hydrology-overlay.js` — draw/update simulation results over the existing Site Map terrain without modifying the source DTM.
-- `hydrology.css` — isolated Hydrology panel, legend, and simulation UI styles.
+- `hydrology.css` — isolated Hydrology panel, legend, and simulation UI styles (implemented).
 - Optional `hydrology-core.py` — only if a justified server-side or batch-computation requirement is identified. The current computation core runs in the browser and does not require Python.
 
 ## Architecture boundaries
@@ -34,7 +34,7 @@ Do not scatter Hydrology implementation across `ui/modules/map-engine/`, `shared
 - **Map Controller** owns UI wiring and life-cycle coordination, not the hydrology algorithms.
 - Hydrology must not edit or overwrite the original `.ltdtm`/DTM/STR data.
 - Keep all calculations local/offline for the first release unless an explicit design decision requires otherwise.
-- Any access to Topo3D mesh/elevation data must use an explicit, bounded read-only interface; do not depend on private engine internals.
+- Topo3D exposes a bounded `getAnalysisMesh()` copy-out API; Hydrology consumes copied arrays through the `MineServicesTopo3D` facade, not the renderer's private model object.
 - Current engine limits are 300,000 grid cells / TIN vertices, 600,000 triangles, and 5,000,000 default raster sampling candidates. The engine v1 supports `FILL` and `PRESERVE`; `BREACH` is explicitly not implemented yet.
 - D8 reports indicative one-direction-per-cell flow paths and accumulation. It does not compute water depth, velocity, flood extents, or an engineering-grade drainage design.
 - The engine consumes an explicit grid or packed triangle mesh. Active Topo3D integration must wait for a reviewed, bounded, read-only mesh access contract; never reach into private engine state.
@@ -51,4 +51,4 @@ Follow repository conventions for cross-cutting assets:
 - The approved calculation, input/output, unit, and limitations contract belongs under `lithosite-Mine-Services/Documentation/Contracts/`.
 - Link this folder from the relevant architecture documentation once the design contract is approved.
 
-Automated runtime coverage lives in `tests/test_hydrology_engine.py`. The engine is independently testable now, but the Rainfall toolbar is not connected to a terrain result yet.
+Automated runtime coverage lives in `tests/test_hydrology_engine.py`; integration contracts live in `tests/test_release_readiness.py`. The current panel computes and saves aggregate metrics but does not yet draw flow paths on the 3D terrain.

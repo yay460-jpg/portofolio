@@ -480,7 +480,7 @@
         }
       });
     }catch(error){setStatus(error&&error.message?error.message:'Topo3D initialization failed','error');}
-    global.MineServicesTopo3D={getEngine:function(){return engine;},getGeo:function(){return geo;}};
+    global.MineServicesTopo3D={getEngine:function(){return engine;},getGeo:function(){return geo;},getAnalysisMesh:function(options){if(!engine||!engine.getState().ready)throw new Error('Belum ada terrain Topo3D yang siap dianalisis.');return engine.getAnalysisMesh(options||{});}};
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })(window);

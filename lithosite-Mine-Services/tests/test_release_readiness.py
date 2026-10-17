@@ -218,16 +218,29 @@ def test_active_artifact_restores_saved_screen_before_first_paint():
     assert "initialScreenGuard.remove();" in navigation
     assert "removeAttribute('data-lithosite-initial-screen')" in navigation
 
-def test_hydrology_rainfall_entry_is_after_marker_location_before_map_engine():
+def test_hydrology_rainfall_entry_loads_engine_and_saves_a3_record():
     html = read(ARTIFACT)
     hydrology_panel = read(BASE / "shared/hydrology/hydrology-panel.js")
+    hydrology_engine = read(BASE / "shared/hydrology/hydrology-engine.js")
+    topo3d_engine = read(BASE / "shared/topo3d/topo3d-engine.js")
+    map_engine = read(BASE / "ui/modules/map-engine/map-engine.js")
+    css = read(BASE / "shared/hydrology/hydrology.css")
 
     marker_location_script = html.index('marker-location.js?v=20261017')
-    rainfall_script = html.index('hydrology-panel.js?v=20261017-rainfall-entry')
+    hydrology_engine_script = html.index('hydrology-engine.js?v=20261017-d8-core')
+    rainfall_script = html.index('hydrology-panel.js?v=20261017-hydrology-ui')
     map_engine_script = html.index('map-engine.js?v=20261006')
-    assert marker_location_script < rainfall_script < map_engine_script
+    assert marker_location_script < hydrology_engine_script < rainfall_script < map_engine_script
+    assert 'hydrology.css?v=20261017-hydrology-ui' in html
 
     assert "id='dashboardHydrologyRainfallToggle'" in hydrology_panel
     assert "markerLocation.insertAdjacentElement('afterend',button)" in hydrology_panel
-    assert "Rainfall simulation is not implemented yet." in hydrology_panel
+    assert "global.LithositeHydrology.create().analyzeTIN" in hydrology_panel
+    assert "entity:'RainfallSimulation'" in hydrology_panel
+    assert "Topo3DEngine.prototype.getAnalysisMesh=function(options)" in topo3d_engine
+    assert "new Float64Array(raw)" in topo3d_engine
+    assert "new Uint32Array(idx)" in topo3d_engine
+    assert "getAnalysisMesh:function(options)" in map_engine
+    assert "flow accumulation" in hydrology_engine.lower()
+    assert ".hydrology-panel" in css
 

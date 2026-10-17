@@ -1,6 +1,137 @@
 (function(global){
   'use strict';
 
+  function mountSimulationPanel(host,toggleButton){
+    var panel=document.createElement('section');
+    panel.id='dashboardHydrologyPanel';panel.className='hydrology-panel';panel.hidden=true;
+    panel.setAttribute('role','dialog');panel.setAttribute('aria-labelledby','hydrologyPanelTitle');
+    panel.innerHTML='<header class="hydrology-panel__header"><div><div class="hydrology-panel__eyebrow">SITE MAP ANALYSIS</div><h2 id="hydrologyPanelTitle">Rainfall Simulation</h2></div><button type="button" class="hydrology-panel__close" id="hydrologyClose" aria-label="Close Rainfall Simulation">×</button></header>'+
+      '<div class="hydrology-panel__form">'+
+      '<label class="hydrology-field hydrology-field--wide"><span>Scenario name</span><input id="hydrologyScenarioName" type="text" maxlength="120" value="Rainfall Scenario"></label>'+
+      '<label class="hydrology-field"><span>Intensity (mm/hour)</span><input id="hydrologyIntensity" type="number" min="0.1" step="any" value="50"></label>'+
+      '<label class="hydrology-field"><span>Duration (minutes)</span><input id="hydrologyDuration" type="number" min="0.1" step="any" value="60"></label>'+
+      '<label class="hydrology-field"><span>Runoff coefficient</span><input id="hydrologyRunoffCoefficient" type="number" min="0" max="1" step="0.05" value="0.65"></label>'+
+      '<label class="hydrology-field"><span>Grid resolution (m)</span><input id="hydrologyResolution" type="number" min="0.1" step="any" value="10"></label>'+
+      '<label class="hydrology-field hydrology-field--wide"><span>Depression treatment</span><select id="hydrologyDepressionTreatment"><option value="FILL">Fill depressions (FILL)</option><option value="PRESERVE">Preserve depressions (PRESERVE)</option></select></label></div>'+
+      '<p class="hydrology-panel__note">D8 estimates likely surface-flow paths. v1 does not predict flood depth, water velocity, or drainage capacity. Grid limit: 300,000 cells.</p>'+
+      '<div class="hydrology-panel__actions"><button type="button" class="hydrology-action hydrology-action--primary" id="hydrologyRun">Run Analysis</button><button type="button" class="hydrology-action" id="hydrologySave" disabled>Save A3 Record</button></div>'+
+      '<div id="hydrologyStatus" class="hydrology-panel__status" role="status" aria-live="polite">Load topography to begin.</div>'+
+      '<div id="hydrologyResults" class="hydrology-panel__results" hidden>'+
+      '<div class="hydrology-result"><span>Total rainfall</span><strong id="hydrologyTotalRainfall">—</strong></div>'+
+      '<div class="hydrology-result"><span>Estimated runoff</span><strong id="hydrologyRunoffVolume">—</strong></div>'+
+      '<div class="hydrology-result"><span>Analyzed grid</span><strong id="hydrologyGridSize">—</strong></div>'+
+      '<div class="hydrology-result"><span>Max flow accumulation</span><strong id="hydrologyMaxAccumulation">—</strong></div>'+
+      '<div class="hydrology-result"><span>Outlets / sinks</span><strong id="hydrologyOutletsSinks">—</strong></div>'+
+      '<div id="hydrologyWarnings" class="hydrology-panel__warning" hidden></div></div>';
+    host.appendChild(panel);
+    var runButton=panel.querySelector('#hydrologyRun'),saveButton=panel.querySelector('#hydrologySave');
+    var status=panel.querySelector('#hydrologyStatus'),results=panel.querySelector('#hydrologyResults');
+    var lastRun=null,saved=false;
+    function panelStatus(message,kind){
+      status.textContent=message;status.classList.remove('is-error','is-success');
+      if(kind==='error')status.classList.add('is-error');if(kind==='success')status.classList.add('is-success');
+    }
+    function mapStatus(message,kind){
+      var node=host.querySelector('#dashboardTopo3DStatus');if(!node)return;
+      node.textContent=message;node.classList.remove('error','ready');if(kind)node.classList.add(kind);
+    }
+    function positiveValue(id,label){
+      var value=Number(panel.querySelector('#'+id).value);
+      if(!Number.isFinite(value)||value<=0)throw new Error(label+' must be greater than zero.');
+      return value;
+    }
+    function renderResult(run){
+      var result=run.result,rain=result.rainfall,stats=result.stats;
+      panel.querySelector('#hydrologyTotalRainfall').textContent=rain.totalRainfallMm.toFixed(2)+' mm';
+      panel.querySelector('#hydrologyRunoffVolume').textContent=rain.estimatedRunoffVolumeM3.toLocaleString('id-ID',{maximumFractionDigits:2})+' m³';
+      panel.querySelector('#hydrologyGridSize').textContent=result.grid.rows+' × '+result.grid.cols+' · '+stats.validCellCount.toLocaleString('id-ID')+' cells';
+      panel.querySelector('#hydrologyMaxAccumulation').textContent=stats.maxFlowAccumulationCells.toLocaleString('id-ID')+' cells';
+      panel.querySelector('#hydrologyOutletsSinks').textContent=stats.outletCount.toLocaleString('id-ID')+' / '+stats.sinkCount.toLocaleString('id-ID');
+      var warning=panel.querySelector('#hydrologyWarnings'),messages=(result.warnings||[]).slice();
+      messages.push('Catchment area is estimated from valid grid cells unless a catchment boundary is supplied.');
+      warning.textContent=messages.join(' ');warning.hidden=messages.length===0;results.hidden=false;
+    }
+    async function runAnalysis(){
+      runButton.disabled=true;saveButton.disabled=true;lastRun=null;saved=false;results.hidden=true;
+      panelStatus('Preparing terrain grid and routing D8 flow…');
+      try{
+        await new Promise(function(resolve){global.requestAnimationFrame(resolve);});
+        if(!global.LithositeHydrology||typeof global.LithositeHydrology.create!=='function')throw new Error('Hydrology Engine is unavailable.');
+        if(!global.MineServicesTopo3D||typeof global.MineServicesTopo3D.getAnalysisMesh!=='function')throw new Error('Topo3D analysis interface is unavailable.');
+        if(!global.LithositeRuntimeClient||typeof global.LithositeRuntimeClient.request!=='function')throw new Error('RuntimeClient is unavailable.');
+        var mesh=global.MineServicesTopo3D.getAnalysisMesh();
+        var scenarioName=String(panel.querySelector('#hydrologyScenarioName').value||'').trim();
+        if(!scenarioName)throw new Error('Scenario name is required.');
+        var intensity=positiveValue('hydrologyIntensity','Rainfall intensity');
+        var duration=positiveValue('hydrologyDuration','Rainfall duration');
+        var coefficient=Number(panel.querySelector('#hydrologyRunoffCoefficient').value);
+        if(!Number.isFinite(coefficient)||coefficient<0||coefficient>1)throw new Error('Runoff coefficient must be between 0 and 1.');
+        var resolution=positiveValue('hydrologyResolution','Grid resolution');
+        var treatment=panel.querySelector('#hydrologyDepressionTreatment').value;
+        var result=global.LithositeHydrology.create().analyzeTIN(mesh,{
+          gridResolutionM:resolution,depressionTreatment:treatment,
+          rainfall:{intensityMmHr:intensity,durationMin:duration,runoffCoefficient:coefficient}
+        });
+        lastRun={
+          simulationId:global.LithositeRuntimeClient.requestId('RS'),
+          scenarioName:scenarioName.slice(0,120),
+          topographyName:String(mesh.name||'Loaded Topography').slice(0,200),
+          settings:{intensity:intensity,duration:duration,coefficient:coefficient,resolution:resolution,treatment:treatment},
+          result:result
+        };
+        renderResult(lastRun);saveButton.disabled=false;
+        panelStatus('Analysis complete · indicative D8 results are ready to save.','success');
+        mapStatus('Rainfall analysis complete · '+result.stats.validCellCount.toLocaleString('id-ID')+' cells analyzed.','ready');
+      }catch(error){
+        panelStatus(error&&error.message?error.message:'Rainfall analysis failed.','error');
+        mapStatus(error&&error.message?error.message:'Rainfall analysis failed.','error');
+      }finally{runButton.disabled=false;}
+    }
+    async function saveRecord(){
+      if(!lastRun||saved)return;
+      saveButton.disabled=true;panelStatus('Saving simulation record to A3…');
+      try{
+        var result=lastRun.result,settings=lastRun.settings,rain=result.rainfall;
+        var summary={
+          engine_version:result.version,method:result.method,rows:result.grid.rows,cols:result.grid.cols,
+          valid_cell_count:result.stats.validCellCount,valid_cell_fraction:result.grid.validCellFraction,
+          outlet_count:result.stats.outletCount,sink_count:result.stats.sinkCount,
+          max_flow_accumulation_cells:result.stats.maxFlowAccumulationCells,top_flow_cells:result.stats.topFlowCells,
+          rasterization:result.grid.rasterization||null,warnings:result.warnings||[],limitations:result.limitations||[]
+        };
+        var row={
+          simulation_id:lastRun.simulationId,scenario_name:lastRun.scenarioName,status:'COMPLETED',
+          topography_name:lastRun.topographyName,
+          rainfall_intensity_mm_hr:settings.intensity,rainfall_duration_min:settings.duration,
+          runoff_coefficient:settings.coefficient,grid_resolution_m:settings.resolution,
+          flow_algorithm:'D8',depression_treatment:settings.treatment,
+          catchment_area_m2:rain.catchmentAreaM2,total_rainfall_mm:rain.totalRainfallMm,
+          estimated_runoff_volume_m3:rain.estimatedRunoffVolumeM3,
+          max_flow_accumulation_cells:result.stats.maxFlowAccumulationCells,
+          result_summary_json:JSON.stringify(summary),model_version:'hydrology-'+result.version,
+          notes:'Indicative terrain-derived D8 flow only; no flood depth or water velocity calculated.'
+        };
+        var response=await global.LithositeRuntimeClient.request({
+          operation:'CREATE',entity:'RainfallSimulation',row:row,
+          request_id:global.LithositeRuntimeClient.requestId('rainfall-save')
+        });
+        if(!response||response.status!=='COMMITTED'){
+          var message=response&&response.errors&&response.errors[0]&&response.errors[0].message;
+          throw new Error(message||'Runtime did not commit the RainfallSimulation record.');
+        }
+        saved=true;panelStatus('Record saved to A3 · '+lastRun.simulationId,'success');
+        mapStatus('Rainfall simulation record saved · '+lastRun.simulationId,'ready');
+      }catch(error){
+        saveButton.disabled=false;panelStatus(error&&error.message?error.message:'Could not save simulation record.','error');
+      }
+    }
+    runButton.addEventListener('click',runAnalysis);saveButton.addEventListener('click',saveRecord);
+    panel.querySelector('#hydrologyClose').addEventListener('click',function(){
+      panel.hidden=true;toggleButton.setAttribute('aria-expanded','false');toggleButton.focus();
+    });
+    return panel;
+  }
+
   function mountRainfallButton(){
     var host=document.getElementById('dashboardSiteMap');
     var panel=host&&host.closest('.panel');
@@ -14,12 +145,12 @@
     button.title='Rainfall simulation entry point';
     button.setAttribute('aria-label','Rainfall simulation');
 
+    var simulationPanel=mountSimulationPanel(host,button);
     button.addEventListener('click',function(){
-      var status=host.querySelector('#dashboardTopo3DStatus');
-      if(status){
-        status.textContent='Rainfall simulation is not implemented yet.';
-        status.classList.remove('error');
-      }
+      var isOpen=!simulationPanel.hidden;
+      simulationPanel.hidden=isOpen;
+      button.setAttribute('aria-expanded',isOpen?'false':'true');
+      if(!isOpen){var firstInput=simulationPanel.querySelector('#hydrologyScenarioName');if(firstInput)firstInput.focus();}
     });
 
     var markerLocation=toolbar.querySelector('#markerLocationToggle');

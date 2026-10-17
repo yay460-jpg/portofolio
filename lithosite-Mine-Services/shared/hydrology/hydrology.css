@@ -1,0 +1,48 @@
+.hydrology-panel{
+  position:absolute;
+  z-index:40;
+  top:12px;
+  right:12px;
+  width:min(360px,calc(100% - 24px));
+  max-height:calc(100% - 24px);
+  overflow:auto;
+  border:1px solid rgba(96,165,250,.38);
+  border-radius:11px;
+  background:rgba(8,22,38,.97);
+  box-shadow:0 18px 42px rgba(0,0,0,.48);
+  color:#e6f0fc;
+  padding:12px;
+  font:11px/1.45 "Segoe UI",Arial,sans-serif;
+  backdrop-filter:blur(12px);
+}
+.hydrology-panel[hidden]{display:none!important}
+.hydrology-panel__header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1px solid #263e58}
+.hydrology-panel__eyebrow{font-size:9px;letter-spacing:.1em;font-weight:750;color:#60a5fa}
+.hydrology-panel__header h2{margin:2px 0 0;font-size:15px;font-weight:750;color:#f1f7ff}
+.hydrology-panel__close{display:grid;place-items:center;width:26px;height:26px;border:1px solid #34516e;border-radius:7px;background:#10263c;color:#d6e6f7;font-size:18px;line-height:1;cursor:pointer}
+.hydrology-panel__close:hover{background:#1b3855}
+.hydrology-panel__form{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px;padding:12px 0 8px}
+.hydrology-field{display:flex;flex-direction:column;gap:4px;min-width:0;color:#adc2d9;font-size:10px}
+.hydrology-field--wide{grid-column:1/-1}
+.hydrology-field input,.hydrology-field select{width:100%;min-width:0;height:31px;border:1px solid #2e4a67;border-radius:6px;background:#071726;color:#e5effb;padding:0 8px;font:11px "Segoe UI",Arial,sans-serif;outline:none}
+.hydrology-field input:focus,.hydrology-field select:focus{border-color:#5798fa;box-shadow:0 0 0 2px rgba(77,141,255,.16)}
+.hydrology-panel__note{margin:2px 0 10px;color:#809bb7;font-size:9.5px;line-height:1.5}
+.hydrology-panel__actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.hydrology-action{min-height:32px;border:1px solid #355370;border-radius:7px;background:#10273d;color:#dceafd;font:650 10.5px "Segoe UI",Arial,sans-serif;cursor:pointer;padding:6px 8px}
+.hydrology-action:hover:not(:disabled){background:#193753;border-color:#4774a0}
+.hydrology-action--primary{background:#16467a;border-color:#3d81d8;color:#fff}
+.hydrology-action--primary:hover:not(:disabled){background:#1e5b98}
+.hydrology-action:disabled{opacity:.45;cursor:not-allowed}
+.hydrology-panel__status{margin-top:9px;padding:8px 9px;border:1px solid #29445d;border-radius:7px;background:#0b1b2d;color:#afc4db;font-size:10px;overflow-wrap:anywhere}
+.hydrology-panel__status.is-success{border-color:#24694c;color:#86efac;background:#09251e}
+.hydrology-panel__status.is-error{border-color:#813a42;color:#fda4af;background:#2a141b}
+.hydrology-panel__results{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.hydrology-panel__results[hidden]{display:none!important}
+.hydrology-result{min-width:0;border:1px solid #213b55;border-radius:7px;background:#0b1b2d;padding:8px}
+.hydrology-result span{display:block;color:#849fba;font-size:9px}
+.hydrology-result strong{display:block;margin-top:3px;color:#e6f2ff;font-size:11px;font-weight:750;overflow-wrap:anywhere}
+.hydrology-panel__warning{grid-column:1/-1;color:#fcd38d;background:rgba(120,75,12,.15);border-left:2px solid #c58a2e;padding:7px 8px;font-size:9px;line-height:1.5;overflow-wrap:anywhere}
+.hydrology-panel__warning[hidden]{display:none!important}
+@media(max-width:700px){
+  .hydrology-panel{top:8px;right:8px;width:calc(100% - 16px);max-height:calc(100% - 16px)}
+}
