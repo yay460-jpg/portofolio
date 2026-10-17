@@ -162,7 +162,7 @@
     var guideTitle=document.getElementById('reportPdfReaderTitle');
     var guideMeta=document.getElementById('reportPdfReaderMeta');
     var guideClose=document.getElementById('reportPdfReaderClose');
-    var guideUrl='../../docs/lithosite/02_Mine-Services/10_User-Guides/Guide_Panel_Rainfall_Simulation.pdf';
+    var guideUrl='/user-guide?file='+encodeURIComponent('Guide_Panel_Rainfall_Simulation.pdf');
     if(guideButton&&guideModal&&guideFrame&&guideTitle&&guideMeta&&guideClose){
       guideButton.addEventListener('click',async function(){
         // The shared PDF reader is authored inside #reportsScreen, which is hidden
@@ -179,10 +179,14 @@
         try{
           var response=await global.fetch(guideUrl,{credentials:'same-origin'});
           if(!response.ok)throw new Error('Guide PDF request failed ('+response.status+').');
-          var pdfBlob=await response.blob();
-          if(!pdfBlob.type||pdfBlob.type==='application/octet-stream'){
-            pdfBlob=new Blob([pdfBlob],{type:'application/pdf'});
+          var guidePayload=await response.json();
+          if(!guidePayload||guidePayload.status!=='READY'||!guidePayload.data){
+            throw new Error(guidePayload&&guidePayload.errors&&guidePayload.errors[0]&&guidePayload.errors[0].message||'Guide PDF response is invalid.');
           }
+          var binary=global.atob(guidePayload.data);
+          var bytes=new Uint8Array(binary.length);
+          for(var i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+          var pdfBlob=new Blob([bytes],{type:'application/pdf'});
           var objectUrl=global.URL.createObjectURL(pdfBlob);
           var previousUrl=guideFrame.dataset.reportPdfObjectUrl;
           if(previousUrl)global.URL.revokeObjectURL(previousUrl);
