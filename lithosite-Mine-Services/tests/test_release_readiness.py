@@ -218,3 +218,16 @@ def test_active_artifact_restores_saved_screen_before_first_paint():
     assert "initialScreenGuard.remove();" in navigation
     assert "removeAttribute('data-lithosite-initial-screen')" in navigation
 
+def test_hydrology_rainfall_entry_is_after_marker_location_before_map_engine():
+    html = read(ARTIFACT)
+    hydrology_panel = read(BASE / "shared/hydrology/hydrology-panel.js")
+
+    marker_location_script = html.index('marker-location.js?v=20261017')
+    rainfall_script = html.index('hydrology-panel.js?v=20261017-rainfall-entry')
+    map_engine_script = html.index('map-engine.js?v=20261006')
+    assert marker_location_script < rainfall_script < map_engine_script
+
+    assert "id='dashboardHydrologyRainfallToggle'" in hydrology_panel
+    assert "markerLocation.insertAdjacentElement('afterend',button)" in hydrology_panel
+    assert "Rainfall simulation is not implemented yet." in hydrology_panel
+
