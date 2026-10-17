@@ -76,7 +76,7 @@
         particleCtx.setTransform(dpr,0,0,dpr,0,0);
         rainCtx.setTransform(dpr,0,0,dpr,0,0);
         rainDrops=[];
-        for(var dropIndex=0;dropIndex<72;dropIndex++)rainDrops.push(makeRainDrop(true));
+        for(var dropIndex=0;dropIndex<48;dropIndex++)rainDrops.push(makeRainDrop(true));
       }
       return {width:cssWidth,height:cssHeight,changed:changed};
     }
