@@ -230,7 +230,7 @@ def test_hydrology_rainfall_entry_loads_engine_and_saves_a3_record():
     marker_location_script = html.index('marker-location.js?v=20261017')
     hydrology_engine_script = html.index('hydrology-engine.js?v=20261017-d8-core')
     hydrology_overlay_script = html.index('hydrology-overlay.js?v=20261017-flow-overlay')
-    rainfall_script = html.index('hydrology-panel.js?v=20261018-rainfall-guide-modal-host')
+    rainfall_script = html.index('hydrology-panel.js?v=20261018-rainfall-guide-host-endpoint')
     map_engine_script = html.index('map-engine.js?v=20261006')
     assert marker_location_script < hydrology_engine_script < hydrology_overlay_script < rainfall_script < map_engine_script
     assert 'hydrology.css?v=20261017-rainfall-guide-modal' in html
