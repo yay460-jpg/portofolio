@@ -156,11 +156,29 @@
       else if(enabled)panelStatus('Directional particle animation enabled; this is not a physical water model.','success');
       else panelStatus('Directional particle animation stopped.');
     });
+    var guideModal=document.createElement('div');
+    guideModal.className='hydrology-guide-modal';
+    guideModal.hidden=true;
+    guideModal.setAttribute('role','dialog');
+    guideModal.setAttribute('aria-modal','true');
+    guideModal.setAttribute('aria-labelledby','hydrologyGuideTitle');
+    guideModal.innerHTML='<div class="hydrology-guide-dialog"><header class="hydrology-guide-head"><div><strong id="hydrologyGuideTitle">Rainfall Simulation Guide</strong><span>PDF User Guide · Lithosite Mine Services</span></div><button type="button" class="hydrology-guide-close" aria-label="Close Rainfall Simulation guide">×</button></header><div class="hydrology-guide-body"><iframe title="Rainfall Simulation User Guide" src="../../docs/lithosite/02_Mine-Services/10_User-Guides/Guide_Panel_Rainfall_Simulation.pdf"></iframe></div></div>';
+    document.body.appendChild(guideModal);
+    var guideClose=guideModal.querySelector('.hydrology-guide-close');
+    function closeGuide(){
+      guideModal.hidden=true;
+      guideModal.classList.remove('is-open');
+      panel.querySelector('#hydrologyGuide').focus();
+    }
     panel.querySelector('#hydrologyGuide').addEventListener('click',function(){
-      var guideUrl='https://raw.githubusercontent.com/yay460-jpg/portofolio/v41-workspace/docs/lithosite/02_Mine-Services/10_User-Guides/Guide_Panel_Rainfall_Simulation.pdf';
-      var guideWindow=global.open(guideUrl,'_blank','noopener,noreferrer');
-      if(guideWindow)guideWindow.opener=null;
+      guideModal.hidden=false;
+      guideModal.classList.add('is-open');
+      guideClose.focus();
     });
+    guideClose.addEventListener('click',closeGuide);
+    guideModal.addEventListener('click',function(event){if(event.target===guideModal)closeGuide();});
+    guideModal.addEventListener('keydown',function(event){if(event.key==='Escape'){event.stopPropagation();closeGuide();}});
+    document.addEventListener('keydown',function(event){if(event.key==='Escape'&&!guideModal.hidden)closeGuide();});
     panel.querySelector('#hydrologyClose').addEventListener('click',function(){
       if(typeof onClose==='function')onClose();
     });
