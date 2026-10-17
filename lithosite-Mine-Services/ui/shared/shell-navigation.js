@@ -494,6 +494,11 @@
     }
 
     setScreen(readInitialScreen(), false);
+    // The head bootstrap prevents a default-dashboard flash until this synchronous restore completes.
+    // Remove its temporary display rules only after the real shell contract has applied hidden/active state.
+    const initialScreenGuard = document.getElementById('lithosite-initial-screen-guard');
+    if (initialScreenGuard) initialScreenGuard.remove();
+    document.documentElement.removeAttribute('data-lithosite-initial-screen');
     return true;
   }
 
