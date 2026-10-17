@@ -136,8 +136,8 @@
 
     function setAnalysis(result){
       if(destroyed)fail('Hydrology overlay has been destroyed.');
-      analysis=result;buildSegments(result);lastSignature='';draw(null,true);
-      return {segmentCount:segments.length,threshold:segmentThreshold};
+      analysis=result;var stats=buildSegments(result);lastSignature='';draw(null,true);
+      return stats;
     }
     function setVisible(value){
       if(destroyed)return false;

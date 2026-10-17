@@ -47,7 +47,7 @@
   .hydrology-panel{top:8px;right:8px;width:calc(100% - 16px);max-height:calc(100% - 16px)}
 }
 
-#dashboardSiteMap .hydrology-flow-overlay{
+#dashboardSiteMap.map-topo3d canvas.hydrology-flow-overlay{
   position:absolute;
   inset:0;
   z-index:3;

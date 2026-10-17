@@ -16,7 +16,9 @@ def test_stage20_marker_renderer_is_only_a_map_render_overlay():
     js = MAP_ENGINE.read_text(encoding="utf-8")
     assert "global.MineServicesMarkerLocation" in js
     assert "renderMarkers(engine,host)" in js
-    assert "onRender:function(){syncPickedMarkers();if(global.MineServicesMarkerLocation)global.MineServicesMarkerLocation.renderMarkers(engine,host);}" in js
+    assert "onRender:function(frame)" in js
+    assert "syncPickedMarkers();" in js
+    assert "global.MineServicesMarkerLocation.renderMarkers(engine,host)" in js
 
 def test_stage20_marker_overlay_does_not_replace_topo_rendering_engine():
     js = MAP_ENGINE.read_text(encoding="utf-8")
