@@ -130,3 +130,27 @@
 /* Compact paired controls for rainfall effect and wind forcing. */
 .hydrology-wind-controls{display:grid;grid-template-columns:1fr .72fr;gap:5px;min-width:0}
 .hydrology-wind-controls select{min-width:0;padding:0 5px}
+
+/* A slide-in history view for saved RainfallSimulation records. */
+.hydrology-panel__records{display:grid;place-items:center;width:26px;height:26px;border:1px solid #34516e;border-radius:7px;background:#10263c;color:#8ec5ff;cursor:pointer;padding:5px}
+.hydrology-panel__records svg{width:16px;height:16px;display:block}
+.hydrology-panel__records:hover{background:#1b3855;border-color:#5798fa;color:#fff}
+.hydrology-panel__records:focus-visible{outline:2px solid #5798fa;outline-offset:2px}
+.hydrology-records{position:absolute;inset:0;z-index:15;display:flex;flex-direction:column;min-height:0;overflow:hidden;border:1px solid rgba(96,165,250,.42);border-radius:9px;background:rgba(8,22,38,.99);transform:translateX(102%);visibility:hidden;pointer-events:none;transition:transform .2s ease,visibility 0s linear .2s}
+.hydrology-records[hidden]{display:none!important}
+.hydrology-panel.is-records-open .hydrology-records:not([hidden]){transform:translateX(0);visibility:visible;pointer-events:auto;transition-delay:0s}
+.hydrology-records__header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:14px 14px 12px;border-bottom:1px solid #263e58}
+.hydrology-records__header h3{margin:3px 0;color:#f1f7ff;font-size:14px}
+.hydrology-records__header p{margin:3px 0 0;color:#809bb7;font-size:10px}
+.hydrology-records__body{min-height:0;overflow:auto;padding:12px}
+.hydrology-records__chart{display:grid;gap:12px}
+.hydrology-records__chart[hidden]{display:none!important}
+.hydrology-records__empty{margin:0;padding:18px 12px;text-align:center;border:1px dashed #34516e;border-radius:8px;color:#adc2d9;font-size:11px}
+.hydrology-record-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:10px;border:1px solid #213b55;border-radius:8px;background:#0b1b2d}
+.hydrology-record-row__meta{display:flex;min-width:0;flex-direction:column;gap:3px}
+.hydrology-record-row__meta strong{font-size:11px;color:#e6f2ff;overflow-wrap:anywhere}
+.hydrology-record-row__meta span{font-size:9px;color:#809bb7}
+.hydrology-record-row__track{grid-column:1;overflow:hidden;height:10px;border-radius:999px;background:#142c43}
+.hydrology-record-row__bar{height:100%;border-radius:999px;background:linear-gradient(90deg,#2878c7,#56b4f4);transition:width .2s ease}
+.hydrology-record-row__value{grid-column:2;grid-row:1/3;color:#9fd4ff;font-size:10px;white-space:nowrap}
+@media(prefers-reduced-motion:reduce){.hydrology-records,.hydrology-record-row__bar{transition:none!important}}
