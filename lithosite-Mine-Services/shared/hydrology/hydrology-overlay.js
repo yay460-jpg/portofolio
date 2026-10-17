@@ -6,8 +6,8 @@
 (function(global){
   'use strict';
 
-  var MAX_SEGMENTS=2400;
-  var MAX_PARTICLES=96;
+  var MAX_SEGMENTS=900;
+  var MAX_PARTICLES=32;
   var PARTICLE_PERIOD_MS=2400;
 
   function fail(message){throw new Error(message);}
@@ -136,6 +136,7 @@
       if(typeof topo.projectCoordinate!=='function')return;
       var maxAccum=Number(analysis.stats.maxFlowAccumulationCells)||1;
       ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.shadowBlur=0;
       /* Adjacent D8 segments share cells. Project each unique cell once per map frame,
          instead of repeating the same CPU projection for every segment endpoint. */
       var projectedCells=new Map();
@@ -150,9 +151,7 @@
         var alpha=.48+.48*ratio;
         ctx.strokeStyle='rgba(56,189,248,'+alpha.toFixed(3)+')';
         ctx.lineWidth=1.05+1.25*ratio;
-        ctx.shadowColor='rgba(2,8,23,.85)';ctx.shadowBlur=2;
         ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
-        ctx.shadowBlur=0;
         if(i%arrowStride===0&&segment.accumulation>=segmentThreshold*2){
           var dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
           if(len>5){
@@ -182,9 +181,11 @@
       var progressBase=elapsed/PARTICLE_PERIOD_MS;
       var maxAccum=Number(analysis.stats.maxFlowAccumulationCells)||1;
       particleCtx.lineCap='round';
+      /* Particle tracks share endpoints too; reuse their projections for this animation tick. */
+      var projectedCells=new Map();
       for(var i=0;i<particleTracks.length;i++){
         var track=particleTracks[i],segment=track.segment;
-        var a=cellPoint(segment.from),b=cellPoint(segment.to);
+        var a=cellPoint(segment.from,projectedCells),b=cellPoint(segment.to,projectedCells);
         if(!a||!b||!finite(a.x)||!finite(a.y)||!finite(b.x)||!finite(b.y))continue;
         if(!a.inside&&!b.inside)continue;
         var progress=(progressBase+track.phase)%1;
