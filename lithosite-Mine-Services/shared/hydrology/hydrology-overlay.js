@@ -49,7 +49,6 @@
       if(canvas.parentNode)canvas.parentNode.removeChild(canvas);
       if(particleCanvas.parentNode)particleCanvas.parentNode.removeChild(particleCanvas);
       if(rainCanvas.parentNode)rainCanvas.parentNode.removeChild(rainCanvas);
-      if(rainCanvas.parentNode)rainCanvas.parentNode.removeChild(rainCanvas);
       fail('2D flow overlay canvas is unavailable.');
     }
 
@@ -321,6 +320,7 @@
       unsubscribe=null;analysis=null;segments=[];particleTracks=[];
       if(canvas.parentNode)canvas.parentNode.removeChild(canvas);
       if(particleCanvas.parentNode)particleCanvas.parentNode.removeChild(particleCanvas);
+      if(rainCanvas.parentNode)rainCanvas.parentNode.removeChild(rainCanvas);
     }
     unsubscribe=topo.subscribeRender(function(frame){draw(frame,false);});
     return {
