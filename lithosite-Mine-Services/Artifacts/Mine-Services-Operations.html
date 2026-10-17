@@ -23,7 +23,7 @@
     return name !== selected;
   }).map(function (name) {
     return '#' + screens[name] + '{display:none!important}';
-  }).join('\\n');
+  }).join('\n');
   document.head.appendChild(style);
   document.documentElement.setAttribute('data-lithosite-initial-screen', selected);
 })();
