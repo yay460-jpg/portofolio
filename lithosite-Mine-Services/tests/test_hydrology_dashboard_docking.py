@@ -32,6 +32,9 @@ def test_rainfall_uses_the_dashboard_right_workspace_and_keeps_flow_on_site_map(
     assert "simulationPanel.hidden=true" in panel
     assert "button.setAttribute('aria-expanded','true')" in panel
     assert "button.setAttribute('aria-expanded','false')" in panel
+    assert 'id="hydrologyGuide"' in panel
+    assert "Guide_Panel_Rainfall_Simulation.pdf" in panel
+    assert "global.open(guideUrl,'_blank','noopener,noreferrer')" in panel
 
 
 def test_rainfall_dock_has_reduced_motion_and_restores_dashboard_cards():
