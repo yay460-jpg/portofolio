@@ -204,6 +204,7 @@ def test_active_artifact_restores_saved_screen_before_first_paint():
     assert "lithosite-initial-screen-guard" in html
     assert "name !== selected" in html
     assert "display:none!important" in html
+    assert "rules.push('#' + screens[selected] + '{display:flex!important}')" in html
     assert "data-lithosite-initial-screen" in html
     assert "setScreen(readInitialScreen(), false);" in navigation
     assert "initialScreenGuard.remove();" in navigation
