@@ -65,3 +65,19 @@ def test_artifact_cache_keys_reference_the_docked_rainfall_assets():
     artifact = read(ARTIFACT)
     assert "../shared/hydrology/hydrology.css?v=20261018-rain-wind-controls" in artifact
     assert "../shared/hydrology/hydrology-panel.js?v=20261018-rain-wind-controls" in artifact
+
+
+def test_rainfall_records_chart_reads_saved_a3_history_and_slides_in():
+    panel = read(PANEL)
+    styles = read(STYLES)
+    assert 'id="hydrologyRecords"' in panel
+    assert 'id="hydrologyRecordsView"' in panel
+    assert "operation:'READ',entity:'RainfallSimulation'" in panel
+    assert "row.created_at" in panel
+    assert "row.total_rainfall_mm" in panel
+    assert "row.scenario_name" in panel
+    assert "setRecordsView(true)" in panel
+    assert "setRecordsView(false)" in panel
+    assert ".hydrology-records" in styles
+    assert "translateX(102%)" in styles
+    assert "prefers-reduced-motion:reduce" in styles
