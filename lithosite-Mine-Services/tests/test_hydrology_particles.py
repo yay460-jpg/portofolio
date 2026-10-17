@@ -151,6 +151,7 @@ process.stdout.write(JSON.stringify({
     assert output["cleared"]["rainfallEnabled"] is False
     assert output["noPathEnabled"] is False
     assert output["noPathStats"]["particleTrackCount"] == 0
-    assert output["noPathStats"]["animationRunning"] is False
+    assert output["noPathStats"]["animationRunning"] is True
+    assert output["noPathStats"]["rainfallEnabled"] is True
     assert output["childrenAfterDestroy"] == 0
     assert output["subscriberRemoved"] is True
