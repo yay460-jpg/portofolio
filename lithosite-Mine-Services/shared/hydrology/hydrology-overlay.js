@@ -237,7 +237,7 @@
     function setAnimationEnabled(value){
       if(destroyed)return false;
       var next=!!value;
-      if(next&&typeof global.requestAnimationFrame!=='function')return false;
+      if(next&&(!analysis||!particleTracks.length||typeof global.requestAnimationFrame!=='function'))return false;
       animationEnabled=next;
       if(animationEnabled&&visible&&analysis&&particleTracks.length){
         particleCanvas.hidden=false;animationStart=null;startAnimationLoop();

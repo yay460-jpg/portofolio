@@ -90,9 +90,9 @@
         try{
           if(!global.LithositeHydrologyOverlay||typeof global.LithositeHydrologyOverlay.create!=='function')throw new Error('Flow overlay module is unavailable.');
           if(!flowOverlay)flowOverlay=global.LithositeHydrologyOverlay.create({host:host,topo:global.MineServicesTopo3D});
-          flowOverlay.setAnalysis(result);flowOverlay.setVisible(true);
+          var overlayStats=flowOverlay.setAnalysis(result);flowOverlay.setVisible(true);
           overlayToggle.textContent='Hide Flow Paths';overlayToggle.hidden=false;
-          particlesToggle.textContent='Start Flow Animation';particlesToggle.hidden=false;
+          particlesToggle.textContent='Start Flow Animation';particlesToggle.hidden=!(overlayStats&&overlayStats.segmentCount>0);
         }catch(overlayError){overlayWarning='Flow overlay could not be drawn: '+(overlayError&&overlayError.message?overlayError.message:'unknown overlay error');}
         renderResult(lastRun,overlayWarning);saveButton.disabled=false;
         panelStatus(overlayWarning?'Analysis complete; summary is available, but flow overlay needs attention.':'Analysis complete · D8 flow paths are shown on the terrain.','success');

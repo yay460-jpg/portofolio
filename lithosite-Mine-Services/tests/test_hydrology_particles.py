@@ -97,12 +97,22 @@ engine.setVisible(true);
 const resumedStats = engine.getStats();
 engine.clear();
 const cleared = engine.getStats();
+engine.setAnalysis({
+  grid: { rows: 2, cols: 3, originX: 0, originY: 0, cellSizeX: 10, cellSizeY: 10 },
+  elevations: [5,4,3,6,5,4], validMask: [1,1,1,1,1,1],
+  flowTo: [-1,-1,-1,-1,-1,-1], flowAccumulation: [1,1,1,1,1,1],
+  stats: { validCellCount: 6, maxFlowAccumulationCells: 1 }
+});
+const noPathEnabled = engine.setAnimationEnabled(true);
+const noPathStats = engine.getStats();
+engine.clear();
 engine.destroy();
 process.stdout.write(JSON.stringify({
   limits: window.LithositeHydrologyOverlay.limits,
   initial, initialCallbacks, enabled, queuedBeforeFrame, afterFrame, arcCount,
   afterStop, queuedAfterStop, hiddenStats, queuedWhileHidden, resumedStats,
-  cleared, childrenAfterDestroy: host.children.length, subscriberRemoved: renderListener === null
+  cleared, noPathEnabled, noPathStats, childrenAfterDestroy: host.children.length,
+  subscriberRemoved: renderListener === null
 }));
 """
     env = os.environ.copy()
@@ -136,5 +146,8 @@ process.stdout.write(JSON.stringify({
     assert output["resumedStats"]["animationRunning"] is True
     assert output["cleared"]["particleTrackCount"] == 0
     assert output["cleared"]["animationEnabled"] is False
+    assert output["noPathEnabled"] is False
+    assert output["noPathStats"]["particleTrackCount"] == 0
+    assert output["noPathStats"]["animationRunning"] is False
     assert output["childrenAfterDestroy"] == 0
     assert output["subscriberRemoved"] is True
