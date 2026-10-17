@@ -10,6 +10,8 @@
       '<label class="hydrology-field hydrology-field--wide"><span>Scenario name</span><input id="hydrologyScenarioName" type="text" maxlength="120" value="Rainfall Scenario"></label>'+
       '<label class="hydrology-field"><span>Intensity (mm/hour)</span><input id="hydrologyIntensity" type="number" min="0.1" step="any" value="50"></label>'+
       '<label class="hydrology-field"><span>Duration (minutes)</span><input id="hydrologyDuration" type="number" min="0.1" step="any" value="60"></label>'+
+      '<label class="hydrology-field"><span>Effect of Rain</span><select id="hydrologyRainEffect"><option value="falling">Falling Rain</option><option value="terrain">Terrain Rainfall</option><option value="both" selected>Both</option></select></label>'+
+      '<div class="hydrology-field"><span>Wind</span><div class="hydrology-wind-controls"><select id="hydrologyWindSpeed" aria-label="Wind speed"><option value="0">Calm</option><option value="5">5 km/h</option><option value="15" selected>15 km/h</option><option value="25">25 km/h</option><option value="35">35 km/h</option></select><select id="hydrologyWindDirection" aria-label="Wind direction"><option>N</option><option>NE</option><option>E</option><option>SE</option><option>S</option><option>SW</option><option>W</option><option selected>NW</option></select></div></div>'+
       '<label class="hydrology-field"><span>Runoff coefficient</span><input id="hydrologyRunoffCoefficient" type="number" min="0" max="1" step="0.05" value="0.65"></label>'+
       '<label class="hydrology-field"><span>Grid resolution (m)</span><input id="hydrologyResolution" type="number" min="0.1" step="any" value="10"></label>'+
       '<label class="hydrology-field hydrology-field--wide"><span>Depression treatment</span><select id="hydrologyDepressionTreatment"><option value="FILL">Fill depressions (FILL)</option><option value="PRESERVE">Preserve depressions (PRESERVE)</option></select></label></div>'+
@@ -31,6 +33,8 @@
     var overlayToggle=panel.querySelector('#hydrologyToggleOverlay');
     var particlesToggle=panel.querySelector('#hydrologyToggleParticles');
     var lastRun=null,saved=false,flowOverlay=null;
+    function readRainfallSettings(){return {effect:panel.querySelector('#hydrologyRainEffect').value,windSpeed:Number(panel.querySelector('#hydrologyWindSpeed').value),windDirection:panel.querySelector('#hydrologyWindDirection').value};}
+    function applyRainfallSettings(){if(!flowOverlay||!lastRun||typeof flowOverlay.setRainfallOptions!=='function')return;var settings=readRainfallSettings();flowOverlay.setRainfallOptions({mode:settings.effect,windSpeedKmh:settings.windSpeed,windDirection:settings.windDirection});}
     function panelStatus(message,kind){
       status.textContent=message;status.classList.remove('is-error','is-success');
       if(kind==='error')status.classList.add('is-error');if(kind==='success')status.classList.add('is-success');
@@ -83,14 +87,14 @@
           simulationId:global.LithositeRuntimeClient.requestId('RS'),
           scenarioName:scenarioName.slice(0,120),
           topographyName:String(mesh.name||'Loaded Topography').slice(0,200),
-          settings:{intensity:intensity,duration:duration,coefficient:coefficient,resolution:resolution,treatment:treatment},
+          settings:{intensity:intensity,duration:duration,coefficient:coefficient,resolution:resolution,treatment:treatment,rainVisual:readRainfallSettings()},
           result:result
         };
         var overlayWarning='';
         try{
           if(!global.LithositeHydrologyOverlay||typeof global.LithositeHydrologyOverlay.create!=='function')throw new Error('Flow overlay module is unavailable.');
           if(!flowOverlay)flowOverlay=global.LithositeHydrologyOverlay.create({host:mapHost,topo:global.MineServicesTopo3D});
-          var overlayStats=flowOverlay.setAnalysis(result);flowOverlay.setVisible(true);
+          var overlayStats=flowOverlay.setAnalysis(result);flowOverlay.setVisible(true);applyRainfallSettings();
           overlayToggle.textContent='Hide Flow Paths';overlayToggle.hidden=false;
           particlesToggle.textContent='Start Flow Animation';particlesToggle.hidden=!(overlayStats&&overlayStats.segmentCount>0);
         }catch(overlayError){overlayWarning='Flow overlay could not be drawn: '+(overlayError&&overlayError.message?overlayError.message:'unknown overlay error');}
@@ -137,7 +141,7 @@
           estimated_runoff_volume_m3:rain.estimatedRunoffVolumeM3,
           max_flow_accumulation_cells:result.stats.maxFlowAccumulationCells,
           result_summary_json:JSON.stringify(summary),model_version:'hydrology-'+result.version,
-          notes:'Indicative terrain-derived D8 flow only; no flood depth or water velocity calculated.'
+          notes:'Indicative terrain-derived D8 flow only; no flood depth or water velocity calculated. Visual rain: '+settings.rainVisual.effect+'; wind '+settings.rainVisual.windSpeed+' km/h '+settings.rainVisual.windDirection+'.'
         };
         var response=await global.LithositeRuntimeClient.request({
           operation:'CREATE',entity:'RainfallSimulation',row:row,
@@ -154,6 +158,7 @@
       }
     }
     runButton.addEventListener('click',runAnalysis);clearButton.addEventListener('click',clearSimulation);saveButton.addEventListener('click',saveRecord);
+    ['hydrologyRainEffect','hydrologyWindSpeed','hydrologyWindDirection'].forEach(function(id){panel.querySelector('#'+id).addEventListener('change',applyRainfallSettings);});
     overlayToggle.addEventListener('click',function(){
       if(!flowOverlay)return;
       var show=!flowOverlay.isVisible();
