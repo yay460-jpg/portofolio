@@ -37,7 +37,9 @@ def test_rainfall_uses_the_dashboard_right_workspace_and_keeps_flow_on_site_map(
     assert "getElementById('reportPdfReaderModal')" in panel
     assert "getElementById('reportPdfReaderFrame')" in panel
     assert "guideModal.classList.add('show')" in panel
-    assert "guideFrame.src=guideUrl" in panel
+    assert "global.fetch(guideUrl,{credentials:'same-origin'})" in panel
+    assert "URL.createObjectURL(pdfBlob)" in panel
+    assert "guideFrame.dataset.reportPdfObjectUrl=objectUrl" in panel
     assert "Guide_Panel_Rainfall_Simulation.pdf" in panel
     assert ".user-guide-reader-modal" in read(ROOT / "ui" / "shared" / "user-guide.css")
 
@@ -59,4 +61,4 @@ def test_rainfall_dock_has_reduced_motion_and_restores_dashboard_cards():
 def test_artifact_cache_keys_reference_the_docked_rainfall_assets():
     artifact = read(ARTIFACT)
     assert "../shared/hydrology/hydrology.css?v=20261017-rainfall-guide-modal" in artifact
-    assert "../shared/hydrology/hydrology-panel.js?v=20261018-shared-pdf-reader" in artifact
+    assert "../shared/hydrology/hydrology-panel.js?v=20261018-shared-pdf-blob" in artifact
