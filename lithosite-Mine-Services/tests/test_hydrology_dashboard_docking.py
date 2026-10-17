@@ -61,4 +61,4 @@ def test_rainfall_dock_has_reduced_motion_and_restores_dashboard_cards():
 def test_artifact_cache_keys_reference_the_docked_rainfall_assets():
     artifact = read(ARTIFACT)
     assert "../shared/hydrology/hydrology.css?v=20261017-rainfall-guide-modal" in artifact
-    assert "../shared/hydrology/hydrology-panel.js?v=20261018-shared-pdf-blob" in artifact
+    assert "../shared/hydrology/hydrology-panel.js?v=20261018-rainfall-guide-modal-host" in artifact
