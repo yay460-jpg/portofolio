@@ -20,6 +20,10 @@
 .hydrology-panel::-webkit-scrollbar{display:none;width:0;height:0}
 .hydrology-panel[hidden]{display:none!important}
 .hydrology-panel__header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1px solid #263e58}
+.hydrology-panel__header-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.hydrology-panel__guide{display:grid;place-items:center;width:26px;height:26px;border:1px solid #34516e;border-radius:50%;background:#10263c;color:#d6e6f7;font:700 13px/1 "Segoe UI",Arial,sans-serif;cursor:pointer}
+.hydrology-panel__guide:hover{background:#1b3855;border-color:#5798fa;color:#fff}
+.hydrology-panel__guide:focus-visible,.hydrology-panel__close:focus-visible{outline:2px solid #5798fa;outline-offset:2px}
 .hydrology-panel__eyebrow{font-size:9px;letter-spacing:.1em;font-weight:750;color:#60a5fa}
 .hydrology-panel__header h2{margin:2px 0 0;font-size:13px;font-weight:700;color:#f1f7ff}
 .hydrology-panel__close{display:grid;place-items:center;width:26px;height:26px;border:1px solid #34516e;border-radius:7px;background:#10263c;color:#d6e6f7;font-size:18px;line-height:1;cursor:pointer}
