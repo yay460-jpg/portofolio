@@ -61,12 +61,14 @@ A3_HEADERS_ADDITIONS = {
         if h not in A2_HEADERS["Operations"] and h != "measurement"
     ],
     MAP_MARKER_ENTITY: MAP_MARKER_SCHEMA_HEADERS,
+    "RainfallSimulation": list(A3_SCHEMA.HEADERS["RainfallSimulation"]),
 }
 
 A3_PRIMARY_KEYS_ADDITIONS = {
     "GlobalCapacity": A3_SCHEMA.PKS["GlobalCapacity"],
     "Checker": A3_SCHEMA.PKS["Checker"],
     MAP_MARKER_ENTITY: MAP_MARKER_PK,
+    "RainfallSimulation": A3_SCHEMA.PKS["RainfallSimulation"],
 }
 
 

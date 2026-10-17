@@ -44,7 +44,14 @@ class PersistenceStore:
         return {"data": deepcopy(self._data), "audit": deepcopy(self._audit)}
 
     def replace(self, snapshot):
-        self._data = deepcopy(snapshot["data"])
+        data = snapshot.get("data", {})
+        if not isinstance(data, dict):
+            raise ValueError("SNAPSHOT_DATA_INVALID")
+        # Older A.3 snapshots may predate the RainfallSimulation entity.
+        self._data = {
+            entity: deepcopy(data.get(entity, {}))
+            for entity in self.schema.DOMAIN_ENTITIES
+        }
         self._audit = deepcopy(snapshot.get("audit", []))
 
     def exists(self, entity, pk):
@@ -315,6 +322,27 @@ class PersistenceStore:
             return True
         raise ValueError("HEADER_MISMATCH:NIK")
 
+    def _migrate_a3_rainfall_simulation_sheet(self, workbook):
+        """Create the RainfallSimulation worksheet without changing existing A3 records."""
+        if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
+            return False
+        headers = list(self.schema.HEADERS["RainfallSimulation"])
+        if "RainfallSimulation" not in workbook.sheetnames:
+            insert_at = workbook.sheetnames.index("AuditLog") if "AuditLog" in workbook.sheetnames else len(workbook.sheetnames)
+            worksheet = workbook.create_sheet("RainfallSimulation", index=insert_at)
+            worksheet.append(headers)
+            return True
+
+        worksheet = workbook["RainfallSimulation"]
+        current_headers = [cell.value for cell in worksheet[1]]
+        if current_headers == headers:
+            return False
+        if worksheet.max_row == 1 and all(value in (None, "") for value in current_headers):
+            for column, header in enumerate(headers, start=1):
+                worksheet.cell(row=1, column=column, value=header)
+            return True
+        raise ValueError("HEADER_MISMATCH:RainfallSimulation")
+
     def _migrate_a3_top_soil_material(self, workbook):
         """Add Top Soil to the A.3 controlled material list without changing existing entries."""
         if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
@@ -445,9 +473,10 @@ class PersistenceStore:
                 raise ValueError(f"SHEET_MISSING:{sorted(missing)}")
         migrated = self._migrate_a3_checker_support_headers(wb)
         nik_sheet_migrated = self._migrate_a3_nik_sheet(wb)
+        rainfall_sheet_migrated = self._migrate_a3_rainfall_simulation_sheet(wb)
         top_soil_migrated = self._migrate_a3_top_soil_material(wb)
         plan_hours_migrated = self._migrate_a3_remove_plans_target_hours(wb)
-        if migrated or nik_sheet_migrated or top_soil_migrated or plan_hours_migrated:
+        if migrated or nik_sheet_migrated or rainfall_sheet_migrated or top_soil_migrated or plan_hours_migrated:
             wb.save(self.path)
         wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)

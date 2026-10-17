@@ -7,8 +7,8 @@ module with the next active schema version.
 
 SCHEMA_VERSION = "A.3"
 NIK_HEADERS = ["Effective From", "Effective To", "Id No (NIK)", "Origin", "Name Employment", "Information"]
-SHEETS = ["_Baseline","_System","_Lists","Equipment","NIK","WorkFront","GlobalCapacity","Checker","Operations","Maintenance","Issues","Plans","HSE","MapMarker","AuditLog"]
-DOMAIN_ENTITIES = ["Equipment","WorkFront","GlobalCapacity","Checker","Operations","Maintenance","Issues","Plans","HSE","MapMarker"]
+SHEETS = ["_Baseline","_System","_Lists","Equipment","NIK","WorkFront","GlobalCapacity","Checker","Operations","Maintenance","Issues","Plans","HSE","MapMarker","RainfallSimulation","AuditLog"]
+DOMAIN_ENTITIES = ["Equipment","WorkFront","GlobalCapacity","Checker","Operations","Maintenance","Issues","Plans","HSE","MapMarker","RainfallSimulation"]
 
 HEADERS = {
 "Equipment":["equipment_id","unit_no","category","type","owner_type","owner_name","status","effective_from","effective_to","capacity_profile_id"],
@@ -22,9 +22,10 @@ HEADERS = {
 "GlobalCapacity":["capacity_profile_id","capacity_name","unit_brand","capacity_value","measurement","status","effective_from","effective_to"],
 "Checker":["checker_id","operation_id","checker_name","observation_date","start_time","end_time","shift","equipment_id","work_front_id","activity","material","retase","source"],
 "MapMarker":["marker_id","marker_type","label","easting","northing","elevation","source_entity","source_id","status"],
+"RainfallSimulation":["simulation_id","scenario_name","status","topography_name","terrain_fingerprint","rainfall_intensity_mm_hr","rainfall_duration_min","runoff_coefficient","grid_resolution_m","flow_algorithm","depression_treatment","catchment_area_m2","total_rainfall_mm","estimated_runoff_volume_m3","max_flow_accumulation_cells","result_summary_json","model_version","created_at","updated_at","notes"],
 }
 
-PKS={"Equipment":"equipment_id","WorkFront":"work_front_id","Operations":"transaction_id","Maintenance":"maintenance_id","Issues":"issue_id","Plans":"plan_id","HSE":"hse_id","AuditLog":"audit_id","GlobalCapacity":"capacity_profile_id","Checker":"checker_id","MapMarker":"marker_id"}
+PKS={"Equipment":"equipment_id","WorkFront":"work_front_id","Operations":"transaction_id","Maintenance":"maintenance_id","Issues":"issue_id","Plans":"plan_id","HSE":"hse_id","AuditLog":"audit_id","GlobalCapacity":"capacity_profile_id","Checker":"checker_id","MapMarker":"marker_id","RainfallSimulation":"simulation_id"}
 
 REQUIRED={
 "Equipment":{"equipment_id","unit_no"},"WorkFront":{"work_front_id"},"Operations":{"transaction_id","work_front_id"},
@@ -32,9 +33,10 @@ REQUIRED={
 "GlobalCapacity":{"capacity_profile_id","capacity_name","capacity_value","measurement","status"},
 "Checker":{"checker_id","checker_name","observation_date","start_time","end_time","shift","equipment_id","work_front_id","activity","source"},
 "MapMarker":{"marker_id","marker_type","easting","northing","elevation"},
+"RainfallSimulation":{"simulation_id","scenario_name","status","topography_name","rainfall_intensity_mm_hr","rainfall_duration_min","runoff_coefficient","grid_resolution_m","flow_algorithm","depression_treatment","model_version"},
 }
 
-NUMERIC={"quantity","actual_hours","target_hours","downtime_hours","target_quantity","easting","northing","elevation","capacity_value","retase","applied_capacity"}
+NUMERIC={"quantity","actual_hours","target_hours","downtime_hours","target_quantity","easting","northing","elevation","capacity_value","retase","applied_capacity","rainfall_intensity_mm_hr","rainfall_duration_min","runoff_coefficient","grid_resolution_m","catchment_area_m2","total_rainfall_mm","estimated_runoff_volume_m3","max_flow_accumulation_cells"}
 SYSTEM_FIELDS={"created_at","updated_at"}
 
 FK={

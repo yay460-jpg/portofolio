@@ -35,13 +35,16 @@ def test_stage20_schema_migration_contract_preserves_all_a2_domain_entities():
 
 def test_stage20_schema_migration_contract_adds_v38_entities_and_mapmarker():
     assert A3_SHEETS == SHEETS
-    assert A3_SHEETS[-2:] == [MAP_MARKER_ENTITY, "AuditLog"]
+    assert A3_SHEETS[-3:] == [MAP_MARKER_ENTITY, "RainfallSimulation", "AuditLog"]
     assert "MapMarker" in SHEETS
+    assert "RainfallSimulation" in SHEETS
 
 
 def test_stage20_schema_migration_contract_uses_canonical_mapmarker_headers():
     assert A3_HEADERS_ADDITIONS[MAP_MARKER_ENTITY] == MAP_MARKER_HEADERS
     assert A3_PRIMARY_KEYS_ADDITIONS[MAP_MARKER_ENTITY] == MAP_MARKER_PRIMARY_KEY
+    assert A3_HEADERS_ADDITIONS["RainfallSimulation"] == HEADERS["RainfallSimulation"]
+    assert A3_PRIMARY_KEYS_ADDITIONS["RainfallSimulation"] == "simulation_id"
     assert A3_HEADERS_ADDITIONS["GlobalCapacity"] == HEADERS["GlobalCapacity"]
     assert A3_HEADERS_ADDITIONS["Checker"] == HEADERS["Checker"]
     assert A3_HEADERS_ADDITIONS["WorkFront"] == ["capacity_profile_id"]
@@ -58,6 +61,8 @@ def test_stage20_schema_migration_contract_is_explicit_and_machine_readable():
     assert contract["added_entity"] == "MapMarker"
     assert contract["headers"]["MapMarker"] == MAP_MARKER_HEADERS
     assert contract["primary_keys"]["MapMarker"] == "marker_id"
+    assert contract["headers"]["RainfallSimulation"] == HEADERS["RainfallSimulation"]
+    assert contract["primary_keys"]["RainfallSimulation"] == "simulation_id"
 
 
 def test_stage20_schema_migration_contract_keeps_a3_active():
@@ -65,3 +70,5 @@ def test_stage20_schema_migration_contract_keeps_a3_active():
     assert schema.SCHEMA_VERSION == "A.3"
     assert "MapMarker" in schema.DOMAIN_ENTITIES
     assert "MapMarker" in schema.SHEETS
+    assert "RainfallSimulation" in schema.DOMAIN_ENTITIES
+    assert "RainfallSimulation" in schema.SHEETS

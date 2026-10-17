@@ -12,7 +12,7 @@ The Desktop Host resolves its default database path to this workbook:
 
 `desktop-host/server.py` → `DB_PATH` → `Database/Mine-Services-Database-A3.xlsx`
 
-The canonical schema definition is `src/mine_services/schema.py`, with schema version `A.3`. The workbook's `_System` sheet records the active schema version.
+The canonical schema definition is `src/mine_services/schema.py`, with schema version `A.3`. The workbook's `_System` sheet records the active schema version. The `RainfallSimulation` worksheet stores scenario inputs and compact result summaries; an existing A.3 workbook receives the empty canonical sheet through an idempotent runtime migration that preserves existing records.
 
 Rules:
 

@@ -110,6 +110,12 @@ def _validate_a3_result(workbook):
     if marker.max_row != 1:
         raise SchemaMigrationError("MAPMARKER_NOT_EMPTY")
 
+    rainfall = workbook["RainfallSimulation"]
+    if list(rainfall.values)[0] != tuple(A3_HEADERS_ADDITIONS["RainfallSimulation"]):
+        raise SchemaMigrationError("HEADER_MISMATCH:RainfallSimulation")
+    if rainfall.max_row != 1:
+        raise SchemaMigrationError("RAINFALL_SIMULATION_NOT_EMPTY")
+
     # WorkFront and Operations now carry the A.3 appended fields.
     # The remaining A.2 domain sheets must retain their original headers.
     for entity in A2_DOMAIN_ENTITIES:
@@ -244,6 +250,8 @@ def migrate_a2_to_a3(source_path, target_path):
     workbook.create_sheet(MAP_MARKER_ENTITY, index=len(workbook.sheetnames) - 1)
     marker = workbook[MAP_MARKER_ENTITY]
     marker.append(MAP_MARKER_SCHEMA_HEADERS)
+    rainfall = workbook.create_sheet("RainfallSimulation", index=len(workbook.sheetnames) - 1)
+    rainfall.append(A3_HEADERS_ADDITIONS["RainfallSimulation"])
     _set_schema_version(workbook, TARGET_SCHEMA_VERSION)
 
     _validate_a3_result(workbook)

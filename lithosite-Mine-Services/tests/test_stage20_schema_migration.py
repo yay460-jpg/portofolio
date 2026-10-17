@@ -71,6 +71,8 @@ def test_stage20_migration_creates_a3_without_mutating_a2(tmp_path):
         "elevation", "source_entity", "source_id", "status"
     )]
     assert migrated["MapMarker"].max_row == 1
+    assert list(migrated["RainfallSimulation"].values) == [tuple(A3_HEADERS["RainfallSimulation"])]
+    assert migrated["RainfallSimulation"].max_row == 1
     from mine_services.schema import NIK_HEADERS
     assert list(migrated["NIK"].values) == [tuple(NIK_HEADERS)]
     assert list(migrated["GlobalCapacity"].values)[0] == tuple(A3_HEADERS["GlobalCapacity"])

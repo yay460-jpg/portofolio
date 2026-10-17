@@ -36,6 +36,10 @@ Names above are a proposal, not files that currently exist.
 - Any access to Topo3D mesh/elevation data must use an explicit, bounded read-only interface; do not depend on private engine internals.
 - Define units, resolution limits, depression/flat handling, model assumptions, and the distinction between indicative flow paths and validated flood-depth results before implementation.
 
+## A3 simulation record
+
+Rainfall run records use the canonical `RainfallSimulation` worksheet in the active A3 workbook. Its header and validation contract are documented in [`Documentation/Contracts/Rainfall-Hydrology-Simulation-Contract.md`](../../Documentation/Contracts/Rainfall-Hydrology-Simulation-Contract.md). The first record model stores scenario inputs and compact summary metrics only; it does not store per-cell flow grids or animation frames in Excel.
+
 ## Tests and documentation
 
 Follow repository conventions for cross-cutting assets:

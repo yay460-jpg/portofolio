@@ -77,8 +77,15 @@ class SnapshotManager:
             return False
 
         for entity in self.schema.DOMAIN_ENTITIES:
+            has_rows_key = entity in payload["data"]
+            has_count_key = entity in snapshot["entity_counts"]
             rows = payload["data"].get(entity, {})
             if not isinstance(rows, dict):
+                return False
+            # Older A.3 snapshots may omit a newly added empty entity from both maps.
+            if not has_rows_key and not has_count_key:
+                continue
+            if not has_rows_key or not has_count_key:
                 return False
             if snapshot["entity_counts"].get(entity) != len(rows):
                 return False

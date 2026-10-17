@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from mine_services.schema import SCHEMA_VERSION, SHEETS, HEADERS, CONTROLLED, NI
 from mine_services.application import ApplicationService
 from mine_services.runtime import RuntimeInterface
 from mine_services.adapter import RuntimeAdapter
+from mine_services.snapshot import SnapshotManager
 
 
 def make_a3_workbook(path: Path):
@@ -493,3 +495,138 @@ def test_runtime_import_invalid_xlsx_is_rejected_without_mutation(tmp_path):
     assert app.store.snapshot() == before_store
     assert app.store.audit() == []
     assert target.read_bytes() == before_bytes
+
+def rainfall_simulation_fixture(simulation_id="RS-CI-001", **overrides):
+    row = {
+        "simulation_id": simulation_id,
+        "scenario_name": "Baseline Rainfall",
+        "status": "COMPLETED",
+        "topography_name": "fixture.ltdtm",
+        "terrain_fingerprint": "a" * 64,
+        "rainfall_intensity_mm_hr": 50.0,
+        "rainfall_duration_min": 60.0,
+        "runoff_coefficient": 0.65,
+        "grid_resolution_m": 5.0,
+        "flow_algorithm": "D8",
+        "depression_treatment": "FILL",
+        "catchment_area_m2": 250000.0,
+        "total_rainfall_mm": 50.0,
+        "estimated_runoff_volume_m3": 8125.0,
+        "max_flow_accumulation_cells": 480,
+        "result_summary_json": '{"flow_paths":12,"model":"hydrology-v1"}',
+        "model_version": "hydrology-v1",
+        "notes": "isolated test record",
+    }
+    row.update(overrides)
+    return row
+
+
+def test_stage20_a3_rainfall_simulation_sheet_migrates_idempotently_and_preserves_existing_rows(tmp_path):
+    target = tmp_path / "a3-rainfall-migration.xlsx"
+    make_a3_workbook(target)
+    workbook = load_workbook(target)
+    workbook.remove(workbook["RainfallSimulation"])
+    workbook["Equipment"].append([
+        "EQ-RAIN-PRESERVE", "DT-RAIN-PRESERVE", "Heavy Equipment", "Dump Truck",
+        "Owner", "Existing Record", "Active", "2026-10-01", None, None,
+    ])
+    workbook.save(target)
+    workbook.close()
+
+    store = PersistenceStore(target)
+    assert store.get("Equipment", "EQ-RAIN-PRESERVE")["unit_no"] == "DT-RAIN-PRESERVE"
+
+    migrated = load_workbook(target, data_only=True)
+    assert "RainfallSimulation" in migrated.sheetnames
+    assert migrated.sheetnames.index("RainfallSimulation") == migrated.sheetnames.index("AuditLog") - 1
+    assert list(migrated["RainfallSimulation"].values) == [tuple(HEADERS["RainfallSimulation"])]
+    assert migrated["Equipment"]["A2"].value == "EQ-RAIN-PRESERVE"
+    migrated.close()
+
+    PersistenceStore(target)
+    reopened = load_workbook(target, data_only=True)
+    assert reopened.sheetnames.count("RainfallSimulation") == 1
+    assert list(reopened["RainfallSimulation"].values) == [tuple(HEADERS["RainfallSimulation"])]
+    assert reopened["Equipment"]["A2"].value == "EQ-RAIN-PRESERVE"
+    reopened.close()
+
+
+def test_rainfall_simulation_record_roundtrips_through_runtime_adapter_and_a3(tmp_path):
+    target = tmp_path / "a3-rainfall-record.xlsx"
+    make_a3_workbook(target)
+    store = PersistenceStore(target)
+    app = ApplicationService(store=store)
+    adapter = RuntimeAdapter(RuntimeInterface(application=app))
+    row = rainfall_simulation_fixture()
+
+    response = adapter.handle({
+        "request_id": "rainfall-create-001",
+        "operation": "CREATE",
+        "entity": "RainfallSimulation",
+        "row": row,
+    })
+    assert response["status"] == "COMMITTED"
+    assert response["entity_id"] == row["simulation_id"]
+
+    records = adapter.handle({
+        "request_id": "rainfall-read-001",
+        "operation": "READ",
+        "entity": "RainfallSimulation",
+    })
+    assert len(records["data"]) == 1
+    assert records["data"][0]["scenario_name"] == "Baseline Rainfall"
+
+    saved = load_workbook(target, data_only=True)
+    assert saved["RainfallSimulation"].max_row == 2
+    headers = [cell.value for cell in saved["RainfallSimulation"][1]]
+    stored = dict(zip(headers, [cell.value for cell in saved["RainfallSimulation"][2]]))
+    assert stored["simulation_id"] == row["simulation_id"]
+    assert stored["rainfall_intensity_mm_hr"] == 50.0
+    assert stored["estimated_runoff_volume_m3"] == 8125.0
+    assert stored["model_version"] == "hydrology-v1"
+    assert stored["created_at"]
+    assert stored["updated_at"]
+    saved.close()
+
+
+def test_rainfall_simulation_validation_rejects_bad_model_parameters():
+    app = ApplicationService(PersistenceStore())
+    invalid = rainfall_simulation_fixture("RS-BAD-001", runoff_coefficient=1.4)
+    response = app.create("RainfallSimulation", invalid, "rainfall-invalid-001")
+    assert response["status"] == "REJECTED"
+    assert any(error["field"] == "runoff_coefficient" for error in response["errors"])
+
+    invalid_json = rainfall_simulation_fixture("RS-BAD-002", result_summary_json='[1,2,3]')
+    response = app.create("RainfallSimulation", invalid_json, "rainfall-invalid-002")
+    assert response["status"] == "REJECTED"
+    assert any(error["field"] == "result_summary_json" for error in response["errors"])
+
+
+def test_legacy_a3_snapshot_missing_rainfall_entity_remains_verifiable():
+    store = PersistenceStore()
+    manager = SnapshotManager(store)
+    snapshot = manager.capture()
+    snapshot["payload"]["data"].pop("RainfallSimulation", None)
+    snapshot["entity_counts"].pop("RainfallSimulation", None)
+    snapshot["checksum"] = manager._hash_payload(snapshot["payload"])
+
+    assert manager.verify(snapshot)
+    store.replace(snapshot["payload"])
+    assert store.all("RainfallSimulation") == []
+
+
+def test_legacy_a3_dataset_missing_rainfall_entity_loads_as_empty(tmp_path):
+    from mine_services.dataset import DatasetManager
+
+    store = PersistenceStore()
+    manager = DatasetManager(store, tmp_path)
+    saved = manager.save_as("legacy-before-rainfall")
+    dataset_path = tmp_path / saved["filename"]
+    document = json.loads(dataset_path.read_text(encoding="utf-8"))
+    document["payload"]["data"].pop("RainfallSimulation", None)
+    dataset_path.write_text(json.dumps(document), encoding="utf-8")
+
+    result = manager.load("legacy-before-rainfall")
+    assert result["status"] == "LOADED"
+    assert store.all("RainfallSimulation") == []
+

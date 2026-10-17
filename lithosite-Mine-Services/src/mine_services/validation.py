@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from datetime import date, datetime, time
+import json
+import math
 import re
 
 from . import schema as DEFAULT_SCHEMA
@@ -31,6 +33,7 @@ TIME_FIELDS = {
 DATETIME_FIELDS = {
     "Operations": {"created_at", "updated_at"},
     "AuditLog": {"timestamp"},
+    "RainfallSimulation": {"created_at", "updated_at"},
 }
 TEXT_FIELDS = {
     "Equipment": {"equipment_id", "category", "type", "owner_type", "owner_name", "status"},
@@ -42,6 +45,7 @@ TEXT_FIELDS = {
     "Issues": {"issue_id", "domain", "work_front_id", "equipment_id", "description", "severity", "status", "assigned_to"},
     "Plans": {"plan_id", "period", "start_date", "end_date", "domain", "work_front_id", "activity", "measurement", "status"},
     "HSE": {"hse_id", "domain", "work_front_id", "event_type", "severity", "description", "action", "status"},
+    "RainfallSimulation": {"simulation_id", "scenario_name", "status", "topography_name", "terrain_fingerprint", "flow_algorithm", "depression_treatment", "result_summary_json", "model_version", "notes"},
 }
 
 
@@ -130,6 +134,65 @@ class ValidationEngine:
             for field, reason in marker_errors:
                 code = "VAL-E003" if reason == "required" else "VAL-E002"
                 errors.append(ValidationError(code, field, f"MapMarker validation failed: {reason}"))
+
+        if entity == "RainfallSimulation":
+            allowed_status = {"DRAFT", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"}
+            allowed_depression_treatment = {"FILL", "BREACH", "PRESERVE"}
+            if row.get("status") not in allowed_status:
+                errors.append(ValidationError("VAL-E006", "status", "Rainfall simulation status is invalid"))
+            if row.get("flow_algorithm") != "D8":
+                errors.append(ValidationError("VAL-E006", "flow_algorithm", "Only the D8 flow algorithm is currently supported"))
+            if row.get("depression_treatment") not in allowed_depression_treatment:
+                errors.append(ValidationError("VAL-E006", "depression_treatment", "Depression treatment is invalid"))
+
+            for field in ("rainfall_intensity_mm_hr", "rainfall_duration_min", "grid_resolution_m"):
+                value = row.get(field)
+                if value not in (None, "") and (
+                    isinstance(value, bool) or not isinstance(value, (int, float))
+                    or not math.isfinite(float(value)) or float(value) <= 0
+                ):
+                    errors.append(ValidationError("VAL-E007", field, "Value must be a finite number greater than zero"))
+
+            for field in ("runoff_coefficient", "catchment_area_m2", "total_rainfall_mm",
+                          "estimated_runoff_volume_m3", "max_flow_accumulation_cells"):
+                value = row.get(field)
+                if value in (None, ""):
+                    continue
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+                    errors.append(ValidationError("VAL-E002", field, "Value must be a finite number"))
+                    continue
+                if field == "runoff_coefficient" and not 0 <= float(value) <= 1:
+                    errors.append(ValidationError("VAL-E007", field, "Runoff coefficient must be between 0 and 1"))
+                elif field == "catchment_area_m2" and float(value) <= 0:
+                    errors.append(ValidationError("VAL-E007", field, "Catchment area must be greater than zero"))
+                elif field in {"total_rainfall_mm", "estimated_runoff_volume_m3", "max_flow_accumulation_cells"} and float(value) < 0:
+                    errors.append(ValidationError("VAL-E007", field, "Result values must be non-negative"))
+
+            accumulation = row.get("max_flow_accumulation_cells")
+            if accumulation not in (None, "") and (
+                isinstance(accumulation, bool) or not isinstance(accumulation, int)
+            ):
+                errors.append(ValidationError("VAL-E002", "max_flow_accumulation_cells", "Flow accumulation must be an integer cell count"))
+
+            fingerprint = row.get("terrain_fingerprint")
+            if fingerprint not in (None, "") and not re.fullmatch(r"[0-9a-fA-F]{64}", str(fingerprint)):
+                errors.append(ValidationError("VAL-E002", "terrain_fingerprint", "Terrain fingerprint must be a SHA-256 hex digest"))
+            summary = row.get("result_summary_json")
+            if summary not in (None, ""):
+                if not isinstance(summary, str) or len(summary) > 30000:
+                    errors.append(ValidationError("VAL-E007", "result_summary_json", "Result summary must be a JSON object no longer than 30000 characters"))
+                else:
+                    try:
+                        parsed_summary = json.loads(summary)
+                    except (TypeError, ValueError):
+                        parsed_summary = None
+                    if not isinstance(parsed_summary, dict):
+                        errors.append(ValidationError("VAL-E002", "result_summary_json", "Result summary must contain a JSON object"))
+
+            if len(str(row.get("scenario_name") or "")) > 120:
+                errors.append(ValidationError("VAL-E007", "scenario_name", "Scenario name must be at most 120 characters"))
+            if len(str(row.get("notes") or "")) > 1000:
+                errors.append(ValidationError("VAL-E007", "notes", "Notes must be at most 1000 characters"))
 
         if entity == "GlobalCapacity":
             if row.get("capacity_value") in (None, "") or float(row.get("capacity_value")) <= 0:
