@@ -193,3 +193,8 @@ def test_report_period_filters_require_dated_source_evidence():
     assert "return !!d&&d>=start&&d<=end;" in daily
     assert "return !!d&&d>=a&&d<=b" in weekly
     assert "return !!d&&d>=a&&d<=b" in monthly
+
+def test_active_artifact_does_not_reintroduce_prepaint_screen_bootstrap():
+    html = read(ARTIFACT)
+    assert "lithosite-initial-screen-bootstrap" not in html
+    assert "lithosite-initial-screen-guard" not in html
