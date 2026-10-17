@@ -41,6 +41,9 @@ def test_rainfall_uses_the_dashboard_right_workspace_and_keeps_flow_on_site_map(
     assert "URL.createObjectURL(pdfBlob)" in panel
     assert "guideFrame.dataset.reportPdfObjectUrl=objectUrl" in panel
     assert "Guide_Panel_Rainfall_Simulation.pdf" in panel
+    assert 'id="hydrologyClear"' in panel
+    assert "clearButton.addEventListener('click',clearSimulation)" in panel
+    assert "Topography and saved A3 records are unchanged." in panel
     assert ".user-guide-reader-modal" in read(ROOT / "ui" / "shared" / "user-guide.css")
 
 
@@ -60,5 +63,5 @@ def test_rainfall_dock_has_reduced_motion_and_restores_dashboard_cards():
 
 def test_artifact_cache_keys_reference_the_docked_rainfall_assets():
     artifact = read(ARTIFACT)
-    assert "../shared/hydrology/hydrology.css?v=20261017-rainfall-guide-modal" in artifact
-    assert "../shared/hydrology/hydrology-panel.js?v=20261018-rainfall-guide-host-endpoint" in artifact
+    assert "../shared/hydrology/hydrology.css?v=20261018-rainfall-clear-control" in artifact
+    assert "../shared/hydrology/hydrology-panel.js?v=20261018-rainfall-clear-control" in artifact
