@@ -31,12 +31,23 @@ Rules:
 | `Datasets/` | Named Dataset Manager snapshots used to save/load a dataset | No; a snapshot becomes current only through the Dataset Manager workflow |
 | `marker-location/` | Marker-location backup packages and supporting files | No; auxiliary storage |
 | `topography/` | Topography backup packages | No; auxiliary storage |
+| `Scenario-Rainfall/` | Rainfall scenario documentation and explicitly requested file exports/evidence; scenario records remain in A3 | No; auxiliary storage |
 | `Evidence/` | Central file store for record-linked PDF, image, and Word evidence | No; auxiliary file storage referenced by application records |
 
 The directories are separate storage areas for different purposes, not duplicate live databases.
 
 
 The Evidence store uses record-specific folders under `Database/Evidence/`, such as `TargetPlan/<plan_id>/`, `HSE/<hse_id>/`, and `Maintenance/<maintenance_id>/`. The Target Plan Evidence modal is currently a read-only viewer; files are copied into their record folder manually until an upload workflow is explicitly implemented. See `Database/Evidence/README.md` for supported formats and handling rules.
+
+## Rainfall scenario files
+
+`Scenario-Rainfall/` is an auxiliary file area for Rainfall Simulation documentation and optional exported artifacts. It is **not** a second scenario database.
+
+- Persist scenario inputs, status, identifiers, and compact result summaries through `LithositeRuntimeClient` / RuntimeAdapter into the canonical `RainfallSimulation` entity in `Mine-Services-Database-A3.xlsx`.
+- Keep the canonical A3 workbook as the only active runtime database. Do not create a Rainfall-specific workbook or duplicate A3 records as JSON/CSV files.
+- Use `Scenario-Rainfall/Exports/` only for deliberate user-requested exports, and `Scenario-Rainfall/Evidence/` only for supporting evidence that needs to be retained as files.
+- Do not automatically export every run or copy source topography into this folder. Topography remains managed by the existing topography storage workflow.
+- Keep file names traceable to the scenario ID and/or export date, and document any new persistent format before implementing automatic writes.
 
 ## Historical and pre-migration workbook copies
 
