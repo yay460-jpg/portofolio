@@ -53,7 +53,7 @@
     }
 
     var analysis=null,segments=[],particleTracks=[],unsubscribe=null;
-    var visible=true,animationEnabled=false,rainfallEnabled=false,destroyed=false,lastSignature='';
+    var visible=true,animationEnabled=false,rainfallEnabled=false,destroyed=false,lastSignature='',topView=false;
     var rainDrops=[],rainImpacts=[];
     var rainMode='both',windSpeedKmh=15,windDirection='NW';
     var animationFrameId=null,animationStart=null;
@@ -101,7 +101,7 @@
     }
     function drawRain(){
       var size=ensureCanvasSize();rainCtx.clearRect(0,0,size.width,size.height);
-      if(!visible||!rainfallEnabled)return;
+      if(!visible||!rainfallEnabled||topView)return;
       var showImpacts=rainMode==='terrain'||rainMode==='both';
       if(rainMode==='falling'||rainMode==='both'||rainMode==='terrain'){
         rainCtx.lineCap='round';rainCtx.lineWidth=1;
@@ -263,9 +263,9 @@
 
     function animationTick(timestamp){
       animationFrameId=null;
-      if(destroyed||!visible||!analysis||(!animationEnabled&&!rainfallEnabled))return;
+      if(destroyed||!visible||!analysis||(!animationEnabled&&(!rainfallEnabled||topView)))return;
       if(animationEnabled)drawParticles(timestamp);
-      if(rainfallEnabled)drawRain();
+      if(rainfallEnabled&&!topView)drawRain();
       animationFrameId=global.requestAnimationFrame(animationTick);
     }
     function startAnimationLoop(){
@@ -290,6 +290,15 @@
       particleCtx.clearRect(0,0,cssWidth,cssHeight);
       rainMode='both';
       return stats;
+    }
+    function syncView(frame){
+      var view=String(frame&&frame.view||'').toLowerCase();
+      var nextTop=view==='top'||view==='2d'||view==='plan';
+      if(nextTop===topView)return;
+      topView=nextTop;lastSignature='';
+      rainCanvas.hidden=!visible||!rainfallEnabled||!analysis||topView;
+      if(topView){rainCtx.clearRect(0,0,cssWidth,cssHeight);if(!animationEnabled)stopAnimationLoop();}
+      else if(rainfallEnabled&&visible&&analysis)startAnimationLoop();
     }
     function setVisible(value){
       if(destroyed)return false;
@@ -366,7 +375,7 @@
       if(particleCanvas.parentNode)particleCanvas.parentNode.removeChild(particleCanvas);
       if(rainCanvas.parentNode)rainCanvas.parentNode.removeChild(rainCanvas);
     }
-    unsubscribe=topo.subscribeRender(function(frame){draw(frame,false);});
+    unsubscribe=topo.subscribeRender(function(frame){syncView(frame);draw(frame,false);});
     return {
       setAnalysis:setAnalysis,setVisible:setVisible,isVisible:isVisible,
       setAnimationEnabled:setAnimationEnabled,isAnimationEnabled:isAnimationEnabled,
