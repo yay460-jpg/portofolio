@@ -194,17 +194,21 @@ def test_report_period_filters_require_dated_source_evidence():
     assert "return !!d&&d>=a&&d<=b" in weekly
     assert "return !!d&&d>=a&&d<=b" in monthly
 
-def test_shell_navigation_is_the_single_owner_of_screen_visibility():
+def test_active_artifact_restores_saved_screen_before_first_paint():
     html = read(ARTIFACT)
     navigation = read(BASE / "ui/shared/shell-navigation.js")
-    assert "lithosite-initial-screen-bootstrap" not in html
-    assert "lithosite-initial-screen-guard" not in html
-    assert "data-lithosite-initial-screen" not in html
+    bootstrap = html.index('id="lithosite-initial-screen-bootstrap"')
+    body = html.index("<body>")
+    assert 0 < bootstrap < body
+    assert "sessionStorage.getItem('lithosite-active-screen')" in html
+    assert "lithosite-initial-screen-guard" in html
+    assert "name !== selected" in html
+    assert "display:none!important" in html
+    assert "rules.push('#' + screens[selected] + '{display:flex!important}')" in html
+    assert "data-lithosite-initial-screen" in html
     assert "setScreen(readInitialScreen(), false);" in navigation
-    assert "element.hidden = !active;" in navigation
-    assert "element.classList.toggle('active', active);" in navigation
-    assert "sessionStorage.setItem(STORAGE_KEY, name)" in navigation
-
+    assert "initialScreenGuard.remove();" in navigation
+    assert "removeAttribute('data-lithosite-initial-screen')" in navigation
 
 def test_closed_modals_are_hidden_before_modal_contract_initializes():
     html = read(ARTIFACT)
