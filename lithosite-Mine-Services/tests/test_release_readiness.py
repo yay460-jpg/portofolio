@@ -233,7 +233,7 @@ def test_hydrology_rainfall_entry_loads_engine_and_saves_a3_record():
     rainfall_script = html.index('hydrology-panel.js?v=20261018-rainfall-records-chart')
     map_engine_script = html.index('map-engine.js?v=20261006')
     assert marker_location_script < hydrology_engine_script < hydrology_overlay_script < rainfall_script < map_engine_script
-    assert 'hydrology.css?v=20261018-rainfall-records-chart' in html
+    assert 'hydrology.css?v=20261018-rainfall-records-circular-icon' in html
 
     assert "id='dashboardHydrologyRainfallToggle'" in hydrology_panel
     assert "markerLocation.insertAdjacentElement('afterend',button)" in hydrology_panel
