@@ -5,8 +5,8 @@
     var panel=document.createElement('section');
     panel.id='dashboardHydrologyPanel';panel.className='hydrology-panel hydrology-panel--docked';panel.hidden=true;
     panel.setAttribute('role','region');panel.setAttribute('aria-labelledby','hydrologyPanelTitle');panel.setAttribute('aria-hidden','true');
-    panel.innerHTML='<header class="hydrology-panel__header"><div><div class="hydrology-panel__eyebrow">SITE MAP ANALYSIS</div><h2 id="hydrologyPanelTitle">Rainfall Simulation</h2></div><div class="hydrology-panel__header-actions"><button type="button" class="hydrology-panel__guide" id="hydrologyGuide" aria-label="Open Rainfall Simulation guide (PDF)" title="Rainfall Simulation Guide (PDF)">?</button><button type="button" class="hydrology-panel__close" id="hydrologyClose" aria-label="Close Rainfall Simulation" title="Close panel">×</button></div></header>'+
-      '<div class="hydrology-panel__form">'+
+    panel.innerHTML='<header class="hydrology-panel__header"><div><div class="hydrology-panel__eyebrow">SITE MAP ANALYSIS</div><h2 id="hydrologyPanelTitle">Rainfall Simulation</h2></div><div class="hydrology-panel__header-actions"><button type="button" class="hydrology-panel__records" id="hydrologyRecords" aria-label="Open rainfall records chart" title="Rainfall records by date"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19H21M8 16V11M13 16V7M18 16V9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button type="button" class="hydrology-panel__guide" id="hydrologyGuide" aria-label="Open Rainfall Simulation guide (PDF)" title="Rainfall Simulation Guide (PDF)">?</button><button type="button" class="hydrology-panel__close" id="hydrologyClose" aria-label="Close Rainfall Simulation" title="Close panel">×</button></div></header>'+
+      '<section class="hydrology-records" id="hydrologyRecordsView" aria-hidden="true" hidden><header class="hydrology-records__header"><div><div class="hydrology-panel__eyebrow">SAVED A3 HISTORY</div><h3>Rainfall Records by Date</h3><p>Historical simulations · total rainfall (mm)</p></div><button type="button" class="hydrology-panel__close" id="hydrologyRecordsClose" aria-label="Close rainfall records">×</button></header><div class="hydrology-records__body"><div id="hydrologyRecordsStatus" class="hydrology-panel__status" role="status" aria-live="polite">Loading saved rainfall records…</div><div id="hydrologyRecordsChart" class="hydrology-records__chart" hidden></div></div></section><div class="hydrology-panel__form">'+
       '<label class="hydrology-field hydrology-field--wide"><span>Scenario name</span><input id="hydrologyScenarioName" type="text" maxlength="120" value="Rainfall Scenario"></label>'+
       '<label class="hydrology-field"><span>Intensity (mm/hour)</span><input id="hydrologyIntensity" type="number" min="0.1" step="any" value="50"></label>'+
       '<label class="hydrology-field"><span>Duration (minutes)</span><input id="hydrologyDuration" type="number" min="0.1" step="any" value="60"></label>'+
@@ -33,6 +33,7 @@
     var overlayToggle=panel.querySelector('#hydrologyToggleOverlay');
     var particlesToggle=panel.querySelector('#hydrologyToggleParticles');
     var lastRun=null,saved=false,flowOverlay=null;
+    var recordsView=panel.querySelector('#hydrologyRecordsView'),recordsButton=panel.querySelector('#hydrologyRecords'),recordsClose=panel.querySelector('#hydrologyRecordsClose'),recordsStatus=panel.querySelector('#hydrologyRecordsStatus'),recordsChart=panel.querySelector('#hydrologyRecordsChart');
     function readRainfallSettings(){return {effect:panel.querySelector('#hydrologyRainEffect').value,windSpeed:Number(panel.querySelector('#hydrologyWindSpeed').value),windDirection:panel.querySelector('#hydrologyWindDirection').value};}
     function applyRainfallSettings(){if(!flowOverlay||!lastRun||typeof flowOverlay.setRainfallOptions!=='function')return;var settings=readRainfallSettings();flowOverlay.setRainfallOptions({mode:settings.effect,windSpeedKmh:settings.windSpeed,windDirection:settings.windDirection});}
     function panelStatus(message,kind){
@@ -157,6 +158,59 @@
         saveButton.disabled=false;panelStatus(error&&error.message?error.message:'Could not save simulation record.','error');
       }
     }
+    function setRecordsView(open){
+      recordsView.hidden=!open;recordsView.setAttribute('aria-hidden',open?'false':'true');
+      panel.classList.toggle('is-records-open',open);
+      if(open){recordsClose.focus();loadRainfallRecords();}
+      else recordsButton.focus();
+    }
+    function recordRows(response){
+      if(!response||response.status==='ERROR'||response.status==='FAILED')throw new Error(response&&response.errors&&response.errors[0]&&response.errors[0].message||'Runtime could not read rainfall records.');
+      var data=response.data;
+      if(Array.isArray(data))return data;
+      if(data&&Array.isArray(data.rows))return data.rows;
+      if(data&&Array.isArray(data.records))return data.records;
+      if(data&&Array.isArray(data.items))return data.items;
+      if(Array.isArray(response.rows))return response.rows;
+      if(Array.isArray(response.records))return response.records;
+      if(response.status==='OK'||response.status==='READY'||response.status==='SUCCESS')return [];
+      throw new Error('Rainfall record response has an unsupported format.');
+    }
+    function renderRainfallRecords(rows){
+      recordsChart.textContent='';
+      rows=rows.filter(function(row){return row&&Number.isFinite(Number(row.total_rainfall_mm))&&row.created_at;})
+        .sort(function(a,b){return String(b.created_at).localeCompare(String(a.created_at));}).slice(0,30);
+      if(!rows.length){
+        recordsChart.hidden=false;
+        var empty=document.createElement('p');empty.className='hydrology-records__empty';empty.textContent='No saved rainfall records with date and rainfall values yet.';
+        recordsChart.appendChild(empty);return;
+      }
+      var max=Math.max.apply(null,rows.map(function(row){return Number(row.total_rainfall_mm);}).concat([0.001]));
+      rows.forEach(function(row){
+        var item=document.createElement('div');item.className='hydrology-record-row';
+        var meta=document.createElement('div');meta.className='hydrology-record-row__meta';
+        var title=document.createElement('strong');title.textContent=String(row.scenario_name||'Rainfall Scenario');
+        var date=document.createElement('span');var parsed=new Date(row.created_at);date.textContent=Number.isNaN(parsed.getTime())?String(row.created_at):parsed.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+        meta.appendChild(title);meta.appendChild(date);
+        var track=document.createElement('div');track.className='hydrology-record-row__track';track.setAttribute('role','img');
+        track.setAttribute('aria-label',title.textContent+', '+Number(row.total_rainfall_mm).toLocaleString('id-ID',{maximumFractionDigits:2})+' mm total rainfall');
+        var bar=document.createElement('div');bar.className='hydrology-record-row__bar';bar.style.width=Math.max(1,Number(row.total_rainfall_mm)/max*100)+'%';track.appendChild(bar);
+        var value=document.createElement('strong');value.className='hydrology-record-row__value';value.textContent=Number(row.total_rainfall_mm).toLocaleString('id-ID',{maximumFractionDigits:2})+' mm';
+        item.appendChild(meta);item.appendChild(track);item.appendChild(value);recordsChart.appendChild(item);
+      });
+      recordsChart.hidden=false;
+    }
+    async function loadRainfallRecords(){
+      recordsChart.hidden=true;recordsChart.textContent='';recordsStatus.hidden=false;recordsStatus.classList.remove('is-error','is-success');recordsStatus.textContent='Loading saved rainfall records…';
+      try{
+        if(!global.LithositeRuntimeClient||typeof global.LithositeRuntimeClient.request!=='function')throw new Error('RuntimeClient is unavailable.');
+        var response=await global.LithositeRuntimeClient.request({operation:'READ',entity:'RainfallSimulation',request_id:global.LithositeRuntimeClient.requestId('rainfall-history')});
+        var rows=recordRows(response);renderRainfallRecords(rows);recordsStatus.hidden=true;
+      }catch(error){recordsStatus.textContent=error&&error.message?error.message:'Could not load rainfall records.';recordsStatus.classList.add('is-error');}
+    }
+    recordsButton.addEventListener('click',function(){setRecordsView(true);});
+    recordsClose.addEventListener('click',function(){setRecordsView(false);});
+    recordsView.addEventListener('keydown',function(event){if(event.key==='Escape'){event.preventDefault();setRecordsView(false);}});
     runButton.addEventListener('click',runAnalysis);clearButton.addEventListener('click',clearSimulation);saveButton.addEventListener('click',saveRecord);
     ['hydrologyRainEffect','hydrologyWindSpeed','hydrologyWindDirection'].forEach(function(id){panel.querySelector('#'+id).addEventListener('change',applyRainfallSettings);});
     overlayToggle.addEventListener('click',function(){
