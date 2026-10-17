@@ -6,7 +6,7 @@
 (function(global){
   'use strict';
 
-  var MAX_SEGMENTS=900;
+  var MAX_SEGMENTS=850;
   var MAX_PARTICLES=32;
   var PARTICLE_PERIOD_MS=2400;
 
