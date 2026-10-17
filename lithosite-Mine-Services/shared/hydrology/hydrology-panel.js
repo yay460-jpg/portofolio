@@ -14,7 +14,7 @@
       '<label class="hydrology-field"><span>Grid resolution (m)</span><input id="hydrologyResolution" type="number" min="0.1" step="any" value="10"></label>'+
       '<label class="hydrology-field hydrology-field--wide"><span>Depression treatment</span><select id="hydrologyDepressionTreatment"><option value="FILL">Fill depressions (FILL)</option><option value="PRESERVE">Preserve depressions (PRESERVE)</option></select></label></div>'+
       '<p class="hydrology-panel__note">D8 estimates likely surface-flow paths. Optional particles illustrate direction only; they are not a physical water simulation. v1 does not predict flood depth, water velocity, or drainage capacity. Grid limit: 300,000 cells.</p>'+
-      '<div class="hydrology-panel__actions"><button type="button" class="hydrology-action hydrology-action--primary" id="hydrologyRun">Run Analysis</button><button type="button" class="hydrology-action" id="hydrologySave" disabled>Save A3 Record</button></div>'+
+      '<div class="hydrology-panel__actions"><button type="button" class="hydrology-action hydrology-action--primary" id="hydrologyRun">Run Analysis</button><button type="button" class="hydrology-action" id="hydrologyClear">Clear</button><button type="button" class="hydrology-action" id="hydrologySave" disabled>Save A3 Record</button></div>'+
       '<div id="hydrologyStatus" class="hydrology-panel__status" role="status" aria-live="polite">Load topography to begin.</div>'+
       '<div id="hydrologyResults" class="hydrology-panel__results" hidden>'+
       '<div class="hydrology-result"><span>Total rainfall</span><strong id="hydrologyTotalRainfall">—</strong></div>'+
@@ -26,7 +26,7 @@
       '<button type="button" class="hydrology-action hydrology-panel__overlay-toggle" id="hydrologyToggleOverlay" hidden>Hide Flow Paths</button>'+
       '<button type="button" class="hydrology-action hydrology-panel__overlay-toggle" id="hydrologyToggleParticles" hidden>Start Flow Animation</button></div>';
     panelHost.appendChild(panel);
-    var runButton=panel.querySelector('#hydrologyRun'),saveButton=panel.querySelector('#hydrologySave');
+    var runButton=panel.querySelector('#hydrologyRun'),clearButton=panel.querySelector('#hydrologyClear'),saveButton=panel.querySelector('#hydrologySave');
     var status=panel.querySelector('#hydrologyStatus'),results=panel.querySelector('#hydrologyResults');
     var overlayToggle=panel.querySelector('#hydrologyToggleOverlay');
     var particlesToggle=panel.querySelector('#hydrologyToggleParticles');
@@ -57,7 +57,7 @@
       warning.textContent=messages.join(' ');warning.hidden=messages.length===0;results.hidden=false;
     }
     async function runAnalysis(){
-      runButton.disabled=true;saveButton.disabled=true;lastRun=null;saved=false;results.hidden=true;overlayToggle.hidden=true;particlesToggle.hidden=true;
+      runButton.disabled=true;clearButton.disabled=true;saveButton.disabled=true;lastRun=null;saved=false;results.hidden=true;overlayToggle.hidden=true;particlesToggle.hidden=true;
       particlesToggle.textContent='Start Flow Animation';
       if(flowOverlay)flowOverlay.clear();
       panelStatus('Preparing terrain grid and routing D8 flow…');
@@ -100,7 +100,20 @@
       }catch(error){
         panelStatus(error&&error.message?error.message:'Rainfall analysis failed.','error');
         mapStatus(error&&error.message?error.message:'Rainfall analysis failed.','error');
-      }finally{runButton.disabled=false;}
+      }finally{runButton.disabled=false;clearButton.disabled=false;}
+    }
+    function clearSimulation(){
+      if(flowOverlay){
+        flowOverlay.setAnimationEnabled(false);
+        flowOverlay.clear();
+      }
+      lastRun=null;saved=false;
+      results.hidden=true;
+      overlayToggle.hidden=true;particlesToggle.hidden=true;
+      particlesToggle.textContent='Start Flow Animation';
+      saveButton.disabled=true;
+      panelStatus('Simulation cleared. Topography and saved A3 records are unchanged.');
+      mapStatus('Rainfall simulation cleared; topography remains loaded.','ready');
     }
     async function saveRecord(){
       if(!lastRun||saved)return;
@@ -140,7 +153,7 @@
         saveButton.disabled=false;panelStatus(error&&error.message?error.message:'Could not save simulation record.','error');
       }
     }
-    runButton.addEventListener('click',runAnalysis);saveButton.addEventListener('click',saveRecord);
+    runButton.addEventListener('click',runAnalysis);clearButton.addEventListener('click',clearSimulation);saveButton.addEventListener('click',saveRecord);
     overlayToggle.addEventListener('click',function(){
       if(!flowOverlay)return;
       var show=!flowOverlay.isVisible();
