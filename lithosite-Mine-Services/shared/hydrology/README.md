@@ -40,6 +40,7 @@ Do not scatter Hydrology implementation across ui/modules/map-engine/, shared/to
 - D8 reports indicative one-direction-per-cell flow paths and accumulation. It does not compute water depth, velocity, flood extents, or an engineering-grade drainage design.
 - The optional animation is a screen-space cue that advances along selected D8 line segments. It is off by default, has a 96-particle ceiling, and does not model rainfall timing, physical water movement, depth, velocity, or flow rate.
 - Overlay logic remains Hydrology-owned. Topo3D exposes only the narrow coordinate-projection and render-subscription interface used by the overlay.
+- Rainfall uses the existing dashboard right-hand workspace: Equipment Status and Material Movement temporarily slide away, and the Rainfall panel slides into that same area. Closing via its close button, the Rainfall toolbar button, or Escape restores the cards without rebuilding their contents. Dashboard cards are inert while hidden from view; the flow overlay remains attached to the Site Map host.
 
 ## A3 simulation record
 

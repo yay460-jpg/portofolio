@@ -1,10 +1,10 @@
 (function(global){
   'use strict';
 
-  function mountSimulationPanel(host,toggleButton){
+  function mountSimulationPanel(panelHost,mapHost,toggleButton,onClose){
     var panel=document.createElement('section');
-    panel.id='dashboardHydrologyPanel';panel.className='hydrology-panel';panel.hidden=true;
-    panel.setAttribute('role','dialog');panel.setAttribute('aria-labelledby','hydrologyPanelTitle');
+    panel.id='dashboardHydrologyPanel';panel.className='hydrology-panel hydrology-panel--docked';panel.hidden=true;
+    panel.setAttribute('role','region');panel.setAttribute('aria-labelledby','hydrologyPanelTitle');panel.setAttribute('aria-hidden','true');
     panel.innerHTML='<header class="hydrology-panel__header"><div><div class="hydrology-panel__eyebrow">SITE MAP ANALYSIS</div><h2 id="hydrologyPanelTitle">Rainfall Simulation</h2></div><button type="button" class="hydrology-panel__close" id="hydrologyClose" aria-label="Close Rainfall Simulation">×</button></header>'+
       '<div class="hydrology-panel__form">'+
       '<label class="hydrology-field hydrology-field--wide"><span>Scenario name</span><input id="hydrologyScenarioName" type="text" maxlength="120" value="Rainfall Scenario"></label>'+
@@ -25,7 +25,7 @@
       '<div id="hydrologyWarnings" class="hydrology-panel__warning" hidden></div>'+
       '<button type="button" class="hydrology-action hydrology-panel__overlay-toggle" id="hydrologyToggleOverlay" hidden>Hide Flow Paths</button>'+
       '<button type="button" class="hydrology-action hydrology-panel__overlay-toggle" id="hydrologyToggleParticles" hidden>Start Flow Animation</button></div>';
-    host.appendChild(panel);
+    panelHost.appendChild(panel);
     var runButton=panel.querySelector('#hydrologyRun'),saveButton=panel.querySelector('#hydrologySave');
     var status=panel.querySelector('#hydrologyStatus'),results=panel.querySelector('#hydrologyResults');
     var overlayToggle=panel.querySelector('#hydrologyToggleOverlay');
@@ -36,7 +36,7 @@
       if(kind==='error')status.classList.add('is-error');if(kind==='success')status.classList.add('is-success');
     }
     function mapStatus(message,kind){
-      var node=host.querySelector('#dashboardTopo3DStatus');if(!node)return;
+      var node=mapHost.querySelector('#dashboardTopo3DStatus');if(!node)return;
       node.textContent=message;node.classList.remove('error','ready');if(kind)node.classList.add(kind);
     }
     function positiveValue(id,label){
@@ -89,7 +89,7 @@
         var overlayWarning='';
         try{
           if(!global.LithositeHydrologyOverlay||typeof global.LithositeHydrologyOverlay.create!=='function')throw new Error('Flow overlay module is unavailable.');
-          if(!flowOverlay)flowOverlay=global.LithositeHydrologyOverlay.create({host:host,topo:global.MineServicesTopo3D});
+          if(!flowOverlay)flowOverlay=global.LithositeHydrologyOverlay.create({host:mapHost,topo:global.MineServicesTopo3D});
           var overlayStats=flowOverlay.setAnalysis(result);flowOverlay.setVisible(true);
           overlayToggle.textContent='Hide Flow Paths';overlayToggle.hidden=false;
           particlesToggle.textContent='Start Flow Animation';particlesToggle.hidden=!(overlayStats&&overlayStats.segmentCount>0);
@@ -157,37 +157,88 @@
       else panelStatus('Directional particle animation stopped.');
     });
     panel.querySelector('#hydrologyClose').addEventListener('click',function(){
-      panel.hidden=true;toggleButton.setAttribute('aria-expanded','false');toggleButton.focus();
+      if(typeof onClose==='function')onClose();
     });
     return panel;
   }
 
   function mountRainfallButton(){
-    var host=document.getElementById('dashboardSiteMap');
-    var panel=host&&host.closest('.panel');
-    var toolbar=panel&&panel.querySelector('.topo3d-toolbar');
-    if(!toolbar||toolbar.querySelector('#dashboardHydrologyRainfallToggle'))return;
+    var mapHost=document.getElementById('dashboardSiteMap');
+    var mapPanel=mapHost&&mapHost.closest('.panel');
+    var toolbar=mapPanel&&mapPanel.querySelector('.topo3d-toolbar');
+    var dashboardScreen=document.getElementById('dashboardScreen');
+    var main=dashboardScreen&&dashboardScreen.querySelector('.main');
+    var right=dashboardScreen&&dashboardScreen.querySelector('.right');
+    if(!toolbar||toolbar.querySelector('#dashboardHydrologyRainfallToggle')||!main||!right||!mapHost)return;
 
     var button=document.createElement('button');
     button.type='button';
     button.id='dashboardHydrologyRainfallToggle';
     button.textContent='Rainfall';
-    button.title='Rainfall simulation entry point';
+    button.title='Open Rainfall analysis in the dashboard workspace';
     button.setAttribute('aria-label','Rainfall simulation');
+    button.setAttribute('aria-expanded','false');
+    button.setAttribute('aria-controls','dashboardHydrologyPanel');
 
-    var simulationPanel=mountSimulationPanel(host,button);
+    var dashboardCards=Array.prototype.filter.call(right.children,function(child){
+      return child.classList&&child.classList.contains('panel');
+    });
+    var closeTimer=null;
+    function setDashboardCardsUnavailable(unavailable){
+      dashboardCards.forEach(function(card){
+        card.inert=!!unavailable;
+        if(unavailable)card.setAttribute('aria-hidden','true');
+        else card.removeAttribute('aria-hidden');
+      });
+    }
+    function reducedMotion(){
+      return document.documentElement.classList.contains('reduced-motion')||
+        !!(global.matchMedia&&global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+    function finishClose(){
+      closeTimer=null;
+      if(main.classList.contains('is-rainfall-mode'))return;
+      simulationPanel.hidden=true;
+      setDashboardCardsUnavailable(false);
+    }
+    function closeRainfall(){
+      if(!main.classList.contains('is-rainfall-mode'))return;
+      main.classList.remove('is-rainfall-mode');
+      button.setAttribute('aria-expanded','false');
+      simulationPanel.setAttribute('aria-hidden','true');
+      button.focus();
+      if(closeTimer!==null)global.clearTimeout(closeTimer);
+      closeTimer=global.setTimeout(finishClose,reducedMotion()?0:220);
+    }
+    function openRainfall(){
+      if(closeTimer!==null){global.clearTimeout(closeTimer);closeTimer=null;}
+      simulationPanel.hidden=false;
+      simulationPanel.setAttribute('aria-hidden','false');
+      // Establish the starting style before the CSS transition to the active layout.
+      void simulationPanel.offsetWidth;
+      setDashboardCardsUnavailable(true);
+      main.classList.add('is-rainfall-mode');
+      button.setAttribute('aria-expanded','true');
+      var firstInput=simulationPanel.querySelector('#hydrologyScenarioName');
+      if(firstInput)firstInput.focus();
+    }
+
+    var simulationPanel=mountSimulationPanel(right,mapHost,button,closeRainfall);
     button.addEventListener('click',function(){
-      var isOpen=!simulationPanel.hidden;
-      simulationPanel.hidden=isOpen;
-      button.setAttribute('aria-expanded',isOpen?'false':'true');
-      if(!isOpen){var firstInput=simulationPanel.querySelector('#hydrologyScenarioName');if(firstInput)firstInput.focus();}
+      if(main.classList.contains('is-rainfall-mode'))closeRainfall();
+      else openRainfall();
+    });
+    document.addEventListener('keydown',function(event){
+      if(event.key==='Escape'&&main.classList.contains('is-rainfall-mode')){
+        event.preventDefault();
+        closeRainfall();
+      }
     });
 
     var markerLocation=toolbar.querySelector('#markerLocationToggle');
     if(markerLocation)markerLocation.insertAdjacentElement('afterend',button);
     else toolbar.appendChild(button);
   }
-
   if(document.readyState==='loading'){
     document.addEventListener('DOMContentLoaded',mountRainfallButton);
   }else{

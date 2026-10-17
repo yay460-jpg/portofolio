@@ -61,3 +61,58 @@
 #dashboardSiteMap .hydrology-flow-overlay[hidden],
 #dashboardSiteMap .hydrology-flow-particles[hidden]{display:none!important}
 .hydrology-panel__overlay-toggle{grid-column:1/-1}
+
+
+/* Rainfall shares the dashboard's right-hand workspace instead of covering Site Map. */
+#dashboardScreen .main>.right{
+  position:relative;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+}
+#dashboardScreen .right>.panel{
+  opacity:1;
+  transform:translateX(0);
+  visibility:visible;
+  pointer-events:auto;
+  transition:opacity .18s ease,transform .18s ease,visibility 0s linear 0s;
+}
+#dashboardScreen .main.is-rainfall-mode>.right>.panel{
+  opacity:0;
+  transform:translateX(-16px);
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease,visibility 0s linear .18s;
+}
+.hydrology-panel--docked{
+  inset:0;
+  top:0;
+  right:0;
+  bottom:0;
+  left:0;
+  width:auto;
+  max-width:none;
+  height:100%;
+  max-height:none;
+  border-radius:9px;
+  z-index:12;
+  opacity:0;
+  visibility:hidden;
+  transform:translateX(20px);
+  pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease,visibility 0s linear .18s;
+}
+#dashboardScreen .main.is-rainfall-mode>.right>.hydrology-panel--docked{
+  opacity:1;
+  visibility:visible;
+  transform:translateX(0);
+  pointer-events:auto;
+  transition-delay:0s;
+}
+@media(prefers-reduced-motion:reduce){
+  #dashboardScreen .right>.panel,
+  .hydrology-panel--docked{
+    transition:none!important;
+    transform:none!important;
+  }
+}
