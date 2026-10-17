@@ -13,7 +13,7 @@
       '<label class="hydrology-field"><span>Runoff coefficient</span><input id="hydrologyRunoffCoefficient" type="number" min="0" max="1" step="0.05" value="0.65"></label>'+
       '<label class="hydrology-field"><span>Grid resolution (m)</span><input id="hydrologyResolution" type="number" min="0.1" step="any" value="10"></label>'+
       '<label class="hydrology-field hydrology-field--wide"><span>Depression treatment</span><select id="hydrologyDepressionTreatment"><option value="FILL">Fill depressions (FILL)</option><option value="PRESERVE">Preserve depressions (PRESERVE)</option></select></label></div>'+
-      '<p class="hydrology-panel__note">D8 estimates likely surface-flow paths. v1 does not predict flood depth, water velocity, or drainage capacity. Grid limit: 300,000 cells.</p>'+
+      '<p class="hydrology-panel__note">D8 estimates likely surface-flow paths. Optional particles illustrate direction only; they are not a physical water simulation. v1 does not predict flood depth, water velocity, or drainage capacity. Grid limit: 300,000 cells.</p>'+
       '<div class="hydrology-panel__actions"><button type="button" class="hydrology-action hydrology-action--primary" id="hydrologyRun">Run Analysis</button><button type="button" class="hydrology-action" id="hydrologySave" disabled>Save A3 Record</button></div>'+
       '<div id="hydrologyStatus" class="hydrology-panel__status" role="status" aria-live="polite">Load topography to begin.</div>'+
       '<div id="hydrologyResults" class="hydrology-panel__results" hidden>'+
@@ -22,11 +22,14 @@
       '<div class="hydrology-result"><span>Analyzed grid</span><strong id="hydrologyGridSize">—</strong></div>'+
       '<div class="hydrology-result"><span>Max flow accumulation</span><strong id="hydrologyMaxAccumulation">—</strong></div>'+
       '<div class="hydrology-result"><span>Outlets / sinks</span><strong id="hydrologyOutletsSinks">—</strong></div>'+
-      '<div id="hydrologyWarnings" class="hydrology-panel__warning" hidden></div><button type="button" class="hydrology-action hydrology-panel__overlay-toggle" id="hydrologyToggleOverlay" hidden>Hide Flow Paths</button></div>';
+      '<div id="hydrologyWarnings" class="hydrology-panel__warning" hidden></div>'+
+      '<button type="button" class="hydrology-action hydrology-panel__overlay-toggle" id="hydrologyToggleOverlay" hidden>Hide Flow Paths</button>'+
+      '<button type="button" class="hydrology-action hydrology-panel__overlay-toggle" id="hydrologyToggleParticles" hidden>Start Flow Animation</button></div>';
     host.appendChild(panel);
     var runButton=panel.querySelector('#hydrologyRun'),saveButton=panel.querySelector('#hydrologySave');
     var status=panel.querySelector('#hydrologyStatus'),results=panel.querySelector('#hydrologyResults');
     var overlayToggle=panel.querySelector('#hydrologyToggleOverlay');
+    var particlesToggle=panel.querySelector('#hydrologyToggleParticles');
     var lastRun=null,saved=false,flowOverlay=null;
     function panelStatus(message,kind){
       status.textContent=message;status.classList.remove('is-error','is-success');
@@ -54,7 +57,8 @@
       warning.textContent=messages.join(' ');warning.hidden=messages.length===0;results.hidden=false;
     }
     async function runAnalysis(){
-      runButton.disabled=true;saveButton.disabled=true;lastRun=null;saved=false;results.hidden=true;overlayToggle.hidden=true;
+      runButton.disabled=true;saveButton.disabled=true;lastRun=null;saved=false;results.hidden=true;overlayToggle.hidden=true;particlesToggle.hidden=true;
+      particlesToggle.textContent='Start Flow Animation';
       if(flowOverlay)flowOverlay.clear();
       panelStatus('Preparing terrain grid and routing D8 flow…');
       try{
@@ -88,6 +92,7 @@
           if(!flowOverlay)flowOverlay=global.LithositeHydrologyOverlay.create({host:host,topo:global.MineServicesTopo3D});
           flowOverlay.setAnalysis(result);flowOverlay.setVisible(true);
           overlayToggle.textContent='Hide Flow Paths';overlayToggle.hidden=false;
+          particlesToggle.textContent='Start Flow Animation';particlesToggle.hidden=false;
         }catch(overlayError){overlayWarning='Flow overlay could not be drawn: '+(overlayError&&overlayError.message?overlayError.message:'unknown overlay error');}
         renderResult(lastRun,overlayWarning);saveButton.disabled=false;
         panelStatus(overlayWarning?'Analysis complete; summary is available, but flow overlay needs attention.':'Analysis complete · D8 flow paths are shown on the terrain.','success');
@@ -141,6 +146,15 @@
       var show=!flowOverlay.isVisible();
       flowOverlay.setVisible(show);
       overlayToggle.textContent=show?'Hide Flow Paths':'Show Flow Paths';
+    });
+    particlesToggle.addEventListener('click',function(){
+      if(!flowOverlay)return;
+      var enable=!flowOverlay.isAnimationEnabled();
+      var enabled=flowOverlay.setAnimationEnabled(enable);
+      particlesToggle.textContent=enabled?'Stop Flow Animation':'Start Flow Animation';
+      if(enable&&!enabled)panelStatus('Animation is unavailable in this browser.','error');
+      else if(enabled)panelStatus('Directional particle animation enabled; this is not a physical water model.','success');
+      else panelStatus('Directional particle animation stopped.');
     });
     panel.querySelector('#hydrologyClose').addEventListener('click',function(){
       panel.hidden=true;toggleButton.setAttribute('aria-expanded','false');toggleButton.focus();
