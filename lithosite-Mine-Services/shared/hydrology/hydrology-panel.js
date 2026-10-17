@@ -165,6 +165,10 @@
     var guideUrl='../../docs/lithosite/02_Mine-Services/10_User-Guides/Guide_Panel_Rainfall_Simulation.pdf';
     if(guideButton&&guideModal&&guideFrame&&guideTitle&&guideMeta&&guideClose){
       guideButton.addEventListener('click',async function(){
+        // The shared PDF reader is authored inside #reportsScreen, which is hidden
+        // while Work Control is active. Move the same reader to body before showing
+        // it so the guide is a real dashboard-level modal, not a hidden Reports child.
+        if(guideModal.parentElement!==document.body)document.body.appendChild(guideModal);
         guideTitle.textContent='Rainfall Simulation Guide';
         guideMeta.textContent='PDF User Guide · Fit Width';
         guideModal.classList.remove('is-closing');
