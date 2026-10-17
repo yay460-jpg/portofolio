@@ -34,7 +34,7 @@
 .hydrology-field input,.hydrology-field select{width:100%;min-width:0;height:31px;border:1px solid #2e4a67;border-radius:6px;background:#071726;color:#e5effb;padding:0 8px;font:11px "Segoe UI",Arial,sans-serif;outline:none}
 .hydrology-field input:focus,.hydrology-field select:focus{border-color:#5798fa;box-shadow:0 0 0 2px rgba(77,141,255,.16)}
 .hydrology-panel__note{margin:2px 0 10px;color:#809bb7;font-size:9.5px;line-height:1.5}
-.hydrology-panel__actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.hydrology-panel__actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
 .hydrology-action{min-height:32px;border:1px solid #355370;border-radius:7px;background:#10273d;color:#dceafd;font:650 10.5px "Segoe UI",Arial,sans-serif;cursor:pointer;padding:6px 8px}
 .hydrology-action:hover:not(:disabled){background:#193753;border-color:#4774a0}
 .hydrology-action--primary{background:#16467a;border-color:#3d81d8;color:#fff}
