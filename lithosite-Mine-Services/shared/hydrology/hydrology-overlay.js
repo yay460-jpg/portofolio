@@ -34,16 +34,28 @@
     particleCanvas.hidden=true;
     host.appendChild(particleCanvas);
 
+    var rainCanvas=document.createElement('canvas');
+    rainCanvas.id='dashboardHydrologyRainDrops';
+    rainCanvas.className='hydrology-rain-drops';
+    rainCanvas.setAttribute('aria-hidden','true');
+    rainCanvas.setAttribute('role','presentation');
+    rainCanvas.hidden=true;
+    host.appendChild(rainCanvas);
+
     var ctx=canvas.getContext('2d');
     var particleCtx=particleCanvas.getContext('2d');
-    if(!ctx||!particleCtx){
+    var rainCtx=rainCanvas.getContext('2d');
+    if(!ctx||!particleCtx||!rainCtx){
       if(canvas.parentNode)canvas.parentNode.removeChild(canvas);
       if(particleCanvas.parentNode)particleCanvas.parentNode.removeChild(particleCanvas);
+      if(rainCanvas.parentNode)rainCanvas.parentNode.removeChild(rainCanvas);
+      if(rainCanvas.parentNode)rainCanvas.parentNode.removeChild(rainCanvas);
       fail('2D flow overlay canvas is unavailable.');
     }
 
     var analysis=null,segments=[],particleTracks=[],unsubscribe=null;
-    var visible=true,animationEnabled=false,destroyed=false,lastSignature='';
+    var visible=true,animationEnabled=false,rainfallEnabled=false,destroyed=false,lastSignature='';
+    var rainDrops=[];
     var animationFrameId=null,animationStart=null;
     var cssWidth=0,cssHeight=0,dpr=1,segmentThreshold=0,drawnSegmentCount=0;
 
@@ -55,15 +67,34 @@
       var changed=width!==cssWidth||height!==cssHeight||ratio!==dpr;
       if(changed){
         cssWidth=width;cssHeight=height;dpr=ratio;
-        [canvas,particleCanvas].forEach(function(layer){
+        [canvas,particleCanvas,rainCanvas].forEach(function(layer){
           layer.width=Math.round(cssWidth*dpr);
           layer.height=Math.round(cssHeight*dpr);
           layer.style.width='100%';layer.style.height='100%';
         });
         ctx.setTransform(dpr,0,0,dpr,0,0);
         particleCtx.setTransform(dpr,0,0,dpr,0,0);
+        rainCtx.setTransform(dpr,0,0,dpr,0,0);
+        rainDrops=[];
+        for(var dropIndex=0;dropIndex<72;dropIndex++)rainDrops.push(makeRainDrop(true));
       }
       return {width:cssWidth,height:cssHeight,changed:changed};
+    }
+
+    function makeRainDrop(randomY){
+      return {x:Math.random()*Math.max(1,cssWidth),y:randomY?Math.random()*Math.max(1,cssHeight):-12,
+        length:7+Math.random()*9,speed:5+Math.random()*7,drift:-1.6-Math.random()*1.4,alpha:.18+Math.random()*.24};
+    }
+    function drawRain(){
+      var size=ensureCanvasSize();rainCtx.clearRect(0,0,size.width,size.height);
+      if(!visible||!rainfallEnabled)return;
+      rainCtx.lineCap='round';rainCtx.lineWidth=1;
+      for(var i=0;i<rainDrops.length;i++){
+        var drop=rainDrops[i];drop.x+=drop.drift;drop.y+=drop.speed;
+        if(drop.y>size.height+drop.length||drop.x<-12){rainDrops[i]=makeRainDrop(false);continue;}
+        rainCtx.strokeStyle='rgba(190,222,245,'+drop.alpha.toFixed(3)+')';
+        rainCtx.beginPath();rainCtx.moveTo(drop.x,drop.y);rainCtx.lineTo(drop.x+drop.drift*.8,drop.y+drop.length);rainCtx.stroke();
+      }
     }
 
     function buildSegments(result){
@@ -204,14 +235,16 @@
 
     function animationTick(timestamp){
       animationFrameId=null;
-      if(destroyed||!visible||!analysis||!animationEnabled)return;
-      drawParticles(timestamp);
+      if(destroyed||!visible||!analysis||(!animationEnabled&&!rainfallEnabled))return;
+      if(animationEnabled)drawParticles(timestamp);
+      if(rainfallEnabled)drawRain();
       animationFrameId=global.requestAnimationFrame(animationTick);
     }
     function startAnimationLoop(){
-      if(destroyed||!visible||!analysis||!animationEnabled||animationFrameId!==null)return;
+      if(destroyed||!visible||!analysis||(!animationEnabled&&!rainfallEnabled)||animationFrameId!==null)return;
       if(typeof global.requestAnimationFrame!=='function')return;
-      particleCanvas.hidden=false;
+      particleCanvas.hidden=!animationEnabled;
+      rainCanvas.hidden=!rainfallEnabled;
       animationFrameId=global.requestAnimationFrame(animationTick);
     }
     function stopAnimationLoop(){
@@ -227,17 +260,18 @@
       animationEnabled=false;particleCanvas.hidden=true;
       analysis=result;var stats=buildSegments(result);lastSignature='';draw(null,true);
       particleCtx.clearRect(0,0,cssWidth,cssHeight);
+      setRainfallEnabled(true);
       return stats;
     }
     function setVisible(value){
       if(destroyed)return false;
-      visible=!!value;canvas.hidden=!visible;particleCanvas.hidden=!visible||!animationEnabled||!analysis;lastSignature='';
+      visible=!!value;canvas.hidden=!visible;particleCanvas.hidden=!visible||!animationEnabled||!analysis;rainCanvas.hidden=!visible||!rainfallEnabled||!analysis;lastSignature='';
       if(visible){
         draw(null,true);
-        if(animationEnabled)startAnimationLoop();
+        if(animationEnabled||rainfallEnabled)startAnimationLoop();
       }else{
         stopAnimationLoop();
-        var size=ensureCanvasSize();ctx.clearRect(0,0,size.width,size.height);particleCtx.clearRect(0,0,size.width,size.height);
+        var size=ensureCanvasSize();ctx.clearRect(0,0,size.width,size.height);particleCtx.clearRect(0,0,size.width,size.height);rainCtx.clearRect(0,0,size.width,size.height);
       }
       return visible;
     }
@@ -254,18 +288,27 @@
       }
       return animationEnabled;
     }
+    function setRainfallEnabled(value){
+      if(destroyed)return false;
+      rainfallEnabled=!!value&&!!analysis&&typeof global.requestAnimationFrame==='function';
+      rainCanvas.hidden=!visible||!rainfallEnabled||!analysis;
+      if(rainfallEnabled&&visible)startAnimationLoop();
+      else if(!animationEnabled){stopAnimationLoop();rainCtx.clearRect(0,0,cssWidth,cssHeight);}
+      return rainfallEnabled;
+    }
     function isAnimationEnabled(){return animationEnabled;}
+    function isRainfallEnabled(){return rainfallEnabled;}
     function isVisible(){return visible&&!canvas.hidden;}
     function clear(){
       stopAnimationLoop();
       analysis=null;segments=[];particleTracks=[];segmentThreshold=0;drawnSegmentCount=0;
-      animationEnabled=false;particleCanvas.hidden=true;lastSignature='';
-      var size=ensureCanvasSize();ctx.clearRect(0,0,size.width,size.height);particleCtx.clearRect(0,0,size.width,size.height);
+      animationEnabled=false;rainfallEnabled=false;particleCanvas.hidden=true;rainCanvas.hidden=true;lastSignature='';
+      var size=ensureCanvasSize();ctx.clearRect(0,0,size.width,size.height);particleCtx.clearRect(0,0,size.width,size.height);rainCtx.clearRect(0,0,size.width,size.height);
     }
     function getStats(){
       return {
         visible:isVisible(),segmentCount:segments.length,threshold:segmentThreshold,
-        drawnSegmentCount:drawnSegmentCount,animationEnabled:animationEnabled,
+        drawnSegmentCount:drawnSegmentCount,animationEnabled:animationEnabled,rainfallEnabled:rainfallEnabled,
         particleTrackCount:particleTracks.length,animationRunning:animationFrameId!==null
       };
     }
@@ -281,12 +324,13 @@
     return {
       setAnalysis:setAnalysis,setVisible:setVisible,isVisible:isVisible,
       setAnimationEnabled:setAnimationEnabled,isAnimationEnabled:isAnimationEnabled,
+      setRainfallEnabled:setRainfallEnabled,isRainfallEnabled:isRainfallEnabled,
       clear:clear,getStats:getStats,destroy:destroy,render:draw
     };
   }
 
   global.LithositeHydrologyOverlay={
-    create:create,version:'1.1.0',
+    create:create,version:'1.2.0',
     limits:{maxSegments:MAX_SEGMENTS,maxParticles:MAX_PARTICLES}
   };
 })(window);
