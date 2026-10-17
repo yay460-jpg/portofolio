@@ -54,7 +54,8 @@
 
     var analysis=null,segments=[],particleTracks=[],unsubscribe=null;
     var visible=true,animationEnabled=false,rainfallEnabled=false,destroyed=false,lastSignature='';
-    var rainDrops=[];
+    var rainDrops=[],rainImpacts=[];
+    var rainMode='both',windSpeedKmh=15,windDirection='NW';
     var animationFrameId=null,animationStart=null;
     var cssWidth=0,cssHeight=0,dpr=1,segmentThreshold=0,drawnSegmentCount=0;
 
@@ -74,25 +75,53 @@
         ctx.setTransform(dpr,0,0,dpr,0,0);
         particleCtx.setTransform(dpr,0,0,dpr,0,0);
         rainCtx.setTransform(dpr,0,0,dpr,0,0);
-        rainDrops=[];
+        rainDrops=[];rainImpacts=[];
         for(var dropIndex=0;dropIndex<48;dropIndex++)rainDrops.push(makeRainDrop(true));
+        for(var impactIndex=0;impactIndex<18;impactIndex++)rainImpacts.push(makeRainImpact(true));
       }
       return {width:cssWidth,height:cssHeight,changed:changed};
     }
 
+    function windVector(){
+      var angles={N:-90,NE:-45,E:0,SE:45,S:90,SW:135,W:180,NW:225};
+      var angle=(angles[windDirection]===undefined?225:angles[windDirection])*Math.PI/180;
+      var strength=windSpeedKmh/35;
+      return {x:Math.cos(angle)*strength,y:Math.sin(angle)*strength};
+    }
     function makeRainDrop(randomY){
+      var wind=windVector(),base=windSpeedKmh/35;
       return {x:Math.random()*Math.max(1,cssWidth),y:randomY?Math.random()*Math.max(1,cssHeight):-12,
-        length:7+Math.random()*9,speed:5+Math.random()*7,drift:-1.6-Math.random()*1.4,alpha:.18+Math.random()*.24};
+        length:rainMode==='terrain'?5+Math.random()*7:7+Math.random()*9,
+        speed:3.5+Math.random()*3.5+base*2.5,
+        drift:wind.x*(.8+base*2.8),slant:wind.x*(.7+base*2.2),alpha:.18+Math.random()*.24};
+    }
+    function makeRainImpact(randomPosition){
+      return {x:Math.random()*Math.max(1,cssWidth),y:randomPosition?cssHeight*(.38+Math.random()*.6):cssHeight*(.42+Math.random()*.55),
+        radius:1+Math.random()*3,phase:Math.random()*Math.PI*2,alpha:.12+Math.random()*.16};
     }
     function drawRain(){
       var size=ensureCanvasSize();rainCtx.clearRect(0,0,size.width,size.height);
       if(!visible||!rainfallEnabled)return;
-      rainCtx.lineCap='round';rainCtx.lineWidth=1;
-      for(var i=0;i<rainDrops.length;i++){
-        var drop=rainDrops[i];drop.x+=drop.drift;drop.y+=drop.speed;
-        if(drop.y>size.height+drop.length||drop.x<-12){rainDrops[i]=makeRainDrop(false);continue;}
-        rainCtx.strokeStyle='rgba(190,222,245,'+drop.alpha.toFixed(3)+')';
-        rainCtx.beginPath();rainCtx.moveTo(drop.x,drop.y);rainCtx.lineTo(drop.x+drop.drift*.8,drop.y+drop.length);rainCtx.stroke();
+      var showImpacts=rainMode==='terrain'||rainMode==='both';
+      if(rainMode==='falling'||rainMode==='both'||rainMode==='terrain'){
+        rainCtx.lineCap='round';rainCtx.lineWidth=1;
+        for(var i=0;i<rainDrops.length;i++){
+          var drop=rainDrops[i];drop.x+=drop.drift;drop.y+=drop.speed;
+          if(drop.y>size.height+drop.length||drop.x<-18||drop.x>size.width+18){rainDrops[i]=makeRainDrop(false);continue;}
+          var alpha=rainMode==='terrain'?drop.alpha*.55:drop.alpha;
+          rainCtx.strokeStyle='rgba(190,222,245,'+alpha.toFixed(3)+')';
+          rainCtx.beginPath();rainCtx.moveTo(drop.x,drop.y);rainCtx.lineTo(drop.x+drop.slant,drop.y+drop.length);rainCtx.stroke();
+        }
+      }
+      if(showImpacts){
+        for(var j=0;j<rainImpacts.length;j++){
+          var impact=rainImpacts[j];impact.phase+=.09+windSpeedKmh*.001;
+          var pulse=(Math.sin(impact.phase)+1)/2;
+          rainCtx.strokeStyle='rgba(190,222,245,'+(impact.alpha*(1-pulse*.45)).toFixed(3)+')';
+          rainCtx.lineWidth=1;rainCtx.beginPath();
+          rainCtx.ellipse(impact.x,impact.y,impact.radius+pulse*2,Math.max(.7,impact.radius*.32+pulse),0,0,Math.PI*2);rainCtx.stroke();
+          if(pulse>.92)rainImpacts[j]=makeRainImpact(false);
+        }
       }
     }
 
@@ -259,7 +288,7 @@
       animationEnabled=false;particleCanvas.hidden=true;
       analysis=result;var stats=buildSegments(result);lastSignature='';draw(null,true);
       particleCtx.clearRect(0,0,cssWidth,cssHeight);
-      setRainfallEnabled(true);
+      rainMode='both';
       return stats;
     }
     function setVisible(value){
@@ -298,7 +327,22 @@
       return rainfallEnabled;
     }
     function isAnimationEnabled(){return animationEnabled;}
+    function setRainfallOptions(options){
+      if(destroyed)return false;
+      options=options||{};
+      var mode=String(options.mode||rainMode);
+      if(['falling','terrain','both'].indexOf(mode)<0)mode='both';
+      rainMode=mode;
+      var speed=Number(options.windSpeedKmh);
+      if(Number.isFinite(speed))windSpeedKmh=Math.max(0,Math.min(35,speed));
+      var direction=String(options.windDirection||windDirection).toUpperCase();
+      if(['N','NE','E','SE','S','SW','W','NW'].indexOf(direction)>=0)windDirection=direction;
+      rainDrops.forEach(function(drop){var next=makeRainDrop(false);drop.length=next.length;drop.speed=next.speed;drop.drift=next.drift;drop.slant=next.slant;drop.alpha=next.alpha;});
+      if(analysis&&typeof global.requestAnimationFrame==='function')setRainfallEnabled(true);
+      return {mode:rainMode,windSpeedKmh:windSpeedKmh,windDirection:windDirection};
+    }
     function isRainfallEnabled(){return rainfallEnabled;}
+    function getRainfallOptions(){return {mode:rainMode,windSpeedKmh:windSpeedKmh,windDirection:windDirection};}
     function isVisible(){return visible&&!canvas.hidden;}
     function clear(){
       stopAnimationLoop();
@@ -327,6 +371,7 @@
       setAnalysis:setAnalysis,setVisible:setVisible,isVisible:isVisible,
       setAnimationEnabled:setAnimationEnabled,isAnimationEnabled:isAnimationEnabled,
       setRainfallEnabled:setRainfallEnabled,isRainfallEnabled:isRainfallEnabled,
+      setRainfallOptions:setRainfallOptions,getRainfallOptions:getRainfallOptions,
       clear:clear,getStats:getStats,destroy:destroy,render:draw
     };
   }
