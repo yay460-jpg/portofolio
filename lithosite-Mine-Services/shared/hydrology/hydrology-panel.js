@@ -156,29 +156,27 @@
       else if(enabled)panelStatus('Directional particle animation enabled; this is not a physical water model.','success');
       else panelStatus('Directional particle animation stopped.');
     });
-    var guideModal=document.createElement('div');
-    guideModal.className='hydrology-guide-modal';
-    guideModal.hidden=true;
-    guideModal.setAttribute('role','dialog');
-    guideModal.setAttribute('aria-modal','true');
-    guideModal.setAttribute('aria-labelledby','hydrologyGuideTitle');
-    guideModal.innerHTML='<div class="hydrology-guide-dialog"><header class="hydrology-guide-head"><div><strong id="hydrologyGuideTitle">Rainfall Simulation Guide</strong><span>PDF User Guide · Lithosite Mine Services</span></div><button type="button" class="hydrology-guide-close" aria-label="Close Rainfall Simulation guide">×</button></header><div class="hydrology-guide-body"><iframe title="Rainfall Simulation User Guide" src="../../docs/lithosite/02_Mine-Services/10_User-Guides/Guide_Panel_Rainfall_Simulation.pdf"></iframe></div></div>';
-    document.body.appendChild(guideModal);
-    var guideClose=guideModal.querySelector('.hydrology-guide-close');
-    function closeGuide(){
-      guideModal.hidden=true;
-      guideModal.classList.remove('is-open');
-      panel.querySelector('#hydrologyGuide').focus();
+    var guideButton=panel.querySelector('#hydrologyGuide');
+    var guideModal=document.getElementById('reportPdfReaderModal');
+    var guideFrame=document.getElementById('reportPdfReaderFrame');
+    var guideTitle=document.getElementById('reportPdfReaderTitle');
+    var guideMeta=document.getElementById('reportPdfReaderMeta');
+    var guideClose=document.getElementById('reportPdfReaderClose');
+    var guideUrl='../../docs/lithosite/02_Mine-Services/10_User-Guides/Guide_Panel_Rainfall_Simulation.pdf';
+    if(guideButton&&guideModal&&guideFrame&&guideTitle&&guideMeta&&guideClose){
+      guideButton.addEventListener('click',function(){
+        guideTitle.textContent='Rainfall Simulation Guide';
+        guideMeta.textContent='PDF User Guide · Fit Width';
+        guideModal.classList.remove('is-closing');
+        guideModal.classList.add('show');
+        guideModal.setAttribute('aria-hidden','false');
+        guideFrame.src=guideUrl;
+      });
+    }else if(guideButton){
+      guideButton.addEventListener('click',function(){
+        panelStatus('Rainfall guide reader is unavailable. Reload the dashboard and try again.','error');
+      });
     }
-    panel.querySelector('#hydrologyGuide').addEventListener('click',function(){
-      guideModal.hidden=false;
-      guideModal.classList.add('is-open');
-      guideClose.focus();
-    });
-    guideClose.addEventListener('click',closeGuide);
-    guideModal.addEventListener('click',function(event){if(event.target===guideModal)closeGuide();});
-    guideModal.addEventListener('keydown',function(event){if(event.key==='Escape'){event.stopPropagation();closeGuide();}});
-    document.addEventListener('keydown',function(event){if(event.key==='Escape'&&!guideModal.hidden)closeGuide();});
     panel.querySelector('#hydrologyClose').addEventListener('click',function(){
       if(typeof onClose==='function')onClose();
     });
