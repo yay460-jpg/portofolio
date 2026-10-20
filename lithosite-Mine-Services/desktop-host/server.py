@@ -54,6 +54,7 @@ EVIDENCE_MODULES = frozenset({"TargetPlan", "HSE", "Maintenance"})
 EVIDENCE_EXTENSIONS = frozenset({".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx"})
 MAX_EVIDENCE_FILE_BYTES = 100_000_000
 MAX_RUNTIME_REQUEST_BYTES = 10_000_000
+MAX_TOPOGRAPHY_BACKUP_REQUEST_BYTES = 180 * 1024 * 1024
 MAX_STATIC_FILE_BYTES = 25_000_000
 MAX_USER_GUIDE_PDF_BYTES = 25_000_000
 
@@ -1616,11 +1617,14 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > MAX_RUNTIME_REQUEST_BYTES:
+            if length <= 0 or length > MAX_TOPOGRAPHY_BACKUP_REQUEST_BYTES:
                 raise ValueError("Invalid request size")
             request = json.loads(_read_exact_request_body(self.rfile, length).decode("utf-8"))
             if not isinstance(request, dict):
                 raise ValueError("Request must be an object")
+            operation = str(request.get("operation", "")).upper()
+            if length > MAX_RUNTIME_REQUEST_BYTES and operation != "SAVE_TOPOGRAPHY_BACKUP":
+                raise ValueError("Runtime request exceeds the standard size limit")
         except Exception:
             self._json(400, {"status": "REJECTED", "errors": [{"code": "HOST-003", "message": "Invalid JSON request"}]}, origin)
             return
