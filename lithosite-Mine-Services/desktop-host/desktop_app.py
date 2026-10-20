@@ -55,7 +55,7 @@ def main() -> int:
         else:
             raise RuntimeError("Mine Services local host did not become ready.")
         import webview
-        webview.create_window("Lithosite Mine Services", url, width=1440, height=900, min_size=(1024, 680), text_select=True)
+        webview.create_window("Lithosite Mine Services", url, width=1440, height=900, min_size=(1024, 680), text_select=True, icon=str(root / "lithosite-Mine-Geologist" / "assets" / "favicon.ico"))
         webview.start(gui="edgechromium", debug=False)
     finally:
         httpd.shutdown()
