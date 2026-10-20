@@ -1,0 +1,4 @@
+# Builder machine only; not required on end-user computers.
+pywebview>=5.4,<7
+pyinstaller>=6.10,<7
+openpyxl>=3.1
