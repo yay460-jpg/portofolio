@@ -39,6 +39,8 @@ def main() -> int:
     os.environ["MINE_SERVICES_PORT"] = os.environ.get("MINE_SERVICES_PORT", "8765")
     os.environ["MINE_SERVICES_DESKTOP"] = "1"
     host = _load_host(root)
+    from mine_services.database_factory import ensure_a3_database
+    ensure_a3_database(os.environ["MINE_SERVICES_DB"])
     httpd = host.ThreadingHTTPServer((host.HOST, host.PORT), host.Handler)
     threading.Thread(target=httpd.serve_forever, name="MineServicesLocalHost", daemon=True).start()
     url = f"http://{host.HOST}:{host.PORT}/"
