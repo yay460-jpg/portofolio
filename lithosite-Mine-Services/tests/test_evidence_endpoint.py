@@ -1,0 +1,1112 @@
+import base64
+from http.client import HTTPConnection
+import importlib.util
+import json
+import sys
+import threading
+import uuid
+from pathlib import Path
+from urllib.error import HTTPError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+HOST_FILE = ROOT / "desktop-host" / "server.py"
+sys.path.insert(0, str(ROOT / "src"))
+
+
+def _make_test_database(path):
+    from openpyxl import Workbook
+    from mine_services.persistence import PersistenceStore
+    from mine_services.schema import DOMAIN_ENTITIES, HEADERS, SCHEMA_VERSION
+
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+
+    baseline = workbook.create_sheet("_Baseline")
+    baseline.append(["baseline_status", "LOCKED"])
+
+    system = workbook.create_sheet("_System")
+    system.append(["schema_version", SCHEMA_VERSION])
+
+    lists = workbook.create_sheet("_Lists")
+    defaults = PersistenceStore().controlled_lists
+    headers = list(defaults)
+    lists.append(headers)
+    for index in range(max(len(values) for values in defaults.values())):
+        lists.append([
+            sorted(defaults[header])[index] if index < len(defaults[header]) else None
+            for header in headers
+        ])
+
+    for entity in DOMAIN_ENTITIES:
+        worksheet = workbook.create_sheet(entity)
+        worksheet.append(HEADERS[entity])
+
+    audit = workbook.create_sheet("AuditLog")
+    audit.append(HEADERS["AuditLog"])
+    workbook.save(path)
+
+
+@pytest.fixture
+def evidence_host(monkeypatch, tmp_path):
+    database_path = tmp_path / "desktop-host-a3.xlsx"
+    _make_test_database(database_path)
+    monkeypatch.setenv("MINE_SERVICES_DB", str(database_path))
+    monkeypatch.setenv("MINE_SERVICES_SCHEMA", "A3")
+
+    module_name = f"_evidence_test_server_{uuid.uuid4().hex}"
+    spec = importlib.util.spec_from_file_location(module_name, HOST_FILE)
+    assert spec is not None and spec.loader is not None
+    server = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = server
+    spec.loader.exec_module(server)
+
+    httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    host, port = httpd.server_address
+
+    try:
+        yield f"http://{host}:{port}", server
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=3)
+        sys.modules.pop(module_name, None)
+
+
+def _get(base_url, endpoint, params):
+    separator = "&" if "?" in endpoint else "?"
+    url = f"{base_url}{endpoint}{separator}{urlencode(params)}"
+    try:
+        with urlopen(url, timeout=5) as response:
+            return response.status, response.headers, response.read()
+    except HTTPError as error:
+        return error.code, error.headers, error.read()
+
+
+def _payload(body):
+    return json.loads(body.decode("utf-8"))
+
+
+def _post_json(base_url, endpoint, payload):
+    request = Request(
+        f"{base_url}{endpoint}",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=5) as response:
+            return response.status, response.headers, response.read()
+    except HTTPError as error:
+        return error.code, error.headers, error.read()
+
+
+def _post_raw(base_url, endpoint, params, body, content_type="application/octet-stream"):
+    url = f"{base_url}{endpoint}?{urlencode(params)}"
+    request = Request(
+        url,
+        data=body,
+        headers={"Content-Type": content_type},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=10) as response:
+            return response.status, response.headers, response.read()
+    except HTTPError as error:
+        return error.code, error.headers, error.read()
+
+
+def _post_incomplete_raw(base_url, endpoint, params, body, content_type):
+    host_port = base_url.removeprefix("http://")
+    host, port = host_port.rsplit(":", 1)
+    connection = HTTPConnection(host, int(port), timeout=5)
+    try:
+        connection.putrequest("POST", f"{endpoint}?{urlencode(params)}")
+        connection.putheader("Content-Type", content_type)
+        connection.putheader("Content-Length", str(len(body) + 1))
+        connection.endheaders()
+        connection.send(body)
+        # Exercise the real short-body path and avoid leaving unread request bytes.
+        connection.sock.shutdown(1)
+        response = connection.getresponse()
+        return response.status, response.read()
+    finally:
+        connection.close()
+
+
+def _post_with_content_length(base_url, endpoint, params, length):
+    from urllib.parse import urlencode
+    host_port = base_url.removeprefix("http://")
+    host, port = host_port.rsplit(":", 1)
+    connection = HTTPConnection(host, int(port), timeout=5)
+    try:
+        connection.putrequest("POST", f"{endpoint}?{urlencode(params)}")
+        connection.putheader("Content-Type", "image/jpeg" if endpoint == "/nik/upload" else "application/pdf")
+        if length is not None:
+            connection.putheader("Content-Length", length)
+        connection.endheaders()
+        response = connection.getresponse()
+        return response.status, response.read()
+    finally:
+        connection.close()
+
+
+@pytest.mark.parametrize("endpoint,params", [
+    ("/nik/upload", {"nik_id": "NIK-NO-LENGTH"}),
+    ("/evidence/upload", {"module": "TargetPlan", "record_id": "PLN-NO-LENGTH", "filename": "no-length.pdf"}),
+])
+def test_upload_rejects_missing_content_length_without_creating_files(
+    evidence_host, monkeypatch, endpoint, params
+):
+    base_url, server = evidence_host
+    if endpoint == "/nik/upload":
+        monkeypatch.setattr(server, "_nik_record_exists", lambda _nik_id: True)
+    else:
+        monkeypatch.setattr(server, "_evidence_record_exists", lambda module, record_id: (module, record_id) == ("TargetPlan", "PLN-NO-LENGTH"))
+    status, body = _post_with_content_length(base_url, endpoint, params, None)
+    payload = _payload(body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"]
+    if endpoint == "/nik/upload":
+        assert not (server.DB_PATH.parent / "NIK" / "NIK-NO-LENGTH.jpg").exists()
+    else:
+        assert not (server.EVIDENCE_ROOT / "TargetPlan" / "PLN-NO-LENGTH" / "no-length.pdf").exists()
+
+
+@pytest.mark.parametrize("endpoint,params", [
+    ("/nik/upload", {"nik_id": "NIK-ZERO-LENGTH"}),
+    ("/evidence/upload", {"module": "TargetPlan", "record_id": "PLN-ZERO-LENGTH", "filename": "zero-length.pdf"}),
+])
+def test_upload_rejects_zero_content_length_without_creating_files(
+    evidence_host, monkeypatch, endpoint, params
+):
+    base_url, server = evidence_host
+    if endpoint == "/nik/upload":
+        monkeypatch.setattr(server, "_nik_record_exists", lambda _nik_id: True)
+    else:
+        monkeypatch.setattr(server, "_evidence_record_exists", lambda module, record_id: (module, record_id) == ("TargetPlan", "PLN-ZERO-LENGTH"))
+    status, body = _post_with_content_length(base_url, endpoint, params, "0")
+    payload = _payload(body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"]
+    if endpoint == "/nik/upload":
+        assert not (server.DB_PATH.parent / "NIK" / "NIK-ZERO-LENGTH.jpg").exists()
+    else:
+        assert not (server.EVIDENCE_ROOT / "TargetPlan" / "PLN-ZERO-LENGTH" / "zero-length.pdf").exists()
+
+
+@pytest.mark.parametrize("length", ["-1", "100001", "not-a-number"])
+def test_nik_upload_rejects_invalid_content_length_before_writing(
+    evidence_host, monkeypatch, length
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda _nik_id: True)
+    status, body = _post_with_content_length(
+        base_url, "/nik/upload", {"nik_id": "NIK-LENGTH-01"}, length
+    )
+    payload = _payload(body)
+    assert status in {400, 413}
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"]
+
+
+@pytest.mark.parametrize("length", ["-1", "100000001", "not-a-number"])
+def test_evidence_upload_rejects_invalid_content_length_before_writing(
+    evidence_host, monkeypatch, length
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_evidence_record_exists", lambda _module, _record_id: True)
+    status, body = _post_with_content_length(
+        base_url,
+        "/evidence/upload",
+        {"module": "TargetPlan", "record_id": "PLAN-LENGTH-01", "filename": "evidence.pdf"},
+        length,
+    )
+    payload = _payload(body)
+    assert status in {400, 413}
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"]
+
+
+def test_evidence_upload_preserves_incomplete_body_contract(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_evidence_record_exists", lambda module, record_id: True)
+    status, response_body = _post_incomplete_raw(
+        base_url,
+        "/evidence/upload",
+        {"module": "TargetPlan", "record_id": "PLAN-1", "filename": "evidence.pdf"},
+        b"%PDF-1.7",
+        "application/pdf",
+    )
+    payload = _payload(response_body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"][0]["code"] == "HOST-009"
+    assert payload["errors"][0]["message"] == "Evidence upload was incomplete"
+
+
+def test_nik_upload_preserves_incomplete_body_contract(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda nik_id: True)
+    status, response_body = _post_incomplete_raw(
+        base_url,
+        "/nik/upload",
+        {"nik_id": "NIK-1"},
+        b"\\xff\\xd8\\xffpayload\\xff\\xd9",
+        "image/jpeg",
+    )
+    payload = _payload(response_body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"][0]["code"] == "HOST-009"
+    assert payload["errors"][0]["message"] == "Profile upload was incomplete"
+
+
+def test_evidence_upload_saves_to_the_plan_folder_and_never_overwrites(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_evidence_record_exists", lambda module, record_id: module == "TargetPlan" and record_id == "PLN-UPLOAD-01")
+    params = {
+        "module": "TargetPlan",
+        "record_id": "PLN-UPLOAD-01",
+        "filename": "Mine-out agreement.pdf",
+    }
+    original = b"%PDF-1.7 accepted evidence"
+    status, headers, body = _post_raw(base_url, "/evidence/upload", params, original)
+
+    assert status == 201
+    assert headers.get_content_type() == "application/json"
+    payload = _payload(body)
+    assert payload["status"] == "READY"
+    assert payload["folder"] == "Database/Evidence/TargetPlan/PLN-UPLOAD-01"
+    assert payload["filename"] == params["filename"]
+    saved = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-UPLOAD-01" / params["filename"]
+    assert saved.read_bytes() == original
+
+    duplicate_status, _duplicate_headers, duplicate_body = _post_raw(
+        base_url, "/evidence/upload", params, b"%PDF-1.7 replacement"
+    )
+    assert duplicate_status == 409
+    assert _payload(duplicate_body)["status"] == "REJECTED"
+    assert saved.read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    ("params", "record_exists", "expected_status"),
+    [
+        ({"module": "Unknown", "record_id": "REC-01", "filename": "evidence.jpg"}, True, 400),
+        ({"module": "TargetPlan", "record_id": "../outside", "filename": "evidence.pdf"}, True, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-UPLOAD-02", "filename": "../outside.pdf"}, True, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-UPLOAD-02", "filename": "payload.exe"}, True, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-UPLOAD-02", "filename": "evidence.pdf"}, False, 404),
+        ({"module": "TargetPlan", "record_id": "PLN-UPLOAD-02", "filename": "empty.pdf"}, True, 400),
+    ],
+)
+def test_evidence_upload_rejects_invalid_module_record_filename_or_empty_body(
+    evidence_host, monkeypatch, params, record_exists, expected_status
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_evidence_record_exists", lambda _module, _record_id: record_exists)
+    body = b"" if params["filename"] == "empty.pdf" else b"sample bytes"
+
+    status, _headers, response_body = _post_raw(base_url, "/evidence/upload", params, body)
+
+    assert status == expected_status
+    result = _payload(response_body)
+    assert result["status"] == "REJECTED"
+    assert result["errors"]
+
+
+@pytest.mark.parametrize(
+    ("module", "record_id"),
+    [
+        ("HSE", "HSE-UPLOAD-01"),
+        ("Maintenance", "MAINT-UPLOAD-01"),
+    ],
+)
+def test_evidence_upload_accepts_hse_and_maintenance_record_scoped_files(
+    evidence_host, monkeypatch, module, record_id
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(
+        server,
+        "_evidence_record_exists",
+        lambda candidate_module, candidate_id: (candidate_module, candidate_id) == (module, record_id),
+    )
+    params = {"module": module, "record_id": record_id, "filename": "evidence.jpg"}
+    original = b"module-specific evidence"
+
+    status, _headers, body = _post_raw(base_url, "/evidence/upload", params, original)
+
+    assert status == 201
+    payload = _payload(body)
+    assert payload["status"] == "READY"
+    assert payload["folder"] == f"Database/Evidence/{module}/{record_id}"
+    saved = server.EVIDENCE_ROOT / module / record_id / params["filename"]
+    assert saved.read_bytes() == original
+
+
+
+def test_evidence_status_lists_only_records_with_supported_direct_child_files(evidence_host):
+    base_url, server = evidence_host
+    fixtures = {
+        "TargetPlan": ("PLN-STATUS-01", ["approval.pdf", "field-photo.JPG"], ["ignored.exe"]),
+        "HSE": ("HSE-STATUS-01", ["incident.jpg"], ["notes.tmp"]),
+        "Maintenance": ("MNT-STATUS-01", ["repair.docx"], ["backup.zip"]),
+    }
+    for module, (record_id, valid_names, ignored_names) in fixtures.items():
+        record_dir = server.EVIDENCE_ROOT / module / record_id
+        record_dir.mkdir(parents=True)
+        for name in valid_names + ignored_names:
+            (record_dir / name).write_bytes(b"test evidence")
+        (record_dir / "subfolder").mkdir()
+        (record_dir / "subfolder" / "nested.pdf").write_bytes(b"nested file")
+        (server.EVIDENCE_ROOT / module / (record_id + "-EMPTY")).mkdir()
+
+        status, headers, body = _get(
+            base_url,
+            "/evidence/status",
+            {"module": module},
+        )
+
+        assert status == 200
+        assert headers.get_content_type() == "application/json"
+        payload = _payload(body)
+        assert payload["status"] == "READY"
+        assert payload["module"] == module
+        assert payload["records"] == [{"record_id": record_id, "file_count": len(valid_names)}]
+
+
+def test_evidence_status_rejects_unsupported_modules(evidence_host):
+    base_url, _server = evidence_host
+
+    status, headers, body = _get(
+        base_url,
+        "/evidence/status",
+        {"module": "Unknown"},
+    )
+
+    assert status == 400
+    assert headers.get_content_type() == "application/json"
+    payload = _payload(body)
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"][0]["code"] == "HOST-009"
+
+
+def test_listing_a_missing_evidence_folder_does_not_create_it(evidence_host):
+    base_url, server = evidence_host
+    missing = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-NO-FOLDER-01"
+    assert not missing.exists()
+
+    status, _headers, body = _get(
+        base_url,
+        "/evidence/list",
+        {"module": "TargetPlan", "record_id": "PLN-NO-FOLDER-01"},
+    )
+
+    assert status == 200
+    assert _payload(body)["files"] == []
+    assert not missing.exists()
+
+
+def test_runtime_plan_create_and_delete_manage_only_its_evidence_folder(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    evidence_root = server.EVIDENCE_ROOT
+    plan_id = "PLN-LIFECYCLE-01"
+    plan_folder = evidence_root / "TargetPlan" / plan_id
+    sibling_folder = evidence_root / "TargetPlan" / "PLN-KEEP-01"
+
+    class CommittingAdapter:
+        def handle(self, request):
+            if request.get("operation") == "DELETE":
+                assert plan_folder.is_dir(), "Evidence must remain until RuntimeAdapter commits deletion"
+            return {"request_id": request.get("request_id"), "status": "COMMITTED"}
+
+    monkeypatch.setattr(server, "ADAPTER", CommittingAdapter())
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": "test-plan-create",
+            "operation": "CREATE",
+            "entity": "Plans",
+            "row": {"plan_id": plan_id},
+        },
+    )
+    assert status == 200
+    created = _payload(body)
+    assert created["status"] == "COMMITTED"
+    assert created["evidence_folder_status"] == "READY"
+    assert plan_folder.is_dir()
+
+    (plan_folder / "approval.pdf").write_bytes(b"evidence")
+    sibling_folder.mkdir(parents=True)
+    (sibling_folder / "keep.pdf").write_bytes(b"keep")
+
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": "test-plan-delete",
+            "operation": "DELETE",
+            "entity": "Plans",
+            "entity_id": plan_id,
+        },
+    )
+    assert status == 200
+    deleted = _payload(body)
+    assert deleted["status"] == "COMMITTED"
+    assert deleted["evidence_cleanup_status"] == "CLEANED"
+    assert not plan_folder.exists()
+    assert (sibling_folder / "keep.pdf").read_bytes() == b"keep"
+
+
+
+@pytest.mark.parametrize(
+    ("entity", "module", "record_id", "id_field"),
+    [
+        ("HSE", "HSE", "HSE-LIFECYCLE-01", "hse_id"),
+        ("Maintenance", "Maintenance", "MAINT-LIFECYCLE-01", "maintenance_id"),
+    ],
+)
+def test_runtime_hse_and_maintenance_mutations_manage_only_their_evidence_folder(
+    evidence_host, monkeypatch, entity, module, record_id, id_field
+):
+    base_url, server = evidence_host
+    record_folder = server.EVIDENCE_ROOT / module / record_id
+    sibling_folder = server.EVIDENCE_ROOT / module / (record_id + "-KEEP")
+
+    class CommittingAdapter:
+        def handle(self, request):
+            if request.get("operation") == "DELETE":
+                assert record_folder.is_dir(), "Evidence must remain until deletion is committed"
+            return {"request_id": request.get("request_id"), "status": "COMMITTED"}
+
+    monkeypatch.setattr(server, "ADAPTER", CommittingAdapter())
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": f"test-{module.casefold()}-create",
+            "operation": "CREATE",
+            "entity": entity,
+            "row": {id_field: record_id},
+        },
+    )
+    assert status == 200
+    created = _payload(body)
+    assert created["status"] == "COMMITTED"
+    assert created["evidence_folder_status"] == "READY"
+    assert record_folder.is_dir()
+
+    (record_folder / "evidence.pdf").write_bytes(b"record evidence")
+    sibling_folder.mkdir(parents=True)
+    (sibling_folder / "keep.pdf").write_bytes(b"keep")
+
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": f"test-{module.casefold()}-delete",
+            "operation": "DELETE",
+            "entity": entity,
+            "entity_id": record_id,
+        },
+    )
+    assert status == 200
+    deleted = _payload(body)
+    assert deleted["status"] == "COMMITTED"
+    assert deleted["evidence_cleanup_status"] == "CLEANED"
+    assert not record_folder.exists()
+    assert (sibling_folder / "keep.pdf").read_bytes() == b"keep"
+
+
+def test_runtime_rejected_plan_delete_keeps_evidence_folder(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    plan_id = "PLN-DELETE-REJECTED"
+    plan_folder = server.EVIDENCE_ROOT / "TargetPlan" / plan_id
+    plan_folder.mkdir(parents=True)
+    (plan_folder / "approval.pdf").write_bytes(b"keep evidence")
+
+    class RejectingAdapter:
+        def handle(self, request):
+            return {
+                "request_id": request.get("request_id"),
+                "status": "REJECTED",
+                "errors": [{"code": "VAL-E005", "message": "Plan is still referenced"}],
+            }
+
+    monkeypatch.setattr(server, "ADAPTER", RejectingAdapter())
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": "test-plan-delete-rejected",
+            "operation": "DELETE",
+            "entity": "Plans",
+            "entity_id": plan_id,
+        },
+    )
+
+    assert status == 200
+    assert _payload(body)["status"] == "REJECTED"
+    assert (plan_folder / "approval.pdf").read_bytes() == b"keep evidence"
+
+
+def test_evidence_preview_post_returns_pdf_and_image_bytes_as_json(evidence_host):
+    base_url, server = evidence_host
+    record_dir = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-PREVIEW-01"
+    record_dir.mkdir(parents=True)
+    cases = [
+        ("agreement.pdf", b"%PDF-1.7 preview payload", "application/pdf"),
+        ("site-photo.jpg", b"jpeg preview payload", "image/jpeg"),
+    ]
+
+    for filename, original_bytes, mime_type in cases:
+        (record_dir / filename).write_bytes(original_bytes)
+        status, headers, body = _post_json(
+            base_url,
+            "/evidence/preview",
+            {
+                "module": "TargetPlan",
+                "record_id": "PLN-PREVIEW-01",
+                "filename": filename,
+            },
+        )
+
+        assert status == 200
+        assert headers.get_content_type() == "application/json"
+        assert "Content-Disposition" not in headers
+        payload = _payload(body)
+        assert payload["status"] == "READY"
+        assert payload["mime_type"] == mime_type
+        assert payload["filename"] == filename
+        assert base64.b64decode(payload["data"], validate=True) == original_bytes
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_status"),
+    [
+        ({"module": "Plans", "record_id": "PLN-01", "filename": "file.pdf"}, 400),
+        ({"module": "TargetPlan", "record_id": "../outside", "filename": "file.pdf"}, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-01", "filename": "../outside.pdf"}, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-01", "filename": "file.docx"}, 400),
+        ({"module": "TargetPlan", "record_id": "PLN-01", "filename": "missing.pdf"}, 404),
+    ],
+)
+def test_evidence_preview_post_rejects_invalid_or_missing_files(evidence_host, payload, expected_status):
+    base_url, _server = evidence_host
+
+    status, headers, body = _post_json(base_url, "/evidence/preview", payload)
+
+    assert status == expected_status
+    assert headers.get_content_type() == "application/json"
+    result = _payload(body)
+    assert result["status"] == "REJECTED"
+    assert result["errors"]
+
+
+def test_evidence_listing_returns_only_supported_direct_child_files(evidence_host):
+    base_url, server = evidence_host
+    record_dir = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-TEST-01"
+    record_dir.mkdir(parents=True)
+    (record_dir / "agreement.pdf").write_bytes(b"%PDF-1.4 test")
+    (record_dir / "field-photo.JPG").write_bytes(b"jpeg test")
+    (record_dir / "approval.docx").write_bytes(b"word test")
+    (record_dir / "not-evidence.exe").write_bytes(b"ignore")
+
+    status, headers, body = _get(
+        base_url,
+        "/evidence/list",
+        {"module": "TargetPlan", "record_id": "PLN-TEST-01"},
+    )
+
+    assert status == 200
+    assert headers.get_content_type() == "application/json"
+    payload = _payload(body)
+    assert payload["status"] == "READY"
+    assert payload["module"] == "TargetPlan"
+    assert payload["record_id"] == "PLN-TEST-01"
+    assert payload["folder"] == "Database/Evidence/TargetPlan/PLN-TEST-01"
+
+    files = {item["name"]: item for item in payload["files"]}
+    assert set(files) == {"agreement.pdf", "field-photo.JPG", "approval.docx"}
+    assert files["agreement.pdf"]["previewable"] is True
+    assert files["field-photo.JPG"]["previewable"] is True
+    assert files["approval.docx"]["previewable"] is False
+    assert all(item["available"] is True for item in files.values())
+
+
+@pytest.mark.parametrize(
+    ("filename", "body", "expected_type", "expected_disposition"),
+    [
+        ("agreement.pdf", b"%PDF-1.4 test", "application/pdf", "inline"),
+        ("field-photo.jpg", b"jpeg test", "image/jpeg", "inline"),
+        ("approval.docx", b"word test", None, "attachment"),
+    ],
+)
+def test_evidence_file_endpoint_previews_images_and_downloads_word_documents(
+    evidence_host, filename, body, expected_type, expected_disposition
+):
+    base_url, server = evidence_host
+    record_dir = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-TEST-02"
+    record_dir.mkdir(parents=True)
+    (record_dir / filename).write_bytes(body)
+
+    status, headers, response_body = _get(
+        base_url,
+        "/evidence/file",
+        {
+            "module": "TargetPlan",
+            "record_id": "PLN-TEST-02",
+            "filename": filename,
+        },
+    )
+
+    assert status == 200
+    assert response_body == body
+    if expected_type:
+        assert headers.get_content_type() == expected_type
+    assert headers.get("Content-Disposition", "").startswith(expected_disposition + ";")
+    assert headers.get("Cache-Control") == "no-store"
+    assert headers.get("X-Content-Type-Options") == "nosniff"
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "params"),
+    [
+        ("/evidence/list", {"module": "Plans", "record_id": "PLN-01"}),
+        ("/evidence/list", {"module": "TargetPlan", "record_id": "../outside"}),
+        (
+            "/evidence/file",
+            {"module": "TargetPlan", "record_id": "PLN-01", "filename": "../outside.pdf"},
+        ),
+        (
+            "/evidence/file",
+            {"module": "TargetPlan", "record_id": "PLN-01", "filename": r"..\\outside.pdf"},
+        ),
+        (
+            "/evidence/file",
+            {"module": "TargetPlan", "record_id": "PLN-01", "filename": "payload.exe"},
+        ),
+    ],
+)
+def test_evidence_endpoint_rejects_invalid_module_ids_paths_and_extensions(
+    evidence_host, endpoint, params
+):
+    base_url, _server = evidence_host
+
+    status, _headers, body = _get(base_url, endpoint, params)
+
+    assert status == 400
+    payload = _payload(body)
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"]
+
+
+def test_evidence_file_endpoint_returns_not_found_for_missing_file(evidence_host):
+    base_url, _server = evidence_host
+
+    status, _headers, body = _get(
+        base_url,
+        "/evidence/file",
+        {
+            "module": "TargetPlan",
+            "record_id": "PLN-MISSING-01",
+            "filename": "missing.pdf",
+        },
+    )
+
+    assert status == 404
+    payload = _payload(body)
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"][0]["code"] == "HOST-001"
+
+
+def test_nik_profile_upload_saves_compressed_jpeg_and_replaces_previous_photo(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda nik_id: nik_id == "TEST-NIK-001")
+    params = {"nik_id": "TEST-NIK-001"}
+    jpeg = b"\xff\xd8\xfffirst-compressed-photo\xff\xd9"
+
+    status, _headers, body = _post_raw(base_url, "/nik/upload", params, jpeg, "image/jpeg")
+
+    assert status == 201
+    result = _payload(body)
+    assert result["status"] == "READY"
+    assert result["folder"] == "Database/NIK"
+    assert result["filename"] == "TEST-NIK-001.jpg"
+    assert result["size"] == len(jpeg)
+    assert result["replaced"] is False
+    saved = server.DB_PATH.parent / "NIK" / "TEST-NIK-001.jpg"
+    assert saved.read_bytes() == jpeg
+
+    # A later upload replaces the canonical JPEG and removes a stale alternate format.
+    (saved.parent / "TEST-NIK-001.png").write_bytes(b"old alternate")
+    replacement = b"\xff\xd8\xffreplacement-photo\xff\xd9"
+    status, _headers, body = _post_raw(base_url, "/nik/upload", params, replacement, "image/jpeg")
+    assert status == 201
+    assert _payload(body)["replaced"] is True
+    assert saved.read_bytes() == replacement
+    assert not (saved.parent / "TEST-NIK-001.png").exists()
+
+    status, headers, body = _get(base_url, "/nik/profile", params)
+    assert status == 200
+    assert headers.get_content_type() == "image/jpeg"
+    assert headers.get("Cache-Control") == "no-store"
+    assert body == replacement
+
+
+
+
+def test_bounded_file_reader_rejects_growth_beyond_limit(evidence_host, monkeypatch):
+    _base_url, server = evidence_host
+    target = server.DB_PATH.parent / "bounded-read-test.bin"
+    target.write_bytes(b"small")
+    original_open = Path.open
+
+    class GrowingStream:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self, amount=-1):
+            assert amount == 5
+            return b"12345"
+
+    def growing_open(path, *args, **kwargs):
+        if path == target:
+            return GrowingStream()
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", growing_open)
+    with pytest.raises(OverflowError):
+        server._read_bounded_file(target, 4)
+
+
+def test_nik_profile_read_rejects_oversized_file_with_matching_limit_message(evidence_host):
+    base_url, server = evidence_host
+    root = server.DB_PATH.parent / "NIK"
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "TEST-NIK-001.jpg").write_bytes(b"x" * 100_001)
+
+    status, _headers, body = _get(base_url, "/nik/profile", {"nik_id": "TEST-NIK-001"})
+
+    payload = _payload(body)
+    assert status == 413
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"][0]["code"] == "HOST-011"
+    assert "100 KB" in payload["errors"][0]["message"]
+    assert "15 MB" not in body.decode("utf-8")
+
+
+
+def test_nik_profile_clear_removes_only_the_selected_employees_photo(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda nik_id: nik_id in {"TEST-NIK-001", "TEST-NIK-002"})
+    root = server.DB_PATH.parent / "NIK"
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "TEST-NIK-001.jpg").write_bytes(b"selected photo")
+    (root / "TEST-NIK-001.png").write_bytes(b"stale selected photo")
+    (root / "TEST-NIK-002.jpg").write_bytes(b"other employee photo")
+
+    status, _headers, body = _post_raw(base_url, "/nik/clear", {"nik_id": "TEST-NIK-001"}, b"")
+    payload = _payload(body)
+
+    assert status == 200
+    assert payload["status"] == "READY"
+    assert payload["removed"] is True
+    assert not (root / "TEST-NIK-001.jpg").exists()
+    assert not (root / "TEST-NIK-001.png").exists()
+    assert (root / "TEST-NIK-002.jpg").read_bytes() == b"other employee photo"
+
+
+def test_nik_profile_clear_rejects_unknown_employee(evidence_host, monkeypatch):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda _nik_id: False)
+
+    status, _headers, body = _post_raw(base_url, "/nik/clear", {"nik_id": "TEST-NIK-404"}, b"")
+
+    assert status == 404
+    assert _payload(body)["status"] == "REJECTED"
+
+
+@pytest.mark.parametrize(
+    ("params", "body", "content_type", "record_exists", "expected_status"),
+    [
+        ({"nik_id": "../outside"}, b"\xff\xd8\xffx\xff\xd9", "image/jpeg", True, 400),
+        ({"nik_id": "TEST-NIK-002"}, b"\xff\xd8\xffx\xff\xd9", "image/jpeg", False, 404),
+        ({"nik_id": "TEST-NIK-001"}, b"\xff\xd8\xffx\xff\xd9", "image/png", True, 415),
+        ({"nik_id": "TEST-NIK-001"}, b"not-a-jpeg", "image/jpeg", True, 415),
+        ({"nik_id": "TEST-NIK-001"}, b"x" * 100_001, "image/jpeg", True, 413),
+        ({"nik_id": "TEST-NIK-001"}, b"", "image/jpeg", True, 400),
+    ],
+    ids=[
+        "reject-path-traversal",
+        "reject-unknown-employee",
+        "reject-wrong-content-type",
+        "reject-invalid-jpeg",
+        "reject-oversized-jpeg",
+        "reject-empty-upload",
+    ],
+)
+def test_nik_profile_upload_rejects_invalid_or_oversized_payloads(
+    evidence_host, monkeypatch, params, body, content_type, record_exists, expected_status
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(server, "_nik_record_exists", lambda _nik_id: record_exists)
+
+    status, _headers, response_body = _post_raw(
+        base_url, "/nik/upload", params, body, content_type
+    )
+
+    assert status == expected_status
+    payload = _payload(response_body)
+    assert payload["status"] == "REJECTED"
+    assert payload["errors"]
+
+
+def test_evidence_endpoint_rejects_symlinked_module_directory_without_disclosure(
+    evidence_host, tmp_path
+):
+    base_url, server = evidence_host
+    outside = tmp_path / "outside-evidence-module"
+    outside.mkdir()
+    (outside / "PLN-SYMLINK-01").mkdir()
+    (outside / "PLN-SYMLINK-01" / "secret.pdf").write_bytes(b"outside secret")
+    server.EVIDENCE_ROOT.mkdir(parents=True, exist_ok=True)
+    module_link = server.EVIDENCE_ROOT / "TargetPlan"
+    try:
+        module_link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+
+    status, _headers, body = _get(
+        base_url,
+        "/evidence/file",
+        {
+            "module": "TargetPlan",
+            "record_id": "PLN-SYMLINK-01",
+            "filename": "secret.pdf",
+        },
+    )
+
+    payload = _payload(body)
+    assert status in {400, 404}
+    assert payload["status"] == "REJECTED"
+    assert str(outside) not in body.decode("utf-8")
+    assert "secret.pdf" not in body.decode("utf-8")
+
+
+def test_evidence_endpoint_rejects_symlinked_file_outside_evidence_root(
+    evidence_host, tmp_path
+):
+    base_url, server = evidence_host
+    record_dir = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-SYMLINK-02"
+    record_dir.mkdir(parents=True)
+    outside = tmp_path / "private-outside-evidence.pdf"
+    outside.write_bytes(b"outside secret")
+    file_link = record_dir / "linked.pdf"
+    try:
+        file_link.symlink_to(outside)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+
+    status, _headers, body = _get(
+        base_url,
+        "/evidence/file",
+        {
+            "module": "TargetPlan",
+            "record_id": "PLN-SYMLINK-02",
+            "filename": "linked.pdf",
+        },
+    )
+
+    payload = _payload(body)
+    assert status in {400, 404}
+    assert payload["status"] == "REJECTED"
+    assert str(outside) not in body.decode("utf-8")
+    assert "private-outside-evidence.pdf" not in body.decode("utf-8")
+
+
+def test_evidence_endpoint_rejects_symlinked_evidence_root(evidence_host, tmp_path, monkeypatch):
+    base_url, server = evidence_host
+    outside = tmp_path / "outside-evidence-root"
+    outside.mkdir()
+    (outside / "TargetPlan").mkdir()
+    root_link = tmp_path / "Evidence-root-link"
+    try:
+        root_link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+    monkeypatch.setattr(server, "EVIDENCE_ROOT", root_link)
+
+    status, _headers, body = _get(
+        base_url,
+        "/evidence/list",
+        {"module": "TargetPlan", "record_id": "PLN-ROOT-LINK-01"},
+    )
+
+    payload = _payload(body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert str(outside) not in body.decode("utf-8")
+
+
+def test_evidence_status_rejects_symlinked_evidence_root(evidence_host, tmp_path, monkeypatch):
+    base_url, server = evidence_host
+    outside = tmp_path / "outside-evidence-status-root"
+    module_dir = outside / "Plans"
+    record_dir = module_dir / "PLN-STATUS-ROOT-LINK"
+    record_dir.mkdir(parents=True)
+    (record_dir / "private.pdf").write_bytes(b"outside evidence")
+    root_link = tmp_path / "Evidence-status-root-link"
+    try:
+        root_link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+    monkeypatch.setattr(server, "EVIDENCE_ROOT", root_link)
+
+    status, _headers, body = _get(
+        base_url, "/evidence/status", {"module": "Plans"}
+    )
+
+    payload = _payload(body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert str(outside) not in body.decode("utf-8")
+    assert "PLN-STATUS-ROOT-LINK" not in body.decode("utf-8")
+
+
+def test_runtime_delete_refuses_symlinked_evidence_record_without_touching_external_files(
+    evidence_host, monkeypatch, tmp_path
+):
+    base_url, server = evidence_host
+    module_dir = server.EVIDENCE_ROOT / "TargetPlan"
+    module_dir.mkdir(parents=True, exist_ok=True)
+    outside = tmp_path / "outside-delete-target"
+    outside.mkdir()
+    protected_file = outside / "keep-private.pdf"
+    protected_file.write_bytes(b"must remain untouched")
+    record_link = module_dir / "PLN-DELETE-SYMLINK"
+    try:
+        record_link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+
+    class CommittingAdapter:
+        def handle(self, request):
+            return {"request_id": request.get("request_id"), "status": "COMMITTED"}
+
+    monkeypatch.setattr(server, "ADAPTER", CommittingAdapter())
+    status, _headers, body = _post_json(
+        base_url,
+        "/runtime",
+        {
+            "request_id": "test-plan-delete-symlink",
+            "operation": "DELETE",
+            "entity": "Plans",
+            "entity_id": "PLN-DELETE-SYMLINK",
+        },
+    )
+
+    payload = _payload(body)
+    assert status == 200
+    assert payload["status"] == "COMMITTED"
+    assert payload["evidence_cleanup_status"] == "FAILED"
+    assert protected_file.read_bytes() == b"must remain untouched"
+    assert record_link.is_symlink()
+    assert str(outside) not in body.decode("utf-8")
+    assert "keep-private.pdf" not in body.decode("utf-8")
+
+
+def test_evidence_upload_rejects_symlinked_record_directory_without_writing_outside(
+    evidence_host, monkeypatch, tmp_path
+):
+    base_url, server = evidence_host
+    monkeypatch.setattr(
+        server,
+        "_evidence_record_exists",
+        lambda module, record_id: (module, record_id) == ("TargetPlan", "PLN-UPLOAD-SYMLINK"),
+    )
+    module_dir = server.EVIDENCE_ROOT / "TargetPlan"
+    module_dir.mkdir(parents=True, exist_ok=True)
+    outside = tmp_path / "outside-upload-record"
+    outside.mkdir()
+    protected = outside / "keep.txt"
+    protected.write_bytes(b"protected")
+    record_link = module_dir / "PLN-UPLOAD-SYMLINK"
+    try:
+        record_link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+
+    status, _headers, body = _post_raw(
+        base_url,
+        "/evidence/upload",
+        {
+            "module": "TargetPlan",
+            "record_id": "PLN-UPLOAD-SYMLINK",
+            "filename": "new-evidence.pdf",
+        },
+        b"%PDF-1.7 upload payload",
+    )
+
+    payload = _payload(body)
+    assert status == 400
+    assert payload["status"] == "REJECTED"
+    assert protected.read_bytes() == b"protected"
+    assert not (outside / "new-evidence.pdf").exists()
+    assert str(outside) not in body.decode("utf-8")
+
+
+def test_evidence_preview_rejects_symlinked_file_without_disclosing_target(
+    evidence_host, tmp_path
+):
+    base_url, server = evidence_host
+    record_dir = server.EVIDENCE_ROOT / "TargetPlan" / "PLN-PREVIEW-SYMLINK"
+    record_dir.mkdir(parents=True)
+    outside = tmp_path / "private-preview-target.pdf"
+    outside.write_bytes(b"%PDF-1.7 private evidence")
+    link = record_dir / "linked.pdf"
+    try:
+        link.symlink_to(outside)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable on this platform: {exc}")
+
+    status, _headers, body = _post_json(
+        base_url,
+        "/evidence/preview",
+        {
+            "module": "TargetPlan",
+            "record_id": "PLN-PREVIEW-SYMLINK",
+            "filename": "linked.pdf",
+        },
+    )
+
+    payload = _payload(body)
+    assert status == 404
+    assert payload["status"] == "REJECTED"
+    assert str(outside) not in body.decode("utf-8")
+    assert "private-preview-target.pdf" not in body.decode("utf-8")
+
+
+def test_evidence_link_guard_recognizes_junctions(evidence_host):
+    _base_url, server = evidence_host
+
+    class JunctionLikePath:
+        def is_symlink(self):
+            return False
+
+        def is_junction(self):
+            return True
+
+    assert server._is_evidence_link(JunctionLikePath())

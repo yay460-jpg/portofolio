@@ -1,0 +1,32 @@
+/* Shared donut-chart primitives. Keep layout and sizing owned by each module. */
+.graphic-donut {
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  isolation: isolate;
+}
+.graphic-donut__hole {
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  background: var(--graphic-donut-hole, #101f31);
+  z-index: 0;
+}
+.graphic-donut__center {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  text-align: center;
+  min-width: 0;
+}
+.graphic-donut__total {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.graphic-donut__label {
+  color: var(--graphic-donut-muted, #8ea3ba);
+}

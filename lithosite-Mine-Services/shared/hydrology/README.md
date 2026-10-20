@@ -1,0 +1,53 @@
+# Hydrology Engine — Mine Services
+
+**Status:** Hydrology core v1.0.0, D8 flow-path overlay, opt-in particle-direction animation, and A3 record workflow implemented.  
+**Branch scope:** v41-workspace. Do not modify main without explicit approval.
+
+## Ownership rule
+
+All new Hydrology implementation source files must live in this directory, regardless of source type:
+
+- JavaScript modules (.js) for terrain analysis, flow routing, simulation orchestration, and overlay integration.
+- Stylesheets (.css) for Hydrology-specific controls, legend, and visual states.
+- Python modules (.py) only if a justified backend/offline-processing requirement is identified; such implementation files also belong here.
+
+Do not scatter Hydrology implementation across ui/modules/map-engine/, shared/topo3d/, or unrelated backend modules. Existing modules may expose a small, reviewed integration seam when needed, but Hydrology-owned logic stays here.
+
+## Proposed source layout
+
+### Implemented
+
+- hydrology-engine.js — UI-independent D8 flow-direction and flow-accumulation analysis, bounded TIN-to-grid interpolation, optional constant-rainfall/runoff-volume estimate, and validation/resource guards.
+- hydrology-panel.js — opens Rainfall controls, runs the core against a bounded Topo3D mesh copy, displays summary metrics, and saves one run via RuntimeAdapter to RainfallSimulation.
+- hydrology-overlay.js — draws bounded D8 direction segments/arrows on a dedicated map canvas and supports opt-in particle-direction cues on a separate, bounded canvas layer.
+- hydrology.css — isolated Hydrology panel and layered overlay styles.
+
+### Planned
+
+- A hydraulics or flood-depth model is not part of this implementation. Any future work in this area requires explicit input/output contracts, suitable terrain/rainfall/boundary data, and independent validation evidence.
+- Optional hydrology-core.py — only if a justified server-side or batch-computation requirement is identified. The current computation core runs in the browser and does not require Python.
+
+## Architecture boundaries
+
+- Topo3D Engine remains responsible for reading the supported topography package and rendering the terrain.
+- Geo Engine remains responsible for spatial coordinate calculations and CRS behavior.
+- Hydrology Engine owns terrain-derived hydrology calculations and simulation outputs.
+- Map Controller owns UI wiring and life-cycle coordination, not the hydrology algorithms.
+- Hydrology must not edit or overwrite the original .ltdtm/DTM/STR data.
+- Keep all calculations local/offline for the first release unless an explicit design decision requires otherwise.
+- Topo3D exposes a bounded getAnalysisMesh() copy-out API; Hydrology consumes copied arrays through the MineServicesTopo3D facade, not the renderer's private model object.
+- Current engine limits are 300,000 grid cells / TIN vertices, 600,000 triangles, and 5,000,000 default raster sampling candidates. The engine v1 supports FILL and PRESERVE; BREACH is explicitly not implemented yet.
+- D8 reports indicative one-direction-per-cell flow paths and accumulation. It does not compute water depth, velocity, flood extents, or an engineering-grade drainage design.
+- The optional animation is a screen-space cue that advances along selected D8 line segments. It is off by default, has a 96-particle ceiling, and does not model rainfall timing, physical water movement, depth, velocity, or flow rate.
+- Overlay logic remains Hydrology-owned. Topo3D exposes only the narrow coordinate-projection and render-subscription interface used by the overlay.
+- Rainfall uses the existing dashboard right-hand workspace: Equipment Status and Material Movement temporarily slide away, and the Rainfall panel slides into that same area. Closing via its close button, the Rainfall toolbar button, or Escape restores the cards without rebuilding their contents. Dashboard cards are inert while hidden from view; the flow overlay remains attached to the Site Map host.
+
+## A3 simulation record
+
+Rainfall run records use the canonical RainfallSimulation worksheet in the active A3 workbook. Its header and validation contract are documented in Documentation/Contracts/Rainfall-Hydrology-Simulation-Contract.md. The first record model stores scenario inputs and compact summary metrics only; it does not store per-cell flow grids or animation frames in Excel.
+
+## Tests and documentation
+
+Regression tests remain under tests/. The approved calculation, input/output, unit, and limitations contract belongs under Documentation/Contracts/.
+
+Runtime coverage includes tests/test_hydrology_engine.py, tests/test_hydrology_overlay.py, and tests/test_hydrology_particles.py. The Site Map panel can run the bounded analysis, display flow paths, optionally animate a capped set of direction cues, and save aggregate metrics to A3. Visual animation remains illustrative rather than a calibrated hydraulic simulation.

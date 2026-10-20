@@ -1,0 +1,434 @@
+/* Lithosite Mine Services — Topo3D host shell */
+#dashboardSiteMap.map-topo3d{
+  height:calc(100% - 35px);
+  min-height:0;
+  position:relative;
+  overflow:hidden;
+  background:#071321;
+  isolation:isolate;
+}
+#dashboardSiteMap.map-topo3d.is-top-view canvas{
+  /* Top View gets its directional lighting from the shared WebGL shader. */
+  filter:brightness(1.08) contrast(1.06);
+}
+#dashboardSiteMap.map-topo3d.is-top-view::after{
+  /* Do not darken the terrain again after the Top View light pass. */
+  background:transparent;
+}
+#dashboardSiteMap.map-topo3d canvas{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  width:100%;
+  height:100%;
+  display:block;
+  touch-action:none;
+}
+#dashboardSiteMap.map-topo3d::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(4,12,22,.28),transparent 22%,transparent 78%,rgba(4,12,22,.36));
+}
+#dashboardScreen .panelhead .topo3d-toolbar{
+  position:static;
+  z-index:5;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  flex:0 1 auto;
+  max-width:none;
+  flex-wrap:nowrap;
+}
+#dashboardScreen .panelhead .topo3d-toolbar button,
+#dashboardScreen .panelhead .topo3d-file{
+  height:28px;
+  box-sizing:border-box;
+  border:1px solid #29435d;
+  border-radius:6px;
+  background:#0c1d30e8;
+  color:#dbe8f5;
+  font:700 9px/1 Arial,sans-serif;
+  padding:0 8px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  box-shadow:0 2px 8px #02081255;
+}
+#dashboardScreen .panelhead .topo3d-file{font-weight:800}
+#dashboardScreen .panelhead .topo3d-toolbar button:hover,
+#dashboardScreen .panelhead .topo3d-file:hover{
+  border-color:#4d8dff;
+  background:#15304d;
+}
+#dashboardScreen .panelhead .topo3d-toolbar button:focus-visible,
+#dashboardScreen .panelhead .topo3d-file:focus-within{
+  outline:2px solid #5b9aff;
+  outline-offset:1px;
+}
+#dashboardScreen .panelhead .topo3d-file input{display:none}
+#dashboardSiteMap .topo3d-status{
+  position:absolute;
+  left:10px;
+  bottom:10px;
+  z-index:5;
+  max-width:60%;
+  min-height:25px;
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  padding:5px 8px;
+  border:1px solid #29435d;
+  border-radius:6px;
+  background:#071321e8;
+  color:#9fb4ca;
+  font-size:9px;
+  line-height:1.25;
+  box-shadow:0 2px 8px #02081255;
+  pointer-events:none;
+}
+#dashboardSiteMap .topo3d-status.ready{color:#86efac}
+#dashboardSiteMap .topo3d-status.error{color:#fca5a5}
+@media (max-width:900px){
+  #dashboardSiteMap .topo3d-status{max-width:55%}
+}
+
+#dashboardSiteMap .topo3d-guide-trigger{
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  z-index:6;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:1px solid #29435d;
+  border-radius:50%;
+  background:#071321e8;
+  color:#9fb4ca;
+  font:800 12px/24px Arial,sans-serif;
+  text-align:center;
+  cursor:pointer;
+  box-shadow:0 2px 8px #02081255;
+}
+#dashboardSiteMap .topo3d-guide-trigger:hover{
+  border-color:#4d8dff;
+  background:#10243a;
+  color:#dbe8f5;
+}
+#dashboardSiteMap .topo3d-guide-trigger:focus-visible{
+  outline:2px solid #5b9aff;
+  outline-offset:1px;
+}
+#dashboardSiteMap .topo3d-measure-trigger{
+  position:absolute;
+  right:44px;
+  bottom:10px;
+  z-index:6;
+  width:26px;
+  height:26px;
+  padding:0;
+  border:1px solid #29435d;
+  border-radius:50%;
+  background:#071321e8;
+  color:#9fb4ca;
+  font:900 15px/24px Arial,sans-serif;
+  text-align:center;
+  cursor:pointer;
+  box-shadow:0 2px 8px #02081255;
+}
+#dashboardSiteMap .topo3d-measure-trigger:hover{
+  border-color:#4d8dff;
+  background:#10243a;
+  color:#dbe8f5;
+}
+#dashboardSiteMap .topo3d-measure-trigger:focus-visible{
+  outline:2px solid #5b9aff;
+  outline-offset:1px;
+}
+#dashboardSiteMap .topo3d-guide{
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  z-index:6;
+  width:190px;
+  box-sizing:border-box;
+  padding:9px 10px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  background:#071321f5;
+  color:#dbe8f5;
+  font-size:9px;
+  line-height:1.55;
+  box-shadow:0 4px 14px #02081266;
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(4px);
+  transition:opacity .14s ease,transform .14s ease,visibility .14s ease;
+  pointer-events:none;
+}
+#dashboardSiteMap .topo3d-guide.open{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+  pointer-events:auto;
+}
+#dashboardSiteMap .topo3d-guide strong{
+  display:block;
+  margin-bottom:4px;
+  font-size:10px;
+}
+#dashboardSiteMap .topo3d-guide div{color:#9fb4ca}
+#dashboardSiteMap .topo3d-guide #dashboardTopo3DGuideStatus{margin-bottom:5px;color:#dbe8f5}
+#dashboardSiteMap .topo3d-guide b{color:#dbe8f5}
+
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button{
+  height:28px;
+  box-sizing:border-box;
+  border:1px solid #29435d;
+  border-radius:6px;
+  background:#0c1d30e8;
+  color:#dbe8f5;
+  padding:0 10px;
+  cursor:pointer;
+  font:700 9px/1 Arial,sans-serif;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  box-shadow:0 2px 8px #02081255;
+}
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button:hover{
+  border-color:#4d8dff;
+  background:#15304d;
+}
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button:focus-visible{
+  outline:2px solid #5b9aff;
+  outline-offset:1px;
+}
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button.primary{
+  border-color:#3d78d8;
+  background:#15304d;
+  color:#fff;
+}
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button.primary:hover{
+  border-color:#6da7ff;
+  background:#1b426b;
+}
+#dashboardSiteMap .topo3d-backup-panel .topo3d-modal-button:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+}
+#dashboardScreen .panelhead .topo3d-toolbar button.is-active{
+  border-color:#5b9aff;
+  background:#15304d;
+  color:#fff;
+}
+
+#dashboardSiteMap .topo3d-north{
+  position:absolute;
+  right:10px;
+  top:48px;
+  z-index:5;
+  min-width:86px;
+  padding:6px 7px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  background:#071321e8;
+  color:#dbe8f5;
+  font:700 8px/1.2 Arial,sans-serif;
+  text-align:center;
+  box-shadow:0 2px 8px #02081255;
+  pointer-events:none;
+}
+#dashboardSiteMap .topo3d-north-arrow{
+  display:block;
+  height:24px;
+  font:900 25px/24px Arial,sans-serif;
+  transform-origin:50% 50%;
+  transition:transform .08s linear;
+}
+#dashboardSiteMap .topo3d-north #dashboardTopo3DNorthLabel{
+  display:block;
+  color:#9fb4ca;
+  margin-top:2px;
+  white-space:nowrap;
+}
+#dashboardSiteMap .topo3d-measure{
+  position:absolute;
+  right:10px;
+  bottom:10px;
+  z-index:6;
+  width:220px;
+  box-sizing:border-box;
+  padding:7px 8px;
+  border:1px solid #29435d;
+  border-radius:7px;
+  background:#071321f5;
+  color:#dbe8f5;
+  font:700 8px/1.2 Arial,sans-serif;
+  box-shadow:0 4px 14px #02081266;
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(4px);
+  transition:opacity .14s ease,transform .14s ease,visibility .14s ease;
+  pointer-events:none;
+}
+#dashboardSiteMap .topo3d-measure.open{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+  pointer-events:auto;
+}
+#dashboardSiteMap .topo3d-measure strong{
+  display:block;
+  margin-bottom:5px;
+  font-size:8px;
+}
+#dashboardSiteMap .topo3d-measure-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:4px;
+}
+#dashboardSiteMap .topo3d-measure label{
+  color:#9fb4ca;
+  font-weight:700;
+}
+#dashboardSiteMap .topo3d-measure input{
+  width:100%;
+  height:22px;
+  margin-top:2px;
+  box-sizing:border-box;
+  border:1px solid #29435d;
+  border-radius:4px;
+  background:#0c1d30;
+  color:#dbe8f5;
+  padding:2px 5px;
+  font:700 8px/1 Arial,sans-serif;
+}
+#dashboardSiteMap .topo3d-measure-actions{
+  display:flex;
+  gap:4px;
+  margin-top:5px;
+}
+#dashboardSiteMap .topo3d-measure-actions button{
+  height:22px;
+  border:1px solid #29435d;
+  border-radius:4px;
+  background:#0c1d30;
+  color:#dbe8f5;
+  padding:0 7px;
+  cursor:pointer;
+  font:700 8px/1 Arial,sans-serif;
+}
+#dashboardSiteMap .topo3d-measure-actions button:hover{
+  border-color:#4d8dff;
+  background:#15304d;
+}
+#dashboardSiteMap #dashboardTopo3DMeasureResult{
+  margin-top:5px;
+  color:#dbe8f5;
+}
+#dashboardSiteMap .measure-result-main{font-size:9px;line-height:1.35}
+#dashboardSiteMap .measure-result-sub{margin-top:2px;color:#8fa8c2;font-size:7px;line-height:1.2}
+
+#dashboardSiteMap .topo3d-measure-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:6;pointer-events:none;overflow:visible}
+#dashboardSiteMap .topo3d-measure-line{display:none;stroke:#ffffff;stroke-width:2;stroke-dasharray:8 6;filter:drop-shadow(0 1px 2px #020812);}
+#dashboardSiteMap .topo3d-measure-line.visible{display:block}
+#dashboardSiteMap .topo3d-point-marker{
+  position:absolute;
+  z-index:7;
+  width:20px;
+  height:20px;
+  margin:-10px 0 0 -10px;
+  border:2px solid #fff;
+  border-radius:50%;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  color:#fff;
+  font:900 9px/16px Arial,sans-serif;
+  pointer-events:none;
+  box-shadow:0 2px 7px #02081288;
+}
+#dashboardSiteMap .topo3d-point-marker.visible{display:flex}
+#dashboardSiteMap .topo3d-point-marker span{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+#dashboardSiteMap .topo3d-point-marker small{position:absolute;left:14px;top:-3px;white-space:nowrap;padding:2px 4px;border:1px solid #29435d;border-radius:3px;background:#071321e8;color:#dbe8f5;font:700 7px/1.2 Arial,sans-serif}
+#dashboardSiteMap .topo3d-point-marker.point-a{background:#2563eb}
+#dashboardSiteMap .topo3d-point-marker.point-b{background:#ef4444}
+#dashboardSiteMap .topo3d-measure-pick-actions{
+  display:flex;
+  gap:4px;
+  margin-top:5px;
+}
+#dashboardSiteMap .topo3d-measure-pick-actions button{
+  flex:1;
+  height:22px;
+  border:1px solid #29435d;
+  border-radius:4px;
+  background:#0c1d30;
+  color:#dbe8f5;
+  padding:0 7px;
+  cursor:pointer;
+  font:700 8px/1 Arial,sans-serif;
+}
+#dashboardSiteMap .topo3d-measure-pick-actions button:hover,
+#dashboardSiteMap .topo3d-measure-pick-actions button.is-active{
+  border-color:#5b9aff;
+  background:#15304d;
+  color:#fff;
+}
+
+/* Keep the north indicator in normal flow when it is shown inside the guide. */
+#dashboardSiteMap .topo3d-guide{
+  width:min(232px,calc(100% - 20px));
+  max-height:calc(100% - 58px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  overflow-wrap:anywhere;
+  scrollbar-width:thin;
+}
+#dashboardSiteMap .topo3d-guide .topo3d-north{
+  position:static;
+  inset:auto;
+  z-index:auto;
+  min-width:0;
+  width:100%;
+  margin:6px 0;
+  padding:6px 7px;
+  box-sizing:border-box;
+}
+#dashboardSiteMap .topo3d-guide .topo3d-north #dashboardTopo3DNorthLabel{
+  white-space:normal;
+  overflow-wrap:anywhere;
+  line-height:1.35;
+}
+#dashboardSiteMap .topo3d-guide #dashboardTopo3DCoordinate{
+  overflow-wrap:anywhere;
+  line-height:1.4;
+  margin-bottom:4px;
+}
+@media(max-width:600px){
+  #dashboardSiteMap .topo3d-guide{
+    width:min(220px,calc(100% - 20px));
+    right:10px;
+    bottom:10px;
+  }
+}
+
+/* Keep utility controls away from terrain markers and their labels. */
+#dashboardSiteMap .topo3d-guide-trigger{
+  right:auto;
+  left:10px;
+  bottom:44px;
+}
+#dashboardSiteMap .topo3d-measure-trigger{
+  right:auto;
+  left:44px;
+  bottom:44px;
+}

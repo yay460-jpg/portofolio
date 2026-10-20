@@ -1,0 +1,199 @@
+/* NIK employee register backed by the canonical A.3 worksheet. */
+#equipmentNIKListModal .equipment-nik-modal{
+ width:min(1120px,calc(100vw - 40px));
+ max-width:1120px;
+}
+#equipmentNIKListModal .modalbody.equipment-nik-modal-body{
+ display:flex;
+ flex-direction:column;
+ align-items:stretch;
+ gap:12px;
+ padding:14px;
+ min-width:0;
+ min-height:0;
+ overflow:hidden;
+}
+#equipmentNIKListModal .equipment-nik-toolbar{
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:12px;
+ color:var(--muted);
+ font-size:10px;
+}
+#equipmentNIKListModal .equipment-nik-table{
+ display:block;
+ border:1px solid #28425c;
+ border-radius:8px;
+ background:#0c1b2c;
+ width:100%;
+ min-width:0;
+ max-width:100%;
+ max-height:min(60vh,580px);
+ overflow:auto;
+ overscroll-behavior:contain;
+}
+#equipmentNIKListModal .equipment-nik-row{
+ display:grid;
+ grid-template-columns:120px 120px 145px minmax(110px,1fr) minmax(145px,1.2fr) minmax(160px,1.4fr) 90px 140px;
+ width:100%;
+ min-width:990px;
+ box-sizing:border-box;
+ align-items:center;
+}
+#equipmentNIKListModal .equipment-nik-head{
+ position:sticky;
+ top:0;
+ z-index:1;
+ background:#14263b;
+ color:#8fa5bb;
+ font-size:10px;
+ font-weight:750;
+ text-transform:uppercase;
+ letter-spacing:.025em;
+}
+#equipmentNIKListModal .equipment-nik-row:not(.equipment-nik-head){
+ border-bottom:1px solid #223b55;
+ color:#dce8f5;
+}
+#equipmentNIKListModal .equipment-nik-row:not(.equipment-nik-head):hover{background:#12273d}
+#equipmentNIKListModal .equipment-nik-cell{
+ min-width:0;
+ box-sizing:border-box;
+ padding:11px 9px;
+ overflow-wrap:anywhere;
+ font-size:9.5px;
+}
+#equipmentNIKListModal .equipment-nik-head .equipment-nik-cell{white-space:nowrap}
+#equipmentNIKListModal .equipment-nik-empty{
+ padding:24px 12px;
+ text-align:center;
+ color:var(--muted);
+ font-size:11px;
+}
+#equipmentNIKListModal .equipment-nik-empty.error{color:#fca5a5}
+#equipmentNIKListModal > .modal.equipment-nik-modal > .modalfoot:empty{
+ display:none;
+ flex:0 0 0;
+ min-height:0;
+ height:0;
+ padding:0;
+ border:0;
+ margin:0;
+}
+@media(max-width:720px){
+ #equipmentNIKListModal .equipment-nik-modal{width:calc(100vw - 24px);max-width:none}
+ #equipmentNIKListModal .equipment-nik-row{min-width:900px}
+ #equipmentNIKListModal .equipment-nik-toolbar{align-items:flex-start}
+}
+
+/* NIK register controls: compact create form and client-side list filters. */
+#equipmentNIKListModal .equipment-nik-tools{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+#equipmentNIKListModal .equipment-nik-tools input,
+#equipmentNIKListModal .equipment-nik-tools select{height:30px;min-width:135px;max-width:220px;box-sizing:border-box;border:1px solid #28425c;border-radius:7px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font:inherit;font-size:10px}
+#equipmentNIKListModal .equipment-nik-tools input{width:190px}
+#equipmentNIKListModal .equipment-nik-form{border:1px solid #28425c;border-radius:8px;background:#102136;padding:12px}
+#equipmentNIKListModal .equipment-nik-form[hidden]{display:none}
+#equipmentNIKListModal .equipment-nik-form-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+#equipmentNIKListModal .equipment-nik-form-grid label{display:flex;flex-direction:column;gap:5px;color:#8fa5bb;font-size:10px;font-weight:600;text-transform:uppercase}
+#equipmentNIKListModal .equipment-nik-form-grid input{width:100%;min-width:0;box-sizing:border-box;height:32px;border:1px solid #28425c;border-radius:6px;background:#0c1b2c;color:#dce8f5;padding:0 9px;font-family:inherit;font-size:11px;font-weight:400;line-height:normal;text-transform:none}
+#equipmentNIKListModal .equipment-nik-form-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px}
+#equipmentNIKListModal #equipmentNIKFormMessage{margin-right:auto;color:#9fb3c8;font-size:10px}
+#equipmentNIKListModal #equipmentNIKFormMessage:not(:empty){max-width:70%;overflow-wrap:anywhere}
+#equipmentNIKListModal #equipmentNIKFormMessage.error{color:#fca5a5}
+#equipmentNIKListModal .equipment-nik-tools button:disabled,
+#equipmentNIKListModal .equipment-nik-form-actions button:disabled{opacity:.55;cursor:wait}
+@media(max-width:760px){
+ #equipmentNIKListModal .equipment-nik-toolbar{align-items:stretch;flex-direction:column}
+ #equipmentNIKListModal .equipment-nik-tools{justify-content:flex-start}
+ #equipmentNIKListModal .equipment-nik-tools input{width:100%;max-width:none;flex:1 1 100%}
+ #equipmentNIKListModal .equipment-nik-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+#equipmentNIKListModal .equipment-nik-actions{display:flex;align-items:center;gap:5px;white-space:nowrap}
+#equipmentNIKListModal .equipment-nik-actions .control{padding:5px 8px;min-width:0}
+#equipmentNIKListModal .equipment-nik-actions .danger{border-color:#8b3944;color:#fecaca}
+
+
+/* Keep the edit heading compact and visually aligned with the register controls. */
+#equipmentNIKListModal .equipment-nik-form-title{font-size:13px;font-weight:600;line-height:1.25;margin:0 0 4px}
+
+
+/* Keep native wheel scrolling while hiding the visual scrollbar in the NIK register. */
+#equipmentNIKListModal .equipment-nik-table{overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
+#equipmentNIKListModal .equipment-nik-table::-webkit-scrollbar{display:none;width:0;height:0}
+#equipmentNIKListModal .equipment-nik-title-icon{fill:none;stroke:currentColor}
+
+
+/* Employee profile photo preview and dedicated Profile column. */
+#equipmentNIKListModal .equipment-nik-profile-action{display:flex;align-items:center;justify-content:flex-start}
+#equipmentNIKListModal .equipment-nik-profile-action .control{padding:5px 10px;min-width:0}
+#equipmentNIKProfileModal .equipment-nik-profile-modal{
+ width:min(700px,calc(100vw - 40px));
+ max-width:700px;
+ height:min(500px,calc(100dvh - 64px));
+ max-height:calc(100dvh - 48px);
+ display:flex;
+ flex-direction:column;
+ overflow:hidden;
+}
+#equipmentNIKProfileModal .equipment-nik-profile-modal>.modalhead,
+#equipmentNIKProfileModal .equipment-nik-profile-modal>.modalfoot{flex:0 0 auto}
+#equipmentNIKProfileModal .equipment-nik-profile-body{
+ display:flex;
+ flex:1 1 auto;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ gap:8px;
+ min-width:0;
+ min-height:0;
+ padding:10px 14px;
+ overflow:hidden;
+}
+#equipmentNIKProfileModal .equipment-nik-profile-image{
+ display:block;
+ flex:1 1 auto;
+ min-width:0;
+ min-height:0;
+ width:auto;
+ height:auto;
+ max-width:100%;
+ max-height:calc(100dvh - 230px);
+ object-fit:contain;
+ border:1px solid #28425c;
+ border-radius:8px;
+ background:#0c1b2c;
+}
+#equipmentNIKProfileModal .equipment-nik-profile-image[hidden]{display:none}
+#equipmentNIKProfileModal .equipment-nik-profile-message{flex:0 0 auto;margin:0;color:var(--muted);font-size:11px;text-align:center;overflow-wrap:anywhere}
+
+
+/* Keep profile actions together in the modal footer, below the photo area. */
+#equipmentNIKProfileModal .modalfoot.equipment-nik-profile-footer{
+ display:flex;
+ flex:0 0 auto;
+ align-items:center;
+ justify-content:center;
+ min-height:70px;
+ padding:10px 14px;
+}
+#equipmentNIKProfileModal .equipment-nik-profile-actions-tools{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:8px;
+ flex-wrap:wrap;
+}
+#equipmentNIKProfileModal .equipment-nik-profile-actions-help{
+ flex:0 0 auto;
+ width:100%;
+ margin:0;
+ color:var(--muted);
+ font-size:10px;
+ text-align:center;
+}
+#equipmentNIKProfileModal #equipmentNIKProfileUpload:disabled,
+#equipmentNIKProfileModal #equipmentNIKProfileClear:disabled{opacity:.6;cursor:wait}
+#equipmentNIKProfileModal #equipmentNIKProfileClear{border-color:#8b3944;color:#fecaca}
+#equipmentNIKProfileModal #equipmentNIKProfileFile{display:none}
