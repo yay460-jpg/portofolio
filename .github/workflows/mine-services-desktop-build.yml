@@ -2,6 +2,13 @@ name: Mine Services Windows Desktop Installer
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - v42-workspace
+    paths:
+      - '.github/workflows/mine-services-desktop-build.yml'
+      - 'lithosite-Mine-Services/**'
+      - 'Engine_Share/Security_Guard/Host_Guard/**'
 
 permissions:
   contents: read
