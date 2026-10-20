@@ -19,5 +19,5 @@ for relative in DATA_ROOTS:
 hiddenimports = collect_submodules("webview") + collect_submodules("openpyxl") + ["security_guard", "mine_services"]
 a = Analysis([str(MODULE_ROOT / "desktop-host" / "desktop_app.py")], pathex=[str(MODULE_ROOT / "src"), str(REPO_ROOT / "Engine_Share" / "Security_Guard" / "Host_Guard")], binaries=[], datas=datas, hiddenimports=hiddenimports, hookspath=[], hooksconfig={}, runtime_hooks=[], excludes=["pytest", "tkinter"], noarchive=False)
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="LithositeMineServices", debug=False, bootloader_ignore_signals=False, strip=False, upx=False, console=False)
+exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="LithositeMineServices", debug=False, bootloader_ignore_signals=False, strip=False, upx=False, console=False, icon=str(REPO_ROOT / "lithosite-Mine-Geologist" / "assets" / "favicon.ico"))
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name="LithositeMineServices")
