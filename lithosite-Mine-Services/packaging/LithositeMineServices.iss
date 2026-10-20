@@ -15,6 +15,7 @@ OutputBaseFilename=Lithosite-Mine-Services-Setup-{#AppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\\..\\lithosite-Mine-Geologist\\assets\\favicon.ico
 ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=admin
 [Files]
@@ -24,7 +25,7 @@ Source: "redist\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; DestDir: "{tmp}";
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 [Tasks]
-Name: "desktopicon"; Description: "Create a Desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
+Name: "desktopicon"; Description: "Create a Desktop shortcut"; GroupDescription: "Additional shortcuts:"
 [Run]
 Filename: "{tmp}\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; Parameters: "/silent /install"; StatusMsg: "Installing the WebView2 runtime for offline desktop use..."; Flags: waituntilterminated
 [Code]
