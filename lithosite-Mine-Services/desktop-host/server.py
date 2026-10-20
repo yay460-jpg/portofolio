@@ -1640,6 +1640,10 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
+    # First-run bootstrap is strictly create-if-missing; existing operational data is never replaced.
+    from mine_services.database_factory import ensure_a3_database
+
+    ensure_a3_database(DB_PATH)
     print(f"Mine Services Desktop Host — http://{HOST}:{PORT}")
     print(f"UI: http://{HOST}:{PORT}/")
     print(f"Database: {DB_PATH}")
