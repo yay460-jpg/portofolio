@@ -1,4 +1,4 @@
-""""Create an empty canonical A.3 workbook for a fresh installation.
+"""Create an empty canonical A.3 workbook for a fresh installation.
 
 This factory is intentionally create-if-missing. It never copies or overwrites
 an existing operational workbook.
