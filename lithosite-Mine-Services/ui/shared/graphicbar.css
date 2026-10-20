@@ -1,0 +1,191 @@
+/* Shared bar-chart primitives and Material Movement chart presentation. */
+.graphic-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--graphic-bar-gap, 6px);
+  min-width: 0;
+  min-height: 0;
+}
+.graphic-bar__item {
+  display: block;
+  flex: 0 1 var(--graphic-bar-width, 9px);
+  min-width: 2px;
+  min-height: 0;
+  border-radius: var(--graphic-bar-radius, 3px 3px 0 0);
+  background: var(--graphic-bar-color, #3b82f6);
+}
+.graphic-bar--material {
+  position: relative;
+  height: calc(100% - 16px);
+  border-bottom: 0;
+}
+.graphic-bar--material::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  border-bottom: 1px solid #2b425a;
+  pointer-events: none;
+  z-index: 1;
+}
+.graphic-bar__group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  min-width: 38px;
+}
+.graphic-bar__group-area {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+}
+.graphic-bar__group-label {
+  height: 18px;
+  line-height: 18px;
+  font-size: 9px;
+  color: #b9c9d9;
+  white-space: nowrap;
+}
+.graphic-bar__empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7f95aa;
+  font-size: 9px;
+  width: 100%;
+}
+#dashboardScreen .graphic-bar--material .chart-material-bar {
+  width: 7px;
+  min-height: 0;
+}
+#dashboardScreen .graphic-bar--material .chart-material-ore,
+#dashboardScreen .chartdot-ore { background: #3b82f6; }
+#dashboardScreen .graphic-bar--material .chart-material-ob,
+#dashboardScreen .chartdot-ob { background: #f59e0b; }
+#dashboardScreen .graphic-bar--material .chart-material-quarry,
+#dashboardScreen .chartdot-quarry { background: #22c55e; }
+#dashboardScreen .graphic-bar--material .chart-material-topsoil,
+#dashboardScreen .chartdot-topsoil { background: #a78bfa; }
+#dashboardScreen .chartdot-sr { background: #f87171; }
+#dashboardScreen .chartkey-retase { white-space: nowrap; }
+#dashboardScreen .chartkey-coming-soon { color: #93a6ba; font-style: italic; }
+#dashboardScreen .chartkey-name { flex: 1; min-width: 0; }
+#dashboardScreen .chartkey-value {
+  margin-left: 4px;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+#dashboardScreen .chartkey-sr .chartkey-value { color: inherit; }
+
+/* Keep the chart body inside its panel, below the 35px panel header. */
+#dashboardScreen .chart {
+  height: calc(100% - 35px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Keep the Material Movement plot and its date labels inside the available panel height. */
+#dashboardScreen .chart > .graphic-bar--material {
+  height: calc(100% - 16px);
+  margin: 0 120px 0 10px;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* Reserve an explicit in-bounds row for date labels so the panel cannot clip them. */
+#dashboardScreen .graphic-bar--material .graphic-bar__group {
+  box-sizing: border-box;
+  min-height: 0;
+}
+#dashboardScreen .graphic-bar--material .graphic-bar__group-area {
+  min-height: 0;
+  flex: 1 1 auto;
+}
+#dashboardScreen .graphic-bar--material .graphic-bar__group-label {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 18px;
+  box-sizing: border-box;
+  line-height: 18px;
+  text-align: center;
+}
+
+
+/* Shared horizontal record bars used by the Rainfall history view. */
+.graphic-bar--rainfall-records {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-content: stretch;
+  justify-items: stretch;
+  align-content: start;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+.graphic-bar__record-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #213b55;
+  border-radius: 8px;
+  background: #0b1b2d;
+}
+.graphic-bar__record-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.graphic-bar__record-meta strong {
+  color: #e6f2ff;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.graphic-bar__record-meta span {
+  color: #809bb7;
+  font-size: 9px;
+}
+.graphic-bar__record-track {
+  grid-column: 1;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #142c43;
+}
+.graphic-bar__record-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2878c7, #56b4f4);
+  transition: width .2s ease;
+}
+.graphic-bar__record-value {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  color: #9fd4ff;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.graphic-bar__record-empty {
+  margin: 0;
+  padding: 18px 12px;
+  text-align: center;
+  border: 1px dashed #34516e;
+  border-radius: 8px;
+  color: #adc2d9;
+  font-size: 11px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .graphic-bar__record-fill { transition: none !important; }
+}

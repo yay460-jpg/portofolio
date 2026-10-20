@@ -1,0 +1,656 @@
+/* Lithosite Mine Services — Operations module styles. Shared shell and control primitives live in ui/shared. */
+#operationsScreen{
+  position:relative;
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  width:100%;
+  height:auto;
+  min-width:0;
+  min-height:0;
+  margin:0;
+}
+/* Operations screen styles. */
+#operationsScreen{--ops-panel:#101f31;--ops-line:#28425c;--ops-muted:#8ea3ba;--ops-blue:#4d8dff;box-sizing:border-box}
+#operationsScreen *{box-sizing:border-box}
+#operationsScreen .boundary{flex:1 1 auto;height:auto;min-width:0;min-height:0;display:flex;flex-direction:column;border:1px dashed #2b4560;border-radius:12px;background:#0e1d2e;padding:20px;position:relative;overflow:hidden}
+#operationsScreen .head{height:48px;min-height:48px;flex:0 0 48px;display:flex;justify-content:space-between}
+
+
+
+
+#operationsScreen .field input:hover,
+#operationsScreen .field select:hover,
+#operationsScreen .field input:focus,
+#operationsScreen .field select:focus{
+  border-color:#4d8dff;
+}
+#operationsScreen .field input:focus,
+#operationsScreen .field select:focus{
+  box-shadow:0 0 0 1px #4d8dff44;
+}
+#operationsScreen .panel{background:var(--ops-panel);border:1px solid var(--ops-line);border-radius:9px;box-shadow:0 2px 9px #02081255;overflow:hidden}#operationsScreen .filters{height:auto;min-height:0;flex-shrink:0;grid-template-columns:repeat(8,minmax(0,1fr)) auto}
+#operationsScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+#operationsScreen .tablemeta{font-size:9px;color:var(--ops-muted)}#operationsScreen .grid{height:auto}
+#operationsScreen .tr{
+  display:grid;
+  grid-template-columns:85px 55px 55px 110px 120px 120px 110px minmax(100px,1fr) 80px 75px 75px 90px 105px 80px;
+  min-width:0;
+  width:100%;
+  align-items:center;
+}
+#operationsScreen .td{min-height:39px;border-bottom:1px solid #223b55;color:#dce8f5;font-size:9.5px}#operationsScreen .cell{padding:0 9px}
+
+#operationsScreen .validated{background:#123d2b;color:#4ade80}
+#operationsScreen .mixed{background:#3d3420;color:#fbbf24}
+#operationsScreen .draft{background:#493715;color:#fbbf24}
+#operationsScreen .rejected{background:#4b2024;color:#f87171}
+#operationsScreen .voided{background:#27364a;color:#a9b8c9}
+#operationsScreen .row-actions{display:flex;gap:4px}
+#operationsScreen .mini{height:24px;padding:3px 7px;font-size:8px}
+#operationsScreen .muted{color:#8fa5bb}
+
+/* Operation data-entry form layout. Shared modal shell owns the modal frame. */
+#modal .modalbody{
+  padding:16px;
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:12px;
+}
+#modal .modalbody>.field{grid-column:span 2}
+@media(max-width:1400px){#operationsScreen .boundary{padding:18px}#operationsScreen .filters{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:10px}}
+
+#timelineModal.modalback{
+  position:fixed;
+  inset:0;
+  background:#02081299;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:25;
+}
+#timelineModal.modalback.show{display:flex}
+#timelineModal .modal{
+  width:min(1050px,calc(100vw - 48px));
+  max-height:calc(100vh - 48px);
+  overflow:hidden;
+  background:#101f31;
+  border:1px solid #31506d;
+  border-radius:12px;
+  box-shadow:0 20px 70px #0009;
+  display:flex;
+  flex-direction:column;
+}
+#timelineModal .modalhead{
+  height:48px;
+  min-height:48px;
+  padding:0 16px;
+  border-bottom:1px solid #29435d;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+#timelineModal .timeline-meta{padding:10px 16px 0;color:#8fa5bb;font-size:10px}
+#timelineModal .timeline-summary{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:8px;
+  padding:10px 16px;
+  color:#dce8f5;
+  font-size:9.5px;
+}
+#timelineModal .timeline-summary span{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  background:#0c1b2c;
+  border:1px solid #29435d;
+  border-radius:7px;
+  padding:7px 9px;
+}
+#timelineModal .timeline-summary b{
+  color:#8fa5bb;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.25px;
+  font-weight:600;
+}
+#timelineModal .timeline-summary strong{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#dce8f5;
+  font-size:9.5px;
+  font-weight:600;
+}
+#timelineModal .timeline-grid{
+  margin:0 16px 16px;
+  border:1px solid #29435d;
+  border-radius:8px;
+  overflow:auto;
+  max-height:55vh;
+}
+#timelineModal .timeline-tr{
+  display:grid;
+  grid-template-columns:90px 140px 90px 70px 80px 65px 85px 85px 90px 70px 130px;
+  min-width:1000px;
+  align-items:center;
+}
+#timelineModal .timeline-tr .row-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  flex-wrap:nowrap;
+  gap:6px;
+  overflow:visible;
+}
+#timelineModal .timeline-tr .row-actions .mini{
+  flex:0 0 auto;
+  width:58px;
+  min-width:58px;
+  height:28px;
+  padding:4px 7px;
+  justify-content:center;
+  white-space:nowrap;
+}
+#timelineModal .timeline-th{
+  height:34px;
+  background:#12243a;
+  color:#8fa5bb;
+  font-size:8px;
+  text-transform:uppercase;
+  font-weight:600;
+  letter-spacing:.3px;
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+#timelineModal .timeline-tr:not(.timeline-th){
+  min-height:39px;
+  border-bottom:1px solid #223b55;
+  color:#dce8f5;
+  font-size:9.5px;
+}#timelineModal .timeline-tr .cell{padding:0 8px}
+
+
+
+
+
+/* Cross-module traceability: Operations → Maintenance. */
+#operationsScreen .maintenance-link{color:#93c5fd;border-color:#315a86;min-width:64px;justify-content:center}
+#operationsScreen .maintenance-link:hover{border-color:#60a5fa;background:#16304b}
+
+
+
+
+
+
+
+
+/* Work Timeline header parity with Maintenance Timeline.
+   Keep the existing operations icon and timeline structure; only normalize header typography. */
+#timelineModal .modalhead{
+  height:44px;
+  min-height:44px;
+  padding:0 14px;
+}
+#timelineModal .modalhead .ptitle{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  font-size:11.5px;
+  font-weight:700;
+  line-height:1;
+  white-space:nowrap;
+}
+#timelineModal .modalhead .ptitle .icon{
+  flex:0 0 15px;
+  width:15px;
+  height:15px;
+}
+
+@media(max-width:900px){
+  #timelineModal .timeline-summary{grid-template-columns:repeat(3,minmax(0,1fr));}
+}
+@media(max-width:560px){
+  #timelineModal .timeline-summary{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+
+/* Warn users that Dumping should be recorded as the Hauling activity. */
+#modal .field-warning{
+  display:block;
+  margin-top:5px;
+  color:#fbbf24;
+  font-size:9.5px;
+  line-height:1.35;
+}
+#modal .field-warning[hidden]{display:none!important}
+
+
+/* Trace target highlight from Maintenance linked-operation navigation. */
+#operationsScreen .operation-trace-highlight{background:#173753!important;outline:1px solid #60a5fa;box-shadow:inset 0 0 0 1px #60a5fa55;animation:operationsTracePulse .8s ease-in-out 3}
+@keyframes operationsTracePulse{0%,100%{background:#10243a}50%{background:#1e4568}}
+
+/* Operations Graphics icon control retained while the modal is removed. */
+#operationsScreen .operations-graphics-button{width:32px;height:32px;min-width:32px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#dbeafe;border-color:#365a7c;background:#10263c}
+#operationsScreen .operations-graphics-button:hover{color:#fff;border-color:#4d8dff;background:#173653}
+#operationsScreen .operations-graphics-button:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+#operationsScreen .operations-graphics-icon{width:16px;height:16px;display:block}
+
+
+/* Operations Graphics: use the Equipment Graphics modal proportions and card rhythm. */
+#operationsGraphicsModal .operations-graphics-modal{width:min(900px,calc(100vw - 40px));max-width:900px;max-height:calc(100vh - 100px);overflow:hidden}
+#operationsGraphicsModal .operations-graphics-body{display:grid;grid-template-columns:400px minmax(0,1fr);gap:12px;padding:14px;max-height:calc(100vh - 160px);overflow:auto}
+#operationsGraphicsModal .operations-graphics-card,#operationsGraphicsModal .operations-hauling-panel{min-width:0;border:1px solid #28425c;border-radius:9px;background:#0c1b2c;padding:12px}
+#operationsGraphicsModal .operations-graphics-card,#operationsGraphicsModal .operations-hauling-card{height:400px;box-sizing:border-box;min-height:0}
+#operationsGraphicsModal .operations-graphics-card-head{margin-bottom:12px}
+#operationsGraphicsModal .operations-graphics-card-head strong,#operationsGraphicsModal .operations-hauling-heading strong{display:block;color:#dce8f5;font-size:11px}
+#operationsGraphicsModal .operations-graphics-card-head span,#operationsGraphicsModal .operations-hauling-heading span{display:block;color:#8fa5bb;font-size:9px;margin-top:4px;line-height:1.4}
+#operationsGraphicsModal .operations-material-content{display:flex;align-items:center;justify-content:center;gap:12px;min-height:220px}
+#operationsGraphicsModal .operations-material-donut{width:150px;height:150px;flex:0 0 150px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#3b82f6 0 34.72%,#f59e0b 34.72% 82.63%,#22c55e 82.63% 90.99%,#a78bfa 90.99% 100%)}
+#operationsGraphicsModal .operations-material-hole{width:78px;height:78px;border-radius:50%;background:#0c1b2c;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#operationsGraphicsModal .operations-material-hole strong{font-size:20px;color:#f1f5f9}
+#operationsGraphicsModal .operations-material-hole span{font-size:9px;color:#9fb2c7}
+#operationsGraphicsModal .operations-material-legend{display:grid;gap:9px;flex:1;min-width:0}
+#operationsGraphicsModal .operations-material-legend>div{display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:6px;align-items:center;color:#dce8f5;font-size:9px}
+#operationsGraphicsModal .operations-material-legend i,#operationsGraphicsModal .operations-chart-legend i{width:8px;height:8px;border-radius:50%;background:var(--dot);display:block}
+#operationsGraphicsModal .operations-material-legend b{white-space:nowrap;font-size:9px}
+#operationsGraphicsModal .operations-material-legend small{font-size:8px;color:#8fa5bb;font-weight:400}
+#operationsGraphicsModal .operations-material-legend hr{border:0;border-top:1px solid #28425c;width:100%;margin:1px 0}
+#operationsGraphicsModal .operations-material-legend .operations-sr-row{display:flex;justify-content:space-between}
+#operationsGraphicsModal .operations-coming-soon{border:1px solid #365a7c;border-radius:20px;padding:4px 8px;color:#9fb2c7;white-space:nowrap}
+#operationsGraphicsModal .operations-hauling-card{padding:6px 12px 12px;display:flex;flex-direction:column;gap:12px}
+#operationsGraphicsModal .operations-hauling-heading{display:flex;align-items:center;justify-content:flex-start;gap:0;min-height:48px}
+#operationsGraphicsModal .operations-hauling-emoji{display:none}
+#operationsGraphicsModal .operations-hauling-heading>div{text-align:left;min-width:0}
+#operationsGraphicsModal .operations-hauling-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.92fr);gap:10px;align-items:start}
+/* Keep the downtime and Unit Timeline stack inside the hauling grid; never offset it into the footer. */
+#operationsGraphicsModal .operations-hauling-side{transform:none;min-width:0;display:grid;gap:10px;align-content:start}
+#operationsGraphicsModal .operations-hauling-panel{padding:10px}
+#operationsGraphicsModal .operations-panel-title{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+#operationsGraphicsModal .operations-panel-title strong{font-size:11px;display:block}
+#operationsGraphicsModal .operations-panel-title span{font-size:9px;color:#9fb2c7;display:block;line-height:1.4;margin-top:4px}
+#operationsGraphicsModal .operations-chart-legend{display:grid;gap:6px;flex:0 0 auto}
+#operationsGraphicsModal .operations-chart-legend span{display:flex;gap:5px;align-items:center;white-space:nowrap}
+#operationsGraphicsModal .operations-hauling-chart{display:grid;grid-template-columns:30px minmax(0,1fr);gap:5px;margin-top:16px;height:180px}
+#operationsGraphicsModal .operations-ylabels{display:flex;flex-direction:column;justify-content:space-between;color:#9fb2c7;font-size:8px;text-align:right;padding-bottom:17px}
+#operationsGraphicsModal .operations-chart-plot{position:relative;min-width:0;display:flex;flex-direction:column;justify-content:flex-end}
+#operationsGraphicsModal .operations-chart-grid{position:absolute;inset:0 0 17px;background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(20% - 1px),#28425c calc(20% - 1px),#28425c 20%);border-bottom:1px solid #51677e}
+#operationsGraphicsModal .operations-chart-bars{position:absolute;inset:0 2px 0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;align-items:stretch}
+#operationsGraphicsModal .operations-chart-category{height:100%;min-width:0;display:grid;grid-template-rows:minmax(0,1fr) 18px}
+#operationsGraphicsModal .operations-chart-bar-pair{min-height:0;display:flex;align-items:flex-end;justify-content:center;gap:3px}
+#operationsGraphicsModal .operations-chart-bars i,#operationsGraphicsModal .operations-chart-bars b{display:block;width:min(12px,45%);border-radius:4px 4px 0 0;background:linear-gradient(#5cf0b0,#10b981)}
+#operationsGraphicsModal .operations-chart-bars b{background:linear-gradient(#26d9ed,#06b6d4)}
+#operationsGraphicsModal .operations-chart-category-label{display:flex;align-items:center;justify-content:center;min-width:0;color:#cbd5e1;font-size:8px;text-align:center;white-space:nowrap}
+#operationsGraphicsModal .operations-chart-xlabels{display:none}
+#operationsGraphicsModal .operations-chart-note{font-size:8px;color:#8fa5bb;text-align:right;margin:8px 0 0}
+#operationsGraphicsModal .operations-downtime-heading{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:8px;align-items:center}
+#operationsGraphicsModal .operations-wrench{width:38px;height:38px;display:grid;place-items:center;font-size:19px;line-height:1;background:#4b1e2b;border-radius:50%;padding:0}
+#operationsGraphicsModal .operations-downtime-heading>div strong{font-size:10px;line-height:1.35;display:block}
+#operationsGraphicsModal .operations-downtime-heading>div span{font-size:8px;line-height:1.4}
+#operationsGraphicsModal .operations-downtime-heading>b{font-size:20px;color:#ff626b;white-space:nowrap}
+#operationsGraphicsModal .operations-downtime-heading>b small{display:block;font-size:8px;text-align:right;color:#9fb2c7}
+#operationsGraphicsModal .operations-downtime-bar{height:8px;border-radius:9px;background:#1b334b;display:flex;overflow:hidden;margin:10px 0 7px}
+#operationsGraphicsModal .operations-downtime-bar i{width:68.18%;background:#ff4d5a}
+#operationsGraphicsModal .operations-downtime-bar b{flex:1;background:#ffb31a}
+#operationsGraphicsModal .operations-downtime-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:8px;color:#9fb2c7}
+#operationsGraphicsModal .operations-downtime-legend span{display:flex;align-items:center;gap:5px}
+#operationsGraphicsModal .operations-downtime-legend i{width:7px;height:7px;border-radius:50%;background:#ff4d5a}
+#operationsGraphicsModal .operations-downtime-legend span+span i{background:#ffb31a}
+#operationsGraphicsModal .operations-timeline-panel h3{font-size:10px;margin:0 0 10px;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
+#operationsGraphicsModal .operations-timeline-panel h3 span{display:inline;color:#9fb2c7;font-weight:400;margin:0;font-size:8px;white-space:nowrap}
+#operationsGraphicsModal .operations-timeline-hours{display:flex;justify-content:space-between;padding:0 37px 6px 104px;color:#9fb2c7;font-size:8px;white-space:nowrap}
+#operationsGraphicsModal .operations-timeline-row{display:grid;grid-template-columns:18px minmax(58px,76px) minmax(0,1fr) 32px;gap:5px;align-items:center;margin:7px 0}
+#operationsGraphicsModal .operations-truck-emoji{font-size:13px}
+#operationsGraphicsModal .operations-timeline-row>b{font-size:8px;line-height:1.2;overflow-wrap:anywhere}
+#operationsGraphicsModal .operations-timeline-row>div{height:9px;display:flex;overflow:hidden;background:#1b334b;border-radius:8px}
+#operationsGraphicsModal .operations-timeline-row>div i{background:#10c978;width:30%}
+#operationsGraphicsModal .operations-timeline-row>div em{background:#ffb31a;width:20%;font-style:normal}
+#operationsGraphicsModal .operations-timeline-row:nth-of-type(4)>div i:first-child{width:28%}
+#operationsGraphicsModal .operations-timeline-row:nth-of-type(4)>div em{width:30%}
+#operationsGraphicsModal .operations-timeline-row>strong{text-align:right;font-size:9px;color:#ffbf24}
+#operationsGraphicsModal .operations-timeline-row:last-of-type>div i{width:22%}
+#operationsGraphicsModal .operations-timeline-row>div mark{background:#ff4d5a;flex:1}
+#operationsGraphicsModal .operations-timeline-legend{display:flex;gap:9px;flex-wrap:wrap;border-top:1px solid #28425c;padding-top:8px;margin-top:9px;font-size:7px;color:#9fb2c7}
+#operationsGraphicsModal .operations-timeline-legend span{display:flex;align-items:center;gap:4px}
+#operationsGraphicsModal .operations-timeline-legend i{width:7px;height:7px;border-radius:50%;background:#10c978}
+#operationsGraphicsModal .operations-timeline-legend span:nth-child(2) i{background:#ffb31a}
+#operationsGraphicsModal .operations-timeline-legend span:nth-child(3) i{background:#ff4d5a}
+#operationsGraphicsModal .operations-calculation{border:1px dashed #28425c;border-radius:7px;padding:8px;margin-top:10px;font-size:8px;color:#b6c6d8;line-height:1.45}
+#operationsGraphicsModal .operations-calculation strong{color:#e2eaf4}
+#operationsGraphicsModal .operations-calculation p{margin:2px 0}
+#operationsGraphicsModal .operations-calculation small{font-size:7px;color:#8fa5bb}
+#operationsGraphicsModal .operations-utilization-panel{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,.8fr) minmax(0,1.7fr);gap:14px;align-items:center}
+#operationsGraphicsModal .operations-util-item{display:flex;align-items:center;gap:9px;min-width:0}
+#operationsGraphicsModal .operations-util-item>.operations-util-icon{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border:1px solid #294b68;border-radius:10px;background:#132b40;font-size:21px;line-height:1;box-sizing:border-box}#operationsGraphicsModal .operations-util-item>.operations-util-icon-tonnage{background:#103a31;border-color:#1b7958}#operationsGraphicsModal .operations-util-item>.operations-util-icon-trips{background:#103644;border-color:#16738a}#operationsGraphicsModal .operations-utilization>span{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border:1px solid #294b68;border-radius:10px;background:#132b40;font-size:21px;line-height:1;box-sizing:border-box}
+#operationsGraphicsModal .operations-util-item small,#operationsGraphicsModal .operations-utilization small{display:block;color:#9fb2c7;font-size:9px}
+#operationsGraphicsModal .operations-util-item strong{display:block;font-size:17px;color:#22d983;margin-top:3px}
+#operationsGraphicsModal .operations-util-item:nth-child(2) strong{color:#12cce8}
+#operationsGraphicsModal .operations-utilization{display:grid;grid-template-columns:34px minmax(120px,1fr) minmax(110px,1.2fr) auto;gap:9px;align-items:center;align-self:center;min-width:0}
+#operationsGraphicsModal .operations-utilization>div:nth-child(2)>strong{display:block;font-size:10px;white-space:nowrap}
+#operationsGraphicsModal .operations-util-bar{height:10px;background:#1b334b;border-radius:10px;overflow:hidden;grid-column:3;align-self:center}
+#operationsGraphicsModal .operations-util-bar i{display:block;width:68%;height:100%;background:#ffb31a;border-radius:10px}
+#operationsGraphicsModal .operations-utilization>b{font-size:20px;color:#ffbf24;line-height:1;white-space:nowrap}
+#operationsGraphicsModal .operations-util-foot{grid-column:3/5;display:flex;justify-content:space-between;align-items:center;gap:8px;color:#9fb2c7;font-size:8px;margin-top:2px;white-space:nowrap}
+#operationsGraphicsModal .operations-graphics-note{grid-column:1/-1;color:#8fa5bb;font-size:8px;margin:0;padding:0 2px}
+#operationsScreen .operations-graphics-button{width:32px;height:32px;min-width:32px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#dbeafe;border-color:#365a7c;background:#10263c}
+#operationsScreen .operations-graphics-button:hover{color:#fff;border-color:#4d8dff;background:#173653}
+#operationsScreen .operations-graphics-button:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+#operationsScreen .operations-graphics-icon{width:16px;height:16px;display:block}
+@media(max-width:760px){
+ #operationsGraphicsModal .operations-graphics-body{grid-template-columns:1fr}
+ #operationsGraphicsModal .operations-hauling-grid{grid-template-columns:1fr}
+ #operationsGraphicsModal .operations-material-content{justify-content:flex-start}
+ #operationsGraphicsModal .operations-utilization-panel{grid-template-columns:1fr}
+ #operationsGraphicsModal .operations-util-foot{grid-column:1}
+ #operationsGraphicsModal .operations-utilization{grid-template-columns:auto minmax(0,1fr) auto}
+}
+
+
+/* Operations Graphics modal geometry aligned to Equipment Graphics shell. */
+#operationsGraphicsModal.modalback{
+  position:fixed;
+  inset:0;
+  z-index:40;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:#020812b8;
+  backdrop-filter:blur(3px);
+  overflow:hidden;
+}
+#operationsGraphicsModal.modalback.show{display:flex}
+#operationsGraphicsModal .operations-graphics-modal{
+  width:min(1180px,calc(100vw - 40px));
+  max-width:1180px;
+  height:490px;
+  max-height:calc(100vh - 40px);
+  margin:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:#101f31;
+  border:1px solid #31506d;
+  border-radius:12px;
+  box-shadow:0 20px 70px #0009;
+}
+#operationsGraphicsModal .modalhead .ptitle{font-size:12px;font-weight:750;gap:8px}
+#operationsGraphicsModal .modalhead .ptitle #operationsGraphicsTitle{font-size:12px;font-weight:750;line-height:1.2}
+#operationsGraphicsModal .modalhead .ptitle .icon{width:18px;height:18px;flex:0 0 18px}
+#operationsGraphicsModal .modalhead{
+  flex:0 0 48px;
+  min-height:48px;
+  padding:0 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid #29435d;
+  background:#102033;
+}
+#operationsGraphicsModal .operations-graphics-body{
+  flex:1 1 auto;
+  min-height:0;
+  max-height:none;
+  overflow:auto;
+  overscroll-behavior:contain;
+  display:grid;
+  grid-template-columns:300px minmax(0,1fr);
+  align-content:start;
+  gap:12px;
+  padding:14px;
+}
+#operationsGraphicsModal .operations-material-card,
+#operationsGraphicsModal .operations-hauling-card{
+  min-width:0;
+  align-self:stretch;
+}
+#operationsGraphicsModal .operations-material-content{min-height:220px}
+#operationsGraphicsModal .operations-hauling-grid{
+  grid-template-columns:minmax(0,1fr) minmax(0,.92fr);
+}
+#operationsGraphicsModal .operations-activity-panel,
+#operationsGraphicsModal .operations-downtime-panel,
+#operationsGraphicsModal .operations-timeline-panel{min-width:0}
+#operationsGraphicsModal .operations-utilization-panel{min-width:0}
+@media(max-width:900px){
+  #operationsGraphicsModal.modalback{padding:12px}
+  #operationsGraphicsModal .operations-graphics-modal{width:calc(100vw - 24px);max-height:calc(100vh - 24px)}
+  #operationsGraphicsModal .operations-graphics-body{grid-template-columns:minmax(0,1fr)}
+  #operationsGraphicsModal .operations-hauling-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+@media(max-width:640px){
+  #operationsGraphicsModal .operations-hauling-grid{grid-template-columns:minmax(0,1fr)}
+}
+
+/* Align the Dump Truck — Hauling heading to the marked upper-left position. */
+#operationsGraphicsModal .operations-hauling-heading{
+  justify-content:flex-start;
+}
+#operationsGraphicsModal .operations-hauling-emoji{display:none}
+#operationsGraphicsModal .operations-hauling-heading>div{
+  text-align:left;
+}
+
+/* Align the downtime card's top edge with Daily Hauling Activity. */
+#operationsGraphicsModal .operations-downtime-panel{
+  margin-top:-49px;
+}
+/* Keep Unit Timeline in normal flow beneath the downtime card to prevent overlap. */
+#operationsGraphicsModal .operations-timeline-panel{
+  margin-top:0;
+}
+
+
+/* Operations Graphics summary: match the Equipment Graphics reference rhythm. */
+#operationsGraphicsModal .operations-utilization-panel{
+  grid-template-columns:minmax(0,.9fr) minmax(0,.8fr) minmax(0,1.7fr);
+  gap:18px;
+  align-items:center;
+  min-height:88px;
+}
+#operationsGraphicsModal .operations-util-item{
+  align-self:center;
+  min-height:44px;
+}
+#operationsGraphicsModal .operations-util-item>.operations-util-icon{
+  width:40px;
+  height:40px;
+  flex:0 0 40px;
+  font-size:25px;
+  line-height:1;
+}
+#operationsGraphicsModal .operations-utilization{
+  display:grid;
+  grid-template-columns:40px minmax(120px,1fr) minmax(150px,1.5fr) auto;
+  grid-template-rows:auto auto;
+  column-gap:10px;
+  row-gap:5px;
+  align-items:center;
+  align-self:center;
+  min-height:44px;
+}
+#operationsGraphicsModal .operations-utilization>span{
+  grid-column:1;
+  grid-row:1 / 3;
+  width:40px;
+  height:40px;
+  flex:0 0 40px;
+  font-size:25px;
+}
+#operationsGraphicsModal .operations-utilization>div:nth-child(2){
+  grid-column:2;
+  grid-row:1 / 3;
+  align-self:center;
+}
+#operationsGraphicsModal .operations-utilization>div:nth-child(2)>strong{
+  line-height:1.25;
+  font-size:11px;
+}
+#operationsGraphicsModal .operations-util-bar{
+  grid-column:3;
+  grid-row:1;
+  width:100%;
+  align-self:center;
+}
+#operationsGraphicsModal .operations-utilization>b{
+  grid-column:4;
+  grid-row:1;
+  align-self:center;
+  font-size:24px;
+  line-height:1;
+}
+#operationsGraphicsModal .operations-util-foot{
+  grid-column:3 / 5;
+  grid-row:2;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin:0;
+  padding:0;
+  line-height:1.2;
+}
+@media(max-width:760px){
+  #operationsGraphicsModal .operations-utilization-panel{grid-template-columns:1fr}
+  #operationsGraphicsModal .operations-utilization{
+    grid-template-columns:40px minmax(0,1fr) auto;
+  }
+  #operationsGraphicsModal .operations-util-bar{grid-column:2;grid-row:2}
+  #operationsGraphicsModal .operations-utilization>b{grid-column:3;grid-row:1}
+  #operationsGraphicsModal .operations-util-foot{grid-column:2 / 4;grid-row:3}
+}
+
+
+/* Set the Operations Graphics summary card height to 50px only for layout verification. */
+#operationsGraphicsModal .operations-utilization-panel{gap:10px;min-height:50px;height:50px}
+#operationsGraphicsModal .operations-utilization{
+  grid-template-columns:34px minmax(88px,.85fr) minmax(90px,1fr) auto;
+  column-gap:7px;
+  row-gap:5px;
+  min-width:0;
+}
+#operationsGraphicsModal .operations-utilization>b{font-size:20px}
+#operationsGraphicsModal .operations-util-foot{gap:6px;font-size:8px}
+@media(min-width:761px){
+  #operationsGraphicsModal .operations-utilization-panel{grid-template-columns:minmax(0,.82fr) minmax(0,.82fr) minmax(0,1.55fr)}
+}
+
+/* Lift summary contents slightly more while preserving card and element dimensions. */
+#operationsGraphicsModal .operations-utilization-panel > *{transform:translateY(-7px)}
+
+#operationsGraphicsModal .operations-graphics-help{width:32px;min-width:32px;height:32px;padding:0;display:inline-grid;place-items:center;border-radius:50%;font-size:15px;font-weight:700;line-height:1;color:#dce8f5;border:1px solid #365a7c;background:#10263d}
+#operationsGraphicsModal .operations-graphics-help:hover{background:#173652;border-color:#4b83b0}
+
+#operationsGraphicsModal .operations-graphics-head-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+
+
+/* Compact Operations Graphics guide styles live in modalsupport.css. */
+
+
+/* Keep the JS-mounted content wrapper transparent to the existing graphics grid. */
+
+/* Operations Graphics: final layout corrections for runtime data density. */
+#operationsGraphicsModal .operations-downtime-panel{margin-top:0}
+#operationsGraphicsModal .operations-timeline-row{grid-template-columns:18px minmax(82px,92px) minmax(0,1fr) 32px;gap:5px}
+#operationsGraphicsModal .operations-timeline-row>b{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+#operationsGraphicsModal .operations-utilization-panel{height:auto;min-height:88px;align-items:center}
+#operationsGraphicsModal .operations-utilization-panel>*{transform:none}
+@media(max-width:760px){
+  #operationsGraphicsModal .operations-timeline-row{grid-template-columns:18px minmax(74px,92px) minmax(0,1fr) 32px}
+}
+
+#operationsGraphicsModal .operations-graphics-content{display:contents}
+
+
+/* Operations Graphics summary row: requested compact 60px outer height. */
+#operationsGraphicsModal .operations-utilization-panel{
+  box-sizing:border-box;
+  height:60px;
+  min-height:60px;
+}
+
+
+/* Keep the Operations Graphics hauling title and period subtitle on one line. */
+#operationsGraphicsModal .operations-hauling-heading>div{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  min-width:0;
+  white-space:nowrap;
+}
+#operationsGraphicsModal .operations-hauling-heading strong{
+  display:inline;
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+#operationsGraphicsModal .operations-hauling-heading span{
+  display:inline;
+  margin-top:0;
+  white-space:nowrap;
+}
+
+
+/* Tighten the vertical gap below the hauling heading; lift all marked panels together. */
+#operationsGraphicsModal .operations-hauling-grid{
+  margin-top:-8px;
+}
+
+
+/* Operations Graphics: lift the hauling heading and its cards to the 15px target. */
+#operationsGraphicsModal .operations-hauling-heading{
+  transform:translateY(-5px);
+}
+#operationsGraphicsModal .operations-hauling-grid{
+  margin-top:-27px;
+}
+
+/* Operations Unit Timeline: render real, timestamped activity and maintenance intervals. */
+#operationsGraphicsModal .operations-timeline-row>div.operations-timeline-track{position:relative;display:block;flex:none;overflow:hidden;height:9px;background:#1b334b;border-radius:8px}
+#operationsGraphicsModal .operations-timeline-track .operations-timeline-segment{position:absolute;top:0;bottom:0;display:block;min-width:1px;border-radius:0}
+#operationsGraphicsModal .operations-timeline-track .operations-timeline-segment.is-operating{background:#10c978;z-index:1}
+#operationsGraphicsModal .operations-timeline-track .operations-timeline-segment.is-repairing{background:#ffb31a;z-index:2}
+#operationsGraphicsModal .operations-timeline-track .operations-timeline-segment.is-breakdown{background:#ff4d5a;z-index:3}
+
+
+/* Operations Graphics: shift 2px farther left from the previous position; preserve size and vertical position. */
+@media(min-width:901px){
+  #operationsGraphicsModal .operations-graphics-modal{transform:translateX(-80px)}
+}
+@media(max-width:900px){
+  #operationsGraphicsModal .operations-graphics-modal{transform:none}
+}
+
+
+/* Operations Graphics modal: slide horizontally with no opacity/fade effect. */
+#operationsGraphicsModal > .operations-graphics-modal{
+  animation:none;
+}
+#operationsGraphicsModal.show > .operations-graphics-modal:not(.modal-shell-valid){
+  animation:operationsGraphicsSlideIn 180ms cubic-bezier(.2,.75,.25,1) both;
+}
+#operationsGraphicsModal.show.is-closing > .operations-graphics-modal:not(.modal-shell-valid){
+  animation:operationsGraphicsSlideOut 190ms cubic-bezier(.55,0,.8,.35) both;
+  pointer-events:none;
+}
+@keyframes operationsGraphicsSlideIn{
+  from{transform:translateX(calc(-80px - 24px))}
+  to{transform:translateX(-80px)}
+}
+@keyframes operationsGraphicsSlideOut{
+  from{transform:translateX(-80px)}
+  to{transform:translateX(calc(-80px - 24px))}
+}
+@media(max-width:900px){
+  #operationsGraphicsModal.show > .operations-graphics-modal:not(.modal-shell-valid){animation-name:operationsGraphicsSlideInMobile}
+  #operationsGraphicsModal.show.is-closing > .operations-graphics-modal:not(.modal-shell-valid){animation-name:operationsGraphicsSlideOutMobile}
+  @keyframes operationsGraphicsSlideInMobile{from{transform:translateX(-24px)}to{transform:translateX(0)}}
+  @keyframes operationsGraphicsSlideOutMobile{from{transform:translateX(0)}to{transform:translateX(-24px)}}
+}
+@media(prefers-reduced-motion:reduce){
+  #operationsGraphicsModal.show > .operations-graphics-modal,
+  #operationsGraphicsModal.show.is-closing > .operations-graphics-modal{animation:none!important}
+}

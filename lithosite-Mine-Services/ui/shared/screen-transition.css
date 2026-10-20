@@ -1,0 +1,11 @@
+/* Shared screen-transition motion: animate the active layout title only. */
+.layout-title-entering{
+  animation:layoutTitleRiseIn 240ms cubic-bezier(.2,.72,.25,1) both;
+}
+@keyframes layoutTitleRiseIn{
+  from{transform:translateY(14px)}
+  to{transform:translateY(0)}
+}
+@media(prefers-reduced-motion:reduce){
+  .layout-title-entering{animation:none;transform:none}
+}

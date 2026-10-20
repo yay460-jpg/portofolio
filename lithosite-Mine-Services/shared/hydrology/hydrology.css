@@ -1,0 +1,152 @@
+.hydrology-panel{
+  position:absolute;
+  z-index:40;
+  top:12px;
+  right:12px;
+  width:min(360px,calc(100% - 24px));
+  max-height:calc(100% - 24px);
+  overflow:auto;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  border:1px solid rgba(96,165,250,.38);
+  border-radius:11px;
+  background:rgba(8,22,38,.97);
+  box-shadow:0 18px 42px rgba(0,0,0,.48);
+  color:#e6f0fc;
+  padding:12px;
+  font:11px/1.45 "Segoe UI",Arial,sans-serif;
+  backdrop-filter:blur(12px);
+}
+.hydrology-panel::-webkit-scrollbar{display:none;width:0;height:0}
+.hydrology-panel[hidden]{display:none!important}
+.hydrology-panel__header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1px solid #263e58}
+.hydrology-panel__header-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.hydrology-panel__guide{display:grid;place-items:center;width:26px;height:26px;border:1px solid #34516e;border-radius:50%;background:#10263c;color:#d6e6f7;font:700 13px/1 "Segoe UI",Arial,sans-serif;cursor:pointer}
+.hydrology-panel__records{display:grid;place-items:center;width:26px;height:26px;flex:0 0 26px;padding:0;border:1px solid #34516e;border-radius:50%;background:#10263c;color:#d6e6f7;cursor:pointer}
+.hydrology-panel__records:hover{background:#1b3855;border-color:#5798fa;color:#fff}
+.hydrology-panel__records:focus-visible{outline:2px solid #5798fa;outline-offset:2px}
+.hydrology-panel__records svg{width:14px;height:14px;display:block}
+.hydrology-panel__guide:hover{background:#1b3855;border-color:#5798fa;color:#fff}
+.hydrology-panel__guide:focus-visible,.hydrology-panel__close:focus-visible{outline:2px solid #5798fa;outline-offset:2px}
+.hydrology-panel__eyebrow{font-size:9px;letter-spacing:.1em;font-weight:750;color:#60a5fa}
+.hydrology-panel__header h2{margin:2px 0 0;font-size:13px;font-weight:700;color:#f1f7ff}
+.hydrology-panel__close{display:grid;place-items:center;width:26px;height:26px;border:1px solid #34516e;border-radius:7px;background:#10263c;color:#d6e6f7;font-size:18px;line-height:1;cursor:pointer}
+.hydrology-panel__close:hover{background:#1b3855}
+.hydrology-panel__form{display:grid;grid-template-columns:1fr 1fr;gap:9px 10px;padding:12px 0 8px}
+.hydrology-field{display:flex;flex-direction:column;gap:4px;min-width:0;color:#adc2d9;font-size:10px}
+.hydrology-field--wide{grid-column:1/-1}
+.hydrology-field input,.hydrology-field select{width:100%;min-width:0;height:31px;border:1px solid #2e4a67;border-radius:6px;background:#071726;color:#e5effb;padding:0 8px;font:11px "Segoe UI",Arial,sans-serif;outline:none}
+.hydrology-field input:focus,.hydrology-field select:focus{border-color:#5798fa;box-shadow:0 0 0 2px rgba(77,141,255,.16)}
+.hydrology-panel__note{margin:2px 0 10px;color:#809bb7;font-size:9.5px;line-height:1.5}
+.hydrology-panel__actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.hydrology-action{min-height:32px;border:1px solid #355370;border-radius:7px;background:#10273d;color:#dceafd;font:650 10.5px "Segoe UI",Arial,sans-serif;cursor:pointer;padding:6px 8px}
+.hydrology-action:hover:not(:disabled){background:#193753;border-color:#4774a0}
+.hydrology-action--primary{background:#16467a;border-color:#3d81d8;color:#fff}
+.hydrology-action--primary:hover:not(:disabled){background:#1e5b98}
+.hydrology-action:disabled{opacity:.45;cursor:not-allowed}
+.hydrology-panel__status{margin-top:9px;padding:8px 9px;border:1px solid #29445d;border-radius:7px;background:#0b1b2d;color:#afc4db;font-size:10px;overflow-wrap:anywhere}
+.hydrology-panel__status.is-success{border-color:#24694c;color:#86efac;background:#09251e}
+.hydrology-panel__status.is-error{border-color:#813a42;color:#fda4af;background:#2a141b}
+.hydrology-panel__results{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.hydrology-panel__results[hidden]{display:none!important}
+.hydrology-result{min-width:0;border:1px solid #213b55;border-radius:7px;background:#0b1b2d;padding:8px}
+.hydrology-result span{display:block;color:#849fba;font-size:9px}
+.hydrology-result strong{display:block;margin-top:3px;color:#e6f2ff;font-size:11px;font-weight:750;overflow-wrap:anywhere}
+.hydrology-panel__warning{grid-column:1/-1;color:#fcd38d;background:rgba(120,75,12,.15);border-left:2px solid #c58a2e;padding:7px 8px;font-size:9px;line-height:1.5;overflow-wrap:anywhere}
+.hydrology-panel__warning[hidden]{display:none!important}
+@media(max-width:700px){
+  .hydrology-panel{top:8px;right:8px;width:calc(100% - 16px);max-height:calc(100% - 16px)}
+}
+
+#dashboardSiteMap.map-topo3d canvas.hydrology-flow-overlay,
+#dashboardSiteMap.map-topo3d canvas.hydrology-flow-particles,
+#dashboardSiteMap.map-topo3d canvas.hydrology-rain-drops{
+  position:absolute;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
+#dashboardSiteMap.map-topo3d canvas.hydrology-flow-overlay{z-index:3}
+#dashboardSiteMap.map-topo3d canvas.hydrology-flow-particles{z-index:4}
+#dashboardSiteMap.map-topo3d canvas.hydrology-rain-drops{z-index:5}
+#dashboardSiteMap .hydrology-flow-overlay[hidden],
+#dashboardSiteMap .hydrology-flow-particles[hidden],
+#dashboardSiteMap .hydrology-rain-drops[hidden]{display:none!important}
+.hydrology-panel__overlay-toggle{grid-column:1/-1}
+
+
+/* Rainfall shares the dashboard's right-hand workspace instead of covering Site Map. */
+#dashboardScreen .main>.right{
+  position:relative;
+  min-width:0;
+  min-height:0;
+  overflow:hidden;
+}
+#dashboardScreen .right>.panel{
+  opacity:1;
+  transform:translateX(0);
+  visibility:visible;
+  pointer-events:auto;
+  transition:opacity .18s ease,transform .18s ease,visibility 0s linear 0s;
+}
+#dashboardScreen .main.is-rainfall-mode>.right>.panel{
+  opacity:0;
+  transform:translateX(-16px);
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease,visibility 0s linear .18s;
+}
+.hydrology-panel--docked{
+  inset:0;
+  top:0;
+  right:0;
+  bottom:0;
+  left:0;
+  width:auto;
+  max-width:none;
+  height:100%;
+  max-height:none;
+  border-radius:9px;
+  z-index:12;
+  opacity:0;
+  visibility:hidden;
+  transform:translateX(20px);
+  pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease,visibility 0s linear .18s;
+}
+#dashboardScreen .main.is-rainfall-mode>.right>.hydrology-panel--docked{
+  opacity:1;
+  visibility:visible;
+  transform:translateX(0);
+  pointer-events:auto;
+  transition-delay:0s;
+}
+@media(prefers-reduced-motion:reduce){
+  #dashboardScreen .right>.panel,
+  .hydrology-panel--docked{
+    transition:none!important;
+    transform:none!important;
+  }
+}
+
+/* Compact paired controls for rainfall effect and wind forcing. */
+.hydrology-wind-controls{display:grid;grid-template-columns:1fr .72fr;gap:5px;min-width:0}
+.hydrology-wind-controls select{min-width:0;padding:0 5px}
+
+/* A slide-in history view for saved RainfallSimulation records. */
+.hydrology-panel__records{display:grid;place-items:center;width:26px;height:26px;flex:0 0 26px;border:1px solid #34516e;border-radius:50%;background:#10263c;color:#8ec5ff;cursor:pointer;padding:0}
+.hydrology-panel__records svg{width:14px;height:14px;display:block}
+.hydrology-panel__records:hover{background:#1b3855;border-color:#5798fa;color:#fff}
+.hydrology-panel__records:focus-visible{outline:2px solid #5798fa;outline-offset:2px}
+.hydrology-records{position:absolute;inset:0;z-index:15;display:flex;flex-direction:column;min-height:0;overflow:hidden;border:1px solid rgba(96,165,250,.42);border-radius:9px;background:rgba(8,22,38,.99);transform:translateX(102%);visibility:hidden;pointer-events:none;transition:transform .2s ease,visibility 0s linear .2s}
+.hydrology-records[hidden]{display:none!important}
+.hydrology-panel.is-records-open .hydrology-records:not([hidden]){transform:translateX(0);visibility:visible;pointer-events:auto;transition-delay:0s}
+.hydrology-records__header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:14px 14px 12px;border-bottom:1px solid #263e58}
+.hydrology-records__header h3{margin:3px 0;color:#f1f7ff;font-size:14px}
+.hydrology-records__header p{margin:3px 0 0;color:#809bb7;font-size:10px}
+.hydrology-records__body{min-height:0;overflow:auto;padding:12px;scrollbar-width:none;-ms-overflow-style:none}
+.hydrology-records__body::-webkit-scrollbar{display:none;width:0;height:0}
+.hydrology-records__chart[hidden]{display:none!important}
+@media(prefers-reduced-motion:reduce){.hydrology-records{transition:none!important}}

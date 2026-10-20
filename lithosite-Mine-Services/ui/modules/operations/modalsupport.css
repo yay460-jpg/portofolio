@@ -1,0 +1,73 @@
+/* Small standalone support guide modal for Operations Graphics only. */
+#operationsGuideModal.modalback{
+  position:fixed;
+  inset:0;
+  z-index:60;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:#020812b8;
+  backdrop-filter:blur(3px);
+}
+#operationsGuideModal.modalback.show{display:flex}
+#operationsGuideModal .modalhead{
+  flex:0 0 48px;
+  min-height:48px;
+  padding:0 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid #29435d;
+  background:#102033;
+}
+#operationsGuideModal.operations-guide-backdrop .operations-guide-modal{
+  width:min(620px,calc(100vw - 32px));
+  max-width:620px;
+  max-height:calc(100vh - 40px);
+  margin:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:#101f31;
+  border:1px solid #31506d;
+  border-radius:12px;
+  box-shadow:0 20px 70px #0009;
+}
+#operationsGuideModal .operations-guide-content{
+  padding:18px;
+  overflow:auto;
+  color:#dce8f5;
+}
+#operationsGuideModal .operations-guide-item{
+  padding:16px;
+  border:1px solid #294b69;
+  border-radius:9px;
+  background:#0b1b2b;
+}
+#operationsGuideModal .operations-guide-item h3{
+  margin:0 0 10px;
+  font-size:15px;
+  color:#f1f6fc;
+}
+#operationsGuideModal .operations-guide-item p{
+  margin:0 0 10px;
+  color:#a9c3dd;
+  font-size:12px;
+}
+#operationsGuideModal .operations-guide-item ul{
+  margin:0;
+  padding-left:18px;
+  font-size:12px;
+  line-height:1.8;
+}
+#operationsGuideModal .operations-guide-item small{
+  display:block;
+  margin-top:10px;
+  color:#8fb5d8;
+  font-size:11px;
+}
+@media(max-width:520px){
+  #operationsGuideModal .operations-guide-content{padding:12px}
+  #operationsGuideModal .operations-guide-item{padding:12px}
+}

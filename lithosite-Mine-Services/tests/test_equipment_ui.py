@@ -1,0 +1,479 @@
+from pathlib import Path
+
+ARTIFACT = Path(__file__).parents[1] / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html"
+TEXT = ARTIFACT.read_text(encoding="utf-8")
+EQUIPMENT_JS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.js").read_text(encoding="utf-8")
+EQUIPMENT_CSS = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.css").read_text(encoding="utf-8")
+NIK_JS = (Path(__file__).parents[1] / "ui" / "modules" / "nik" / "nik.js").read_text(encoding="utf-8")
+NIK_CSS = (Path(__file__).parents[1] / "ui" / "modules" / "nik" / "nik.css").read_text(encoding="utf-8")
+SHELL_JS = (Path(__file__).parents[1] / "ui" / "shared" / "shell-navigation.js").read_text(encoding="utf-8")
+
+
+def test_stage9_equipment_screen_exists():
+    assert 'id="equipmentScreen"' in TEXT
+    assert ">Equipment<" in TEXT
+    assert "equipment.js?v=20261019-effective-date-labels" in TEXT
+    assert "entity:'Equipment'" in EQUIPMENT_JS or 'entity:"Equipment"' in EQUIPMENT_JS
+
+
+def test_stage9_equipment_fields_present():
+    for field in (
+        "equipment_id",
+        "category",
+        "type",
+        "owner_type",
+        "owner_name",
+        "status",
+        "effective_from",
+        "effective_to",
+        "unit_no",
+        "capacity_profile_id",
+    ):
+        assert field in EQUIPMENT_JS
+
+
+def test_stage9_runtime_crud_contract_present():
+    assert "operation:'READ',entity:'Equipment'" in EQUIPMENT_JS
+    assert "operation:'CREATE',entity:'Equipment'" in EQUIPMENT_JS
+    assert "operation:'UPDATE',entity:'Equipment'" in EQUIPMENT_JS
+    assert "operation:'DELETE',entity:'Equipment'" in EQUIPMENT_JS
+    assert "RuntimeAdapter" in EQUIPMENT_JS
+
+
+def test_stage9_reference_protection_is_runtime_authoritative():
+    assert "Runtime will reject deletion if the equipment is referenced." in EQUIPMENT_JS
+    assert "Delete failed:" in EQUIPMENT_JS
+
+
+def test_stage9_no_browser_database():
+    assert "indexedDB" not in (TEXT + EQUIPMENT_JS).lower()
+    assert "localStorage" not in (TEXT + EQUIPMENT_JS)
+
+
+def test_stage9_controlled_vocab_contract_present():
+    assert "equipment_category" in EQUIPMENT_JS
+    assert "equipment_type" in EQUIPMENT_JS
+    assert "owner_type" in EQUIPMENT_JS
+    assert "equipment_status" in EQUIPMENT_JS
+    assert "entity:'_Lists'" in EQUIPMENT_JS
+    assert "loadLists" in EQUIPMENT_JS
+
+
+def test_stage9_navigation_and_shell_guard_available():
+    assert 'Equipment' in TEXT
+    assert "equipmentScreen" in TEXT
+    assert "let currentScreen = 'Dashboard';" in SHELL_JS
+    assert "validateShellContract" in SHELL_JS
+    assert "const STORAGE_KEY = 'lithosite-active-screen';" in SHELL_JS
+    assert "readInitialScreen" in SHELL_JS
+    assert "setScreen(readInitialScreen(), false);" in SHELL_JS
+    assert "dashboardScreen" in SHELL_JS
+    assert "operationsScreen" in SHELL_JS
+    assert "equipmentScreen" in SHELL_JS
+
+
+def test_stage9_runtime_error_is_not_rendered_as_empty_dataset():
+    assert "state.status='error'" in EQUIPMENT_JS
+    assert "Equipment data unavailable" in EQUIPMENT_JS
+    assert "state.rows=[]" not in EQUIPMENT_JS
+
+
+
+
+def test_stage9_global_capacity_resolution_contract_present():
+    assert "Global Capacity Profile" in TEXT
+    assert "f_eq_capacity_profile" in TEXT
+    assert "f_eq_brand" in TEXT
+    assert "f_eq_capacity" in TEXT
+    assert "GlobalCapacity" in EQUIPMENT_JS
+    assert "capacity_profile_id" in EQUIPMENT_JS
+
+
+def test_stage9_equipment_master_brand_column_resolves_from_global_capacity():
+    header = (
+        '<div class="cell">Category</div><div class="cell">Brand / Merk</div>'
+        '<div class="cell">Type</div>'
+    )
+    assert header in TEXT
+    assert "function equipmentBrand(row)" in EQUIPMENT_JS
+    assert "profile.unit_brand" in EQUIPMENT_JS
+    assert "esc(equipmentBrand(r))" in EQUIPMENT_JS
+    assert "grid-template-columns:150px 115px 125px 100px 115px" in EQUIPMENT_CSS
+    assert "min-width:1300px" in EQUIPMENT_CSS
+
+
+def test_equipment_unit_list_button_is_between_refresh_and_global_capacity():
+    controls = TEXT[TEXT.index('id="equipmentScreen"'):TEXT.index('id="equipmentScreen"') + 1800]
+    refresh = controls.index('id="equipmentRefresh"')
+    unit_list = controls.index('id="equipmentUnitListButton"')
+    capacity = controls.index('id="globalCapacityButton"')
+    assert refresh < unit_list < capacity
+    assert 'aria-controls="equipmentUnitListModal"' in controls
+
+
+def test_equipment_unit_database_modal_has_requested_compact_columns():
+    modal = TEXT[TEXT.index('id="equipmentUnitListModal"'):TEXT.index('id="workfrontScreen"')]
+    for label in ("Date Record", "Unique ID", "Unit / Fleet No.", "Type", "Brand", "Category", "Status", "Action"):
+        assert label in modal
+    assert 'id="equipmentUnitListRows"' in modal
+    assert 'id="equipmentUnitListRefresh"' in modal
+
+
+def test_equipment_unit_database_reads_canonical_runtime_records_only():
+    assert "function renderUnitList()" in EQUIPMENT_JS
+    assert "function openUnitList()" in EQUIPMENT_JS
+    assert "async function refreshUnitList()" in EQUIPMENT_JS
+    assert "rc.request({operation:'READ',entity:'Equipment'})" in EQUIPMENT_JS
+    assert "rc.request({operation:'READ',entity:'GlobalCapacity'})" in EQUIPMENT_JS
+    assert "esc(row.effective_from||'—')" in EQUIPMENT_JS
+    assert "esc(equipmentBrand(row))" in EQUIPMENT_JS
+    assert 'class="control mini edit-equipment"' in EQUIPMENT_JS
+    assert 'class="control mini danger delete-equipment"' in EQUIPMENT_JS
+    assert "equipment-unit-open" not in EQUIPMENT_JS
+    assert "equipmentUnitListModal" in (Path(__file__).parents[1] / "ui" / "shared" / "modal-show-contract.js").read_text(encoding="utf-8")
+
+
+def test_equipment_unit_list_modal_has_scrollable_compact_layout():
+    assert "width:min(1240px,calc(100vw - 40px))" in EQUIPMENT_CSS
+    assert "grid-template-columns:120px minmax(155px,1.3fr) minmax(120px,1fr)" in EQUIPMENT_CSS
+    assert "max-height:min(58vh,560px)" in EQUIPMENT_CSS
+    assert "equipment-unit-actions .mini" in EQUIPMENT_CSS
+
+
+def test_equipment_unit_list_uses_existing_edit_and_delete_actions():
+    assert 'class="control mini edit-equipment"' in EQUIPMENT_JS
+    assert 'class="control mini danger delete-equipment"' in EQUIPMENT_JS
+    assert "const edit=event.target.closest('.edit-equipment')" in EQUIPMENT_JS
+    assert "const del=event.target.closest('.delete-equipment')" in EQUIPMENT_JS
+    assert "if(del)remove(del.dataset.id)" in EQUIPMENT_JS
+    assert "equipment-unit-open" not in EQUIPMENT_JS
+
+def test_served_equipment_artifact_wires_unit_list_modal_and_fresh_assets():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    assert 'id="equipmentUnitListButton"' in artifact
+    assert 'id="equipmentUnitListModal"' in artifact
+    assert "equipment.js?v=20261019-effective-date-labels" in artifact
+    assert "equipment.css?v=20261019-equipment-ratio-bar" in artifact
+
+def test_equipment_unit_list_desktop_grid_fits_actions_without_forced_horizontal_overflow():
+    css = EQUIPMENT_CSS[EQUIPMENT_CSS.index('/* Unit List is a view over the canonical Equipment records'): ]
+    assert 'width:100%;min-width:0;' in css
+    assert 'grid-template-columns:120px minmax(155px,1.3fr)' in css
+    assert 'min-width:850px' in css  # narrow-screen media override only
+    assert 'white-space:nowrap' in css
+    assert 'min-width:0;height:28px' in css
+
+
+def test_unit_database_can_add_and_edit_canonical_unit_records():
+    modal = TEXT[TEXT.index('id="equipmentUnitListModal"'):TEXT.index('id="workfrontScreen"')]
+    assert 'id="equipmentUnitListAdd">Add Unit</button>' in modal
+    assert 'id="equipmentUnitListRefresh">Refresh List</button>' in modal
+    assert "document.getElementById('equipmentUnitListAdd').onclick=()=>openAdd(true);" in EQUIPMENT_JS
+    assert "function openAdd(fromUnitList)" in EQUIPMENT_JS
+    assert "returnToUnitList=!!fromUnitList" in EQUIPMENT_JS
+    assert "returnToUnitList?'Add Unit':'Add Equipment'" in EQUIPMENT_JS
+    assert "operation:'CREATE',entity:'Equipment',row" in EQUIPMENT_JS
+    assert "operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row" in EQUIPMENT_JS
+
+
+def test_unit_database_form_returns_to_list_after_save_or_cancel():
+    assert "function closeEquipmentForm()" in EQUIPMENT_JS
+    assert "if(reopenUnitList){global.LithositeModalShowContract.show('equipmentUnitListModal');refreshUnitList();}" in EQUIPMENT_JS
+    save = EQUIPMENT_JS[EQUIPMENT_JS.index("async function save()"):EQUIPMENT_JS.index("\nasync function remove(")]
+    assert "const refreshed=await refreshData();" in save
+    assert "global.LithositeModalShowContract.show('equipmentUnitListModal');" in save
+    assert "await refreshUnitList()" not in save
+
+
+def test_unit_database_uses_existing_a3_equipment_entity_not_parallel_storage():
+    schema = (Path(__file__).parents[1] / "src" / "mine_services" / "schema.py").read_text(encoding="utf-8")
+    assert '"Equipment"' in schema
+    assert 'rc.request({operation:"CREATE",entity:"Unit"' not in EQUIPMENT_JS
+    assert "indexedDB" not in EQUIPMENT_JS.lower()
+    assert "localStorage" not in EQUIPMENT_JS
+
+
+def test_equipment_and_unit_list_share_one_canonical_equipment_source():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    schema = (Path(__file__).parents[1] / "src" / "mine_services" / "schema.py").read_text(encoding="utf-8")
+    assert '"Equipment"' in schema
+    assert '"Unit"' not in schema
+    assert 'id="equipmentUnitReferenceField"' not in artifact
+    assert 'id="f_eq_unit_reference"' not in artifact
+    assert "function fillUnitReference(selectedId)" not in EQUIPMENT_JS
+    assert "function selectRegisteredUnit(id)" not in EQUIPMENT_JS
+    assert "addEquipmentRequiresReference" not in EQUIPMENT_JS
+    assert "function openAdd(fromUnitList)" in EQUIPMENT_JS
+    assert "operation:'CREATE',entity:'Equipment',row" in EQUIPMENT_JS
+    assert "operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row" in EQUIPMENT_JS
+    assert "document.getElementById('equipmentUnitListAdd').onclick=()=>openAdd(true);" in EQUIPMENT_JS
+    assert "document.getElementById('equipmentAdd').onclick=()=>openAdd(false);" in EQUIPMENT_JS
+
+
+def test_unit_database_has_single_close_control():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    start = artifact.index('id="equipmentUnitListModal"')
+    end = artifact.index('<section id="workfrontScreen"', start)
+    modal = artifact[start:end]
+    assert modal.count('>Close</button>') == 1
+    assert '<div class="modalfoot" aria-hidden="true"></div>' in modal
+    assert 'equipmentUnitListFooterClose' not in modal
+
+
+def test_unit_database_empty_footer_is_collapsed_by_its_actual_modal_class():
+    css = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.css").read_text(encoding="utf-8")
+    assert "#equipmentUnitListModal > .modal.equipment-unit-modal > .modalfoot:empty{display:none;" in css
+    assert ".modal.modal-shell-valid > .modalfoot:empty" not in css
+    assert "#equipmentUnitListModal .modalfoot{gap:12px}" not in css
+    assert "#equipmentUnitListModal .equipment-unit-toolbar-actions{gap:8px}" not in css
+
+
+def test_unit_database_action_styles_have_single_owner_rule():
+    assert EQUIPMENT_CSS.count("#equipmentUnitListModal .equipment-unit-actions{") == 1
+    assert "equipment.css?v=20261019-equipment-ratio-bar" in TEXT
+
+
+def test_unit_database_body_cells_use_compact_typography():
+    assert "#equipmentUnitListModal .equipment-unit-row:not(.equipment-unit-head) .equipment-unit-cell{font-size:9.5px}" in EQUIPMENT_CSS
+    assert "font-size:12px;line-height:1.35" not in EQUIPMENT_CSS
+    assert "equipment.css?v=20261019-equipment-ratio-bar" in TEXT
+
+
+def test_global_capacity_modal_has_one_close_button_and_no_footer_action():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    snapshot = (Path(__file__).parents[1] / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html").read_text(encoding="utf-8")
+    js = (Path(__file__).parents[1] / "ui" / "modules" / "workfront" / "global-capacity.js").read_text(encoding="utf-8")
+    css = (Path(__file__).parents[1] / "ui" / "modules" / "workfront" / "global-capacity.css").read_text(encoding="utf-8")
+    for html in (artifact, snapshot):
+        start = html.index('id="capacityModal"')
+        end = html.index('id="capacityEditModal"', start)
+        modal = html[start:end]
+        assert modal.count('>Close</button>') == 1
+        assert '<div class="modalfoot"></div>' in modal
+        assert 'capacityFooterClose' not in modal
+    assert "capacityFooterClose" not in js
+    # The empty footer is retained only as the shared-shell boundary; the
+    # ID-scoped rule must override the shared shell's fixed-height footer.
+    assert "#capacityModal > .modal.capacity-modal > .modalfoot:empty{display:none;flex:0 0 0;min-height:0;height:0;padding:0;border:0;margin:0}" in css
+    shell_css = (Path(__file__).parents[1] / "ui" / "shared" / "modal-shell-contract.css").read_text(encoding="utf-8")
+    assert ".modalback > .modal.modal-shell-valid > .modalfoot{" in shell_css
+    assert "capacityFooterClose" not in js
+    assert js.count("getElementById('capacityClose').onclick") == 1
+    assert "global-capacity.js?v=20261015-lithosite-delete-confirm" in artifact
+    assert "global-capacity.css?v=20261015-single-close" in artifact
+    assert "global-capacity.js?v=20261015-lithosite-delete-confirm" in snapshot
+    assert "global-capacity.css?v=20261015-single-close" in snapshot
+
+
+def test_equipment_owner_name_hint_has_compact_module_typography():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    snapshot = ARTIFACT.read_text(encoding="utf-8")
+    for html in (artifact, snapshot):
+        assert 'id="f_eq_owner_name_help"' in html
+        assert "equipment.css?v=20261019-equipment-ratio-bar" in html
+        assert 'id="f_eq_unit_reference"' not in html
+    assert "#equipmentModal #f_eq_owner_name_help{display:block;margin-top:4px;color:var(--muted);font-size:9px;line-height:1.35;font-weight:400}" in EQUIPMENT_CSS
+    assert ".equipment-unit-reference-hint" not in EQUIPMENT_CSS
+
+def test_equipment_reads_canonical_records_through_one_shared_refresh_function():
+    assert "async function readCanonicalRecords()" in EQUIPMENT_JS
+    assert EQUIPMENT_JS.count("rc.request({operation:'READ',entity:'Equipment'})") == 1
+    assert EQUIPMENT_JS.count("rc.request({operation:'READ',entity:'GlobalCapacity'})") == 1
+    assert "await readCanonicalRecords();" in EQUIPMENT_JS
+    assert "await refreshData();" in EQUIPMENT_JS
+    assert "state.status='error';render();renderUnitList();" in EQUIPMENT_JS
+
+def test_equipment_modals_have_distinct_responsibilities_and_shared_shell_contract():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    shell = (Path(__file__).parents[1] / "ui" / "shared" / "modal-show-contract.js").read_text(encoding="utf-8")
+    for html in (artifact, TEXT):
+        equipment_start = html.index('id="equipmentModal"')
+        unit_start = html.index('id="equipmentUnitListModal"')
+        assert equipment_start < unit_start
+        assert 'aria-labelledby="equipmentModalTitle"' in html
+        assert 'aria-labelledby="equipmentUnitListTitle"' in html
+        assert html.count('id="equipmentModal"') == 1
+        assert html.count('id="equipmentUnitListModal"') == 1
+    assert "'equipmentModal'" in shell
+    assert "'equipmentUnitListModal'" in shell
+    assert "global.LithositeModalShowContract.show('equipmentModal')" in EQUIPMENT_JS
+    assert "global.LithositeModalShowContract.show('equipmentUnitListModal')" in EQUIPMENT_JS
+    assert "global.LithositeDeleteConfirmContract.confirm({" in EQUIPMENT_JS
+    assert "if(!confirm(" not in EQUIPMENT_JS
+
+def test_equipment_controls_order_and_nik_modal_initializes_after_dom_ready():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    snapshot = ARTIFACT.read_text(encoding="utf-8")
+    for html in (artifact, snapshot):
+        refresh = html.index('id="equipmentRefresh"')
+        nik = html.index('id="equipmentNIKListButton"')
+        units = html.index('id="equipmentUnitListButton"')
+        capacity = html.index('id="globalCapacityButton"')
+        add = html.index('id="equipmentAdd"')
+        assert refresh < nik < units < capacity < add
+    nik_js = NIK_JS
+    assert "document.addEventListener('DOMContentLoaded',init,{once:true})" in nik_js
+    assert "bind();" in nik_js
+    modal_contract = (Path(__file__).parents[1] / "ui" / "shared" / "modal-show-contract.js").read_text(encoding="utf-8")
+    assert "'equipmentNIKListModal'" in modal_contract
+    assert "'equipmentNIKListModal'," in modal_contract
+
+
+def test_equipment_owner_name_is_selected_from_canonical_nik_register():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    for html in (TEXT, artifact):
+        assert '<label>Owner Name</label><select id="f_eq_owner_name"' in html
+        assert 'id="f_eq_owner_name" placeholder="Owner / contractor name"' not in html
+        assert 'Names are not entered manually.' in html
+    assert "function populateOwnerNameOptions(selectedName)" in EQUIPMENT_JS
+    assert "employee['Id No (NIK)']" in EQUIPMENT_JS
+    assert "employee['Name Employment']" in EQUIPMENT_JS
+    assert "owner_name:selectedOwnerName()" in EQUIPMENT_JS
+    assert "registered Owner Name and Status are required." in EQUIPMENT_JS
+    assert "lithosite:nik-records-updated" in EQUIPMENT_JS
+    assert "global.LithositeNIK={" in NIK_JS
+    assert "document.dispatchEvent(new CustomEvent('lithosite:nik-records-updated'" in NIK_JS
+    assert "NIK list unavailable: '+esc(state.error" in NIK_JS
+
+
+def test_nik_list_has_add_form_search_and_origin_filter_in_artifact_and_snapshot():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    for html in (TEXT, artifact):
+        assert 'id="equipmentNIKAdd">Add NIK</button>' in html
+        assert 'id="equipmentNIKSearch"' in html
+        assert 'id="equipmentNIKOriginFilter"' in html
+        assert 'id="equipmentNIKForm"' in html
+        assert 'name="Id No (NIK)" required' in html
+        assert 'name="Name Employment" required' in html
+        assert 'id="equipmentNIKSave">Save NIK</button>' in html
+        assert "nik.js?v=20261015-shared-clear-confirm" in html
+        assert "nik.css?v=20261015-shared-clear-confirm" in html
+    assert "operation:'CREATE',entity:'NIK',row:row" in NIK_JS
+    assert "function filteredRows()" in NIK_JS
+    assert "function syncOriginFilter()" in NIK_JS
+
+
+def test_nik_list_modal_uses_canonical_a3_columns_and_read_only_runtime_data():
+    artifact = (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")
+    snapshot = ARTIFACT.read_text(encoding="utf-8")
+    expected_headers = (
+        "Effective From", "Effective To", "Id No (NIK)",
+        "Origin", "Name Employment", "Information",
+    )
+    for html in (artifact, snapshot):
+        assert 'id="equipmentNIKListButton" aria-haspopup="dialog" aria-controls="equipmentNIKListModal">List NIK</button>' in html
+        start = html.index('id="equipmentNIKListModal"')
+        # The profile preview is a separate sibling modal after List NIK.
+        # Bound this assertion to the List NIK modal only, rather than counting
+        # the independent profile modal's Close control as a duplicate.
+        end = html.index('id="equipmentNIKProfileModal"', start)
+        modal = html[start:end]
+        assert modal.count('>Close</button>') == 1
+        for header in expected_headers:
+            assert f'<div class="equipment-nik-cell">{header}</div>' in modal
+        assert 'id="equipmentNIKListRefresh"' in modal
+        assert 'id="equipmentNIKListRows"' in modal
+        profile_start = end
+        profile_end = html.index('</body>', profile_start)
+        profile_modal = html[profile_start:profile_end]
+        assert profile_modal.count('>Close</button>') == 1
+        assert '</div></div><div class="modalback" id="equipmentNIKProfileModal"' in html
+    for html in (artifact, snapshot):
+        assert 'nik.css?v=20261015-shared-clear-confirm' in html
+        assert 'nik.js?v=20261015-shared-clear-confirm' in html
+    assert "rc.request({operation:'READ',entity:'NIK',request_id:requestId('read')})" in NIK_JS
+    assert "function refresh()" in NIK_JS
+    assert "function render()" in NIK_JS
+    assert "operation:'CREATE',entity:'NIK'" in NIK_JS
+    assert "equipmentNIKSearch" in NIK_JS
+    assert "equipmentNIKOriginFilter" in NIK_JS
+    assert "Id No (NIK) and Name Employment are required." in NIK_JS
+    assert "equipmentNIKListButton" not in EQUIPMENT_JS
+    assert "NIK employee register backed by the canonical A.3 worksheet." in NIK_CSS
+    assert "#equipmentNIKListModal .equipment-nik-row{" in NIK_CSS
+    assert "equipmentNIKListModal" not in EQUIPMENT_CSS
+
+
+
+def test_equipment_graphics_button_and_modal_use_canonical_equipment_state():
+    for html in (TEXT, (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")):
+        assert 'id="equipmentGraphicsButton"' in html
+        assert 'aria-label="Equipment Graphics"' in html
+        assert 'id="equipmentGraphicsModal"' in html
+        assert 'id="equipmentGraphicsDonut"' in html
+        assert 'id="equipmentGraphicsDumpTruckBars"' in html
+        assert 'id="equipmentGraphicsExcavatorBars"' in html
+        assert 'id="equipmentGraphicsDozerGraderBars"' in html
+    assert "function renderEquipmentGraphics()" in EQUIPMENT_JS
+    assert "function openEquipmentGraphics()" in EQUIPMENT_JS
+    assert "const donut=global.LithositeGraphicDonut;" in EQUIPMENT_JS
+    assert "donut.render({" in EQUIPMENT_JS
+    assert "state.rows" in EQUIPMENT_JS
+    assert "entity:'Equipment'" in EQUIPMENT_JS
+    assert "equipmentGraphicsModal" in (Path(__file__).parents[1] / "ui" / "shared" / "modal-show-contract.js").read_text(encoding="utf-8")
+    assert "equipment-graphics-button" in EQUIPMENT_CSS
+    assert "border-radius:50%" in EQUIPMENT_CSS
+
+def test_equipment_graphics_donut_groups_by_unit_type():
+    assert "Equipment Total Unit" in TEXT
+    assert "Total Unit" in TEXT
+    assert "function equipmentGraphicTypeGroup(row)" in EQUIPMENT_JS
+    for label in ("Dump Truck", "Excavator", "Dozer", "Grader", "Support", "Other"):
+        assert "return '"+label+"';" in EQUIPMENT_JS
+    assert "combined.includes('water truck')" in EQUIPMENT_JS
+    assert "return 'Other';" in EQUIPMENT_JS
+    assert "label:'Equipment units grouped by type'" in EQUIPMENT_JS
+    assert "totalElement:'equipmentGraphicsTotal'" in EQUIPMENT_JS
+
+
+def test_equipment_graphics_period_cards_have_colored_unicode_icons():
+    assert "renderEquipmentPeriodChart('equipmentGraphicsDumpTruckBars','Dump Truck','Actual daily units'" in EQUIPMENT_JS
+    assert "renderEquipmentPeriodChart('equipmentGraphicsExcavatorBars','Excavator','Actual daily units'" in EQUIPMENT_JS
+    assert "renderEquipmentPeriodChart('equipmentGraphicsDozerGraderBars','Dozer + Grader','Actual daily units combined'" in EQUIPMENT_JS
+    assert "background:linear-gradient(to top,'+color+' 0%,#f8fbff 100%)" in EQUIPMENT_JS
+    assert "equipment-graphics-period-card>.equipment-graphics-card-head>.equipment-period-kind-icon" in EQUIPMENT_CSS
+
+def test_equipment_graphics_use_four_period_cards():
+    for card_id in ("equipmentGraphicsDumpTruckBars", "equipmentGraphicsExcavatorBars", "equipmentGraphicsDozerGraderBars"):
+        assert 'id="'+card_id+'"' in TEXT
+    for title in ("<strong>Dump Truck</strong>", "<strong>Excavator</strong>", "<strong>Dozer + Grader</strong>"):
+        assert title in TEXT
+    assert 'id="equipmentGraphicsDonut"' in TEXT
+    assert 'id="equipmentGraphicsTotal"' in TEXT
+    assert "function equipmentGraphicDateKey(value)" in EQUIPMENT_JS
+    assert "function equipmentGraphicPeriodLabel(dateKey,index,total)" in EQUIPMENT_JS
+    assert "row.effective_from" in EQUIPMENT_JS
+    assert "equipment-period-mini-card" in EQUIPMENT_CSS
+    assert "equipment-period-mini-bars" in EQUIPMENT_CSS
+    assert "equipment-period-cumulative-line" in EQUIPMENT_CSS
+    assert "renderEquipmentPeriodChart" in EQUIPMENT_JS
+    assert "Cumulative Records" in EQUIPMENT_JS
+    assert "Units by Effective From" in EQUIPMENT_JS
+
+
+def test_equipment_graphics_period_card_subtitles_show_colored_unicode_icons():
+    for html in (TEXT, (Path(__file__).parents[1] / "Artifacts" / "Mine-Services-Operations.html").read_text(encoding="utf-8")):
+        assert 'class="equipment-period-kind-icon" aria-hidden="true">🚛</span><div><strong>Dump Truck</strong><span>Units by Effective From date</span></div>' in html
+        assert 'class="equipment-period-kind-icon" aria-hidden="true">🚜</span><div><strong>Excavator</strong><span>Units by Effective From date</span></div>' in html
+        assert 'class="equipment-period-kind-icon" aria-hidden="true">🚧</span><div><strong>Dozer + Grader</strong><span>Units by Effective From date · combined</span></div>' in html
+
+
+
+def test_equipment_daily_bars_use_two_tone_gradients():
+    js = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.js").read_text(encoding="utf-8")
+    assert "linear-gradient(to top," in js
+    assert "#f8fbff 100%)" in js
+    assert "bar.style.background=" in js
+
+def test_equipment_period_cards_show_compact_daily_unit_ratio_bar():
+    js = (Path(__file__).parents[1] / "ui" / "modules" / "equipment" / "equipment.js").read_text(encoding="utf-8")
+    css = EQUIPMENT_CSS
+    assert "const groupTotal=rows.filter" in js
+    assert "const peakDaily=values.reduce" in js
+    assert "const usagePercent=groupTotal>0" in js
+    assert "equipment-period-usage-track" in js
+    assert "Peak daily records ratio" in js
+    assert "Peak daily records as a share of records in this equipment group" in js
+    assert "aria-valuenow=\"'+usagePercent+'\"" in js
+    assert ".equipment-period-usage-track>span" in css
+    assert "height:6px" in css

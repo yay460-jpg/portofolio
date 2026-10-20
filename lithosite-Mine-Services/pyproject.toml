@@ -1,0 +1,7 @@
+[project]
+name="mine-services-reference"
+version="0.2.0"
+requires-python=">=3.10"
+dependencies=["openpyxl>=3.1"]
+[tool.pytest.ini_options]
+pythonpath=["src"]

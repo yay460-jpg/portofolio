@@ -1,0 +1,22 @@
+/* V40 — isolated Plan vs Actual dialog; existing Work Control grid geometry is unchanged. */
+#dashboardScreen .dashboard-plan-open{white-space:nowrap}
+#dashboardPlanActualDialog[hidden]{display:none!important}
+#dashboardPlanActualDialog{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:24px;background:#020812c9}
+#dashboardPlanActualDialog .dashboard-plan-dialog{width:min(980px,94vw);max-height:min(82vh,760px);overflow:auto;background:#0e1d2e;border:1px solid #38536e;border-radius:12px;box-shadow:0 24px 70px #0009}
+#dashboardPlanActualDialog .dashboard-plan-dialog-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;background:#0e1d2e;border-bottom:1px solid #29435d}
+#dashboardPlanActualDialog .dashboard-plan-dialog-head h2{margin:0;font-size:17px}
+#dashboardPlanActualDialog .dashboard-plan-dialog-head p{margin:4px 0 0;color:#9fb2c8;font-size:11px}
+#dashboardPlanActualDialog .dashboard-plan-dialog-body{padding:16px 18px}
+#dashboardPlanActualDialog .dashboard-plan-status{margin-bottom:12px;color:#9fb2c8;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+#dashboardPlanActualDialog .dashboard-plan-unit{margin-bottom:12px;border:1px solid #29435d;border-radius:9px;overflow:hidden}
+#dashboardPlanActualDialog .dashboard-plan-unit-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:#12243a;font-size:12px}
+#dashboardPlanActualDialog .dashboard-plan-unit-head span{color:#9fb2c8;font-size:10px}
+#dashboardPlanActualDialog .dashboard-plan-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;padding:10px}
+#dashboardPlanActualDialog .dashboard-plan-metric{display:flex;flex-direction:column;gap:5px;min-width:0;padding:10px;border-radius:7px;background:#13263c}
+#dashboardPlanActualDialog .dashboard-plan-metric span{font-size:9px;color:#9fb2c8;text-transform:uppercase;letter-spacing:.35px}
+#dashboardPlanActualDialog .dashboard-plan-metric strong{font-size:18px;line-height:1.2;overflow-wrap:anywhere}
+#dashboardPlanActualDialog .dashboard-plan-metric small{font-size:9px;color:#9fb2c8}
+#dashboardPlanActualDialog .dashboard-plan-empty{padding:18px;border:1px dashed #38536e;border-radius:8px;color:#c2d1e2;font-size:12px;line-height:1.6}
+#dashboardPlanActualDialog .dashboard-plan-note{margin:10px 2px 0;color:#9fb2c8;font-size:10px;line-height:1.6}
+@media(max-width:900px){#dashboardPlanActualDialog .dashboard-plan-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){#dashboardPlanActualDialog *{scroll-behavior:auto!important}}

@@ -1,0 +1,571 @@
+(function(global){
+'use strict';
+const rc=global.LithositeRuntimeClient;
+if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 9 Equipment');
+const state={rows:[],capacities:[],status:'loading'};
+let editId=null;
+let runtimeReady=false;
+let returnToUnitList=false;
+
+/* A.1 controlled vocabulary is supplied by the RuntimeAdapter from the authoritative _Lists contract. */
+const LISTS={category:[],type:[],owner_type:[],status:[]};
+
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function setMsg(text,error){
+ const el=document.getElementById('equipmentRuntimeMsg');
+ if(el){el.textContent=text;el.classList.toggle('error',!!error);}
+}
+function setMapMsg(text,error){
+ const el=document.getElementById('equipmentMapMsg');
+ if(el){el.textContent=text;el.classList.toggle('error',!!error);}
+}
+function fillSelect(id,items,empty){
+ const el=document.getElementById(id);
+ const current=el.value;
+ el.innerHTML='<option value="">'+esc(empty)+'</option>'+items.map(v=>'<option value="'+esc(v).replace(/"/g,'&quot;')+'">'+esc(v)+'</option>').join('');
+ if(items.includes(current))el.value=current;
+}
+async function loadLists(){
+ const result=await rc.request({operation:'READ',entity:'_Lists'});
+ const lists=(result.data&&typeof result.data==='object')?result.data:result;
+ LISTS.category=Array.isArray(lists.equipment_category)?lists.equipment_category:[];
+ LISTS.type=Array.isArray(lists.equipment_type)?lists.equipment_type:[];
+ LISTS.owner_type=Array.isArray(lists.owner_type)?lists.owner_type:[];
+ LISTS.status=Array.isArray(lists.equipment_status)?lists.equipment_status:[];
+ if(!LISTS.category.length||!LISTS.type.length||!LISTS.owner_type.length||!LISTS.status.length){
+   throw new Error('Controlled vocabulary _Lists is incomplete');
+ }
+ fillLists();
+}
+function fillLists(){
+ fillSelect('equipmentCategoryFilter',LISTS.category,'All categories');
+ fillSelect('equipmentTypeFilter',LISTS.type,'All types');
+ fillSelect('equipmentOwnerFilter',LISTS.owner_type,'All owners');
+ fillSelect('equipmentStatusFilter',LISTS.status,'All status');
+ fillSelect('f_eq_category',LISTS.category,'Select category');
+ fillSelect('f_eq_type',LISTS.type,'Select type');
+ fillSelect('f_eq_owner_type',LISTS.owner_type,'Select owner type');
+ fillSelect('f_eq_status',LISTS.status,'Select status');
+}
+function matchesEquipmentGroup(type, group){
+ const normalizedType=String(type||'').trim().toLowerCase();
+ if(!group)return true;
+ if(group==='dump-truck')return normalizedType==='dump truck';
+ if(group==='excavator')return normalizedType==='excavator';
+ if(group==='support-unit')return normalizedType==='grader'||normalizedType==='dozer';
+ return true;
+}
+function filtered(){
+ const id=document.getElementById('equipmentIdFilter').value.trim().toLowerCase();
+ const group=document.getElementById('equipmentMasterGroupFilter').value;
+ const cat=document.getElementById('equipmentCategoryFilter').value;
+ const type=document.getElementById('equipmentTypeFilter').value;
+ const owner=document.getElementById('equipmentOwnerFilter').value;
+ const status=document.getElementById('equipmentStatusFilter').value;
+ return state.rows.filter(r=>
+   (!id||String(r.equipment_id||'').toLowerCase().includes(id))&&
+   (!group||matchesEquipmentGroup(r.type,group))&&
+   (!cat||r.category===cat)&&(!type||r.type===type)&&
+   (!owner||r.owner_type===owner)&&(!status||r.status===status)
+ );
+}
+function equipmentBrand(row){
+ const profile=state.capacities.find(function(item){
+  return String(item.capacity_profile_id||'')===String(row.capacity_profile_id||'');
+ });
+ return profile?String(profile.unit_brand||'—'):'—';
+}
+function renderUnitList(){
+ const typeFilter=document.getElementById('equipmentUnitTypeFilter');
+ if(typeFilter){
+  const selected=typeFilter.value;
+  const types=Array.from(new Set(state.rows.map(function(row){return String(row.type||'').trim();}).filter(Boolean))).sort(function(a,b){return a.localeCompare(b);});
+  typeFilter.innerHTML='<option value="">All types</option>'+types.map(function(type){return '<option value="'+esc(type)+'">'+esc(type)+'</option>';}).join('');
+  if(types.includes(selected))typeFilter.value=selected;
+ }
+ const host=document.getElementById('equipmentUnitListRows');
+ const count=document.getElementById('equipmentUnitListCount');
+ if(!host||!count)return;
+ if(state.status==='loading'){
+  host.innerHTML='<div class="equipment-unit-empty">Loading unit database from RuntimeAdapter…</div>';
+  count.textContent='Loading…';
+  return;
+ }
+ if(state.status==='error'){
+  host.innerHTML='<div class="equipment-unit-empty">Unit database unavailable. Check RuntimeAdapter and refresh.</div>';
+  count.textContent='Unavailable';
+  return;
+ }
+ const selectedType=typeFilter?typeFilter.value:'';
+ const rows=state.rows.filter(function(row){return !selectedType||String(row.type||'')===selectedType;}).slice().sort(function(a,b){
+  return String(b.effective_from||'').localeCompare(String(a.effective_from||''))||
+   String(a.equipment_id||'').localeCompare(String(b.equipment_id||''));
+ });
+ host.innerHTML=rows.length?rows.map(function(row){
+  const cls=String(row.status||'').toLowerCase().replace(/[^a-z]/g,'')||'inactive';
+  return '<div class="equipment-unit-row">'+
+   '<div class="equipment-unit-cell">'+esc(row.effective_from||'—')+'</div>'+
+   '<div class="equipment-unit-cell unit-id">'+esc(row.equipment_id||'—')+'</div>'+
+   '<div class="equipment-unit-cell unit-no">'+esc(row.unit_no||'—')+'</div>'+
+   '<div class="equipment-unit-cell">'+esc(row.type||'—')+'</div>'+
+   '<div class="equipment-unit-cell">'+esc(equipmentBrand(row))+'</div>'+
+   '<div class="equipment-unit-cell">'+esc(row.category||'—')+'</div>'+
+   '<div class="equipment-unit-cell"><span class="statuspill '+cls+'-status">'+esc(row.status||'—')+'</span></div>'+
+   '<div class="equipment-unit-cell equipment-unit-actions"><button type="button" class="control mini edit-equipment" data-id="'+esc(row.equipment_id)+'">Edit</button><button type="button" class="control mini danger delete-equipment" data-id="'+esc(row.equipment_id)+'">Delete</button></div>'+
+  '</div>';
+ }).join(''):'<div class="equipment-unit-empty">No equipment units recorded yet.</div>';
+ count.textContent=rows.length+' units · Runtime Ready · Canonical Equipment records';
+}
+async function refreshUnitList(){
+ const host=document.getElementById('equipmentUnitListRows');
+ const count=document.getElementById('equipmentUnitListCount');
+ if(host)host.innerHTML='<div class="equipment-unit-empty">Refreshing unit database…</div>';
+ if(count)count.textContent='Refreshing…';
+ await refreshData();
+ if(state.status==='error'){
+  if(host)host.innerHTML='<div class="equipment-unit-empty error">Unit database unavailable. Check RuntimeAdapter and refresh.</div>';
+  if(count)count.textContent='Unavailable';
+ }
+}
+function openUnitList(){
+ renderUnitList();
+ global.LithositeModalShowContract.show('equipmentUnitListModal');
+ refreshUnitList();
+}
+function render(){
+ const host=document.getElementById('equipmentRows');
+ if(!host)return;
+ if(state.status==='loading'){
+   host.innerHTML='<div class="empty">Loading Equipment from RuntimeAdapter…</div>';
+ }else if(state.status==='error'){
+   host.innerHTML='<div class="empty">Equipment data unavailable. Check RuntimeAdapter connection and use Refresh.</div>';
+ }else{
+   const rows=filtered().slice().sort(function(a,b){
+     const dateCompare=String(a.effective_from||'').localeCompare(String(b.effective_from||''));
+     if(dateCompare!==0)return dateCompare;
+     const statusCompare=String(a.status||'').localeCompare(String(b.status||''));
+     if(statusCompare!==0)return statusCompare;
+     const unitCompare=String(a.unit_no||'').localeCompare(String(b.unit_no||''));
+     if(unitCompare!==0)return unitCompare;
+     return String(a.equipment_id||'').localeCompare(String(b.equipment_id||''));
+   });
+   host.innerHTML=rows.length?rows.map(r=>{
+   const cls=String(r.status||'').toLowerCase().replace(/[^a-z]/g,'')||'inactive-status';
+   return '<div class="tr td">'+
+    '<div class="cell">'+esc(r.equipment_id)+'</div>'+
+    '<div class="cell">'+esc(r.unit_no)+'</div>'+
+    '<div class="cell">'+esc(r.category)+'</div>'+
+    '<div class="cell">'+esc(equipmentBrand(r))+'</div>'+
+    '<div class="cell">'+esc(r.type)+'</div>'+
+    '<div class="cell">'+esc(r.owner_type)+'</div>'+
+    '<div class="cell">'+esc(r.owner_name)+'</div>'+
+    '<div class="cell"><span class="statuspill '+cls+'-status">'+esc(r.status)+'</span></div>'+
+    '<div class="cell">'+esc(r.effective_from)+'</div>'+
+    '<div class="cell">'+esc(r.effective_to)+'</div>'+
+    '<div class="cell row-actions"><button class="control mini view show-map-equipment" data-id="'+esc(r.equipment_id)+'">Show on Map</button><button class="control mini edit edit-equipment" data-id="'+esc(r.equipment_id)+'">Edit</button><button class="control mini danger delete-equipment" data-id="'+esc(r.equipment_id)+'">Delete</button></div>'+
+   '</div>';
+ }).join(''):'<div class="empty">No equipment matches the current filters.</div>';
+   document.getElementById('equipmentCount').textContent=rows.length+' records · Runtime Ready';
+ }
+ if(state.status==='loading')document.getElementById('equipmentCount').textContent='Loading · Runtime Connecting';
+ if(state.status==='error')document.getElementById('equipmentCount').textContent='Unavailable · Runtime Error';
+}
+async function readCanonicalRecords(){
+ const results=await Promise.all([
+  rc.request({operation:'READ',entity:'Equipment'}),
+  rc.request({operation:'READ',entity:'GlobalCapacity'})
+ ]);
+ state.rows=Array.isArray(results[0].data)?results[0].data:[];
+ state.capacities=Array.isArray(results[1].data)?results[1].data:[];
+ fillCapacityProfiles();
+ state.status='ready';
+}
+async function load(){
+ if(!state.rows.length){state.status='loading';render();renderUnitList();}
+ try{
+  const health=await rc.health();
+  runtimeReady=health.status==='READY';
+  if(!runtimeReady)throw new Error('Runtime health is not READY');
+  await loadLists();
+  await readCanonicalRecords();
+  render();
+  renderUnitList();
+  setMsg('RuntimeAdapter connected — canonical records loaded.');
+ }catch(e){
+  runtimeReady=false;state.status='error';render();renderUnitList();
+  setMsg('Runtime unavailable: '+e.message+'. Start desktop-host/server.py.',true);
+ }
+}
+async function refreshData(){
+ try{
+  await readCanonicalRecords();
+  render();
+  renderUnitList();
+  return true;
+ }catch(e){
+  state.status='error';render();renderUnitList();
+  setMsg('Refresh failed: '+e.message,true);
+  return false;
+ }
+}
+function fillCapacityProfiles(selectedId){
+ const select=document.getElementById('f_eq_capacity_profile');
+ if(!select)return;
+ const current=String(selectedId??select.value??'');
+ select.innerHTML='<option value="">Select Global Capacity</option>';
+ state.capacities.slice().sort(function(a,b){
+   const activeA=String(a.status||'').toUpperCase()==='ACTIVE'?0:1;
+   const activeB=String(b.status||'').toUpperCase()==='ACTIVE'?0:1;
+   if(activeA!==activeB)return activeA-activeB;
+   return String(a.capacity_name||'').localeCompare(String(b.capacity_name||''));
+ }).forEach(function(row){
+   const option=document.createElement('option');
+   option.value=String(row.capacity_profile_id||'');
+   option.textContent=String(row.capacity_name||row.capacity_profile_id||'')+' — '+String(row.unit_brand||'—')+' — '+String(row.capacity_value??'')+' '+String(row.measurement||'ton');
+   select.appendChild(option);
+ });
+ if(current&&!state.capacities.some(function(row){return String(row.capacity_profile_id||'')===current;})){
+   const missing=document.createElement('option');
+   missing.value=current;
+   missing.textContent='Unavailable Global Capacity profile — '+current;
+   missing.disabled=true;
+   missing.dataset.missingProfile='true';
+   select.appendChild(missing);
+ }
+ if(current)select.value=current;
+ updateCapacitySummary();
+}
+function populateOwnerNameOptions(selectedName){
+ const select=document.getElementById('f_eq_owner_name');
+ if(!select)return;
+ const previous=String(selectedName??select.selectedOptions?.[0]?.textContent??'').trim();
+ const api=global.LithositeNIK;
+ const status=api&&typeof api.getStatus==='function'?api.getStatus():'loading';
+ const employees=api&&typeof api.getRecords==='function'?api.getRecords():[];
+ select.replaceChildren();
+ const placeholder=document.createElement('option');
+ placeholder.value='';
+ placeholder.textContent=status==='error'?'NIK list unavailable — open List NIK to refresh':status!=='ready'?'Loading registered employees…':employees.length?'Select registered employee':'No employees registered in NIK';
+ select.appendChild(placeholder);
+ if(status==='ready'){
+  employees.forEach(function(employee){
+   const nik=String(employee['Id No (NIK)']||'').trim();
+   const name=String(employee['Name Employment']||'').trim();
+   if(!nik||!name)return;
+   const option=document.createElement('option');
+   option.value=nik;
+   option.textContent=name;
+   option.dataset.employeeName=name;
+   select.appendChild(option);
+  });
+  const matching=Array.from(select.options).find(function(option){
+   return option.value&&option.dataset.employeeName===previous;
+  });
+  if(matching)select.value=matching.value;
+ }
+ select.disabled=status!=='ready'||!employees.some(function(employee){
+  return String(employee['Id No (NIK)']||'').trim()&&String(employee['Name Employment']||'').trim();
+ });
+}
+function selectedOwnerName(){
+ const select=document.getElementById('f_eq_owner_name');
+ const option=select&&select.selectedOptions&&select.selectedOptions[0];
+ return option&&option.value?String(option.dataset.employeeName||option.textContent||'').trim():'';
+}
+function updateCapacitySummary(){
+ const select=document.getElementById('f_eq_capacity_profile');
+ const brand=document.getElementById('f_eq_brand');
+ const capacity=document.getElementById('f_eq_capacity');
+ if(!select||!brand||!capacity)return;
+ const profile=state.capacities.find(function(row){return String(row.capacity_profile_id||'')===String(select.value||'');});
+ const type=String(document.getElementById('f_eq_type')?.value||'').trim().toLowerCase();
+ const required=type==='dump truck';
+ brand.value=profile?String(profile.unit_brand||'—'):'';
+ capacity.value=profile?String(profile.capacity_value??'')+' '+String(profile.measurement||'ton'):'';
+ brand.placeholder=profile?'':'Select a valid Global Capacity profile';
+ capacity.placeholder=profile?'':'Select a valid Global Capacity profile';
+ select.title=required?'Global Capacity profile is required for Dump Truck.':'Global Capacity profile is optional for this equipment type.';
+}
+function resetForm(){
+ setMsg('');
+ const now=new Date();
+ const d=new Date(now.getTime()-now.getTimezoneOffset()*60000).toISOString().slice(0,10);
+ document.getElementById('f_eq_id').value='EQ-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
+ document.getElementById('f_eq_unit_no').value='';
+ document.getElementById('f_eq_id').readOnly=true;
+ document.getElementById('f_eq_unit_no').readOnly=false;
+ document.getElementById('f_eq_category').value='';
+ document.getElementById('f_eq_type').value='';
+ document.getElementById('f_eq_owner_type').value='';
+ populateOwnerNameOptions('');
+ document.getElementById('f_eq_status').value='Active';
+ fillCapacityProfiles('');
+ document.getElementById('f_eq_from').value=d;
+ document.getElementById('f_eq_to').value='';
+}
+function openAdd(fromUnitList){
+ returnToUnitList=!!fromUnitList;
+ if(returnToUnitList)global.LithositeModalShowContract.close('equipmentUnitListModal');
+ editId=null;
+ document.getElementById('equipmentModalTitle').textContent=returnToUnitList?'Add Unit':'Add Equipment';
+ document.getElementById('equipmentSave').textContent='Save via RuntimeAdapter';
+ resetForm();
+ global.LithositeModalShowContract.show('equipmentModal');
+}
+function openEdit(id,fromUnitList){
+ setMsg('');
+ const row=state.rows.find(x=>String(x.equipment_id)===String(id));if(!row)return;
+ returnToUnitList=!!fromUnitList;
+ if(returnToUnitList)global.LithositeModalShowContract.close('equipmentUnitListModal');
+ editId=id;
+ document.getElementById('equipmentModalTitle').textContent=returnToUnitList?'Edit Unit':'Edit Equipment';
+ document.getElementById('equipmentSave').textContent='Update via RuntimeAdapter';
+ const map={f_eq_id:row.equipment_id,f_eq_unit_no:row.unit_no,f_eq_category:row.category,f_eq_type:row.type,f_eq_owner_type:row.owner_type,f_eq_status:row.status,f_eq_from:row.effective_from,f_eq_to:row.effective_to};
+ Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
+ populateOwnerNameOptions(row.owner_name);
+ fillCapacityProfiles(row.capacity_profile_id||'');
+ global.LithositeModalShowContract.show('equipmentModal');
+}
+function payload(){
+ return {
+  equipment_id:document.getElementById('f_eq_id').value,
+  unit_no:document.getElementById('f_eq_unit_no').value.trim(),
+  category:document.getElementById('f_eq_category').value,
+  type:document.getElementById('f_eq_type').value,
+  owner_type:document.getElementById('f_eq_owner_type').value,
+  owner_name:selectedOwnerName(),
+  status:document.getElementById('f_eq_status').value,
+  effective_from:document.getElementById('f_eq_from').value||null,
+  effective_to:document.getElementById('f_eq_to').value||null,
+  capacity_profile_id:document.getElementById('f_eq_capacity_profile').value||null
+ };
+}
+async function save(){
+ if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}
+ const wasEdit=Boolean(editId);
+ const row=payload();
+ if(!row.unit_no||!row.category||!row.type||!row.owner_type||!row.owner_name||!row.status){setMsg('Unit / Fleet No., Category, Type, Owner Type, registered Owner Name and Status are required.',true);return;}
+ if(String(row.type||'').trim().toLowerCase()==='dump truck'&&!row.capacity_profile_id){setMsg('Global Capacity Profile is required for Dump Truck.',true);return;}
+ if(row.capacity_profile_id&&!state.capacities.some(function(profile){return String(profile.capacity_profile_id||'')===String(row.capacity_profile_id);})){setMsg('The selected Global Capacity profile is unavailable. Choose a valid profile or clear the optional profile before saving.',true);return;}
+ try{
+  const result=editId?await rc.request({operation:'UPDATE',entity:'Equipment',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Equipment',row});
+  if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the equipment');
+  const reopenUnitList=returnToUnitList;
+  returnToUnitList=false;
+  global.LithositeModalShowContract.close('equipmentModal');
+  const refreshed=await refreshData();
+  if(refreshed){
+   setMsg(wasEdit?'Equipment unit updated and list refreshed.':'Equipment unit created and list refreshed.');
+  }else{
+   setMsg(wasEdit?'Equipment update committed, but the list could not refresh. Use Refresh to reload.':'Equipment creation committed, but the list could not refresh. Use Refresh to reload.',true);
+  }
+  if(reopenUnitList){
+   global.LithositeModalShowContract.show('equipmentUnitListModal');
+  }
+ }catch(e){setMsg('Validation/runtime error: '+e.message,true);}
+}
+async function remove(id){
+ if(!await global.LithositeDeleteConfirmContract.confirm({entity:'Equipment',id:id,warning:'Runtime will reject deletion if the equipment is referenced.'}))return;
+ try{
+  const result=await rc.request({operation:'DELETE',entity:'Equipment',entity_id:id});
+  if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');
+  const refreshed=await refreshData();
+  if(refreshed)setMsg('Equipment deleted and audited.');
+  else setMsg('Equipment deleted and audited, but the list could not refresh. Use Refresh to reload.',true);
+ }catch(e){setMsg('Delete failed: '+e.message,true);}
+}
+function closeEquipmentForm(){
+ const reopenUnitList=returnToUnitList;
+ returnToUnitList=false;
+ global.LithositeModalShowContract.close('equipmentModal');
+ if(reopenUnitList){global.LithositeModalShowContract.show('equipmentUnitListModal');refreshUnitList();}
+}
+
+function equipmentGraphicTypeColor(label){
+ const colors={
+  'Dump Truck':'#22c55e',
+  'Excavator':'#f59e0b',
+  'Dozer':'#ef4444',
+  'Grader':'#38bdf8',
+  'Support':'#a78bfa',
+  'Other':'#94a3b8'
+ };
+ return colors[label]||'#94a3b8';
+}
+function equipmentGraphicTypeGroup(row){
+ const rawType=String(row&&row.type||'').trim().toLowerCase();
+ const rawCategory=String(row&&row.category||'').trim().toLowerCase();
+ const combined=(rawType+' '+rawCategory).trim();
+ if(combined.includes('dump truck')||combined.includes('dump-truck'))return 'Dump Truck';
+ if(combined.includes('excavator'))return 'Excavator';
+ if(combined.includes('dozer'))return 'Dozer';
+ if(combined.includes('grader'))return 'Grader';
+ if(combined.includes('water truck')||combined.includes('water-truck')||combined.includes('support'))return 'Support';
+ return 'Other';
+}
+function equipmentGraphicDateKey(value){
+ const raw=String(value||'').trim();
+ if(!raw)return '';
+ const match=raw.match(/^(\d{4}-\d{2}-\d{2})/);
+ return match?match[1]:'';
+}
+function equipmentGraphicPeriodLabel(dateKey,index,total){
+ const parts=dateKey.split('-');
+ if(parts.length!==3)return dateKey;
+ const date=new Date(Number(parts[0]),Number(parts[1])-1,Number(parts[2]));
+ if(total<=10||index===0||index===total-1||Number(parts[2])%5===0){
+  return date.toLocaleDateString('en-GB',{day:'2-digit'});
+ }
+ return '';
+}
+function equipmentGraphicSeriesGroup(row){
+ const group=equipmentGraphicTypeGroup(row);
+ if(group==='Dump Truck')return 'Dump Truck';
+ if(group==='Excavator')return 'Excavator';
+ if(group==='Dozer'||group==='Grader')return 'Dozer + Grader';
+ return '';
+}
+function renderEquipmentPeriodChart(hostId,title,subtitle,groupName,rows,color){
+ const host=document.getElementById(hostId);
+ if(!host)return;
+ const periods={};
+ rows.forEach(function(row){
+  const dateKey=equipmentGraphicDateKey(row.effective_from);
+  const group=equipmentGraphicSeriesGroup(row);
+  if(!dateKey||group!==groupName)return;
+  periods[dateKey]=(periods[dateKey]||0)+1;
+ });
+ const dates=Object.keys(periods).sort();
+ if(!dates.length){
+  host.innerHTML='<div class="equipment-graphics-empty">No unit records with Effective From dates.</div>';
+  return;
+ }
+ let cumulative=0;
+ const values=dates.map(function(date,index){
+  const daily=periods[date];
+  cumulative+=daily;
+  return {value:daily,label:equipmentGraphicPeriodLabel(date,index,dates.length)+' · '+daily+' unit',date:date,cumulative:cumulative};
+ });
+ const maximum=cumulative;
+ const total=values.reduce(function(sum,item){return sum+item.value;},0);
+ const groupTotal=rows.filter(function(row){return equipmentGraphicSeriesGroup(row)===groupName;}).length;
+ const peakDaily=values.reduce(function(peak,item){return Math.max(peak,item.value);},0);
+ const usagePercent=groupTotal>0?Math.min(100,Math.round((peakDaily/groupTotal)*100)):0;
+ const points=values.map(function(item,index){
+  const x=values.length===1?50:(index/(values.length-1))*100;
+  const y=100-(item.cumulative/maximum*100);
+  return x.toFixed(2)+','+y.toFixed(2);
+ }).join(' ');
+ const legend='<div class="equipment-period-mini-legend"><span><i style="background:'+color+'"></i>Units by Effective From</span><span><b></b>Cumulative Records</span></div>';
+ host.innerHTML=  legend+
+  '<div class="equipment-period-mini-chart" style="--equipment-chart-color:'+color+';--equipment-period-count:'+values.length+'">'+
+   '<div class="equipment-period-mini-yaxis"><span>'+maximum+'</span><span>'+Math.ceil(maximum/2)+'</span><span>0</span></div>'+
+   '<div class="equipment-period-mini-plot"><div class="equipment-period-mini-grid"></div>'+
+    '<svg class="equipment-period-cumulative-line" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+points+'" fill="none" stroke="#d7e2ee" stroke-width="1.2" stroke-dasharray="2.5 2.5" vector-effect="non-scaling-stroke"></polyline></svg>'+
+    '<div id="'+hostId+'Bars" class="equipment-period-mini-bars"></div>'+
+    '<div class="equipment-period-mini-labels">'+
+     values.map(function(item,index){return '<span>'+esc(equipmentGraphicPeriodLabel(item.date,index,dates.length))+'</span>';}).join('')+
+    '</div>'+
+   '</div>'+
+  '</div>'+
+  '<div class="equipment-period-mini-total"><span class="equipment-period-month">'+esc(new Date(Number(dates[0].slice(0,4)),Number(dates[0].slice(5,7))-1,1).toLocaleDateString('en-GB',{month:'long'}))+'</span><span>Records in period: <strong>'+total+'</strong></span></div>'+
+  '<div class="equipment-period-usage" aria-label="Peak daily records ratio"><div class="equipment-period-usage-meta"><span>Peak daily records: '+peakDaily+' / '+groupTotal+'</span><strong>'+usagePercent+'%</strong></div><div class="equipment-period-usage-track" role="progressbar" aria-label="Peak daily records as a share of records in this equipment group" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+usagePercent+'"><span style="width:'+usagePercent+'%;background:'+color+'"></span></div></div>';
+ const barHost=document.getElementById(hostId+'Bars');
+ const graphicBar=global.LithositeGraphicBar;
+ if(graphicBar&&typeof graphicBar.render==='function'){
+  graphicBar.render({element:barHost,values:values});
+ }else{
+  barHost.innerHTML=values.map(function(item){return '<span class="graphic-bar__item" style="height:'+((item.value/maximum)*100).toFixed(2)+'%;background:linear-gradient(to top,'+color+' 0%,#f8fbff 100%)" title="'+esc(item.label)+'"></span>';}).join('');
+ }
+ Array.from(barHost.children).forEach(function(bar,index){
+  bar.style.background='linear-gradient(to top,'+color+' 0%,#f8fbff 100%)';
+  bar.style.height=(maximum>0 ? (values[index].value/maximum*100) : 0).toFixed(2)+'%';
+ });
+}
+function renderEquipmentGraphics(){
+ const rows=Array.isArray(state.rows)?state.rows:[];
+ const groups=['Dump Truck','Excavator','Dozer','Grader','Support','Other'];
+ const groupColors={};
+ groups.forEach(function(label){groupColors[label]=equipmentGraphicTypeColor(label);});
+
+ const groupTotals={};
+ groups.forEach(function(label){groupTotals[label]=0;});
+ rows.forEach(function(row){
+  const group=equipmentGraphicTypeGroup(row);
+  groupTotals[group]=(groupTotals[group]||0)+1;
+ });
+ const donutSegments=groups.map(function(label){
+  return {label:label,value:groupTotals[label]||0,color:groupColors[label]};
+ });
+ const donut=global.LithositeGraphicDonut;
+ if(donut&&typeof donut.render==='function'){
+  donut.render({
+   element:'equipmentGraphicsDonut',
+   segments:donutSegments,
+   totalElement:'equipmentGraphicsTotal',
+   label:'Equipment units grouped by type',
+   emptyColor:'#203247'
+  });
+ }
+ const donutLegend=document.getElementById('equipmentGraphicsStatusLegend');
+ if(donutLegend){
+  donutLegend.innerHTML=groups.map(function(label){
+   const value=groupTotals[label]||0;
+   return '<div class="equipment-graphics-legend-row"><i class="equipment-graphics-legend-dot" style="background:'+groupColors[label]+'"></i><span>'+esc(label)+'</span><strong>'+value+'</strong></div>';
+  }).join('');
+ }
+
+ renderEquipmentPeriodChart('equipmentGraphicsDumpTruckBars','Dump Truck','Actual daily units','Dump Truck',rows,'#22c55e');
+ renderEquipmentPeriodChart('equipmentGraphicsExcavatorBars','Excavator','Actual daily units','Excavator',rows,'#f59e0b');
+ renderEquipmentPeriodChart('equipmentGraphicsDozerGraderBars','Dozer + Grader','Actual daily units combined','Dozer + Grader',rows,'#38bdf8');
+}
+function openEquipmentGraphics(){
+ renderEquipmentGraphics();
+ global.LithositeModalShowContract.show('equipmentGraphicsModal');
+}
+
+function bind(){
+ document.getElementById('equipmentAdd').onclick=()=>openAdd(false);
+ document.getElementById('equipmentUnitListAdd').onclick=()=>openAdd(true);
+ document.getElementById('equipmentRefresh').onclick=load;
+ document.addEventListener('lithosite:nik-records-updated',function(){populateOwnerNameOptions(selectedOwnerName());});
+ document.getElementById('equipmentUnitListButton').onclick=openUnitList;
+ document.getElementById('equipmentGraphicsButton').onclick=openEquipmentGraphics;
+ document.getElementById('equipmentGraphicsClose').onclick=()=>global.LithositeModalShowContract.close('equipmentGraphicsModal');
+ document.getElementById('equipmentUnitListClose').onclick=()=>global.LithositeModalShowContract.close('equipmentUnitListModal');
+
+ document.getElementById('equipmentUnitListRefresh').onclick=refreshUnitList;
+ document.getElementById('equipmentUnitTypeFilter').addEventListener('change',renderUnitList);
+ document.getElementById('equipmentUnitListRows').addEventListener('click',function(event){
+  const edit=event.target.closest('.edit-equipment');
+  if(edit){openEdit(edit.dataset.id,true);return;}
+  const del=event.target.closest('.delete-equipment');
+  if(del)remove(del.dataset.id);
+ });
+ document.getElementById('equipmentSave').onclick=save;
+ document.getElementById('f_eq_capacity_profile').addEventListener('change',updateCapacitySummary);
+ document.getElementById('f_eq_type').addEventListener('change',updateCapacitySummary);
+ document.getElementById('equipmentClose').onclick=closeEquipmentForm;
+ document.getElementById('equipmentCancel').onclick=closeEquipmentForm;
+ document.getElementById('equipmentClear').onclick=()=>{['equipmentIdFilter','equipmentMasterGroupFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>document.getElementById(id).value='');render();};
+ ['equipmentIdFilter','equipmentMasterGroupFilter','equipmentCategoryFilter','equipmentTypeFilter','equipmentOwnerFilter','equipmentStatusFilter'].forEach(id=>{const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);});
+ document.getElementById('equipmentRows').addEventListener('click',e=>{
+  const showMap=e.target.closest('.show-map-equipment');if(showMap){
+   const api=global.MineServicesMarkerLocation;
+   const result=api&&typeof api.showDomainRecordOnMap==='function'?api.showDomainRecordOnMap('Equipment',showMap.dataset.id):{ok:false,status:'MAP_INTERACTION_UNAVAILABLE'};
+   setMapMsg(result.ok?'Equipment '+showMap.dataset.id+' shown on Map.':'Spatial location not assigned for Equipment '+showMap.dataset.id+'.',!result.ok);
+   return;
+  }
+  const edit=e.target.closest('.edit-equipment');if(edit)openEdit(edit.dataset.id);
+  const del=e.target.closest('.delete-equipment');if(del)remove(del.dataset.id);
+ });
+}
+document.addEventListener('mine-services:open-domain-record',function(event){
+ const detail=event&&event.detail||{};
+ if(detail.source_entity!=='Equipment'||!detail.source_id)return;
+ if(global.LithositeShellNavigation)global.LithositeShellNavigation.setScreen('Equipment');
+ setTimeout(function(){openEdit(detail.source_id);},0);
+});
+if(global.LithositeDataSync)global.LithositeDataSync.register('Equipment',refreshData);
+bind();load();
+})(window);
