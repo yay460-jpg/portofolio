@@ -28,14 +28,3 @@ Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopico
 Name: "desktopicon"; Description: "Create a Desktop shortcut"; GroupDescription: "Additional shortcuts:"
 [Run]
 Filename: "{tmp}\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; Parameters: "/silent /install"; StatusMsg: "Installing the WebView2 runtime for offline desktop use..."; Flags: waituntilterminated
-[Code]
-function InitializeSetup(): Boolean;
-begin
-  if not FileExists(ExpandConstant('{src}\redist\MicrosoftEdgeWebView2RuntimeInstallerX64.exe')) then
-  begin
-    MsgBox('The offline WebView2 runtime installer is missing from packaging\redist. The installer cannot be built for offline use until it is supplied.', mbCriticalError, MB_OK);
-    Result := False;
-    exit;
-  end;
-  Result := True;
-end;
