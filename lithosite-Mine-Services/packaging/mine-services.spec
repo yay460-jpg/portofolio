@@ -2,9 +2,9 @@ from pathlib import Path
 import os
 from PyInstaller.utils.hooks import collect_submodules
 
-MODULE_ROOT = Path(SPECPATH).resolve().parent.parent
+MODULE_ROOT = Path(SPECPATH).resolve().parent
 REPO_ROOT = MODULE_ROOT.parent
-DATA_ROOTS = ["assets", "lithosite-Mine-Geologist/assets", "lithosite-Mine-Services/Artifacts", "lithosite-Mine-Services/ui", "lithosite-Mine-Services/shared", "lithosite-Mine-Services/src", "Engine_Share/Security_Guard/Host_Guard"]
+DATA_ROOTS = ["assets", "lithosite-Mine-Geologist/assets", "lithosite-Mine-Services/Artifacts", "lithosite-Mine-Services/ui", "lithosite-Mine-Services/shared", "lithosite-Mine-Services/src", "lithosite-Mine-Services/desktop-host", "Engine_Share/Security_Guard/Host_Guard"]
 datas = []
 for relative in DATA_ROOTS:
     source = REPO_ROOT / relative
