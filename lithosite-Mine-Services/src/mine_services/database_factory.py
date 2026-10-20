@@ -1,10 +1,11 @@
-"""Create an empty canonical A.3 workbook for a fresh installation.
+""""Create an empty canonical A.3 workbook for a fresh installation.
 
 This factory is intentionally create-if-missing. It never copies or overwrites
 an existing operational workbook.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -52,8 +53,8 @@ def ensure_a3_database(path: str | Path) -> Path:
         return target
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    # Build in the destination directory, then publish atomically. Re-check before
-    # replace so concurrent first launches do not knowingly overwrite a database.
+    # Build in the destination directory, then publish atomically. os.link fails
+    # if another process created target, so an existing database is never replaced.
     with NamedTemporaryFile(
         prefix=target.stem + ".",
         suffix=target.suffix,
@@ -64,8 +65,7 @@ def ensure_a3_database(path: str | Path) -> Path:
     try:
         _build_empty_a3_workbook(temporary)
         try:
-            # Hard-link creation is atomic and fails if another process created target.
-            temporary.link_to(target)
+            os.link(temporary, target)
         except FileExistsError:
             pass
         return target
