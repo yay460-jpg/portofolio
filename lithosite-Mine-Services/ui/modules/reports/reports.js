@@ -125,7 +125,12 @@ function shiftPairToolbarSummary(pair){
 }
 function activePolicySummary(policy){
   const p=clonePolicy(policy);
-  return p.shiftPairId+' · '+shiftPairSummary(p.shiftPair)+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
+  const pair=p.shiftPair||DEFAULT_SHIFT_PAIR;
+  const pairName=pair.pair_id==='TB-PROJECT-PAIR-0700-0700'?'Alternate Pair':'Default Pair';
+  return pairName+' · '+p.shiftPairId+'\\n'+
+    shiftDescription('Day',pair.day_baseline||p.baseline,false)+'\\n'+
+    shiftDescription('Night',pair.night_baseline||p.nightBaseline,true)+'\\n'+
+    'EU: '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · Effective Time: '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
 }
 function formatKpiIssue(issue){
   const clock=value=>{

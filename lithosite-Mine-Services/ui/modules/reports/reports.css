@@ -163,7 +163,7 @@ footer.status{z-index:30;box-sizing:border-box;white-space:nowrap;overflow:hidde
 #reportsScreen .reports-console-selection select{flex:1 1 auto;min-width:0}
 #reportsScreen .reports-console-selection .reports-console-status{flex:0 0 auto;margin-top:0;padding:4px 7px;border-left:2px solid #4d8dff;border-radius:0 5px 5px 0;background:#102944;color:#7fb5f2;white-space:nowrap}
 #reportsScreen .reports-console-hint{margin-top:4px;font-size:6.8px;line-height:1.35;color:#7f95ab}
-#reportsScreen .reports-console-policy-value{padding:7px 8px;border:1px solid #315b87;border-radius:6px;background:#102944;color:#dce8f5;font-size:7.5px;line-height:1.35}
+#reportsScreen .reports-console-policy-value{padding:7px 8px;border:1px solid #315b87;border-radius:6px;background:#102944;color:#dce8f5;font-size:7.5px;line-height:1.35;white-space:pre-line;overflow-wrap:anywhere}
 #reportsScreen .reports-console-foot{display:flex;justify-content:flex-end;gap:7px;padding:8px 12px;border-top:1px solid #263e57;background:#0e1d2d}
 #reportsScreen .reports-console-value{padding:7px 8px;border:1px solid #29435d;border-radius:6px;background:#10243a;color:#c8d6e6;font-size:7.5px;line-height:1.35}
 #reportsScreen .reports-timeline-evidence{margin-top:7px}

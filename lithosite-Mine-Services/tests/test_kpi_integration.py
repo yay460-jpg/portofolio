@@ -14,18 +14,18 @@ BAT = ROOT / "desktop-host" / "start-mine-services.bat"
 def test_stage23_artifact_wires_foundation():
     html = ARTIFACT.read_text(encoding="utf-8")
     assert "kpi-foundation.js?v=20261022-shift-pair-options-3" in html
-    assert "reports.css?v=20261022-kpi-baseline-two-line-right-19" in html
+    assert "reports.css?v=20261022-kpi-console-pair-layout-20" in html
     assert "text-align:right" in (ROOT / "ui" / "modules" / "reports" / "reports.css").read_text(encoding="utf-8")
+    assert "reports.js?v=20261022-kpi-console-pair-summary-4" in html
     assert 'class="report-body"' in html
     assert "report-operational-panel" in html
     assert 'id="equipmentKpiRows"' in html
     assert 'id="reportsFinalizeKpi"' in html
     assert 'id="reportsKpiDate"' in html
-    assert "Day 06:00–18:00 · rest 12:00–13:00 · 12 h shift / 11 h operational; Night 18:00–06:00 next day · rest 00:00–01:00 · 12 h shift / 11 h operational" in html
+    assert 'value="TB-PROJECT-PAIR-0600-0600">Default Pair · Day 06:00–18:00 / Night 18:00–06:00</option>' in html
+    assert 'value="TB-PROJECT-PAIR-0700-0700">Alternate Pair · Day 07:00–18:00 / Night 19:00–06:00</option>' in html
     assert "TB-PROJECT-PAIR-0700-0700" in html
-    assert "TB-PROJECT-DAY-0700-1800" in html
-    assert "TB-PROJECT-NIGHT-1900-0600" in html
-    assert "10 h operational" in html
+    assert "Full shift details appear under Active Policy." in html
 
 def test_kpi_toolbar_baseline_is_a_two_line_non_overlapping_summary():
     html = ARTIFACT.read_text(encoding="utf-8")
@@ -35,6 +35,9 @@ def test_kpi_toolbar_baseline_is_a_two_line_non_overlapping_summary():
     assert "set('reportsBaseline',shiftPairToolbarSummary(pair))" in js
     assert "white-space:pre-line" in css
     assert "flex:0 1 365px;width:365px;min-width:0" in css
+    assert "function activePolicySummary(policy)" in js
+    assert "return pairName+' · '+p.shiftPairId+'\\n'+" in js
+    assert "white-space:pre-line;overflow-wrap:anywhere" in css
 
 
 def test_stage23_foundation_contracts():
