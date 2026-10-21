@@ -736,12 +736,22 @@
       }
 
       await refreshData();
+      if (activeTimelineKey) {
+        openTimeline(activeTimelineKey);
+      }
       setRuntimeState('Operation deleted and audited.');
     } catch (error) {
       setRuntimeState('Delete failed: ' + error.message, true);
     }
   }
 
+
+  function closeOperationForm() {
+    global.LithositeModalShowContract.close('modal');
+    if (activeTimelineKey) {
+      openTimeline(activeTimelineKey);
+    }
+  }
 
   function bindControls() {
     const bind = function (id, handler) {
@@ -751,8 +761,8 @@
     };
 
     bind('add', openAdd);
-    bind('close', function () { global.LithositeModalShowContract.close('modal'); });
-    bind('cancel', function () { global.LithositeModalShowContract.close('modal'); });
+    bind('close', closeOperationForm);
+    bind('cancel', closeOperationForm);
     bind('stage', saveForm);
     bind('refresh', loadData);
     ['f_wf','f_eq','f_activity','f_retase'].forEach(function(id){const el=document.getElementById(id);if(el){el.addEventListener('input',refreshHaulingFields);el.addEventListener('change',refreshHaulingFields);}});
@@ -760,8 +770,8 @@
     // Keep controls reliable after external JS extraction.
     document.getElementById('add').onclick = openAdd;
     document.getElementById('refresh').onclick = loadData;
-    document.getElementById('close').onclick = function () { global.LithositeModalShowContract.close('modal'); };
-    document.getElementById('cancel').onclick = function () { global.LithositeModalShowContract.close('modal'); };
+    document.getElementById('close').onclick = closeOperationForm;
+    document.getElementById('cancel').onclick = closeOperationForm;
     document.getElementById('stage').onclick = saveForm;
 
     const clear = document.getElementById('clear');
@@ -821,7 +831,6 @@
     document.getElementById('timelineRows').addEventListener('click', function (event) {
       const edit = event.target.closest('.edit-timeline-row');
       if (edit) {
-        document.getElementById('timelineModal').classList.remove('show');
         openEdit(edit.dataset.id);
         return;
       }
