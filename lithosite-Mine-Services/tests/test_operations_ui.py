@@ -152,3 +152,12 @@ def test_stage8_night_shift_events_sort_by_operational_time():
     assert "items.sort(compareTimelineRows);" in ops_text
     assert "shiftAnchorDate(first) + ' · Start '" in ops_text
     assert "return timelineKeyForRow(row, dataState.operations) === key;" in ops_text
+
+
+def test_stage8_maintenance_links_match_cross_midnight_night_shift():
+    ops_text = OPS_JS.read_text(encoding="utf-8")
+
+    assert "const nightTimeline = items.some(function (item)" in ops_text
+    assert "String(row.shift || '').trim().toLowerCase() !== 'night'" in ops_text
+    assert "const expectedDate = nextDate.getFullYear() + '-'" in ops_text
+    assert "String(item.transaction_time || '') >= '18:00'" in ops_text
