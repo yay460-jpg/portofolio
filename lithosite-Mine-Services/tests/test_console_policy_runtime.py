@@ -18,4 +18,3 @@ def test_stage36_runtime_kpi_policy_harness():
     assert "06 STANDARD/AVAILABLE EU=100.00%" in result.stdout
     assert "06 PURE/SCHEDULED EU=63.64%" in result.stdout
     assert "06 STANDARD/SCHEDULED EU=90.91%" in result.stdout
-    assert "07 STANDARD/AVAILABLE EU=100.00%" in result.stdout

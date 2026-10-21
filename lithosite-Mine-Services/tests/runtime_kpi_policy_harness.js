@@ -42,7 +42,8 @@ const maintenance = [
 ];
 
 function run(policy) {
-  return f.calculateFleet({ date, baseline: policy.baseline, policy, equipment, operations, maintenance });
+  const pair=policy.shiftPair||defaultPair;
+  return f.calculateFleet({ date, baseline:policy.baseline||pair.day_baseline, nightBaseline:pair.night_baseline, shiftPair:pair, policy, equipment, operations, maintenance });
 }
 
 function closeTo(actual, expected, label) {
@@ -51,22 +52,23 @@ function closeTo(actual, expected, label) {
   }
 }
 
-const b06 = f.TIME_BASELINES.find(x => x.baseline_id === 'TB-PROJECT-DAY-0600-1800');
-const b07 = f.TIME_BASELINES.find(x => x.baseline_id === 'TB-PROJECT-DAY-0700-1800');
-if (!b06 || !b07) throw new Error('Expected both 06:00–18:00 and 07:00–18:00 baselines');
+const defaultPair = f.DEFAULT_SHIFT_PAIR;
+if (!defaultPair || defaultPair.pair_id !== 'TB-PROJECT-PAIR-0600-0600') throw new Error('Default 24-hour pair missing');
+if (f.TIME_BASELINE_PAIRS.length !== 1) throw new Error('Only the verified default pair should be selectable at this stage');
+if (defaultPair.day_baseline.shift_start !== '06:00' || defaultPair.day_baseline.shift_end !== '18:00') throw new Error('Day Shift default mismatch');
+if (defaultPair.night_baseline.shift_start !== '18:00' || defaultPair.night_baseline.shift_end !== '06:00') throw new Error('Night Shift default mismatch');
+const b06 = defaultPair.day_baseline;
 
 const pureAvail06 = run({ baseline:b06, euDenominator:'AVAILABLE', effectiveTimeRule:'PURE_EFFECTIVE' });
 const standardAvail06 = run({ baseline:b06, euDenominator:'AVAILABLE', effectiveTimeRule:'STANDARD_CYCLE' });
 const pureSched06 = run({ baseline:b06, euDenominator:'SCHEDULED', effectiveTimeRule:'PURE_EFFECTIVE' });
-const standardSched06 = run({ baseline:b06, euDenominator:'SCHEDULED', effectiveTimeRule:'STANDARD_CYCLE' });
-const standardAvail07 = run({ baseline:b07, euDenominator:'AVAILABLE', effectiveTimeRule:'STANDARD_CYCLE' });
+const standardSched06 = run({ baseline:b06, shiftPair:defaultPair, euDenominator:'SCHEDULED', effectiveTimeRule:'STANDARD_CYCLE' });
 
 for (const [label, result] of [
   ['06/PURE/AVAILABLE', pureAvail06],
   ['06/STANDARD/AVAILABLE', standardAvail06],
   ['06/PURE/SCHEDULED', pureSched06],
-  ['06/STANDARD/SCHEDULED', standardSched06],
-  ['07/STANDARD/AVAILABLE', standardAvail07]
+  ['06/STANDARD/SCHEDULED', standardSched06]
 ]) {
   if (result.status !== 'READY') throw new Error(label + ': expected READY, got ' + result.status + ' issues=' + JSON.stringify((result.equipment&&result.equipment[0]&&result.equipment[0].timeline&&result.equipment[0].timeline.issues)||[]));
   if (result.population.excluded !== 0) throw new Error(label + ': expected zero exclusions');
@@ -88,13 +90,8 @@ if (pureSched06.results.EU.denominatorType !== 'SCHEDULED') throw new Error('Sch
 
 closeTo(standardSched06.results.EU.value, (10 / 11) * 100, '06/STANDARD/SCHEDULED EU');
 
-closeTo(standardAvail07.results.PA.value, (9 / 10) * 100, '07/STANDARD/AVAILABLE PA');
-closeTo(standardAvail07.results.EU.value, 100, '07/STANDARD/AVAILABLE EU');
-if (standardAvail07.baseline.baseline_id !== 'TB-PROJECT-DAY-0700-1800') throw new Error('07 baseline mismatch');
-
 console.log('RUNTIME_KPI_POLICY_TEST_PASS');
 console.log('06 PURE/AVAILABLE EU=' + r06.EU.value.toFixed(2) + '%');
 console.log('06 STANDARD/AVAILABLE EU=' + standardAvail06.results.EU.value.toFixed(2) + '%');
 console.log('06 PURE/SCHEDULED EU=' + pureSched06.results.EU.value.toFixed(2) + '%');
 console.log('06 STANDARD/SCHEDULED EU=' + standardSched06.results.EU.value.toFixed(2) + '%');
-console.log('07 STANDARD/AVAILABLE EU=' + standardAvail07.results.EU.value.toFixed(2) + '%');

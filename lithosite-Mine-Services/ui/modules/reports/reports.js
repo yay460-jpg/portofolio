@@ -8,21 +8,52 @@ if(!foundation)throw new Error('LithositeKPIFoundation is required before report
 
 const entities=['Operations','Equipment','WorkFront','Maintenance','Issues','Plans','HSE'];
 const TIME_BASELINES=foundation.TIME_BASELINES||Object.freeze([foundation.DEFAULT_BASELINE]);
+const TIME_BASELINE_PAIRS=foundation.TIME_BASELINE_PAIRS||Object.freeze([{
+  pair_id:'TB-PROJECT-PAIR-0600-0600',
+  name:'Project Default 24-hour Shift Pair',
+  cycle_start:'06:00',
+  cycle_end:'06:00',
+  day_baseline:foundation.DEFAULT_BASELINE,
+  night_baseline:foundation.NIGHT_BASELINE,
+  status:'PROJECT_DEFAULT'
+}]);
+const DEFAULT_SHIFT_PAIR=foundation.DEFAULT_SHIFT_PAIR||TIME_BASELINE_PAIRS[0];
 const EU_DENOMINATOR_OPTIONS=Object.freeze({AVAILABLE:'Available Time',SCHEDULED:'Scheduled Time'});
 const EFFECTIVE_RULE_OPTIONS=Object.freeze({PURE_EFFECTIVE:'Pure Effective / Net Operating',STANDARD_CYCLE:'Standard Cycle Operating'});
-const DEFAULT_POLICY=Object.freeze({baseline:TIME_BASELINES[0],euDenominator:'AVAILABLE',effectiveTimeRule:'PURE_EFFECTIVE'});
-const POLICY_STORAGE_KEY='lithosite.mine-services.v36.kpi-policy';
+const DEFAULT_POLICY=Object.freeze({
+  shiftPair:DEFAULT_SHIFT_PAIR,
+  shiftPairId:DEFAULT_SHIFT_PAIR.pair_id,
+  baseline:DEFAULT_SHIFT_PAIR.day_baseline||TIME_BASELINES[0],
+  nightBaseline:DEFAULT_SHIFT_PAIR.night_baseline||foundation.NIGHT_BASELINE,
+  euDenominator:'AVAILABLE',
+  effectiveTimeRule:'PURE_EFFECTIVE'
+});
+const POLICY_STORAGE_KEY='lithosite.mine-services.v43.kpi-shift-pair-policy';
+function shiftPairFor(policy){
+  const p=policy||DEFAULT_POLICY;
+  const id=p.shiftPairId||(p.shiftPair&&p.shiftPair.pair_id);
+  if(id){
+    const byId=TIME_BASELINE_PAIRS.find(item=>item.pair_id===id);
+    if(byId)return byId;
+  }
+  const dayId=p.baseline&&p.baseline.baseline_id;
+  return TIME_BASELINE_PAIRS.find(item=>item.day_baseline&&item.day_baseline.baseline_id===dayId)||DEFAULT_SHIFT_PAIR;
+}
 function clonePolicy(policy){
   const p=policy||DEFAULT_POLICY;
+  const pair=shiftPairFor(p);
   return Object.freeze({
-    baseline:p.baseline||DEFAULT_POLICY.baseline,
+    shiftPair:pair,
+    shiftPairId:pair.pair_id,
+    baseline:pair.day_baseline||p.baseline||DEFAULT_POLICY.baseline,
+    nightBaseline:pair.night_baseline||p.nightBaseline||DEFAULT_POLICY.nightBaseline,
     euDenominator:p.euDenominator==='SCHEDULED'?'SCHEDULED':'AVAILABLE',
     effectiveTimeRule:p.effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE'
   });
 }
 function samePolicy(a,b){
   const x=clonePolicy(a),y=clonePolicy(b);
-  return x.baseline.baseline_id===y.baseline.baseline_id&&x.euDenominator===y.euDenominator&&x.effectiveTimeRule===y.effectiveTimeRule;
+  return x.shiftPairId===y.shiftPairId&&x.euDenominator===y.euDenominator&&x.effectiveTimeRule===y.effectiveTimeRule;
 }
 function loadStoredPolicy(){
   try{
@@ -30,8 +61,9 @@ function loadStoredPolicy(){
     const raw=global.localStorage.getItem(POLICY_STORAGE_KEY);
     if(!raw)return DEFAULT_POLICY;
     const saved=JSON.parse(raw);
-    const baseline=TIME_BASELINES.find(item=>item.baseline_id===saved.baselineId)||DEFAULT_POLICY.baseline;
-    return clonePolicy({baseline,euDenominator:saved.euDenominator,effectiveTimeRule:saved.effectiveTimeRule});
+    const pair=TIME_BASELINE_PAIRS.find(item=>item.pair_id===saved.shiftPairId)||
+      TIME_BASELINE_PAIRS.find(item=>item.day_baseline&&item.day_baseline.baseline_id===saved.baselineId)||DEFAULT_SHIFT_PAIR;
+    return clonePolicy({shiftPair:pair,shiftPairId:pair.pair_id,baseline:pair.day_baseline,nightBaseline:pair.night_baseline,euDenominator:saved.euDenominator,effectiveTimeRule:saved.effectiveTimeRule});
   }catch(error){return DEFAULT_POLICY;}
 }
 function persistPolicy(policy){
@@ -39,7 +71,8 @@ function persistPolicy(policy){
     if(!global.localStorage)return;
     const p=clonePolicy(policy);
     global.localStorage.setItem(POLICY_STORAGE_KEY,JSON.stringify({
-      version:'1',
+      version:'2',
+      shiftPairId:p.shiftPairId,
       baselineId:p.baseline.baseline_id,
       euDenominator:p.euDenominator,
       effectiveTimeRule:p.effectiveTimeRule
@@ -54,6 +87,20 @@ const rows=name=>Array.isArray(state.data[name])?state.data[name]:[];
 function msg(text,error){const el=document.getElementById('reportsRuntimeMsg');if(el){el.textContent=text;el.classList.toggle('error',!!error);}}
 function latestOperationalDate(){const values=rows('Operations').map(r=>String(r.transaction_date||'').slice(0,10)).filter(Boolean).sort();return values.length?values[values.length-1]:new Date().toISOString().slice(0,10);}
 function fmtHours(value){const n=Number(value);return Number.isFinite(n)?n.toFixed(2):'—';}
+function breakSummary(baseline){
+  const items=Array.isArray(baseline&&baseline.breaks)?baseline.breaks:[];
+  return items.length?items.map(item=>item.start+'–'+item.end).join(', '):'none';
+}
+function shiftPairSummary(pair){
+  const selected=pair||DEFAULT_SHIFT_PAIR;
+  const day=selected.day_baseline||DEFAULT_POLICY.baseline;
+  const night=selected.night_baseline||DEFAULT_POLICY.nightBaseline;
+  return 'Day '+day.shift_start+'–'+day.shift_end+' (rest '+breakSummary(day)+') · Night '+night.shift_start+'–'+night.shift_end+' next day (rest '+breakSummary(night)+') · 11 h operational per 12 h shift';
+}
+function activePolicySummary(policy){
+  const p=clonePolicy(policy);
+  return p.shiftPairId+' · '+shiftPairSummary(p.shiftPair)+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
+}
 function formatKpiIssue(issue){
   const clock=value=>{
     const d=new Date(value);
@@ -88,9 +135,9 @@ function renderKpi(){
   set('reportsFleetPA',fmtPct(pa&&pa.value,pa&&pa.status));
   set('reportsFleetUA',fmtPct(ua&&ua.value,ua&&ua.status));set('reportsFleetEU',fmtPct(eu&&eu.value,eu&&eu.status));
   set('reportsFleetStatus',k?String(k.status):'—');set('reportsEligible',k&&k.population?String(k.population.eligible):'0');set('reportsExcluded',k&&k.population?String(k.population.excluded):'0');
-  const baseline=state.baseline||foundation.DEFAULT_BASELINE;
-  const night=foundation.NIGHT_BASELINE||{baseline_id:'TB-PROJECT-NIGHT-1900-0600',shift_start:'19:00',shift_end:'06:00'};
-  set('reportsBaseline','Day: '+baseline.shift_start+'–'+baseline.shift_end+' · break '+baseline.breaks.map(b=>b.start+'–'+b.end).join(', ')+' | Night: '+night.shift_start+'–'+night.shift_end+' (auto project default)');set('reportsBaselineStatus',baseline.status||'PROJECT_DEFAULT');
+  const policy=clonePolicy(state.policy||DEFAULT_POLICY);
+  const pair=policy.shiftPair||DEFAULT_SHIFT_PAIR;
+  set('reportsBaseline','24h pair · Day '+pair.day_baseline.shift_start+'–'+pair.day_baseline.shift_end+' / Night '+pair.night_baseline.shift_start+'–'+pair.night_baseline.shift_end+' · 11 h/shift');set('reportsBaselineStatus',pair.status||'PROJECT_DEFAULT');
   const euContext=document.getElementById('reportsFleetEUContext');if(euContext){const p=state.policy||DEFAULT_POLICY;euContext.textContent='Effective / '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator);}
 
   const host=document.getElementById('equipmentKpiRows');if(!host)return;
@@ -122,10 +169,12 @@ async function calculate(){
   state.scope=document.getElementById('reportsKpiScope')?.value||state.scope||'ALL_DATES';
   if(state.scope==='DATE'){
     state.date=(document.getElementById('reportsKpiDate')?.value||state.date||latestOperationalDate()).slice(0,10);
-    state.kpi=foundation.calculateFleet({date:state.date,baseline:state.baseline||foundation.DEFAULT_BASELINE,policy:state.policy||DEFAULT_POLICY,equipment:rows('Equipment'),operations:rows('Operations'),maintenance:rows('Maintenance')});
+    const policy=clonePolicy(state.policy||DEFAULT_POLICY);
+    state.kpi=foundation.calculateFleet({date:state.date,baseline:policy.baseline,nightBaseline:policy.nightBaseline,shiftPair:policy.shiftPair,policy,equipment:rows('Equipment'),operations:rows('Operations'),maintenance:rows('Maintenance')});
     try{state.snapshots=await foundation.listSnapshots('FLEET:ALL',state.date);renderSnapshotHistory();}catch(error){state.snapshots=[];renderSnapshotHistory();msg('KPI calculated; snapshot history unavailable: '+error.message,true);}
   }else{
-    state.kpi=foundation.calculateFleetAllDates({baseline:state.baseline||foundation.DEFAULT_BASELINE,policy:state.policy||DEFAULT_POLICY,equipment:rows('Equipment'),operations:rows('Operations'),maintenance:rows('Maintenance')});
+    const policy=clonePolicy(state.policy||DEFAULT_POLICY);
+    state.kpi=foundation.calculateFleetAllDates({baseline:policy.baseline,nightBaseline:policy.nightBaseline,shiftPair:policy.shiftPair,policy,equipment:rows('Equipment'),operations:rows('Operations'),maintenance:rows('Maintenance')});
     state.snapshots=[];
     renderSnapshotHistory();
   }
@@ -149,11 +198,11 @@ function renderConsolePolicy(){
   const effectiveSelect=document.getElementById('reportsEffectiveTimeRule');
   const stateHost=document.getElementById('reportsTimeBaselineState');
   const active=document.getElementById('reportsActivePolicy');
-  if(baselineSelect)baselineSelect.value=p.baseline.baseline_id;
+  if(baselineSelect)baselineSelect.value=p.shiftPairId;
   if(euSelect)euSelect.value=p.euDenominator;
   if(effectiveSelect)effectiveSelect.value=p.effectiveTimeRule;
-  if(stateHost)stateHost.textContent=p.baseline.status||'PROJECT_DEFAULT';
-  if(active)active.textContent=p.baseline.baseline_id+' · Day '+p.baseline.shift_start+'–'+p.baseline.shift_end+' · Night auto '+(foundation.NIGHT_BASELINE||{shift_start:'19:00',shift_end:'06:00'}).shift_start+'–'+(foundation.NIGHT_BASELINE||{shift_start:'19:00',shift_end:'06:00'}).shift_end+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
+  if(stateHost)stateHost.textContent=p.shiftPair.status||'PROJECT_DEFAULT';
+  if(active)active.textContent=activePolicySummary(p);
 }
 
 async function finalizeCurrent(){
@@ -365,7 +414,7 @@ function reportKpiForPeriod(period){
   const scopedEquipment=equipment.filter(row=>activeIds.has(String(row?.equipment_id??row?.equipmentId??'').trim()));
   if(!global.LithositeKPIFoundation||!scopedEquipment.length)return null;
   const policy=state.policy||DEFAULT_POLICY;
-  const payload={equipment:scopedEquipment,operations,maintenance,baseline:policy.baseline,policy:{euDenominator:policy.euDenominator,effectiveTimeRule:policy.effectiveTimeRule}};
+  const payload={equipment:scopedEquipment,operations,maintenance,baseline:policy.baseline,nightBaseline:policy.nightBaseline,shiftPair:policy.shiftPair,policy:{shiftPairId:policy.shiftPairId,euDenominator:policy.euDenominator,effectiveTimeRule:policy.effectiveTimeRule}};
   const calculation=period.start===period.end?global.LithositeKPIFoundation.calculateFleet({...payload,date:period.start}):global.LithositeKPIFoundation.calculateFleetAllDates(payload);
   return {...calculation,report_scope:{start:period.start,end:period.end,active_equipment:scopedEquipment.length}};
 }
@@ -919,15 +968,11 @@ function bind(){
     }
   };
   const applyConsole=async()=>{
-    const baselineId=baselineSelect?.value||DEFAULT_POLICY.baseline.baseline_id;
+    const pairId=baselineSelect?.value||DEFAULT_POLICY.shiftPairId;
+    const pair=TIME_BASELINE_PAIRS.find(item=>item.pair_id===pairId)||DEFAULT_SHIFT_PAIR;
     const euDenominator=euDenominatorSelect?.value||DEFAULT_POLICY.euDenominator;
     const effectiveTimeRule=effectiveRuleSelect?.value||DEFAULT_POLICY.effectiveTimeRule;
-    const baseline=TIME_BASELINES.find(item=>item.baseline_id===baselineId)||DEFAULT_POLICY.baseline;
-    state.policy=Object.freeze({
-      baseline,
-      euDenominator:euDenominator==='SCHEDULED'?'SCHEDULED':'AVAILABLE',
-      effectiveTimeRule:effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE'
-    });
+    state.policy=clonePolicy({shiftPair:pair,shiftPairId:pair.pair_id,baseline:pair.day_baseline,nightBaseline:pair.night_baseline,euDenominator,effectiveTimeRule});
     state.baseline=state.policy.baseline;
     persistPolicy(state.policy);
     hideConsole();
@@ -936,21 +981,22 @@ function bind(){
   };
   const resetConsolePolicy=()=>{
     const changedFromDefault=!samePolicy(state.policy,DEFAULT_POLICY)||
-      baselineSelect?.value!==DEFAULT_POLICY.baseline.baseline_id||
+      baselineSelect?.value!==DEFAULT_POLICY.shiftPairId||
       euDenominatorSelect?.value!==DEFAULT_POLICY.euDenominator||
       effectiveRuleSelect?.value!==DEFAULT_POLICY.effectiveTimeRule;
     if(changedFromDefault&&!global.confirm('Reset Policy Set to the project default? The current selection will be replaced. No runtime policy changes occur until Apply Policy Set.'))return;
-    if(baselineSelect)baselineSelect.value=DEFAULT_POLICY.baseline.baseline_id;
+    if(baselineSelect)baselineSelect.value=DEFAULT_POLICY.shiftPairId;
     if(euDenominatorSelect)euDenominatorSelect.value=DEFAULT_POLICY.euDenominator;
     if(effectiveRuleSelect)effectiveRuleSelect.value=DEFAULT_POLICY.effectiveTimeRule;
     syncConsolePreview();
   };
   const syncConsolePreview=()=>{
-    const p={baseline:TIME_BASELINES.find(item=>item.baseline_id===baselineSelect?.value)||DEFAULT_POLICY.baseline,euDenominator:euDenominatorSelect?.value||DEFAULT_POLICY.euDenominator,effectiveTimeRule:effectiveRuleSelect?.value||DEFAULT_POLICY.effectiveTimeRule};
+    const pair=TIME_BASELINE_PAIRS.find(item=>item.pair_id===baselineSelect?.value)||DEFAULT_SHIFT_PAIR;
+    const p=clonePolicy({shiftPair:pair,shiftPairId:pair.pair_id,baseline:pair.day_baseline,nightBaseline:pair.night_baseline,euDenominator:euDenominatorSelect?.value||DEFAULT_POLICY.euDenominator,effectiveTimeRule:effectiveRuleSelect?.value||DEFAULT_POLICY.effectiveTimeRule});
     const stateEl=document.getElementById('reportsTimeBaselineState');
     const active=document.getElementById('reportsActivePolicy');
-    if(stateEl)stateEl.textContent=p.baseline.status||'PROJECT_DEFAULT';
-    if(active)active.textContent=p.baseline.baseline_id+' · Day '+p.baseline.shift_start+'–'+p.baseline.shift_end+' · Night auto '+(foundation.NIGHT_BASELINE||{shift_start:'19:00',shift_end:'06:00'}).shift_start+'–'+(foundation.NIGHT_BASELINE||{shift_start:'19:00',shift_end:'06:00'}).shift_end+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
+    if(stateEl)stateEl.textContent=p.shiftPair.status||'PROJECT_DEFAULT';
+    if(active)active.textContent=activePolicySummary(p);
   };
   if(baselineSelect)baselineSelect.onchange=syncConsolePreview;
   if(euDenominatorSelect)euDenominatorSelect.onchange=syncConsolePreview;

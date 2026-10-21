@@ -10,7 +10,7 @@ The implementation reads Equipment, Operations, and Maintenance from the existin
 
 Validated Operations rows with positive actual_hours use transaction_time + actual_hours as a derived candidate boundary. Maintenance Breakdown/Corrective events use explicit start_time/end_time.
 
-Events are sliced to shift-specific scheduled windows. Day Shift is 06:00–18:00 with a 12:00–13:00 break; Night Shift is 19:00–07:00 the following day with a 00:00–01:00 break. Both shifts span 12 hours, comprising 11 scheduled operational hours plus 1 hour of rest. The Night Shift baseline is anchored to the date the shift begins, so after-midnight Operations and Maintenance records remain part of that shift.
+Events are sliced to a versioned paired shift schedule. The default 24-hour cycle begins at 06:00: Day Shift runs 06:00–18:00 with rest 12:00–13:00; Night Shift runs 18:00–06:00 on the next calendar day with rest 00:00–01:00. Each shift lasts 12 hours, comprising 11 scheduled operational hours plus 1 hour of rest. The Night Shift baseline is anchored to the date the shift begins, so after-midnight Operations and Maintenance records remain part of that shift. At this stage, the console exposes only this default pair; alternative work-hour configurations should be introduced as full paired schedules.
 
 Gaps, overlaps, invalid boundaries, and invalid duration evidence produce NEEDS_VALIDATION. Missing evidence is never filled automatically.
 

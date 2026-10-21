@@ -13,13 +13,15 @@ BAT = ROOT / "desktop-host" / "start-mine-services.bat"
 
 def test_stage23_artifact_wires_foundation():
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "kpi-foundation.js?v=20261022-shift-aware-timeline-1" in html
+    assert "kpi-foundation.js?v=20261022-shift-pair-1800-0600-2" in html
     assert "reports.css?v=20261012-cascade-owner-17" in html
     assert 'class="report-body"' in html
     assert "report-operational-panel" in html
     assert 'id="equipmentKpiRows"' in html
     assert 'id="reportsFinalizeKpi"' in html
     assert 'id="reportsKpiDate"' in html
+    assert "Day 06:00–18:00 (rest 12:00–13:00) + Night 18:00–06:00 next day (rest 00:00–01:00)" in html
+    assert "TB-PROJECT-DAY-0700-1800" not in html
 
 
 def test_stage23_foundation_contracts():
@@ -28,6 +30,10 @@ def test_stage23_foundation_contracts():
         "V35-KPI-FOUNDATION-E2E-0.1",
         "buildEquipmentTimeline",
         "NIGHT_BASELINE",
+        "DEFAULT_SHIFT_PAIR",
+        "TIME_BASELINE_PAIRS",
+        "TB-PROJECT-NIGHT-1800-0600",
+        "TB-PROJECT-PAIR-0600-0600",
         "shiftAnchorDate",
         "collectShiftEntries",
         "calculateEquipment",

@@ -43,15 +43,19 @@ const f = context.LithositeKPIFoundation;
 const b = f.DEFAULT_BASELINE;
 
 const nightScheduledWindows = f.baselineWindows('2026-10-05', f.NIGHT_BASELINE);
-assert.equal(f.NIGHT_BASELINE.baseline_id, 'TB-PROJECT-NIGHT-1900-0700');
-assert.equal(f.NIGHT_BASELINE.shift_start, '19:00');
-assert.equal(f.NIGHT_BASELINE.shift_end, '07:00');
+assert.equal(f.NIGHT_BASELINE.baseline_id, 'TB-PROJECT-NIGHT-1800-0600');
+assert.equal(f.NIGHT_BASELINE.shift_start, '18:00');
+assert.equal(f.NIGHT_BASELINE.shift_end, '06:00');
+assert.equal(f.DEFAULT_SHIFT_PAIR.pair_id, 'TB-PROJECT-PAIR-0600-0600');
+assert.equal(f.DEFAULT_SHIFT_PAIR.day_baseline.baseline_id, f.DEFAULT_BASELINE.baseline_id);
+assert.equal(f.DEFAULT_SHIFT_PAIR.night_baseline.baseline_id, f.NIGHT_BASELINE.baseline_id);
+assert.equal(f.TIME_BASELINE_PAIRS.length, 1);
 assert.equal(f.scheduledHours(nightScheduledWindows), 11);
 assert.equal(nightScheduledWindows.length, 2);
-assert.equal(nightScheduledWindows[0].start.getHours(), 19);
+assert.equal(nightScheduledWindows[0].start.getHours(), 18);
 assert.equal(nightScheduledWindows[0].end.getHours(), 0);
 assert.equal(nightScheduledWindows[1].start.getHours(), 1);
-assert.equal(nightScheduledWindows[1].end.getHours(), 7);
+assert.equal(nightScheduledWindows[1].end.getHours(), 6);
 
 const operations = [
   { transaction_id:'OPS-1', transaction_date:'2026-10-04', transaction_time:'06:00', equipment_id:'EQ-01', work_front_id:'WF-01', activity:'Loading', actual_hours:4, status:'VALIDATED' },
@@ -145,14 +149,14 @@ const nightGapRanges = nightGaps.map(issue => [
   new Date(issue.from).getHours(),
   new Date(issue.to).getHours()
 ]);
-assert.deepEqual(nightGapRanges, [[3, 4], [6, 7]]);
+assert.deepEqual(nightGapRanges, [[18, 19], [3, 4]]);
 assert(nightIncomplete.timeline.events.some(event => event.source_entity === 'Maintenance' && event.source_id === 'MNT-NIGHT'));
 
 const nightCompleted = f.calculateEquipment({
   equipmentId:'EQ-NIGHT', date:'2026-10-05', shift:'Night', baseline:b,
   operations:nightOperations.concat([
-    { transaction_id:'NIGHT-03', transaction_date:'2026-10-06', transaction_time:'03:00', equipment_id:'EQ-NIGHT', work_front_id:'WF-NIGHT', activity:'Standby', actual_hours:1, status:'VALIDATED', shift:'Night' },
-    { transaction_id:'NIGHT-06', transaction_date:'2026-10-06', transaction_time:'06:00', equipment_id:'EQ-NIGHT', work_front_id:'WF-NIGHT', activity:'Hauling', actual_hours:1, status:'VALIDATED', shift:'Night' }
+    { transaction_id:'NIGHT-18', transaction_date:'2026-10-05', transaction_time:'18:00', equipment_id:'EQ-NIGHT', work_front_id:'WF-NIGHT', activity:'Hauling', actual_hours:1, status:'VALIDATED', shift:'Night' },
+    { transaction_id:'NIGHT-03', transaction_date:'2026-10-06', transaction_time:'03:00', equipment_id:'EQ-NIGHT', work_front_id:'WF-NIGHT', activity:'Standby', actual_hours:1, status:'VALIDATED', shift:'Night' }
   ]),
   maintenance:nightMaintenance
 });

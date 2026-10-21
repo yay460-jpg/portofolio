@@ -15,33 +15,32 @@
     status: 'PROJECT_DEFAULT',
     source: 'V34 Stage 23 prototype'
   });
-  const TIME_BASELINES=Object.freeze([
-    DEFAULT_BASELINE,
-    Object.freeze({
-      baseline_id:'TB-PROJECT-DAY-0700-1800',
-      version:'1.0',
-      name:'Project Alternate Day Shift',
-      shift_start:'07:00',
-      shift_end:'18:00',
-      breaks:[{start:'12:00',end:'13:00'}],
-      effective_from:'2026-01-01',
-      effective_to:null,
-      status:'ALTERNATE_POLICY',
-      source:'V36 Console Policy Set — alternate work timeline; break carried from project baseline until site-specific override'
-    })
-  ]);
   const NIGHT_BASELINE=Object.freeze({
-    baseline_id:'TB-PROJECT-NIGHT-1900-0700',
+    baseline_id:'TB-PROJECT-NIGHT-1800-0600',
     version:'1.0',
     name:'Project Default Night Shift',
-    shift_start:'19:00',
-    shift_end:'07:00',
+    shift_start:'18:00',
+    shift_end:'06:00',
     breaks:[{start:'00:00',end:'01:00'}],
     effective_from:'2026-01-01',
     effective_to:null,
     status:'PROJECT_DEFAULT',
-    source:'Project Night Shift baseline: 19:00–07:00 with 00:00–01:00 rest; 11 scheduled operational hours per 12-hour shift'
+    source:'Project Night Shift baseline: 18:00–06:00 next calendar day, rest 00:00–01:00; 11 scheduled operating hours per 12-hour shift'
   });
+  const DEFAULT_SHIFT_PAIR=Object.freeze({
+    pair_id:'TB-PROJECT-PAIR-0600-0600',
+    version:'1.0',
+    name:'Project Default 24-hour Shift Pair',
+    cycle_start:'06:00',
+    cycle_end:'06:00',
+    cycle_hours:24,
+    day_baseline:DEFAULT_BASELINE,
+    night_baseline:NIGHT_BASELINE,
+    status:'PROJECT_DEFAULT',
+    source:'Day 06:00–18:00 rest 12:00–13:00, followed by Night 18:00–06:00 next day rest 00:00–01:00; 11 scheduled operating hours per shift'
+  });
+  const TIME_BASELINES=Object.freeze([DEFAULT_BASELINE]);
+  const TIME_BASELINE_PAIRS=Object.freeze([DEFAULT_SHIFT_PAIR]);
   function clone(value){return JSON.parse(JSON.stringify(value));}
   function asNumber(value){const n=Number(value);return Number.isFinite(n)?n:null;}
   function parseDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?null:d;}
@@ -204,7 +203,10 @@
   function buildEquipmentTimeline(input){
     const payload=input||{},date=String(payload.date||'').slice(0,10),equipmentId=payload.equipmentId;
     const shift=resolveEquipmentShift(payload,date,equipmentId);
-    const baseline=shift==='NIGHT'?clone(NIGHT_BASELINE):Object.assign({},DEFAULT_BASELINE,payload.baseline||{});
+    const pair=payload.shiftPair||DEFAULT_SHIFT_PAIR;
+    const dayBaseline=payload.baseline||pair.day_baseline||DEFAULT_BASELINE;
+    const nightBaseline=payload.nightBaseline||(payload.shiftBaselines&&payload.shiftBaselines.NIGHT)||pair.night_baseline||NIGHT_BASELINE;
+    const baseline=shift==='NIGHT'?clone(nightBaseline):Object.assign({},DEFAULT_BASELINE,dayBaseline);
     const effectiveTimeRule=payload.effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE';
     if(!date)return{status:center.KPI_STATUS.INVALID_INPUT,issues:[{code:'REPORT_DATE_REQUIRED'}]};
     if(!equipmentId)return{status:center.KPI_STATUS.INVALID_INPUT,issues:[{code:'EQUIPMENT_ID_REQUIRED'}]};
@@ -340,6 +342,8 @@
   function calculateFleetAllDates(input){
     const payload=input||{},equipment=Array.isArray(payload.equipment)?payload.equipment:[];
     const policy=payload.policy||{};
+    const selectedPair=payload.shiftPair||DEFAULT_SHIFT_PAIR;
+    const selectedNightBaseline=payload.nightBaseline||selectedPair.night_baseline||NIGHT_BASELINE;
     const euDenominator=policy.euDenominator==='SCHEDULED'?'SCHEDULED':'AVAILABLE';
     const effectiveTimeRule=policy.effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE';
     const entries=collectShiftEntries(payload.operations,payload.maintenance);
@@ -350,7 +354,8 @@
       const evaluationEntries=sourceEntries.length?sourceEntries:entries;
       const dayResults=evaluationEntries.map(entry=>Object.assign(calculateEquipment({
         equipmentId:row.equipment_id||row.equipmentId,
-        date:entry.date,shift:entry.shift,baseline:payload.baseline,
+        date:entry.date,shift:entry.shift,baseline:payload.baseline||selectedPair.day_baseline||DEFAULT_BASELINE,
+        nightBaseline:selectedNightBaseline,shiftPair:selectedPair,
         effectiveTimeRule,euDenominator,operations:payload.operations,maintenance:payload.maintenance
       }),{date:entry.date,shift:entry.shift}));
       const readyDays=dayResults.filter(r=>r.results&&r.results.PA&&r.results.PA.status===center.KPI_STATUS.READY&&r.results.UA&&r.results.UA.status===center.KPI_STATUS.READY);
@@ -377,7 +382,7 @@
       const validatedDates=Array.from(new Set(readyDays.map(r=>r.date))).sort();
       const invalidDates=Array.from(new Set(dayResults.filter(r=>!readyDays.includes(r)).map(r=>r.date))).sort();
       const sourceDates=Array.from(new Set(sourceEntries.map(entry=>entry.date))).sort();
-      const shiftBaselines={DAY:clone(payload.baseline||DEFAULT_BASELINE),NIGHT:clone(NIGHT_BASELINE)};
+      const shiftBaselines={DAY:clone(payload.baseline||selectedPair.day_baseline||DEFAULT_BASELINE),NIGHT:clone(selectedNightBaseline)};
       return{
         equipmentId:row.equipment_id||row.equipmentId||null,unitNo:row.unit_no,status,scope:'ALL_DATES',
         dates:dayResults.map(r=>({date:r.date,shift:r.shift,status:r.status})),
@@ -409,11 +414,11 @@
         fleetEU={kpi:'EU',status:center.KPI_STATUS.READY,value:(effectiveHours/denominatorHours)*100,unit:'%',numeratorHours:effectiveHours,denominatorHours,denominatorType:euDenominator,effectiveTimeRule,formulaId:euDenominator==='SCHEDULED'?'EU-EFFECTIVE-OVER-SCHEDULED':'EU-EFFECTIVE-OVER-AVAILABLE'};
       }
     }
-    const shiftBaselines={DAY:clone(payload.baseline||DEFAULT_BASELINE),NIGHT:clone(NIGHT_BASELINE)};
+    const shiftBaselines={DAY:clone(payload.baseline||selectedPair.day_baseline||DEFAULT_BASELINE),NIGHT:clone(selectedNightBaseline)};
     return{
       status:eligible.length&&exclusions.length?'PARTIAL_VALIDATION':(euReady&&eligible.length?center.KPI_STATUS.READY:center.KPI_STATUS.NEEDS_VALIDATION),
       date:null,scope:'ALL_DATES',dates,baseline:clone(payload.baseline||DEFAULT_BASELINE),
-      policy:{baseline:clone(payload.baseline||DEFAULT_BASELINE),euDenominator,effectiveTimeRule,shiftBaselines},
+      policy:{baseline:clone(payload.baseline||selectedPair.day_baseline||DEFAULT_BASELINE),shiftPairId:selectedPair.pair_id,euDenominator,effectiveTimeRule,shiftBaselines},
       population:{total:equipment.length,eligible:eligible.length,excluded:exclusions.length,validatedDates:dates.length},
       contributingHours:{scheduledHours:scheduled,availableHours:available,usedHours:used},
       results:{PA:eligible.length?center.calculatePA({scheduledHours:scheduled,availableHours:available}):null,UA:eligible.length?center.calculateUA({availableHours:available,usedHours:used}):null,EU:fleetEU},
@@ -423,12 +428,16 @@
   function calculateFleet(input){
     const payload=input||{},equipment=Array.isArray(payload.equipment)?payload.equipment:[];
     const policy=payload.policy||{};
+    const selectedPair=payload.shiftPair||DEFAULT_SHIFT_PAIR;
+    const selectedNightBaseline=payload.nightBaseline||selectedPair.night_baseline||NIGHT_BASELINE;
     const euDenominator=policy.euDenominator==='SCHEDULED'?'SCHEDULED':'AVAILABLE';
     const effectiveTimeRule=policy.effectiveTimeRule==='STANDARD_CYCLE'?'STANDARD_CYCLE':'PURE_EFFECTIVE';
     const results=equipment.map(row=>Object.assign(calculateEquipment({
       equipmentId:row.equipment_id,
       date:payload.date,
-      baseline:payload.baseline,
+      baseline:payload.baseline||selectedPair.day_baseline||DEFAULT_BASELINE,
+      nightBaseline:selectedNightBaseline,
+      shiftPair:selectedPair,
       effectiveHours:payload.effectiveHoursByEquipment?payload.effectiveHoursByEquipment[row.equipment_id]:undefined,
       effectiveTimeRule:effectiveTimeRule,
       euDenominator:euDenominator,
@@ -473,12 +482,13 @@
     return{
       status:exclusions.length||!euReady?center.KPI_STATUS.NEEDS_VALIDATION:(eligible.length?center.KPI_STATUS.READY:center.KPI_STATUS.NEEDS_VALIDATION),
       date:payload.date,
-      baseline:clone(payload.baseline||DEFAULT_BASELINE),
+      baseline:clone(payload.baseline||selectedPair.day_baseline||DEFAULT_BASELINE),
       policy:{
-        baseline:clone(payload.baseline||DEFAULT_BASELINE),
+        baseline:clone(payload.baseline||selectedPair.day_baseline||DEFAULT_BASELINE),
+        shiftPairId:selectedPair.pair_id,
         euDenominator:euDenominator,
         effectiveTimeRule:effectiveTimeRule,
-        shiftBaselines:{DAY:clone(payload.baseline||DEFAULT_BASELINE),NIGHT:clone(NIGHT_BASELINE)}
+        shiftBaselines:{DAY:clone(payload.baseline||selectedPair.day_baseline||DEFAULT_BASELINE),NIGHT:clone(selectedNightBaseline)}
       },
       population:{total:equipment.length,eligible:eligible.length,excluded:exclusions.length},
       contributingHours:{scheduledHours:scheduled,availableHours:available,usedHours:used},
@@ -497,12 +507,12 @@
       version:event.event_version||'V1',validation_status:event.validation_status||'VALID',shift:event.shift||null
     })));
     const shiftBaselines=(calculation.policy&&calculation.policy.shiftBaselines)||{
-      DAY:clone(calculation.baseline),NIGHT:clone(NIGHT_BASELINE)
+      DAY:clone(calculation.baseline),NIGHT:clone(DEFAULT_SHIFT_PAIR.night_baseline)
     };
     const timeBaseline={
       id:calculation.baseline.baseline_id,version:calculation.baseline.version,status:calculation.baseline.status,
       shift_start:calculation.baseline.shift_start,shift_end:calculation.baseline.shift_end,
-      breaks:clone(calculation.baseline.breaks),shift_baselines:clone(shiftBaselines)
+      breaks:clone(calculation.baseline.breaks),shift_pair_id:(calculation.policy&&calculation.policy.shiftPairId)||DEFAULT_SHIFT_PAIR.pair_id,shift_baselines:clone(shiftBaselines)
     };
     return{
       snapshot_version:'V35-KPI-SNAPSHOT-1',scope_type:payload.scopeType||'FLEET',scope_id:payload.scopeId||'FLEET:ALL',
@@ -517,12 +527,12 @@
       source_fingerprint:fingerprint({
         scope_id:payload.scopeId||'FLEET:ALL',period_id:payload.periodId||calculation.date,
         calculation_version:calculation.calculationVersion||VERSION,policy_version:'1.0',
-        baseline_version:calculation.baseline.version,shift_baselines:shiftBaselines,
+        baseline_version:calculation.baseline.version,shift_pair_id:(calculation.policy&&calculation.policy.shiftPairId)||DEFAULT_SHIFT_PAIR.pair_id,shift_baselines:shiftBaselines,
         event_versions:eventVersions,result:calculation.results
       })
     };
   }
   async function finalizeSnapshot(snapshot){const rc=global.LithositeRuntimeClient;if(!rc)throw new Error('LithositeRuntimeClient is required for snapshot finalization');return rc.request({operation:'FINALIZE_KPI',snapshot});}
   async function listSnapshots(scopeId,periodId){const rc=global.LithositeRuntimeClient;if(!rc)throw new Error('LithositeRuntimeClient is required for KPI snapshot history');const result=await rc.request({operation:'READ_KPI_SNAPSHOTS',scope_id:scopeId||null,period_id:periodId||null});return Array.isArray(result.data)?result.data:[];}
-  global.LithositeKPIFoundation=Object.freeze({VERSION,DEFAULT_BASELINE,NIGHT_BASELINE,TIME_BASELINES,baselineWindows,scheduledHours,shiftAnchorDate,collectShiftEntries,buildEquipmentTimeline,calculateEquipment,calculateFleet,calculateFleetAllDates,buildSnapshot,finalizeSnapshot,listSnapshots,fingerprint});
+  global.LithositeKPIFoundation=Object.freeze({VERSION,DEFAULT_BASELINE,NIGHT_BASELINE,DEFAULT_SHIFT_PAIR,TIME_BASELINES,TIME_BASELINE_PAIRS,baselineWindows,scheduledHours,shiftAnchorDate,collectShiftEntries,buildEquipmentTimeline,calculateEquipment,calculateFleet,calculateFleetAllDates,buildSnapshot,finalizeSnapshot,listSnapshots,fingerprint});
 })(window);
