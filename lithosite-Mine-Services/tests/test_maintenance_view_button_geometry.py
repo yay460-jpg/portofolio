@@ -29,5 +29,5 @@ def test_maintenance_view_button_sizing_is_scoped_and_does_not_override_operatio
     css = MAINTENANCE_CSS.read_text(encoding="utf-8")
 
     assert "#operationsScreen .row-actions .control.view{" not in css
-    assert css.count("#maintenanceTimelineModal .row-actions .mini{") == 2
+    assert css.count("#maintenanceTimelineModal .row-actions .mini{") == 4
     assert "#maintenanceScreen .row-actions .control.view{" in css
