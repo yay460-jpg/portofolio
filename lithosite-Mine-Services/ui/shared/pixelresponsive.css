@@ -37,25 +37,13 @@ body.viewport-test-mode .app > footer.status{
   }
 }
 
-/* Equipment Graphics — constrain the modal to the simulated 14-inch workspace.
-   Keep the donut column fixed and distribute the three 7-day chart cards evenly. */
+/* Equipment Graphics — 14-inch viewport fit.
+   pixelresponsive.css owns viewport-only overrides; equipment.css owns base card styling.
+   Keep the donut column fixed and divide the remaining modal width evenly across
+   the three 7-day chart cards. */
 body.viewport-test-mode #equipmentGraphicsModal > .equipment-graphics-modal{
-  width:min(1320px,calc(100vw - 64px));
-  max-width:1320px;
-}
-body.viewport-test-mode #equipmentGraphicsModal > .equipment-graphics-modal > .equipment-graphics-body{
-  grid-template-columns:250px repeat(3,minmax(0,1fr));
-  gap:10px;
-  min-width:0;
-}
-body.viewport-test-mode #equipmentGraphicsModal .equipment-graphics-period-card{
-  min-width:0;
-}
-
-/* Equipment Graphics — narrower 14-inch fit: preserve equal widths for the three 7-day cards. */
-body.viewport-test-mode #equipmentGraphicsModal > .equipment-graphics-modal{
-  width:min(1240px,calc(100vw - 80px));
-  max-width:1240px;
+  width:min(1160px,calc(100vw - 80px));
+  max-width:1160px;
 }
 body.viewport-test-mode #equipmentGraphicsModal > .equipment-graphics-modal > .equipment-graphics-body{
   grid-template-columns:250px repeat(3,minmax(0,1fr));
