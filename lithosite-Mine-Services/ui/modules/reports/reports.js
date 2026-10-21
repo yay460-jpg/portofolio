@@ -120,8 +120,9 @@ function shiftPairSummary(pair){
 }
 function shiftPairToolbarSummary(pair){
   const selected=pair||DEFAULT_SHIFT_PAIR;
-  return shiftDescription('Day',selected.day_baseline||DEFAULT_POLICY.baseline,false)+' ·\n'+
-    shiftDescription('Night',selected.night_baseline||DEFAULT_POLICY.nightBaseline,true);
+  const day=selected.day_baseline||DEFAULT_POLICY.baseline;
+  const night=selected.night_baseline||DEFAULT_POLICY.nightBaseline;
+  return 'Day '+day.shift_start+'–'+day.shift_end+' / Night '+night.shift_start+'–'+night.shift_end;
 }
 function activePolicySummary(policy){
   const p=clonePolicy(policy);

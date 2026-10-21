@@ -16,7 +16,7 @@ def test_stage23_artifact_wires_foundation():
     assert "kpi-foundation.js?v=20261022-shift-pair-options-3" in html
     assert "reports.css?v=20261022-kpi-console-pair-layout-20" in html
     assert "text-align:right" in (ROOT / "ui" / "modules" / "reports" / "reports.css").read_text(encoding="utf-8")
-    assert "reports.js?v=20261022-kpi-console-pair-summary-4" in html
+    assert "reports.js?v=20261022-kpi-toolbar-compact-pair-5" in html
     assert 'class="report-body"' in html
     assert "report-operational-panel" in html
     assert 'id="equipmentKpiRows"' in html
@@ -27,12 +27,14 @@ def test_stage23_artifact_wires_foundation():
     assert "TB-PROJECT-PAIR-0700-0700" in html
     assert "Full shift details appear under Active Policy." in html
 
-def test_kpi_toolbar_baseline_is_a_two_line_non_overlapping_summary():
+def test_kpi_toolbar_baseline_uses_compact_selected_pair_summary():
     html = ARTIFACT.read_text(encoding="utf-8")
     js = (ROOT / "ui" / "modules" / "reports" / "reports.js").read_text(encoding="utf-8")
     css = (ROOT / "ui" / "modules" / "reports" / "reports.css").read_text(encoding="utf-8")
     assert "shiftPairToolbarSummary(pair)" in js
     assert "set('reportsBaseline',shiftPairToolbarSummary(pair))" in js
+    assert "return 'Day '+day.shift_start+'–'+day.shift_end+' / Night '+night.shift_start+'–'+night.shift_end;" in js
+    assert "shiftDescription('Day',selected.day_baseline" not in js
     assert "white-space:pre-line" in css
     assert "flex:0 1 365px;width:365px;min-width:0" in css
     assert "function activePolicySummary(policy)" in js
