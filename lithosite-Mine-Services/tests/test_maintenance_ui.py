@@ -103,3 +103,13 @@ def test_stage11_maintenance_shift_is_form_table_and_timeline_synced():
     assert "shift:document.getElementById('f_maintenance_shift').value" in MAINTENANCE_JS
     assert "_migrate_a3_maintenance_shift" in persistence_text
     assert 'value="Day"' not in TEXT and 'value="Night"' not in TEXT
+
+
+def test_stage11_maintenance_shift_partitions_timeline_and_preserves_calendar_date():
+    assert "String(row.shift||'')" in MAINTENANCE_JS
+    assert "startsWith(key+'|')" in MAINTENANCE_JS
+    assert "String(first.shift||'')" in MAINTENANCE_JS
+    assert "shiftAnchorDate" not in MAINTENANCE_JS
+    persistence_text = (ROOT / "src" / "mine_services" / "persistence.py").read_text(encoding="utf-8")
+    assert 'legacy_headers = [header for header in expected_headers if header != "shift"]' in persistence_text
+    assert 'worksheet.cell(row=1, column=new_column, value="shift")' in persistence_text
