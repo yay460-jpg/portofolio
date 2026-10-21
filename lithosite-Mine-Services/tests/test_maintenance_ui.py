@@ -113,3 +113,10 @@ def test_stage11_maintenance_shift_partitions_timeline_and_preserves_calendar_da
     persistence_text = (ROOT / "src" / "mine_services" / "persistence.py").read_text(encoding="utf-8")
     assert 'legacy_headers = [header for header in expected_headers if header != "shift"]' in persistence_text
     assert 'worksheet.cell(row=1, column=new_column, value="shift")' in persistence_text
+
+
+def test_stage11_operations_links_match_cross_midnight_night_shift():
+    assert "function linkedOperationsFor(items)" in MAINTENANCE_JS
+    assert "maintenanceShift!=='night'" in MAINTENANCE_JS
+    assert "String(row.transaction_time||'')>='18:00'" in MAINTENANCE_JS
+    assert "return date===expectedDate" in MAINTENANCE_JS
