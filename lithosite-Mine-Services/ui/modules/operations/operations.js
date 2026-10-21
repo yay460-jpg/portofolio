@@ -315,7 +315,7 @@
       'Work Timeline — ' + (first.equipment_id || 'Unassigned');
 
     document.getElementById('timelineMeta').textContent =
-      String(first.transaction_date || '—') + ' · Start ' +
+      shiftAnchorDate(first) + ' · Start ' +
       String(first.transaction_time || '—') + ' · End ' +
       String(rows[rows.length - 1].end_time || rows[rows.length - 1].transaction_time || '—') +
       ' · ' + rows.length + ' events';
