@@ -20,12 +20,15 @@ def test_maintenance_layout_adds_linked_operations_between_timeline_and_downtime
     ) in MAINTENANCE_CSS
 
 
-def test_maintenance_resolves_linked_operations_by_same_date_and_equipment():
+def test_maintenance_resolves_linked_operations_across_night_shift_midnight():
     assert "operations:[]" in MAINTENANCE_JS
     assert "rc.request({operation:'READ',entity:'Operations'})" in MAINTENANCE_JS
     assert "function linkedOperationsFor(items)" in MAINTENANCE_JS
-    assert "String(row.transaction_date||'')===date" in MAINTENANCE_JS
-    assert "String(row.equipment_id||'').trim()===equipmentId" in MAINTENANCE_JS
+    assert "const maintenanceShift=String(first.shift||'').trim().toLowerCase()" in MAINTENANCE_JS
+    assert "maintenanceShift!=='night'" in MAINTENANCE_JS
+    assert "String(row.transaction_time||'')>='18:00'" in MAINTENANCE_JS
+    assert "return date===expectedDate" in MAINTENANCE_JS
+    assert "String(row.equipment_id||'').trim()!==equipmentId" in MAINTENANCE_JS
     assert "data-date=" in MAINTENANCE_JS
     assert "data-equipment=" in MAINTENANCE_JS
     assert "linkedOperations.length+' linked</button>" in MAINTENANCE_JS
@@ -43,10 +46,14 @@ def test_maintenance_link_navigates_to_and_focuses_operations():
     assert "#operationsScreen .operation-trace-highlight" in OPERATIONS_CSS
 
 
-def test_operations_to_maintenance_link_remains_compatible():
+def test_operations_to_maintenance_link_handles_night_shift_midnight():
     assert "function maintenanceLinksFor(items)" in OPERATIONS_JS
-    assert "String(row.event_date || '') === date" in OPERATIONS_JS
-    assert "String(row.equipment_id || '').trim() === equipmentId" in OPERATIONS_JS
+    assert "const nightTimeline = items.some(function (item)" in OPERATIONS_JS
+    assert "const maintenanceDate = String(row.event_date || '')" in OPERATIONS_JS
+    assert "String(row.shift || '').trim().toLowerCase() !== 'night'" in OPERATIONS_JS
+    assert "String(item.transaction_time || '') >= '18:00'" in OPERATIONS_JS
+    assert "return maintenanceDate === expectedDate" in OPERATIONS_JS
+    assert "String(row.equipment_id || '').trim() !== equipmentId" in OPERATIONS_JS
     assert "global.LithositeMaintenance.focusTrace({" in OPERATIONS_JS
 
 
