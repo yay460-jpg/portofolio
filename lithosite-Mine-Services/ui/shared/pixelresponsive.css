@@ -79,3 +79,37 @@ body.viewport-test-mode #operationsGraphicsModal.show.is-closing > .operations-g
   transform:translateX(11px)!important;
   animation:none!important;
 }
+
+/* Target Plan — fit the full register in the 14-inch viewport simulator only.
+   Compress the 15 register columns to the available width and remove the
+   horizontal scroller; the normal 15.6-inch layout remains unchanged. */
+body.viewport-test-mode #plansScreen .tablebody,
+body.viewport-test-mode #plansScreen .grid {
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  overflow-x:hidden;
+}
+body.viewport-test-mode #plansScreen .plantr.consolidated-th,
+body.viewport-test-mode #plansScreen .plantr.consolidated-tr {
+  width:100%;
+  min-width:0;
+  grid-template-columns:
+    minmax(72px,.85fr) minmax(62px,.7fr) minmax(62px,.7fr)
+    minmax(80px,.9fr) minmax(135px,1.35fr) minmax(65px,.7fr)
+    minmax(52px,.55fr) minmax(52px,.55fr) minmax(58px,.62fr)
+    minmax(62px,.65fr) minmax(62px,.65fr) minmax(58px,.6fr)
+    minmax(62px,.65fr) minmax(52px,.55fr) minmax(75px,.8fr);
+}
+body.viewport-test-mode #plansScreen .plantr.consolidated-th > .cell,
+body.viewport-test-mode #plansScreen .plantr.consolidated-tr > .cell {
+  min-width:0;
+  padding-right:3px;
+  padding-left:3px;
+  font-size:8px;
+  overflow-wrap:anywhere;
+}
+body.viewport-test-mode #plansScreen .plantr.consolidated-th > .cell {
+  white-space:normal;
+  line-height:1.2;
+}
