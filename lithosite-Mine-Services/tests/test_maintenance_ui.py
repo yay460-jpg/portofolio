@@ -98,7 +98,7 @@ def test_stage11_maintenance_shift_is_form_table_and_timeline_synced():
     assert '<div class="cell">Shift</div>' in TEXT
     assert "checker_shift" in schema_text
     assert '"Maintenance.shift":"checker_shift"' in schema_text
-    assert '"shift"' in MAINTENANCE_JS
+    assert "shift:[]" in MAINTENANCE_JS
     assert "f_maintenance_shift:row.shift" in MAINTENANCE_JS
     assert "shift:document.getElementById('f_maintenance_shift').value" in MAINTENANCE_JS
     assert "_migrate_a3_maintenance_shift" in persistence_text
