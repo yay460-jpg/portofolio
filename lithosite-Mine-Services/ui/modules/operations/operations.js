@@ -211,6 +211,48 @@
     return date + '|' + (equipmentId || 'NO-EQUIPMENT|' + String(row.transaction_id || ''));
   }
 
+  function timelineOrderMinutes(row) {
+    const parts = String(row.transaction_time || '').split(':');
+    if (parts.length < 2) return Number.MAX_SAFE_INTEGER;
+    const hour = Number(parts[0]);
+    const minute = Number(parts[1]);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return Number.MAX_SAFE_INTEGER;
+    const minutes = hour * 60 + minute;
+    return String(row.shift || '').trim().toLowerCase() === 'night' && hour < 12
+      ? minutes + 24 * 60
+      : minutes;
+  }
+
+  function compareTimelineRows(a, b) {
+    const aDate = String(a.transaction_date || '');
+    const bDate = String(b.transaction_date || '');
+    const aShift = String(a.shift || '').trim().toLowerCase();
+    const bShift = String(b.shift || '').trim().toLowerCase();
+    const aOrder = timelineOrderMinutes(a);
+    const bOrder = timelineOrderMinutes(b);
+    // Compare night-shift events by their operational position, not clock time.
+    if (aShift === 'night' && bShift === 'night') {
+      const aAnchor = aOrder >= 24 * 60 ? shiftAnchorDate(a) : aDate;
+      const bAnchor = bOrder >= 24 * 60 ? shiftAnchorDate(b) : bDate;
+      const anchorCompare = aAnchor.localeCompare(bAnchor);
+      if (anchorCompare) return anchorCompare;
+      const orderCompare = aOrder - bOrder;
+      if (orderCompare) return orderCompare;
+    }
+    const dateCompare = aDate.localeCompare(bDate);
+    return dateCompare || String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
+  }
+
+  function shiftAnchorDate(row) {
+    const date = String(row.transaction_date || '');
+    const hour = Number(String(row.transaction_time || '').slice(0, 2));
+    if (String(row.shift || '').trim().toLowerCase() !== 'night' || !(hour < 12)) return date;
+    const d = new Date(date + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return date;
+    d.setDate(d.getDate() - 1);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
   function timelineGroups(rows) {
     const groups = new Map();
 
@@ -221,9 +263,7 @@
     });
 
     const grouped = Array.from(groups.values()).map(function (items) {
-      items.sort(function (a, b) {
-        return String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
-      });
+      items.sort(compareTimelineRows);
       return items;
     });
 
@@ -258,9 +298,7 @@
       .filter(function (row) {
         return timelineKeyForRow(row, dataState.operations) === key;
       })
-      .sort(function (a, b) {
-        return String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
-      });
+      .sort(compareTimelineRows);
 
     if (!rows.length) return;
 
@@ -631,10 +669,7 @@
   function openAddWork() {
     const rows = dataState.operations.filter(function (row) {
       return timelineKeyForRow(row, dataState.operations) === activeTimelineKey;
-    }).sort(function (a, b) {
-      const dateCompare = String(a.transaction_date || '').localeCompare(String(b.transaction_date || ''));
-      return dateCompare || String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
-    });
+    }).sort(compareTimelineRows);
     if (!rows.length) {
       setRuntimeState('Work Timeline has no event to extend.', true);
       return;
