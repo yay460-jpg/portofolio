@@ -930,7 +930,9 @@
       global.LithositeModalShowContract.close('modal');
       await refreshData();
 
-      if ((wasEditing || wasAddingWork) && savedTimelineKey) {
+      if (wasEditing && savedTimelineKey) {
+        openTimeline(savedRowKey);
+      } else if (wasAddingWork && savedTimelineKey) {
         openTimeline(savedTimelineKey);
       } else if (!wasEditing) {
         activeTimelineKey = null;
