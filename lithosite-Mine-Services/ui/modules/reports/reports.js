@@ -118,6 +118,11 @@ function shiftPairSummary(pair){
   return shiftDescription('Day',selected.day_baseline||DEFAULT_POLICY.baseline,false)+' · '+
     shiftDescription('Night',selected.night_baseline||DEFAULT_POLICY.nightBaseline,true);
 }
+function shiftPairToolbarSummary(pair){
+  const selected=pair||DEFAULT_SHIFT_PAIR;
+  return shiftDescription('Day',selected.day_baseline||DEFAULT_POLICY.baseline,false)+' ·\n'+
+    shiftDescription('Night',selected.night_baseline||DEFAULT_POLICY.nightBaseline,true);
+}
 function activePolicySummary(policy){
   const p=clonePolicy(policy);
   return p.shiftPairId+' · '+shiftPairSummary(p.shiftPair)+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
@@ -158,7 +163,7 @@ function renderKpi(){
   set('reportsFleetStatus',k?String(k.status):'—');set('reportsEligible',k&&k.population?String(k.population.eligible):'0');set('reportsExcluded',k&&k.population?String(k.population.excluded):'0');
   const policy=clonePolicy(state.policy||DEFAULT_POLICY);
   const pair=policy.shiftPair||DEFAULT_SHIFT_PAIR;
-  set('reportsBaseline',shiftPairSummary(pair));set('reportsBaselineStatus',pair.status||'PROJECT_DEFAULT');
+  set('reportsBaseline',shiftPairToolbarSummary(pair));set('reportsBaselineStatus',pair.status||'PROJECT_DEFAULT');
   const euContext=document.getElementById('reportsFleetEUContext');if(euContext){const p=state.policy||DEFAULT_POLICY;euContext.textContent='Effective / '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator);}
 
   const host=document.getElementById('equipmentKpiRows');if(!host)return;

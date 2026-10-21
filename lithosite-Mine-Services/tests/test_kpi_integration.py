@@ -14,7 +14,7 @@ BAT = ROOT / "desktop-host" / "start-mine-services.bat"
 def test_stage23_artifact_wires_foundation():
     html = ARTIFACT.read_text(encoding="utf-8")
     assert "kpi-foundation.js?v=20261022-shift-pair-options-3" in html
-    assert "reports.css?v=20261012-cascade-owner-17" in html
+    assert "reports.css?v=20261022-kpi-baseline-two-line-18" in html
     assert 'class="report-body"' in html
     assert "report-operational-panel" in html
     assert 'id="equipmentKpiRows"' in html
@@ -25,6 +25,15 @@ def test_stage23_artifact_wires_foundation():
     assert "TB-PROJECT-DAY-0700-1800" in html
     assert "TB-PROJECT-NIGHT-1900-0600" in html
     assert "10 h operational" in html
+
+def test_kpi_toolbar_baseline_is_a_two_line_non_overlapping_summary():
+    html = ARTIFACT.read_text(encoding="utf-8")
+    js = (ROOT / "ui" / "modules" / "reports" / "reports.js").read_text(encoding="utf-8")
+    css = (ROOT / "ui" / "modules" / "reports" / "reports.css").read_text(encoding="utf-8")
+    assert "shiftPairToolbarSummary(pair)" in js
+    assert "set('reportsBaseline',shiftPairToolbarSummary(pair))" in js
+    assert "white-space:pre-line" in css
+    assert "flex:0 1 365px;width:365px;min-width:0" in css
 
 
 def test_stage23_foundation_contracts():
