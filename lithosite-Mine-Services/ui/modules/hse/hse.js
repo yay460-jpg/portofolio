@@ -10,7 +10,19 @@ let runtimeReady=false;
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function setMsg(text,error){const el=document.getElementById('hseRuntimeMsg');if(el){el.textContent=text;el.classList.toggle('error',!!error);}}
-function setMapMsg(text,error){const el=document.getElementById('hseMapMsg');if(el){el.textContent=text;el.classList.toggle('error',!!error);}}
+function setMapMsg(text,error){
+ const el=document.getElementById('hseMapMsg');
+ if(!el)return;
+ clearTimeout(el._mapNoticeTimer);
+ el.textContent=text;
+ el.classList.toggle('error',!!error);
+ if(text){
+  el._mapNoticeTimer=setTimeout(function(){
+   el.textContent='';
+   el.classList.remove('error');
+  },5000);
+ }
+}
 function fillSelect(id,items,empty){
  const el=document.getElementById(id);if(!el)return;
  const cur=el.value;
