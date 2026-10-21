@@ -1,5 +1,5 @@
 /* Stage 18 — Data Management module stylesheet */
-#stage15DataModal{position:fixed;inset:0 0 0 84px;z-index:100;background:transparent;display:none;align-items:center;justify-content:flex-start;padding-left:107px;pointer-events:none}
+#stage15DataModal{position:fixed;inset:0 0 0 84px;z-index:100;background:transparent;display:none;align-items:center;justify-content:flex-start;padding-left:202px;pointer-events:none}
 #stage15DataModal.show{display:flex}
 #stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 108px);max-height:calc(100vh - 96px);overflow:auto;background:#0e1d2e;border:1px solid #35506b;border-radius:12px;box-shadow:0 18px 60px #0009;pointer-events:auto}
 #stage15DataModal .dm-head,#stage15DataModal .dm-foot{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #263e57}
@@ -37,12 +37,12 @@
 #stage15DataModal .dm-dialog-help{color:#8ea3ba;font-size:9.5px;line-height:1.45}
 #stage15DataModal .dm-dialog-foot{display:flex;justify-content:flex-end;gap:8px;padding:11px 16px;border-top:1px solid #263e57}
 
-/* Stage 26 — Data Management opens beside the actual sidebar; shift only left, keep the workspace visible. */
+/* Stage 26 — align Data Management spacing with Operations Graphics on 14-inch screens. */
 #stage15DataModal .dm-native-dialog{pointer-events:auto}
 
 /* Stage 26 — keep Data Management aligned with the sidebar state. */
 body:has(.sidebar.expanded) #stage15DataModal{
-  padding-left:146px;
+  padding-left:241px;
 }
 body:has(.sidebar.expanded) #stage15DataModal .dm-card{
   max-width:calc(100vw - 248px);
