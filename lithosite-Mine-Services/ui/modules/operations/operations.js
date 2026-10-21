@@ -361,11 +361,9 @@
         return String(item.equipment_id || '') === String(first.equipment_id || '');
       });
       const unitFleetNo = equipment ? equipment.unit_no : '';
-      const key = esc(
-        String(first.transaction_date || '') + '|' +
-        (String(first.equipment_id || '').trim() ||
-          'NO-EQUIPMENT|' + String(first.transaction_id || ''))
-      );
+      // Use the same shift-aware key as timelineGroups so after-midnight
+      // Night Shift events remain attached to the shift that began the prior day.
+      const key = esc(timelineKeyForRow(first, dataState.operations));
       const statusValues = Array.from(new Set(items.map(function (row) {
         return String(row.status || '');
       })));
