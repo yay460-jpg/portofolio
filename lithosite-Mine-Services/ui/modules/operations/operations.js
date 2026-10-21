@@ -12,6 +12,7 @@
   let editId = null;
   let runtimeReady = false;
   let activeTimelineKey = null;
+  let addWorkMode = false;
 
   function setRuntimeState(text, error) {
     const el = document.getElementById('runtimeMsg');
@@ -324,6 +325,8 @@
       '</div>';
     }).join('');
 
+    const addWorkButton = document.getElementById('timelineAddWork');
+    if (addWorkButton) addWorkButton.disabled = !rows.length || !shiftSummary || shiftSummary === 'Mixed';
     if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('timelineModal');}else{document.getElementById('timelineModal').classList.add('show')};
   }
 
@@ -594,6 +597,10 @@
 
   function openAdd() {
     editId = null;
+    addWorkMode = false;
+    ['f_date', 'f_eq', 'f_shift'].forEach(function (id) {
+      document.getElementById(id).disabled = false;
+    });
     setRuntimeState('RuntimeAdapter connected — offline local persistence active.');
     document.getElementById('modalTitle').textContent = 'Add Operation';
     document.getElementById('stage').textContent = 'Save via RuntimeAdapter';
@@ -602,7 +609,67 @@
     global.LithositeModalShowContract.show('modal');
   }
 
+  function openAddWork() {
+    const rows = dataState.operations.filter(function (row) {
+      const equipmentId = String(row.equipment_id || '').trim();
+      const key = String(row.transaction_date || '') + '|' +
+        (equipmentId || 'NO-EQUIPMENT|' + String(row.transaction_id || ''));
+      return key === activeTimelineKey;
+    }).sort(function (a, b) {
+      return String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
+    });
+    if (!rows.length) {
+      setRuntimeState('Work Timeline has no event to extend.', true);
+      return;
+    }
+
+    const first = rows[0];
+    const shifts = Array.from(new Set(rows.map(function (row) {
+      return String(row.shift || '').trim();
+    }).filter(Boolean)));
+    if (shifts.length !== 1) {
+      setRuntimeState('Add Work requires one consistent shift in this timeline.', true);
+      return;
+    }
+
+    const last = rows[rows.length - 1];
+    const startParts = String(last.transaction_time || '').split(':');
+    const startMinutes = (Number(startParts[0]) * 60) + Number(startParts[1]);
+    const actualHours = Number(last.actual_hours);
+    if (!Number.isFinite(startMinutes) || startParts.length < 2 ||
+        !Number.isFinite(actualHours) || actualHours < 0) {
+      setRuntimeState('Cannot calculate the next Start Time: the last event needs a valid start time and Actual Hours.', true);
+      return;
+    }
+    const nextMinutes = Math.round(startMinutes + actualHours * 60);
+    if (nextMinutes >= 24 * 60) {
+      setRuntimeState('The calculated Start Time crosses midnight. Review the shift timeline before adding work.', true);
+      return;
+    }
+    const nextTime = String(Math.floor(nextMinutes / 60)).padStart(2, '0') + ':' +
+      String(nextMinutes % 60).padStart(2, '0');
+
+    editId = null;
+    addWorkMode = true;
+    resetForm();
+    document.getElementById('modalTitle').textContent = 'Add Work';
+    document.getElementById('stage').textContent = 'Save Work via RuntimeAdapter';
+    document.getElementById('f_date').value = first.transaction_date || '';
+    document.getElementById('f_time').value = nextTime;
+    document.getElementById('f_eq').value = first.equipment_id || '';
+    document.getElementById('f_shift').value = shifts[0];
+    ['f_date', 'f_eq', 'f_shift'].forEach(function (id) {
+      document.getElementById(id).disabled = true;
+    });
+    refreshHaulingFields();
+    global.LithositeModalShowContract.show('modal');
+  }
+
   function openEdit(id) {
+    addWorkMode = false;
+    ['f_date', 'f_eq', 'f_shift'].forEach(function (id) {
+      document.getElementById(id).disabled = false;
+    });
     setRuntimeState('RuntimeAdapter connected — offline local persistence active.');
     const row = dataState.operations.find(function (item) {
       return String(item.transaction_id) === String(id);
@@ -746,6 +813,7 @@
       if (del) removeRow(del.dataset.id);
     });
 
+    document.getElementById('timelineAddWork').onclick = openAddWork;
     document.getElementById('timelineClose').onclick = function () {
       document.getElementById('timelineModal').classList.remove('show');
       activeTimelineKey = null;
@@ -833,6 +901,7 @@
       }
 
       const wasEditing = Boolean(editId);
+      const wasAddingWork = addWorkMode;
       const savedTimelineKey = activeTimelineKey;
       const savedRowKey = String(row.transaction_date || '') + '|' +
         (String(row.equipment_id || '').trim() ||
@@ -852,14 +921,16 @@
       global.LithositeModalShowContract.close('modal');
       await refreshData();
 
-      if (wasEditing && savedTimelineKey) {
-        openTimeline(savedRowKey);
+      if ((wasEditing || wasAddingWork) && savedTimelineKey) {
+        openTimeline(savedTimelineKey);
       } else if (!wasEditing) {
         activeTimelineKey = null;
       }
+      addWorkMode = false;
 
       setRuntimeState(
-        wasEditing ? 'Operation updated and audited.' + checkerMessage : 'Operation created and audited.' + checkerMessage
+        wasEditing ? 'Operation updated and audited.' + checkerMessage :
+          (wasAddingWork ? 'Work added to the existing timeline.' + checkerMessage : 'Operation created and audited.' + checkerMessage)
       );
     } catch (error) {
       setRuntimeState('Validation/runtime error: ' + error.message, true);
