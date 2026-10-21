@@ -89,3 +89,47 @@
 #maintenanceTimelineModal .row-actions{gap:4px}
 #maintenanceTimelineModal .row-actions .mini{width:auto;min-width:0;flex:0 1 auto;padding-left:7px;padding-right:7px}
 @media(max-width:1100px){#maintenanceTimelineModal .maintenance-timeline-tr{grid-template-columns:48px 48px 76px 52px 76px 64px minmax(60px,1fr) 58px 58px 176px}#maintenanceTimelineModal .maintenance-timeline-th{font-size:7px}}
+
+
+/* Compact Maintenance Timeline columns so all actions fit without a horizontal scrollbar. */
+#maintenanceTimelineModal .timeline-grid{
+  width:auto;
+  min-width:0;
+  overflow-x:hidden!important;
+  overflow-y:auto;
+}
+#maintenanceTimelineModal .maintenance-timeline-tr{
+  width:100%;
+  min-width:0;
+  grid-template-columns:48px 48px 74px 48px 70px 60px minmax(80px,1fr) 58px 58px 174px;
+}
+#maintenanceTimelineModal .maintenance-timeline-tr>.cell{
+  min-width:0;
+  padding-left:5px;
+  padding-right:5px;
+}
+#maintenanceTimelineModal .maintenance-timeline-tr>.cell:last-child{
+  min-width:0;
+  width:100%;
+  overflow:hidden;
+}
+#maintenanceTimelineModal .row-actions{
+  min-width:0;
+  width:100%;
+  gap:3px;
+  overflow:hidden;
+}
+#maintenanceTimelineModal .row-actions .mini{
+  min-width:0;
+  width:auto;
+  flex:1 1 0;
+  padding-left:4px;
+  padding-right:4px;
+  font-size:8px;
+}
+@media(max-width:1100px){
+  #maintenanceTimelineModal .maintenance-timeline-tr{
+    grid-template-columns:44px 44px 68px 44px 62px 54px minmax(60px,1fr) 52px 52px 156px;
+  }
+  #maintenanceTimelineModal .row-actions .mini{padding-left:3px;padding-right:3px;font-size:7.5px}
+}
