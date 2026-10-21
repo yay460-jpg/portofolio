@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - v42-workspace
+      - v43-workspace
     paths:
       - '.github/workflows/mine-services-desktop-build.yml'
       - 'lithosite-Mine-Services/**'
