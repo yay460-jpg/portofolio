@@ -22,12 +22,12 @@ def test_maintenance_register_view_button_matches_compact_operations_geometry():
     assert "justify-content:center" in rule
 
     assert 'class="control mini view maintenance-timeline-row"' in js
-    assert "../ui/modules/maintenance/maintenance.css?v=20261012-compact-view" in html
+    assert "../ui/modules/maintenance/maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll-2" in html
 
 
 def test_maintenance_view_button_sizing_is_scoped_and_does_not_override_operations():
     css = MAINTENANCE_CSS.read_text(encoding="utf-8")
 
     assert "#operationsScreen .row-actions .control.view{" not in css
-    assert css.count("#maintenanceTimelineModal .row-actions .mini{") == 1
+    assert css.count("#maintenanceTimelineModal .row-actions .mini{") == 2
     assert "#maintenanceScreen .row-actions .control.view{" in css
