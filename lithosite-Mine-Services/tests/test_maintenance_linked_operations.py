@@ -2,6 +2,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML = (ROOT / "Documentation" / "Version-History" / "Artifacts" / "Workspace-UI-Snapshot.html").read_text(encoding="utf-8")
+ACTIVE_ARTIFACT = ROOT / "Artifacts" / "Mine-Services-Operations.html"
 MAINTENANCE_JS = (ROOT / "ui" / "modules" / "maintenance" / "maintenance.js").read_text(encoding="utf-8")
 MAINTENANCE_CSS = (ROOT / "ui" / "modules" / "maintenance" / "maintenance.css").read_text(encoding="utf-8")
 OPERATIONS_JS = (ROOT / "ui" / "modules" / "operations" / "operations.js").read_text(encoding="utf-8")
@@ -58,13 +59,16 @@ def test_operations_to_maintenance_link_handles_night_shift_midnight():
 
 
 def test_linked_operations_assets_use_fresh_cache_keys():
-    assert "maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll-2" in HTML
-    assert "maintenance.js?v=20261022-maintenance-shift-links" in HTML
-    assert "operations.css?v=20261027" in HTML
-    assert "operations.js?v=20261110" in HTML
+    # Asset cache keys belong to the active artifact, not the frozen UI snapshot above.
+    active_html = ACTIVE_ARTIFACT.read_text(encoding="utf-8")
+    assert "maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll-2" in active_html
+    assert "maintenance.js?v=20261022-maintenance-shift-links" in active_html
+    assert "operations.css?v=20261020-operations-graphics-slide-no-fade&rev=operations-timeline-label-align" in active_html
+    assert "operations.js?v=20261111-graphics-module&opsClose=20261019" in active_html
 
 
 def test_maintenance_timeline_fits_modal_without_horizontal_scrollbar():
     assert "overflow-x:hidden;overflow-y:auto;max-height:55vh;min-width:0" in MAINTENANCE_CSS
     assert "grid-template-columns:48px 48px 74px 48px 70px 60px minmax(80px,1fr) 58px 58px 174px" in MAINTENANCE_CSS
-    assert "maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll-2" in HTML
+    active_html = ACTIVE_ARTIFACT.read_text(encoding="utf-8")
+    assert "maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll-2" in active_html
