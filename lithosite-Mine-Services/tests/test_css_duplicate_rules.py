@@ -409,7 +409,7 @@ def test_data_management_card_keeps_only_effective_viewport_bounds():
     assert "@keyframes dataManagementSlideIn" in css
     assert "@keyframes dataManagementSlideOut" in css
     assert "@media(prefers-reduced-motion:reduce)" in css
-    assert "../ui/modules/data-management/data-management.css?v=20261011-card-bounds-dedupe" in html
+    assert "../ui/modules/data-management/data-management.css?v=20261021-sidebar-offset-155-viewport-bounds" in html
 def test_reports_mobile_body_grid_has_one_effective_single_column_override():
     css = REPORTS.read_text(encoding="utf-8")
     html = ARTIFACT.read_text(encoding="utf-8")
