@@ -394,8 +394,8 @@ def test_data_management_card_keeps_only_effective_viewport_bounds():
     assert len(expanded_sidebar) == 2
     assert "max-width:calc(100vw - 254px)" in expanded_sidebar[0]
 
-    # 14-inch compact lock: normal and expanded sidebar positions remain independently tuned.
-    assert "@media (max-width:1400px)" in css
+    # Narrow-viewport lock: normal and expanded sidebar positions remain independently tuned; 15.6-inch baseline stays unchanged.
+    assert "@media (max-width:1280px)" in css
     assert "#stage15DataModal{padding-left:100px}" in css
     assert "#stage15DataModal .dm-card{max-width:calc(100vw - 108px)}" in css
     assert "body:has(.sidebar.expanded) #stage15DataModal{padding-left:235px}" in css
