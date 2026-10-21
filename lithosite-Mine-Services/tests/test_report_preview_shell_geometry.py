@@ -41,7 +41,7 @@ def test_report_preview_equipment_table_has_explicit_column_geometry():
     assert css.count("#reportsScreen .report-preview-table.equipment-performance-table{table-layout:fixed;width:100%;min-width:0}") == 1
     assert "#reportsScreen .report-preview-table{width:100%;border-collapse:collapse;min-width:760px;font-size:7.5px}" in css
     assert "#reportsScreen .report-preview-dialog{display:flex;flex-direction:column;width:min(720px,calc(100vw - 48px));max-height:calc(100% - 24px)" in css
-    assert "../ui/modules/reports/reports.js?v=20261012-preview-column-grid" in html
+    assert "../ui/modules/reports/reports.js?v=20261022-kpi-shift-aware-diagnostics-1" in html
     assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in html
 
 
