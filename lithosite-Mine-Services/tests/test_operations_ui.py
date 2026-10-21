@@ -142,3 +142,13 @@ def test_stage8_night_shift_timeline_button_uses_shift_aware_key():
 
     assert "const key = esc(timelineKeyForRow(first, dataState.operations));" in ops_text
     assert "const key = esc(\n        String(first.transaction_date || '') + '|'" not in ops_text
+
+
+def test_stage8_night_shift_events_sort_by_operational_time():
+    ops_text = OPS_JS.read_text(encoding="utf-8")
+
+    assert "function timelineOrderMinutes(row)" in ops_text
+    assert "minutes + 24 * 60" in ops_text
+    assert "items.sort(compareTimelineRows);" in ops_text
+    assert "shiftAnchorDate(first) + ' · Start '" in ops_text
+    assert "return timelineKeyForRow(row, dataState.operations) === key;" in ops_text
