@@ -135,3 +135,10 @@ def test_stage_add_work_supports_night_shift_midnight_rollover():
     assert "const nextDate = nextDateObject.getFullYear() + '-'" in ops_text
     assert "The calculated Start Time crosses midnight" not in ops_text
     assert "return timelineKeyForRow(row, dataState.operations) === key;" in ops_text
+
+
+def test_stage8_night_shift_timeline_button_uses_shift_aware_key():
+    ops_text = OPS_JS.read_text(encoding="utf-8")
+
+    assert "const key = esc(timelineKeyForRow(first, dataState.operations));" in ops_text
+    assert "const key = esc(\n        String(first.transaction_date || '') + '|'" not in ops_text
