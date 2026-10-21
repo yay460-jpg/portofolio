@@ -51,3 +51,18 @@ body.viewport-test-mode #equipmentGraphicsModal > .equipment-graphics-modal > .e
 body.viewport-test-mode #equipmentGraphicsModal .equipment-graphics-period-card{
   min-width:0;
 }
+
+/* Equipment Graphics — narrower 14-inch fit: preserve equal widths for the three 7-day cards. */
+body.viewport-test-mode #equipmentGraphicsModal > .equipment-graphics-modal{
+  width:min(1240px,calc(100vw - 80px));
+  max-width:1240px;
+}
+body.viewport-test-mode #equipmentGraphicsModal > .equipment-graphics-modal > .equipment-graphics-body{
+  grid-template-columns:250px repeat(3,minmax(0,1fr));
+  gap:10px;
+  min-width:0;
+}
+body.viewport-test-mode #equipmentGraphicsModal .equipment-graphics-period-card{
+  min-width:0;
+  overflow:hidden;
+}
