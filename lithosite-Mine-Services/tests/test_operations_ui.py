@@ -125,3 +125,13 @@ def test_stage_add_work_inherits_required_context_from_active_timeline():
     assert "document.getElementById('f_domain').value = first.domain || '';" in ops_text
     assert "document.getElementById('f_wf').value = first.work_front_id || '';" in ops_text
     assert "document.getElementById('f_capacity').value = first.applied_capacity ?? '';" in ops_text
+
+
+def test_stage_add_work_supports_night_shift_midnight_rollover():
+    ops_text = OPS_JS.read_text(encoding="utf-8")
+
+    assert "function timelineKeyForRow(row, allRows)" in ops_text
+    assert "const dayOffset = Math.floor(nextMinutes / (24 * 60));" in ops_text
+    assert "const nextDate = nextDateObject.getFullYear() + '-'" in ops_text
+    assert "The calculated Start Time crosses midnight" not in ops_text
+    assert "return timelineKeyForRow(row, dataState.operations) === key;" in ops_text
