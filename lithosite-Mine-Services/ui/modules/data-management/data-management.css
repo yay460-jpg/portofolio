@@ -47,13 +47,6 @@ body:has(.sidebar.expanded) #stage15DataModal{
 body:has(.sidebar.expanded) #stage15DataModal .dm-card{
   max-width:calc(100vw - 254px);
 }
-/* Screen-width lock: 14-inch layout keeps its own offsets; 15.6-inch baseline uses the base rules above. */
-@media (min-width:1401px) and (max-width:1600px){
-  #stage15DataModal{padding-left:100px}
-  #stage15DataModal .dm-card{max-width:calc(100vw - 108px)}
-  body:has(.sidebar.expanded) #stage15DataModal{padding-left:235px}
-  body:has(.sidebar.expanded) #stage15DataModal .dm-card{max-width:calc(100vw - 248px)}
-}
 /* 14-inch viewport lock: keep compact-screen offsets separate from the 15.6-inch baseline. */
 @media (max-width:1400px){
   #stage15DataModal{padding-left:100px}
