@@ -30,6 +30,7 @@ vm.createContext(context);
   'ui/modules/reports/pa-engine.js',
   'ui/modules/reports/used-time-contract.js',
   'ui/modules/reports/ua-engine.js',
+  'ui/modules/reports/effective-time-contract.js',
   'ui/modules/reports/eu-engine.js',
   'ui/modules/reports/kpi-foundation.js'
 ].forEach(file => vm.runInContext(
