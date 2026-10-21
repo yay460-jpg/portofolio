@@ -20,7 +20,7 @@ def test_stage23_artifact_wires_foundation():
     assert 'id="equipmentKpiRows"' in html
     assert 'id="reportsFinalizeKpi"' in html
     assert 'id="reportsKpiDate"' in html
-    assert "Day 06:00–18:00 (rest 12:00–13:00) + Night 18:00–06:00 next day (rest 00:00–01:00)" in html
+    assert "Day 06:00–18:00 · rest 12:00–13:00 · 12 h shift / 11 h operational; Night 18:00–06:00 next day · rest 00:00–01:00 · 12 h shift / 11 h operational" in html
     assert "TB-PROJECT-PAIR-0700-0700" in html
     assert "TB-PROJECT-DAY-0700-1800" in html
     assert "TB-PROJECT-NIGHT-1900-0600" in html
