@@ -229,7 +229,7 @@ def test_maintenance_evidence_action_is_scoped_to_each_timeline_event():
     assert 'data-evidence-id="' in MAINTENANCE_JS
     assert "esc(row.maintenance_id)" in MAINTENANCE_JS
     assert "LithositeEvidence.syncIndicators(document.getElementById('maintenanceTimelineRows'))" in MAINTENANCE_JS
-    assert "grid-template-columns:65px 65px 120px 115px 90px 1fr 90px 90px 215px;min-width:1000px;" in MAINTENANCE_CSS
+    assert "grid-template-columns:65px 65px 100px 78px 115px 90px 1fr 90px 90px 215px;min-width:1080px;" in MAINTENANCE_CSS
     assert "result.evidence_cleanup_status==='FAILED'" in MAINTENANCE_JS
 
 
