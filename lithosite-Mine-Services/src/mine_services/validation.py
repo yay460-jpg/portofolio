@@ -41,7 +41,7 @@ TEXT_FIELDS = {
     "GlobalCapacity": {"capacity_profile_id", "capacity_name", "measurement", "status"},
     "Checker": {"checker_id", "checker_name", "shift", "equipment_id", "work_front_id", "activity", "material", "source"},
     "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "measurement", "status", "source", "capacity_profile_id", "capacity_measurement", "shift", "material", "checker_name"},
-    "Maintenance": {"maintenance_id", "equipment_id", "event_type", "failure_code", "action", "status", "source"},
+    "Maintenance": {"maintenance_id", "equipment_id", "event_type", "failure_code", "action", "status", "source", "shift"},
     "Issues": {"issue_id", "domain", "work_front_id", "equipment_id", "description", "severity", "status", "assigned_to"},
     "Plans": {"plan_id", "period", "start_date", "end_date", "domain", "work_front_id", "activity", "measurement", "status"},
     "HSE": {"hse_id", "domain", "work_front_id", "event_type", "severity", "description", "action", "status"},
