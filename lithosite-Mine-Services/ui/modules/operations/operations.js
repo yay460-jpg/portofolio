@@ -185,13 +185,37 @@
     });
   }
 
+  function timelineKeyForRow(row, allRows) {
+    const equipmentId = String(row.equipment_id || '').trim();
+    const date = String(row.transaction_date || '');
+    const shift = String(row.shift || '').trim().toLowerCase();
+    // A night shift is anchored to the date it began, even for events recorded
+    // after midnight on the following calendar date.
+    if (equipmentId && shift === 'night') {
+      const rowTime = String(row.transaction_time || '');
+      const previousDate = new Date(date + 'T00:00:00');
+      if (!Number.isNaN(previousDate.getTime())) {
+        previousDate.setDate(previousDate.getDate() - 1);
+        const previousKey = previousDate.getFullYear() + '-' +
+          String(previousDate.getMonth() + 1).padStart(2, '0') + '-' +
+          String(previousDate.getDate()).padStart(2, '0');
+        const hasNightStart = allRows.some(function (candidate) {
+          return String(candidate.transaction_date || '') === previousKey &&
+            String(candidate.equipment_id || '').trim() === equipmentId &&
+            String(candidate.shift || '').trim().toLowerCase() === 'night' &&
+            String(candidate.transaction_time || '') >= '18:00';
+        });
+        if (hasNightStart && rowTime < '12:00') return previousKey + '|' + equipmentId;
+      }
+    }
+    return date + '|' + (equipmentId || 'NO-EQUIPMENT|' + String(row.transaction_id || ''));
+  }
+
   function timelineGroups(rows) {
     const groups = new Map();
 
     rows.forEach(function (row) {
-      const equipmentId = String(row.equipment_id || '').trim();
-      const key = String(row.transaction_date || '') + '|' +
-        (equipmentId || 'NO-EQUIPMENT|' + String(row.transaction_id || ''));
+      const key = timelineKeyForRow(row, rows);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(row);
     });
@@ -232,10 +256,7 @@
     activeTimelineKey = key;
     const rows = dataState.operations
       .filter(function (row) {
-        const equipmentId = String(row.equipment_id || '').trim();
-        const rowKey = String(row.transaction_date || '') + '|' +
-          (equipmentId || 'NO-EQUIPMENT|' + String(row.transaction_id || ''));
-        return rowKey === key;
+        return timelineKeyForRow(row, dataState.operations) === key;
       })
       .sort(function (a, b) {
         return String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
@@ -611,12 +632,10 @@
 
   function openAddWork() {
     const rows = dataState.operations.filter(function (row) {
-      const equipmentId = String(row.equipment_id || '').trim();
-      const key = String(row.transaction_date || '') + '|' +
-        (equipmentId || 'NO-EQUIPMENT|' + String(row.transaction_id || ''));
-      return key === activeTimelineKey;
+      return timelineKeyForRow(row, dataState.operations) === activeTimelineKey;
     }).sort(function (a, b) {
-      return String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
+      const dateCompare = String(a.transaction_date || '').localeCompare(String(b.transaction_date || ''));
+      return dateCompare || String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
     });
     if (!rows.length) {
       setRuntimeState('Work Timeline has no event to extend.', true);
@@ -642,19 +661,26 @@
       return;
     }
     const nextMinutes = Math.round(startMinutes + actualHours * 60);
-    if (nextMinutes >= 24 * 60) {
-      setRuntimeState('The calculated Start Time crosses midnight. Review the shift timeline before adding work.', true);
+    const dayOffset = Math.floor(nextMinutes / (24 * 60));
+    const minutesInDay = ((nextMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+    const nextTime = String(Math.floor(minutesInDay / 60)).padStart(2, '0') + ':' +
+      String(minutesInDay % 60).padStart(2, '0');
+    const nextDateObject = new Date(String(last.transaction_date || first.transaction_date) + 'T00:00:00');
+    if (Number.isNaN(nextDateObject.getTime())) {
+      setRuntimeState('Cannot calculate the next calendar date for Add Work.', true);
       return;
     }
-    const nextTime = String(Math.floor(nextMinutes / 60)).padStart(2, '0') + ':' +
-      String(nextMinutes % 60).padStart(2, '0');
+    nextDateObject.setDate(nextDateObject.getDate() + dayOffset);
+    const nextDate = nextDateObject.getFullYear() + '-' +
+      String(nextDateObject.getMonth() + 1).padStart(2, '0') + '-' +
+      String(nextDateObject.getDate()).padStart(2, '0');
 
     editId = null;
     addWorkMode = true;
     resetForm();
     document.getElementById('modalTitle').textContent = 'Add Work';
     document.getElementById('stage').textContent = 'Save Work via RuntimeAdapter';
-    document.getElementById('f_date').value = first.transaction_date || '';
+    document.getElementById('f_date').value = nextDate;
     document.getElementById('f_time').value = nextTime;
     document.getElementById('f_eq').value = first.equipment_id || '';
     document.getElementById('f_shift').value = shifts[0];
