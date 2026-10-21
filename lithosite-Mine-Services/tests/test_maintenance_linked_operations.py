@@ -15,8 +15,8 @@ def test_maintenance_layout_adds_linked_operations_between_timeline_and_downtime
         '<div class="cell">Downtime Hrs</div>'
     ) in HTML
     assert (
-        "#maintenanceScreen .tr{grid-template-columns:100px 145px 110px 100px "
-        "minmax(130px,1fr) 115px 90px 75px 90px;min-width:1080px;}"
+        "#maintenanceScreen .tr{grid-template-columns:100px 78px 145px 110px 100px "
+        "minmax(130px,1fr) 115px 90px 75px 90px;min-width:1150px;}"
     ) in MAINTENANCE_CSS
 
 
