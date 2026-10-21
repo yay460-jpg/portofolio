@@ -34,3 +34,47 @@
 
 /* HSE register header styling. */
 #hseScreen .ptitle{font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+
+
+/* HSE Register — compact columns for the 14-inch viewport only. */
+body.viewport-test-mode #hseScreen .boundary{
+  min-width:0;
+  padding:12px;
+}
+body.viewport-test-mode #hseScreen .grid{
+  min-width:0;
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+  scrollbar-width:none;
+}
+body.viewport-test-mode #hseScreen .grid::-webkit-scrollbar{
+  display:none;
+}
+body.viewport-test-mode #hseScreen .hsetr{
+  width:100%;
+  min-width:0;
+  grid-template-columns:
+    minmax(0,.88fr) minmax(0,.66fr) minmax(0,.72fr)
+    minmax(0,1.05fr) minmax(0,.72fr) minmax(0,.64fr)
+    minmax(0,1.35fr) minmax(0,.92fr) minmax(0,.72fr)
+    minmax(0,.82fr) minmax(0,.52fr) minmax(0,1.05fr);
+}
+body.viewport-test-mode #hseScreen .cell{
+  min-width:0;
+  padding-left:4px;
+  padding-right:4px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+body.viewport-test-mode #hseScreen .row-actions{
+  min-width:0;
+  gap:2px;
+}
+body.viewport-test-mode #hseScreen .row-actions .control.mini,
+body.viewport-test-mode #hseScreen .evidence-cell .control.mini{
+  min-width:0;
+  padding-left:3px;
+  padding-right:3px;
+}
