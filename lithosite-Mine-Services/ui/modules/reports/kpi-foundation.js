@@ -31,16 +31,16 @@
     })
   ]);
   const NIGHT_BASELINE=Object.freeze({
-    baseline_id:'TB-PROJECT-NIGHT-1900-0600',
+    baseline_id:'TB-PROJECT-NIGHT-1900-0700',
     version:'1.0',
     name:'Project Default Night Shift',
     shift_start:'19:00',
-    shift_end:'06:00',
-    breaks:[],
+    shift_end:'07:00',
+    breaks:[{start:'00:00',end:'01:00'}],
     effective_from:'2026-01-01',
     effective_to:null,
     status:'PROJECT_DEFAULT',
-    source:'Project default derived from recorded Night Shift 19:00–06:00 activity; not an official company/site SOP'
+    source:'Project Night Shift baseline: 19:00–07:00 with 00:00–01:00 rest; 11 scheduled operational hours per 12-hour shift'
   });
   function clone(value){return JSON.parse(JSON.stringify(value));}
   function asNumber(value){const n=Number(value);return Number.isFinite(n)?n:null;}
@@ -51,14 +51,32 @@
   function intersects(a,b){return a.start<b.end&&b.start<a.end;}
   function baselineWindows(date,baseline){
     const start=localDateTime(date,baseline.shift_start);let end=localDateTime(date,baseline.shift_end);
-    if(!start||!end)return[];if(end<=start)end=new Date(end.getTime()+86400000);
+    if(!start||!end)return[];
+    const overnight=end<=start;
+    if(overnight)end=addHours(end,24);
     const breaks=(Array.isArray(baseline.breaks)?baseline.breaks:[]).map(function(br){
-      let bs=localDateTime(date,br.start),be=localDateTime(date,br.end);if(!bs||!be)return null;
-      if(be<=bs)be=new Date(be.getTime()+86400000);return{start:bs,end:be};
+      let bs=localDateTime(date,br.start),be=localDateTime(date,br.end);
+      if(!bs||!be)return null;
+      if(be<=bs)be=addHours(be,24);
+      // For an overnight shift, rest at 00:00–01:00 belongs to the calendar
+      // day after the shift's anchor date, not the midnight before the shift starts.
+      const breakStart=String(br.start||'').slice(0,5),shiftEnd=String(baseline.shift_end||'').slice(0,5);
+      if(overnight&&bs<start&&breakStart<shiftEnd){
+        bs=addHours(bs,24);
+        be=addHours(be,24);
+      }
+      return{start:bs,end:be};
     }).filter(Boolean).sort((a,b)=>a.start-b.start);
     const windows=[];let cursor=start;
-    breaks.forEach(function(br){if(br.end<=start||br.start>=end)return;const bs=br.start<start?start:br.start;const be=br.end>end?end:br.end;if(bs>cursor)windows.push({start:cursor,end:bs,kind:'SCHEDULED'});cursor=be>cursor?be:cursor;});
-    if(cursor<end)windows.push({start:cursor,end:end,kind:'SCHEDULED'});return windows;
+    breaks.forEach(function(br){
+      if(br.end<=start||br.start>=end)return;
+      const bs=br.start<start?start:br.start;
+      const be=br.end>end?end:br.end;
+      if(bs>cursor)windows.push({start:cursor,end:bs,kind:'SCHEDULED'});
+      cursor=be>cursor?be:cursor;
+    });
+    if(cursor<end)windows.push({start:cursor,end:end,kind:'SCHEDULED'});
+    return windows;
   }
   function scheduledHours(windows){return windows.reduce((sum,w)=>sum+hoursBetween(w.start,w.end),0);}
   function stableStringify(value){
