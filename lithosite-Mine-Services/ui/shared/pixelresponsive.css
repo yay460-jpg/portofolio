@@ -79,3 +79,10 @@ body.viewport-test-mode #operationsGraphicsModal.show.is-closing > .operations-g
   transform:translateX(11px)!important;
   animation:none!important;
 }
+
+
+/* 14-inch viewport correction: hide only the Site Map glyph; keep the title and
+   toolbar intact. The 15.6-inch layout remains unchanged. */
+body.viewport-test-mode #dashboardScreen .left > .panel:first-child .panelhead > .ptitle > .icon{
+  display:none;
+}
