@@ -188,3 +188,15 @@ body.viewport-test-mode #equipmentScreen .row-actions .mini{
   padding-left:5px;
   white-space:nowrap;
 }
+
+/* Equipment Master — hide the vertical scrollbar in the 14-inch viewport only.
+   Keep the grid scrollable so the mouse wheel continues to move through equipment rows.
+   The 15.6-inch baseline is unchanged. */
+body.viewport-test-mode #equipmentScreen .grid{
+  overflow-y:auto;
+  scrollbar-width:none;
+}
+body.viewport-test-mode #equipmentScreen .grid::-webkit-scrollbar:vertical{
+  width:0;
+  display:none;
+}
