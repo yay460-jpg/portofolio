@@ -658,6 +658,12 @@
     document.getElementById('f_time').value = nextTime;
     document.getElementById('f_eq').value = first.equipment_id || '';
     document.getElementById('f_shift').value = shifts[0];
+    // Add Work extends the same shift event: inherit its required context.
+    // The user only enters the new activity-specific fields manually.
+    document.getElementById('f_domain').value = first.domain || '';
+    document.getElementById('f_wf').value = first.work_front_id || '';
+    document.getElementById('f_checker_name').value = first.checker_name || '';
+    document.getElementById('f_capacity').value = first.applied_capacity ?? '';
     ['f_date', 'f_eq', 'f_shift'].forEach(function (id) {
       document.getElementById(id).disabled = true;
     });
