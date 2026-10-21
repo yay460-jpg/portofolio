@@ -264,3 +264,41 @@
     flex-basis:100%;
   }
 }
+
+/* Compact Target Plan register for 14-inch-class viewports only.
+   Keep the wider 15.6-inch layout unchanged. */
+@media (max-width: 1440px) {
+  #plansScreen .plantr.consolidated-th,
+  #plansScreen .plantr.consolidated-tr {
+    grid-template-columns:
+      minmax(64px,.78fr) minmax(62px,.72fr) minmax(62px,.72fr)
+      minmax(78px,.9fr) minmax(125px,1.25fr) minmax(72px,.8fr)
+      minmax(60px,.68fr) minmax(58px,.62fr) minmax(62px,.68fr)
+      minmax(65px,.72fr) minmax(65px,.72fr) minmax(60px,.66fr)
+      minmax(60px,.66fr) minmax(60px,.66fr) minmax(70px,.76fr);
+  }
+  #plansScreen .plantr.consolidated-th > .cell {
+    min-width:0;
+    padding-left:4px;
+    padding-right:4px;
+    font-size:8px;
+    line-height:1.2;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  #plansScreen .plantr.consolidated-tr > .cell {
+    min-width:0;
+    padding-left:4px;
+    padding-right:4px;
+    font-size:8.5px;
+  }
+  #plansScreen .plantr.consolidated-tr > .cell:nth-child(5) {
+    padding:4px;
+    overflow-wrap:anywhere;
+  }
+  #plansScreen .statuspill {
+    min-width:0;
+    padding:3px 5px;
+    font-size:7px;
+  }
+}
