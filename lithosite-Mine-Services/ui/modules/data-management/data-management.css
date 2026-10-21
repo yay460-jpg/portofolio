@@ -42,7 +42,7 @@
 
 /* Stage 26 — keep Data Management aligned with the sidebar state. */
 body:has(.sidebar.expanded) #stage15DataModal{
-  padding-left:140px;
+  padding-left:146px;
 }
 body:has(.sidebar.expanded) #stage15DataModal .dm-card{
   max-width:calc(100vw - 248px);
