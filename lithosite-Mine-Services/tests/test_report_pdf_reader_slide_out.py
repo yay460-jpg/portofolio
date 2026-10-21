@@ -32,5 +32,5 @@ def test_report_pdf_reader_opens_instantly_and_closes_after_motion():
 
 def test_active_artifact_uses_updated_report_assets():
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "reports.css?v=20261022-kpi-baseline-two-line-18" in html
+    assert "reports.css?v=20261022-kpi-baseline-two-line-right-19" in html
     assert "reports.js?v=20261022-two-line-shift-pair-summary-3" in html
