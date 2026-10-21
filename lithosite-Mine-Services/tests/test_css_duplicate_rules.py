@@ -288,7 +288,7 @@ def test_plans_clear_button_geometry_is_owned_by_shared_button_contract():
     for token in ("width:56px", "min-width:56px", "max-width:56px", "height:32px", "padding:0 10px", "justify-content:center", "align-items:center", "flex:0 0 56px"):
         assert token in shared[0]
 
-    assert "../ui/modules/plans/plans.css?v=20261011-clear-owner" in html
+    assert "../ui/modules/plans/plans.css?v=20261021-target-plan-14inch-fit" in html
 
 
 def test_capacity_modal_title_typography_is_owned_by_shared_modal_shell():
