@@ -65,3 +65,7 @@
   padding:12px;
   flex:0 0 auto;
 }
+
+/* Equipment grid keeps native vertical scrolling while hiding the scrollbar track. */
+#equipmentScreen .grid{overflow-y:auto;scrollbar-width:none}
+#equipmentScreen .grid::-webkit-scrollbar:vertical{width:0;display:none}
