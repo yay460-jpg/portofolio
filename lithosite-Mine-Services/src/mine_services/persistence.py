@@ -461,6 +461,41 @@ class PersistenceStore:
         if not audit_rows or list(audit_rows[0]) != self.schema.HEADERS["AuditLog"]:
             raise ValueError("HEADER_MISMATCH:AuditLog")
 
+    def _migrate_a3_maintenance_shift(self, workbook):
+        """Append the Maintenance shift field to an existing A.3 workbook safely.
+
+        Existing records are preserved and receive a blank shift; the migration
+        never infers Day/Night from calendar date or clock time.
+        """
+        if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
+            return False
+        if "Maintenance" not in workbook.sheetnames:
+            raise ValueError("SHEET_MISSING:Maintenance")
+        worksheet = workbook["Maintenance"]
+        current_headers = [cell.value for cell in worksheet[1]]
+        expected_headers = list(self.schema.HEADERS["Maintenance"])
+        if current_headers == expected_headers:
+            return False
+        legacy_headers = [header for header in expected_headers if header != "shift"]
+        if current_headers != legacy_headers:
+            raise ValueError("HEADER_MISMATCH:Maintenance")
+        new_column = len(current_headers) + 1
+        worksheet.cell(row=1, column=new_column, value="shift")
+        # Keep worksheet filtering aligned with the appended column when present.
+        if worksheet.auto_filter.ref:
+            from openpyxl.utils.cell import range_boundaries
+            from openpyxl.utils import get_column_letter
+            try:
+                min_col, min_row, max_col, max_row = range_boundaries(worksheet.auto_filter.ref)
+                if max_col < new_column:
+                    worksheet.auto_filter.ref = (
+                        f"{get_column_letter(min_col)}{min_row}:"
+                        f"{get_column_letter(new_column)}{max_row}"
+                    )
+            except (TypeError, ValueError):
+                pass
+        return True
+
     def load(self):
         wb = load_workbook(self.path, data_only=False)
         expected_schema = getattr(self.schema, "SCHEMA_VERSION", None)
@@ -476,7 +511,8 @@ class PersistenceStore:
         rainfall_sheet_migrated = self._migrate_a3_rainfall_simulation_sheet(wb)
         top_soil_migrated = self._migrate_a3_top_soil_material(wb)
         plan_hours_migrated = self._migrate_a3_remove_plans_target_hours(wb)
-        if migrated or nik_sheet_migrated or rainfall_sheet_migrated or top_soil_migrated or plan_hours_migrated:
+        maintenance_shift_migrated = self._migrate_a3_maintenance_shift(wb)
+        if migrated or nik_sheet_migrated or rainfall_sheet_migrated or top_soil_migrated or plan_hours_migrated or maintenance_shift_migrated:
             wb.save(self.path)
         wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)
