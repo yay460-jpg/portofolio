@@ -543,3 +543,14 @@
   #equipmentGraphicsModal .equipment-graphics-period-card .equipment-period-usage{margin-top:8px}
 }
 
+
+/* Unit Database: keep vertical scrolling, hide the visible scrollbar track/thumb. */
+#equipmentUnitListModal .equipment-unit-table{
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+#equipmentUnitListModal .equipment-unit-table::-webkit-scrollbar{
+  display:none;
+  width:0;
+  height:0;
+}
