@@ -387,7 +387,7 @@ def test_data_management_card_keeps_only_effective_viewport_bounds():
     # 15.6-inch baseline: retain the original modal position and its matching viewport bound.
     base = "#stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 210px);max-height:calc(100vh - 96px);overflow:auto;background:#0e1d2e;border:1px solid #35506b;border-radius:12px;box-shadow:0 18px 60px #0009;pointer-events:auto}"
     assert css.count(base) == 1
-    assert "#stage15DataModal{position:fixed;inset:0 0 0 84px;z-index:100;background:transparent;display:none;align-items:center;justify-content:flex-start;padding-left:50px;pointer-events:none}" in css
+    assert "#stage15DataModal{position:fixed;inset:0 0 0 84px;z-index:100;background:transparent;display:none;align-items:center;justify-content:flex-start;padding-left:25px;pointer-events:none}" in css
     assert re.search(r"body:has\(\.sidebar\.expanded\)\s*#stage15DataModal\s*\{\s*padding-left:155px;\s*\}", css)
 
     expanded_sidebar = rule_bodies(css, r"body\s*:\s*has\(\.sidebar\.expanded\)\s*#stage15DataModal\s+\.dm-card")
@@ -409,7 +409,7 @@ def test_data_management_card_keeps_only_effective_viewport_bounds():
     assert "@keyframes dataManagementSlideIn" in css
     assert "@keyframes dataManagementSlideOut" in css
     assert "@media(prefers-reduced-motion:reduce)" in css
-    assert "../ui/modules/data-management/data-management.css?v=20261021-sidebar-normal-50px" in html
+    assert "../ui/modules/data-management/data-management.css?v=20261021-sidebar-normal-25px" in html
 def test_reports_mobile_body_grid_has_one_effective_single_column_override():
     css = REPORTS.read_text(encoding="utf-8")
     html = ARTIFACT.read_text(encoding="utf-8")
