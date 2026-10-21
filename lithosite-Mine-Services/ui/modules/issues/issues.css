@@ -57,3 +57,50 @@
 
 
 
+
+
+/* Issues Register — fit the 14-inch viewport without horizontal scrolling.
+   Only active in viewport test mode; leave the 15.6-inch layout unchanged. */
+body.viewport-test-mode #issuesScreen .boundary{
+  min-width:0;
+  padding:12px;
+}
+body.viewport-test-mode #issuesScreen .panel,
+body.viewport-test-mode #issuesScreen .grid{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+}
+body.viewport-test-mode #issuesScreen .grid{
+  overflow-x:hidden;
+  scrollbar-width:none;
+}
+body.viewport-test-mode #issuesScreen .grid::-webkit-scrollbar{
+  display:none;
+}
+body.viewport-test-mode #issuesScreen .tr{
+  width:100%;
+  min-width:0;
+  grid-template-columns:
+    minmax(0,.78fr) minmax(0,.48fr) minmax(0,.72fr)
+    minmax(0,1.08fr) minmax(0,.82fr) minmax(0,1.35fr)
+    minmax(0,.48fr) minmax(0,.56fr) minmax(0,.72fr)
+    minmax(0,.78fr) minmax(0,.64fr);
+}
+body.viewport-test-mode #issuesScreen .cell{
+  min-width:0;
+  padding-left:4px;
+  padding-right:4px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+body.viewport-test-mode #issuesScreen .row-actions{
+  min-width:0;
+  gap:3px;
+}
+body.viewport-test-mode #issuesScreen .row-actions .mini{
+  min-width:0;
+  padding-left:4px;
+  padding-right:4px;
+}
