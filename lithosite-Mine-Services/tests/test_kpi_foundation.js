@@ -66,7 +66,8 @@ assert.equal(unit.timeline.scheduledHours, 11);
 assert.equal(unit.timeline.events.length, 5);
 assert(Math.abs(unit.results.PA.value - (9 / 11 * 100)) < 1e-9);
 assert(Math.abs(unit.results.UA.value - 100) < 1e-9);
-assert.equal(unit.results.EU.status, 'PENDING_DEFINITION');
+// With the active Effective Time contract loaded, this complete timeline can calculate EU.
+assert.equal(unit.results.EU.status, 'READY');
 
 const gap = f.calculateEquipment({
   equipmentId:'EQ-01',
