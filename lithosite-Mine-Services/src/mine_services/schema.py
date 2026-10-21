@@ -14,7 +14,7 @@ HEADERS = {
 "Equipment":["equipment_id","unit_no","category","type","owner_type","owner_name","status","effective_from","effective_to","capacity_profile_id"],
 "WorkFront":["work_front_id","domain","location","responsible","status","effective_from","effective_to","capacity_profile_id"],
 "Operations":["transaction_id","transaction_date","transaction_time","domain","work_front_id","equipment_id","activity","quantity","measurement","actual_hours","target_hours","status","source","created_at","updated_at","retase","capacity_profile_id","applied_capacity","capacity_measurement","end_time","shift","material","checker_name"],
-"Maintenance":["maintenance_id","equipment_id","event_date","event_type","failure_code","start_time","end_time","downtime_hours","action","status","source"],
+"Maintenance":["maintenance_id","equipment_id","event_date","event_type","failure_code","start_time","end_time","downtime_hours","action","status","source","shift"],
 "Issues":["issue_id","issue_date","domain","work_front_id","equipment_id","description","severity","status","assigned_to","closed_at"],
 "Plans":["plan_id","period","start_date","end_date","domain","work_front_id","activity","target_quantity","measurement","status"],
 "HSE":["hse_id","event_date","domain","work_front_id","event_type","severity","description","action","status","closed_at"],
@@ -52,7 +52,7 @@ FK={
 CONTROLLED={
 "Equipment.category":"equipment_category","Equipment.type":"equipment_type","Equipment.owner_type":"owner_type","Equipment.status":"equipment_status",
 "WorkFront.domain":"service_domain","WorkFront.status":"work_front_status","Operations.domain":"service_domain","Operations.measurement":"measurement","Operations.status":"transaction_status",
-"Maintenance.event_type":"maintenance_event_type","Maintenance.status":"maintenance_status",
+"Maintenance.event_type":"maintenance_event_type","Maintenance.status":"maintenance_status","Maintenance.shift":"checker_shift",
 "Issues.domain":"service_domain","Issues.severity":"issue_severity","Issues.status":"issue_status","Plans.domain":"service_domain","Plans.measurement":"measurement","Plans.status":"plan_status",
 "HSE.domain":"service_domain","HSE.event_type":"hse_event_type","HSE.severity":"hse_severity","HSE.action":"hse_event_type","HSE.status":"hse_status",
 "GlobalCapacity.measurement":"measurement","GlobalCapacity.status":"capacity_status","Checker.shift":"checker_shift","Checker.material":"checker_material",
