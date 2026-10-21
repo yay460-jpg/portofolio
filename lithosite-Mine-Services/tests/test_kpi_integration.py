@@ -1,3 +1,4 @@
+from pathlib import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
@@ -12,7 +13,7 @@ BAT = ROOT / "desktop-host" / "start-mine-services.bat"
 
 def test_stage23_artifact_wires_foundation():
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "kpi-foundation.js?v=20261006" in html
+    assert "kpi-foundation.js?v=20261022-shift-aware-timeline-1" in html
     assert "reports.css?v=20261012-cascade-owner-17" in html
     assert 'class="report-body"' in html
     assert "report-operational-panel" in html
@@ -26,6 +27,9 @@ def test_stage23_foundation_contracts():
     for term in (
         "V35-KPI-FOUNDATION-E2E-0.1",
         "buildEquipmentTimeline",
+        "NIGHT_BASELINE",
+        "shiftAnchorDate",
+        "collectShiftEntries",
         "calculateEquipment",
         "calculateFleet",
         "buildSnapshot",
@@ -55,3 +59,15 @@ def test_stage23_default_entry():
     bat = BAT.read_text(encoding="utf-8")
     assert "/Artifacts/Mine-Services-Operations.html" in server
     assert "/Artifacts/Mine-Services-Operations.html" in bat
+
+
+def test_kpi_foundation_javascript_regressions():
+    result = subprocess.run(
+        ["node", str(ROOT / "tests" / "test_kpi_foundation.js")],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+    assert "KPI FOUNDATION TEST PASS" in result.stdout

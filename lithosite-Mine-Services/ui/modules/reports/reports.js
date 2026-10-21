@@ -54,6 +54,17 @@ const rows=name=>Array.isArray(state.data[name])?state.data[name]:[];
 function msg(text,error){const el=document.getElementById('reportsRuntimeMsg');if(el){el.textContent=text;el.classList.toggle('error',!!error);}}
 function latestOperationalDate(){const values=rows('Operations').map(r=>String(r.transaction_date||'').slice(0,10)).filter(Boolean).sort();return values.length?values[values.length-1]:new Date().toISOString().slice(0,10);}
 function fmtHours(value){const n=Number(value);return Number.isFinite(n)?n.toFixed(2):'—';}
+function formatKpiIssue(issue){
+  const clock=value=>{
+    const d=new Date(value);
+    return Number.isNaN(d.getTime())?String(value||'').slice(11,16):d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  };
+  const parts=[String(issue&&issue.code||'VALIDATION')];
+  if(issue&&issue.from&&issue.to)parts.push(clock(issue.from)+'–'+clock(issue.to));
+  if(issue&&issue.shift)parts.push(issue.shift==='NIGHT'?'Night':'Day');
+  if(issue&&issue.date)parts.push(String(issue.date));
+  return parts.join(' · ');
+}
 function fmtPct(value,status){
   if(value===null||value===undefined||value==='') return '—';
   if(status && status!=='READY') return '—';
@@ -78,7 +89,8 @@ function renderKpi(){
   set('reportsFleetUA',fmtPct(ua&&ua.value,ua&&ua.status));set('reportsFleetEU',fmtPct(eu&&eu.value,eu&&eu.status));
   set('reportsFleetStatus',k?String(k.status):'—');set('reportsEligible',k&&k.population?String(k.population.eligible):'0');set('reportsExcluded',k&&k.population?String(k.population.excluded):'0');
   const baseline=state.baseline||foundation.DEFAULT_BASELINE;
-  set('reportsBaseline',baseline.baseline_id+' · '+baseline.shift_start+'–'+baseline.shift_end+' · break '+baseline.breaks.map(b=>b.start+'–'+b.end).join(', '));set('reportsBaselineStatus',baseline.status||'PROJECT_DEFAULT');
+  const night=foundation.NIGHT_BASELINE||{baseline_id:'TB-PROJECT-NIGHT-1900-0600',shift_start:'19:00',shift_end:'06:00'};
+  set('reportsBaseline','Day: '+baseline.shift_start+'–'+baseline.shift_end+' · break '+baseline.breaks.map(b=>b.start+'–'+b.end).join(', ')+' | Night: '+night.shift_start+'–'+night.shift_end+' (auto project default)');set('reportsBaselineStatus',baseline.status||'PROJECT_DEFAULT');
   const euContext=document.getElementById('reportsFleetEUContext');if(euContext){const p=state.policy||DEFAULT_POLICY;euContext.textContent='Effective / '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator);}
 
   const host=document.getElementById('equipmentKpiRows');if(!host)return;
@@ -94,9 +106,9 @@ function renderKpi(){
     }).join('');
     const sourceDates=state.scope==='DATE'
       ? [result.timeline&&result.timeline.lineage&&result.timeline.lineage.date].filter(Boolean)
-      : (Array.isArray(result.validatedDates)?result.validatedDates:[]);
+      : (Array.isArray(result.sourceDates)&&result.sourceDates.length?result.sourceDates:(Array.isArray(result.validatedDates)?result.validatedDates:[]));
     const sourceDateLabel=sourceDates.length===1?sourceDates[0]:(sourceDates.length?sourceDates.join(', '):'—');
-    return '<details class="equipment-kpi-detail"><summary><span class="eq-id">'+esc(result.equipmentId)+'</span><span class="eq-date">'+esc(sourceDateLabel)+'</span><span class="eq-unit">'+esc(result.unitNo||'—')+'</span><span>'+fmtHours(rpa.denominatorHours)+'</span><span>'+fmtHours(rpa.numeratorHours)+'</span><span>'+fmtHours(rua.numeratorHours)+'</span><strong>'+fmtPct(rpa.value,rpa.status)+'</strong><strong>'+fmtPct(rua.value,rua.status)+'</strong><em class="'+classes+'">'+esc(result.status||'—')+'</em></summary><div class="kpi-lineage"><div><b>EU</b> '+fmtPct(reu.value,reu.status)+' · '+esc(reu.status||'—')+'</div><div><b>Timeline</b> '+esc(t.events?t.events.length:0)+' event slices · baseline '+esc(t.baseline&&t.baseline.version||'—')+'</div>'+(t.issues&&t.issues.length?'<div class="kpi-issues">'+t.issues.map(i=>esc(i.code)).join(' · ')+'</div>':'<div class="kpi-issues ok">Timeline validated</div>')+'<div class="kpi-event-list">'+(events||'<div class="kpi-event">No event evidence</div>')+'</div></div></details>';
+    return '<details class="equipment-kpi-detail"><summary><span class="eq-id">'+esc(result.equipmentId)+'</span><span class="eq-date">'+esc(sourceDateLabel)+'</span><span class="eq-unit">'+esc(result.unitNo||'—')+'</span><span>'+fmtHours(rpa.denominatorHours)+'</span><span>'+fmtHours(rpa.numeratorHours)+'</span><span>'+fmtHours(rua.numeratorHours)+'</span><strong>'+fmtPct(rpa.value,rpa.status)+'</strong><strong>'+fmtPct(rua.value,rua.status)+'</strong><em class="'+classes+'">'+esc(result.status||'—')+'</em></summary><div class="kpi-lineage"><div><b>EU</b> '+fmtPct(reu.value,reu.status)+' · '+esc(reu.status||'—')+'</div><div><b>Timeline</b> '+esc(t.events?t.events.length:0)+' event slices · baseline '+esc(t.baseline&&t.baseline.version||'—')+'</div>'+(t.issues&&t.issues.length?'<div class="kpi-issues">'+t.issues.map(i=>esc(formatKpiIssue(i))).join(' · ')+'</div>':'<div class="kpi-issues ok">Timeline validated</div>')+'<div class="kpi-event-list">'+(events||'<div class="kpi-event">No event evidence</div>')+'</div></div></details>';
   }).join('')||'<div class="kpi-empty">No equipment records.</div>';
 
   const issueHost=document.getElementById('kpiExclusions');
@@ -141,7 +153,7 @@ function renderConsolePolicy(){
   if(euSelect)euSelect.value=p.euDenominator;
   if(effectiveSelect)effectiveSelect.value=p.effectiveTimeRule;
   if(stateHost)stateHost.textContent=p.baseline.status||'PROJECT_DEFAULT';
-  if(active)active.textContent=p.baseline.baseline_id+' · '+p.baseline.shift_start+'–'+p.baseline.shift_end+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
+  if(active)active.textContent=p.baseline.baseline_id+' · Day '+p.baseline.shift_start+'–'+p.baseline.shift_end+' · Night auto '+(foundation.NIGHT_BASELINE||{shift_start:'19:00',shift_end:'06:00'}).shift_start+'–'+(foundation.NIGHT_BASELINE||{shift_start:'19:00',shift_end:'06:00'}).shift_end+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
 }
 
 async function finalizeCurrent(){
@@ -938,7 +950,7 @@ function bind(){
     const stateEl=document.getElementById('reportsTimeBaselineState');
     const active=document.getElementById('reportsActivePolicy');
     if(stateEl)stateEl.textContent=p.baseline.status||'PROJECT_DEFAULT';
-    if(active)active.textContent=p.baseline.baseline_id+' · '+p.baseline.shift_start+'–'+p.baseline.shift_end+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
+    if(active)active.textContent=p.baseline.baseline_id+' · Day '+p.baseline.shift_start+'–'+p.baseline.shift_end+' · Night auto '+(foundation.NIGHT_BASELINE||{shift_start:'19:00',shift_end:'06:00'}).shift_start+'–'+(foundation.NIGHT_BASELINE||{shift_start:'19:00',shift_end:'06:00'}).shift_end+' · EU '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator)+' · '+(EFFECTIVE_RULE_OPTIONS[p.effectiveTimeRule]||p.effectiveTimeRule);
   };
   if(baselineSelect)baselineSelect.onchange=syncConsolePreview;
   if(euDenominatorSelect)euDenominatorSelect.onchange=syncConsolePreview;

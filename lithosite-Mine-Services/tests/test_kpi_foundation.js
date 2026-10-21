@@ -108,6 +108,52 @@ assert.equal(fleet.population.eligible, 2);
 assert(Math.abs(fleet.results.PA.value - (20 / 22 * 100)) < 1e-9);
 assert(Math.abs(fleet.results.UA.value - 100) < 1e-9);
 
+
+const nightOperations = [
+  { transaction_id:'NIGHT-19', transaction_date:'2026-10-05', transaction_time:'19:00', equipment_id:'EQ-NIGHT', work_front_id:'WF-NIGHT', activity:'Hauling', actual_hours:3, status:'VALIDATED', shift:'Night' },
+  { transaction_id:'NIGHT-22', transaction_date:'2026-10-05', transaction_time:'22:00', equipment_id:'EQ-NIGHT', work_front_id:'WF-NIGHT', activity:'Hauling', actual_hours:2, status:'VALIDATED', shift:'Night' },
+  { transaction_id:'NIGHT-01', transaction_date:'2026-10-06', transaction_time:'01:00', equipment_id:'EQ-NIGHT', work_front_id:'WF-NIGHT', activity:'Hauling', actual_hours:1, status:'VALIDATED', shift:'Night' },
+  { transaction_id:'NIGHT-04', transaction_date:'2026-10-06', transaction_time:'04:00', equipment_id:'EQ-NIGHT', work_front_id:'WF-NIGHT', activity:'Hauling', actual_hours:2, status:'VALIDATED', shift:'Night' }
+];
+const nightMaintenance = [
+  { maintenance_id:'MNT-NIGHT', equipment_id:'EQ-NIGHT', event_date:'2026-10-06', event_type:'Breakdown', shift:'Night', failure_code:'HYD', start_time:'02:00', end_time:'03:00', status:'Completed', action:'Repairing', downtime_hours:1 }
+];
+const nightIncomplete = f.calculateEquipment({
+  equipmentId:'EQ-NIGHT', date:'2026-10-05', baseline:b,
+  operations:nightOperations, maintenance:nightMaintenance
+});
+assert.equal(nightIncomplete.timeline.shift, 'NIGHT');
+assert.equal(nightIncomplete.timeline.scheduledHours, 11);
+assert.equal(nightIncomplete.status, 'NEEDS_VALIDATION');
+const nightGaps = nightIncomplete.timeline.issues.filter(issue => issue.code === 'TIMELINE_GAP');
+assert.equal(nightGaps.length, 2);
+assert(nightGaps.every(issue => issue.durationHours === 1));
+assert(nightIncomplete.timeline.events.some(event => event.source_entity === 'Maintenance' && event.source_id === 'MNT-NIGHT'));
+
+const nightCompleted = f.calculateEquipment({
+  equipmentId:'EQ-NIGHT', date:'2026-10-05', shift:'Night', baseline:b,
+  operations:nightOperations.concat([
+    { transaction_id:'NIGHT-00', transaction_date:'2026-10-06', transaction_time:'00:00', equipment_id:'EQ-NIGHT', work_front_id:'WF-NIGHT', activity:'Hauling', actual_hours:1, status:'VALIDATED', shift:'Night' },
+    { transaction_id:'NIGHT-03', transaction_date:'2026-10-06', transaction_time:'03:00', equipment_id:'EQ-NIGHT', work_front_id:'WF-NIGHT', activity:'Standby', actual_hours:1, status:'VALIDATED', shift:'Night' }
+  ]),
+  maintenance:nightMaintenance
+});
+assert.equal(nightCompleted.status, 'READY');
+assert(Math.abs(nightCompleted.results.PA.value - (10 / 11 * 100)) < 1e-9);
+assert(Math.abs(nightCompleted.results.UA.value - 90) < 1e-9);
+
+const nightAllDates = f.calculateFleetAllDates({
+  baseline:b,
+  policy:{euDenominator:'AVAILABLE',effectiveTimeRule:'PURE_EFFECTIVE'},
+  equipment:[{equipment_id:'EQ-NIGHT',unit_no:'DT-NIGHT'}],
+  operations:nightOperations,
+  maintenance:nightMaintenance
+});
+assert.equal(nightAllDates.dates[0], '2026-10-05');
+assert.equal(nightAllDates.equipment[0].status, 'NEEDS_VALIDATION');
+assert(nightAllDates.equipment[0].sourceDates.includes('2026-10-05'));
+assert(nightAllDates.equipment[0].timeline.events.some(event => event.source_entity === 'Maintenance'));
+
 const snapshot = f.buildSnapshot({
   calculation:fleet,
   scopeId:'FLEET:ALL',
