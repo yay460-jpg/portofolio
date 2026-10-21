@@ -89,8 +89,8 @@ body.viewport-test-mode #dashboardScreen .left > .panel:first-child .panelhead >
 
 
 /* Target Plan — 14-inch viewport fit only.
-   Compress the fifteen register columns within the available table width.
-   This rule is scoped to viewport-test-mode so the 15.6-inch layout is unchanged. */
+   Preserve readable typography; recover width through column proportions and compact cell spacing.
+   Scoped to viewport-test-mode so the 15.6-inch layout remains unchanged. */
 body.viewport-test-mode #plansScreen .boundary{
   min-width:0;
   padding:12px;
@@ -108,42 +108,45 @@ body.viewport-test-mode #plansScreen .plantr.consolidated-tr{
   min-width:0;
   grid-template-columns:
     minmax(0,.95fr) minmax(0,.95fr) minmax(0,.95fr)
-    minmax(0,.9fr) minmax(0,1.35fr) minmax(0,.95fr)
-    minmax(0,.72fr) minmax(0,.8fr) minmax(0,.65fr)
-    minmax(0,.72fr) minmax(0,.8fr) minmax(0,.72fr)
-    minmax(0,.75fr) minmax(0,.6fr) minmax(0,1.05fr);
+    minmax(0,.95fr) minmax(0,1.65fr) minmax(0,.9fr)
+    minmax(0,.72fr) minmax(0,.82fr) minmax(0,.68fr)
+    minmax(0,.75fr) minmax(0,.82fr) minmax(0,.75fr)
+    minmax(0,.78fr) minmax(0,.65fr) minmax(0,1.12fr);
 }
 body.viewport-test-mode #plansScreen .plantr.consolidated-th > .cell{
   min-width:0;
-  padding:4px 3px;
-  font-size:7px;
-  line-height:1.15;
+  padding:5px 4px;
+  font-size:9px;
+  line-height:1.2;
   white-space:normal;
-  overflow-wrap:anywhere;
+  overflow-wrap:normal;
 }
 body.viewport-test-mode #plansScreen .plantr.consolidated-tr > .cell{
   min-width:0;
-  padding-right:3px;
-  padding-left:3px;
-  font-size:8px;
-  overflow-wrap:anywhere;
+  padding-right:4px;
+  padding-left:4px;
+  font-size:9.5px;
+  overflow-wrap:normal;
 }
 body.viewport-test-mode #plansScreen .plantr.consolidated-tr > .cell:nth-child(5){
-  padding:4px 3px;
+  padding:5px 4px;
+  white-space:normal;
   overflow-wrap:anywhere;
+  line-height:1.3;
 }
 body.viewport-test-mode #plansScreen .statuspill{
   min-width:0;
-  padding:2px 4px;
-  font-size:7px;
+  padding:3px 6px;
+  font-size:8px;
 }
 body.viewport-test-mode #plansScreen .row-actions{
   justify-content:center;
-  gap:2px;
+  gap:4px;
+  flex-wrap:nowrap;
 }
 body.viewport-test-mode #plansScreen .row-actions .control.mini{
   min-width:0;
-  height:23px;
-  padding:3px 4px;
-  font-size:7px;
+  height:26px;
+  padding:4px 6px;
+  font-size:9px;
 }
