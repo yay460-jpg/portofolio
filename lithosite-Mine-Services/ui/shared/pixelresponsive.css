@@ -200,3 +200,43 @@ body.viewport-test-mode #equipmentScreen .grid::-webkit-scrollbar:vertical{
   width:0;
   display:none;
 }
+
+
+/* Operations Transactions — 14-inch viewport fit only.
+   Rebalance the 14 table columns and tighten cell gutters to avoid horizontal scrolling.
+   Scoped to the viewport simulator; the 15.6-inch baseline remains unchanged. */
+body.viewport-test-mode #operationsScreen .boundary{
+  min-width:0;
+  padding:12px;
+}
+body.viewport-test-mode #operationsScreen .panel,
+body.viewport-test-mode #operationsScreen .grid{
+  min-width:0;
+  width:100%;
+}
+body.viewport-test-mode #operationsScreen .tr{
+  width:100%;
+  min-width:0;
+  grid-template-columns:
+    minmax(0,.78fr) minmax(0,.48fr) minmax(0,.48fr)
+    minmax(0,.95fr) minmax(0,1.05fr) minmax(0,1.02fr)
+    minmax(0,.98fr) minmax(0,.82fr) minmax(0,.62fr)
+    minmax(0,.62fr) minmax(0,.62fr) minmax(0,.76fr)
+    minmax(0,.88fr) minmax(0,.52fr);
+}
+body.viewport-test-mode #operationsScreen .tr > .cell{
+  min-width:0;
+  padding-right:4px;
+  padding-left:4px;
+}
+body.viewport-test-mode #operationsScreen .row-actions{
+  min-width:0;
+  gap:3px;
+}
+body.viewport-test-mode #operationsScreen .row-actions .control,
+body.viewport-test-mode #operationsScreen .row-actions .mini{
+  min-width:0;
+  padding-right:4px;
+  padding-left:4px;
+  white-space:nowrap;
+}
