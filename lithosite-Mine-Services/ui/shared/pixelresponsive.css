@@ -86,3 +86,64 @@ body.viewport-test-mode #operationsGraphicsModal.show.is-closing > .operations-g
 body.viewport-test-mode #dashboardScreen .left > .panel:first-child .panelhead > .ptitle > .icon{
   display:none;
 }
+
+
+/* Target Plan — 14-inch viewport fit only.
+   Compress the fifteen register columns within the available table width.
+   This rule is scoped to viewport-test-mode so the 15.6-inch layout is unchanged. */
+body.viewport-test-mode #plansScreen .boundary{
+  min-width:0;
+  padding:12px;
+  overflow:hidden;
+}
+body.viewport-test-mode #plansScreen .tablepanel,
+body.viewport-test-mode #plansScreen .grid{
+  min-width:0;
+  width:100%;
+  overflow:hidden;
+}
+body.viewport-test-mode #plansScreen .plantr.consolidated-th,
+body.viewport-test-mode #plansScreen .plantr.consolidated-tr{
+  width:100%;
+  min-width:0;
+  grid-template-columns:
+    minmax(0,.95fr) minmax(0,.95fr) minmax(0,.95fr)
+    minmax(0,.9fr) minmax(0,1.35fr) minmax(0,.95fr)
+    minmax(0,.72fr) minmax(0,.8fr) minmax(0,.65fr)
+    minmax(0,.72fr) minmax(0,.8fr) minmax(0,.72fr)
+    minmax(0,.75fr) minmax(0,.6fr) minmax(0,1.05fr);
+}
+body.viewport-test-mode #plansScreen .plantr.consolidated-th > .cell{
+  min-width:0;
+  padding:4px 3px;
+  font-size:7px;
+  line-height:1.15;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+body.viewport-test-mode #plansScreen .plantr.consolidated-tr > .cell{
+  min-width:0;
+  padding-right:3px;
+  padding-left:3px;
+  font-size:8px;
+  overflow-wrap:anywhere;
+}
+body.viewport-test-mode #plansScreen .plantr.consolidated-tr > .cell:nth-child(5){
+  padding:4px 3px;
+  overflow-wrap:anywhere;
+}
+body.viewport-test-mode #plansScreen .statuspill{
+  min-width:0;
+  padding:2px 4px;
+  font-size:7px;
+}
+body.viewport-test-mode #plansScreen .row-actions{
+  justify-content:center;
+  gap:2px;
+}
+body.viewport-test-mode #plansScreen .row-actions .control.mini{
+  min-width:0;
+  height:23px;
+  padding:3px 4px;
+  font-size:7px;
+}
