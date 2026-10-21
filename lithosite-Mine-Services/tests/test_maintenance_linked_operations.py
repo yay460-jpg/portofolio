@@ -58,7 +58,7 @@ def test_operations_to_maintenance_link_handles_night_shift_midnight():
 
 
 def test_linked_operations_assets_use_fresh_cache_keys():
-    assert "maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll" in HTML
+    assert "maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll-2" in HTML
     assert "maintenance.js?v=20261022-maintenance-shift-links" in HTML
     assert "operations.css?v=20261027" in HTML
     assert "operations.js?v=20261110" in HTML
@@ -66,5 +66,5 @@ def test_linked_operations_assets_use_fresh_cache_keys():
 
 def test_maintenance_timeline_fits_modal_without_horizontal_scrollbar():
     assert "overflow-x:hidden;overflow-y:auto;max-height:55vh;min-width:0" in MAINTENANCE_CSS
-    assert "grid-template-columns:54px 54px 82px 58px 82px 72px minmax(70px,1fr) 64px 64px 190px;min-width:0;width:100%" in MAINTENANCE_CSS
-    assert "maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll" in HTML
+    assert "grid-template-columns:48px 48px 74px 48px 70px 60px minmax(80px,1fr) 58px 58px 174px" in MAINTENANCE_CSS
+    assert "maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll-2" in HTML
