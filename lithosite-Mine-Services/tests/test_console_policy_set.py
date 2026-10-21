@@ -47,7 +47,7 @@ def test_stage36_console_contains_policy_only():
 
 def test_stage36_console_reset_restores_default_selection():
     reports = read("ui/modules/reports/reports.js")
-    assert "DEFAULT_POLICY.baseline.baseline_id" in reports
+    assert "DEFAULT_POLICY.shiftPairId" in reports
     assert "DEFAULT_POLICY.euDenominator" in reports
     assert "DEFAULT_POLICY.effectiveTimeRule" in reports
     assert "resetConsolePolicy" in reports
