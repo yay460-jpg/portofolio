@@ -54,3 +54,8 @@ body.viewport-test-mode #equipmentGraphicsModal .equipment-graphics-period-card{
   min-width:0;
   overflow:hidden;
 }
+
+/* Operations Graphics — align with the 14-inch viewport without changing card geometry. */
+body.viewport-test-mode #operationsGraphicsModal > .operations-graphics-modal{
+  transform:translateX(0);
+}
