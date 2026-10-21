@@ -36,3 +36,18 @@ body.viewport-test-mode .app > footer.status{
     margin:8px;
   }
 }
+
+/* Equipment Graphics — constrain the modal to the simulated 14-inch workspace.
+   Keep the donut column fixed and distribute the three 7-day chart cards evenly. */
+body.viewport-test-mode #equipmentGraphicsModal > .equipment-graphics-modal{
+  width:min(1320px,calc(100vw - 64px));
+  max-width:1320px;
+}
+body.viewport-test-mode #equipmentGraphicsModal > .equipment-graphics-modal > .equipment-graphics-body{
+  grid-template-columns:250px repeat(3,minmax(0,1fr));
+  gap:10px;
+  min-width:0;
+}
+body.viewport-test-mode #equipmentGraphicsModal .equipment-graphics-period-card{
+  min-width:0;
+}
