@@ -91,11 +91,32 @@ function breakSummary(baseline){
   const items=Array.isArray(baseline&&baseline.breaks)?baseline.breaks:[];
   return items.length?items.map(item=>item.start+'–'+item.end).join(', '):'none';
 }
+function timeOfDayMinutes(value){
+  const parts=String(value||'00:00').split(':').map(Number);
+  return (parts[0]||0)*60+(parts[1]||0);
+}
+function shiftDurationHours(baseline){
+  let duration=timeOfDayMinutes(baseline&&baseline.shift_end)-timeOfDayMinutes(baseline&&baseline.shift_start);
+  if(duration<=0)duration+=1440;
+  return duration/60;
+}
+function breakDurationHours(baseline){
+  return (Array.isArray(baseline&&baseline.breaks)?baseline.breaks:[]).reduce((sum,item)=>{
+    let duration=timeOfDayMinutes(item.end)-timeOfDayMinutes(item.start);
+    if(duration<=0)duration+=1440;
+    return sum+duration/60;
+  },0);
+}
+function shiftDescription(label,baseline,nextDay){
+  const total=shiftDurationHours(baseline);
+  const operational=Math.max(0,total-breakDurationHours(baseline));
+  return label+' '+baseline.shift_start+'–'+baseline.shift_end+(nextDay?' next day':'')+
+    ' (rest '+breakSummary(baseline)+'; '+total+' h total, '+operational+' h operational)';
+}
 function shiftPairSummary(pair){
   const selected=pair||DEFAULT_SHIFT_PAIR;
-  const day=selected.day_baseline||DEFAULT_POLICY.baseline;
-  const night=selected.night_baseline||DEFAULT_POLICY.nightBaseline;
-  return 'Day '+day.shift_start+'–'+day.shift_end+' (rest '+breakSummary(day)+') · Night '+night.shift_start+'–'+night.shift_end+' next day (rest '+breakSummary(night)+') · 11 h operational per 12 h shift';
+  return shiftDescription('Day',selected.day_baseline||DEFAULT_POLICY.baseline,false)+' · '+
+    shiftDescription('Night',selected.night_baseline||DEFAULT_POLICY.nightBaseline,true);
 }
 function activePolicySummary(policy){
   const p=clonePolicy(policy);
@@ -137,7 +158,7 @@ function renderKpi(){
   set('reportsFleetStatus',k?String(k.status):'—');set('reportsEligible',k&&k.population?String(k.population.eligible):'0');set('reportsExcluded',k&&k.population?String(k.population.excluded):'0');
   const policy=clonePolicy(state.policy||DEFAULT_POLICY);
   const pair=policy.shiftPair||DEFAULT_SHIFT_PAIR;
-  set('reportsBaseline','24h pair · Day '+pair.day_baseline.shift_start+'–'+pair.day_baseline.shift_end+' / Night '+pair.night_baseline.shift_start+'–'+pair.night_baseline.shift_end+' · 11 h/shift');set('reportsBaselineStatus',pair.status||'PROJECT_DEFAULT');
+  set('reportsBaseline',shiftPairSummary(pair));set('reportsBaselineStatus',pair.status||'PROJECT_DEFAULT');
   const euContext=document.getElementById('reportsFleetEUContext');if(euContext){const p=state.policy||DEFAULT_POLICY;euContext.textContent='Effective / '+(EU_DENOMINATOR_OPTIONS[p.euDenominator]||p.euDenominator);}
 
   const host=document.getElementById('equipmentKpiRows');if(!host)return;

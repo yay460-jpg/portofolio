@@ -39,8 +39,44 @@
     status:'PROJECT_DEFAULT',
     source:'Day 06:00–18:00 rest 12:00–13:00, followed by Night 18:00–06:00 next day rest 00:00–01:00; 11 scheduled operating hours per shift'
   });
-  const TIME_BASELINES=Object.freeze([DEFAULT_BASELINE]);
-  const TIME_BASELINE_PAIRS=Object.freeze([DEFAULT_SHIFT_PAIR]);
+  const ALTERNATE_DAY_BASELINE=Object.freeze({
+    baseline_id:'TB-PROJECT-DAY-0700-1800',
+    version:'1.0',
+    name:'Project Alternate Day Shift',
+    shift_start:'07:00',
+    shift_end:'18:00',
+    breaks:[{start:'12:00',end:'13:00'}],
+    effective_from:'2026-01-01',
+    effective_to:null,
+    status:'ALTERNATE_POLICY',
+    source:'Alternative paired schedule: 07:00–18:00, rest 12:00–13:00; 10 scheduled operational hours per 11-hour shift'
+  });
+  const ALTERNATE_NIGHT_BASELINE=Object.freeze({
+    baseline_id:'TB-PROJECT-NIGHT-1900-0600',
+    version:'1.0',
+    name:'Project Alternate Night Shift',
+    shift_start:'19:00',
+    shift_end:'06:00',
+    breaks:[{start:'00:00',end:'01:00'}],
+    effective_from:'2026-01-01',
+    effective_to:null,
+    status:'ALTERNATE_POLICY',
+    source:'Alternative paired schedule: 19:00–06:00 next calendar day with rest 00:00–01:00 inside the shift; 10 scheduled operational hours per 11-hour shift. 12:00–13:00 lies outside this Night Shift.'
+  });
+  const ALTERNATE_SHIFT_PAIR=Object.freeze({
+    pair_id:'TB-PROJECT-PAIR-0700-0700',
+    version:'1.0',
+    name:'Project Alternate 24-hour Shift Pair',
+    cycle_start:'07:00',
+    cycle_end:'07:00',
+    cycle_hours:24,
+    day_baseline:ALTERNATE_DAY_BASELINE,
+    night_baseline:ALTERNATE_NIGHT_BASELINE,
+    status:'ALTERNATE_POLICY',
+    source:'Day 07:00–18:00 rest 12:00–13:00; Night 19:00–06:00 next day rest 00:00–01:00. Each shift spans 11 hours with 10 scheduled operational hours. Unscheduled handover gaps are 18:00–19:00 and 06:00–07:00.'
+  });
+  const TIME_BASELINES=Object.freeze([DEFAULT_BASELINE,ALTERNATE_DAY_BASELINE]);
+  const TIME_BASELINE_PAIRS=Object.freeze([DEFAULT_SHIFT_PAIR,ALTERNATE_SHIFT_PAIR]);
   function clone(value){return JSON.parse(JSON.stringify(value));}
   function asNumber(value){const n=Number(value);return Number.isFinite(n)?n:null;}
   function parseDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?null:d;}

@@ -49,7 +49,34 @@ assert.equal(f.NIGHT_BASELINE.shift_end, '06:00');
 assert.equal(f.DEFAULT_SHIFT_PAIR.pair_id, 'TB-PROJECT-PAIR-0600-0600');
 assert.equal(f.DEFAULT_SHIFT_PAIR.day_baseline.baseline_id, f.DEFAULT_BASELINE.baseline_id);
 assert.equal(f.DEFAULT_SHIFT_PAIR.night_baseline.baseline_id, f.NIGHT_BASELINE.baseline_id);
-assert.equal(f.TIME_BASELINE_PAIRS.length, 1);
+assert.equal(f.TIME_BASELINE_PAIRS.length, 2);
+const alternatePair = f.TIME_BASELINE_PAIRS.find(pair => pair.pair_id === 'TB-PROJECT-PAIR-0700-0700');
+assert(alternatePair);
+assert.equal(alternatePair.day_baseline.baseline_id, 'TB-PROJECT-DAY-0700-1800');
+assert.equal(alternatePair.day_baseline.shift_start, '07:00');
+assert.equal(alternatePair.day_baseline.shift_end, '18:00');
+assert.equal(alternatePair.night_baseline.baseline_id, 'TB-PROJECT-NIGHT-1900-0600');
+assert.equal(alternatePair.night_baseline.shift_start, '19:00');
+assert.equal(alternatePair.night_baseline.shift_end, '06:00');
+assert.deepEqual(alternatePair.night_baseline.breaks, [{start:'00:00',end:'01:00'}]);
+const alternateDayWindows = f.baselineWindows('2026-10-05', alternatePair.day_baseline);
+const alternateNightWindows = f.baselineWindows('2026-10-05', alternatePair.night_baseline);
+assert.equal(f.scheduledHours(alternateDayWindows), 10);
+assert.equal(alternateDayWindows.length, 2);
+assert.equal(alternateDayWindows[0].start.getHours(), 7);
+assert.equal(alternateDayWindows[0].end.getHours(), 12);
+assert.equal(alternateDayWindows[1].start.getHours(), 13);
+assert.equal(alternateDayWindows[1].end.getHours(), 18);
+assert.equal(f.scheduledHours(alternateNightWindows), 10);
+assert.equal(alternateNightWindows.length, 2);
+assert.equal(alternateNightWindows[0].start.getHours(), 19);
+assert.equal(alternateNightWindows[0].end.getHours(), 0);
+assert.equal(alternateNightWindows[1].start.getHours(), 1);
+assert.equal(alternateNightWindows[1].end.getHours(), 6);
+assert.equal(
+  (new Date('2026-10-06T06:00:00') - new Date('2026-10-05T19:00:00')) / 3600000,
+  11
+);
 assert.equal(f.scheduledHours(nightScheduledWindows), 11);
 assert.equal(nightScheduledWindows.length, 2);
 assert.equal(nightScheduledWindows[0].start.getHours(), 18);

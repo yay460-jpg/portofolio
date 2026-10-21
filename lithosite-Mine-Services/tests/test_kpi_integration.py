@@ -13,7 +13,7 @@ BAT = ROOT / "desktop-host" / "start-mine-services.bat"
 
 def test_stage23_artifact_wires_foundation():
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "kpi-foundation.js?v=20261022-shift-pair-1800-0600-2" in html
+    assert "kpi-foundation.js?v=20261022-shift-pair-options-3" in html
     assert "reports.css?v=20261012-cascade-owner-17" in html
     assert 'class="report-body"' in html
     assert "report-operational-panel" in html
@@ -21,7 +21,10 @@ def test_stage23_artifact_wires_foundation():
     assert 'id="reportsFinalizeKpi"' in html
     assert 'id="reportsKpiDate"' in html
     assert "Day 06:00–18:00 (rest 12:00–13:00) + Night 18:00–06:00 next day (rest 00:00–01:00)" in html
-    assert "TB-PROJECT-DAY-0700-1800" not in html
+    assert "TB-PROJECT-PAIR-0700-0700" in html
+    assert "TB-PROJECT-DAY-0700-1800" in html
+    assert "TB-PROJECT-NIGHT-1900-0600" in html
+    assert "10 h operational" in html
 
 
 def test_stage23_foundation_contracts():
@@ -34,6 +37,10 @@ def test_stage23_foundation_contracts():
         "TIME_BASELINE_PAIRS",
         "TB-PROJECT-NIGHT-1800-0600",
         "TB-PROJECT-PAIR-0600-0600",
+        "ALTERNATE_SHIFT_PAIR",
+        "TB-PROJECT-PAIR-0700-0700",
+        "TB-PROJECT-DAY-0700-1800",
+        "TB-PROJECT-NIGHT-1900-0600",
         "shiftAnchorDate",
         "collectShiftEntries",
         "calculateEquipment",
