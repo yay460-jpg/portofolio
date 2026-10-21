@@ -117,3 +117,11 @@ def test_stage8_operations_maintenance_trace_contract():
     assert "LithositeMaintenance.focusTrace" in ops_text
     assert "setScreen('Maintenance')" in ops_text
     assert '<div class="cell">Maintenance</div>' in ui_text
+
+
+def test_stage_add_work_inherits_required_context_from_active_timeline():
+    ops_text = OPS_JS.read_text(encoding="utf-8")
+
+    assert "document.getElementById('f_domain').value = first.domain || '';" in ops_text
+    assert "document.getElementById('f_wf').value = first.work_front_id || '';" in ops_text
+    assert "document.getElementById('f_capacity').value = first.applied_capacity ?? '';" in ops_text
