@@ -542,3 +542,14 @@
 @media(max-width:1150px){
   #equipmentGraphicsModal .equipment-graphics-period-card .equipment-period-usage{margin-top:8px}
 }
+
+/* Equipment Master — hide the visible vertical scrollbar on the main 15.6-inch layout too.
+   Keep vertical overflow enabled so mouse-wheel scrolling through equipment rows still works. */
+#equipmentScreen .grid{
+  overflow-y:auto;
+  scrollbar-width:none;
+}
+#equipmentScreen .grid::-webkit-scrollbar:vertical{
+  width:0;
+  display:none;
+}
