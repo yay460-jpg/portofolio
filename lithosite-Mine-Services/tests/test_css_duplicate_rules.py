@@ -384,22 +384,31 @@ def test_data_management_card_keeps_only_effective_viewport_bounds():
     css = (ROOT / "ui" / "modules" / "data-management" / "data-management.css").read_text(encoding="utf-8")
     html = ARTIFACT.read_text(encoding="utf-8")
 
-    base = "#stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 108px);max-height:calc(100vh - 96px);overflow:auto;background:#0e1d2e;border:1px solid #35506b;border-radius:12px;box-shadow:0 18px 60px #0009;pointer-events:auto}"
+    # 15.6-inch baseline: retain the original modal position and its matching viewport bound.
+    base = "#stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 210px);max-height:calc(100vh - 96px);overflow:auto;background:#0e1d2e;border:1px solid #35506b;border-radius:12px;box-shadow:0 18px 60px #0009;pointer-events:auto}"
     assert css.count(base) == 1
-    assert "@media (max-width:1100px)" not in css
+    assert "#stage15DataModal{position:fixed;inset:0 0 0 84px;z-index:100;background:transparent;display:none;align-items:center;justify-content:flex-start;padding-left:202px;pointer-events:none}" in css
+
     expanded_sidebar = rule_bodies(css, r"body\s*:\s*has\(\.sidebar\.expanded\)\s*#stage15DataModal\s+\.dm-card")
-    assert len(expanded_sidebar) == 1
-    assert "max-width:calc(100vw - 248px)" in expanded_sidebar[0]
+    assert len(expanded_sidebar) == 2
+    assert "max-width:calc(100vw - 254px)" in expanded_sidebar[0]
+
+    # 14-inch compact lock: normal and expanded sidebar positions remain independently tuned.
+    assert "@media (max-width:1600px)" in css
+    assert "#stage15DataModal{padding-left:100px}" in css
+    assert "#stage15DataModal .dm-card{max-width:calc(100vw - 108px)}" in css
+    assert "body:has(.sidebar.expanded) #stage15DataModal{padding-left:235px}" in css
+    assert "max-width:calc(100vw - 248px)" in expanded_sidebar[1]
+
+    assert "@media (max-width:1100px)" not in css
     assert "@media (max-width:900px)" in css
     assert "#stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 96px);max-height:calc(100vh - 78px)}" in css
 
-    # Removing the identical viewport rule must not disturb selective motion or reduced-motion handling.
+    # Viewport bounds must not disturb selective motion or reduced-motion handling.
     assert "@keyframes dataManagementSlideIn" in css
     assert "@keyframes dataManagementSlideOut" in css
     assert "@media(prefers-reduced-motion:reduce)" in css
     assert "../ui/modules/data-management/data-management.css?v=20261011-card-bounds-dedupe" in html
-
-
 def test_reports_mobile_body_grid_has_one_effective_single_column_override():
     css = REPORTS.read_text(encoding="utf-8")
     html = ARTIFACT.read_text(encoding="utf-8")
