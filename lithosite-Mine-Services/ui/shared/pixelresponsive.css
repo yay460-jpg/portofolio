@@ -240,3 +240,39 @@ body.viewport-test-mode #operationsScreen .row-actions .mini{
   padding-left:4px;
   white-space:nowrap;
 }
+
+
+/* Reports & KPI — 14-inch viewport fit only.
+   Compact Report Type, Report Date, and Scope so the complete action row,
+   including Generate PDF, stays inside the simulated 1366px app frame.
+   The normal 15.6-inch layout remains unchanged. */
+body.viewport-test-mode #reportsScreen .filters{
+  grid-template-columns:minmax(205px,1fr) 118px 126px 118px minmax(0,auto);
+  gap:6px;
+  padding:8px 10px;
+}
+body.viewport-test-mode #reportsScreen .filters .report-filter-field{
+  min-width:0;
+}
+body.viewport-test-mode #reportsScreen .filters .report-filter-field select,
+body.viewport-test-mode #reportsScreen .filters .report-filter-field input{
+  min-width:0;
+  padding-left:6px;
+  padding-right:6px;
+  font-size:9px;
+}
+body.viewport-test-mode #reportsScreen .report-filter-actions{
+  min-width:0;
+  width:100%;
+}
+body.viewport-test-mode #reportsScreen .report-filter-buttons{
+  min-width:0;
+  gap:3px;
+}
+body.viewport-test-mode #reportsScreen .report-filter-buttons .control{
+  min-width:0;
+  padding-left:6px;
+  padding-right:6px;
+  font-size:9px;
+  white-space:nowrap;
+}
