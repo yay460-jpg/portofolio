@@ -17,7 +17,16 @@ function setMsg(text,error){
 }
 function setMapMsg(text,error){
  const el=document.getElementById('equipmentMapMsg');
- if(el){el.textContent=text;el.classList.toggle('error',!!error);}
+ if(!el)return;
+ clearTimeout(el._mapNoticeTimer);
+ el.textContent=text;
+ el.classList.toggle('error',!!error);
+ if(text){
+  el._mapNoticeTimer=setTimeout(function(){
+   el.textContent='';
+   el.classList.remove('error');
+  },5000);
+ }
 }
 function fillSelect(id,items,empty){
  const el=document.getElementById(id);
