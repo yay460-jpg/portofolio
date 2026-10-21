@@ -150,3 +150,41 @@ body.viewport-test-mode #plansScreen .row-actions .control.mini{
   padding:4px 5px;
   font-size:9px;
 }
+
+
+/* Equipment Master — 14-inch viewport fit only.
+   Rebalance the eleven register columns and reduce cell gutters, not text size.
+   The 15.6-inch baseline remains untouched. */
+body.viewport-test-mode #equipmentScreen .boundary{
+  min-width:0;
+  padding:12px;
+}
+body.viewport-test-mode #equipmentScreen .panel{
+  min-width:0;
+}
+body.viewport-test-mode #equipmentScreen .tr{
+  width:100%;
+  min-width:0;
+  grid-template-columns:
+    minmax(0,1.22fr) minmax(0,1.02fr) minmax(0,1.03fr)
+    minmax(0,.62fr) minmax(0,.86fr) minmax(0,.78fr)
+    minmax(0,.9fr) minmax(0,.56fr) minmax(0,.78fr)
+    minmax(0,.78fr) minmax(0,1.32fr);
+}
+body.viewport-test-mode #equipmentScreen .tr > .cell{
+  min-width:0;
+  padding-right:4px;
+  padding-left:4px;
+}
+body.viewport-test-mode #equipmentScreen .row-actions{
+  min-width:0;
+  gap:3px;
+}
+body.viewport-test-mode #equipmentScreen .row-actions .control,
+body.viewport-test-mode #equipmentScreen .row-actions .mini{
+  flex:0 1 auto;
+  min-width:0;
+  padding-right:5px;
+  padding-left:5px;
+  white-space:nowrap;
+}
