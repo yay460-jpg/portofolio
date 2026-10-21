@@ -179,9 +179,27 @@
     const date = String(first.transaction_date || '');
     const equipmentId = String(first.equipment_id || '').trim();
     if (!date || !equipmentId) return [];
+    const nightTimeline = items.some(function (item) {
+      return String(item.shift || '').trim().toLowerCase() === 'night';
+    });
     return dataState.maintenance.filter(function (row) {
-      return String(row.event_date || '') === date &&
-        String(row.equipment_id || '').trim() === equipmentId;
+      if (String(row.equipment_id || '').trim() !== equipmentId) return false;
+      const maintenanceDate = String(row.event_date || '');
+      if (maintenanceDate === date) return true;
+      if (!nightTimeline || String(row.shift || '').trim().toLowerCase() !== 'night') return false;
+      const maintenanceTime = String(row.start_time || '');
+      if (!maintenanceTime || maintenanceTime >= '12:00') return false;
+      const nextDate = new Date(date + 'T00:00:00');
+      if (Number.isNaN(nextDate.getTime())) return false;
+      nextDate.setDate(nextDate.getDate() + 1);
+      const expectedDate = nextDate.getFullYear() + '-' +
+        String(nextDate.getMonth() + 1).padStart(2, '0') + '-' +
+        String(nextDate.getDate()).padStart(2, '0');
+      return maintenanceDate === expectedDate &&
+        items.some(function (item) {
+          return String(item.shift || '').trim().toLowerCase() === 'night' &&
+            String(item.transaction_time || '') >= '18:00';
+        });
     });
   }
 
