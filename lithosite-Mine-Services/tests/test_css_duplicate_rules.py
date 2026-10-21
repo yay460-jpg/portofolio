@@ -133,7 +133,7 @@ def test_active_artifact_refreshes_only_affected_css_cache_keys():
     assert "../ui/modules/operations/operations.css?v=20261020-operations-graphics-slide-no-fade" in html
     assert "../ui/modules/equipment/equipment.css?v=20261019-equipment-ratio-bar" in html
     assert "../ui/modules/maintenance/maintenance.css?v=20261012-compact-view" in html
-    assert "../ui/modules/hse/hse.css?v=20261011-ptitle-dedupe" in html
+    assert "../ui/modules/hse/hse.css?v=20261021-hse-14inch-fit" in html
     assert "../ui/modules/reports/reports.css?v=20261012-cascade-owner-17" in html
 
     operations = OPERATIONS.read_text(encoding="utf-8")
