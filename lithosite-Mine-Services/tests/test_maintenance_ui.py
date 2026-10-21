@@ -18,7 +18,7 @@ def test_stage11_maintenance_schema_fields_present():
     for field in (
         "maintenance_id", "equipment_id", "event_date", "event_type",
         "failure_code", "start_time", "end_time", "downtime_hours",
-        "action", "status", "source",
+        "action", "status", "source", "shift",
     ):
         assert field in MAINTENANCE_JS
 
@@ -88,3 +88,18 @@ def test_stage11_maintenance_trace_focus_contract():
     assert "data-trace-key" in MAINTENANCE_JS
     assert "trace-highlight" in MAINTENANCE_JS
     assert "focusTrace," in MAINTENANCE_JS
+
+
+def test_stage11_maintenance_shift_is_form_table_and_timeline_synced():
+    schema_text = (ROOT / "src" / "mine_services" / "schema.py").read_text(encoding="utf-8")
+    persistence_text = (ROOT / "src" / "mine_services" / "persistence.py").read_text(encoding="utf-8")
+
+    assert 'id="f_maintenance_shift"' in TEXT
+    assert '<div class="cell">Shift</div>' in TEXT
+    assert "checker_shift" in schema_text
+    assert '"Maintenance.shift":"checker_shift"' in schema_text
+    assert '"shift"' in MAINTENANCE_JS
+    assert "f_maintenance_shift:row.shift" in MAINTENANCE_JS
+    assert "shift:document.getElementById('f_maintenance_shift').value" in MAINTENANCE_JS
+    assert "_migrate_a3_maintenance_shift" in persistence_text
+    assert 'value="Day"' not in TEXT and 'value="Night"' not in TEXT
