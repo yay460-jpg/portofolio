@@ -14,7 +14,25 @@ async function loadLists(){const result=await rc.request({operation:'READ',entit
 function fillEquipmentSelect(id,empty){const el=document.getElementById(id);if(!el)return;const cur=el.value;el.innerHTML='<option value="">'+esc(empty)+'</option>'+state.equipment.filter(x=>x.equipment_id).map(x=>{const label=x.unit_no?(x.unit_no+' — '+(x.type||'Equipment')):x.equipment_id;return '<option value="'+esc(x.equipment_id)+'">'+esc(label)+'</option>';}).join('');if(state.equipment.some(x=>x.equipment_id===cur))el.value=cur;}
 function equipmentLabel(id){const x=state.equipment.find(r=>String(r.equipment_id)===String(id));if(!x)return id;return x.unit_no?(x.unit_no+' — '+(x.type||'Equipment')):x.equipment_id;}
 function equipmentBrand(row){if(!row)return '—';const profile=state.capacities.find(function(item){return String(item.capacity_profile_id||'')===String(row.capacity_profile_id||'');});return profile?String(profile.unit_brand||'—'):'—';}
-function linkedOperationsFor(items){if(!Array.isArray(state.operations)||!items.length)return [];const first=items[0];const date=String(first.event_date||'');const equipmentId=String(first.equipment_id||'').trim();if(!date||!equipmentId)return [];return state.operations.filter(function(row){return String(row.transaction_date||'')===date&&String(row.equipment_id||'').trim()===equipmentId;});}
+function linkedOperationsFor(items){
+ if(!Array.isArray(state.operations)||!items.length)return [];
+ const first=items[0],date=String(first.event_date||''),equipmentId=String(first.equipment_id||'').trim();
+ if(!date||!equipmentId)return [];
+ const maintenanceShift=String(first.shift||'').trim().toLowerCase();
+ return state.operations.filter(function(row){
+  if(String(row.equipment_id||'').trim()!==equipmentId)return false;
+  const operationDate=String(row.transaction_date||'');
+  if(operationDate===date)return true;
+  if(maintenanceShift!=='night'||String(row.shift||'').trim().toLowerCase()!=='night')return false;
+  const maintenanceTime=String(first.start_time||'');
+  if(!maintenanceTime||maintenanceTime>='12:00'||operationDate>=date)return false;
+  const nextDate=new Date(operationDate+'T00:00:00');
+  if(Number.isNaN(nextDate.getTime()))return false;
+  nextDate.setDate(nextDate.getDate()+1);
+  const expectedDate=nextDate.getFullYear()+'-'+String(nextDate.getMonth()+1).padStart(2,'0')+'-'+String(nextDate.getDate()).padStart(2,'0');
+  return date===expectedDate&&String(row.transaction_time||'')>='18:00';
+ });
+}
 function fillLists(){fillSelect('maintenanceEventTypeFilter',LISTS.event_type,'All event types');fillSelect('maintenanceStatusFilter',LISTS.status,'All status');fillEquipmentSelect('maintenanceEquipmentFilter','All equipment');fillEquipmentSelect('f_maintenance_equipment','Select equipment');fillSelect('f_maintenance_event_type',LISTS.event_type,'Select event type');fillSelect('f_maintenance_shift',LISTS.shift,'Select shift');fillSelect('f_maintenance_action',LISTS.action,'Select action');fillSelect('f_maintenance_status',LISTS.status,'Select status');}
 async function load(){if(!state.rows.length){state.status='loading';render();}try{const health=await rc.health();runtimeReady=health.status==='READY';if(!runtimeReady)throw new Error('Runtime health is not READY');await loadLists();const [eq,capacity,operations,result]=await Promise.all([rc.request({operation:'READ',entity:'Equipment'}),rc.request({operation:'READ',entity:'GlobalCapacity'}),rc.request({operation:'READ',entity:'Operations'}),rc.request({operation:'READ',entity:'Maintenance'})]);state.equipment=Array.isArray(eq.data)?eq.data:[];state.capacities=Array.isArray(capacity.data)?capacity.data:[];state.operations=Array.isArray(operations.data)?operations.data:[];fillLists();state.rows=Array.isArray(result.data)?result.data:[];state.status='ready';render();setMsg('RuntimeAdapter connected — Maintenance persistence is offline-first and audit-backed.');}catch(e){runtimeReady=false;state.status='error';render();setMsg('Runtime unavailable: '+e.message+'. Start desktop-host/server.py.',true);}}
 async function refreshData(){
