@@ -28,7 +28,7 @@ function maintenanceGroups(rows){
  const groups=new Map();
  rows.forEach(function(row){
   const equipmentId=String(row.equipment_id||'').trim();
-  const key=String(row.event_date||'')+'|'+(equipmentId||'NO-EQUIPMENT|'+String(row.maintenance_id||''));
+  const key=String(row.event_date||'')+'|'+(equipmentId||'NO-EQUIPMENT|'+String(row.maintenance_id||''))+'|'+String(row.shift||'');
   if(!groups.has(key))groups.set(key,[]);
   groups.get(key).push(row);
  });
@@ -63,7 +63,7 @@ function openMaintenanceTimeline(key){
  activeTimelineKey=key;
  const rows=state.rows.filter(function(row){
   const equipmentId=String(row.equipment_id||'').trim();
-  return String(row.event_date||'')+'|'+(equipmentId||'NO-EQUIPMENT|'+String(row.maintenance_id||''))===key;
+  return String(row.event_date||'')+'|'+(equipmentId||'NO-EQUIPMENT|'+String(row.maintenance_id||''))+'|'+String(row.shift||'')===key;
  }).sort(function(a,b){return String(a.start_time||'').localeCompare(String(b.start_time||''));});
  if(!rows.length)return;
  const first=rows[0];
@@ -73,7 +73,7 @@ function openMaintenanceTimeline(key){
  document.getElementById('maintenanceTimelineSummary').innerHTML='<span><b>Equipment</b> '+esc(equipment?.unit_no||first.equipment_id||'—')+'</span><span><b>Brand / Merk</b> '+esc(equipmentBrand(equipment))+'</span><span><b>Type</b> '+esc(equipment?.type||'—')+'</span><span><b>Status</b> '+esc(equipment?.status||'—')+'</span>';
  document.getElementById('maintenanceTimelineRows').innerHTML=rows.map(function(row){
   const cls=String(row.status||'').toLowerCase().replace(/[^a-z]/g,'')||'open';
-  return '<div class="maintenance-timeline-tr"><div class="cell">'+esc(row.start_time||'—')+'</div><div class="cell">'+esc(row.end_time||'—')+'</div><div class="cell">'+esc(row.event_type)+'</div><div class="cell">'+esc(row.failure_code||'—')+'</div><div class="cell">'+esc(row.downtime_hours??'—')+'</div><div class="cell">'+esc(row.action)+'</div><div class="cell"><span class="statuspill '+cls+'">'+esc(row.status)+'</span></div><div class="cell">'+esc(row.source)+'</div><div class="cell row-actions"><button class="control mini view evidence-maintenance-timeline evidence-indicator" data-evidence-module="Maintenance" data-evidence-id="'+esc(row.maintenance_id)+'" data-id="'+esc(row.maintenance_id)+'">Evidence</button><button class="control mini edit edit-maintenance-timeline" data-id="'+esc(row.maintenance_id)+'">Edit</button><button class="control mini danger delete-maintenance-timeline" data-id="'+esc(row.maintenance_id)+'">Delete</button></div></div>';
+  return '<div class="maintenance-timeline-tr"><div class="cell">'+esc(row.start_time||'—')+'</div><div class="cell">'+esc(row.end_time||'—')+'</div><div class="cell">'+esc(row.event_type)+'</div><div class="cell">'+esc(row.shift||'—')+'</div><div class="cell">'+esc(row.failure_code||'—')+'</div><div class="cell">'+esc(row.downtime_hours??'—')+'</div><div class="cell">'+esc(row.action)+'</div><div class="cell"><span class="statuspill '+cls+'">'+esc(row.status)+'</span></div><div class="cell">'+esc(row.source)+'</div><div class="cell row-actions"><button class="control mini view evidence-maintenance-timeline evidence-indicator" data-evidence-module="Maintenance" data-evidence-id="'+esc(row.maintenance_id)+'" data-id="'+esc(row.maintenance_id)+'">Evidence</button><button class="control mini edit edit-maintenance-timeline" data-id="'+esc(row.maintenance_id)+'">Edit</button><button class="control mini danger delete-maintenance-timeline" data-id="'+esc(row.maintenance_id)+'">Delete</button></div></div>';
  }).join('');
  if(global.LithositeEvidence&&typeof global.LithositeEvidence.syncIndicators==='function')global.LithositeEvidence.syncIndicators(document.getElementById('maintenanceTimelineRows'));
  if(global.LithositeModalShowContract){global.LithositeModalShowContract.show('maintenanceTimelineModal');}else{document.getElementById('maintenanceTimelineModal').classList.add('show')};
@@ -89,7 +89,7 @@ function render(){
   host.innerHTML=groups.length?groups.map(function(items){
    const first=items[0];
    const equipment=state.equipment.find(function(item){return String(item.equipment_id||'')===String(first.equipment_id||'');});
-   const key=esc(String(first.event_date||'')+'|'+(String(first.equipment_id||'').trim()||'NO-EQUIPMENT|'+String(first.maintenance_id||'')));
+   const key=esc(String(first.event_date||'')+'|'+(String(first.equipment_id||'').trim()||'NO-EQUIPMENT|'+String(first.maintenance_id||''))+'|'+String(first.shift||''));
    const statuses=Array.from(new Set(items.map(function(row){return String(row.status||'');})));
    const status=statuses.length===1?statuses[0]:'Mixed';
    const cls=status.toLowerCase().replace(/[^a-z]/g,'')||'open';
@@ -111,7 +111,7 @@ function focusTrace(target) {
  render();
  const key=date+'|'+equipmentId;
  const buttons=Array.from(document.querySelectorAll('#maintenanceRows .maintenance-timeline-row'));
- const targetButtons=buttons.filter(function(button){return String(button.dataset.traceKey||'')===key;});
+ const targetButtons=buttons.filter(function(button){return String(button.dataset.traceKey||'')===key||String(button.dataset.traceKey||'').startsWith(key+'|');});
  targetButtons.forEach(function(button){
   button.classList.remove('trace-highlight');
   void button.offsetWidth;
@@ -130,7 +130,7 @@ function resetForm(){const now=new Date();const d=new Date(now.getTime()-now.get
 function openAdd(){editId=null;document.getElementById('maintenanceModalTitle').textContent='Add Maintenance';document.getElementById('maintenanceSave').textContent='Save via RuntimeAdapter';resetForm();global.LithositeModalShowContract.show('maintenanceModal');}
 function openEdit(id){const row=state.rows.find(x=>String(x.maintenance_id)===String(id));if(!row)return;editId=id;document.getElementById('maintenanceModalTitle').textContent='Edit Maintenance';document.getElementById('maintenanceSave').textContent='Update via RuntimeAdapter';const map={f_maintenance_id:row.maintenance_id,f_maintenance_equipment:row.equipment_id,f_maintenance_event_date:row.event_date,f_maintenance_event_type:row.event_type,f_maintenance_shift:row.shift,f_maintenance_failure_code:row.failure_code,f_maintenance_start_time:row.start_time,f_maintenance_end_time:row.end_time,f_maintenance_downtime_hours:row.downtime_hours,f_maintenance_action:row.action,f_maintenance_status:row.status,f_maintenance_source:row.source};Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');global.LithositeModalShowContract.show('maintenanceModal');}
 function payload(){return {maintenance_id:document.getElementById('f_maintenance_id').value,equipment_id:document.getElementById('f_maintenance_equipment').value,event_date:document.getElementById('f_maintenance_event_date').value,event_type:document.getElementById('f_maintenance_event_type').value,shift:document.getElementById('f_maintenance_shift').value,failure_code:document.getElementById('f_maintenance_failure_code').value,start_time:document.getElementById('f_maintenance_start_time').value||null,end_time:document.getElementById('f_maintenance_end_time').value||null,downtime_hours:document.getElementById('f_maintenance_downtime_hours').value===''?null:Number(document.getElementById('f_maintenance_downtime_hours').value),action:document.getElementById('f_maintenance_action').value,status:document.getElementById('f_maintenance_status').value,source:document.getElementById('f_maintenance_source').value};}
-async function save(){if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}const row=payload();if(!row.equipment_id||!row.event_date||!row.event_type||!row.shift||!row.action||!row.status){setMsg('Equipment, Event Date, Event Type, Shift, Action and Status are required.',true);return;}try{const wasEditing=Boolean(editId);const savedTimelineKey=activeTimelineKey;const result=editId?await rc.request({operation:'UPDATE',entity:'Maintenance',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Maintenance',row});if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the Maintenance record');global.LithositeModalShowContract.close('maintenanceModal');await refreshData();if(wasEditing&&savedTimelineKey){const savedKey=String(row.event_date||'')+'|'+(String(row.equipment_id||'').trim()||'NO-EQUIPMENT|'+String(row.maintenance_id||''));openMaintenanceTimeline(savedKey);}else{activeTimelineKey=null;}setMsg(wasEditing?'Maintenance updated and audited.':'Maintenance created and audited.');}catch(e){setMsg('Validation/runtime error: '+e.message,true);}}
+async function save(){if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}const row=payload();if(!row.equipment_id||!row.event_date||!row.event_type||!row.shift||!row.action||!row.status){setMsg('Equipment, Event Date, Event Type, Shift, Action and Status are required.',true);return;}try{const wasEditing=Boolean(editId);const savedTimelineKey=activeTimelineKey;const result=editId?await rc.request({operation:'UPDATE',entity:'Maintenance',entity_id:editId,patch:row}):await rc.request({operation:'CREATE',entity:'Maintenance',row});if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Runtime rejected the Maintenance record');global.LithositeModalShowContract.close('maintenanceModal');await refreshData();if(wasEditing&&savedTimelineKey){const savedKey=String(row.event_date||'')+'|'+(String(row.equipment_id||'').trim()||'NO-EQUIPMENT|'+String(row.maintenance_id||''))+'|'+String(row.shift||'');openMaintenanceTimeline(savedKey);}else{activeTimelineKey=null;}setMsg(wasEditing?'Maintenance updated and audited.':'Maintenance created and audited.');}catch(e){setMsg('Validation/runtime error: '+e.message,true);}}
 async function remove(id){if(!await global.LithositeDeleteConfirmContract.confirm({entity:'Maintenance',id:id}))return;try{const result=await rc.request({operation:'DELETE',entity:'Maintenance',entity_id:id});if(result.status!=='COMMITTED')throw new Error((result.errors||[]).map(x=>x.message).join('; ')||'Delete rejected');await refreshData();if(result.evidence_cleanup_status==='FAILED')setMsg('Maintenance deleted and audited, but Evidence cleanup failed: '+(result.evidence_cleanup_message||'Unknown reason'),true);else setMsg('Maintenance deleted and audited.');}catch(e){setMsg('Delete failed: '+e.message,true);}}
 function bind(){
  document.getElementById('maintenanceAdd').onclick=openAdd;
