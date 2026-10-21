@@ -34,7 +34,7 @@ def test_kpi_toolbar_baseline_uses_compact_selected_pair_summary():
     assert "shiftPairToolbarSummary(pair)" in js
     assert "set('reportsBaseline',shiftPairToolbarSummary(pair))" in js
     assert "return 'Day '+day.shift_start+'–'+day.shift_end+' / Night '+night.shift_start+'–'+night.shift_end;" in js
-    toolbar_summary = js.split("function shiftPairToolbarSummary(pair){", 1)[1].split("\\n}", 1)[0]
+    toolbar_summary = js.split("function shiftPairToolbarSummary(pair){", 1)[1].split("\n}", 1)[0]
     assert "shiftDescription(" not in toolbar_summary
     assert "white-space:pre-line" in css
     assert "flex:0 1 365px;width:365px;min-width:0" in css
