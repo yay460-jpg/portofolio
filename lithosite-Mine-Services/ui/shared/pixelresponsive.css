@@ -1,0 +1,38 @@
+/* Temporary responsive layout rules for 14-inch viewport QA.
+   Keep viewport-test.js and viewport-test.css responsible for the toggle itself. */
+body.viewport-test-mode{
+  height:auto;
+  min-height:100%;
+  overflow:auto;
+}
+body.viewport-test-mode .app{
+  width:1366px;
+  height:min(768px,calc(100dvh - 16px));
+  min-width:0;
+  min-height:0;
+  margin:8px auto;
+  overflow:hidden;
+  outline:1px dashed #60a5fa;
+  outline-offset:3px;
+  box-shadow:0 8px 32px #0008;
+}
+body.viewport-test-mode .app > .workspace{
+  top:64px;
+  bottom:34px;
+  min-height:0;
+}
+body.viewport-test-mode .app > footer.status{
+  position:absolute;
+  right:0;
+  bottom:0;
+  left:0;
+  z-index:20;
+  height:34px;
+  min-height:34px;
+}
+@media(max-width:1389px){
+  body.viewport-test-mode .app{
+    width:1366px;
+    margin:8px;
+  }
+}
