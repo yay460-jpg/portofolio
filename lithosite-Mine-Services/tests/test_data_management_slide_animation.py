@@ -28,4 +28,4 @@ def test_data_management_close_waits_for_slide_out_and_can_be_cancelled():
 
 def test_active_artifact_loads_updated_data_management_stylesheet():
     html = ARTIFACT.read_text(encoding="utf-8")
-    assert "data-management.css?v=20261021-sidebar-normal-25px" in html
+    assert "data-management.css?v=20261021-sidebar-normal-20px" in html
