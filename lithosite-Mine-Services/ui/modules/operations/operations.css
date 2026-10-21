@@ -654,3 +654,15 @@
   #operationsGraphicsModal.show > .operations-graphics-modal,
   #operationsGraphicsModal.show.is-closing > .operations-graphics-modal{animation:none!important}
 }
+
+
+/* Work Timeline header actions: keep Add Work aligned beside Close. */
+#timelineModal .timeline-head-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+#timelineModal .timeline-head-actions .control{
+  white-space:nowrap;
+}
