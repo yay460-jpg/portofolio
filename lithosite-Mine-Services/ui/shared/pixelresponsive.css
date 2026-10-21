@@ -55,11 +55,11 @@ body.viewport-test-mode #equipmentGraphicsModal .equipment-graphics-period-card{
   overflow:hidden;
 }
 
-/* Operations Graphics — align with the 14-inch viewport without changing card geometry.
-   Disable the desktop slide animation's retained -80px transform in viewport QA mode. */
+/* Operations Graphics — match Equipment Graphics' sidebar-to-modal gap in 14-inch viewport QA.
+   Shift 11px right; keep dimensions, card layout, and vertical position unchanged. */
 body.viewport-test-mode #operationsGraphicsModal > .operations-graphics-modal,
 body.viewport-test-mode #operationsGraphicsModal.show > .operations-graphics-modal,
 body.viewport-test-mode #operationsGraphicsModal.show.is-closing > .operations-graphics-modal{
-  transform:translateX(0)!important;
+  transform:translateX(11px)!important;
   animation:none!important;
 }
