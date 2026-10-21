@@ -388,6 +388,7 @@ def test_data_management_card_keeps_only_effective_viewport_bounds():
     base = "#stage15DataModal .dm-card{width:750px;max-width:calc(100vw - 210px);max-height:calc(100vh - 96px);overflow:auto;background:#0e1d2e;border:1px solid #35506b;border-radius:12px;box-shadow:0 18px 60px #0009;pointer-events:auto}"
     assert css.count(base) == 1
     assert "#stage15DataModal{position:fixed;inset:0 0 0 84px;z-index:100;background:transparent;display:none;align-items:center;justify-content:flex-start;padding-left:202px;pointer-events:none}" in css
+    assert "body:has(.sidebar.expanded) #stage15DataModal{\\n  padding-left:241px;\\n}" in css
 
     expanded_sidebar = rule_bodies(css, r"body\s*:\s*has\(\.sidebar\.expanded\)\s*#stage15DataModal\s+\.dm-card")
     assert len(expanded_sidebar) == 2
