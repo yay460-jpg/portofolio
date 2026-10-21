@@ -13,7 +13,9 @@
     button.title='Temporary 14-inch viewport test (1366 × 768)';
     button.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg>';
     const meta=topbar.querySelector('.topmeta');
-    if(meta)meta.insertAdjacentElement('afterend',button);
+    const guide=topbar.querySelector('[aria-label*="guide" i],[title*="guide" i],[aria-label*="help" i],[title*="help" i]');
+    if(guide)guide.insertAdjacentElement('afterend',button);
+    else if(meta)meta.insertAdjacentElement('afterend',button);
     else topbar.appendChild(button);
     const setMode=function(enabled){
       document.body.classList.toggle('viewport-test-mode',enabled);
