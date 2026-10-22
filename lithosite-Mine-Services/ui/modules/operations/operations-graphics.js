@@ -145,16 +145,24 @@
     const repair = sum(linked.filter(function (row) {
       const eventType = String(row.event_type || '').trim();
       const action = String(row.action || '').trim();
-      const isBreakdown = /breakdown|failure|jam/i.test(eventType + ' ' + action);
-      // Count explicit repair work only. Generic Maintenance rows can represent
-      // Corrective, Inspection, or Preventive actions and must not be folded
-      // into Repair Hours; a breakdown row is not counted again as repair.
-      return !isBreakdown && (/repair/i.test(action) || /^repair(?:ing)?$/i.test(eventType));
-    }), function (row) { return row.downtime_hours; });
+      return /repair/i.test(action) || /^repair(?:ing)?$/i.test(eventType);
+    }), function (row) {
+      // Repair duration is measured from the explicit repair interval. It may overlap
+      // breakdown downtime, so the metrics remain separate and are never added together.
+      const start = timeMinutes(row.start_time);
+      const end = timeMinutes(row.end_time);
+      if (start !== null && end !== null) {
+        let elapsed = end - start;
+        if (elapsed < 0) elapsed += 1440;
+        return elapsed / 60;
+      }
+      const eventType = String(row.event_type || '').trim();
+      return /breakdown|failure|jam/i.test(eventType) ? 0 : row.downtime_hours;
+    });
     // Keep Breakdown Hours and Repair Hours visibly distinct; never present their sum as a single downtime total.
     const heading = root.querySelector('.operations-downtime-heading > div strong');
     text(heading, 'Breakdown Hours & Repair Hours');
-    const combinedForSplit = breakdown + repair;
+    const maxMetricHours = Math.max(breakdown, repair);
     const downtimeValue = root.querySelector('.operations-downtime-heading > b');
     if (downtimeValue && downtimeValue.firstChild) {
       downtimeValue.firstChild.nodeValue = breakdown.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' h';
@@ -165,8 +173,19 @@
     if (bar) {
       const i = bar.querySelector('i');
       const b = bar.querySelector('b');
-      if (i) i.style.width = (combinedForSplit ? breakdown / combinedForSplit * 100 : 0) + '%';
-      if (b) b.style.flex = combinedForSplit ? (repair / combinedForSplit) : '1';
+      if (i) {
+        i.style.width = (maxMetricHours ? breakdown / maxMetricHours * 100 : 0) + '%';
+        i.style.flex = '0 0 auto';
+        i.setAttribute('aria-label', 'Breakdown: ' + breakdown + ' hours');
+      }
+      if (b) {
+        b.style.width = (maxMetricHours ? repair / maxMetricHours * 100 : 0) + '%';
+        b.style.flex = '0 0 auto';
+        b.setAttribute('aria-label', 'Repair: ' + repair + ' hours');
+      }
+      bar.setAttribute('aria-label',
+        'Breakdown hours: ' + breakdown + '. Repair hours: ' + repair +
+        '. Metrics shown independently and are not summed together.');
     }
     const legend = root.querySelectorAll('.operations-downtime-legend span b');
     if (legend[0]) text(legend[0], breakdown.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' h');
@@ -287,14 +306,23 @@
         const action = String(item.action || '').trim().toLowerCase();
         const eventType = String(item.event_type || '').trim().toLowerCase();
         const isBreakdown = /breakdown|failure|jam/.test(eventType + ' ' + action);
-        const isRepairing = action === 'repairing';
+        const isRepairing = /repair/i.test(action) || /^repair(?:ing)?$/.test(eventType);
+        const start = String(item.start_time || '').slice(0, 5);
+        const end = String(item.end_time || '').slice(0, 5);
+        if (isBreakdown && isRepairing) {
+          // A breakdown under repair occupies the same interval; render split lanes so
+          // both classifications remain visible without replacing one with the other.
+          timelineSegment(track, start, end, 'is-breakdown is-overlap', 'Breakdown');
+          timelineSegment(track, start, end, 'is-repairing is-overlap', 'Repairing');
+          return;
+        }
         if (!isBreakdown && !isRepairing) return;
         timelineSegment(
           track,
-          String(item.start_time || '').slice(0, 5),
-          String(item.end_time || '').slice(0, 5),
-          isBreakdown ? 'is-breakdown' : 'is-repairing',
-          isBreakdown ? 'Breakdown' : 'Repairing'
+          start,
+          end,
+          isRepairing ? 'is-repairing' : 'is-breakdown',
+          isRepairing ? 'Repairing' : 'Breakdown'
         );
       });
       const hours = sum(unit.rows, function (item) { return item.actual_hours; });

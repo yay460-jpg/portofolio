@@ -36,9 +36,9 @@ def test_operations_graphics_displays_shift_aware_axis_and_loads_updated_asset()
 
     assert "Unit Timeline <span>24 h cycle · Day and Night</span>" in operations
     assert "<span>06:00</span><span>12:00</span><span>18:00</span><span>00:00</span><span>06:00+1d</span>" in operations
-    assert "operations-graphics.js?v=20261022-night-shift-five-row-scroll-2" in html
+    assert "operations-graphics.js?v=20261022-repair-hours-counted-separately-3" in html
     assert "operations.js?v=20261022-unit-timeline-five-row-scroll-1" in html
-    assert "operations.css?v=20261022-unit-timeline-five-row-scroll-1" in html
+    assert "operations.css?v=20261022-repair-hours-independent-tracks-2" in html
 
 
 

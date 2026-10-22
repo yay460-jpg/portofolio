@@ -63,7 +63,7 @@ def test_linked_operations_assets_use_fresh_cache_keys():
     active_html = ACTIVE_ARTIFACT.read_text(encoding="utf-8")
     assert "maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll-2" in active_html
     assert "maintenance.js?v=20261022-maintenance-shift-links" in active_html
-    assert "operations.css?v=20261022-unit-timeline-five-row-scroll-1&rev=operations-timeline-label-align" in active_html
+    assert "operations.css?v=20261022-repair-hours-independent-tracks-2&rev=operations-timeline-label-align" in active_html
     assert "operations.js?v=20261022-unit-timeline-five-row-scroll-1&opsClose=20261019" in active_html
 
 

@@ -293,9 +293,9 @@
 #operationsGraphicsModal .operations-downtime-heading>div span{font-size:8px;line-height:1.4}
 #operationsGraphicsModal .operations-downtime-heading>b{font-size:20px;color:#ff626b;white-space:nowrap}
 #operationsGraphicsModal .operations-downtime-heading>b small{display:block;font-size:8px;text-align:right;color:#9fb2c7}
-#operationsGraphicsModal .operations-downtime-bar{height:8px;border-radius:9px;background:#1b334b;display:flex;overflow:hidden;margin:10px 0 7px}
-#operationsGraphicsModal .operations-downtime-bar i{width:68.18%;background:#ff4d5a}
-#operationsGraphicsModal .operations-downtime-bar b{flex:1;background:#ffb31a}
+#operationsGraphicsModal .operations-downtime-bar{height:10px;border-radius:9px;background:#1b334b;display:grid;grid-template-rows:repeat(2,4px);row-gap:2px;overflow:hidden;margin:10px 0 7px}
+#operationsGraphicsModal .operations-downtime-bar i{display:block;width:0;height:4px;max-width:100%;background:#ff4d5a;border-radius:8px;flex:0 0 auto}
+#operationsGraphicsModal .operations-downtime-bar b{display:block;width:0;height:4px;max-width:100%;background:#ffb31a;border-radius:8px;flex:0 0 auto}
 #operationsGraphicsModal .operations-downtime-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:8px;color:#9fb2c7}
 #operationsGraphicsModal .operations-downtime-legend span{display:flex;align-items:center;gap:5px}
 #operationsGraphicsModal .operations-downtime-legend i{width:7px;height:7px;border-radius:50%;background:#ff4d5a}
@@ -614,6 +614,8 @@
 #operationsGraphicsModal .operations-timeline-track .operations-timeline-segment.is-operating{background:#10c978;z-index:1}
 #operationsGraphicsModal .operations-timeline-track .operations-timeline-segment.is-repairing{background:#ffb31a;z-index:2}
 #operationsGraphicsModal .operations-timeline-track .operations-timeline-segment.is-breakdown{background:#ff4d5a;z-index:3}
+#operationsGraphicsModal .operations-timeline-track .operations-timeline-segment.is-breakdown.is-overlap{top:50%;bottom:0;z-index:3}
+#operationsGraphicsModal .operations-timeline-track .operations-timeline-segment.is-repairing.is-overlap{top:0;bottom:50%;z-index:4}
 
 
 /* Operations Graphics: shift 2px farther left from the previous position; preserve size and vertical position. */
