@@ -666,3 +666,16 @@
 #timelineModal .timeline-head-actions .control{
   white-space:nowrap;
 }
+
+
+/* Operations Unit Timeline: lock the visible viewport to five rows while allowing wheel scrolling. */
+#operationsGraphicsModal .operations-timeline-rows{
+  max-height:115px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  overscroll-behavior:contain;
+}
+#operationsGraphicsModal .operations-timeline-rows::-webkit-scrollbar{display:none;width:0;height:0}
+#operationsGraphicsModal .operations-timeline-rows>.operations-timeline-row{margin:4px 0}

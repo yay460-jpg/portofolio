@@ -260,8 +260,9 @@
       sub.textContent = unitRows.length ? '24 h cycle · Day and Night' : 'No validated hauling records';
       title.appendChild(sub);
     }
-    panel.querySelectorAll('.operations-timeline-row').forEach(function (node) { node.remove(); });
-    const legend = panel.querySelector('.operations-timeline-legend');
+    const rowsViewport = panel.querySelector('.operations-timeline-rows');
+    if (!rowsViewport) return;
+    rowsViewport.querySelectorAll('.operations-timeline-row').forEach(function (node) { node.remove(); });
     unitRows.forEach(function (unit) {
       const row = document.createElement('div');
       row.className = 'operations-timeline-row';
@@ -300,7 +301,7 @@
       const hoursLabel = document.createElement('strong');
       hoursLabel.textContent = hours.toLocaleString(undefined, { maximumFractionDigits: 1 }) + ' h';
       row.append(icon, label, track, hoursLabel);
-      panel.insertBefore(row, legend);
+      rowsViewport.appendChild(row);
     });
   }
 

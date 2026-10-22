@@ -36,4 +36,26 @@ def test_operations_graphics_displays_shift_aware_axis_and_loads_updated_asset()
 
     assert "Unit Timeline <span>24 h cycle · Day and Night</span>" in operations
     assert "<span>06:00</span><span>12:00</span><span>18:00</span><span>00:00</span><span>06:00+1d</span>" in operations
-    assert "operations-graphics.js?v=20261022-night-shift-operating-cycle-1" in html
+    assert "operations-graphics.js?v=20261022-night-shift-five-row-scroll-2" in html
+    assert "operations.js?v=20261022-unit-timeline-five-row-scroll-1" in html
+    assert "operations.css?v=20261022-unit-timeline-five-row-scroll-1" in html
+
+
+
+def test_unit_timeline_shows_five_rows_then_scrolls_without_a_visible_scrollbar():
+    graphics = GRAPHICS.read_text(encoding="utf-8")
+    operations = OPERATIONS.read_text(encoding="utf-8")
+    css = (ROOT / "ui" / "modules" / "operations" / "operations.css").read_text(encoding="utf-8")
+
+    assert "const rowsViewport = panel.querySelector('.operations-timeline-rows');" in graphics
+    assert "rowsViewport.querySelectorAll('.operations-timeline-row')" in graphics
+    assert "rowsViewport.appendChild(row);" in graphics
+    assert '<div class=\\\"operations-timeline-rows\\\">' in operations
+    assert "max-height:115px;" in css
+    assert "overflow-y:auto;" in css
+    assert "overflow-x:hidden;" in css
+    assert "scrollbar-width:none;" in css
+    assert "-ms-overflow-style:none;" in css
+    assert "overscroll-behavior:contain;" in css
+    assert ".operations-timeline-rows::-webkit-scrollbar{display:none;width:0;height:0}" in css
+    assert ".operations-timeline-rows>.operations-timeline-row{margin:4px 0}" in css
