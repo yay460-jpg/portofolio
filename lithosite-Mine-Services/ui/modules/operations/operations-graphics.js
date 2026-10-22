@@ -171,19 +171,44 @@
     return match ? Number(match[1]) * 60 + Number(match[2]) : null;
   }
 
+  function timelineAnchorDate(row, dateField, timeField) {
+    const date = String(row && row[dateField] || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
+    const shift = String(row && (row.shift || row.shift_name) || '').trim().toLowerCase();
+    const clock = String(row && row[timeField] || '').slice(0, 5);
+    const minutes = timeMinutes(clock);
+    // Night records after midnight stay attached to the calendar date when that shift began.
+    if (shift !== 'night' || minutes === null || minutes >= 12 * 60) return date;
+    const previousDate = new Date(date + 'T00:00:00');
+    if (Number.isNaN(previousDate.getTime())) return date;
+    previousDate.setDate(previousDate.getDate() - 1);
+    return previousDate.getFullYear() + '-' +
+      String(previousDate.getMonth() + 1).padStart(2, '0') + '-' +
+      String(previousDate.getDate()).padStart(2, '0');
+  }
+
+  function timelineOffsetMinutes(value) {
+    const rawMinutes = timeMinutes(value);
+    if (rawMinutes === null) return null;
+    const timelineStart = 360; // 06:00
+    const timelineSpan = 1440; // 24 hours, ending at 06:00 on the next date
+    return ((rawMinutes - timelineStart) % timelineSpan + timelineSpan) % timelineSpan;
+  }
+
   function timelineSegment(track, startValue, endValue, className, label) {
-    const rawStart = timeMinutes(startValue);
-    const rawEnd = timeMinutes(endValue);
-    if (rawStart === null || rawEnd === null || rawEnd <= rawStart) return;
-    const windowStart = 360;
-    const windowEnd = 1080;
-    const start = Math.max(windowStart, rawStart);
-    const end = Math.min(windowEnd, rawEnd);
+    const startOffset = timelineOffsetMinutes(startValue);
+    const rawEndOffset = timelineOffsetMinutes(endValue);
+    if (startOffset === null || rawEndOffset === null) return;
+    let endOffset = rawEndOffset;
+    if (endOffset <= startOffset) endOffset += 1440;
+    const timelineSpan = 1440;
+    const start = Math.max(0, startOffset);
+    const end = Math.min(timelineSpan, endOffset);
     if (end <= start) return;
     const segment = document.createElement('span');
     segment.className = 'operations-timeline-segment ' + className;
-    segment.style.left = ((start - windowStart) / (windowEnd - windowStart) * 100) + '%';
-    segment.style.width = ((end - start) / (windowEnd - windowStart) * 100) + '%';
+    segment.style.left = (start / timelineSpan * 100) + '%';
+    segment.style.width = ((end - start) / timelineSpan * 100) + '%';
     segment.title = label + ': ' + startValue + '–' + endValue;
     segment.setAttribute('aria-label', segment.title);
     track.appendChild(segment);
