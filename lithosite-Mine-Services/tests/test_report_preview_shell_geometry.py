@@ -23,7 +23,7 @@ def test_report_preview_dialog_is_constrained_to_reports_work_area():
     assert "max-height:calc(100vh - 150px)" not in css
     assert "inset:64px 0 34px" in css
     assert 'id="reportPreviewModal" class="reports-history-modal"' in html
-    assert "../ui/modules/reports/reports.css?v=20261022-kpi-console-pair-layout-20" in html
+    assert "../ui/modules/reports/reports.css?v=20261022-kpi-reset-confirm-modal-21" in html
 
 
 def test_report_preview_equipment_table_has_explicit_column_geometry():
@@ -42,7 +42,7 @@ def test_report_preview_equipment_table_has_explicit_column_geometry():
     assert "#reportsScreen .report-preview-table{width:100%;border-collapse:collapse;min-width:760px;font-size:7.5px}" in css
     assert "#reportsScreen .report-preview-dialog{display:flex;flex-direction:column;width:min(720px,calc(100vw - 48px));max-height:calc(100% - 24px)" in css
     assert "../ui/modules/reports/reports.js?v=20261022-kpi-toolbar-compact-pair-5" in html
-    assert "../ui/modules/reports/reports.css?v=20261022-kpi-console-pair-layout-20" in html
+    assert "../ui/modules/reports/reports.css?v=20261022-kpi-reset-confirm-modal-21" in html
 
 
 def test_report_preview_column_rules_are_scoped_to_equipment_performance_table():

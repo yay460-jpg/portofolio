@@ -21,6 +21,7 @@
     'plansModal',
     'plansDeleteConfirmModal',
     'globalDeleteConfirmModal',
+    'reportsResetConfirmModal',
     'evidenceModal',
     'hseModal',
     'issuesModal'

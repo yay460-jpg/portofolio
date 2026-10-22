@@ -14,7 +14,7 @@ BAT = ROOT / "desktop-host" / "start-mine-services.bat"
 def test_stage23_artifact_wires_foundation():
     html = ARTIFACT.read_text(encoding="utf-8")
     assert "kpi-foundation.js?v=20261022-shift-pair-options-3" in html
-    assert "reports.css?v=20261022-kpi-console-pair-layout-20" in html
+    assert "reports.css?v=20261022-kpi-reset-confirm-modal-21" in html
     assert "text-align:right" in (ROOT / "ui" / "modules" / "reports" / "reports.css").read_text(encoding="utf-8")
     assert "reports.js?v=20261022-kpi-toolbar-compact-pair-5" in html
     assert 'class="report-body"' in html

@@ -975,6 +975,10 @@ function bind(){
   const closeConsole=document.getElementById('reportsCloseConsole');
   const cancelConsole=document.getElementById('reportsCancelConsole');
   const resetConsole=document.getElementById('reportsResetConsole');
+  const resetConfirmModal=document.getElementById('reportsResetConfirmModal');
+  const resetConfirmClose=document.getElementById('reportsResetConfirmClose');
+  const resetConfirmCancel=document.getElementById('reportsResetConfirmCancel');
+  const resetConfirmAction=document.getElementById('reportsResetConfirmAction');
   const applyConsoleButton=document.getElementById('reportsApplyConsole');
   const baselineSelect=document.getElementById('reportsTimeBaseline');
   const euDenominatorSelect=document.getElementById('reportsEUDenominator');
@@ -1011,16 +1015,54 @@ function bind(){
     await calculate();
     renderKpi();
   };
-  const resetConsolePolicy=()=>{
-    const changedFromDefault=!samePolicy(state.policy,DEFAULT_POLICY)||
-      baselineSelect?.value!==DEFAULT_POLICY.shiftPairId||
-      euDenominatorSelect?.value!==DEFAULT_POLICY.euDenominator||
-      effectiveRuleSelect?.value!==DEFAULT_POLICY.effectiveTimeRule;
-    if(changedFromDefault&&!global.confirm('Reset Policy Set to the project default? The current selection will be replaced. No runtime policy changes occur until Apply Policy Set.'))return;
+  let resetConfirmReturnFocus=null;
+  const selectedConsolePolicy=()=>{
+    const pair=TIME_BASELINE_PAIRS.find(item=>item.pair_id===baselineSelect?.value)||DEFAULT_SHIFT_PAIR;
+    return clonePolicy({
+      shiftPair:pair,shiftPairId:pair.pair_id,baseline:pair.day_baseline,nightBaseline:pair.night_baseline,
+      euDenominator:euDenominatorSelect?.value||DEFAULT_POLICY.euDenominator,
+      effectiveTimeRule:effectiveRuleSelect?.value||DEFAULT_POLICY.effectiveTimeRule
+    });
+  };
+  const closeResetConfirm=()=>{
+    if(resetConfirmModal){
+      if(global.LithositeModalShowContract)global.LithositeModalShowContract.close('reportsResetConfirmModal');
+      else {resetConfirmModal.classList.remove('show','open');resetConfirmModal.setAttribute('aria-hidden','true');}
+    }
+    const focus=resetConfirmReturnFocus;
+    resetConfirmReturnFocus=null;
+    if(focus&&document.contains(focus))focus.focus();
+  };
+  const applyDefaultConsoleSelection=()=>{
     if(baselineSelect)baselineSelect.value=DEFAULT_POLICY.shiftPairId;
     if(euDenominatorSelect)euDenominatorSelect.value=DEFAULT_POLICY.euDenominator;
     if(effectiveRuleSelect)effectiveRuleSelect.value=DEFAULT_POLICY.effectiveTimeRule;
     syncConsolePreview();
+  };
+  const resetConsolePolicy=()=>{
+    const current=selectedConsolePolicy();
+    const changedFromDefault=!samePolicy(state.policy,DEFAULT_POLICY)||
+      current.shiftPairId!==DEFAULT_POLICY.shiftPairId||
+      current.euDenominator!==DEFAULT_POLICY.euDenominator||
+      current.effectiveTimeRule!==DEFAULT_POLICY.effectiveTimeRule;
+    if(!changedFromDefault){
+      applyDefaultConsoleSelection();
+      return;
+    }
+    const currentSelection=document.getElementById('reportsResetCurrentSelection');
+    const defaultSelection=document.getElementById('reportsResetDefaultSelection');
+    if(currentSelection)currentSelection.textContent=activePolicySummary(current);
+    if(defaultSelection)defaultSelection.textContent=activePolicySummary(DEFAULT_POLICY);
+    resetConfirmReturnFocus=document.activeElement;
+    const opened=global.LithositeModalShowContract
+      ?global.LithositeModalShowContract.show('reportsResetConfirmModal')
+      :(resetConfirmModal&&(resetConfirmModal.classList.add('show'),resetConfirmModal.setAttribute('aria-hidden','false'),true));
+    if(!opened)return;
+    (resetConfirmCancel||resetConfirmClose)?.focus();
+  };
+  const confirmResetConsolePolicy=()=>{
+    applyDefaultConsoleSelection();
+    closeResetConfirm();
   };
   const syncConsolePreview=()=>{
     const pair=TIME_BASELINE_PAIRS.find(item=>item.pair_id===baselineSelect?.value)||DEFAULT_SHIFT_PAIR;
@@ -1037,6 +1079,18 @@ function bind(){
   if(closeConsole)closeConsole.onclick=hideConsole;
   if(cancelConsole)cancelConsole.onclick=hideConsole;
   if(resetConsole)resetConsole.onclick=resetConsolePolicy;
+  if(resetConfirmClose)resetConfirmClose.onclick=closeResetConfirm;
+  if(resetConfirmCancel)resetConfirmCancel.onclick=closeResetConfirm;
+  if(resetConfirmAction)resetConfirmAction.onclick=confirmResetConsolePolicy;
+  if(resetConfirmModal){
+    resetConfirmModal.addEventListener('click',event=>{if(event.target===resetConfirmModal)closeResetConfirm();});
+    document.addEventListener('keydown',event=>{
+      if(event.key==='Escape'&&resetConfirmModal.classList.contains('show')){
+        event.preventDefault();
+        closeResetConfirm();
+      }
+    });
+  }
   if(applyConsoleButton)applyConsoleButton.onclick=applyConsole;
   if(consoleModal)consoleModal.onclick=e=>{if(e.target===consoleModal)hideConsole();};
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&consoleModal&&consoleModal.classList.contains('open'))hideConsole();});
