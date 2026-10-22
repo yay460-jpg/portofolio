@@ -630,3 +630,48 @@ def test_legacy_a3_dataset_missing_rainfall_entity_loads_as_empty(tmp_path):
     assert result["status"] == "LOADED"
     assert store.all("RainfallSimulation") == []
 
+
+
+
+def test_stage20_a3_persistence_adds_issue_hse_shift_fields_without_guessing_legacy_values(tmp_path):
+    from openpyxl import load_workbook
+    from mine_services.schema import HEADERS
+
+    target = tmp_path / "a3-issue-hse-shift-migration.xlsx"
+    make_a3_workbook(target)
+    workbook = load_workbook(target)
+    issue_ws = workbook["Issues"]
+    issue_ws.delete_cols(len(HEADERS["Issues"]) - 1, 2)
+    issue_ws.append(["ISS-LEGACY", "2026-09-29", "Road & Hauling", None, None,
+                     "Historical Issue", "Medium", "Open", "Operations Team", None])
+    issue_ws.auto_filter.ref = "A1:J2"
+    hse_ws = workbook["HSE"]
+    hse_ws.delete_cols(len(HEADERS["HSE"]) - 1, 2)
+    hse_ws.append(["HSE-LEGACY", "2026-09-30", "Road & Hauling", None, "Inspection",
+                   "Medium", "Historical HSE", "Corrective Action", "Open", None])
+    hse_ws.auto_filter.ref = "A1:J2"
+    workbook.save(target)
+    workbook.close()
+
+    store = PersistenceStore(target)
+    assert store.get("Issues", "ISS-LEGACY")["issue_time"] is None
+    assert store.get("Issues", "ISS-LEGACY")["shift"] is None
+    assert store.get("HSE", "HSE-LEGACY")["event_time"] is None
+    assert store.get("HSE", "HSE-LEGACY")["shift"] is None
+
+    migrated = load_workbook(target, data_only=True)
+    assert [cell.value for cell in migrated["Issues"][1]] == HEADERS["Issues"]
+    assert [cell.value for cell in migrated["HSE"][1]] == HEADERS["HSE"]
+    assert migrated["Issues"]["A2"].value == "ISS-LEGACY"
+    assert migrated["HSE"]["A2"].value == "HSE-LEGACY"
+    assert migrated["Issues"].auto_filter.ref == "A1:L2"
+    assert migrated["HSE"].auto_filter.ref == "A1:L2"
+    migrated.close()
+
+    PersistenceStore(target)
+    reopened = load_workbook(target, data_only=True)
+    assert [cell.value for cell in reopened["Issues"][1]] == HEADERS["Issues"]
+    assert [cell.value for cell in reopened["HSE"][1]] == HEADERS["HSE"]
+    assert reopened["Issues"].max_column == len(HEADERS["Issues"])
+    assert reopened["HSE"].max_column == len(HEADERS["HSE"])
+    reopened.close()

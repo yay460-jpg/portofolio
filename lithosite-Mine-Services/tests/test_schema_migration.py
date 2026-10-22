@@ -79,6 +79,8 @@ def test_stage20_migration_creates_a3_without_mutating_a2(tmp_path):
     assert list(migrated["Checker"].values)[0] == tuple(A3_HEADERS["Checker"])
     assert list(migrated["WorkFront"].values)[0] == tuple(A3_HEADERS["WorkFront"])
     assert list(migrated["Operations"].values)[0] == tuple(A3_HEADERS["Operations"])
+    assert list(migrated["Issues"].values)[0] == tuple(A3_HEADERS["Issues"])
+    assert list(migrated["HSE"].values)[0] == tuple(A3_HEADERS["HSE"])
     migrated_plan_headers = list(migrated["Plans"].values)[0]
     expected_plan_headers = tuple(
         "measurement" if header == "unit" else header

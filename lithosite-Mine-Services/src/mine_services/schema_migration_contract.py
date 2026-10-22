@@ -56,6 +56,8 @@ A3_HEADERS_ADDITIONS = {
     "GlobalCapacity": list(A3_SCHEMA.HEADERS["GlobalCapacity"]),
     "Checker": list(A3_SCHEMA.HEADERS["Checker"]),
     "WorkFront": [h for h in A3_SCHEMA.HEADERS["WorkFront"] if h not in A2_HEADERS["WorkFront"]],
+    "Issues": [h for h in A3_SCHEMA.HEADERS["Issues"] if h not in A2_HEADERS["Issues"]],
+    "HSE": [h for h in A3_SCHEMA.HEADERS["HSE"] if h not in A2_HEADERS["HSE"]],
     "Operations": [
         h for h in A3_SCHEMA.HEADERS["Operations"]
         if h not in A2_HEADERS["Operations"] and h != "measurement"

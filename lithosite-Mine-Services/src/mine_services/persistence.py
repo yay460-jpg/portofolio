@@ -496,6 +496,47 @@ class PersistenceStore:
                 pass
         return True
 
+    def _migrate_a3_issue_hse_shift_time(self, workbook):
+        """Append time and shift fields to existing A.3 Issues/HSE sheets safely.
+
+        Existing values are preserved, and historical records receive blank values.
+        The migration never guesses a shift from date or time.
+        """
+        if getattr(self.schema, "SCHEMA_VERSION", None) != "A.3":
+            return False
+
+        changed = False
+        specifications = {
+            "Issues": ("issue_time", "shift"),
+            "HSE": ("event_time", "shift"),
+        }
+        for entity, added_fields in specifications.items():
+            if entity not in workbook.sheetnames:
+                raise ValueError(f"SHEET_MISSING:{entity}")
+            worksheet = workbook[entity]
+            current_headers = [cell.value for cell in worksheet[1]]
+            expected_headers = list(self.schema.HEADERS[entity])
+            if current_headers == expected_headers:
+                continue
+            legacy_headers = [header for header in expected_headers if header not in added_fields]
+            if current_headers != legacy_headers:
+                raise ValueError(f"HEADER_MISMATCH:{entity}")
+            for header in added_fields:
+                worksheet.cell(row=1, column=worksheet.max_column + 1, value=header)
+            if worksheet.auto_filter.ref:
+                try:
+                    min_col, min_row, max_col, max_row = range_boundaries(worksheet.auto_filter.ref)
+                    new_last_col = worksheet.max_column
+                    if max_col < new_last_col:
+                        worksheet.auto_filter.ref = (
+                            f"{get_column_letter(min_col)}{min_row}:"
+                            f"{get_column_letter(new_last_col)}{max_row}"
+                        )
+                except (TypeError, ValueError):
+                    pass
+            changed = True
+        return changed
+
     def load(self):
         wb = load_workbook(self.path, data_only=False)
         expected_schema = getattr(self.schema, "SCHEMA_VERSION", None)
@@ -512,7 +553,8 @@ class PersistenceStore:
         top_soil_migrated = self._migrate_a3_top_soil_material(wb)
         plan_hours_migrated = self._migrate_a3_remove_plans_target_hours(wb)
         maintenance_shift_migrated = self._migrate_a3_maintenance_shift(wb)
-        if migrated or nik_sheet_migrated or rainfall_sheet_migrated or top_soil_migrated or plan_hours_migrated or maintenance_shift_migrated:
+        issue_hse_shift_time_migrated = self._migrate_a3_issue_hse_shift_time(wb)
+        if migrated or nik_sheet_migrated or rainfall_sheet_migrated or top_soil_migrated or plan_hours_migrated or maintenance_shift_migrated or issue_hse_shift_time_migrated:
             wb.save(self.path)
         wb = load_workbook(self.path, data_only=True)
         self._validate_workbook_contract(wb)

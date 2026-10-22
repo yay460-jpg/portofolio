@@ -29,6 +29,8 @@ TIME_FIELDS = {
     "Operations": {"transaction_time", "end_time"},
     "Maintenance": {"start_time", "end_time"},
     "Checker": {"start_time", "end_time"},
+    "Issues": {"issue_time"},
+    "HSE": {"event_time"},
 }
 DATETIME_FIELDS = {
     "Operations": {"created_at", "updated_at"},
@@ -42,9 +44,9 @@ TEXT_FIELDS = {
     "Checker": {"checker_id", "checker_name", "shift", "equipment_id", "work_front_id", "activity", "material", "source"},
     "Operations": {"transaction_id", "domain", "work_front_id", "equipment_id", "activity", "measurement", "status", "source", "capacity_profile_id", "capacity_measurement", "shift", "material", "checker_name"},
     "Maintenance": {"maintenance_id", "equipment_id", "event_type", "failure_code", "action", "status", "source", "shift"},
-    "Issues": {"issue_id", "domain", "work_front_id", "equipment_id", "description", "severity", "status", "assigned_to"},
+    "Issues": {"issue_id", "domain", "work_front_id", "equipment_id", "description", "severity", "status", "assigned_to", "shift"},
     "Plans": {"plan_id", "period", "start_date", "end_date", "domain", "work_front_id", "activity", "measurement", "status"},
-    "HSE": {"hse_id", "domain", "work_front_id", "event_type", "severity", "description", "action", "status"},
+    "HSE": {"hse_id", "domain", "work_front_id", "event_type", "severity", "description", "action", "status", "shift"},
     "RainfallSimulation": {"simulation_id", "scenario_name", "status", "topography_name", "terrain_fingerprint", "flow_algorithm", "depression_treatment", "result_summary_json", "model_version", "notes"},
 }
 
@@ -279,7 +281,25 @@ class ValidationEngine:
                 if row.get("period") and str(row["period"]) != expected_period:
                     errors.append(ValidationError("VAL-E008", "period", "period must match the month of start_date"))
 
-        if entity in {"Issues", "HSE"} and "closed_at" in self.schema.HEADERS.get(entity, {}):
+        if entity in {"Issues", "HSE"}:
+            time_field = "issue_time" if entity == "Issues" else "event_time"
+            shift_time = row.get(time_field)
+            shift_value = row.get("shift")
+            legacy_update_without_shift_data = (
+                context == "UPDATE"
+                and existing is not None
+                and existing.get(time_field) in (None, "")
+                and existing.get("shift") in (None, "")
+                and shift_time in (None, "")
+                and shift_value in (None, "")
+            )
+            if context == "CREATE" or not legacy_update_without_shift_data:
+                if shift_time in (None, ""):
+                    errors.append(ValidationError("VAL-E003", time_field, f"{time_field} is required for Day/Night shift records"))
+                if shift_value in (None, ""):
+                    errors.append(ValidationError("VAL-E003", "shift", "shift is required for Issues and HSE records"))
+
+        if entity in {"Issues", "HSE"} and "closed_at" in self.schema.HEADERS.get(entity, []):
             status = str(row.get("status") or "").strip().lower()
             closed_at = row.get("closed_at")
             if status == "closed" and closed_at in (None, ""):

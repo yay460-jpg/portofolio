@@ -31,6 +31,8 @@ def valid_issue(issue_id="ISS-01"):
     return {
         "issue_id": issue_id,
         "issue_date": "2026-09-29",
+        "issue_time": "10:30",
+        "shift": "Day",
         "domain": "Road & Hauling",
         "work_front_id": "WF-ISS-01",
         "equipment_id": "EQ-ISS-01",
@@ -121,3 +123,28 @@ def test_issues_closed_with_timestamp_commits_and_audits():
     assert result["status"] == "COMMITTED"
     assert app.read("Issues", "ISS-CLOSED")["closed_at"] == "2026-09-29T20:00"
 
+
+
+
+def test_issues_require_time_and_shift_for_new_records():
+    app = seed()
+    missing_time = valid_issue("ISS-MISSING-TIME")
+    missing_time.pop("issue_time")
+    result = app.create("Issues", missing_time, "stage12-missing-time")
+    assert result["status"] == "REJECTED"
+    assert any(error.field == "issue_time" for error in result["errors"])
+
+    missing_shift = valid_issue("ISS-MISSING-SHIFT")
+    missing_shift["shift"] = ""
+    result = app.create("Issues", missing_shift, "stage12-missing-shift")
+    assert result["status"] == "REJECTED"
+    assert any(error.field == "shift" for error in result["errors"])
+
+
+def test_issues_shift_uses_controlled_day_night_vocabulary():
+    app = seed()
+    row = valid_issue("ISS-BAD-SHIFT")
+    row["shift"] = "Swing"
+    result = app.create("Issues", row, "stage12-bad-shift")
+    assert result["status"] == "REJECTED"
+    assert any(error.code == "VAL-E006" and error.field == "shift" for error in result["errors"])

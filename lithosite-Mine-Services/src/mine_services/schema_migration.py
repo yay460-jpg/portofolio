@@ -94,6 +94,12 @@ def _validate_a3_result(workbook):
             if not rows or list(rows[0]) != list(additions):
                 raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
 
+    for entity in ("Issues", "HSE"):
+        values = list(workbook[entity].values)
+        expected = list(A2_HEADERS[entity]) + list(A3_HEADERS_ADDITIONS[entity])
+        if not values or list(values[0]) != expected:
+            raise SchemaMigrationError(f"HEADER_MISMATCH:{entity}")
+
     for entity in ("WorkFront", "Operations"):
         values = list(workbook[entity].values)
         expected = list(A2_HEADERS[entity])
@@ -119,7 +125,7 @@ def _validate_a3_result(workbook):
     # WorkFront and Operations now carry the A.3 appended fields.
     # The remaining A.2 domain sheets must retain their original headers.
     for entity in A2_DOMAIN_ENTITIES:
-        if entity in {"WorkFront", "Operations"}:
+        if entity in {"WorkFront", "Operations", "Issues", "HSE"}:
             continue
         values = list(workbook[entity].values)
         expected = list(A2_HEADERS[entity])
@@ -161,7 +167,7 @@ def migrate_a2_to_a3(source_path, target_path):
         ws = workbook.create_sheet(entity, index=workbook.sheetnames.index("Operations"))
         ws.append(A3_HEADERS_ADDITIONS[entity])
 
-    for entity in ("WorkFront", "Operations"):
+    for entity in ("WorkFront", "Operations", "Issues", "HSE"):
         ws = workbook[entity]
         additions = A3_HEADERS_ADDITIONS[entity]
         current = [cell.value for cell in ws[1]]

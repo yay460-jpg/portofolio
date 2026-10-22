@@ -52,6 +52,8 @@ def test_stage20_schema_migration_contract_uses_canonical_mapmarker_headers():
         header for header in HEADERS["Operations"]
         if header not in A2_HEADERS["Operations"] and header != "measurement"
     ]
+    assert A3_HEADERS_ADDITIONS["Issues"] == ["issue_time", "shift"]
+    assert A3_HEADERS_ADDITIONS["HSE"] == ["event_time", "shift"]
 
 
 def test_stage20_schema_migration_contract_is_explicit_and_machine_readable():

@@ -20,6 +20,8 @@ def valid_hse(hse_id="HSE-01"):
     return {
         "hse_id": hse_id,
         "event_date": "2026-09-30",
+        "event_time": "15:00",
+        "shift": "Day",
         "domain": "Road & Hauling",
         "work_front_id": "WF-HSE-01",
         "event_type": "Near Miss",
@@ -168,4 +170,29 @@ def test_hse_register_has_a_dedicated_evidence_view_column():
     assert "#hseScreen .evidence-cell .control.mini{height:24px;padding:3px 6px;font-size:8px;white-space:nowrap;flex:0 0 auto}" in css
     assert 'class="cell row-actions"><button class="control mini view show-map-hse"' in module
     assert 'row-actions"><button class="control mini view evidence-hse"' not in module
-    assert "grid-template-columns:105px 85px 100px 150px 85px 78px minmax(160px,1fr) 110px 80px 110px 64px 190px;min-width:1360px;" in css
+    assert "grid-template-columns:105px 80px 56px 62px 100px 140px 85px 78px minmax(160px,1fr) 100px 80px 110px 64px 190px;min-width:1410px;" in css
+
+
+
+def test_hse_requires_time_and_shift_for_new_records():
+    app = seed()
+    missing_time = valid_hse("HSE-MISSING-TIME")
+    missing_time.pop("event_time")
+    result = app.create("HSE", missing_time, "stage14-missing-time")
+    assert result["status"] == "REJECTED"
+    assert any(error.field == "event_time" for error in result["errors"])
+
+    missing_shift = valid_hse("HSE-MISSING-SHIFT")
+    missing_shift["shift"] = ""
+    result = app.create("HSE", missing_shift, "stage14-missing-shift")
+    assert result["status"] == "REJECTED"
+    assert any(error.field == "shift" for error in result["errors"])
+
+
+def test_hse_shift_uses_controlled_day_night_vocabulary():
+    app = seed()
+    row = valid_hse("HSE-BAD-SHIFT")
+    row["shift"] = "Swing"
+    result = app.create("HSE", row, "stage14-bad-shift")
+    assert result["status"] == "REJECTED"
+    assert any(error.code == "VAL-E006" and error.field == "shift" for error in result["errors"])
