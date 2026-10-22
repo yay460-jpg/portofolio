@@ -63,8 +63,8 @@ def test_linked_operations_assets_use_fresh_cache_keys():
     active_html = ACTIVE_ARTIFACT.read_text(encoding="utf-8")
     assert "maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll-2" in active_html
     assert "maintenance.js?v=20261022-maintenance-shift-links" in active_html
-    assert "operations.css?v=20261020-operations-graphics-slide-no-fade&rev=operations-timeline-label-align" in active_html
-    assert "operations.js?v=20261111-graphics-module&opsClose=20261019" in active_html
+    assert "operations.css?v=20261022-unit-timeline-five-row-scroll-1&rev=operations-timeline-label-align" in active_html
+    assert "operations.js?v=20261022-unit-timeline-five-row-scroll-1&opsClose=20261019" in active_html
 
 
 def test_maintenance_timeline_fits_modal_without_horizontal_scrollbar():
