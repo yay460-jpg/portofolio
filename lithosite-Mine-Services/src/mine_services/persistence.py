@@ -516,25 +516,43 @@ class PersistenceStore:
             worksheet = workbook[entity]
             current_headers = [cell.value for cell in worksheet[1]]
             expected_headers = list(self.schema.HEADERS[entity])
-            if current_headers == expected_headers:
-                continue
-            legacy_headers = [header for header in expected_headers if header not in added_fields]
-            if current_headers != legacy_headers:
-                raise ValueError(f"HEADER_MISMATCH:{entity}")
-            for header in added_fields:
-                worksheet.cell(row=1, column=worksheet.max_column + 1, value=header)
+            if current_headers != expected_headers:
+                legacy_headers = [header for header in expected_headers if header not in added_fields]
+                if current_headers != legacy_headers:
+                    raise ValueError(f"HEADER_MISMATCH:{entity}")
+                for header in added_fields:
+                    worksheet.cell(row=1, column=worksheet.max_column + 1, value=header)
+                changed = True
+
+            # A prior migration may have appended the headers outside the Excel
+            # Table object. Reconcile table ranges even when the worksheet headers
+            # already match, so new columns receive the table style and filters.
+            new_last_col = len(expected_headers)
+            for table in worksheet.tables.values():
+                try:
+                    min_col, min_row, max_col, max_row = range_boundaries(table.ref)
+                    if max_col < new_last_col:
+                        table.ref = (
+                            f"{get_column_letter(min_col)}{min_row}:"
+                            f"{get_column_letter(new_last_col)}{max_row}"
+                        )
+                        if table.autoFilter:
+                            table.autoFilter.ref = table.ref
+                        changed = True
+                except (TypeError, ValueError):
+                    pass
+
             if worksheet.auto_filter.ref:
                 try:
                     min_col, min_row, max_col, max_row = range_boundaries(worksheet.auto_filter.ref)
-                    new_last_col = worksheet.max_column
                     if max_col < new_last_col:
                         worksheet.auto_filter.ref = (
                             f"{get_column_letter(min_col)}{min_row}:"
                             f"{get_column_letter(new_last_col)}{max_row}"
                         )
+                        changed = True
                 except (TypeError, ValueError):
                     pass
-            changed = True
         return changed
 
     def load(self):
