@@ -26,6 +26,8 @@ def hse(hse_id="HSE-E2E-001"):
     return {
         "hse_id": hse_id,
         "event_date": "2026-10-02",
+        "event_time": "10:30",
+        "shift": "Day",
         "domain": "Road & Hauling",
         "work_front_id": None,
         "event_type": "Incident",

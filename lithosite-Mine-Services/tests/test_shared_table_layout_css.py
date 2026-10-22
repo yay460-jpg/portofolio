@@ -125,9 +125,9 @@ def test_filter_columns_and_module_exceptions_remain_local():
         ("equipment/equipment.css", "grid-template-columns:1.15fr 1.15fr 1.15fr 1fr 1fr 1fr auto"),
         ("workfront/workfront.css", "grid-template-columns:1.2fr 1.2fr 1fr 1fr 1fr auto"),
         ("maintenance/maintenance.css", "grid-template-columns:repeat(5,minmax(0,1fr)) auto"),
-        ("issues/issues.css", "grid-template-columns:1.1fr repeat(5,minmax(0,1fr)) auto"),
+        ("issues/issues.css", "grid-template-columns:1.1fr repeat(6,minmax(0,1fr)) auto"),
         ("plans/plans.css", "grid-template-columns:1fr 1fr 1.1fr 1.1fr 1fr auto"),
-        ("hse/hse.css", "grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto"),
+        ("hse/hse.css", "grid-template-columns:repeat(7,minmax(0,1fr)) auto"),
     )
     for relative, template in templates:
         module_css = compact(read(ROOT / "ui" / "modules" / relative))
