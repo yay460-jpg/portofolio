@@ -213,7 +213,9 @@ def test_hse_evidence_action_uses_the_hse_record_and_shared_viewer():
     assert 'data-evidence-id="' in HSE_JS
     assert "esc(r.hse_id)" in HSE_JS
     assert "LithositeEvidence.syncIndicators(host)" in HSE_JS
-    assert "grid-template-columns:105px 80px 56px 62px 100px 140px 85px 78px minmax(160px,1fr) 100px 80px 110px 64px 190px;min-width:1410px;" in HSE_CSS
+    assert "#hseScreen .hsetr{display:grid;grid-template-columns:minmax(0,.88fr)" in HSE_CSS
+    assert "width:100%;min-width:0;align-items:center}" in HSE_CSS
+    assert "min-width:1410px" not in HSE_CSS
     assert "result.evidence_cleanup_status==='FAILED'" in HSE_JS
 
 
