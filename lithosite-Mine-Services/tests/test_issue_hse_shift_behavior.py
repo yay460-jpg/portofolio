@@ -46,6 +46,15 @@ def test_issues_and_hse_registers_show_and_filter_shift():
     assert "(!shift||r.shift===shift)" in hse
 
 
+
+def test_hse_register_columns_fit_viewport_without_forced_horizontal_scroll():
+    css = (ROOT / "ui" / "modules" / "hse" / "hse.css").read_text(encoding="utf-8")
+
+    assert "#hseScreen .hsetr{" in css
+    assert "width:100%;min-width:0;align-items:center" in css
+    assert "min-width:1410px" not in css
+    assert "minmax(0,1.35fr)" in css
+
 def test_schema_and_runtime_migration_preserve_legacy_issue_hse_rows():
     schema = SCHEMA.read_text(encoding="utf-8")
     validation = VALIDATION.read_text(encoding="utf-8")
