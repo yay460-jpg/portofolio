@@ -124,13 +124,20 @@
   }
 
   function renderDowntime(root, maintenanceRows, haulingRows) {
-    const usedIds = new Set(haulingRows.map(function (row) { return String(row.equipment_id || '').trim(); }).filter(Boolean));
-    const haulingDates = new Set(haulingRows.map(function (row) { return String(row.transaction_date || '').slice(0, 10); }).filter(Boolean));
-    // Match maintenance to both a hauling unit and a date represented in the current hauling data.
-    // This prevents unrelated historical maintenance for the same unit inflating this card.
+    // Link maintenance to the same shift-anchored operating date, including Night events
+    // recorded after midnight on the next calendar date.
+    const haulingShiftKeys = new Set(haulingRows.map(function (row) {
+      const equipmentId = String(row.equipment_id || '').trim();
+      const operatingDate = timelineAnchorDate(row, 'transaction_date', 'transaction_time');
+      return equipmentId && /^\d{4}-\d{2}-\d{2}$/.test(operatingDate)
+        ? equipmentId + '|' + operatingDate
+        : '';
+    }).filter(Boolean));
     const linked = maintenanceRows.filter(function (row) {
-      return usedIds.has(String(row.equipment_id || '').trim()) &&
-        haulingDates.has(String(row.event_date || '').slice(0, 10));
+      const equipmentId = String(row.equipment_id || '').trim();
+      const operatingDate = timelineAnchorDate(row, 'event_date', 'start_time');
+      return !!equipmentId && /^\d{4}-\d{2}-\d{2}$/.test(operatingDate) &&
+        haulingShiftKeys.has(equipmentId + '|' + operatingDate);
     });
     const breakdown = sum(linked.filter(function (row) {
       return /breakdown|failure|jam/i.test(String(row.event_type || '') + ' ' + String(row.action || ''));
@@ -313,7 +320,7 @@
     const eligibleRows = [];
     haulingRows.forEach(function (row) {
       const equipmentId = String(row.equipment_id || '').trim();
-      const date = String(row.transaction_date || '').slice(0, 10);
+      const date = timelineAnchorDate(row, 'transaction_date', 'transaction_time');
       if (!equipmentId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
       const shift = String(row.shift || row.shift_name || '').trim().toLowerCase() || 'unspecified';
       const key = equipmentId + '|' + date + '|' + shift;

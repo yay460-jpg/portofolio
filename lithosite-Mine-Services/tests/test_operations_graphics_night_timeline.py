@@ -13,6 +13,8 @@ def test_unit_timeline_anchors_after_midnight_night_records_to_shift_start_date(
     assert "shift !== 'night' || minutes === null || minutes >= 12 * 60" in graphics
     assert "timelineAnchorDate(row, 'transaction_date', 'transaction_time')" in graphics
     assert "timelineAnchorDate(item, 'event_date', 'start_time') === latestDate" in graphics
+    assert "haulingShiftKeys.has(equipmentId + '|' + operatingDate)" in graphics
+    assert "const date = timelineAnchorDate(row, 'transaction_date', 'transaction_time');" in graphics
     assert "Night records after midnight stay attached to the calendar date when that shift began." in graphics
 
 
