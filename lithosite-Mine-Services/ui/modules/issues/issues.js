@@ -1,12 +1,15 @@
 (function(global){
 'use strict';
 const rc=global.LithositeRuntimeClient;
+const shiftTime=global.LithositeShiftTime;
 if(!rc) throw new Error('LithositeRuntimeClient is required before Stage 12 Issues');
+if(!shiftTime) throw new Error('LithositeShiftTime is required before Stage 12 Issues');
 
 const state={rows:[],workfronts:[],equipment:[],status:'loading'};
 let editId=null;
 let runtimeReady=false;
-const LISTS={domain:[],severity:[],status:[]};
+const LISTS={domain:[],severity:[],status:[],shift:[]};
+let lastShiftSuggestion='';
 
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function setMsg(text,error){const el=document.getElementById('issuesRuntimeMsg');if(el){el.textContent=text;el.classList.toggle('error',!!error);}}
@@ -52,13 +55,15 @@ async function loadLists(){
  LISTS.domain=Array.isArray(lists.service_domain)?lists.service_domain:[];
  LISTS.severity=Array.isArray(lists.issue_severity)?lists.issue_severity:[];
  LISTS.status=Array.isArray(lists.issue_status)?lists.issue_status:[];
- if(!LISTS.domain.length||!LISTS.severity.length||!LISTS.status.length)throw new Error('Controlled vocabulary _Lists is incomplete for Issues');
+ LISTS.shift=Array.isArray(lists.checker_shift)?lists.checker_shift:[];
+ if(!LISTS.domain.length||!LISTS.severity.length||!LISTS.status.length||!LISTS.shift.includes('Day')||!LISTS.shift.includes('Night'))throw new Error('Controlled vocabulary _Lists is incomplete for Issues / Shift');
  fillLists();
 }
 function fillLists(){
  fillSelect('issuesDomainFilter',LISTS.domain,'All domains');
  fillSelect('issuesSeverityFilter',LISTS.severity,'All severity');
  fillSelect('issuesStatusFilter',LISTS.status,'All status');
+ fillSelect('issuesShiftFilter',LISTS.shift,'All shifts');
  fillWorkFrontSelect('issuesWorkFrontFilter','All work fronts');
  fillEquipmentSelect('issuesEquipmentFilter','All equipment');
  fillSelect('f_issue_domain',LISTS.domain,'Select domain');
@@ -66,6 +71,7 @@ function fillLists(){
  fillEquipmentSelect('f_issue_equipment','None');
  fillSelect('f_issue_severity',LISTS.severity,'Select severity');
  fillSelect('f_issue_status',LISTS.status,'Select status');
+ fillSelect('f_issue_shift',LISTS.shift,'Select shift');
 }
 async function load(){
  if(!state.rows.length){state.status='loading';render();}
@@ -105,17 +111,44 @@ function filtered(){
  const eq=document.getElementById('issuesEquipmentFilter').value;
  const severity=document.getElementById('issuesSeverityFilter').value;
  const status=document.getElementById('issuesStatusFilter').value;
+ const shift=document.getElementById('issuesShiftFilter').value;
  return state.rows.filter(r=>
   (!id||String(r.issue_id||'').toLowerCase().includes(id))&&
   (!domain||r.domain===domain)&&
   (!wf||r.work_front_id===wf)&&
   (!eq||r.equipment_id===eq)&&
   (!severity||r.severity===severity)&&
-  (!status||r.status===status)
+  (!status||r.status===status)&&
+  (!shift||r.shift===shift)
  );
 }
 function severityClass(v){return String(v||'').toLowerCase().replace(/\s+/g,'-');}
 function statusClass(v){return String(v||'').toLowerCase().replace(/\s+/g,'-');}
+function shiftCell(date,time,shift){
+ const value=String(shift||'').trim();
+ const anchor=value?shiftTime.shiftAnchorDate(date,time,value):String(date||'');
+ const title=value?(anchor!==String(date||'')?'Shift start date '+anchor:'Shift date '+anchor):'Shift is not assigned';
+ return '<span class="shift-pill '+(value.toLowerCase()==='night'?'night':'day')+'" title="'+esc(title)+'">'+esc(value||'—')+'</span>';
+}
+function nowLocalTime(){return new Date().toTimeString().slice(0,5);}
+function syncShiftHint(){
+ const shift=document.getElementById('f_issue_shift')?.value||'';
+ const time=document.getElementById('f_issue_time')?.value||'';
+ const hint=document.getElementById('f_issue_shift_hint');
+ if(!hint)return;
+ const outside=shift&&time&&!shiftTime.isTimeInShift(shift,time);
+ hint.textContent=outside?'Time is outside the active '+shift+' window. '+shiftTime.describeShift(shift):(shift?shiftTime.describeShift(shift):shiftTime.describeShift('Day')+' / '+shiftTime.describeShift('Night'));
+ hint.classList.toggle('error',!!outside);
+}
+function syncShiftFromTime(){
+ const time=document.getElementById('f_issue_time')?.value||'';
+ const select=document.getElementById('f_issue_shift');
+ if(!select)return;
+ const suggested=shiftTime.suggestShift(time);
+ if(!select.value||select.value===lastShiftSuggestion)select.value=suggested;
+ lastShiftSuggestion=suggested;
+ syncShiftHint();
+}
 function render(){
  const host=document.getElementById('issuesRows');if(!host)return;
  if(state.status==='loading')host.innerHTML='<div class="empty">Loading Issues from RuntimeAdapter…</div>';
@@ -125,6 +158,8 @@ function render(){
   host.innerHTML=rows.length?rows.map(r=>'<div class="tr td">'+
    '<div class="cell">'+esc(r.issue_id)+'</div>'+
    '<div class="cell">'+esc(r.issue_date)+'</div>'+
+   '<div class="cell">'+esc(r.issue_time||'—')+'</div>'+
+   '<div class="cell">'+shiftCell(r.issue_date,r.issue_time,r.shift)+'</div>'+
    '<div class="cell">'+esc(r.domain)+'</div>'+
    '<div class="cell">'+esc(workFrontLabel(r.work_front_id))+'</div>'+
    '<div class="cell">'+esc(equipmentLabel(r.equipment_id))+'</div>'+
@@ -152,6 +187,10 @@ function resetForm(){
  const d=nowLocalDate();
  document.getElementById('f_issue_id').value='ISS-'+d.replaceAll('-','')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
  document.getElementById('f_issue_date').value=d;
+ document.getElementById('f_issue_time').value=nowLocalTime();
+ document.getElementById('f_issue_shift').value='';
+ lastShiftSuggestion='';
+ syncShiftFromTime();
  document.getElementById('f_issue_domain').value=LISTS.domain[0]||'';
  document.getElementById('f_issue_work_front').value='';
  document.getElementById('f_issue_equipment').value='';
@@ -174,13 +213,15 @@ function openEdit(id){
  document.getElementById('issuesModalTitle').textContent='Edit Issue';
  document.getElementById('issuesSave').textContent='Update via RuntimeAdapter';
  const map={
-  f_issue_id:row.issue_id,f_issue_date:row.issue_date,f_issue_domain:row.domain,
+  f_issue_id:row.issue_id,f_issue_date:row.issue_date,f_issue_time:row.issue_time,f_issue_shift:row.shift,f_issue_domain:row.domain,
   f_issue_work_front:row.work_front_id,f_issue_equipment:row.equipment_id,
   f_issue_description:row.description,f_issue_severity:row.severity,
   f_issue_status:row.status,f_issue_assigned_to:row.assigned_to,
   f_issue_closed_at:row.closed_at?String(row.closed_at).slice(0,16):''
  };
  Object.entries(map).forEach(([id,v])=>document.getElementById(id).value=v??'');
+ lastShiftSuggestion=shiftTime.suggestShift(row.issue_time);
+ syncShiftHint();
  global.LithositeModalShowContract.show('issuesModal');
 }
 function payload(){
@@ -188,6 +229,8 @@ function payload(){
  return {
   issue_id:document.getElementById('f_issue_id').value,
   issue_date:document.getElementById('f_issue_date').value,
+  issue_time:document.getElementById('f_issue_time').value,
+  shift:document.getElementById('f_issue_shift').value,
   domain:document.getElementById('f_issue_domain').value,
   work_front_id:document.getElementById('f_issue_work_front').value||null,
   equipment_id:document.getElementById('f_issue_equipment').value||null,
@@ -201,8 +244,11 @@ function payload(){
 async function save(){
  if(!runtimeReady){setMsg('RuntimeAdapter is not connected. Start desktop-host/server.py first.',true);return;}
  const row=payload();
- if(!row.issue_date||!row.description||!row.severity||!row.status){
-  setMsg('Issue Date, Description, Severity and Status are required.',true);return;
+ if(!row.issue_date||!row.issue_time||!row.shift||!row.description||!row.severity||!row.status){
+  setMsg('Issue Date, Issue Time, Shift, Description, Severity and Status are required.',true);return;
+ }
+ if(!shiftTime.isTimeInShift(row.shift,row.issue_time)){
+  setMsg('Issue Time '+row.issue_time+' falls outside the selected shift. '+shiftTime.describeShift(row.shift)+'. Check the KPI Time Console policy.',true);return;
  }
  if(row.status==='Closed'&&!row.closed_at){
   setMsg('Closed At is required when Status is Closed.',true);return;
@@ -230,12 +276,15 @@ function bind(){
  document.getElementById('issuesClose').onclick=()=>global.LithositeModalShowContract.close('issuesModal');
  document.getElementById('issuesCancel').onclick=()=>global.LithositeModalShowContract.close('issuesModal');
  document.getElementById('issuesClear').onclick=()=>{
-  ['issuesIdFilter','issuesDomainFilter','issuesWorkFrontFilter','issuesEquipmentFilter','issuesSeverityFilter','issuesStatusFilter'].forEach(id=>document.getElementById(id).value='');
+  ['issuesIdFilter','issuesDomainFilter','issuesWorkFrontFilter','issuesEquipmentFilter','issuesSeverityFilter','issuesStatusFilter','issuesShiftFilter'].forEach(id=>document.getElementById(id).value='');
   render();
  };
- ['issuesIdFilter','issuesDomainFilter','issuesWorkFrontFilter','issuesEquipmentFilter','issuesSeverityFilter','issuesStatusFilter'].forEach(id=>{
+ ['issuesIdFilter','issuesDomainFilter','issuesWorkFrontFilter','issuesEquipmentFilter','issuesSeverityFilter','issuesStatusFilter','issuesShiftFilter'].forEach(id=>{
   const e=document.getElementById(id);e.addEventListener('input',render);e.addEventListener('change',render);
  });
+ document.getElementById('f_issue_time').addEventListener('change',syncShiftFromTime);
+ document.getElementById('f_issue_time').addEventListener('input',syncShiftFromTime);
+ document.getElementById('f_issue_shift').addEventListener('change',syncShiftHint);
  document.getElementById('f_issue_status').addEventListener('change',()=>{
   const status=document.getElementById('f_issue_status').value;
   const closed=document.getElementById('f_issue_closed_at');

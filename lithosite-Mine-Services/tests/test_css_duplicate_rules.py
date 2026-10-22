@@ -133,7 +133,7 @@ def test_active_artifact_refreshes_only_affected_css_cache_keys():
     assert "../ui/modules/operations/operations.css?v=20261022-repair-hours-independent-tracks-2" in html
     assert "../ui/modules/equipment/equipment.css?v=20261019-equipment-ratio-bar" in html
     assert "../ui/modules/maintenance/maintenance.css?v=20261022-timeline-fit-no-horizontal-scroll-2" in html
-    assert "../ui/modules/hse/hse.css?v=20261021-hse-14inch-fit" in html
+    assert "../ui/modules/hse/hse.css?v=20261022-hse-shift-time-1" in html
     assert "../ui/modules/reports/reports.css?v=20261022-kpi-reset-confirm-modal-21" in html
 
     operations = OPERATIONS.read_text(encoding="utf-8")
