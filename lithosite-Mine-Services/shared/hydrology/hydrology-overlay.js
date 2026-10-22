@@ -141,6 +141,13 @@
         if(!valid[i]||flowTo[i]<0||accum[i]<segmentThreshold)continue;
         var dest=flowTo[i];
         if(dest>=size||!valid[dest]||accum[dest]<segmentThreshold)continue;
+        // Keep the visual flow overlay away from the raster grid perimeter.
+        // Edge-cell paths can visually trace the terrain silhouette even when
+        // the underlying D8 routing result is valid.
+        var row=Math.floor(i/grid.cols),col=i%grid.cols;
+        var destRow=Math.floor(dest/grid.cols),destCol=dest%grid.cols;
+        if(row===0||col===0||row===grid.rows-1||col===grid.cols-1||
+           destRow===0||destCol===0||destRow===grid.rows-1||destCol===grid.cols-1)continue;
         candidates.push({from:i,to:dest,accumulation:accum[i]});
       }
       if(candidates.length>MAX_SEGMENTS){
