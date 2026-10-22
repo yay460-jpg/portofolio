@@ -86,15 +86,21 @@ def test_stage36_equipment_unit_column():
 
 def test_stage36_console_policy_persists_across_reload():
     reports = read("ui/modules/reports/reports.js")
+    html = read("Artifacts/Mine-Services-Operations.html")
     assert "POLICY_STORAGE_KEY" in reports
     assert "global.localStorage.getItem(POLICY_STORAGE_KEY)" in reports
     assert "global.localStorage.setItem(POLICY_STORAGE_KEY" in reports
     assert "state.policy=loadStoredPolicy()" in reports
     assert "persistPolicy(state.policy)" in reports
-    assert "No runtime policy changes occur until Apply Policy Set." in reports
+    assert "No runtime policy changes occur until you click Apply Policy Set." in html
 
 
 def test_stage36_console_reset_warns_before_replacing_policy_selection():
     reports = read("ui/modules/reports/reports.js")
-    assert "global.confirm('Reset Policy Set to the project default?" in reports
+    html = read("Artifacts/Mine-Services-Operations.html")
     assert "samePolicy(state.policy,DEFAULT_POLICY)" in reports
+    assert "global.confirm('Reset Policy Set to the project default?" not in reports
+    assert "LithositeModalShowContract.show('reportsResetConfirmModal')" in reports
+    assert 'id="reportsResetConfirmModal" class="modalback" aria-hidden="true"' in html
+    assert "The current selection will be replaced." in html
+    assert "No runtime policy changes occur until you click Apply Policy Set." in html
