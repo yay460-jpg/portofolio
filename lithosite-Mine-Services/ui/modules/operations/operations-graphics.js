@@ -217,13 +217,12 @@
   function renderTimeline(root, haulingRows, equipmentRows, maintenanceRows) {
     const panel = root.querySelector('.operations-timeline-panel');
     if (!panel) return;
-    // Each 06:00–18:00 track represents one operating day. Pick the latest
-    // validated hauling date per unit, so a newer record for one unit cannot
-    // hide other units whose latest hauling records are on earlier dates.
+    // A row represents the full 06:00-to-06:00 operating cycle. Anchor after-midnight
+    // Night records to the previous calendar date before choosing the latest cycle.
     const grouped = new Map();
     haulingRows.forEach(function (row) {
       const id = String(row.equipment_id || '').trim();
-      const date = String(row.transaction_date || '').slice(0, 10);
+      const date = timelineAnchorDate(row, 'transaction_date', 'transaction_time');
       if (!id || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
       if (!grouped.has(id)) grouped.set(id, []);
       grouped.get(id).push(row);
@@ -231,16 +230,19 @@
     const unitRows = Array.from(grouped.entries()).map(function (entry) {
       const equipment = equipmentRows.find(function (item) { return String(item.equipment_id || '').trim() === entry[0]; }) || {};
       const latestDate = entry[1].map(function (row) {
-        return String(row.transaction_date || '').slice(0, 10);
+        return timelineAnchorDate(row, 'transaction_date', 'transaction_time');
       }).sort().slice(-1)[0];
       const rows = entry[1].filter(function (row) {
-        return String(row.transaction_date || '').slice(0, 10) === latestDate;
+        return timelineAnchorDate(row, 'transaction_date', 'transaction_time') === latestDate;
       }).sort(function (a, b) {
-        return String(a.transaction_time || '').localeCompare(String(b.transaction_time || ''));
+        const aOffset = timelineOffsetMinutes(a.transaction_time);
+        const bOffset = timelineOffsetMinutes(b.transaction_time);
+        return (aOffset === null ? Number.MAX_SAFE_INTEGER : aOffset) -
+          (bOffset === null ? Number.MAX_SAFE_INTEGER : bOffset);
       });
       const events = maintenanceRows.filter(function (item) {
         return String(item.equipment_id || '').trim() === entry[0] &&
-          String(item.event_date || '').slice(0, 10) === latestDate;
+          timelineAnchorDate(item, 'event_date', 'start_time') === latestDate;
       });
       return { id: entry[0], label: String(equipment.unit_no || entry[0]), date: latestDate, rows: rows, events: events };
     });
@@ -248,7 +250,7 @@
     if (title) {
       title.replaceChildren(document.createTextNode('Unit Timeline '));
       const sub = document.createElement('span');
-      sub.textContent = unitRows.length ? 'Green activity · orange repairing · red breakdown' : 'No validated hauling records';
+      sub.textContent = unitRows.length ? '24 h cycle · Day and Night' : 'No validated hauling records';
       title.appendChild(sub);
     }
     panel.querySelectorAll('.operations-timeline-row').forEach(function (node) { node.remove(); });
