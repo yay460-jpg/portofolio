@@ -59,3 +59,6 @@ def test_schema_and_runtime_migration_preserve_legacy_issue_hse_rows():
     assert '"HSE": {"event_time"}' in validation
     assert "_migrate_a3_issue_hse_shift_time" in persistence
     assert "never guesses a shift from date or time" in persistence
+    assert "for table in worksheet.tables.values()" in persistence
+    assert "table.autoFilter.ref = table.ref" in persistence
+    assert "new_last_col = len(expected_headers)" in persistence
