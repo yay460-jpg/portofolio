@@ -109,3 +109,24 @@ body.viewport-test-mode #issuesScreen .row-actions .mini{
 #issuesScreen .shift-pill{display:inline-flex;align-items:center;justify-content:center;padding:3px 7px;border-radius:999px;font-size:8px;font-weight:700;line-height:1.2}
 #issuesScreen .shift-pill.day{background:#123d2b;color:#4ade80}
 #issuesScreen .shift-pill.night{background:#123451;color:#7dd3fc}
+
+/* Keep Issues Register inside its panel at normal desktop sizes too. */
+#issuesScreen .grid{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  overflow-x:hidden;
+  scrollbar-width:none;
+}
+#issuesScreen .grid::-webkit-scrollbar{display:none}
+#issuesScreen .tr{width:100%;min-width:0}
+#issuesScreen .cell{
+  min-width:0;
+  padding-left:4px;
+  padding-right:4px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#issuesScreen .row-actions{min-width:0;gap:3px}
+#issuesScreen .row-actions .mini{min-width:0;padding-left:4px;padding-right:4px}
