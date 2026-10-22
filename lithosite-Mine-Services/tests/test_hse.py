@@ -170,7 +170,9 @@ def test_hse_register_has_a_dedicated_evidence_view_column():
     assert "#hseScreen .evidence-cell .control.mini{height:24px;padding:3px 6px;font-size:8px;white-space:nowrap;flex:0 0 auto}" in css
     assert 'class="cell row-actions"><button class="control mini view show-map-hse"' in module
     assert 'row-actions"><button class="control mini view evidence-hse"' not in module
-    assert "grid-template-columns:105px 80px 56px 62px 100px 140px 85px 78px minmax(160px,1fr) 100px 80px 110px 64px 190px;min-width:1410px;" in css
+    assert "#hseScreen .hsetr{display:grid;grid-template-columns:minmax(0,.88fr)" in css
+    assert "width:100%;min-width:0;align-items:center}" in css
+    assert "min-width:1410px" not in css
 
 
 
