@@ -353,11 +353,23 @@
     function isRainfallEnabled(){return rainfallEnabled;}
     function getRainfallOptions(){return {mode:rainMode,windSpeedKmh:windSpeedKmh,windDirection:windDirection};}
     function isVisible(){return visible&&!canvas.hidden;}
+    function clearCanvasBackingStore(layer,context,size){
+      // Recreate the bitmap to force a full transparent backing-store reset.
+      // This is more robust than clearRect alone if an embedded WebView retains
+      // stale pixels from a composited canvas layer.
+      var width=layer.width,height=layer.height;
+      layer.width=width;layer.height=height;
+      context.setTransform(dpr,0,0,dpr,0,0);
+      context.clearRect(0,0,size.width,size.height);
+    }
     function clear(){
       stopAnimationLoop();
       analysis=null;segments=[];particleTracks=[];segmentThreshold=0;drawnSegmentCount=0;
       animationEnabled=false;rainfallEnabled=false;particleCanvas.hidden=true;rainCanvas.hidden=true;lastSignature='';
-      var size=ensureCanvasSize();ctx.clearRect(0,0,size.width,size.height);particleCtx.clearRect(0,0,size.width,size.height);rainCtx.clearRect(0,0,size.width,size.height);
+      var size=ensureCanvasSize();
+      clearCanvasBackingStore(canvas,ctx,size);
+      clearCanvasBackingStore(particleCanvas,particleCtx,size);
+      clearCanvasBackingStore(rainCanvas,rainCtx,size);
     }
     function getStats(){
       return {
