@@ -15,8 +15,11 @@ def test_offline_status_dot_pulses_smoothly_every_fifteen_seconds():
     status = read(STATUS)
 
     assert 'class="ok offline-pulse" id="runtimeStatusDot"' in html
+    offline_pulse = html.split("@keyframes runtime-offline-pulse{", 1)[1].split("}", 1)[0]
     assert "@keyframes runtime-offline-pulse" in html
     assert "animation:runtime-offline-pulse 15s ease-in-out infinite" in html
+    assert "box-shadow" not in offline_pulse
+    assert "text-shadow:0 0 4px rgba(74,222,128,.75)" in offline_pulse
     assert "statusDot.classList.toggle('offline-pulse',offline)" in status
     assert "statusDot.classList.add('offline-pulse')" in status
     assert "runtime-status.js?v=20261022-runtime-indicator-pulse-1" in html
