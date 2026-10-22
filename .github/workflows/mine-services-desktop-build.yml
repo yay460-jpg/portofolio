@@ -1,4 +1,5 @@
 name: Mine Services Windows Desktop Installer
+# Rebuild installer to validate the latest v43-workspace hydrology overlay fix
 
 on:
   workflow_dispatch:
