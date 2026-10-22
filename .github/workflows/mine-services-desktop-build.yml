@@ -24,7 +24,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13.17"
           cache: pip
           cache-dependency-path: lithosite-Mine-Services/packaging/requirements-build.txt
 
@@ -38,7 +38,11 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force packaging/redist | Out-Null
           $runtime = Join-Path (Get-Location) "packaging/redist/MicrosoftEdgeWebView2RuntimeInstallerX64.exe"
-          Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile $runtime
+          Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2124701" -OutFile $runtime
+          $runtimeInfo = Get-Item $runtime
+          if ($runtimeInfo.Length -lt 50MB) {
+            throw "Downloaded WebView2 package is too small to be the Evergreen Standalone Installer."
+          }
           $signature = Get-AuthenticodeSignature $runtime
           if ($signature.Status -ne "Valid" -or $signature.SignerCertificate.Subject -notmatch "Microsoft") {
             throw "WebView2 installer signature could not be validated as Microsoft-signed."
