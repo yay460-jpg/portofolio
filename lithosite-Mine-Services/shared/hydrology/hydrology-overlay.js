@@ -347,14 +347,14 @@
       if(destroyed)return false;
       options=options||{};
       var mode=String(options.mode||rainMode);
-      if(['falling','terrain','both'].indexOf(mode)<0)mode='both';
+      if(['falling','terrain','both','none'].indexOf(mode)<0)mode='both';
       rainMode=mode;
       var speed=Number(options.windSpeedKmh);
       if(Number.isFinite(speed))windSpeedKmh=Math.max(0,Math.min(35,speed));
       var direction=String(options.windDirection||windDirection).toUpperCase();
       if(['N','NE','E','SE','S','SW','W','NW'].indexOf(direction)>=0)windDirection=direction;
       rainDrops.forEach(function(drop){var next=makeRainDrop(false);drop.length=next.length;drop.speed=next.speed;drop.drift=next.drift;drop.slant=next.slant;drop.alpha=next.alpha;});
-      if(analysis&&typeof global.requestAnimationFrame==='function')setRainfallEnabled(true);
+      if(analysis&&typeof global.requestAnimationFrame==='function')setRainfallEnabled(rainMode!=='none');
       return {mode:rainMode,windSpeedKmh:windSpeedKmh,windDirection:windDirection};
     }
     function isRainfallEnabled(){return rainfallEnabled;}
