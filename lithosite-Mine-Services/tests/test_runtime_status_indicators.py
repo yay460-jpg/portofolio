@@ -15,7 +15,7 @@ def test_offline_status_dot_pulses_smoothly_every_fifteen_seconds():
     status = read(STATUS)
 
     assert 'class="ok offline-pulse" id="runtimeStatusDot"' in html
-    offline_pulse = html.split("@keyframes runtime-offline-pulse{", 1)[1].split("}", 1)[0]
+    offline_pulse = html.split("@keyframes runtime-offline-pulse{", 1)[1].split("@keyframes runtime-recorded-pulse{", 1)[0]
     assert "@keyframes runtime-offline-pulse" in html
     assert "animation:runtime-offline-pulse 15s ease-in-out infinite" in html
     assert "box-shadow" not in offline_pulse
