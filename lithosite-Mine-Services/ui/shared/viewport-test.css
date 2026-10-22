@@ -1,14 +1,14 @@
 /* Temporary viewport simulator for 14-inch layout inspection. Remove after responsive QA. */
 .viewport-test-toggle{
-  width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;
+  width:32px;height:32px;flex:0 0 32px;display:grid;place-items:center;
   border:1px solid #29445f;border-radius:50%;background:#10263d;color:#dbeafe;
   padding:0;cursor:pointer;transition:background .15s,border-color .15s;
 }
 .viewport-test-toggle:hover{background:#173451;border-color:#4d8dff}
 .viewport-test-toggle:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
 .viewport-test-toggle[aria-pressed="true"]{background:#1d4ed8;border-color:#60a5fa;color:#fff}
-.viewport-test-toggle svg{width:16px;height:16px;display:block}
-.topbar .viewport-test-toggle{margin-left:10px}
+.viewport-test-toggle svg{width:14px;height:14px;display:block}
+.topbar .viewport-test-toggle{margin-left:8px}
 .topbar .topmeta{margin-left:auto}
 @media(prefers-reduced-motion:reduce){
   .viewport-test-toggle{transition:none}
