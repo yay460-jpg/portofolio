@@ -55,6 +55,18 @@ def test_hse_register_columns_fit_viewport_without_forced_horizontal_scroll():
     assert "min-width:1410px" not in css
     assert "minmax(0,1.35fr)" in css
 
+
+def test_issues_register_columns_fit_viewport_without_horizontal_scrollbar():
+    css = (ROOT / "ui" / "modules" / "issues" / "issues.css").read_text(encoding="utf-8")
+    artifact = ARTIFACT.read_text(encoding="utf-8")
+
+    assert "#issuesScreen .tr{display:grid;" in css
+    assert "width:100%;min-width:0;align-items:center" in css
+    assert "#issuesScreen .grid{\n  width:100%;" in css
+    assert "overflow-x:hidden;" in css
+    assert "min-width:1418px" not in css
+    assert "issues.css?v=20261022-issues-columns-fit-1" in artifact
+
 def test_schema_and_runtime_migration_preserve_legacy_issue_hse_rows():
     schema = SCHEMA.read_text(encoding="utf-8")
     validation = VALIDATION.read_text(encoding="utf-8")
